@@ -73,11 +73,10 @@ IMAP_SERVER = "imap.mail.me.com"
 IMAP_PORT   = 993
 
 # Webull OpenAPI v2 — production endpoints
-# api.webull.com        → trading, auth, balance, quotes  → HMAC-SHA1
-# quotes-api.webull.com → alternative market data host    → HMAC-SHA1
-# data-api.webull.com   → market data (some regions)      → HMAC-SHA256
+# api.webull.com      → trading, auth, balance  → HMAC-SHA1
+# data-api.webull.com → quotes, bars            → HMAC-SHA256
 TRADING_HOST    = "api.webull.com"
-MARKET_HOST     = "api.webull.com"     # use same host as trading; avoids firewall issues
+MARKET_HOST     = "data-api.webull.com"
 TRADING_URL     = f"https://{TRADING_HOST}"
 MARKET_URL      = f"https://{MARKET_HOST}"
 
@@ -515,27 +514,31 @@ def get_account_balance():
     """Get available cash from Webull account."""
     account_id = WEBULL_ACCOUNT_ID
 
-    # If WEBULL_ACCOUNT_ID is not set, try to discover it
-    if not account_id:
-        account_id = _discover_account_id() or ""
+    # Try several balance endpoint variations
+    attempts = []
+    if account_id:
+        attempts.append(("/openapi/assets/balance",        {"account_id": account_id}))
+        attempts.append(("/openapi/assets/account/balance",{"account_id": account_id}))
+    attempts.append(("/openapi/assets/balance",        None))
+    attempts.append(("/openapi/account/list",           None))
 
-    try:
-        path   = "/openapi/assets/balance"
-        params = {"account_id": account_id} if account_id else {}
-        resp   = _get(path, query_params=params or None)
-        if resp.status_code != 200:
-            # Print full response so we can see the exact error from Webull
-            print(f"⚠️  Balance fetch error: {resp.status_code} {resp.reason}")
-            print(f"    Response body: {resp.text[:500]}")
-            return 100.0
-        data = resp.json().get("data", {})
-        # Try multiple possible field names
-        cash = (data.get("cash_balance") or data.get("cashBalance") or
-                data.get("available_cash") or data.get("availableFunds") or
-                data.get("net_liquidation") or 0)
-        return float(cash) if cash else 100.0
-    except Exception as e:
-        print(f"⚠️  Balance fetch error: {e}")
+    for path, params in attempts:
+        try:
+            resp = _get(path, query_params=params)
+            print(f"    Balance attempt {path} → HTTP {resp.status_code}: {resp.text[:200]}")
+            if resp.status_code == 200:
+                raw  = resp.json()
+                data = raw.get("data", raw)
+                if isinstance(data, list):
+                    data = data[0] if data else {}
+                cash = (data.get("cash_balance") or data.get("cashBalance") or
+                        data.get("available_cash") or data.get("availableFunds") or
+                        data.get("net_liquidation") or 0)
+                if cash:
+                    return float(cash)
+        except Exception as e:
+            print(f"    Balance attempt {path} → error: {e}")
+
     return 100.0
 
 

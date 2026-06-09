@@ -194,7 +194,24 @@ def read_todays_tickers():
 
         latest = messages[0].split()[-1]
         _, msg_data = mail.fetch(latest, "(RFC822)")
-        msg = email.message_from_bytes(msg_data[0][1])
+
+        # iCloud returns a flat list of bytes; Gmail returns a list of tuples.
+        # Handle both formats robustly.
+        raw_email = None
+        for part in msg_data:
+            if isinstance(part, tuple):
+                raw_email = part[1]   # Gmail-style: (header_bytes, email_bytes)
+                break
+        if raw_email is None:
+            # iCloud-style: flat list — find the largest bytes chunk (the actual email)
+            raw_email = max(
+                (p for p in msg_data if isinstance(p, bytes)),
+                key=len, default=None
+            )
+        if not raw_email:
+            raise ValueError(f"Could not parse email from IMAP response: {msg_data}")
+
+        msg = email.message_from_bytes(raw_email)
 
         subject = msg["subject"] or ""
         body = ""

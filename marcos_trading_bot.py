@@ -262,7 +262,7 @@ def get_premarket_data(ticker):
     try:
         path    = "/quotes/ticker/getTickerRealTime"
         params  = {"symbol": ticker, "regionId": 6}
-        url     = f"https://openapi.webull.com{path}"
+        url     = f"https://api.webull.com{path}"
         headers = _webull_headers("GET", path)
         resp    = requests.get(url, headers=headers, params=params, timeout=10)
         d       = resp.json().get("data", {})
@@ -285,7 +285,7 @@ def get_premarket_data(ticker):
 def get_account_balance():
     try:
         path    = f"/paper/trading/v2/account/{WEBULL_ACCOUNT_ID}/positions"
-        url     = f"https://openapi.webull.com{path}"
+        url     = f"https://api.webull.com{path}"
         headers = _webull_headers("GET", path)
         resp    = requests.get(url, headers=headers, timeout=10)
         data    = resp.json()
@@ -300,7 +300,7 @@ def _get_price_rest(ticker) -> float:
     try:
         path    = "/quotes/ticker/getTickerRealTime"
         params  = {"symbol": ticker, "regionId": 6}
-        url     = f"https://openapi.webull.com{path}"
+        url     = f"https://api.webull.com{path}"
         headers = _webull_headers("GET", path)
         resp    = requests.get(url, headers=headers, params=params, timeout=10)
         data    = resp.json()
@@ -314,7 +314,7 @@ def get_intraday_bars(ticker, count=30):
     try:
         path    = "/quotes/ticker/getTickerChart"
         params  = {"symbol": ticker, "type": "m1", "count": count, "regionId": 6}
-        url     = f"https://openapi.webull.com{path}"
+        url     = f"https://api.webull.com{path}"
         headers = _webull_headers("GET", path)
         resp    = requests.get(url, headers=headers, params=params, timeout=10)
         data    = resp.json()
@@ -526,7 +526,7 @@ def execute_trade(ticker, shares, entry_price, stop_loss, target):
     print(f"🚀 Executing: BUY {shares} shares of {ticker} @ ${entry_price:.2f}...")
     try:
         path = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order"
-        url  = f"https://openapi.webull.com{path}"
+        url  = f"https://api.webull.com{path}"
 
         buy_body = json.dumps({
             "symbol": ticker, "action": "BUY",
@@ -554,7 +554,7 @@ def close_position(ticker, shares):
     print(f"🔒 Closing: SELL {shares} shares of {ticker}...")
     try:
         path = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order"
-        url  = f"https://openapi.webull.com{path}"
+        url  = f"https://api.webull.com{path}"
         body = json.dumps({
             "symbol": ticker, "action": "SELL",
             "orderType": "MKT", "quantity": shares,
@@ -575,7 +575,7 @@ def cancel_order(order_id):
         return False
     try:
         path    = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order/{order_id}/cancel"
-        url     = f"https://openapi.webull.com{path}"
+        url     = f"https://api.webull.com{path}"
         headers = _webull_headers("DELETE", path)
         resp    = requests.delete(url, headers=headers, timeout=10)
         if resp.json().get("success"):
@@ -594,7 +594,7 @@ def place_stop_order(ticker, shares, stop_price):
     """
     try:
         path = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order"
-        url  = f"https://openapi.webull.com{path}"
+        url  = f"https://api.webull.com{path}"
         body = json.dumps({
             "symbol": ticker, "action": "SELL",
             "orderType": "STP", "quantity": shares,

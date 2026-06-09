@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "python marcos_trading_bot.py"
+restartPolicyType = "never"
+
+[cron]
+schedule = "45 8 * * 1-5"
+# Runs at 8:45am ET (UTC-4 in summer = 12:45 UTC)
+# Monday through Friday only
+# Automatically skips weekends

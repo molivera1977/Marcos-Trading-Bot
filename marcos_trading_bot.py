@@ -201,10 +201,16 @@ def read_todays_tickers():
         if msg.is_multipart():
             for part in msg.walk():
                 if part.get_content_type() == "text/plain":
-                    body = part.get_payload(decode=True).decode()
+                    payload = part.get_payload(decode=True)
+                    if isinstance(payload, bytes):
+                        body = payload.decode("utf-8", errors="ignore")
                     break
         else:
-            body = msg.get_payload(decode=True).decode()
+            payload = msg.get_payload(decode=True)
+            if isinstance(payload, bytes):
+                body = payload.decode("utf-8", errors="ignore")
+            elif isinstance(payload, str):
+                body = payload
 
         full_content = f"Subject: {subject}\n\nBody: {body}"
         print(f"✅ Found watchlist email: {subject}")

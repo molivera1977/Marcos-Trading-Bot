@@ -26,8 +26,8 @@ SETUP INSTRUCTIONS:
   WEBULL_APP_SECRET     = your Webull App Secret
   WEBULL_APP_ID         = 961252838594318336
   WEBULL_ACCOUNT_ID     = your Webull account ID
-  GMAIL_ADDRESS         = marcostrades2026@gmail.com
-  GMAIL_APP_PASSWORD    = your Gmail app password
+  EMAIL_ADDRESS         = marcostrades2026@gmail.com
+  EMAIL_APP_PASSWORD    = your Gmail app password
   ANTHROPIC_API_KEY     = your Claude API key
   SUMMARY_EMAIL         = molivera1977@gmail.com
 """
@@ -58,10 +58,16 @@ WEBULL_APP_KEY     = os.environ.get("WEBULL_APP_KEY")
 WEBULL_APP_SECRET  = os.environ.get("WEBULL_APP_SECRET")
 WEBULL_APP_ID      = os.environ.get("WEBULL_APP_ID", "961252838594318336")
 WEBULL_ACCOUNT_ID  = os.environ.get("WEBULL_ACCOUNT_ID")
-GMAIL_ADDRESS      = os.environ.get("GMAIL_ADDRESS", "marcostrades2026@gmail.com")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
+EMAIL_ADDRESS      = os.environ.get("EMAIL_ADDRESS", "molivera1977@icloud.com")
+EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD")
 ANTHROPIC_API_KEY  = os.environ.get("ANTHROPIC_API_KEY")
 SUMMARY_EMAIL      = os.environ.get("SUMMARY_EMAIL", "molivera1977@gmail.com")
+
+# iCloud mail servers
+IMAP_SERVER = "imap.mail.me.com"
+IMAP_PORT   = 993
+SMTP_SERVER = "smtp.mail.me.com"
+SMTP_PORT   = 587
 
 # Trading rules
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade
@@ -175,8 +181,8 @@ class WebullStream:
 def read_todays_tickers():
     print("📧 Checking Gmail for tonight's watchlist...")
     try:
-        mail = imaplib.IMAP4_SSL("imap.gmail.com")
-        mail.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
+        mail.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
         mail.select("inbox")
 
         since_date = (datetime.now() - timedelta(days=1)).strftime("%d-%b-%Y")
@@ -756,13 +762,14 @@ def send_alert_email(subject, body):
     print(f"📲 Sending alert: {subject}")
     try:
         msg = MIMEMultipart()
-        msg["From"]    = GMAIL_ADDRESS
+        msg["From"]    = EMAIL_ADDRESS
         msg["To"]      = SUMMARY_EMAIL
         msg["Subject"] = subject
         footer = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nMarcos Trading Bot | Railway.app"
         msg.attach(MIMEText(body + footer, "plain"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
             server.send_message(msg)
         print(f"✅ Alert sent!")
     except Exception as e:
@@ -944,12 +951,13 @@ Railway.app
 
     try:
         msg = MIMEMultipart()
-        msg["From"]    = GMAIL_ADDRESS
+        msg["From"]    = EMAIL_ADDRESS
         msg["To"]      = SUMMARY_EMAIL
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
             server.send_message(msg)
         print(f"✅ Summary email sent!")
     except Exception as e:

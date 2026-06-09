@@ -36,7 +36,6 @@ import os
 import re
 import imaplib
 import email
-import smtplib
 import json
 import time
 import hmac
@@ -44,6 +43,7 @@ import hashlib
 import threading
 import requests
 import anthropic
+import resend
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
@@ -61,13 +61,12 @@ WEBULL_ACCOUNT_ID  = os.environ.get("WEBULL_ACCOUNT_ID")
 EMAIL_ADDRESS      = os.environ.get("EMAIL_ADDRESS", "molivera1977@icloud.com")
 EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD")
 ANTHROPIC_API_KEY  = os.environ.get("ANTHROPIC_API_KEY")
+RESEND_API_KEY     = os.environ.get("RESEND_API_KEY")
 SUMMARY_EMAIL      = os.environ.get("SUMMARY_EMAIL", "molivera1977@gmail.com")
 
-# iCloud mail servers
+# iCloud IMAP (reading only — sending is via Resend API over HTTPS)
 IMAP_SERVER = "imap.mail.me.com"
 IMAP_PORT   = 993
-SMTP_SERVER = "smtp.mail.me.com"
-SMTP_PORT   = 465
 
 # Trading rules
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade
@@ -779,20 +778,18 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
 def send_alert_email(subject, body):
     """
-    Lightweight email for in-session alerts.
-    Fires immediately — no waiting for trade to close.
+    Sends email via Resend API over HTTPS — bypasses Railway's SMTP block.
     """
     print(f"📲 Sending alert: {subject}")
     try:
-        msg = MIMEMultipart()
-        msg["From"]    = EMAIL_ADDRESS
-        msg["To"]      = SUMMARY_EMAIL
-        msg["Subject"] = subject
+        resend.api_key = RESEND_API_KEY
         footer = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nMarcos Trading Bot | Railway.app"
-        msg.attach(MIMEText(body + footer, "plain"))
-        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-            server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
-            server.send_message(msg)
+        resend.Emails.send({
+            "from":    "Marcos Trading Bot <onboarding@resend.dev>",
+            "to":      [SUMMARY_EMAIL],
+            "subject": subject,
+            "text":    body + footer,
+        })
         print(f"✅ Alert sent!")
     except Exception as e:
         print(f"❌ Alert email error: {e}")
@@ -959,7 +956,7 @@ Cash preserved: ${account_balance:.2f}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REMINDER
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Send tonight's tickers to: marcostrades2026@gmail.com
+Send tonight's tickers to: molivera1977@icloud.com
 Paste Kev's TikTok transcript in the body.
 The bot reads it at 8:45am tomorrow.
 """
@@ -972,14 +969,13 @@ Railway.app
 """
 
     try:
-        msg = MIMEMultipart()
-        msg["From"]    = EMAIL_ADDRESS
-        msg["To"]      = SUMMARY_EMAIL
-        msg["Subject"] = subject
-        msg.attach(MIMEText(body, "plain"))
-        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-            server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
-            server.send_message(msg)
+        resend.api_key = RESEND_API_KEY
+        resend.Emails.send({
+            "from":    "Marcos Trading Bot <onboarding@resend.dev>",
+            "to":      [SUMMARY_EMAIL],
+            "subject": subject,
+            "text":    body,
+        })
         print(f"✅ Summary email sent!")
     except Exception as e:
         print(f"❌ Email error: {e}")
@@ -1006,9 +1002,11 @@ def main():
         return
 
     # ── Step 2: Extract tickers ────────────────────────────
+    # Strip reply/forward prefixes before parsing
+    clean_subject = re.sub(r'^(FW|FWD|RE):\s*', '', subject.strip(), flags=re.IGNORECASE)
     skip = {"THE", "FOR", "AND", "NOT", "ALL", "DAY", "TOP",
-            "NEW", "BIG", "HOT", "PDT", "RE", "AI", "ET"}
-    tickers = [t for t in re.findall(r'\b[A-Z]{2,5}\b', subject.upper())
+            "NEW", "BIG", "HOT", "PDT", "RE", "AI", "ET", "FW", "FWD"}
+    tickers = [t for t in re.findall(r'\b[A-Z]{2,5}\b', clean_subject.upper())
                if t not in skip][:5]
     if not tickers:
         tickers = ["UNKNOWN"]

@@ -296,8 +296,8 @@ Respond in this EXACT JSON format:
                 "anthropic-version": "2023-06-01"
             },
             json={
-                "model": "claude-sonnet-4-20250514",
-                "max_tokens": 1000,
+                "model": "claude-opus-4-8",
+                "max_tokens": 4000,
                 "messages": [{"role": "user", "content": prompt}]
             },
             timeout=30

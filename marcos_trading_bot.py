@@ -64,7 +64,7 @@ BREAKEVEN_TRIGGER    = 0.10   # Move stop to breakeven at 10% gain
 TRAIL_PCT            = 0.05   # Trail 5% below highest price after partial exit
 VWAP_ENTRY_TIMEOUT   = 10     # Stop looking for VWAP entry after 10am ET
 TRADE_WINDOW_END_HOUR = 11    # Force close all positions by 11am ET
-MONITOR_INTERVAL     = 30     # Check price every 30 seconds
+MONITOR_INTERVAL     = 15     # Check price every 15 seconds
 EASTERN = pytz.timezone("America/New_York")
 
 # ============================================================

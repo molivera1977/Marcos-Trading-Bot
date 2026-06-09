@@ -14,7 +14,11 @@ HOW IT WORKS:
 6. Opens a real-time MQTT stream from Webull (falls back to polling if unavailable)
 7. Waits for VWAP reclaim after 9:30am open before entering
 8. Monitors with trailing stop + partial exits in near real-time
-9. Emails you a full summary at molivera1977@gmail.com
+9. Sends 4 emails throughout the day:
+   - ~8:55am: Claude's plan (what it picked and why)
+   - On entry: trade filled (price, shares, levels)
+   - At +15%: partial exit alert (half sold, rest riding)
+   - At close: full summary with P&L
 
 SETUP INSTRUCTIONS:
 - Set the following environment variables in Railway.app:
@@ -39,6 +43,7 @@ import hmac
 import hashlib
 import threading
 import requests
+import anthropic
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
@@ -391,21 +396,23 @@ Respond in this EXACT JSON format:
 """
 
     try:
-        resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "Content-Type":      "application/json",
-                "x-api-key":         ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01"
-            },
-            json={
-                "model":      "claude-opus-4-8",
-                "max_tokens": 4000,
-                "messages":   [{"role": "user", "content": prompt}]
-            },
-            timeout=60
-        )
-        raw = resp.json()["content"][0]["text"].strip()
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        # Stream the response — analysis can be long and we don't want request timeouts
+        with client.messages.stream(
+            model="claude-opus-4-8",
+            max_tokens=4000,
+            thinking={"type": "adaptive"},
+            messages=[{"role": "user", "content": prompt}]
+        ) as stream:
+            message = stream.get_final_message()
+
+        # Extract text from the response (skip thinking blocks)
+        raw = ""
+        for block in message.content:
+            if block.type == "text":
+                raw = block.text.strip()
+                break
+
         if "```json" in raw:
             raw = raw.split("```json")[1].split("```")[0].strip()
         elif "```" in raw:
@@ -421,14 +428,21 @@ Respond in this EXACT JSON format:
 # STEP 4 — WAIT FOR VWAP ENTRY
 # ============================================================
 
+VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't change faster
+
 def wait_for_vwap_entry(ticker, stream: WebullStream):
     """
     After 9:30am open, watches price vs VWAP using the real-time stream.
-    Enters when price reclaims VWAP with volume confirmation.
+    Price is checked at stream frequency (0.5s MQTT / 15s polling).
+    Intraday bars are refreshed every 30s — VWAP is stable enough for this.
     Times out at 10am — holds cash if no reclaim.
     Returns (entry_price, vwap) or (None, None).
     """
     print(f"\n⏳ Waiting for {ticker} VWAP reclaim after open...")
+
+    cached_bars      = []
+    last_bar_fetch   = 0.0   # epoch seconds of last bars API call
+    cached_vwap      = 0.0
 
     while True:
         now = datetime.now(EASTERN)
@@ -443,27 +457,29 @@ def wait_for_vwap_entry(ticker, stream: WebullStream):
             time.sleep(30)
             continue
 
+        # ── Refresh bars every 30s, use cache in between ────
+        if time.time() - last_bar_fetch >= VWAP_BAR_CACHE_SECS:
+            fresh = get_intraday_bars(ticker)
+            if fresh:
+                cached_bars    = fresh
+                cached_vwap    = calculate_vwap(cached_bars)
+                last_bar_fetch = time.time()
+
         current_price = stream.get_price(ticker)
-        bars  = get_intraday_bars(ticker)
 
-        if not bars or current_price <= 0:
+        if not cached_bars or current_price <= 0 or cached_vwap <= 0:
             time.sleep(stream.loop_sleep())
             continue
 
-        vwap = calculate_vwap(bars)
-        if vwap <= 0:
-            time.sleep(stream.loop_sleep())
-            continue
+        pct_vs_vwap = ((current_price - cached_vwap) / cached_vwap) * 100
+        print(f"📊 {ticker}: ${current_price:.2f} | VWAP: ${cached_vwap:.2f} ({pct_vs_vwap:+.1f}%)")
 
-        pct_vs_vwap = ((current_price - vwap) / vwap) * 100
-        print(f"📊 {ticker}: ${current_price:.2f} | VWAP: ${vwap:.2f} ({pct_vs_vwap:+.1f}%)")
-
-        if current_price > vwap:
-            last_vol = float(bars[-1].get("volume", 0)) if bars else 0
-            avg_vol  = sum(float(b.get("volume", 0)) for b in bars) / len(bars) if bars else 1
+        if current_price > cached_vwap:
+            last_vol = float(cached_bars[-1].get("volume", 0))
+            avg_vol  = sum(float(b.get("volume", 0)) for b in cached_bars) / len(cached_bars)
             if last_vol >= avg_vol * 0.75:
-                print(f"✅ VWAP reclaim confirmed! ${current_price:.2f} > VWAP ${vwap:.2f} with volume")
-                return current_price, vwap
+                print(f"✅ VWAP reclaim confirmed! ${current_price:.2f} > VWAP ${cached_vwap:.2f} with volume")
+                return current_price, cached_vwap
             else:
                 print(f"⚠️  Above VWAP but volume light. Waiting for confirmation...")
 
@@ -474,6 +490,11 @@ def wait_for_vwap_entry(ticker, stream: WebullStream):
 # ============================================================
 
 def execute_trade(ticker, shares, entry_price, stop_loss, target):
+    """
+    Places the buy order then immediately places a real stop order on Webull.
+    Returns (buy_order_id, stop_order_id) — both needed to manage the trade.
+    Returns (None, None) on failure.
+    """
     print(f"🚀 Executing: BUY {shares} shares of {ticker} @ ${entry_price:.2f}...")
     try:
         path = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order"
@@ -484,30 +505,22 @@ def execute_trade(ticker, shares, entry_price, stop_loss, target):
             "orderType": "MKT", "quantity": shares,
             "timeInForce": "DAY", "outsideRegularTradingHour": False
         })
-        headers  = _webull_headers("POST", path, buy_body)
-        resp     = requests.post(url, headers=headers, data=buy_body, timeout=10)
+        headers    = _webull_headers("POST", path, buy_body)
+        resp       = requests.post(url, headers=headers, data=buy_body, timeout=10)
         order_data = resp.json()
 
         if order_data.get("success"):
-            order_id = order_data["data"]["orderId"]
-            print(f"✅ Buy order placed! Order ID: {order_id}")
+            buy_id = order_data["data"]["orderId"]
+            print(f"✅ Buy order placed! Order ID: {buy_id}")
 
-            time.sleep(2)
-            stop_body = json.dumps({
-                "symbol": ticker, "action": "SELL",
-                "orderType": "STP", "quantity": shares,
-                "auxPrice": stop_loss,
-                "timeInForce": "DAY", "outsideRegularTradingHour": False
-            })
-            stop_headers = _webull_headers("POST", path, stop_body)
-            requests.post(url, headers=stop_headers, data=stop_body, timeout=10)
-            print(f"🛡️  Stop-loss set at ${stop_loss:.2f}")
-            return order_id
+            time.sleep(2)   # Let fill confirm before placing stop
+            stop_id = place_stop_order(ticker, shares, stop_loss)
+            return buy_id, stop_id
         else:
             print(f"❌ Order failed: {order_data}")
     except Exception as e:
         print(f"❌ Trade execution error: {e}")
-    return None
+    return None, None
 
 def close_position(ticker, shares):
     print(f"🔒 Closing: SELL {shares} shares of {ticker}...")
@@ -528,32 +541,100 @@ def close_position(ticker, shares):
         print(f"❌ Close error: {e}")
     return False
 
+def cancel_order(order_id):
+    """Cancel an open order by ID. Used when moving/replacing stop orders."""
+    if not order_id:
+        return False
+    try:
+        path    = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order/{order_id}/cancel"
+        url     = f"https://openapi.webull.com{path}"
+        headers = _webull_headers("DELETE", path)
+        resp    = requests.delete(url, headers=headers, timeout=10)
+        if resp.json().get("success"):
+            print(f"✅ Order {order_id} cancelled")
+            return True
+        else:
+            print(f"⚠️  Cancel failed for {order_id}: {resp.json()}")
+    except Exception as e:
+        print(f"⚠️  Cancel order error: {e}")
+    return False
+
+def place_stop_order(ticker, shares, stop_price):
+    """
+    Place a live stop-loss sell order on Webull.
+    Returns the new order ID, or None if it fails.
+    """
+    try:
+        path = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order"
+        url  = f"https://openapi.webull.com{path}"
+        body = json.dumps({
+            "symbol": ticker, "action": "SELL",
+            "orderType": "STP", "quantity": shares,
+            "auxPrice": stop_price,
+            "timeInForce": "DAY", "outsideRegularTradingHour": False
+        })
+        headers = _webull_headers("POST", path, body)
+        resp    = requests.post(url, headers=headers, data=body, timeout=10)
+        data    = resp.json()
+        if data.get("success"):
+            new_id = data["data"]["orderId"]
+            print(f"🛡️  Stop order placed: ${stop_price:.2f} × {shares} shares (ID: {new_id})")
+            return new_id
+        else:
+            print(f"⚠️  Stop order failed: {data}")
+    except Exception as e:
+        print(f"⚠️  Stop order error: {e}")
+    return None
+
+def update_stop_order(ticker, shares, new_price, old_order_id):
+    """
+    Cancel the existing exchange stop order and place a new one at the updated price/quantity.
+    Returns the new order ID (or None if the replacement fails — logs a warning).
+    """
+    print(f"🔄 Moving stop order → ${new_price:.2f} ({shares} shares)...")
+    cancel_order(old_order_id)
+    time.sleep(0.5)   # Let the cancel settle before placing new order
+    new_id = place_stop_order(ticker, shares, new_price)
+    if not new_id:
+        print(f"❌ WARNING: Stop order replacement failed! Position has no exchange-level stop.")
+    return new_id
+
 # ============================================================
 # STEP 6 — MONITOR WITH TRAILING STOP + PARTIAL EXITS
 # ============================================================
 
-def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss, stream: WebullStream):
+STOP_UPDATE_MIN_MOVE = 0.10   # Only replace exchange stop order if it moves >= $0.10
+
+def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
+                  stream: WebullStream, stop_order_id):
     """
     Monitors the trade using the real-time stream.
+    All stop levels are kept as live orders on Webull — not just in memory.
+    If Railway restarts mid-trade, Webull enforces the last placed stop.
+
     - MQTT connected: checks every 0.5 seconds
     - Fallback polling: checks every 15 seconds
-    Exit conditions:
-    - +10%: move stop to breakeven
-    - +15%: sell half, enable 5% trailing stop on remainder
-    - +20%: sell everything (full target)
-    - Stop hit: sell everything
-    - 11am: force close everything
+
+    Stop order lifecycle:
+    - Entry:        hard stop at -7% placed by execute_trade
+    - At +10%:      cancel & replace stop at breakeven (entry price)
+    - At +15%:      partial exit; cancel & replace stop for remaining shares at trail
+    - Trailing:     cancel & replace stop as trail moves up (only if moved >= $0.10)
+    - Target/time:  cancel stop, close with market order
     """
     sleep_secs = stream.loop_sleep()
     mode = "real-time MQTT" if stream.connected else "15s polling fallback"
     print(f"\n👀 Monitoring {ticker} via {mode}")
     print(f"   Entry: ${entry_price:.2f} | Target: ${target_price:.2f} | Stop: ${stop_loss:.2f}")
 
-    current_stop     = stop_loss
-    highest_price    = entry_price
-    remaining_shares = total_shares
-    partial_taken    = False
-    partial_price    = 0.0
+    current_stop       = stop_loss
+    placed_stop_price  = stop_loss        # price of the live Webull stop order
+    placed_stop_qty    = total_shares     # quantity of the live Webull stop order
+    placed_stop_id     = stop_order_id   # order ID of the live Webull stop order
+    highest_price      = entry_price
+    remaining_shares   = total_shares
+    partial_taken      = False
+    partial_price      = 0.0
 
     result = {"exit_price": entry_price, "exit_reason": "Unknown",
               "profit_loss": 0, "profit_loss_pct": 0}
@@ -566,6 +647,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss, st
             print("⏰ 11:00am — Force closing all positions")
             current_price = stream.get_price(ticker)
             if remaining_shares > 0:
+                cancel_order(placed_stop_id)   # Remove stop before market sell
                 close_position(ticker, remaining_shares)
             result["exit_price"]  = current_price
             result["exit_reason"] = "11am time stop"
@@ -581,16 +663,26 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss, st
         if current_price > highest_price:
             highest_price = current_price
 
-        # ── Trailing stop logic ─────────────────────────
-        if not partial_taken:
-            if profit_pct >= BREAKEVEN_TRIGGER_PCT * 100 and current_stop < entry_price:
-                current_stop = entry_price
-                print(f"🔒 Stop → breakeven ${current_stop:.2f}")
-        else:
+        # ── Breakeven stop: move to entry at +10% ───────
+        if not partial_taken and profit_pct >= BREAKEVEN_TRIGGER_PCT * 100 \
+                and current_stop < entry_price:
+            current_stop = entry_price
+            print(f"🔒 Stop → breakeven ${current_stop:.2f}")
+            placed_stop_id    = update_stop_order(ticker, placed_stop_qty,
+                                                  current_stop, placed_stop_id)
+            placed_stop_price = current_stop
+
+        # ── Trailing stop: ratchet up after partial exit ─
+        if partial_taken:
             trail = highest_price * (1 - TRAIL_PCT)
             if trail > current_stop:
                 current_stop = trail
                 print(f"📈 Trailing stop → ${current_stop:.2f}")
+                # Only replace exchange order if stop moved >= $0.10 (avoids order spam)
+                if current_stop - placed_stop_price >= STOP_UPDATE_MIN_MOVE:
+                    placed_stop_id    = update_stop_order(ticker, placed_stop_qty,
+                                                          current_stop, placed_stop_id)
+                    placed_stop_price = current_stop
 
         print(f"💰 {ticker}: ${current_price:.2f} ({profit_pct:+.1f}%) | Stop: ${current_stop:.2f} | Shares: {remaining_shares}")
 
@@ -598,26 +690,38 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss, st
         if not partial_taken and profit_pct >= PARTIAL_EXIT_PCT * 100:
             half = round(remaining_shares / 2, 4)
             print(f"💰 PARTIAL EXIT: selling {half} shares at ${current_price:.2f} (+{profit_pct:.1f}%)")
+            # Cancel old full-size stop before selling half
+            cancel_order(placed_stop_id)
             close_position(ticker, half)
             partial_price    = current_price
             partial_taken    = True
             remaining_shares = round(remaining_shares - half, 4)
             current_stop     = highest_price * (1 - TRAIL_PCT)
+            # Place new stop for remaining shares only at trail level
+            placed_stop_id    = place_stop_order(ticker, remaining_shares, current_stop)
+            placed_stop_price = current_stop
+            placed_stop_qty   = remaining_shares
             print(f"📈 Trailing stop set at ${current_stop:.2f} — letting rest run")
+            # ── Alert 3: Partial exit notification ──────────
+            send_partial_exit_alert(ticker, half, partial_price, entry_price,
+                                    remaining_shares, current_stop, profit_pct)
 
         # ── Full target hit ─────────────────────────────
         if current_price >= target_price and remaining_shares > 0:
             print(f"🎯 TARGET HIT! Selling {remaining_shares} shares at ${current_price:.2f}")
+            cancel_order(placed_stop_id)   # Remove stop before market sell
             close_position(ticker, remaining_shares)
             result["exit_price"]  = current_price
             result["exit_reason"] = "Target hit ✅"
             remaining_shares = 0
             break
 
-        # ── Stop hit ────────────────────────────────────
+        # ── Software stop detection (backup to exchange stop) ──
+        # Exchange stop handles most cases; this catches any gap/lag
         if current_price <= current_stop and remaining_shares > 0:
             label = "Trailing stop 📉" if partial_taken else "Stop loss 🛑"
             print(f"🛑 {label} hit! Selling {remaining_shares} shares at ${current_price:.2f}")
+            cancel_order(placed_stop_id)
             close_position(ticker, remaining_shares)
             result["exit_price"]  = current_price
             result["exit_reason"] = label
@@ -641,7 +745,136 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss, st
     return result
 
 # ============================================================
-# STEP 7 — EMAIL SUMMARY
+# STEP 7 — ALERT EMAILS (fired in real-time during the session)
+# ============================================================
+
+def send_alert_email(subject, body):
+    """
+    Lightweight email for in-session alerts.
+    Fires immediately — no waiting for trade to close.
+    """
+    print(f"📲 Sending alert: {subject}")
+    try:
+        msg = MIMEMultipart()
+        msg["From"]    = GMAIL_ADDRESS
+        msg["To"]      = SUMMARY_EMAIL
+        msg["Subject"] = subject
+        footer = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nMarcos Trading Bot | Railway.app"
+        msg.attach(MIMEText(body + footer, "plain"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+            server.send_message(msg)
+        print(f"✅ Alert sent!")
+    except Exception as e:
+        print(f"❌ Alert email error: {e}")
+
+
+def send_plan_alert(analysis, balance):
+    """Alert 1 — Fired right after Claude finishes analysis (~8:55am)."""
+    recommended = analysis.get("recommended_trade", {})
+    action      = recommended.get("action", "HOLD CASH")
+    ticker      = recommended.get("ticker", "N/A")
+    today       = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
+
+    if action == "BUY":
+        subject = f"🤖 Bot Plan — {ticker} is the pick | {today}"
+        body = f"""Good morning Marcos! Claude just finished the pre-market analysis.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TODAY'S PLAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ticker:      {ticker}
+Action:      Watching for VWAP reclaim after 9:30am
+Entry:       ~${recommended.get('entry_price', 0):.2f} (on VWAP reclaim)
+Target:      ${recommended.get('target_price', 0):.2f} (+20%)
+Stop loss:   ${recommended.get('stop_loss', 0):.2f} (-7%)
+Size:        ${recommended.get('position_size_dollars', 0):.2f}
+Confidence:  {recommended.get('confidence', 'N/A')}
+Account:     ${balance:.2f}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CLAUDE SAYS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{analysis.get('plain_english_summary', '')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALL TICKERS REVIEWED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+        for t in analysis.get("tickers", []):
+            e = "✅" if t["verdict"] == "GO" else "❌"
+            body += f"\n{e} {t['ticker']} — {t['verdict']}: {t['reason']}"
+        body += "\n\nThe bot is now watching for the VWAP reclaim. You'll get another email the moment it enters."
+    else:
+        subject = f"🤖 Bot Plan — 💤 No trade today | {today}"
+        body = f"""Good morning Marcos! Claude finished the analysis.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NO TRADE TODAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{analysis.get('plain_english_summary', '')}
+
+Cash staying put: ${balance:.2f}"""
+
+    send_alert_email(subject, body)
+
+
+def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap, position_size):
+    """Alert 2 — Fired the moment the buy order is placed."""
+    today   = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
+    now_str = datetime.now(EASTERN).strftime("%I:%M:%S %p ET")
+    subject = f"🚀 TRADE ENTERED — {ticker} @ ${entry_price:.2f} | {now_str}"
+    body = f"""The bot just entered a trade!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TRADE ENTERED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ticker:      {ticker}
+Filled at:   ${entry_price:.2f}
+Shares:      {shares}
+Position:    ${position_size:.2f}
+VWAP:        ${vwap:.2f} ✅ reclaimed with volume
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LEVELS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 Target:   ${target_price:.2f} (+20%)
+⚠️  Breakeven move triggers at: +10%
+💰 Partial exit (half) at: +15%
+🛑 Stop loss: ${stop_loss:.2f} (-7%)
+⏰ Hard close: 11:00am ET
+
+You'll get an email at partial exit (+15%) and again when the trade closes."""
+    send_alert_email(subject, body)
+
+
+def send_partial_exit_alert(ticker, half_shares, partial_price, entry_price,
+                            remaining_shares, new_stop, profit_pct):
+    """Alert 3 — Fired when half the position is sold at +15%."""
+    now_str = datetime.now(EASTERN).strftime("%I:%M:%S %p ET")
+    profit  = (partial_price - entry_price) * half_shares
+    subject = f"💰 PARTIAL EXIT — {ticker} +{profit_pct:.1f}% at {now_str}"
+    body = f"""The bot just sold half the position at +{profit_pct:.1f}%!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PARTIAL EXIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ticker:       {ticker}
+Sold:         {half_shares} shares @ ${partial_price:.2f}
+Gain so far:  +{profit_pct:.1f}% (${profit:+.2f})
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STILL IN TRADE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Remaining:    {remaining_shares} shares
+Trailing stop now at: ${new_stop:.2f} (5% below high)
+Target still: +20% full exit
+
+The bot is letting the rest ride with a trailing stop. You'll get a final email when it closes."""
+    send_alert_email(subject, body)
+
+
+# ============================================================
+# STEP 8 — FINAL SUMMARY EMAIL
 # ============================================================
 
 def send_summary_email(analysis, trade_result=None, account_balance=100.0):
@@ -769,11 +1002,13 @@ def main():
         send_summary_email(None, None, balance)
         return
 
+    # ── Alert 1: Send the plan email right now (~8:55am) ──────
+    send_plan_alert(analysis, balance)
+
     recommended = analysis.get("recommended_trade", {})
     if recommended.get("action") != "BUY":
         print("🔒 Claude says: HOLD CASH today.")
-        send_summary_email(analysis, None, balance)
-        return
+        return  # Plan alert already sent above — no need for a second email
 
     ticker_to_trade = recommended.get("ticker")
     position_size   = float(recommended.get("position_size_dollars", balance * MAX_POSITION_SIZE))
@@ -808,17 +1043,21 @@ def main():
     print(f"{'='*60}\n")
 
     # ── Step 8: Execute ────────────────────────────────────
-    order_id = execute_trade(ticker_to_trade, shares, entry_price, stop_loss, target_price)
+    order_id, stop_order_id = execute_trade(ticker_to_trade, shares, entry_price, stop_loss, target_price)
     if not order_id:
         send_summary_email(analysis, None, balance)
         stream.stop()
         return
 
+    # ── Alert 2: Trade entered! ────────────────────────────
+    send_entry_alert(ticker_to_trade, shares, entry_price,
+                     stop_loss, target_price, vwap, position_size)
+
     # ── Step 9: Monitor with real-time stream ──────────────
     trade_result = monitor_trade(
         ticker_to_trade, shares,
         entry_price, target_price, stop_loss,
-        stream
+        stream, stop_order_id
     )
 
     # ── Step 10: Send summary + cleanup ───────────────────

@@ -1256,6 +1256,13 @@ def main():
     print(f"📅 {now.strftime('%A, %B %d, %Y at %I:%M %p ET')}")
     print(f"{'='*60}\n")
 
+    # ── Credential check ───────────────────────────────────
+    tok = WEBULL_ACCESS_TOKEN
+    key = WEBULL_APP_KEY
+    print(f"🔑 APP_KEY   : {key[:6]}...{key[-4:] if len(key)>10 else '(short)'}")
+    print(f"🔑 TOKEN     : {tok[:6]}...{tok[-4:] if len(tok)>10 else '(short/missing)'} (len={len(tok)})")
+    print(f"🔑 ACCOUNT_ID: {WEBULL_ACCOUNT_ID}")
+
     if now.weekday() >= 5:
         print("📅 Weekend — markets closed.")
         return

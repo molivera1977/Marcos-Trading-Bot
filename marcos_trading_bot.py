@@ -72,9 +72,13 @@ SUMMARY_EMAIL      = os.environ.get("SUMMARY_EMAIL", "molivera1977@gmail.com")
 IMAP_SERVER = "imap.mail.me.com"
 IMAP_PORT   = 993
 
-# Webull OpenAPI v2
-WEBULL_HOST = "us-openapi-alb.uat.webullbroker.com"
-BASE_URL    = f"https://{WEBULL_HOST}"
+# Webull OpenAPI v2 — production endpoints
+# api.webull.com       → trading, auth, balance  → HMAC-SHA1
+# data-api.webull.com  → quotes, bars            → HMAC-SHA256
+TRADING_HOST    = "api.webull.com"
+MARKET_HOST     = "data-api.webull.com"
+TRADING_URL     = f"https://{TRADING_HOST}"
+MARKET_URL      = f"https://{MARKET_HOST}"
 
 # Trading rules
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade
@@ -109,77 +113,101 @@ POLL_LOOP_SLEEP   = 15           # Fallback polling: check every 15s
 #
 # x-app-secret is NOT sent as a header — it is only the HMAC key.
 
-def _webull_headers(method, path, query_params=None, body_dict=None):
+def _webull_headers(method, path, host, query_params=None, body_dict=None):
     """
-    Build correct Webull OpenAPI v2 headers with HMAC-SHA1 signature.
-    Pass query_params as a dict for GET requests (included in signature).
-    Pass body_dict as a dict for POST requests (MD5'd for signature).
+    Build correct Webull OpenAPI v2 headers with the right signature algorithm.
+
+    api.webull.com      → HMAC-SHA1,   body hashed with MD5
+    data-api.webull.com → HMAC-SHA256, body hashed with SHA-256
+
+    Signature construction (from official Webull open-source SDK):
+      sign_params = {all signing headers + host} + query_params (lowercase keys)
+      body_string = HASH_HEX(compact_json_body).upper()  [POST only]
+      string_to_sign = path + "&" + "&".join(sorted k=v) [+ "&" + body_string]
+      string_to_sign = URL_encode(string_to_sign, safe='')
+      key            = (app_secret + "&").encode()
+      x-signature    = base64( HMAC(key, string_to_sign) )
     """
+    # Choose algorithm based on host
+    _HMAC_SHA1_HOSTS = {"api.webull.com", "events-api.webull.com",
+                        "api.webull.hk",  "events-api.webull.hk"}
+    if host in _HMAC_SHA1_HOSTS:
+        algo_name  = "HMAC-SHA1"
+        hmac_algo  = hashlib.sha1
+        body_hash  = lambda s: hashlib.md5(s.encode()).hexdigest().upper()
+    else:
+        algo_name  = "HMAC-SHA256"
+        hmac_algo  = hashlib.sha256
+        body_hash  = lambda s: hashlib.sha256(s.encode()).hexdigest().upper()
+
     timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    nonce = str(uuid.uuid5(uuid.NAMESPACE_URL,
-                           socket.gethostname() + str(uuid.uuid1())))
+    nonce     = str(uuid.uuid5(uuid.NAMESPACE_URL,
+                               socket.gethostname() + str(uuid.uuid1())))
 
     headers = {
         "Content-Type":          "application/json",
         "x-app-key":             WEBULL_APP_KEY,
         "x-timestamp":           timestamp,
         "x-signature-version":   "1.0",
-        "x-signature-algorithm": "HMAC-SHA1",
+        "x-signature-algorithm": algo_name,
         "x-signature-nonce":     nonce,
         "x-version":             "v2",
     }
     if WEBULL_ACCESS_TOKEN:
         headers["x-access-token"] = WEBULL_ACCESS_TOKEN
 
-    # Build sign_params: all header signing fields + host + query params
+    # Build sign_params: signing headers + host + query params (all lowercase)
     sign_params = {
         "x-app-key":             WEBULL_APP_KEY,
         "x-timestamp":           timestamp,
         "x-signature-version":   "1.0",
-        "x-signature-algorithm": "HMAC-SHA1",
+        "x-signature-algorithm": algo_name,
         "x-signature-nonce":     nonce,
-        "host":                  WEBULL_HOST,
+        "host":                  host,
     }
     if query_params:
         for k, v in query_params.items():
             sign_params[k.lower()] = str(v)
 
-    # Body string: MD5 hex of compact JSON, uppercased (POST only)
+    # Body string: hash of compact JSON, uppercased (POST only)
     body_string = None
     if body_dict is not None:
-        body_str    = json.dumps(body_dict, ensure_ascii=False,
-                                 separators=(',', ':'))
-        body_string = hashlib.md5(body_str.encode()).hexdigest().upper()
+        body_str    = json.dumps(body_dict, ensure_ascii=False, separators=(',', ':'))
+        body_string = body_hash(body_str)
 
-    # Assemble string to sign: path & sorted_kv_pairs [& body_md5]
-    sorted_kv   = "&".join(f"{k}={v}" for k, v in sorted(sign_params.items()))
-    s2s         = f"{path}&{sorted_kv}"
+    # Assemble: path & sorted_kv [& body_hash]
+    sorted_kv = "&".join(f"{k}={v}" for k, v in sorted(sign_params.items()))
+    s2s       = f"{path}&{sorted_kv}"
     if body_string:
         s2s += f"&{body_string}"
 
-    # Percent-encode everything (no safe chars — matches SDK quote(safe=''))
+    # Percent-encode everything (matches SDK: quote(safe=''))
     s2s = quote(s2s, safe='')
 
-    # HMAC-SHA1 with (app_secret + "&") as key, base64-encoded
-    key         = (WEBULL_APP_SECRET + "&").encode()
-    h           = hmac.new(key, s2s.encode(), hashlib.sha1)
+    # HMAC with (app_secret + "&") as key, base64-encoded
+    key = (WEBULL_APP_SECRET + "&").encode()
+    h   = hmac.new(key, s2s.encode(), hmac_algo)
     headers["x-signature"] = base64.b64encode(h.digest()).decode()
 
     return headers
 
 
-def _post(path, body_dict):
-    """POST to Webull OpenAPI with correct signed headers."""
-    url     = f"{BASE_URL}{path}"
-    headers = _webull_headers("POST", path, body_dict=body_dict)
+def _post(path, body_dict, host=None):
+    """POST to Webull trading API."""
+    if host is None:
+        host = TRADING_HOST
+    url     = f"https://{host}{path}"
+    headers = _webull_headers("POST", path, host, body_dict=body_dict)
     body    = json.dumps(body_dict, ensure_ascii=False, separators=(',', ':'))
     return requests.post(url, headers=headers, data=body, timeout=10)
 
 
-def _get(path, query_params=None):
-    """GET from Webull OpenAPI with correct signed headers."""
-    url     = f"{BASE_URL}{path}"
-    headers = _webull_headers("GET", path, query_params=query_params)
+def _get(path, query_params=None, host=None):
+    """GET from Webull API."""
+    if host is None:
+        host = TRADING_HOST
+    url     = f"https://{host}{path}"
+    headers = _webull_headers("GET", path, host, query_params=query_params)
     return requests.get(url, headers=headers, params=query_params, timeout=10)
 
 
@@ -346,7 +374,7 @@ def get_premarket_data(ticker):
     try:
         path   = "/openapi/market-data/stock/quotes"
         params = {"symbol": ticker, "category": "US_STOCK"}
-        resp   = _get(path, query_params=params)
+        resp   = _get(path, query_params=params, host=MARKET_HOST)
         resp.raise_for_status()
         raw = resp.json()
 
@@ -410,7 +438,7 @@ def _get_price_rest(ticker) -> float:
     try:
         path   = "/openapi/market-data/stock/quotes"
         params = {"symbol": ticker, "category": "US_STOCK"}
-        resp   = _get(path, query_params=params)
+        resp   = _get(path, query_params=params, host=MARKET_HOST)
         resp.raise_for_status()
         raw  = resp.json()
         data = raw.get("data", {})
@@ -440,7 +468,7 @@ def get_intraday_bars(ticker, count=30):
             "count":            str(count),
             "trading_sessions": "REGULAR,PRE_MARKET",
         }
-        resp = _get(path, query_params=params)
+        resp = _get(path, query_params=params, host=MARKET_HOST)
         resp.raise_for_status()
         data = resp.json().get("data", {})
         if isinstance(data, dict):

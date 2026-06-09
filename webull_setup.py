@@ -34,7 +34,7 @@ WEBULL_APP_KEY    = input("Enter your Webull App Key:    ").strip()
 WEBULL_APP_SECRET = input("Enter your Webull App Secret: ").strip()
 print()
 
-WEBULL_HOST = "us-openapi-alb.uat.webullbroker.com"
+WEBULL_HOST = "api.webull.com"
 BASE_URL    = f"https://{WEBULL_HOST}"
 
 

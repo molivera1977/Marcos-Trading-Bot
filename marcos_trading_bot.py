@@ -48,6 +48,7 @@ import threading
 import requests
 import anthropic
 import resend
+import yfinance as yf
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
 from urllib.parse import quote
@@ -437,44 +438,45 @@ def read_todays_tickers():
 # ============================================================
 
 def get_premarket_data(ticker):
-    """Fetch pre-market quote for ticker via Webull OpenAPI v2."""
+    """
+    Fetch pre-market quote for ticker via Yahoo Finance (yfinance).
+    Free, no API key, includes pre-market price, volume, and fundamentals.
+    """
     print(f"📊 Fetching pre-market data for {ticker}...")
     try:
-        path   = "/openapi/market-data/stock/quotes"
-        params = {"symbol": ticker, "category": "US_STOCK"}
-        resp   = _get(path, query_params=params, host=MARKET_HOST)
-        resp.raise_for_status()
-        raw = resp.json()
+        import yfinance as yf
+        stock = yf.Ticker(ticker)
+        info  = stock.info or {}
 
-        # Response: {"code":"0","data":{"items":[{...}]}} or {"data":{...}}
-        data = raw.get("data", {})
-        if isinstance(data, dict):
-            items = data.get("items", [])
-            d = items[0] if items else data
-        elif isinstance(data, list):
-            d = data[0] if data else {}
-        else:
-            d = {}
+        # Pre-market price (available before 9:30am ET)
+        pre_price  = info.get("preMarketPrice") or info.get("regularMarketPrice") or "N/A"
+        pre_change = info.get("preMarketChangePercent")
+        if pre_change is not None:
+            pre_change = round(pre_change * 100, 2) if abs(pre_change) < 1 else round(pre_change, 2)
 
-        def pick(*keys):
-            for k in keys:
-                v = d.get(k)
-                if v not in (None, ""):
-                    return v
-            return "N/A"
+        prev_close = info.get("regularMarketPreviousClose") or info.get("previousClose") or "N/A"
+        avg_vol    = info.get("averageVolume10days") or info.get("averageVolume") or "N/A"
+        mkt_cap    = info.get("marketCap") or "N/A"
+        float_sh   = info.get("floatShares") or info.get("sharesOutstanding") or "N/A"
 
-        return {
+        # Today's intraday volume (pre-market volume estimate)
+        pre_vol = info.get("preMarketVolume") or info.get("regularMarketVolume") or "N/A"
+
+        result = {
             "ticker":               ticker,
-            "premarket_price":      pick("pre_market_price",   "preMarketPrice"),
-            "premarket_change_pct": pick("pre_market_change_rate", "preMarketChangeRatio"),
-            "premarket_volume":     pick("pre_market_volume",  "preMarketVolume"),
-            "previous_close":       pick("pre_close",          "preClose"),
-            "avg_volume":           pick("avg_vol10d",         "avgVol10D"),
-            "float_shares":         pick("outstanding_shares", "outstandingShares"),
-            "market_cap":           pick("market_value",       "marketValue"),
+            "premarket_price":      pre_price,
+            "premarket_change_pct": pre_change if pre_change is not None else "N/A",
+            "premarket_volume":     pre_vol,
+            "previous_close":       prev_close,
+            "avg_volume":           avg_vol,
+            "float_shares":         float_sh,
+            "market_cap":           mkt_cap,
         }
+        print(f"   {ticker}: pre=${pre_price}  prev_close=${prev_close}  chg={pre_change}%")
+        return result
+
     except Exception as e:
-        print(f"⚠️  Webull data error for {ticker}: {e}")
+        print(f"⚠️  Yahoo Finance error for {ticker}: {e}")
     return {
         "ticker": ticker,
         "premarket_price": "N/A", "premarket_change_pct": "N/A",

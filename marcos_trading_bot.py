@@ -311,25 +311,91 @@ def read_todays_tickers():
         mail.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
         mail.select("inbox")
 
-        since_date = (datetime.now() - timedelta(days=1)).strftime("%d-%b-%Y")
+        since_date = (datetime.now() - timedelta(days=2)).strftime("%d-%b-%Y")
         _, messages = mail.search(None, f'(SINCE "{since_date}")')
 
         if not messages[0]:
             print("⚠️  No recent emails found.")
             return None, None
 
-        latest = messages[0].split()[-1]
+        # Check all recent emails; prefer the one most likely to be Kev's watchlist
+        all_ids = messages[0].split()
+        print(f"   Found {len(all_ids)} email(s) in last 48h — scanning all for tickers...")
+
+        # Fetch the last 10 emails (most recent first) and pick the best one
+        candidates = all_ids[-10:][::-1]   # last 10, newest first
+        best_subject, best_content = "", ""
+        best_score = -1
+
+        for msg_id in candidates:
+            try:
+                _, msg_data_c = mail.fetch(msg_id, "(RFC822)")
+                raw_c = None
+                for part in msg_data_c:
+                    if isinstance(part, tuple):
+                        raw_c = part[1]; break
+                if raw_c is None:
+                    raw_c = max((p for p in msg_data_c if isinstance(p, bytes)),
+                                key=len, default=None)
+                if not raw_c:
+                    continue
+
+                msg_c = email.message_from_bytes(raw_c)
+                subj_c = msg_c["subject"] or ""
+                from_c = msg_c["from"] or ""
+                body_c = ""
+                if msg_c.is_multipart():
+                    for part in msg_c.walk():
+                        if part.get_content_type() == "text/plain":
+                            payload = part.get_payload(decode=True)
+                            if isinstance(payload, bytes):
+                                body_c = payload.decode("utf-8", errors="ignore")
+                            break
+                else:
+                    payload = msg_c.get_payload(decode=True)
+                    if isinstance(payload, bytes):
+                        body_c = payload.decode("utf-8", errors="ignore")
+                    elif isinstance(payload, str):
+                        body_c = payload
+
+                # Score: prefer emails with stock tickers ($XXXX or short caps) or watchlist keywords
+                skip_score = {"THE","FOR","AND","NOT","ALL","DAY","TOP","NEW","BIG","HOT",
+                              "PDT","RE","AI","ET","FW","FWD","TO","IN","UP","AM","PM"}
+                combined = (subj_c + " " + body_c).upper()
+                dollar_hits = len(re.findall(r'\$[A-Z]{2,5}\b', combined))
+                watchlist_hits = len(re.findall(r'\bWATCHLIST\b|\bPICK\b|\bTICKER\b|\bSETUP\b|\bPLAY\b', combined))
+                caps_hits = len([t for t in re.findall(r'\b[A-Z]{2,5}\b', combined)
+                                 if t not in skip_score])
+                score = dollar_hits * 5 + watchlist_hits * 3 + min(caps_hits, 10)
+                print(f"   Email [{msg_id.decode() if isinstance(msg_id,bytes) else msg_id}] "
+                      f"from={from_c[:40]!r} subj={subj_c[:50]!r} score={score}")
+
+                if score > best_score:
+                    best_score    = score
+                    best_subject  = subj_c
+                    best_content  = f"Subject: {subj_c}\n\nBody: {body_c}"
+
+            except Exception as ex_inner:
+                print(f"   ⚠️  Skipping email {msg_id}: {ex_inner}")
+
+        # If scoring found something, return it
+        if best_content:
+            print(f"✅ Best watchlist email (score={best_score}): {best_subject[:80]!r}")
+            mail.logout()
+            return best_subject, best_content
+
+        # Hard fallback: return absolute latest email raw
+        print("⚠️  No scored email found — using absolute latest email")
+        latest = all_ids[-1]
         _, msg_data = mail.fetch(latest, "(RFC822)")
 
         # iCloud returns a flat list of bytes; Gmail returns a list of tuples.
-        # Handle both formats robustly.
         raw_email = None
         for part in msg_data:
             if isinstance(part, tuple):
-                raw_email = part[1]   # Gmail-style: (header_bytes, email_bytes)
+                raw_email = part[1]
                 break
         if raw_email is None:
-            # iCloud-style: flat list — find the largest bytes chunk (the actual email)
             raw_email = max(
                 (p for p in msg_data if isinstance(p, bytes)),
                 key=len, default=None
@@ -338,7 +404,6 @@ def read_todays_tickers():
             raise ValueError(f"Could not parse email from IMAP response: {msg_data}")
 
         msg = email.message_from_bytes(raw_email)
-
         subject = msg["subject"] or ""
         body = ""
         if msg.is_multipart():
@@ -356,7 +421,7 @@ def read_todays_tickers():
                 body = payload
 
         full_content = f"Subject: {subject}\n\nBody: {body}"
-        print(f"✅ Found watchlist email: {subject}")
+        print(f"✅ Found watchlist email (fallback): {subject}")
         mail.logout()
         return subject, full_content
 
@@ -415,13 +480,50 @@ def get_premarket_data(ticker):
     }
 
 
+def _discover_account_id():
+    """
+    Auto-discover the Webull account ID from the API.
+    Tries several common account-list endpoints.
+    Returns the first account_id found, or None.
+    """
+    for path in ("/openapi/account/list",
+                 "/openapi/trade/account/list",
+                 "/openapi/assets/account/list"):
+        try:
+            resp = _get(path)
+            if resp.status_code == 200:
+                raw  = resp.json()
+                data = raw.get("data", raw)
+                items = data if isinstance(data, list) else data.get("items", [])
+                if items:
+                    acct = items[0]
+                    acct_id = (acct.get("account_id") or acct.get("accountId") or
+                               acct.get("id"))
+                    if acct_id:
+                        print(f"🔍 Discovered account_id={acct_id} from {path}")
+                        return str(acct_id)
+        except Exception:
+            pass
+    return None
+
+
 def get_account_balance():
     """Get available cash from Webull account."""
+    account_id = WEBULL_ACCOUNT_ID
+
+    # If WEBULL_ACCOUNT_ID is not set, try to discover it
+    if not account_id:
+        account_id = _discover_account_id() or ""
+
     try:
         path   = "/openapi/assets/balance"
-        params = {"account_id": WEBULL_ACCOUNT_ID}
-        resp   = _get(path, query_params=params)
-        resp.raise_for_status()
+        params = {"account_id": account_id} if account_id else {}
+        resp   = _get(path, query_params=params or None)
+        if resp.status_code != 200:
+            # Print full response so we can see the exact error from Webull
+            print(f"⚠️  Balance fetch error: {resp.status_code} {resp.reason}")
+            print(f"    Response body: {resp.text[:500]}")
+            return 100.0
         data = resp.json().get("data", {})
         # Try multiple possible field names
         cash = (data.get("cash_balance") or data.get("cashBalance") or
@@ -1167,12 +1269,31 @@ def main():
     # Strip reply/forward prefixes before parsing
     clean_subject = re.sub(r'^(FW|FWD|RE):\s*', '', subject.strip(), flags=re.IGNORECASE)
     skip = {"THE", "FOR", "AND", "NOT", "ALL", "DAY", "TOP",
-            "NEW", "BIG", "HOT", "PDT", "RE", "AI", "ET", "FW", "FWD"}
-    tickers = [t for t in re.findall(r'\b[A-Z]{2,5}\b', clean_subject.upper())
-               if t not in skip][:5]
+            "NEW", "BIG", "HOT", "PDT", "RE", "AI", "ET", "FW", "FWD",
+            "TO", "IN", "UP", "AM", "PM", "IS", "IT", "ON", "MY",
+            "AT", "BY", "OR", "NO", "IF", "SO", "DO", "BE", "GO",
+            "US", "EU", "UK", "AM", "PM", "EST", "EDT", "PST",
+            "HOLD", "BUY", "SELL", "LONG", "SHORT", "PLAY"}
+
+    # First try subject
+    tickers = [t for t in re.findall(r'\b[A-Z]{1,5}\b', clean_subject.upper())
+               if t not in skip and len(t) >= 2][:5]
+
+    # Fallback: scan email body — look for $TICKER format first, then bare uppercase words
+    if not tickers and email_content:
+        body_text = email_content.upper()
+        # $TICKER format (most reliable — Kev likely writes $NVDA, $TSLA etc.)
+        dollar_tickers = re.findall(r'\$([A-Z]{1,5})\b', body_text)
+        tickers = [t for t in dollar_tickers if t not in skip][:5]
+
+        if not tickers:
+            # Bare uppercase words in body (looser match)
+            tickers = [t for t in re.findall(r'\b[A-Z]{2,5}\b', body_text)
+                       if t not in skip][:5]
+
     if not tickers:
         tickers = ["UNKNOWN"]
-    print(f"📋 Tickers: {tickers}")
+    print(f"📋 Tickers: {tickers}  (subject='{clean_subject[:80]}')")
 
     # ── Step 3: Pre-market data ────────────────────────────
     market_data = []

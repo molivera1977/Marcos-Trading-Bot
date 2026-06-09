@@ -158,6 +158,7 @@ def _webull_headers(method, path, host, query_params=None, body_dict=None):
         headers["x-access-token"] = WEBULL_ACCESS_TOKEN
 
     # Build sign_params: signing headers + host + query params (all lowercase)
+    # x-access-token MUST be included in sign_params when present — Webull verifies it
     sign_params = {
         "x-app-key":             WEBULL_APP_KEY,
         "x-timestamp":           timestamp,
@@ -166,6 +167,8 @@ def _webull_headers(method, path, host, query_params=None, body_dict=None):
         "x-signature-nonce":     nonce,
         "host":                  host,
     }
+    if WEBULL_ACCESS_TOKEN:
+        sign_params["x-access-token"] = WEBULL_ACCESS_TOKEN
     if query_params:
         for k, v in query_params.items():
             sign_params[k.lower()] = str(v)

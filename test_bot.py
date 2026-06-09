@@ -61,6 +61,8 @@ def _headers(method, path, host, query_params=None, body_dict=None):
 
     sp = {"x-app-key":WEBULL_APP_KEY,"x-timestamp":ts,"x-signature-version":"1.0",
           "x-signature-algorithm":algo_name,"x-signature-nonce":nonce,"host":host}
+    if WEBULL_ACCESS_TOKEN:
+        sp["x-access-token"] = WEBULL_ACCESS_TOKEN
     if query_params:
         for k,v in query_params.items(): sp[k.lower()] = str(v)
 

@@ -127,23 +127,27 @@ print("━" * 60)
 input("\nPress Enter after approving in your Webull app...")
 
 # ── Step 2: Poll until token is NORMAL ───────────────────────
+# check_token is POST with body {"token": xxx}  (NOT a GET request)
 print("\n🔍 Step 2: Checking token status...")
-path_check   = "/openapi/auth/token/check"
-query_params = {"token": token}
+path_check = "/openapi/auth/token/check"
+body_check = {"token": token}
 
 for attempt in range(1, 31):
     try:
-        hdrs = _headers(path_check, query_params=query_params)
-        resp = requests.get(f"{BASE_URL}{path_check}", headers=hdrs,
-                            params=query_params, timeout=15)
+        hdrs      = _headers(path_check, body_dict=body_check)
+        body_str2 = json.dumps(body_check, ensure_ascii=False, separators=(',', ':'))
+        resp      = requests.post(f"{BASE_URL}{path_check}", headers=hdrs,
+                                  data=body_str2, timeout=15)
         data = resp.json()
 
-        # Status can be nested in data or at top level
-        status = None
-        if isinstance(data.get("data"), dict):
+        # Always print raw response for first 3 attempts so we can debug
+        if attempt <= 3:
+            print(f"   Raw response: {json.dumps(data)}")
+
+        # Response is flat: {"token":"...","expires":123,"status":"NORMAL"}
+        status = data.get("status")
+        if not status and isinstance(data.get("data"), dict):
             status = data["data"].get("status")
-        elif data.get("status"):
-            status = data["status"]
 
         print(f"   Attempt {attempt}/30 — status: {status or 'unknown'}")
 

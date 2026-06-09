@@ -24,7 +24,7 @@ ANTHROPIC_API_KEY   = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 RESEND_API_KEY      = os.environ.get("RESEND_API_KEY", "").strip()
 
 TRADING_HOST = "api.webull.com"
-MARKET_HOST  = "data-api.webull.com"
+MARKET_HOST  = "api.webull.com"   # same host — avoids data-api.webull.com timeout
 
 results = {}
 

@@ -73,10 +73,11 @@ IMAP_SERVER = "imap.mail.me.com"
 IMAP_PORT   = 993
 
 # Webull OpenAPI v2 — production endpoints
-# api.webull.com       → trading, auth, balance  → HMAC-SHA1
-# data-api.webull.com  → quotes, bars            → HMAC-SHA256
+# api.webull.com        → trading, auth, balance, quotes  → HMAC-SHA1
+# quotes-api.webull.com → alternative market data host    → HMAC-SHA1
+# data-api.webull.com   → market data (some regions)      → HMAC-SHA256
 TRADING_HOST    = "api.webull.com"
-MARKET_HOST     = "data-api.webull.com"
+MARKET_HOST     = "api.webull.com"     # use same host as trading; avoids firewall issues
 TRADING_URL     = f"https://{TRADING_HOST}"
 MARKET_URL      = f"https://{MARKET_HOST}"
 

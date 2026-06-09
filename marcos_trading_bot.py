@@ -67,7 +67,7 @@ SUMMARY_EMAIL      = os.environ.get("SUMMARY_EMAIL", "molivera1977@gmail.com")
 IMAP_SERVER = "imap.mail.me.com"
 IMAP_PORT   = 993
 SMTP_SERVER = "smtp.mail.me.com"
-SMTP_PORT   = 587
+SMTP_PORT   = 465
 
 # Trading rules
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade
@@ -773,8 +773,7 @@ def send_alert_email(subject, body):
         msg["Subject"] = subject
         footer = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nMarcos Trading Bot | Railway.app"
         msg.attach(MIMEText(body + footer, "plain"))
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
             server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
             server.send_message(msg)
         print(f"✅ Alert sent!")
@@ -961,8 +960,7 @@ Railway.app
         msg["To"]      = SUMMARY_EMAIL
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
             server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
             server.send_message(msg)
         print(f"✅ Summary email sent!")

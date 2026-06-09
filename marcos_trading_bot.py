@@ -7,8 +7,8 @@
 
 HOW IT WORKS:
 1. Every weekday at 8:45am ET this script wakes up automatically
-2. Reads your Gmail (marcostrades2026@gmail.com) for Kev's tickers
-3. Pulls live pre-market data from Webull API
+2. Reads your iCloud email (molivera1977@icloud.com) for Kev's tickers
+3. Pulls live pre-market data from Webull OpenAPI v2
 4. Sends everything to Claude Opus AI for deep analysis
 5. Claude picks the best setup with entry/target/stop-loss
 6. Opens a real-time MQTT stream from Webull (falls back to polling if unavailable)
@@ -24,11 +24,12 @@ SETUP INSTRUCTIONS:
 - Set the following environment variables in Railway.app:
   WEBULL_APP_KEY        = your Webull App Key
   WEBULL_APP_SECRET     = your Webull App Secret
-  WEBULL_APP_ID         = 961252838594318336
   WEBULL_ACCOUNT_ID     = your Webull account ID
-  EMAIL_ADDRESS         = marcostrades2026@gmail.com
-  EMAIL_APP_PASSWORD    = your Gmail app password
+  WEBULL_ACCESS_TOKEN   = your Webull access token (run webull_setup.py once to get this)
+  EMAIL_ADDRESS         = molivera1977@icloud.com
+  EMAIL_APP_PASSWORD    = your iCloud app-specific password
   ANTHROPIC_API_KEY     = your Claude API key
+  RESEND_API_KEY        = your Resend.com API key
   SUMMARY_EMAIL         = molivera1977@gmail.com
 """
 
@@ -40,33 +41,40 @@ import json
 import time
 import hmac
 import hashlib
+import base64
+import uuid
+import socket
 import threading
 import requests
 import anthropic
 import resend
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from urllib.parse import quote
 import pytz
 
 # ============================================================
 # CONFIGURATION
 # ============================================================
 
-WEBULL_APP_KEY     = os.environ.get("WEBULL_APP_KEY")
-WEBULL_APP_SECRET  = os.environ.get("WEBULL_APP_SECRET")
-WEBULL_APP_ID      = os.environ.get("WEBULL_APP_ID", "961252838594318336")
-WEBULL_ACCOUNT_ID  = os.environ.get("WEBULL_ACCOUNT_ID")
+WEBULL_APP_KEY      = os.environ.get("WEBULL_APP_KEY", "")
+WEBULL_APP_SECRET   = os.environ.get("WEBULL_APP_SECRET", "")
+WEBULL_ACCOUNT_ID   = os.environ.get("WEBULL_ACCOUNT_ID", "")
+WEBULL_ACCESS_TOKEN = os.environ.get("WEBULL_ACCESS_TOKEN", "")
+
 EMAIL_ADDRESS      = os.environ.get("EMAIL_ADDRESS", "molivera1977@icloud.com")
-EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD")
-ANTHROPIC_API_KEY  = os.environ.get("ANTHROPIC_API_KEY")
-RESEND_API_KEY     = os.environ.get("RESEND_API_KEY")
+EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD", "")
+ANTHROPIC_API_KEY  = os.environ.get("ANTHROPIC_API_KEY", "")
+RESEND_API_KEY     = os.environ.get("RESEND_API_KEY", "")
 SUMMARY_EMAIL      = os.environ.get("SUMMARY_EMAIL", "molivera1977@gmail.com")
 
 # iCloud IMAP (reading only — sending is via Resend API over HTTPS)
 IMAP_SERVER = "imap.mail.me.com"
 IMAP_PORT   = 993
+
+# Webull OpenAPI v2
+WEBULL_HOST = "us-openapi-alb.uat.webullbroker.com"
+BASE_URL    = f"https://{WEBULL_HOST}"
 
 # Trading rules
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade
@@ -84,6 +92,96 @@ WEBULL_MQTT_HOST  = "stream.webull.com"
 WEBULL_MQTT_PORT  = 443          # WebSocket over TLS
 MQTT_LOOP_SLEEP   = 0.5          # When streaming: check every 0.5s
 POLL_LOOP_SLEEP   = 15           # Fallback polling: check every 15s
+
+# ============================================================
+# WEBULL OPENAPI v2 — SIGNATURE & HEADERS
+# ============================================================
+#
+# Signature algorithm (from Webull official open-source SDK):
+#   sign_params = {x-app-key, x-timestamp, x-signature-version,
+#                  x-signature-algorithm, x-signature-nonce, host}
+#                 + any query params (all lowercased keys)
+#   body_string = MD5_HEX(compact_json_body).upper()  [POST only]
+#   string_to_sign = path + "&" + "&".join(sorted k=v) [+ "&" + body_md5]
+#   string_to_sign = URL_encode(string_to_sign)
+#   key            = (app_secret + "&").encode()
+#   x-signature    = base64( HMAC-SHA1(key, string_to_sign) )
+#
+# x-app-secret is NOT sent as a header — it is only the HMAC key.
+
+def _webull_headers(method, path, query_params=None, body_dict=None):
+    """
+    Build correct Webull OpenAPI v2 headers with HMAC-SHA1 signature.
+    Pass query_params as a dict for GET requests (included in signature).
+    Pass body_dict as a dict for POST requests (MD5'd for signature).
+    """
+    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    nonce = str(uuid.uuid5(uuid.NAMESPACE_URL,
+                           socket.gethostname() + str(uuid.uuid1())))
+
+    headers = {
+        "Content-Type":          "application/json",
+        "x-app-key":             WEBULL_APP_KEY,
+        "x-timestamp":           timestamp,
+        "x-signature-version":   "1.0",
+        "x-signature-algorithm": "HMAC-SHA1",
+        "x-signature-nonce":     nonce,
+        "x-version":             "v2",
+    }
+    if WEBULL_ACCESS_TOKEN:
+        headers["x-access-token"] = WEBULL_ACCESS_TOKEN
+
+    # Build sign_params: all header signing fields + host + query params
+    sign_params = {
+        "x-app-key":             WEBULL_APP_KEY,
+        "x-timestamp":           timestamp,
+        "x-signature-version":   "1.0",
+        "x-signature-algorithm": "HMAC-SHA1",
+        "x-signature-nonce":     nonce,
+        "host":                  WEBULL_HOST,
+    }
+    if query_params:
+        for k, v in query_params.items():
+            sign_params[k.lower()] = str(v)
+
+    # Body string: MD5 hex of compact JSON, uppercased (POST only)
+    body_string = None
+    if body_dict is not None:
+        body_str    = json.dumps(body_dict, ensure_ascii=False,
+                                 separators=(',', ':'))
+        body_string = hashlib.md5(body_str.encode()).hexdigest().upper()
+
+    # Assemble string to sign: path & sorted_kv_pairs [& body_md5]
+    sorted_kv   = "&".join(f"{k}={v}" for k, v in sorted(sign_params.items()))
+    s2s         = f"{path}&{sorted_kv}"
+    if body_string:
+        s2s += f"&{body_string}"
+
+    # Percent-encode everything (no safe chars — matches SDK quote(safe=''))
+    s2s = quote(s2s, safe='')
+
+    # HMAC-SHA1 with (app_secret + "&") as key, base64-encoded
+    key         = (WEBULL_APP_SECRET + "&").encode()
+    h           = hmac.new(key, s2s.encode(), hashlib.sha1)
+    headers["x-signature"] = base64.b64encode(h.digest()).decode()
+
+    return headers
+
+
+def _post(path, body_dict):
+    """POST to Webull OpenAPI with correct signed headers."""
+    url     = f"{BASE_URL}{path}"
+    headers = _webull_headers("POST", path, body_dict=body_dict)
+    body    = json.dumps(body_dict, ensure_ascii=False, separators=(',', ':'))
+    return requests.post(url, headers=headers, data=body, timeout=10)
+
+
+def _get(path, query_params=None):
+    """GET from Webull OpenAPI with correct signed headers."""
+    url     = f"{BASE_URL}{path}"
+    headers = _webull_headers("GET", path, query_params=query_params)
+    return requests.get(url, headers=headers, params=query_params, timeout=10)
+
 
 # ============================================================
 # REAL-TIME PRICE STREAM (MQTT)
@@ -142,6 +240,7 @@ class WebullStream:
             price  = float(
                 data.get("close") or
                 data.get("lastPrice") or
+                data.get("last_price") or
                 data.get("price") or 0
             )
             if price > 0:
@@ -174,11 +273,11 @@ class WebullStream:
                 pass
 
 # ============================================================
-# STEP 1 — READ GMAIL FOR KEV'S TICKERS
+# STEP 1 — READ ICLOUD EMAIL FOR KEV'S TICKERS
 # ============================================================
 
 def read_todays_tickers():
-    print("📧 Checking Gmail for tonight's watchlist...")
+    print("📧 Checking iCloud email for tonight's watchlist...")
     try:
         mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
         mail.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
@@ -234,103 +333,133 @@ def read_todays_tickers():
         return subject, full_content
 
     except Exception as e:
-        print(f"❌ Gmail error: {e}")
+        print(f"❌ iCloud email error: {e}")
         return None, None
 
 # ============================================================
-# STEP 2 — WEBULL REST HELPERS
+# STEP 2 — WEBULL MARKET DATA + ACCOUNT
 # ============================================================
 
-def _webull_headers(method, path, body=""):
-    timestamp = str(int(time.time() * 1000))
-    sign_str  = f"{method}\n{path}\n{body}\n{timestamp}"
-    signature = hmac.new(
-        WEBULL_APP_SECRET.encode(),
-        sign_str.encode(),
-        hashlib.sha256
-    ).hexdigest()
-    return {
-        "Content-Type": "application/json",
-        "App-Key":      WEBULL_APP_KEY,
-        "Timestamp":    timestamp,
-        "Sign":         signature,
-        "App-Id":       WEBULL_APP_ID,
-    }
-
 def get_premarket_data(ticker):
+    """Fetch pre-market quote for ticker via Webull OpenAPI v2."""
     print(f"📊 Fetching pre-market data for {ticker}...")
     try:
-        path    = "/quotes/ticker/getTickerRealTime"
-        params  = {"symbol": ticker, "regionId": 6}
-        url     = f"https://api.webull.com{path}"
-        headers = _webull_headers("GET", path)
-        resp    = requests.get(url, headers=headers, params=params, timeout=10)
-        d       = resp.json().get("data", {})
+        path   = "/openapi/market-data/stock/quotes"
+        params = {"symbol": ticker, "category": "US_STOCK"}
+        resp   = _get(path, query_params=params)
+        resp.raise_for_status()
+        raw = resp.json()
+
+        # Response: {"code":"0","data":{"items":[{...}]}} or {"data":{...}}
+        data = raw.get("data", {})
+        if isinstance(data, dict):
+            items = data.get("items", [])
+            d = items[0] if items else data
+        elif isinstance(data, list):
+            d = data[0] if data else {}
+        else:
+            d = {}
+
+        def pick(*keys):
+            for k in keys:
+                v = d.get(k)
+                if v not in (None, ""):
+                    return v
+            return "N/A"
+
         return {
             "ticker":               ticker,
-            "premarket_price":      d.get("preMarketPrice", "N/A"),
-            "premarket_change_pct": d.get("preMarketChangeRatio", "N/A"),
-            "premarket_volume":     d.get("preMarketVolume", "N/A"),
-            "previous_close":       d.get("preClose", "N/A"),
-            "avg_volume":           d.get("avgVol10D", "N/A"),
-            "float_shares":         d.get("outstandingShares", "N/A"),
-            "market_cap":           d.get("marketValue", "N/A"),
+            "premarket_price":      pick("pre_market_price",   "preMarketPrice"),
+            "premarket_change_pct": pick("pre_market_change_rate", "preMarketChangeRatio"),
+            "premarket_volume":     pick("pre_market_volume",  "preMarketVolume"),
+            "previous_close":       pick("pre_close",          "preClose"),
+            "avg_volume":           pick("avg_vol10d",         "avgVol10D"),
+            "float_shares":         pick("outstanding_shares", "outstandingShares"),
+            "market_cap":           pick("market_value",       "marketValue"),
         }
     except Exception as e:
         print(f"⚠️  Webull data error for {ticker}: {e}")
-    return {"ticker": ticker, "premarket_price": "N/A", "premarket_change_pct": "N/A",
-            "premarket_volume": "N/A", "previous_close": "N/A",
-            "avg_volume": "N/A", "float_shares": "N/A", "market_cap": "N/A"}
+    return {
+        "ticker": ticker,
+        "premarket_price": "N/A", "premarket_change_pct": "N/A",
+        "premarket_volume": "N/A", "previous_close": "N/A",
+        "avg_volume": "N/A", "float_shares": "N/A", "market_cap": "N/A",
+    }
+
 
 def get_account_balance():
+    """Get available cash from Webull account."""
     try:
-        path    = f"/paper/trading/v2/account/{WEBULL_ACCOUNT_ID}/positions"
-        url     = f"https://api.webull.com{path}"
-        headers = _webull_headers("GET", path)
-        resp    = requests.get(url, headers=headers, timeout=10)
-        data    = resp.json()
-        if data and "data" in data:
-            return float(data["data"].get("cashBalance", 100.0))
+        path   = "/openapi/assets/balance"
+        params = {"account_id": WEBULL_ACCOUNT_ID}
+        resp   = _get(path, query_params=params)
+        resp.raise_for_status()
+        data = resp.json().get("data", {})
+        # Try multiple possible field names
+        cash = (data.get("cash_balance") or data.get("cashBalance") or
+                data.get("available_cash") or data.get("availableFunds") or
+                data.get("net_liquidation") or 0)
+        return float(cash) if cash else 100.0
     except Exception as e:
         print(f"⚠️  Balance fetch error: {e}")
     return 100.0
 
+
 def _get_price_rest(ticker) -> float:
     """REST fallback for current price when MQTT is unavailable."""
     try:
-        path    = "/quotes/ticker/getTickerRealTime"
-        params  = {"symbol": ticker, "regionId": 6}
-        url     = f"https://api.webull.com{path}"
-        headers = _webull_headers("GET", path)
-        resp    = requests.get(url, headers=headers, params=params, timeout=10)
-        data    = resp.json()
-        if data and "data" in data:
-            return float(data["data"].get("close", 0))
+        path   = "/openapi/market-data/stock/quotes"
+        params = {"symbol": ticker, "category": "US_STOCK"}
+        resp   = _get(path, query_params=params)
+        resp.raise_for_status()
+        raw  = resp.json()
+        data = raw.get("data", {})
+        if isinstance(data, dict):
+            items = data.get("items", [])
+            d = items[0] if items else data
+        elif isinstance(data, list):
+            d = data[0] if data else {}
+        else:
+            d = {}
+        price = (d.get("last_price") or d.get("lastPrice") or
+                 d.get("close")      or d.get("c") or 0)
+        return float(price) if price else 0
     except Exception:
         pass
     return 0
 
+
 def get_intraday_bars(ticker, count=30):
+    """Fetch 1-minute intraday bars for VWAP calculation."""
     try:
-        path    = "/quotes/ticker/getTickerChart"
-        params  = {"symbol": ticker, "type": "m1", "count": count, "regionId": 6}
-        url     = f"https://api.webull.com{path}"
-        headers = _webull_headers("GET", path)
-        resp    = requests.get(url, headers=headers, params=params, timeout=10)
-        data    = resp.json()
-        if data and "data" in data:
-            return data["data"]
+        path   = "/openapi/market-data/stock/bars"
+        params = {
+            "symbol":           ticker,
+            "category":         "US_STOCK",
+            "timespan":         "m1",
+            "count":            str(count),
+            "trading_sessions": "REGULAR,PRE_MARKET",
+        }
+        resp = _get(path, query_params=params)
+        resp.raise_for_status()
+        data = resp.json().get("data", {})
+        if isinstance(data, dict):
+            return data.get("items", [])
+        elif isinstance(data, list):
+            return data
     except Exception as e:
         print(f"⚠️  Intraday bars error for {ticker}: {e}")
     return []
 
+
 def calculate_vwap(bars) -> float:
+    """Calculate VWAP from 1-minute bars. Handles camelCase and snake_case field names."""
     total_pv, total_vol = 0, 0
     for bar in bars:
-        high  = float(bar.get("high", 0))
-        low   = float(bar.get("low", 0))
-        close = float(bar.get("close", 0))
-        vol   = float(bar.get("volume", 0))
+        high  = float(bar.get("high")   or bar.get("h") or 0)
+        low   = float(bar.get("low")    or bar.get("l") or 0)
+        close = float(bar.get("close")  or bar.get("c") or 0)
+        vol   = float(bar.get("volume") or bar.get("v") or 0)
         total_pv  += ((high + low + close) / 3) * vol
         total_vol += vol
     return total_pv / total_vol if total_vol > 0 else 0
@@ -503,8 +632,10 @@ def wait_for_vwap_entry(ticker, stream: WebullStream):
         print(f"📊 {ticker}: ${current_price:.2f} | VWAP: ${cached_vwap:.2f} ({pct_vs_vwap:+.1f}%)")
 
         if current_price > cached_vwap:
-            last_vol = float(cached_bars[-1].get("volume", 0))
-            avg_vol  = sum(float(b.get("volume", 0)) for b in cached_bars) / len(cached_bars)
+            last_vol = float(cached_bars[-1].get("volume") or
+                             cached_bars[-1].get("v") or 0)
+            avg_vol  = sum(float(b.get("volume") or b.get("v") or 0)
+                          for b in cached_bars) / len(cached_bars)
             if last_vol >= avg_vol * 0.75:
                 print(f"✅ VWAP reclaim confirmed! ${current_price:.2f} > VWAP ${cached_vwap:.2f} with volume")
                 return current_price, cached_vwap
@@ -514,114 +645,128 @@ def wait_for_vwap_entry(ticker, stream: WebullStream):
         time.sleep(stream.loop_sleep())
 
 # ============================================================
-# STEP 5 — EXECUTE TRADE VIA WEBULL
+# STEP 5 — EXECUTE TRADE VIA WEBULL OPENAPI v2
 # ============================================================
+#
+# All orders use the new /openapi/trade/stock/order/place endpoint.
+# Orders are identified by our own client_order_id (UUID hex), not
+# Webull's internal orderId — that's what cancel/replace uses too.
+
+def _place_order(ticker, shares, side, order_type,
+                 stop_price=None, client_order_id=None):
+    """
+    Low-level order placement via Webull OpenAPI v2.
+    Returns client_order_id on success, None on failure.
+    """
+    if client_order_id is None:
+        client_order_id = uuid.uuid4().hex
+
+    order = {
+        "client_order_id":       client_order_id,
+        "symbol":                ticker,
+        "instrument_type":       "EQUITY",
+        "market":                "US",
+        "order_type":            order_type,   # MKT or STP
+        "quantity":              str(int(shares)),
+        "side":                  side,         # BUY or SELL
+        "time_in_force":         "DAY",
+        "support_trading_session": "CORE",
+        "entrust_type":          "QTY",
+    }
+    if stop_price is not None:
+        order["aux_price"] = f"{stop_price:.4f}"
+
+    body = {
+        "account_id": WEBULL_ACCOUNT_ID,
+        "new_orders": [order],
+    }
+
+    try:
+        resp = _post("/openapi/trade/stock/order/place", body)
+        if resp.status_code == 200:
+            return client_order_id
+        else:
+            print(f"⚠️  Order failed ({resp.status_code}): {resp.text}")
+    except Exception as e:
+        print(f"⚠️  Order error: {e}")
+    return None
+
 
 def execute_trade(ticker, shares, entry_price, stop_loss, target):
     """
-    Places the buy order then immediately places a real stop order on Webull.
-    Returns (buy_order_id, stop_order_id) — both needed to manage the trade.
+    Places the buy market order then immediately places a real stop order on Webull.
+    Returns (buy_client_order_id, stop_client_order_id) — both needed to manage the trade.
     Returns (None, None) on failure.
     """
-    print(f"🚀 Executing: BUY {shares} shares of {ticker} @ ${entry_price:.2f}...")
-    try:
-        path = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order"
-        url  = f"https://api.webull.com{path}"
+    shares = max(1, int(shares))   # Webull requires whole shares
+    print(f"🚀 Executing: BUY {shares} shares of {ticker} @ ~${entry_price:.2f}...")
 
-        buy_body = json.dumps({
-            "symbol": ticker, "action": "BUY",
-            "orderType": "MKT", "quantity": shares,
-            "timeInForce": "DAY", "outsideRegularTradingHour": False
-        })
-        headers    = _webull_headers("POST", path, buy_body)
-        resp       = requests.post(url, headers=headers, data=buy_body, timeout=10)
-        order_data = resp.json()
+    buy_id = _place_order(ticker, shares, "BUY", "MKT")
+    if not buy_id:
+        print(f"❌ Buy order failed for {ticker}")
+        return None, None
 
-        if order_data.get("success"):
-            buy_id = order_data["data"]["orderId"]
-            print(f"✅ Buy order placed! Order ID: {buy_id}")
+    print(f"✅ Buy order placed! Client ID: {buy_id}")
+    time.sleep(2)   # Let fill confirm before placing stop
 
-            time.sleep(2)   # Let fill confirm before placing stop
-            stop_id = place_stop_order(ticker, shares, stop_loss)
-            return buy_id, stop_id
-        else:
-            print(f"❌ Order failed: {order_data}")
-    except Exception as e:
-        print(f"❌ Trade execution error: {e}")
-    return None, None
+    stop_id = place_stop_order(ticker, shares, stop_loss)
+    return buy_id, stop_id
+
 
 def close_position(ticker, shares):
+    """Sell shares at market price."""
+    shares = max(1, int(shares))
     print(f"🔒 Closing: SELL {shares} shares of {ticker}...")
-    try:
-        path = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order"
-        url  = f"https://api.webull.com{path}"
-        body = json.dumps({
-            "symbol": ticker, "action": "SELL",
-            "orderType": "MKT", "quantity": shares,
-            "timeInForce": "DAY", "outsideRegularTradingHour": False
-        })
-        headers = _webull_headers("POST", path, body)
-        resp    = requests.post(url, headers=headers, data=body, timeout=10)
-        if resp.json().get("success"):
-            print("✅ Position closed!")
-            return True
-    except Exception as e:
-        print(f"❌ Close error: {e}")
+    result = _place_order(ticker, shares, "SELL", "MKT")
+    if result:
+        print("✅ Position closed!")
+        return True
+    print(f"❌ Close position failed for {ticker}")
     return False
 
-def cancel_order(order_id):
-    """Cancel an open order by ID. Used when moving/replacing stop orders."""
-    if not order_id:
+
+def cancel_order(client_order_id):
+    """Cancel an open order by client_order_id. Used when moving/replacing stops."""
+    if not client_order_id:
         return False
     try:
-        path    = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order/{order_id}/cancel"
-        url     = f"https://api.webull.com{path}"
-        headers = _webull_headers("DELETE", path)
-        resp    = requests.delete(url, headers=headers, timeout=10)
-        if resp.json().get("success"):
-            print(f"✅ Order {order_id} cancelled")
+        body = {
+            "account_id":      WEBULL_ACCOUNT_ID,
+            "client_order_id": client_order_id,
+        }
+        resp = _post("/openapi/trade/stock/order/cancel", body)
+        if resp.status_code == 200:
+            print(f"✅ Order {client_order_id[:8]}... cancelled")
             return True
         else:
-            print(f"⚠️  Cancel failed for {order_id}: {resp.json()}")
+            print(f"⚠️  Cancel failed ({resp.status_code}): {resp.text}")
     except Exception as e:
         print(f"⚠️  Cancel order error: {e}")
     return False
 
+
 def place_stop_order(ticker, shares, stop_price):
     """
     Place a live stop-loss sell order on Webull.
-    Returns the new order ID, or None if it fails.
+    Returns the client_order_id, or None if it fails.
     """
-    try:
-        path = f"/trading/v1/account/{WEBULL_ACCOUNT_ID}/order"
-        url  = f"https://api.webull.com{path}"
-        body = json.dumps({
-            "symbol": ticker, "action": "SELL",
-            "orderType": "STP", "quantity": shares,
-            "auxPrice": stop_price,
-            "timeInForce": "DAY", "outsideRegularTradingHour": False
-        })
-        headers = _webull_headers("POST", path, body)
-        resp    = requests.post(url, headers=headers, data=body, timeout=10)
-        data    = resp.json()
-        if data.get("success"):
-            new_id = data["data"]["orderId"]
-            print(f"🛡️  Stop order placed: ${stop_price:.2f} × {shares} shares (ID: {new_id})")
-            return new_id
-        else:
-            print(f"⚠️  Stop order failed: {data}")
-    except Exception as e:
-        print(f"⚠️  Stop order error: {e}")
-    return None
+    shares = max(1, int(shares))
+    result = _place_order(ticker, shares, "SELL", "STP", stop_price=stop_price)
+    if result:
+        print(f"🛡️  Stop order placed: ${stop_price:.2f} × {shares} shares")
+    else:
+        print(f"⚠️  Stop order failed for {ticker} @ ${stop_price:.2f}")
+    return result
 
-def update_stop_order(ticker, shares, new_price, old_order_id):
+
+def update_stop_order(ticker, shares, new_price, old_client_order_id):
     """
-    Cancel the existing exchange stop order and place a new one at the updated price/quantity.
-    Returns the new order ID (or None if the replacement fails — logs a warning).
+    Cancel the existing exchange stop order and place a new one.
+    Returns the new client_order_id (or None if replacement fails).
     """
-    print(f"🔄 Moving stop order → ${new_price:.2f} ({shares} shares)...")
-    cancel_order(old_order_id)
-    time.sleep(0.5)   # Let the cancel settle before placing new order
+    print(f"🔄 Moving stop order → ${new_price:.2f} ({int(shares)} shares)...")
+    cancel_order(old_client_order_id)
+    time.sleep(0.5)   # Let the cancel settle
     new_id = place_stop_order(ticker, shares, new_price)
     if not new_id:
         print(f"❌ WARNING: Stop order replacement failed! Position has no exchange-level stop.")
@@ -642,23 +787,17 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
     - MQTT connected: checks every 0.5 seconds
     - Fallback polling: checks every 15 seconds
-
-    Stop order lifecycle:
-    - Entry:        hard stop at -7% placed by execute_trade
-    - At +10%:      cancel & replace stop at breakeven (entry price)
-    - At +15%:      partial exit; cancel & replace stop for remaining shares at trail
-    - Trailing:     cancel & replace stop as trail moves up (only if moved >= $0.10)
-    - Target/time:  cancel stop, close with market order
     """
-    sleep_secs = stream.loop_sleep()
-    mode = "real-time MQTT" if stream.connected else "15s polling fallback"
+    total_shares = max(1, int(total_shares))
+    sleep_secs   = stream.loop_sleep()
+    mode         = "real-time MQTT" if stream.connected else "15s polling fallback"
     print(f"\n👀 Monitoring {ticker} via {mode}")
     print(f"   Entry: ${entry_price:.2f} | Target: ${target_price:.2f} | Stop: ${stop_loss:.2f}")
 
     current_stop       = stop_loss
-    placed_stop_price  = stop_loss        # price of the live Webull stop order
-    placed_stop_qty    = total_shares     # quantity of the live Webull stop order
-    placed_stop_id     = stop_order_id   # order ID of the live Webull stop order
+    placed_stop_price  = stop_loss
+    placed_stop_qty    = total_shares
+    placed_stop_id     = stop_order_id
     highest_price      = entry_price
     remaining_shares   = total_shares
     partial_taken      = False
@@ -675,7 +814,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             print("⏰ 11:00am — Force closing all positions")
             current_price = stream.get_price(ticker)
             if remaining_shares > 0:
-                cancel_order(placed_stop_id)   # Remove stop before market sell
+                cancel_order(placed_stop_id)
                 close_position(ticker, remaining_shares)
             result["exit_price"]  = current_price
             result["exit_reason"] = "11am time stop"
@@ -706,7 +845,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             if trail > current_stop:
                 current_stop = trail
                 print(f"📈 Trailing stop → ${current_stop:.2f}")
-                # Only replace exchange order if stop moved >= $0.10 (avoids order spam)
+                # Only replace exchange order if stop moved >= $0.10
                 if current_stop - placed_stop_price >= STOP_UPDATE_MIN_MOVE:
                     placed_stop_id    = update_stop_order(ticker, placed_stop_qty,
                                                           current_stop, placed_stop_id)
@@ -716,28 +855,27 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
         # ── Partial exit at +15% ────────────────────────
         if not partial_taken and profit_pct >= PARTIAL_EXIT_PCT * 100:
-            half = round(remaining_shares / 2, 4)
+            half = remaining_shares // 2
+            if half < 1:
+                half = 1
             print(f"💰 PARTIAL EXIT: selling {half} shares at ${current_price:.2f} (+{profit_pct:.1f}%)")
-            # Cancel old full-size stop before selling half
             cancel_order(placed_stop_id)
             close_position(ticker, half)
             partial_price    = current_price
             partial_taken    = True
-            remaining_shares = round(remaining_shares - half, 4)
+            remaining_shares = remaining_shares - half
             current_stop     = highest_price * (1 - TRAIL_PCT)
-            # Place new stop for remaining shares only at trail level
             placed_stop_id    = place_stop_order(ticker, remaining_shares, current_stop)
             placed_stop_price = current_stop
             placed_stop_qty   = remaining_shares
             print(f"📈 Trailing stop set at ${current_stop:.2f} — letting rest run")
-            # ── Alert 3: Partial exit notification ──────────
             send_partial_exit_alert(ticker, half, partial_price, entry_price,
                                     remaining_shares, current_stop, profit_pct)
 
         # ── Full target hit ─────────────────────────────
         if current_price >= target_price and remaining_shares > 0:
             print(f"🎯 TARGET HIT! Selling {remaining_shares} shares at ${current_price:.2f}")
-            cancel_order(placed_stop_id)   # Remove stop before market sell
+            cancel_order(placed_stop_id)
             close_position(ticker, remaining_shares)
             result["exit_price"]  = current_price
             result["exit_reason"] = "Target hit ✅"
@@ -745,7 +883,6 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             break
 
         # ── Software stop detection (backup to exchange stop) ──
-        # Exchange stop handles most cases; this catches any gap/lag
         if current_price <= current_stop and remaining_shares > 0:
             label = "Trailing stop 📉" if partial_taken else "Stop loss 🛑"
             print(f"🛑 {label} hit! Selling {remaining_shares} shares at ${current_price:.2f}")
@@ -760,7 +897,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
     # ── Blended P&L ─────────────────────────────────────
     if partial_taken:
-        half = total_shares / 2
+        half = total_shares // 2
         rest = total_shares - half
         result["profit_loss"] = (
             (partial_price - entry_price) * half +
@@ -777,9 +914,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 # ============================================================
 
 def send_alert_email(subject, body):
-    """
-    Sends email via Resend API over HTTPS — bypasses Railway's SMTP block.
-    """
+    """Sends email via Resend API over HTTPS — bypasses Railway's SMTP block."""
     print(f"📲 Sending alert: {subject}")
     try:
         resend.api_key = RESEND_API_KEY
@@ -846,7 +981,6 @@ Cash staying put: ${balance:.2f}"""
 
 def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap, position_size):
     """Alert 2 — Fired the moment the buy order is placed."""
-    today   = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
     now_str = datetime.now(EASTERN).strftime("%I:%M:%S %p ET")
     subject = f"🚀 TRADE ENTERED — {ticker} @ ${entry_price:.2f} | {now_str}"
     body = f"""The bot just entered a trade!
@@ -963,7 +1097,7 @@ The bot reads it at 8:45am tomorrow.
 
     body += f"""
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Marcos Trading Bot | Claude Opus AI + Webull MQTT Stream
+Marcos Trading Bot | Claude Opus AI + Webull OpenAPI v2
 Railway.app
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
@@ -995,7 +1129,7 @@ def main():
         print("📅 Weekend — markets closed.")
         return
 
-    # ── Step 1: Read Gmail ─────────────────────────────────
+    # ── Step 1: Read iCloud email ──────────────────────────
     subject, email_content = read_todays_tickers()
     if not email_content:
         send_summary_email(None, None)
@@ -1035,10 +1169,11 @@ def main():
     recommended = analysis.get("recommended_trade", {})
     if recommended.get("action") != "BUY":
         print("🔒 Claude says: HOLD CASH today.")
-        return  # Plan alert already sent above — no need for a second email
+        return
 
     ticker_to_trade = recommended.get("ticker")
-    position_size   = float(recommended.get("position_size_dollars", balance * MAX_POSITION_SIZE))
+    position_size   = float(recommended.get("position_size_dollars",
+                                            balance * MAX_POSITION_SIZE))
 
     # ── Step 6: Open real-time MQTT stream ─────────────────
     stream = WebullStream(tickers)
@@ -1056,7 +1191,7 @@ def main():
     # Recalculate stop/target from actual VWAP entry
     stop_loss    = round(entry_price * (1 - STOP_LOSS_PCT), 4)
     target_price = round(entry_price * (1 + TARGET_PCT), 4)
-    shares       = round(position_size / entry_price, 4) if entry_price > 0 else 0
+    shares       = max(1, int(position_size / entry_price))
 
     print(f"\n{'='*60}")
     print(f"🎯 TRADE PLAN:")
@@ -1070,7 +1205,9 @@ def main():
     print(f"{'='*60}\n")
 
     # ── Step 8: Execute ────────────────────────────────────
-    order_id, stop_order_id = execute_trade(ticker_to_trade, shares, entry_price, stop_loss, target_price)
+    order_id, stop_order_id = execute_trade(
+        ticker_to_trade, shares, entry_price, stop_loss, target_price
+    )
     if not order_id:
         send_summary_email(analysis, None, balance)
         stream.stop()
@@ -1099,6 +1236,7 @@ def main():
     print(f"   Reason:  {trade_result.get('exit_reason')}")
     print(f"   Balance: ${new_balance:.2f}")
     print(f"{'='*60}\n")
+
 
 if __name__ == "__main__":
     main()

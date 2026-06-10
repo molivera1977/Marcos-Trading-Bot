@@ -366,32 +366,15 @@ def read_todays_tickers():
 
         since_date = (datetime.now() - timedelta(days=2)).strftime("%d-%b-%Y")
 
-        # ── Priority 1: email from yourself (you forward Kev's picks to iCloud) ──
-        _, self_msgs = mail.search(None,
-            f'(SINCE "{since_date}" FROM "molivera1977@gmail.com")')
-        self_ids = self_msgs[0].split() if self_msgs[0] else []
-        print(f"   Self-forwarded emails in last 48h: {len(self_ids)}")
+        # Fetch ALL emails in last 48h — score every one, pick the best
+        _, all_msgs = mail.search(None, f'(SINCE "{since_date}")')
+        all_ids = all_msgs[0].split() if all_msgs[0] else []
+        if not all_ids:
+            print("⚠️  No recent emails found.")
+            return None, None
 
-        # ── Priority 2: any email with Watchlist or $ in subject ────────────────
-        _, subj_msgs = mail.search(None,
-            f'(SINCE "{since_date}" SUBJECT "Watchlist")')
-        subj_ids = subj_msgs[0].split() if subj_msgs[0] else []
-        print(f"   'Watchlist' subject emails in last 48h: {len(subj_ids)}")
-
-        # Combine: self-forwarded first, then watchlist-subject, deduped, newest first
-        priority_ids = list(dict.fromkeys(self_ids + subj_ids))
-        if priority_ids:
-            candidates = priority_ids[-5:][::-1]
-            print(f"   Using {len(candidates)} priority email(s) (self-sent / watchlist subject)")
-        else:
-            # Fallback: score the last 10 emails in the inbox
-            _, all_msgs = mail.search(None, f'(SINCE "{since_date}")')
-            all_ids = all_msgs[0].split() if all_msgs[0] else []
-            if not all_ids:
-                print("⚠️  No recent emails found.")
-                return None, None
-            candidates = all_ids[-10:][::-1]
-            print(f"   No self-sent/watchlist emails — scoring last {len(candidates)} emails")
+        print(f"   Found {len(all_ids)} email(s) in last 48h — scoring all of them...")
+        candidates = all_ids  # score every email, no cap
 
         best_subject, best_content = "", ""
         best_score = -1

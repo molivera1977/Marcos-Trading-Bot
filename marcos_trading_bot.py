@@ -81,14 +81,49 @@ IMAP_PORT   = 993
 TRADING_HOST = "api.webull.com"
 MARKET_HOST  = "api.webull.com"   # Server-to-Server market data also on api.webull.com
 
+# SDK token file lives here — pre-populated from WEBULL_ACCESS_TOKEN env var each run
+WEBULL_TOKEN_DIR = "/tmp/webull_token"
+
+def _pre_populate_webull_token():
+    """
+    Write WEBULL_ACCESS_TOKEN from env into the SDK's token file BEFORE initializing
+    the client.  When the SDK calls create_token(existing_token) the Webull server
+    validates it and returns status=NORMAL immediately — no PENDING wait, no need
+    to approve in the Webull app every morning.
+    """
+    if not WEBULL_ACCESS_TOKEN:
+        return
+    try:
+        import pathlib
+        token_dir = pathlib.Path(WEBULL_TOKEN_DIR)
+        token_dir.mkdir(parents=True, exist_ok=True)
+        token_file = token_dir / "token.txt"
+        # Expires 14 days from now (ms) — SDK overwrites this after a successful init
+        expires_ms = int(time.time() * 1000) + (14 * 24 * 3600 * 1000)
+        with open(token_file, "w", encoding="utf-8") as f:
+            f.write(WEBULL_ACCESS_TOKEN + "\n")
+            f.write(str(expires_ms) + "\n")
+            f.write("NORMAL\n")
+        print(f"📝 Pre-loaded access token into SDK cache")
+    except Exception as e:
+        print(f"⚠️  Could not pre-load token file: {e}")
+
 def _make_webull_client():
-    """Initialize the official Webull SDK client."""
+    """Initialize the official Webull SDK client, reusing the saved access token."""
     if not WEBULL_SDK_AVAILABLE:
         return None, None
     try:
-        api_client = ApiClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us")
+        # Step 1: Write our existing token to file so SDK skips the PENDING flow
+        _pre_populate_webull_token()
+
+        # Step 2: Build client — set token dir BEFORE TradeClient triggers init_token()
+        # token_check_duration_seconds=60 means we give up fast if somehow PENDING
+        api_client = ApiClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us",
+                               token_check_duration_seconds=60,
+                               token_check_interval_seconds=5)
+        api_client.set_token_dir(WEBULL_TOKEN_DIR)  # must be before TradeClient()
         api_client.add_endpoint("us", TRADING_HOST)
-        trade_client = TradeClient(api_client)
+        trade_client = TradeClient(api_client)       # triggers init_token() internally
         print("✅ Webull SDK client initialized")
         return api_client, trade_client
     except Exception as e:

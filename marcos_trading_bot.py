@@ -1098,17 +1098,17 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
 def send_alert_email(subject, body):
     """Sends email via Resend API over HTTPS — bypasses Railway's SMTP block."""
-    print(f"📲 Sending alert: {subject}")
+    print(f"📲 Sending alert to {SUMMARY_EMAIL}: {subject}")
     try:
         resend.api_key = RESEND_API_KEY
         footer = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nMarcos Trading Bot | Railway.app"
-        resend.Emails.send({
+        r = resend.Emails.send({
             "from":    "Marcos Trading Bot <onboarding@resend.dev>",
             "to":      [SUMMARY_EMAIL],
             "subject": subject,
             "text":    body + footer,
         })
-        print(f"✅ Alert sent!")
+        print(f"✅ Alert sent! Resend id={getattr(r, 'id', r)}")
     except Exception as e:
         print(f"❌ Alert email error: {e}")
 

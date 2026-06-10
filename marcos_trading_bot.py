@@ -378,56 +378,75 @@ def read_todays_tickers():
 
         best_subject, best_content = "", ""
         best_score = -1
+        best_id    = None
 
+        # ── Pass 1: score by SUBJECT HEADER ONLY (fast, reliable on iCloud) ──
         for msg_id in candidates:
             try:
-                _, msg_data_c = mail.fetch(msg_id, "(RFC822)")
-                raw_c = None
-                for part in msg_data_c:
+                _, hdr_data = mail.fetch(msg_id,
+                    "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM)])")
+                raw_h = None
+                for part in hdr_data:
                     if isinstance(part, tuple):
-                        raw_c = part[1]; break
-                if raw_c is None:
-                    raw_c = max((p for p in msg_data_c if isinstance(p, bytes)),
-                                key=len, default=None)
-                if not raw_c:
-                    continue
+                        raw_h = part[1]; break
+                if raw_h is None:
+                    raw_h = max((p for p in hdr_data if isinstance(p, bytes)),
+                                key=len, default=b"")
+                hdr_msg = email.message_from_bytes(raw_h)
+                subj_c  = hdr_msg.get("subject", "") or ""
+                from_c  = hdr_msg.get("from", "") or ""
 
-                msg_c = email.message_from_bytes(raw_c)
-                subj_c = msg_c["subject"] or ""
-                from_c = msg_c["from"] or ""
+                skip_score = {"THE","FOR","AND","NOT","ALL","DAY","TOP","NEW","BIG",
+                              "HOT","PDT","RE","AI","ET","FW","FWD","TO","IN","UP",
+                              "AM","PM","BODY","SUBJECT","FROM","DATE"}
+                subj_upper = subj_c.upper()
+                dollar_hits   = len(re.findall(r'\$[A-Z]{2,5}\b', subj_upper))
+                watchlist_hits = len(re.findall(
+                    r'\bWATCHLIST\b|\bPICK\b|\bTICKER\b|\bSETUP\b|\bPLAY\b', subj_upper))
+                caps_hits = len([t for t in re.findall(r'\b[A-Z]{2,5}\b', subj_upper)
+                                 if t not in skip_score])
+                score = dollar_hits * 5 + watchlist_hits * 3 + min(caps_hits, 10)
+                print(f"   [{msg_id.decode() if isinstance(msg_id,bytes) else msg_id}] "
+                      f"score={score:2d}  subj={subj_c[:60]!r}")
+
+                if score > best_score:
+                    best_score   = score
+                    best_subject = subj_c
+                    best_id      = msg_id
+
+            except Exception as ex_inner:
+                print(f"   ⚠️  Header fetch failed for {msg_id}: {ex_inner}")
+
+        # ── Pass 2: fetch full body ONLY for the winning email ────────────────
+        if best_id is not None:
+            try:
+                _, body_data = mail.fetch(best_id, "(RFC822)")
+                raw_b = None
+                for part in body_data:
+                    if isinstance(part, tuple):
+                        raw_b = part[1]; break
+                if raw_b is None:
+                    raw_b = max((p for p in body_data if isinstance(p, bytes)),
+                                key=len, default=b"")
+                msg_b  = email.message_from_bytes(raw_b)
                 body_c = ""
-                if msg_c.is_multipart():
-                    for part in msg_c.walk():
+                if msg_b.is_multipart():
+                    for part in msg_b.walk():
                         if part.get_content_type() == "text/plain":
                             payload = part.get_payload(decode=True)
                             if isinstance(payload, bytes):
                                 body_c = payload.decode("utf-8", errors="ignore")
                             break
                 else:
-                    payload = msg_c.get_payload(decode=True)
+                    payload = msg_b.get_payload(decode=True)
                     if isinstance(payload, bytes):
                         body_c = payload.decode("utf-8", errors="ignore")
                     elif isinstance(payload, str):
                         body_c = payload
-
-                skip_score = {"THE","FOR","AND","NOT","ALL","DAY","TOP","NEW","BIG","HOT",
-                              "PDT","RE","AI","ET","FW","FWD","TO","IN","UP","AM","PM"}
-                combined = (subj_c + " " + body_c).upper()
-                dollar_hits = len(re.findall(r'\$[A-Z]{2,5}\b', combined))
-                watchlist_hits = len(re.findall(r'\bWATCHLIST\b|\bPICK\b|\bTICKER\b|\bSETUP\b|\bPLAY\b', combined))
-                caps_hits = len([t for t in re.findall(r'\b[A-Z]{2,5}\b', combined)
-                                 if t not in skip_score])
-                score = dollar_hits * 5 + watchlist_hits * 3 + min(caps_hits, 10)
-                print(f"   Email [{msg_id.decode() if isinstance(msg_id,bytes) else msg_id}] "
-                      f"from={from_c[:40]!r} subj={subj_c[:60]!r} score={score}")
-
-                if score > best_score:
-                    best_score    = score
-                    best_subject  = subj_c
-                    best_content  = f"Subject: {subj_c}\n\nBody: {body_c}"
-
-            except Exception as ex_inner:
-                print(f"   ⚠️  Skipping email {msg_id}: {ex_inner}")
+                best_content = f"{best_subject}\n\n{body_c}"
+            except Exception as ex_body:
+                print(f"   ⚠️  Full body fetch failed: {ex_body}")
+                best_content = best_subject  # subject alone is enough for tickers
 
         if best_content:
             print(f"✅ Best watchlist email (score={best_score}): {best_subject[:80]!r}")
@@ -1334,7 +1353,8 @@ def main():
             "PLAY", "OVER", "BACK", "FROM", "WITH", "THAT", "THIS",
             "THEN", "NEXT", "LAST", "ALSO", "JUST", "WILL", "HAVE",
             "VWAP", "MACD", "HIGH", "LOWS", "MOVE", "LOOK", "WANT",
-            "GIVE", "MAKE", "PUTS", "GETS", "THAN"}
+            "GIVE", "MAKE", "PUTS", "GETS", "THAN",
+            "BODY", "SUBJECT", "DATE", "MIME", "CONTENT", "TYPE"}
 
     # Step 1: extract $TICKER from subject (most reliable — Kev writes $NVDA $TSLA)
     dollar_in_subject = re.findall(r'\$([A-Z]{1,5})\b', clean_subject.upper())

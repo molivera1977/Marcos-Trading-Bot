@@ -365,18 +365,34 @@ def read_todays_tickers():
         mail.select("inbox")
 
         since_date = (datetime.now() - timedelta(days=2)).strftime("%d-%b-%Y")
-        _, messages = mail.search(None, f'(SINCE "{since_date}")')
 
-        if not messages[0]:
-            print("⚠️  No recent emails found.")
-            return None, None
+        # ── Priority 1: email from yourself (you forward Kev's picks to iCloud) ──
+        _, self_msgs = mail.search(None,
+            f'(SINCE "{since_date}" FROM "molivera1977@gmail.com")')
+        self_ids = self_msgs[0].split() if self_msgs[0] else []
+        print(f"   Self-forwarded emails in last 48h: {len(self_ids)}")
 
-        # Check all recent emails; prefer the one most likely to be Kev's watchlist
-        all_ids = messages[0].split()
-        print(f"   Found {len(all_ids)} email(s) in last 48h — scanning all for tickers...")
+        # ── Priority 2: any email with Watchlist or $ in subject ────────────────
+        _, subj_msgs = mail.search(None,
+            f'(SINCE "{since_date}" SUBJECT "Watchlist")')
+        subj_ids = subj_msgs[0].split() if subj_msgs[0] else []
+        print(f"   'Watchlist' subject emails in last 48h: {len(subj_ids)}")
 
-        # Fetch the last 10 emails (most recent first) and pick the best one
-        candidates = all_ids[-10:][::-1]   # last 10, newest first
+        # Combine: self-forwarded first, then watchlist-subject, deduped, newest first
+        priority_ids = list(dict.fromkeys(self_ids + subj_ids))
+        if priority_ids:
+            candidates = priority_ids[-5:][::-1]
+            print(f"   Using {len(candidates)} priority email(s) (self-sent / watchlist subject)")
+        else:
+            # Fallback: score the last 10 emails in the inbox
+            _, all_msgs = mail.search(None, f'(SINCE "{since_date}")')
+            all_ids = all_msgs[0].split() if all_msgs[0] else []
+            if not all_ids:
+                print("⚠️  No recent emails found.")
+                return None, None
+            candidates = all_ids[-10:][::-1]
+            print(f"   No self-sent/watchlist emails — scoring last {len(candidates)} emails")
+
         best_subject, best_content = "", ""
         best_score = -1
 
@@ -411,7 +427,6 @@ def read_todays_tickers():
                     elif isinstance(payload, str):
                         body_c = payload
 
-                # Score: prefer emails with stock tickers ($XXXX or short caps) or watchlist keywords
                 skip_score = {"THE","FOR","AND","NOT","ALL","DAY","TOP","NEW","BIG","HOT",
                               "PDT","RE","AI","ET","FW","FWD","TO","IN","UP","AM","PM"}
                 combined = (subj_c + " " + body_c).upper()
@@ -421,7 +436,7 @@ def read_todays_tickers():
                                  if t not in skip_score])
                 score = dollar_hits * 5 + watchlist_hits * 3 + min(caps_hits, 10)
                 print(f"   Email [{msg_id.decode() if isinstance(msg_id,bytes) else msg_id}] "
-                      f"from={from_c[:40]!r} subj={subj_c[:50]!r} score={score}")
+                      f"from={from_c[:40]!r} subj={subj_c[:60]!r} score={score}")
 
                 if score > best_score:
                     best_score    = score
@@ -431,7 +446,6 @@ def read_todays_tickers():
             except Exception as ex_inner:
                 print(f"   ⚠️  Skipping email {msg_id}: {ex_inner}")
 
-        # If scoring found something, return it
         if best_content:
             print(f"✅ Best watchlist email (score={best_score}): {best_subject[:80]!r}")
             mail.logout()
@@ -1328,26 +1342,33 @@ def main():
     # ── Step 2: Extract tickers ────────────────────────────
     # Strip reply/forward prefixes before parsing
     clean_subject = re.sub(r'^(FW|FWD|RE):\s*', '', subject.strip(), flags=re.IGNORECASE)
+    # Generic words that are NOT stock tickers — UK/US excluded since they ARE tickers Kev uses
     skip = {"THE", "FOR", "AND", "NOT", "ALL", "DAY", "TOP",
             "NEW", "BIG", "HOT", "PDT", "RE", "AI", "ET", "FW", "FWD",
             "TO", "IN", "UP", "AM", "PM", "IS", "IT", "ON", "MY",
             "AT", "BY", "OR", "NO", "IF", "SO", "DO", "BE", "GO",
-            "US", "EU", "UK", "AM", "PM", "EST", "EDT", "PST",
-            "HOLD", "BUY", "SELL", "LONG", "SHORT", "PLAY"}
+            "EST", "EDT", "PST", "HOLD", "BUY", "SELL", "LONG", "SHORT",
+            "PLAY", "OVER", "BACK", "FROM", "WITH", "THAT", "THIS",
+            "THEN", "NEXT", "LAST", "ALSO", "JUST", "WILL", "HAVE",
+            "VWAP", "MACD", "HIGH", "LOWS", "MOVE", "LOOK", "WANT",
+            "GIVE", "MAKE", "PUTS", "GETS", "THAN"}
 
-    # First try subject
-    tickers = [t for t in re.findall(r'\b[A-Z]{1,5}\b', clean_subject.upper())
-               if t not in skip and len(t) >= 2][:5]
+    # Step 1: extract $TICKER from subject (most reliable — Kev writes $NVDA $TSLA)
+    dollar_in_subject = re.findall(r'\$([A-Z]{1,5})\b', clean_subject.upper())
+    tickers = [t for t in dollar_in_subject if t not in skip][:5]
 
-    # Fallback: scan email body — look for $TICKER format first, then bare uppercase words
+    # Step 2: bare uppercase words in subject if no $ tickers found
+    if not tickers:
+        tickers = [t for t in re.findall(r'\b[A-Z]{2,5}\b', clean_subject.upper())
+                   if t not in skip][:5]
+
+    # Step 3: scan email body — $TICKER format first, then bare caps
     if not tickers and email_content:
         body_text = email_content.upper()
-        # $TICKER format (most reliable — Kev likely writes $NVDA, $TSLA etc.)
         dollar_tickers = re.findall(r'\$([A-Z]{1,5})\b', body_text)
         tickers = [t for t in dollar_tickers if t not in skip][:5]
 
         if not tickers:
-            # Bare uppercase words in body (looser match)
             tickers = [t for t in re.findall(r'\b[A-Z]{2,5}\b', body_text)
                        if t not in skip][:5]
 

@@ -550,22 +550,28 @@ def get_account_balance():
             else:
                 print(f"⚠️  Account list error: {res.status_code} {res.text[:200]}")
 
-            # Step 2: dedicated balance endpoint (correct API for cash/buying power)
+            # Step 2: dedicated balance endpoint
             if WEBULL_ACCOUNT_ID:
                 bal = trade_client.account_v2.get_account_balance(WEBULL_ACCOUNT_ID)
-                print(f"🔍 Balance raw: {bal.text[:400]}")   # temp — lets us see exact field names
                 if bal.status_code == 200:
                     data = bal.json()
                     # Unwrap nested "data" if present
                     if isinstance(data.get("data"), dict):
                         data = data["data"]
-                    cash = (data.get("cash_balance") or data.get("cashBalance") or
-                            data.get("available_cash") or data.get("availableCash") or
-                            data.get("buying_power") or data.get("buyingPower") or
-                            data.get("net_liquidation") or data.get("netLiquidation") or 0)
-                    if cash:
-                        print(f"💰 Balance: ${float(cash):.2f}")
-                        return float(cash)
+                    # Top-level field names confirmed from API response
+                    cash = float(data.get("total_cash_balance") or 0)
+                    # Fall through to per-currency assets if top-level is 0
+                    if not cash:
+                        assets = data.get("account_currency_assets") or []
+                        for asset in assets:
+                            if asset.get("currency") == "USD":
+                                cash = float(asset.get("cash_balance") or 0)
+                                break
+                    if cash and cash > 0:
+                        print(f"💰 Balance: ${cash:.2f}")
+                        return cash
+                    # API returned 0 — likely a permissions limitation
+                    print("⚠️  Webull API returned $0 balance (permissions) — using ACCOUNT_BALANCE env var")
                 else:
                     print(f"⚠️  Balance endpoint error: {bal.status_code} {bal.text[:200]}")
 

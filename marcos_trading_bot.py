@@ -39,11 +39,7 @@ import imaplib
 import email
 import json
 import time
-import hmac
-import hashlib
-import base64
 import uuid
-import socket
 import threading
 import requests
 import anthropic
@@ -51,8 +47,16 @@ import resend
 import yfinance as yf
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
-from urllib.parse import quote
 import pytz
+
+# Official Webull OpenAPI Python SDK
+try:
+    from webull.core.client import ApiClient
+    from webull.trade.trade_client import TradeClient
+    WEBULL_SDK_AVAILABLE = True
+except ImportError:
+    WEBULL_SDK_AVAILABLE = False
+    print("⚠️  webull-openapi-python-sdk not installed — trading disabled")
 
 # ============================================================
 # CONFIGURATION
@@ -73,13 +77,23 @@ SUMMARY_EMAIL      = os.environ.get("SUMMARY_EMAIL", "molivera1977@gmail.com")
 IMAP_SERVER = "imap.mail.me.com"
 IMAP_PORT   = 993
 
-# Webull OpenAPI v2 — production endpoints
-# api.webull.com      → trading, auth, balance  → HMAC-SHA1
-# data-api.webull.com → quotes, bars            → HMAC-SHA256
-TRADING_HOST    = "api.webull.com"
-MARKET_HOST     = "data-api.webull.com"
-TRADING_URL     = f"https://{TRADING_HOST}"
-MARKET_URL      = f"https://{MARKET_HOST}"
+# Webull production endpoints (from official SDK docs)
+TRADING_HOST = "api.webull.com"
+MARKET_HOST  = "api.webull.com"   # Server-to-Server market data also on api.webull.com
+
+def _make_webull_client():
+    """Initialize the official Webull SDK client."""
+    if not WEBULL_SDK_AVAILABLE:
+        return None, None
+    try:
+        api_client = ApiClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us")
+        api_client.add_endpoint("us", TRADING_HOST)
+        trade_client = TradeClient(api_client)
+        print("✅ Webull SDK client initialized")
+        return api_client, trade_client
+    except Exception as e:
+        print(f"⚠️  Webull SDK init error: {e}")
+        return None, None
 
 # Trading rules
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade
@@ -485,62 +499,34 @@ def get_premarket_data(ticker):
     }
 
 
-def _discover_account_id():
-    """
-    Auto-discover the Webull account ID from the API.
-    Tries several common account-list endpoints.
-    Returns the first account_id found, or None.
-    """
-    for path in ("/openapi/account/list",
-                 "/openapi/trade/account/list",
-                 "/openapi/assets/account/list"):
-        try:
-            resp = _get(path)
-            if resp.status_code == 200:
-                raw  = resp.json()
-                data = raw.get("data", raw)
-                items = data if isinstance(data, list) else data.get("items", [])
-                if items:
-                    acct = items[0]
-                    acct_id = (acct.get("account_id") or acct.get("accountId") or
-                               acct.get("id"))
-                    if acct_id:
-                        print(f"🔍 Discovered account_id={acct_id} from {path}")
-                        return str(acct_id)
-        except Exception:
-            pass
-    return None
-
-
 def get_account_balance():
-    """Get available cash from Webull account."""
-    account_id = WEBULL_ACCOUNT_ID
-
-    # Try several balance endpoint variations
-    attempts = []
-    if account_id:
-        attempts.append(("/openapi/assets/balance",        {"account_id": account_id}))
-        attempts.append(("/openapi/assets/account/balance",{"account_id": account_id}))
-    attempts.append(("/openapi/assets/balance",        None))
-    attempts.append(("/openapi/account/list",           None))
-
-    for path, params in attempts:
+    """Get available cash using the official Webull SDK."""
+    _, trade_client = _make_webull_client()
+    if trade_client:
         try:
-            resp = _get(path, query_params=params)
-            print(f"    Balance attempt {path} → HTTP {resp.status_code}: {resp.text[:200]}")
-            if resp.status_code == 200:
-                raw  = resp.json()
-                data = raw.get("data", raw)
-                if isinstance(data, list):
-                    data = data[0] if data else {}
-                cash = (data.get("cash_balance") or data.get("cashBalance") or
-                        data.get("available_cash") or data.get("availableFunds") or
-                        data.get("net_liquidation") or 0)
-                if cash:
-                    return float(cash)
+            res = trade_client.account_v2.get_account_list()
+            if res.status_code == 200:
+                accounts = res.json()
+                if isinstance(accounts, list) and accounts:
+                    acct = accounts[0]
+                    # Save account_id for trading
+                    global WEBULL_ACCOUNT_ID
+                    WEBULL_ACCOUNT_ID = acct.get("account_id", WEBULL_ACCOUNT_ID)
+                    print(f"✅ Account ID: {WEBULL_ACCOUNT_ID}")
+                    cash = (acct.get("cash_balance") or acct.get("cashBalance") or
+                            acct.get("available_cash") or acct.get("net_liquidation") or 0)
+                    if cash:
+                        return float(cash)
+            else:
+                print(f"⚠️  Account list error: {res.status_code} {res.text[:200]}")
         except Exception as e:
-            print(f"    Balance attempt {path} → error: {e}")
+            print(f"⚠️  Balance SDK error: {e}")
 
+    # Fallback to env var balance
+    manual = float(os.environ.get("ACCOUNT_BALANCE", "0"))
+    if manual:
+        print(f"💰 Using manual balance: ${manual}")
+        return manual
     return 100.0
 
 
@@ -794,40 +780,42 @@ def wait_for_vwap_entry(ticker, stream: WebullStream):
 def _place_order(ticker, shares, side, order_type,
                  stop_price=None, client_order_id=None):
     """
-    Low-level order placement via Webull OpenAPI v2.
+    Low-level order placement via official Webull SDK.
     Returns client_order_id on success, None on failure.
     """
     if client_order_id is None:
         client_order_id = uuid.uuid4().hex
 
+    _, trade_client = _make_webull_client()
+    if not trade_client:
+        print("⚠️  Webull SDK not available — cannot place order")
+        return None
+
     order = {
-        "client_order_id":       client_order_id,
-        "symbol":                ticker,
-        "instrument_type":       "EQUITY",
-        "market":                "US",
-        "order_type":            order_type,   # MKT or STP
-        "quantity":              str(int(shares)),
-        "side":                  side,         # BUY or SELL
-        "time_in_force":         "DAY",
+        "combo_type":              "NORMAL",
+        "client_order_id":         client_order_id,
+        "symbol":                  ticker,
+        "instrument_type":         "EQUITY",
+        "market":                  "US",
+        "order_type":              order_type,   # MKT or STP
+        "quantity":                str(int(shares)),
+        "side":                    side,         # BUY or SELL
+        "time_in_force":           "DAY",
         "support_trading_session": "CORE",
-        "entrust_type":          "QTY",
+        "entrust_type":            "QTY",
     }
     if stop_price is not None:
         order["aux_price"] = f"{stop_price:.4f}"
 
-    body = {
-        "account_id": WEBULL_ACCOUNT_ID,
-        "new_orders": [order],
-    }
-
     try:
-        resp = _post("/openapi/trade/stock/order/place", body)
-        if resp.status_code == 200:
+        res = trade_client.order_v2.place_order(WEBULL_ACCOUNT_ID, [order])
+        if res.status_code == 200:
+            print(f"✅ Order placed via SDK: {client_order_id[:8]}...")
             return client_order_id
         else:
-            print(f"⚠️  Order failed ({resp.status_code}): {resp.text}")
+            print(f"⚠️  Order failed ({res.status_code}): {res.text[:200]}")
     except Exception as e:
-        print(f"⚠️  Order error: {e}")
+        print(f"⚠️  Order SDK error: {e}")
     return None
 
 
@@ -865,20 +853,19 @@ def close_position(ticker, shares):
 
 
 def cancel_order(client_order_id):
-    """Cancel an open order by client_order_id. Used when moving/replacing stops."""
+    """Cancel an open order by client_order_id via official Webull SDK."""
     if not client_order_id:
         return False
+    _, trade_client = _make_webull_client()
+    if not trade_client:
+        return False
     try:
-        body = {
-            "account_id":      WEBULL_ACCOUNT_ID,
-            "client_order_id": client_order_id,
-        }
-        resp = _post("/openapi/trade/stock/order/cancel", body)
-        if resp.status_code == 200:
+        res = trade_client.order_v2.cancel_order(WEBULL_ACCOUNT_ID, client_order_id)
+        if res.status_code == 200:
             print(f"✅ Order {client_order_id[:8]}... cancelled")
             return True
         else:
-            print(f"⚠️  Cancel failed ({resp.status_code}): {resp.text}")
+            print(f"⚠️  Cancel failed ({res.status_code}): {res.text[:200]}")
     except Exception as e:
         print(f"⚠️  Cancel order error: {e}")
     return False

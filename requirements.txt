@@ -4,3 +4,4 @@ pytz==2024.1
 paho-mqtt==1.6.1
 resend>=0.8.0
 yfinance>=0.2.40
+webull-openapi-python-sdk

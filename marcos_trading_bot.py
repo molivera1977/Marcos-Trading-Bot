@@ -552,7 +552,7 @@ def get_account_balance():
 
             # Step 2: dedicated balance endpoint (correct API for cash/buying power)
             if WEBULL_ACCOUNT_ID:
-                bal = trade_client.account_v2.get_account_balance(WEBULL_ACCOUNT_ID, "USD")
+                bal = trade_client.account_v2.get_account_balance(WEBULL_ACCOUNT_ID)
                 print(f"🔍 Balance raw: {bal.text[:400]}")   # temp — lets us see exact field names
                 if bal.status_code == 200:
                     data = bal.json()

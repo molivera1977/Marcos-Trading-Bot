@@ -539,29 +539,45 @@ def get_account_balance():
     _, trade_client = _make_webull_client()
     if trade_client:
         try:
+            # Step 1: account list gives us the account ID (not balance)
             res = trade_client.account_v2.get_account_list()
             if res.status_code == 200:
                 accounts = res.json()
                 if isinstance(accounts, list) and accounts:
-                    acct = accounts[0]
-                    # Save account_id for trading
                     global WEBULL_ACCOUNT_ID
-                    WEBULL_ACCOUNT_ID = acct.get("account_id", WEBULL_ACCOUNT_ID)
+                    WEBULL_ACCOUNT_ID = accounts[0].get("account_id", WEBULL_ACCOUNT_ID)
                     print(f"✅ Account ID: {WEBULL_ACCOUNT_ID}")
-                    cash = (acct.get("cash_balance") or acct.get("cashBalance") or
-                            acct.get("available_cash") or acct.get("net_liquidation") or 0)
-                    if cash:
-                        return float(cash)
             else:
                 print(f"⚠️  Account list error: {res.status_code} {res.text[:200]}")
+
+            # Step 2: dedicated balance endpoint (correct API for cash/buying power)
+            if WEBULL_ACCOUNT_ID:
+                bal = trade_client.account_v2.get_account_balance(WEBULL_ACCOUNT_ID, "USD")
+                print(f"🔍 Balance raw: {bal.text[:400]}")   # temp — lets us see exact field names
+                if bal.status_code == 200:
+                    data = bal.json()
+                    # Unwrap nested "data" if present
+                    if isinstance(data.get("data"), dict):
+                        data = data["data"]
+                    cash = (data.get("cash_balance") or data.get("cashBalance") or
+                            data.get("available_cash") or data.get("availableCash") or
+                            data.get("buying_power") or data.get("buyingPower") or
+                            data.get("net_liquidation") or data.get("netLiquidation") or 0)
+                    if cash:
+                        print(f"💰 Balance: ${float(cash):.2f}")
+                        return float(cash)
+                else:
+                    print(f"⚠️  Balance endpoint error: {bal.status_code} {bal.text[:200]}")
+
         except Exception as e:
             print(f"⚠️  Balance SDK error: {e}")
 
-    # Fallback to env var balance
+    # Fallback to manually set env var
     manual = float(os.environ.get("ACCOUNT_BALANCE", "0"))
     if manual:
-        print(f"💰 Using manual balance: ${manual}")
+        print(f"💰 Using manual balance: ${manual:.2f}")
         return manual
+    print("⚠️  Could not read real balance — defaulting to $100")
     return 100.0
 
 

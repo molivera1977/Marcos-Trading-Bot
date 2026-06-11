@@ -35,6 +35,7 @@ SETUP INSTRUCTIONS:
 
 import os
 import re
+import csv
 import imaplib
 import email
 import json
@@ -44,6 +45,7 @@ import hashlib
 import hmac
 import base64
 import socket
+import pathlib
 import threading
 import requests
 import anthropic
@@ -169,6 +171,11 @@ VWAP_ENTRY_TIMEOUT    = 10     # Give up on VWAP entry after 10am ET
 TRADE_WINDOW_END_HOUR = 11     # Force close all positions by 11am ET
 ENTRY_LIMIT_BUFFER    = 0.01   # Limit buy 1% above VWAP reclaim — caps slippage on small floats
 EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry, exit immediately
+SPY_BEAR_SKIP_PCT     = -1.0   # Skip the day entirely if SPY pre-market < -1%
+MAX_SPREAD_PCT        = 0.015  # Skip entry if bid-ask spread > 1.5% of ask price
+VWAP_VOL_MULTIPLIER   = 1.5    # Require 1.5× average minute volume for VWAP reclaim confirmation
+TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 7 days
+LOG_FILE              = "/tmp/trade_log.csv"
 EASTERN = pytz.timezone("America/New_York")
 
 # MQTT streaming — Webull pushes prices up to 3x/second
@@ -594,49 +601,51 @@ def get_news_catalyst(ticker):
 
 def get_premarket_data(ticker):
     """
-    Fetch pre-market quote for ticker via Yahoo Finance (yfinance).
-    Free, no API key, includes pre-market price, volume, and fundamentals.
+    Fetch pre-market quote for ticker.
+    Live price/change/volume from Webull REST (real-time, no delay).
+    Float, avg-volume, market-cap from yfinance (static fundamentals — updated daily).
     """
     print(f"📊 Fetching pre-market data for {ticker}...")
+
+    # ── Live quote from Webull (real-time) ───────────────────
+    wb = _get_webull_quote(ticker)
+    pre_price  = wb.get("pre_market_price") or wb.get("last_price") or "N/A"
+    pre_change = wb.get("pre_market_change_pct", "N/A")
+    pre_vol    = wb.get("volume", "N/A")
+    prev_close = wb.get("prev_close", "N/A")
+    source     = "Webull live"
+
+    # ── Static fundamentals from yfinance (float, avg vol, mkt cap) ──
+    avg_vol  = "N/A"
+    mkt_cap  = "N/A"
+    float_sh = "N/A"
     try:
-        import yfinance as yf
-        stock = yf.Ticker(ticker)
-        info  = stock.info or {}
-
-        # Pre-market price (available before 9:30am ET)
-        pre_price  = info.get("preMarketPrice") or info.get("regularMarketPrice") or "N/A"
-        pre_change = info.get("preMarketChangePercent")
-        if pre_change is not None:
-            pre_change = round(pre_change * 100, 2) if abs(pre_change) < 1 else round(pre_change, 2)
-
-        prev_close = info.get("regularMarketPreviousClose") or info.get("previousClose") or "N/A"
-        avg_vol    = info.get("averageVolume10days") or info.get("averageVolume") or "N/A"
-        mkt_cap    = info.get("marketCap") or "N/A"
-        float_sh   = info.get("floatShares") or info.get("sharesOutstanding") or "N/A"
-
-        # Today's intraday volume (pre-market volume estimate)
-        pre_vol = info.get("preMarketVolume") or info.get("regularMarketVolume") or "N/A"
-
-        result = {
-            "ticker":               ticker,
-            "premarket_price":      pre_price,
-            "premarket_change_pct": pre_change if pre_change is not None else "N/A",
-            "premarket_volume":     pre_vol,
-            "previous_close":       prev_close,
-            "avg_volume":           avg_vol,
-            "float_shares":         float_sh,
-            "market_cap":           mkt_cap,
-        }
-        print(f"   {ticker}: pre=${pre_price}  prev_close=${prev_close}  chg={pre_change}%")
-        return result
-
+        info     = yf.Ticker(ticker).info or {}
+        avg_vol  = info.get("averageVolume10days") or info.get("averageVolume") or "N/A"
+        mkt_cap  = info.get("marketCap") or "N/A"
+        float_sh = info.get("floatShares") or info.get("sharesOutstanding") or "N/A"
+        # Fall back to yfinance price only if Webull returned nothing
+        if pre_price == "N/A" or pre_price == 0:
+            pre_price  = info.get("preMarketPrice") or info.get("regularMarketPrice") or "N/A"
+            pre_change = info.get("preMarketChangePercent") or "N/A"
+            if isinstance(pre_change, (int, float)) and pre_change != "N/A":
+                pre_change = round(pre_change * 100 if abs(pre_change) < 1 else pre_change, 2)
+            prev_close = info.get("regularMarketPreviousClose") or info.get("previousClose") or "N/A"
+            pre_vol    = info.get("preMarketVolume") or info.get("regularMarketVolume") or "N/A"
+            source     = "yfinance fallback"
     except Exception as e:
-        print(f"⚠️  Yahoo Finance error for {ticker}: {e}")
+        print(f"⚠️  yfinance fundamentals error for {ticker}: {e}")
+
+    print(f"   {ticker} [{source}]: pre=${pre_price}  prev_close=${prev_close}  chg={pre_change}%")
     return {
-        "ticker": ticker,
-        "premarket_price": "N/A", "premarket_change_pct": "N/A",
-        "premarket_volume": "N/A", "previous_close": "N/A",
-        "avg_volume": "N/A", "float_shares": "N/A", "market_cap": "N/A",
+        "ticker":               ticker,
+        "premarket_price":      pre_price,
+        "premarket_change_pct": pre_change,
+        "premarket_volume":     pre_vol,
+        "previous_close":       prev_close,
+        "avg_volume":           avg_vol,
+        "float_shares":         float_sh,
+        "market_cap":           mkt_cap,
     }
 
 
@@ -851,6 +860,74 @@ def _get_price_rest(ticker) -> float:
     except Exception:
         pass
     return 0
+
+
+def _get_webull_quote(ticker) -> dict:
+    """
+    Fetch a live real-time quote from Webull REST API.
+    Returns price, pre-market change%, volume, bid, ask, prev_close.
+    Falls back to empty dict on any error so callers can fall back to yfinance.
+    """
+    try:
+        path   = "/openapi/market-data/stock/quotes"
+        params = {"symbol": ticker, "category": "US_STOCK"}
+        resp   = _get(path, query_params=params, host=MARKET_HOST)
+        resp.raise_for_status()
+        raw  = resp.json()
+        data = raw.get("data", {})
+        if isinstance(data, dict):
+            items = data.get("items", [])
+            d = items[0] if items else data
+        elif isinstance(data, list):
+            d = data[0] if data else {}
+        else:
+            d = {}
+
+        last   = float(d.get("last_price")   or d.get("lastPrice")   or d.get("close") or d.get("c") or 0)
+        bid    = float(d.get("bid_price")     or d.get("bidPrice")    or d.get("bid")   or 0)
+        ask    = float(d.get("ask_price")     or d.get("askPrice")    or d.get("ask")   or 0)
+        vol    = float(d.get("volume")        or d.get("v")           or 0)
+        pclose = float(d.get("pre_close")     or d.get("preClose")    or d.get("close") or 0)
+        chg_r  = float(d.get("change_ratio")  or d.get("changeRatio") or 0)
+        pre_p  = float(d.get("pre_market_price")        or d.get("preMarketPrice")        or last or 0)
+        pre_r  = float(d.get("pre_market_change_ratio") or d.get("preMarketChangeRatio")  or chg_r or 0)
+
+        if abs(pre_r) < 1:
+            pre_r = pre_r * 100   # decimal → percent
+
+        return {
+            "last_price":      last,
+            "bid":             bid,
+            "ask":             ask,
+            "volume":          vol,
+            "prev_close":      pclose,
+            "change_ratio":    round(chg_r * 100 if abs(chg_r) < 1 else chg_r, 2),
+            "pre_market_price":      pre_p,
+            "pre_market_change_pct": round(pre_r, 2),
+        }
+    except Exception as e:
+        print(f"⚠️  Webull quote error for {ticker}: {e}")
+        return {}
+
+
+def check_bid_ask_spread(ticker) -> tuple[bool, float]:
+    """
+    Fetch live bid/ask from Webull and check if the spread is tradeable.
+    Returns (ok, spread_pct) — ok=False means spread too wide, skip entry.
+    """
+    q = _get_webull_quote(ticker)
+    bid = q.get("bid", 0)
+    ask = q.get("ask", 0)
+    if bid <= 0 or ask <= 0:
+        print(f"⚠️  {ticker}: could not get bid/ask — assuming spread OK")
+        return True, 0.0
+    spread_pct = (ask - bid) / ask
+    ok = spread_pct <= MAX_SPREAD_PCT
+    if ok:
+        print(f"✅ {ticker} spread: ${bid:.2f}/${ask:.2f} ({spread_pct*100:.2f}%) — OK")
+    else:
+        print(f"🚫 {ticker} spread too wide: ${bid:.2f}/${ask:.2f} ({spread_pct*100:.2f}%) > {MAX_SPREAD_PCT*100:.1f}% limit")
+    return ok, spread_pct
 
 
 def get_intraday_bars(ticker, count=30):
@@ -1107,11 +1184,12 @@ def wait_for_vwap_entry(ticker, stream: WebullStream):
                              cached_bars[-1].get("v") or 0)
             avg_vol  = sum(float(b.get("volume") or b.get("v") or 0)
                           for b in cached_bars) / len(cached_bars)
-            if last_vol >= avg_vol * 0.75:
-                print(f"✅ VWAP reclaim confirmed! ${current_price:.2f} > VWAP ${cached_vwap:.2f} with volume")
+            if last_vol >= avg_vol * VWAP_VOL_MULTIPLIER:
+                print(f"✅ VWAP reclaim confirmed! ${current_price:.2f} > VWAP ${cached_vwap:.2f} "
+                      f"with {last_vol/avg_vol:.1f}× avg volume")
                 return current_price, cached_vwap
             else:
-                print(f"⚠️  Above VWAP but volume light. Waiting for confirmation...")
+                print(f"⚠️  Above VWAP but volume light ({last_vol/avg_vol:.1f}× avg — need {VWAP_VOL_MULTIPLIER}×). Waiting...")
 
         time.sleep(stream.loop_sleep())
 
@@ -1400,6 +1478,77 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     return result
 
 # ============================================================
+# TOKEN EXPIRY CHECK
+# ============================================================
+
+def check_token_expiry():
+    """
+    Read expiry timestamp from the Webull token file.
+    Sends a warning email if the token expires within TOKEN_EXPIRY_WARN_DAYS days.
+    """
+    try:
+        token_file = pathlib.Path(WEBULL_TOKEN_DIR) / "token.txt"
+        if not token_file.exists():
+            _pre_populate_webull_token()
+        lines = token_file.read_text().strip().splitlines()
+        if len(lines) < 2:
+            return
+        expires_ms  = int(lines[1])
+        expires_dt  = datetime.fromtimestamp(expires_ms / 1000, tz=EASTERN)
+        days_left   = (expires_dt - datetime.now(EASTERN)).days
+        print(f"🔑 Webull token expires: {expires_dt.strftime('%B %d, %Y')} ({days_left} days)")
+        if days_left <= TOKEN_EXPIRY_WARN_DAYS:
+            subject = f"⚠️ ACTION REQUIRED — Webull Token Expires in {days_left} Days"
+            body = f"""Your Webull API access token is expiring soon!
+
+Token expires: {expires_dt.strftime('%A, %B %d, %Y at %I:%M %p ET')}
+Days remaining: {days_left}
+
+To renew it:
+1. Run webull_setup.py on your machine
+2. Copy the new WEBULL_ACCESS_TOKEN value
+3. Update the Railway environment variable
+4. Redeploy the bot service
+
+If you don't renew before {expires_dt.strftime('%B %d')}, the bot will silently fail to place trades.
+"""
+            send_alert_email(subject, body)
+    except Exception as e:
+        print(f"⚠️  Token expiry check error: {e}")
+
+
+# ============================================================
+# TRADE RESULT LOGGING
+# ============================================================
+
+def log_trade_result(date, ticker, entry, exit_price, shares, pnl, pnl_pct,
+                     exit_reason, confidence, float_shares):
+    """
+    Append one row to /tmp/trade_log.csv for in-session record keeping.
+    Returns the CSV row as a string so it can be embedded in the summary email.
+    """
+    row = [
+        date, ticker,
+        f"{entry:.2f}", f"{exit_price:.2f}", str(shares),
+        f"{pnl:+.2f}", f"{pnl_pct:+.1f}%",
+        exit_reason, confidence, str(float_shares),
+    ]
+    try:
+        log_path  = pathlib.Path(LOG_FILE)
+        write_hdr = not log_path.exists()
+        with open(log_path, "a", newline="") as f:
+            w = csv.writer(f)
+            if write_hdr:
+                w.writerow(["Date", "Ticker", "Entry", "Exit", "Shares",
+                            "P&L$", "P&L%", "Exit Reason", "Confidence", "Float"])
+            w.writerow(row)
+        print(f"📋 Trade logged to {LOG_FILE}")
+    except Exception as e:
+        print(f"⚠️  Trade log write error: {e}")
+    return ",".join(row)
+
+
+# ============================================================
 # STEP 7 — ALERT EMAILS (fired in real-time during the session)
 # ============================================================
 
@@ -1527,7 +1676,7 @@ The bot is letting the rest ride with a trailing stop. You'll get a final email 
 # STEP 8 — FINAL SUMMARY EMAIL
 # ============================================================
 
-def send_summary_email(analysis, trade_result=None, account_balance=100.0):
+def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_log_line=""):
     print(f"📨 Sending summary email to {SUMMARY_EMAIL}...")
     today = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
 
@@ -1583,6 +1732,15 @@ REMINDER
 Send tonight's tickers to: molivera1977@icloud.com
 Paste Kev's TikTok transcript in the body.
 The bot reads it at 8:45am tomorrow.
+"""
+
+    if csv_log_line:
+        body += f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TRADE LOG (paste into your spreadsheet)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Date,Ticker,Entry,Exit,Shares,P&L$,P&L%,Exit Reason,Confidence,Float
+{csv_log_line}
 """
 
     body += f"""
@@ -1669,6 +1827,10 @@ def main():
     print(f"🔑 TOKEN     : {tok[:6]}...{tok[-4:] if len(tok)>10 else '(short/missing)'} (len={len(tok)})")
     print(f"🔑 ACCOUNT_ID: {WEBULL_ACCOUNT_ID}")
 
+    # ── Token expiry warning ────────────────────────────────
+    _pre_populate_webull_token()
+    check_token_expiry()
+
     if now.weekday() >= 5:
         print("📅 Weekend — markets closed.")
         return
@@ -1719,6 +1881,16 @@ def main():
 
     # ── Step 3: Market context + pre-market data + gapper scan ──
     market_context = get_market_context()
+
+    # ── SPY hard filter: skip the day if market is too bearish ──
+    spy_chg = market_context.get("spy_change_pct", 0)
+    if isinstance(spy_chg, (int, float)) and spy_chg <= SPY_BEAR_SKIP_PCT:
+        msg = (f"SPY is down {spy_chg:+.2f}% pre-market — below the {SPY_BEAR_SKIP_PCT}% threshold. "
+               f"Holding cash. Small-cap gap plays have very low success rates on strong red market days.")
+        print(f"🚫 {msg}")
+        subject = f"🚫 Bot skipping today — SPY {spy_chg:+.2f}% (market too bearish)"
+        send_alert_email(subject, f"Good morning Marcos!\n\n{msg}\n\nCash preserved: ${get_account_balance():.2f}")
+        return
 
     market_data = []
     for t in tickers:
@@ -1886,7 +2058,17 @@ def main():
     print(f"   Size:    ${position_size:.2f}")
     print(f"{'='*60}\n")
 
-    # ── Step 8: Execute ────────────────────────────────────
+    # ── Step 8a: Bid-ask spread check ─────────────────────
+    spread_ok, spread_pct = check_bid_ask_spread(ticker_to_trade)
+    if not spread_ok:
+        note = (f"\n\nNOTE: {ticker_to_trade} spread was {spread_pct*100:.2f}% — "
+                f"above the {MAX_SPREAD_PCT*100:.1f}% limit. Entry skipped to avoid bad fill.")
+        analysis["plain_english_summary"] += note
+        send_summary_email(analysis, None, balance)
+        stream.stop()
+        return
+
+    # ── Step 8b: Execute ───────────────────────────────────
     order_id, stop_order_id = execute_trade(
         ticker_to_trade, shares, entry_price, stop_loss, target_price
     )
@@ -1908,16 +2090,35 @@ def main():
         stream, stop_order_id, vwap=vwap
     )
 
-    # ── Step 10: Send summary + cleanup ───────────────────
+    # ── Step 10: Log result, send summary + cleanup ────────
     stream.stop()
     new_balance = get_account_balance()
-    send_summary_email(analysis, trade_result, new_balance)
+    pnl         = trade_result.get("profit_loss", 0)
+    pnl_pct     = trade_result.get("profit_loss_pct", 0)
+    exit_reason = trade_result.get("exit_reason", "N/A")
 
-    pnl = trade_result.get("profit_loss", 0)
+    float_shares = next(
+        (d.get("float_shares", "N/A") for d in market_data if d.get("ticker") == ticker_to_trade),
+        "N/A"
+    )
+    csv_row = log_trade_result(
+        date         = datetime.now(EASTERN).strftime("%Y-%m-%d"),
+        ticker       = ticker_to_trade,
+        entry        = entry_price,
+        exit_price   = trade_result.get("exit_price", entry_price),
+        shares       = shares,
+        pnl          = pnl,
+        pnl_pct      = pnl_pct,
+        exit_reason  = exit_reason,
+        confidence   = confidence,
+        float_shares = float_shares,
+    )
+    send_summary_email(analysis, trade_result, new_balance, csv_log_line=csv_row)
+
     print(f"\n{'='*60}")
     print(f"✅ SESSION COMPLETE")
-    print(f"   Result:  ${pnl:+.2f} ({trade_result.get('profit_loss_pct', 0):+.1f}%)")
-    print(f"   Reason:  {trade_result.get('exit_reason')}")
+    print(f"   Result:  ${pnl:+.2f} ({pnl_pct:+.1f}%)")
+    print(f"   Reason:  {exit_reason}")
     print(f"   Balance: ${new_balance:.2f}")
     print(f"{'='*60}\n")
 

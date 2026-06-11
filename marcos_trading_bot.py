@@ -176,13 +176,27 @@ MAX_SPREAD_PCT        = 0.015  # Skip entry if bid-ask spread > 1.5% of ask pric
 VWAP_VOL_MULTIPLIER   = 1.5    # Require 1.5× average minute volume for VWAP reclaim confirmation
 TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 7 days
 LOG_FILE              = "/tmp/trade_log.csv"
+DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 EASTERN = pytz.timezone("America/New_York")
+
+# US market holidays 2025–2027 (NYSE schedule)
+US_MARKET_HOLIDAYS = {
+    # 2025
+    "2025-01-01", "2025-01-20", "2025-02-17", "2025-04-18",
+    "2025-05-26", "2025-07-04", "2025-09-01", "2025-11-27", "2025-12-25",
+    # 2026
+    "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03",
+    "2026-05-25", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25",
+    # 2027
+    "2027-01-01", "2027-01-18", "2027-02-15", "2027-03-26",
+    "2027-05-31", "2027-07-05", "2027-09-06", "2027-11-25", "2027-12-24",
+}
 
 # MQTT streaming — Webull pushes prices up to 3x/second
 WEBULL_MQTT_HOST  = "stream.webull.com"
 WEBULL_MQTT_PORT  = 443          # WebSocket over TLS
 MQTT_LOOP_SLEEP   = 0.5          # When streaming: check every 0.5s
-POLL_LOOP_SLEEP   = 15           # Fallback polling: check every 15s
+POLL_LOOP_SLEEP   = 5            # Fallback polling: check every 5s (was 15s)
 
 # ============================================================
 # WEBULL OPENAPI v2 — SIGNATURE & HEADERS
@@ -1249,9 +1263,16 @@ def execute_trade(ticker, shares, entry_price, stop_loss, target):
     """
     Places a limit buy order (1% above VWAP entry) then a stop order.
     Using LMT instead of MKT caps slippage on small-float fast-moving stocks.
+    Retries the buy order once after 3s on transient API failures.
     Returns (buy_client_order_id, stop_client_order_id) — both needed to manage the trade.
     Returns (None, None) on failure.
     """
+    if DRY_RUN:
+        fake_id = uuid.uuid4().hex
+        print(f"🧪 DRY RUN — simulating BUY {shares} shares of {ticker} @ ${entry_price:.2f}")
+        print(f"   Stop: ${stop_loss:.2f}  Target: ${target:.2f}")
+        return fake_id, uuid.uuid4().hex
+
     shares      = max(1, int(shares))   # Webull requires whole shares
     limit_price = round(entry_price * (1 + ENTRY_LIMIT_BUFFER), 4)
     print(f"🚀 Executing: BUY {shares} shares of {ticker} "
@@ -1259,7 +1280,11 @@ def execute_trade(ticker, shares, entry_price, stop_loss, target):
 
     buy_id = _place_order(ticker, shares, "BUY", "LMT", limit_price=limit_price)
     if not buy_id:
-        print(f"❌ Buy order failed for {ticker}")
+        print(f"⚠️  Buy order failed — retrying in 3s...")
+        time.sleep(3)
+        buy_id = _place_order(ticker, shares, "BUY", "LMT", limit_price=limit_price)
+    if not buy_id:
+        print(f"❌ Buy order failed after retry for {ticker}")
         return None, None
 
     print(f"✅ Buy order placed! Client ID: {buy_id}")
@@ -1273,6 +1298,9 @@ def close_position(ticker, shares):
     """Sell shares at market price."""
     shares = max(1, int(shares))
     print(f"🔒 Closing: SELL {shares} shares of {ticker}...")
+    if DRY_RUN:
+        print(f"🧪 DRY RUN — simulating SELL {shares} shares of {ticker}")
+        return True
     result = _place_order(ticker, shares, "SELL", "MKT")
     if result:
         print("✅ Position closed!")
@@ -1285,6 +1313,9 @@ def cancel_order(client_order_id):
     """Cancel an open order by client_order_id via official Webull SDK."""
     if not client_order_id:
         return False
+    if DRY_RUN:
+        print(f"🧪 DRY RUN — simulating cancel {client_order_id[:8]}...")
+        return True
     _, trade_client = _make_webull_client()
     if not trade_client:
         return False
@@ -1306,6 +1337,10 @@ def place_stop_order(ticker, shares, stop_price):
     Returns the client_order_id, or None if it fails.
     """
     shares = max(1, int(shares))
+    if DRY_RUN:
+        fake_id = uuid.uuid4().hex
+        print(f"🧪 DRY RUN — simulating stop order: ${stop_price:.2f} × {shares} shares")
+        return fake_id
     result = _place_order(ticker, shares, "SELL", "STP", stop_price=stop_price)
     if result:
         print(f"🛡️  Stop order placed: ${stop_price:.2f} × {shares} shares")
@@ -1554,6 +1589,8 @@ def log_trade_result(date, ticker, entry, exit_price, shares, pnl, pnl_pct,
 
 def send_alert_email(subject, body):
     """Sends email via Resend API over HTTPS — bypasses Railway's SMTP block."""
+    if DRY_RUN:
+        subject = f"[DRY RUN] {subject}"
     print(f"📲 Sending alert to {SUMMARY_EMAIL}: {subject}")
     try:
         resend.api_key = RESEND_API_KEY
@@ -1678,7 +1715,8 @@ The bot is letting the rest ride with a trailing stop. You'll get a final email 
 
 def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_log_line=""):
     print(f"📨 Sending summary email to {SUMMARY_EMAIL}...")
-    today = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
+    today    = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
+    dry_tag  = "[DRY RUN] " if DRY_RUN else ""
 
     if trade_result and analysis:
         recommended = analysis.get("recommended_trade", {})
@@ -1689,7 +1727,7 @@ def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_l
         exit_price  = trade_result.get("exit_price", 0)
         emoji       = "✅" if pnl > 0 else "🔴"
         result_line = f"{emoji} {ticker}: {pnl_pct:+.1f}% (${pnl:+.2f})"
-        subject     = f"Trading Bot Summary — {today} | {result_line}"
+        subject     = f"{dry_tag}Trading Bot Summary — {today} | {result_line}"
         body = f"""
 Good morning Marcos! Here's your trading summary for {today}.
 
@@ -1714,7 +1752,7 @@ ALL TICKERS REVIEWED
             e = "✅" if t["verdict"] == "GO" else "❌"
             body += f"\n{e} {t['ticker']} — {t['verdict']}\n   {t['reason']}\n   Kev check: {t['kev_rule_check']}\n"
     else:
-        subject      = f"Trading Bot Summary — {today} | 💤 No Trade Today"
+        subject      = f"{dry_tag}Trading Bot Summary — {today} | 💤 No Trade Today"
         plain        = analysis.get("plain_english_summary", "") if analysis else "No watchlist email found."
         body = f"""
 Good morning Marcos! Here's your trading summary for {today}.
@@ -1782,8 +1820,16 @@ def run_rescan(email_content, market_data, balance, current_analysis,
         g["news"] = get_news_catalyst(g["symbol"])
         time.sleep(0.3)
 
-    # Refresh SPY context at each rescan too
-    ctx = get_market_context() if market_context is None else market_context
+    # Always fetch fresh SPY — it can move significantly between rescans
+    ctx = get_market_context()
+    spy_chg = ctx.get("spy_change_pct", 0)
+    if isinstance(spy_chg, (int, float)) and spy_chg <= SPY_BEAR_SKIP_PCT:
+        print(f"🚫 Rescan #{scan_number}: SPY now {spy_chg:+.2f}% — below threshold. Aborting.")
+        current_analysis["plain_english_summary"] += (
+            f"\n\nNOTE: Market deteriorated to SPY {spy_chg:+.2f}% during rescan #{scan_number}. "
+            f"Holding cash — momentum plays not viable in this environment."
+        )
+        return current_analysis
 
     new_analysis = analyze_with_claude(email_content, market_data, balance,
                                        gappers=gappers, market_context=ctx)
@@ -1834,6 +1880,14 @@ def main():
     if now.weekday() >= 5:
         print("📅 Weekend — markets closed.")
         return
+
+    today_str = now.strftime("%Y-%m-%d")
+    if today_str in US_MARKET_HOLIDAYS:
+        print(f"📅 {today_str} is a US market holiday — markets closed.")
+        return
+
+    if DRY_RUN:
+        print("🧪 DRY RUN MODE — all trades will be simulated, no real orders placed")
 
     # ── Step 1: Read iCloud email ──────────────────────────
     subject, email_content = read_todays_tickers()

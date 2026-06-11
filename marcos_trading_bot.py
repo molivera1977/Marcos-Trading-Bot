@@ -40,6 +40,10 @@ import email
 import json
 import time
 import uuid
+import hashlib
+import hmac
+import base64
+import socket
 import threading
 import requests
 import anthropic
@@ -47,6 +51,7 @@ import resend
 import yfinance as yf
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
+from urllib.parse import quote
 import pytz
 
 # Official Webull OpenAPI Python SDK
@@ -1671,7 +1676,7 @@ def main():
     # ── Step 1: Read iCloud email ──────────────────────────
     subject, email_content = read_todays_tickers()
     if not email_content:
-        send_summary_email(None, None)
+        send_summary_email(None, None, get_account_balance())
         return
 
     # ── Step 2: Extract tickers ────────────────────────────

@@ -1,0 +1,11 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "python screener_app.py"
+restartPolicyType = "on_failure"
+# This is a persistent web server — NOT a cron job.
+# Deploy this as a separate Railway service pointing at the same repo.
+# Set the same env vars as the bot:
+#   WEBULL_APP_KEY, WEBULL_APP_SECRET, WEBULL_ACCESS_TOKEN
+# Railway will assign a public URL automatically.

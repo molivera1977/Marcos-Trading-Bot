@@ -83,6 +83,8 @@ EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD", "")
 ANTHROPIC_API_KEY  = os.environ.get("ANTHROPIC_API_KEY", "")
 RESEND_API_KEY     = os.environ.get("RESEND_API_KEY", "")
 SUMMARY_EMAIL      = os.environ.get("SUMMARY_EMAIL", "molivera1977@gmail.com")
+SCREENER_URL       = os.environ.get("SCREENER_URL", "").rstrip("/")
+DASHBOARD_SECRET   = os.environ.get("DASHBOARD_SECRET", "marcos2026")
 
 # iCloud IMAP (reading only — sending is via Resend API over HTTPS)
 IMAP_SERVER = "imap.mail.me.com"
@@ -1768,6 +1770,43 @@ def log_trade_result(date, ticker, entry, exit_price, shares, pnl, pnl_pct,
     return ",".join(row)
 
 
+def post_to_dashboard(trade_payload: dict):
+    """
+    POST a completed trade record to the screener app's dashboard endpoint.
+    Non-blocking — failure here never interrupts the main flow.
+    """
+    if not SCREENER_URL:
+        return
+    try:
+        resp = requests.post(
+            f"{SCREENER_URL}/api/record_trade",
+            json=trade_payload,
+            headers={"X-Dashboard-Secret": DASHBOARD_SECRET},
+            timeout=8,
+        )
+        if resp.status_code == 200:
+            print(f"📊 Trade posted to dashboard ({SCREENER_URL}/dashboard)")
+        else:
+            print(f"⚠️  Dashboard post failed: {resp.status_code}")
+    except Exception as e:
+        print(f"⚠️  Dashboard post error: {e}")
+
+
+def post_balance_to_dashboard(balance: float):
+    """POST the current account balance to the dashboard."""
+    if not SCREENER_URL:
+        return
+    try:
+        requests.post(
+            f"{SCREENER_URL}/api/update_account",
+            json={"balance": balance},
+            headers={"X-Dashboard-Secret": DASHBOARD_SECRET},
+            timeout=8,
+        )
+    except Exception:
+        pass
+
+
 # ============================================================
 # STEP 7 — ALERT EMAILS (fired in real-time during the session)
 # ============================================================
@@ -2151,6 +2190,7 @@ def main():
     # ── Step 4: Account balance ────────────────────────────
     balance = get_account_balance()
     print(f"💰 Balance: ${balance:.2f}")
+    post_balance_to_dashboard(balance)
 
     # ── Step 5: Claude Opus analysis ───────────────────────
     analysis = analyze_with_claude(email_content, market_data, balance,
@@ -2364,6 +2404,22 @@ def main():
         confidence   = confidence,
         float_shares = float_shares,
     )
+
+    post_to_dashboard({
+        "date":            datetime.now(EASTERN).strftime("%Y-%m-%d"),
+        "ticker":          ticker_to_trade,
+        "entry":           entry_price,
+        "exit":            trade_result.get("exit_price", entry_price),
+        "shares":          shares,
+        "pnl":             pnl,
+        "pnl_pct":         pnl_pct,
+        "exit_reason":     exit_reason,
+        "confidence":      confidence,
+        "float_shares":    str(float_shares),
+        "position_size":   position_size,
+        "account_balance": new_balance,
+    })
+
     send_summary_email(analysis, trade_result, new_balance, csv_log_line=csv_row)
 
     print(f"\n{'='*60}")

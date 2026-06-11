@@ -7,8 +7,9 @@ Visit the deployed URL any morning to see live pre-market movers.
 import os
 import time
 import json
+import pathlib
 from datetime import datetime
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, render_template_string, request
 import pytz
 
 # Webull SDK
@@ -30,8 +31,65 @@ WEBULL_ACCESS_TOKEN = os.environ.get("WEBULL_ACCESS_TOKEN", "")
 TRADING_HOST        = "api.webull.com"
 WEBULL_TOKEN_DIR    = "/tmp/webull_token_screener"
 EASTERN             = pytz.timezone("America/New_York")
+TRADES_FILE         = pathlib.Path("/tmp/marcos_trades.json")
+API_SECRET          = os.environ.get("DASHBOARD_SECRET", "marcos2026")
 
 app = Flask(__name__)
+
+# ── Trade storage (in-memory + JSON file) ─────────────────────────────────────
+
+_trades: list = []
+_account: dict = {"balance": 0.0, "updated": ""}
+
+def _load_trades():
+    global _trades, _account
+    if TRADES_FILE.exists():
+        try:
+            data    = json.loads(TRADES_FILE.read_text())
+            _trades = data.get("trades", [])
+            _account.update(data.get("account", {}))
+        except Exception:
+            pass
+
+def _save_trades():
+    try:
+        TRADES_FILE.write_text(json.dumps({"trades": _trades, "account": _account}, indent=2))
+    except Exception as e:
+        print(f"⚠️  Could not save trades: {e}")
+
+def _compute_stats():
+    if not _trades:
+        return {
+            "total_trades": 0, "wins": 0, "losses": 0, "win_rate": 0,
+            "total_pnl": 0, "avg_gain": 0, "avg_loss": 0,
+            "best_pnl": 0, "best_ticker": "—", "worst_pnl": 0, "worst_ticker": "—",
+            "equity_curve": [],
+        }
+    wins   = [t for t in _trades if t.get("pnl", 0) > 0]
+    losses = [t for t in _trades if t.get("pnl", 0) <= 0]
+    total_pnl = sum(t.get("pnl", 0) for t in _trades)
+    best  = max(_trades, key=lambda t: t.get("pnl", 0))
+    worst = min(_trades, key=lambda t: t.get("pnl", 0))
+    running, curve = 0.0, []
+    for t in sorted(_trades, key=lambda t: t.get("date", "")):
+        running += t.get("pnl", 0)
+        curve.append({"date": t["date"], "equity": round(running, 2)})
+    return {
+        "total_trades": len(_trades),
+        "wins":         len(wins),
+        "losses":       len(losses),
+        "win_rate":     round(len(wins) / len(_trades) * 100, 1),
+        "total_pnl":    round(total_pnl, 2),
+        "avg_gain":     round(sum(t.get("pnl_pct", 0) for t in wins)  / max(len(wins), 1), 1),
+        "avg_loss":     round(sum(t.get("pnl_pct", 0) for t in losses) / max(len(losses), 1), 1),
+        "best_pnl":     round(best.get("pnl", 0), 2),
+        "best_ticker":  best.get("ticker", "—"),
+        "worst_pnl":    round(worst.get("pnl", 0), 2),
+        "worst_ticker": worst.get("ticker", "—"),
+        "equity_curve": curve,
+    }
+
+_load_trades()
 
 # ── Webull helpers ─────────────────────────────────────────────────────────────
 
@@ -428,6 +486,374 @@ def api_scan():
 @app.route("/health")
 def health():
     return jsonify({"status": "ok", "time": datetime.now(EASTERN).isoformat()})
+
+
+# ── Trades Dashboard API ───────────────────────────────────────────────────────
+
+@app.route("/api/record_trade", methods=["POST"])
+def record_trade():
+    """Called by the bot after each completed trade session."""
+    secret = request.headers.get("X-Dashboard-Secret", "")
+    if secret != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    trade = {
+        "date":          data.get("date", datetime.now(EASTERN).strftime("%Y-%m-%d")),
+        "ticker":        data.get("ticker", "UNKNOWN"),
+        "entry":         round(float(data.get("entry", 0)), 2),
+        "exit":          round(float(data.get("exit", 0)), 2),
+        "shares":        int(data.get("shares", 0)),
+        "pnl":           round(float(data.get("pnl", 0)), 2),
+        "pnl_pct":       round(float(data.get("pnl_pct", 0)), 2),
+        "exit_reason":   data.get("exit_reason", ""),
+        "confidence":    data.get("confidence", ""),
+        "float_shares":  data.get("float_shares", ""),
+        "position_size": round(float(data.get("position_size", 0)), 2),
+        "recorded_at":   datetime.now(EASTERN).isoformat(),
+    }
+    _trades.append(trade)
+    if data.get("account_balance"):
+        _account["balance"] = round(float(data["account_balance"]), 2)
+        _account["updated"] = datetime.now(EASTERN).strftime("%I:%M %p ET")
+    _save_trades()
+    print(f"📋 Trade recorded: {trade['ticker']} {trade['pnl']:+.2f}")
+    return jsonify({"status": "ok", "total_trades": len(_trades)})
+
+
+@app.route("/api/update_account", methods=["POST"])
+def update_account():
+    """Called by the bot to update the current account balance."""
+    secret = request.headers.get("X-Dashboard-Secret", "")
+    if secret != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    _account["balance"] = round(float(data.get("balance", _account.get("balance", 0))), 2)
+    _account["updated"] = datetime.now(EASTERN).strftime("%I:%M %p ET")
+    _save_trades()
+    return jsonify({"status": "ok", "balance": _account["balance"]})
+
+
+@app.route("/api/trades")
+def api_trades():
+    return jsonify({"trades": _trades, "stats": _compute_stats(), "account": _account})
+
+
+@app.route("/dashboard")
+def dashboard():
+    return render_template_string(DASHBOARD_HTML)
+
+
+# ── Dashboard HTML ─────────────────────────────────────────────────────────────
+
+DASHBOARD_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marcos Trades Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}
+
+/* ── Header ── */
+.header{display:flex;align-items:center;justify-content:space-between;
+        padding:16px 28px;background:#161b22;border-bottom:1px solid #21262d;position:sticky;top:0;z-index:10}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#1a3a2a,#0e2a1a);
+           display:flex;align-items:center;justify-content:center;font-size:20px;border:1px solid #2d5a3d}
+.logo h1{font-size:17px;font-weight:700;color:#e6edf3;letter-spacing:-.2px}
+.logo sub{font-size:11px;color:#8b949e;display:block;margin-top:1px;font-weight:400}
+.header-right{display:flex;align-items:center;gap:14px}
+.live-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;
+            background:#1a3a2a;color:#3fb950;padding:4px 10px;border-radius:20px;border:1px solid #2d5a3d}
+.live-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:#3fb950;
+                    animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.last-updated{font-size:11px;color:#8b949e}
+.refresh-btn{font-size:12px;font-family:inherit;padding:6px 14px;border-radius:8px;
+             border:1px solid #30363d;background:transparent;color:#e6edf3;cursor:pointer}
+.refresh-btn:hover{background:#21262d}
+
+/* ── Balance Banner ── */
+.balance-banner{background:linear-gradient(135deg,#0e2a1a 0%,#161b22 100%);
+                border-bottom:1px solid #21262d;padding:24px 28px}
+.balance-row{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap}
+.balance-main{flex:1}
+.balance-label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.balance-value{font-size:42px;font-weight:700;color:#e6edf3;letter-spacing:-1px}
+.balance-change{display:inline-flex;align-items:center;gap:6px;margin-top:8px;
+                font-size:14px;font-weight:600;padding:4px 12px;border-radius:6px}
+.balance-change.up{background:#1a3a2a;color:#3fb950}
+.balance-change.down{background:#3a1a1a;color:#f85149}
+.balance-change.flat{background:#21262d;color:#8b949e}
+
+/* ── Stat Cards ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;padding:20px 28px 0}
+.stat-card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:16px 18px}
+.stat-label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.stat-value{font-size:22px;font-weight:700;line-height:1}
+.stat-sub{font-size:11px;color:#8b949e;margin-top:5px}
+.green{color:#3fb950} .red{color:#f85149} .yellow{color:#d29922} .gray{color:#8b949e} .white{color:#e6edf3}
+
+/* ── Chart + Table section ── */
+.content{padding:20px 28px}
+.section-title{font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;
+               letter-spacing:.6px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:#21262d}
+
+.chart-wrap{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:20px;margin-bottom:20px;height:220px}
+
+/* ── Trade Table ── */
+.table-wrap{background:#161b22;border:1px solid #21262d;border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{padding:11px 14px;text-align:left;font-size:11px;font-weight:600;
+         color:#8b949e;text-transform:uppercase;letter-spacing:.5px;
+         background:#0d1117;border-bottom:1px solid #21262d;white-space:nowrap}
+tbody tr{border-bottom:1px solid #21262d;transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#1c2128}
+tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
+.ticker-badge{display:inline-block;background:#1c2128;border:1px solid #30363d;
+              border-radius:6px;padding:2px 8px;font-weight:600;font-size:12px;color:#e6edf3}
+.conf-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.conf-HIGH{background:#1a3a2a;color:#3fb950;border:1px solid #2d5a3d}
+.conf-MEDIUM{background:#2a2a1a;color:#d29922;border:1px solid #5a4a1a}
+.conf-LOW{background:#21262d;color:#8b949e;border:1px solid #30363d}
+.pnl-pos{color:#3fb950;font-weight:600}
+.pnl-neg{color:#f85149;font-weight:600}
+.exit-tag{font-size:11px;color:#8b949e;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.empty-state{text-align:center;padding:48px 24px;color:#8b949e}
+.empty-state .icon{font-size:36px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+.empty-state small{font-size:12px;display:block;margin-top:6px;color:#484f58}
+
+/* ── No-trade days row ── */
+.no-trade-row td{color:#484f58;font-style:italic}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">📈</div>
+    <div>
+      <h1>Marcos Trades Dashboard</h1>
+      <sub>Powered by Claude Opus AI + Webull OpenAPI</sub>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="live-badge">LIVE</span>
+    <span class="last-updated" id="lastUpdate">Loading...</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</div>
+
+<div class="balance-banner" id="balanceBanner">
+  <div class="balance-row">
+    <div class="balance-main">
+      <div class="balance-label">Account Balance</div>
+      <div class="balance-value" id="balanceVal">—</div>
+      <div id="balanceChange"></div>
+    </div>
+    <div style="display:flex;gap:32px;align-items:flex-end;padding-bottom:4px">
+      <div>
+        <div class="balance-label">Total P&amp;L</div>
+        <div style="font-size:24px;font-weight:700" id="totalPnl">—</div>
+      </div>
+      <div>
+        <div class="balance-label">Win Rate</div>
+        <div style="font-size:24px;font-weight:700" id="winRate">—</div>
+      </div>
+      <div>
+        <div class="balance-label">Total Trades</div>
+        <div style="font-size:24px;font-weight:700;color:#e6edf3" id="totalTrades">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stats-grid" id="statsGrid">
+  <div class="stat-card"><div class="stat-label">Avg Gain</div><div class="stat-value green" id="avgGain">—</div><div class="stat-sub">per winning trade</div></div>
+  <div class="stat-card"><div class="stat-label">Avg Loss</div><div class="stat-value red" id="avgLoss">—</div><div class="stat-sub">per losing trade</div></div>
+  <div class="stat-card"><div class="stat-label">Best Trade</div><div class="stat-value green" id="bestPnl">—</div><div class="stat-sub" id="bestTicker">—</div></div>
+  <div class="stat-card"><div class="stat-label">Worst Trade</div><div class="stat-value red" id="worstPnl">—</div><div class="stat-sub" id="worstTicker">—</div></div>
+  <div class="stat-card"><div class="stat-label">Wins</div><div class="stat-value green" id="wins">—</div><div class="stat-sub">profitable sessions</div></div>
+  <div class="stat-card"><div class="stat-label">Losses</div><div class="stat-value red" id="losses">—</div><div class="stat-sub">stopped out sessions</div></div>
+</div>
+
+<div class="content">
+  <div class="section-title">Equity Curve</div>
+  <div class="chart-wrap">
+    <canvas id="equityChart"></canvas>
+  </div>
+
+  <div class="section-title">Trade History</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Ticker</th>
+          <th>Entry</th>
+          <th>Exit</th>
+          <th>Shares</th>
+          <th>Size</th>
+          <th>P&amp;L $</th>
+          <th>P&amp;L %</th>
+          <th>Exit Reason</th>
+          <th>Confidence</th>
+          <th>Float</th>
+        </tr>
+      </thead>
+      <tbody id="tradeTable">
+        <tr><td colspan="11"><div class="empty-state"><div class="icon">📊</div><p>Loading trade history...</p></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let chart = null;
+
+function fmt$(n){ return n===null||n===undefined?'—':'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtPct(n){ return n===null||n===undefined?'—':(n>=0?'+':'')+n.toFixed(1)+'%'; }
+function fmtPnl$(n){ return (n>=0?'+':'')+fmt$(n); }
+
+function loadData(){
+  document.getElementById('lastUpdate').textContent = 'Refreshing...';
+  fetch('/api/trades')
+    .then(r=>r.json())
+    .then(data=>{
+      renderStats(data.stats, data.account);
+      renderTable(data.trades);
+      renderChart(data.stats.equity_curve);
+      document.getElementById('lastUpdate').textContent =
+        'Updated ' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    })
+    .catch(()=>{ document.getElementById('lastUpdate').textContent = 'Error loading data'; });
+}
+
+function renderStats(s, acct){
+  const bal = acct && acct.balance ? acct.balance : 0;
+  document.getElementById('balanceVal').textContent = bal ? fmt$(bal) : '—';
+
+  const pnl = s.total_pnl;
+  const pnlEl = document.getElementById('totalPnl');
+  pnlEl.textContent = pnl!==0 ? (pnl>=0?'+':'')+fmt$(pnl) : '—';
+  pnlEl.className = pnl>0?'green':pnl<0?'red':'white';
+
+  const wrEl = document.getElementById('winRate');
+  wrEl.textContent = s.total_trades>0 ? s.win_rate+'%' : '—';
+  wrEl.className = s.win_rate>=50?'green':s.win_rate>0?'yellow':'gray';
+
+  document.getElementById('totalTrades').textContent = s.total_trades || '0';
+
+  document.getElementById('avgGain').textContent  = s.total_trades>0 ? '+'+s.avg_gain+'%' : '—';
+  document.getElementById('avgLoss').textContent  = s.total_trades>0 ? s.avg_loss+'%'   : '—';
+  document.getElementById('bestPnl').textContent  = s.total_trades>0 ? (s.best_pnl>=0?'+':'')+fmt$(s.best_pnl)  : '—';
+  document.getElementById('bestTicker').textContent  = s.best_ticker  || '—';
+  document.getElementById('worstPnl').textContent = s.total_trades>0 ? (s.worst_pnl>=0?'+':'')+fmt$(s.worst_pnl) : '—';
+  document.getElementById('worstTicker').textContent = s.worst_ticker || '—';
+  document.getElementById('wins').textContent    = s.wins   ?? '—';
+  document.getElementById('losses').textContent  = s.losses ?? '—';
+
+  if(bal>0 && pnl!==0){
+    const startBal = bal - pnl;
+    const retPct = (pnl/startBal*100).toFixed(1);
+    const cls = pnl>=0?'up':'down';
+    document.getElementById('balanceChange').innerHTML =
+      `<span class="balance-change ${cls}">${pnl>=0?'▲':'▼'} ${Math.abs(retPct)}% total return since inception</span>`;
+  }
+}
+
+function renderTable(trades){
+  const tbody = document.getElementById('tradeTable');
+  if(!trades || trades.length===0){
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">
+      <div class="icon">🤖</div>
+      <p>No trades recorded yet</p>
+      <small>The bot will log results here automatically after each session</small>
+    </div></td></tr>`;
+    return;
+  }
+  const rows = [...trades].reverse().map(t=>{
+    const pnlCls  = t.pnl>=0?'pnl-pos':'pnl-neg';
+    const confCls = 'conf-'+(t.confidence||'MEDIUM');
+    const pnlSign = t.pnl>=0?'+':'';
+    const pctSign = t.pnl_pct>=0?'+':'';
+    const fl = t.float_shares ? String(t.float_shares).replace(/(\d)(?=(\d{3})+$)/g,'$1,') : '—';
+    const sz = t.position_size ? fmt$(t.position_size) : '—';
+    return `<tr>
+      <td style="color:#8b949e">${t.date||'—'}</td>
+      <td><span class="ticker-badge">${t.ticker||'—'}</span></td>
+      <td>${t.entry?'$'+t.entry.toFixed(2):'—'}</td>
+      <td>${t.exit?'$'+t.exit.toFixed(2):'—'}</td>
+      <td style="color:#8b949e">${t.shares||'—'}</td>
+      <td style="color:#8b949e">${sz}</td>
+      <td class="${pnlCls}">${pnlSign}$${Math.abs(t.pnl).toFixed(2)}</td>
+      <td class="${pnlCls}">${pctSign}${t.pnl_pct.toFixed(1)}%</td>
+      <td class="exit-tag" title="${t.exit_reason||''}">${t.exit_reason||'—'}</td>
+      <td><span class="conf-badge ${confCls}">${t.confidence||'—'}</span></td>
+      <td style="color:#8b949e;font-size:12px">${fl}</td>
+    </tr>`;
+  }).join('');
+  tbody.innerHTML = rows;
+}
+
+function renderChart(curve){
+  const canvas = document.getElementById('equityChart');
+  const ctx    = canvas.getContext('2d');
+  if(chart){ chart.destroy(); }
+  if(!curve || curve.length===0){
+    ctx.fillStyle='#484f58';ctx.font='13px Inter';ctx.textAlign='center';
+    ctx.fillText('No trade data yet — equity curve will appear after the first trade',canvas.width/2,canvas.height/2);
+    return;
+  }
+  const labels = curve.map(p=>p.date);
+  const values = curve.map(p=>p.equity);
+  const pos    = values[values.length-1]>=0;
+  const color  = pos?'#3fb950':'#f85149';
+  chart = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Cumulative P&L ($)',
+        data:values,
+        borderColor:color,
+        backgroundColor:color+'18',
+        borderWidth:2,
+        fill:true,
+        tension:.35,
+        pointRadius:values.length>20?0:4,
+        pointBackgroundColor:color,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'#161b22',borderColor:'#30363d',borderWidth:1,
+        titleColor:'#8b949e',bodyColor:'#e6edf3',
+        callbacks:{label:ctx=>'P&L: '+(ctx.parsed.y>=0?'+':'')+fmt$(ctx.parsed.y)}
+      }},
+      scales:{
+        x:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:11}}},
+        y:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:11},
+             callback:v=>(v>=0?'+':'')+fmt$(v)}}
+      }
+    }
+  });
+}
+
+// Auto-refresh every 60 seconds
+loadData();
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>"""
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────

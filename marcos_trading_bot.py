@@ -36,6 +36,8 @@ SETUP INSTRUCTIONS:
 import os
 import re
 import csv
+import sys
+import signal
 import imaplib
 import email
 import json
@@ -178,6 +180,60 @@ TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 
 LOG_FILE              = "/tmp/trade_log.csv"
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 EASTERN = pytz.timezone("America/New_York")
+
+# Sector → ETF mapping for sector-level market context
+SECTOR_ETFS = {
+    "Healthcare":              "XLV",
+    "Biotechnology":           "XBI",
+    "Technology":              "XLK",
+    "Financial Services":      "XLF",
+    "Financial":               "XLF",
+    "Energy":                  "XLE",
+    "Consumer Cyclical":       "XLY",
+    "Consumer Defensive":      "XLP",
+    "Industrials":             "XLI",
+    "Basic Materials":         "XLB",
+    "Real Estate":             "XLRE",
+    "Utilities":               "XLU",
+    "Communication Services":  "XLC",
+}
+
+# Global — populated when a trade is entered so SIGTERM handler can alert
+_open_trade: dict = {}
+
+
+def _sigterm_handler(signum, frame):
+    """
+    Called when Railway (or any process manager) sends SIGTERM.
+    If a trade is open at the time, sends an emergency alert before exiting
+    so the user knows to log into Webull and manage the position manually.
+    """
+    if _open_trade.get("active"):
+        try:
+            ticker = _open_trade.get("ticker", "UNKNOWN")
+            subj   = f"🚨 BOT KILLED MID-TRADE — CHECK {ticker} POSITION NOW"
+            body   = (
+                f"Railway killed the trading bot while a position was open!\n\n"
+                f"Ticker:  {ticker}\n"
+                f"Entry:   ${_open_trade.get('entry_price', 0):.2f}\n"
+                f"Shares:  {_open_trade.get('shares', 0)}\n"
+                f"Stop:    ${_open_trade.get('stop_loss', 0):.2f}\n"
+                f"Target:  ${_open_trade.get('target', 0):.2f}\n\n"
+                f"A stop order was placed on Webull before the bot was killed.\n"
+                f"Log into Webull immediately and verify it is still active."
+            )
+            resend.api_key = RESEND_API_KEY
+            resend.Emails.send({
+                "from":    "Marcos Trading Bot <onboarding@resend.dev>",
+                "to":      [SUMMARY_EMAIL],
+                "subject": subj,
+                "text":    body,
+            })
+        except Exception:
+            pass
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, _sigterm_handler)
 
 # US market holidays 2025–2027 (NYSE schedule)
 US_MARKET_HOLIDAYS = {
@@ -629,15 +685,21 @@ def get_premarket_data(ticker):
     prev_close = wb.get("prev_close", "N/A")
     source     = "Webull live"
 
-    # ── Static fundamentals from yfinance (float, avg vol, mkt cap) ──
-    avg_vol  = "N/A"
-    mkt_cap  = "N/A"
-    float_sh = "N/A"
+    # ── Static fundamentals from yfinance (float, avg vol, mkt cap, short interest) ──
+    avg_vol    = "N/A"
+    mkt_cap    = "N/A"
+    float_sh   = "N/A"
+    short_pct  = "N/A"
+    sector     = "N/A"
     try:
-        info     = yf.Ticker(ticker).info or {}
-        avg_vol  = info.get("averageVolume10days") or info.get("averageVolume") or "N/A"
-        mkt_cap  = info.get("marketCap") or "N/A"
-        float_sh = info.get("floatShares") or info.get("sharesOutstanding") or "N/A"
+        info      = yf.Ticker(ticker).info or {}
+        avg_vol   = info.get("averageVolume10days") or info.get("averageVolume") or "N/A"
+        mkt_cap   = info.get("marketCap") or "N/A"
+        float_sh  = info.get("floatShares") or info.get("sharesOutstanding") or "N/A"
+        sector    = info.get("sector") or info.get("industry") or "N/A"
+        raw_short = info.get("shortPercentOfFloat")
+        if raw_short is not None:
+            short_pct = f"{round(raw_short * 100 if raw_short < 1 else raw_short, 1)}%"
         # Fall back to yfinance price only if Webull returned nothing
         if pre_price == "N/A" or pre_price == 0:
             pre_price  = info.get("preMarketPrice") or info.get("regularMarketPrice") or "N/A"
@@ -650,7 +712,13 @@ def get_premarket_data(ticker):
     except Exception as e:
         print(f"⚠️  yfinance fundamentals error for {ticker}: {e}")
 
-    print(f"   {ticker} [{source}]: pre=${pre_price}  prev_close=${prev_close}  chg={pre_change}%")
+    # ── Pre-market volume trend (Webull 15-min bars) ──────────
+    vol_trend = get_premarket_volume_trend(ticker)
+
+    # ── Sector ETF direction ───────────────────────────────────
+    sector_etf = get_sector_etf_direction(sector)
+
+    print(f"   {ticker} [{source}]: pre=${pre_price}  prev_close=${prev_close}  chg={pre_change}%  short={short_pct}")
     return {
         "ticker":               ticker,
         "premarket_price":      pre_price,
@@ -660,6 +728,10 @@ def get_premarket_data(ticker):
         "avg_volume":           avg_vol,
         "float_shares":         float_sh,
         "market_cap":           mkt_cap,
+        "short_interest":       short_pct,
+        "sector":               sector,
+        "vol_trend":            vol_trend,
+        "sector_etf":           sector_etf,
     }
 
 
@@ -924,6 +996,102 @@ def _get_webull_quote(ticker) -> dict:
         return {}
 
 
+def check_webull_connection() -> bool:
+    """
+    Quick health check — fetches a SPY quote to verify the Webull token
+    and endpoint are working before committing to the session.
+    Sends an alert email and returns False if the connection is broken.
+    """
+    print("🔗 Checking Webull API connection...")
+    try:
+        q = _get_webull_quote("SPY")
+        if q.get("last_price", 0) > 0:
+            print(f"✅ Webull API healthy — SPY @ ${q['last_price']:.2f}")
+            return True
+        print("⚠️  Webull quote returned empty data")
+    except Exception as e:
+        print(f"⚠️  Webull connection error: {e}")
+    send_alert_email(
+        "⚠️ Webull API health check failed — bot may not trade today",
+        "The bot could not reach the Webull API at startup.\n\n"
+        "Possible causes:\n"
+        "- Access token expired (check Railway env vars)\n"
+        "- Webull API outage\n"
+        "- Network issue on Railway\n\n"
+        "The bot will continue running but order placement may fail. "
+        "Check your Webull credentials and redeploy if needed."
+    )
+    return False
+
+
+def get_premarket_volume_trend(ticker) -> dict:
+    """
+    Fetch 15-minute pre-market bars and determine if volume is
+    accelerating (picking up into the open) or fading (dying off).
+    Returns a dict with trend label and ratio vs earlier bars.
+    """
+    try:
+        path   = "/openapi/market-data/stock/bars"
+        params = {
+            "symbol":           ticker,
+            "category":         "US_STOCK",
+            "timespan":         "m15",
+            "count":            "12",        # up to 3 hours of 15-min bars
+            "trading_sessions": "PRE_MARKET",
+        }
+        resp = _get(path, query_params=params, host=MARKET_HOST)
+        resp.raise_for_status()
+        data = resp.json().get("data", {})
+        bars = data.get("items", data) if isinstance(data, dict) else data
+        if not bars or len(bars) < 3:
+            return {"trend": "N/A", "ratio": None}
+
+        vols = [float(b.get("volume") or b.get("v") or 0) for b in bars]
+        # Compare last 2 bars (closest to open) vs first half
+        early_avg = sum(vols[:len(vols)//2]) / max(len(vols)//2, 1)
+        late_avg  = sum(vols[len(vols)//2:]) / max(len(vols) - len(vols)//2, 1)
+
+        if early_avg == 0:
+            return {"trend": "N/A", "ratio": None}
+
+        ratio = late_avg / early_avg
+        if ratio >= 1.3:
+            trend = "ACCELERATING"
+        elif ratio <= 0.7:
+            trend = "FADING"
+        else:
+            trend = "FLAT"
+
+        print(f"   {ticker} pre-mkt volume trend: {trend} ({ratio:.1f}× early pace)")
+        return {"trend": trend, "ratio": round(ratio, 2)}
+    except Exception as e:
+        print(f"⚠️  Volume trend error for {ticker}: {e}")
+        return {"trend": "N/A", "ratio": None}
+
+
+def get_sector_etf_direction(sector: str) -> dict:
+    """
+    Map the stock's sector to its ETF and fetch that ETF's pre-market direction.
+    Returns dict with etf ticker, change%, and sentiment.
+    ETFs are liquid — yfinance direction signal is reliable even with delay.
+    """
+    etf = SECTOR_ETFS.get(sector)
+    if not etf:
+        return {"etf": None, "sector": sector, "change_pct": None, "sentiment": "UNKNOWN"}
+    try:
+        info     = yf.Ticker(etf).info or {}
+        chg      = info.get("preMarketChangePercent") or info.get("regularMarketChangePercent") or 0
+        if isinstance(chg, (int, float)) and abs(chg) < 1:
+            chg = chg * 100
+        chg = round(chg, 2)
+        sentiment = "BULLISH" if chg >= 0.3 else "BEARISH" if chg <= -0.3 else "NEUTRAL"
+        print(f"   Sector ETF {etf} ({sector}): {chg:+.2f}% → {sentiment}")
+        return {"etf": etf, "sector": sector, "change_pct": chg, "sentiment": sentiment}
+    except Exception as e:
+        print(f"⚠️  Sector ETF error for {etf}: {e}")
+        return {"etf": etf, "sector": sector, "change_pct": None, "sentiment": "UNKNOWN"}
+
+
 def check_bid_ask_spread(ticker) -> tuple[bool, float]:
     """
     Fetch live bid/ask from Webull and check if the spread is tradeable.
@@ -987,15 +1155,32 @@ def analyze_with_claude(email_content, market_data_list, account_balance,
                         gappers=None, market_context=None):
     print("🧠 Sending data to Claude Opus AI for analysis...")
 
+    def _sector_line(d):
+        se = d.get("sector_etf") or {}
+        if se.get("etf") and se.get("change_pct") is not None:
+            return (f"Sector: {d.get('sector','N/A')} | "
+                    f"Sector ETF {se['etf']}: {se['change_pct']:+.2f}% ({se['sentiment']})")
+        return f"Sector: {d.get('sector','N/A')}"
+
+    def _vol_trend_line(d):
+        vt = d.get("vol_trend") or {}
+        if vt.get("trend") and vt["trend"] != "N/A":
+            ratio = f" ({vt['ratio']}× early pace)" if vt.get("ratio") else ""
+            return f"Pre-mkt Volume Trend: {vt['trend']}{ratio}"
+        return "Pre-mkt Volume Trend: N/A"
+
     market_text = "\n".join([
         f"Ticker: {d['ticker']}\n"
         f"Pre-market Price: ${d['premarket_price']}\n"
         f"Pre-market Change: {d['premarket_change_pct']}%\n"
         f"Pre-market Volume: {d['premarket_volume']}\n"
+        f"{_vol_trend_line(d)}\n"
         f"Previous Close: ${d['previous_close']}\n"
         f"10-Day Avg Volume: {d['avg_volume']}\n"
         f"Market Cap: ${d['market_cap']}\n"
         f"Float: {d.get('float_shares', 'N/A')}\n"
+        f"Short Interest: {d.get('short_interest', 'N/A')}\n"
+        f"{_sector_line(d)}\n"
         f"News/Catalyst:\n" +
         "\n".join(f"  - {h}" for h in d.get('news', ['No news data'])) + "\n"
         for d in market_data_list
@@ -1873,9 +2058,10 @@ def main():
     print(f"🔑 TOKEN     : {tok[:6]}...{tok[-4:] if len(tok)>10 else '(short/missing)'} (len={len(tok)})")
     print(f"🔑 ACCOUNT_ID: {WEBULL_ACCOUNT_ID}")
 
-    # ── Token expiry warning ────────────────────────────────
+    # ── Token expiry warning + API health check ────────────
     _pre_populate_webull_token()
     check_token_expiry()
+    check_webull_connection()
 
     if now.weekday() >= 5:
         print("📅 Weekend — markets closed.")
@@ -2133,6 +2319,16 @@ def main():
 
     trade_entered.set()   # stop the 9:45am background rescan from switching ticker
 
+    # Register open position so SIGTERM handler can alert if bot is killed mid-trade
+    _open_trade.update({
+        "active":      True,
+        "ticker":      ticker_to_trade,
+        "entry_price": entry_price,
+        "shares":      shares,
+        "stop_loss":   stop_loss,
+        "target":      target_price,
+    })
+
     # ── Alert 2: Trade entered! ────────────────────────────
     send_entry_alert(ticker_to_trade, shares, entry_price,
                      stop_loss, target_price, vwap, position_size)
@@ -2145,6 +2341,7 @@ def main():
     )
 
     # ── Step 10: Log result, send summary + cleanup ────────
+    _open_trade["active"] = False   # disarm SIGTERM emergency alert
     stream.stop()
     new_balance = get_account_balance()
     pnl         = trade_result.get("profit_loss", 0)

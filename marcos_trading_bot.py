@@ -152,7 +152,9 @@ def _make_data_client():
         return None, None
 
 # Trading rules
-MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade
+MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade (HIGH confidence)
+POSITION_SIZE_MEDIUM  = 0.50   # 50% for MEDIUM confidence
+POSITION_SIZE_LOW     = 0.30   # 30% for LOW confidence
 STOP_LOSS_PCT         = 0.07   # 7% initial stop loss
 TARGET_PCT            = 0.20   # 20% full profit target
 PARTIAL_EXIT_PCT      = 0.15   # Sell half at 15% gain
@@ -160,6 +162,8 @@ BREAKEVEN_TRIGGER_PCT = 0.10   # Move stop to breakeven at 10% gain
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
 VWAP_ENTRY_TIMEOUT    = 10     # Give up on VWAP entry after 10am ET
 TRADE_WINDOW_END_HOUR = 11     # Force close all positions by 11am ET
+ENTRY_LIMIT_BUFFER    = 0.01   # Limit buy 1% above VWAP reclaim — caps slippage on small floats
+EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry, exit immediately
 EASTERN = pytz.timezone("America/New_York")
 
 # MQTT streaming — Webull pushes prices up to 3x/second
@@ -523,6 +527,66 @@ def read_todays_tickers():
 # STEP 2 — WEBULL MARKET DATA + ACCOUNT
 # ============================================================
 
+def get_market_context():
+    """
+    Fetch SPY pre-market data to gauge overall market direction.
+    Passed to Claude so it can be more cautious on bearish market days.
+    """
+    print("🌎 Checking SPY pre-market direction...")
+    try:
+        spy   = yf.Ticker("SPY")
+        info  = spy.info or {}
+        pre_price  = info.get("preMarketPrice") or info.get("regularMarketPrice") or 0
+        pre_change = info.get("preMarketChangePercent") or 0
+        if abs(pre_change) < 1:
+            pre_change = pre_change * 100   # decimal → pct
+        pre_change = round(pre_change, 2)
+        prev_close = info.get("regularMarketPreviousClose") or 0
+
+        if pre_change >= 0.5:
+            sentiment = "BULLISH"
+        elif pre_change <= -0.5:
+            sentiment = "BEARISH"
+        else:
+            sentiment = "NEUTRAL"
+
+        print(f"   SPY: ${pre_price:.2f}  {pre_change:+.2f}%  → {sentiment}")
+        return {
+            "spy_price":      pre_price,
+            "spy_change_pct": pre_change,
+            "spy_prev_close": prev_close,
+            "sentiment":      sentiment,
+        }
+    except Exception as e:
+        print(f"⚠️  SPY market context error: {e}")
+        return {"spy_price": "N/A", "spy_change_pct": 0,
+                "sentiment": "UNKNOWN", "error": str(e)}
+
+
+def get_news_catalyst(ticker):
+    """
+    Fetch the most recent news headlines for a ticker via yfinance.
+    Claude uses these to judge whether a gap has a real catalyst behind it.
+    """
+    try:
+        news  = yf.Ticker(ticker).news or []
+        lines = []
+        for item in news[:4]:
+            title = item.get("title", "")
+            ts    = item.get("providerPublishTime", 0)
+            if ts:
+                age = datetime.now() - datetime.fromtimestamp(ts)
+                hrs = int(age.total_seconds() / 3600)
+                tag = f"{hrs}h ago" if hrs < 24 else f"{hrs//24}d ago"
+            else:
+                tag = "recent"
+            if title:
+                lines.append(f"[{tag}] {title}")
+        return lines if lines else ["No recent news found"]
+    except Exception:
+        return ["News unavailable"]
+
+
 def get_premarket_data(ticker):
     """
     Fetch pre-market quote for ticker via Yahoo Finance (yfinance).
@@ -823,7 +887,8 @@ def calculate_vwap(bars) -> float:
 # STEP 3 — CLAUDE OPUS ANALYZES THE SETUPS
 # ============================================================
 
-def analyze_with_claude(email_content, market_data_list, account_balance, gappers=None):
+def analyze_with_claude(email_content, market_data_list, account_balance,
+                        gappers=None, market_context=None):
     print("🧠 Sending data to Claude Opus AI for analysis...")
 
     market_text = "\n".join([
@@ -834,6 +899,9 @@ def analyze_with_claude(email_content, market_data_list, account_balance, gapper
         f"Previous Close: ${d['previous_close']}\n"
         f"10-Day Avg Volume: {d['avg_volume']}\n"
         f"Market Cap: ${d['market_cap']}\n"
+        f"Float: {d.get('float_shares', 'N/A')}\n"
+        f"News/Catalyst:\n" +
+        "\n".join(f"  - {h}" for h in d.get('news', ['No news data'])) + "\n"
         for d in market_data_list
     ])
 
@@ -842,13 +910,28 @@ def analyze_with_claude(email_content, market_data_list, account_balance, gapper
         for g in gappers:
             rel       = f"{g['relative_volume']:.1f}x avg vol" if g.get("relative_volume") else "rel vol N/A"
             float_lbl = g.get("float_label", "float N/A")
+            news_lines = "\n".join(f"    - {h}" for h in g.get("news", []))
             gapper_lines.append(
                 f"  {g['symbol']}: +{g['change_pct']}% pre-mkt | ${g['price']:.2f} | "
                 f"{float_lbl} | {rel} | source: {g['source']}"
+                + (f"\n  News:\n{news_lines}" if news_lines else "")
             )
         gapper_section = "WEBULL MORNING GAPPER SCAN (small-float pre-market movers):\n" + "\n".join(gapper_lines)
     else:
         gapper_section = "WEBULL MORNING GAPPER SCAN: unavailable (screener did not return data)"
+
+    if market_context:
+        spy_chg  = market_context.get("spy_change_pct", 0)
+        spy_sent = market_context.get("sentiment", "UNKNOWN")
+        spy_line = (f"SPY pre-market: {spy_chg:+.2f}% — market is {spy_sent}. "
+                    + ("Be more selective today — market headwinds increase risk on long plays."
+                       if spy_sent == "BEARISH" else
+                       "Market tailwind — momentum plays have higher follow-through probability."
+                       if spy_sent == "BULLISH" else
+                       "Market neutral — evaluate each setup on its own merits."))
+        market_context_section = f"OVERALL MARKET CONTEXT:\n{spy_line}"
+    else:
+        market_context_section = "OVERALL MARKET CONTEXT: SPY data unavailable"
 
     prompt = f"""
 You are an AI trading assistant for Marcos Olivera, a retail trader
@@ -860,6 +943,8 @@ Market open: 9:30am ET
 Entry strategy: Wait for confirmed VWAP reclaim with volume after open
 Trading window: Entry by 10:00am ET, hold until 11:00am max
 
+{market_context_section}
+
 KEV'S WATCHLIST EMAIL/TRANSCRIPT:
 {email_content}
 
@@ -870,17 +955,24 @@ LIVE PRE-MARKET DATA FROM WEBULL (Kev's picks):
 
 YOUR JOB:
 1. Read Kev's exact setup rules for each ticker from his transcript
-2. Cross-reference with the live pre-market data
+2. Cross-reference with the live pre-market data AND the news/catalyst for each ticker
 3. For each ticker decide: GO or NO-GO based on Kev's rules
 4. ALSO evaluate the Webull morning gappers — these are stocks NOT in Kev's list
    but showing strong pre-market momentum RIGHT NOW. If any gapper looks better
-   than Kev's picks (stronger gap %, higher relative volume, clean chart setup),
-   include it as an additional candidate and consider it for the trade.
-5. For GO trades: set exact expected VWAP entry price, profit target, stop-loss
-6. Pick the BEST single trade (max 1 trade) — could be from Kev's list OR a gapper
-7. Never risk more than 70% of account on one position
-8. Honor Kev's rules exactly — if he says NO BREAK = NO TRADE, honor that
-9. Flag any major risks (earnings, halts, offerings, T12 halts)
+   than Kev's picks (stronger gap %, higher relative volume, clean chart setup,
+   real catalyst), include it as an additional candidate and consider it for the trade.
+5. CATALYST QUALITY matters — a gap with a real catalyst (news, FDA, contract, earnings)
+   is far more likely to hold than a gap with no clear reason. Weight this heavily.
+6. MARKET CONTEXT matters — if SPY is bearish, be much more selective. Only take
+   the absolute cleanest setup. If neutral/bullish, you can be more aggressive.
+7. For GO trades: set exact expected VWAP entry price, profit target, stop-loss
+8. Pick the BEST single trade (max 1 trade) — could be from Kev's list OR a gapper
+9. Set confidence as HIGH only if: strong catalyst + small float + good volume + clean setup
+   Set MEDIUM if: decent setup but catalyst unclear or float on the larger side
+   Set LOW if: marginal setup — small size or skip entirely
+10. Never risk more than 70% of account on one position
+11. Honor Kev's rules exactly — if he says NO BREAK = NO TRADE, honor that
+12. Flag any major risks (earnings, halts, offerings, T12 halts, gap-and-crap patterns)
 
 TRADING RULES:
 - Entry: Only on confirmed VWAP reclaim with volume (bot handles this automatically)
@@ -1027,7 +1119,7 @@ def wait_for_vwap_entry(ticker, stream: WebullStream):
 # Webull's internal orderId — that's what cancel/replace uses too.
 
 def _place_order(ticker, shares, side, order_type,
-                 stop_price=None, client_order_id=None):
+                 stop_price=None, limit_price=None, client_order_id=None):
     """
     Low-level order placement via official Webull SDK.
     Returns client_order_id on success, None on failure.
@@ -1055,6 +1147,8 @@ def _place_order(ticker, shares, side, order_type,
     }
     if stop_price is not None:
         order["aux_price"] = f"{stop_price:.4f}"
+    if limit_price is not None:
+        order["limit_price"] = f"{limit_price:.4f}"
 
     try:
         res = trade_client.order_v2.place_order(WEBULL_ACCOUNT_ID, [order])
@@ -1070,14 +1164,17 @@ def _place_order(ticker, shares, side, order_type,
 
 def execute_trade(ticker, shares, entry_price, stop_loss, target):
     """
-    Places the buy market order then immediately places a real stop order on Webull.
+    Places a limit buy order (1% above VWAP entry) then a stop order.
+    Using LMT instead of MKT caps slippage on small-float fast-moving stocks.
     Returns (buy_client_order_id, stop_client_order_id) — both needed to manage the trade.
     Returns (None, None) on failure.
     """
-    shares = max(1, int(shares))   # Webull requires whole shares
-    print(f"🚀 Executing: BUY {shares} shares of {ticker} @ ~${entry_price:.2f}...")
+    shares      = max(1, int(shares))   # Webull requires whole shares
+    limit_price = round(entry_price * (1 + ENTRY_LIMIT_BUFFER), 4)
+    print(f"🚀 Executing: BUY {shares} shares of {ticker} "
+          f"@ limit ${limit_price:.2f} (VWAP entry ${entry_price:.2f} +1%)...")
 
-    buy_id = _place_order(ticker, shares, "BUY", "MKT")
+    buy_id = _place_order(ticker, shares, "BUY", "LMT", limit_price=limit_price)
     if not buy_id:
         print(f"❌ Buy order failed for {ticker}")
         return None, None
@@ -1154,7 +1251,7 @@ def update_stop_order(ticker, shares, new_price, old_client_order_id):
 STOP_UPDATE_MIN_MOVE = 0.10   # Only replace exchange stop order if it moves >= $0.10
 
 def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
-                  stream: WebullStream, stop_order_id):
+                  stream: WebullStream, stop_order_id, vwap=0):
     """
     Monitors the trade using the real-time stream.
     All stop levels are kept as live orders on Webull — not just in memory.
@@ -1177,6 +1274,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     remaining_shares   = total_shares
     partial_taken      = False
     partial_price      = 0.0
+    entry_time         = time.time()   # for early fade window
 
     result = {"exit_price": entry_price, "exit_reason": "Unknown",
               "profit_loss": 0, "profit_loss_pct": 0}
@@ -1199,6 +1297,18 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if current_price <= 0:
             time.sleep(sleep_secs)
             continue
+
+        # ── Early fade: if price drops back below VWAP within 2 min, cut immediately ──
+        elapsed = time.time() - entry_time
+        if vwap > 0 and elapsed <= EARLY_FADE_SECS and current_price < vwap:
+            print(f"⚡ Early fade — {ticker} dropped below VWAP (${vwap:.2f}) "
+                  f"within {elapsed:.0f}s of entry. Cutting loss now.")
+            cancel_order(placed_stop_id)
+            close_position(ticker, remaining_shares)
+            result["exit_price"]  = current_price
+            result["exit_reason"] = "Early VWAP fade ⚡"
+            remaining_shares = 0
+            break
 
         profit_pct = ((current_price - entry_price) / entry_price) * 100
 
@@ -1493,7 +1603,8 @@ Railway.app
 # RESCAN HELPER
 # ============================================================
 
-def run_rescan(email_content, market_data, balance, current_analysis, scan_number):
+def run_rescan(email_content, market_data, balance, current_analysis,
+               scan_number, market_context=None):
     """
     Re-runs the full gapper scan + Claude analysis.
     Returns the new analysis. If Claude switches tickers, sends an update email.
@@ -1503,8 +1614,16 @@ def run_rescan(email_content, market_data, balance, current_analysis, scan_numbe
     print(f"🔄 RE-SCAN #{scan_number} — {now.strftime('%I:%M %p ET')}")
     print(f"{'─'*55}")
 
-    gappers     = scan_morning_gappers()
-    new_analysis = analyze_with_claude(email_content, market_data, balance, gappers=gappers)
+    gappers = scan_morning_gappers()
+    for g in gappers:
+        g["news"] = get_news_catalyst(g["symbol"])
+        time.sleep(0.3)
+
+    # Refresh SPY context at each rescan too
+    ctx = get_market_context() if market_context is None else market_context
+
+    new_analysis = analyze_with_claude(email_content, market_data, balance,
+                                       gappers=gappers, market_context=ctx)
     if not new_analysis:
         print("⚠️  Re-scan Claude call failed — keeping current pick")
         return current_analysis
@@ -1593,22 +1712,32 @@ def main():
         tickers = ["UNKNOWN"]
     print(f"📋 Tickers: {tickers}  (subject='{clean_subject[:80]}')")
 
-    # ── Step 3: Pre-market data + Webull gapper scan ──────
+    # ── Step 3: Market context + pre-market data + gapper scan ──
+    market_context = get_market_context()
+
     market_data = []
     for t in tickers:
         if t != "UNKNOWN":
-            market_data.append(get_premarket_data(t))
+            data = get_premarket_data(t)
+            data["news"] = get_news_catalyst(t)
+            market_data.append(data)
             time.sleep(0.5)
 
     # Scan Webull screener for morning gappers (~8:50am — before analysis)
     gappers = scan_morning_gappers()
+
+    # Fetch news for each gapper too
+    for g in gappers:
+        g["news"] = get_news_catalyst(g["symbol"])
+        time.sleep(0.3)
 
     # ── Step 4: Account balance ────────────────────────────
     balance = get_account_balance()
     print(f"💰 Balance: ${balance:.2f}")
 
     # ── Step 5: Claude Opus analysis ───────────────────────
-    analysis = analyze_with_claude(email_content, market_data, balance, gappers=gappers)
+    analysis = analyze_with_claude(email_content, market_data, balance,
+                                   gappers=gappers, market_context=market_context)
     if not analysis:
         send_summary_email(None, None, balance)
         return
@@ -1622,8 +1751,20 @@ def main():
         return
 
     ticker_to_trade = recommended.get("ticker")
-    position_size   = float(recommended.get("position_size_dollars",
-                                            balance * MAX_POSITION_SIZE))
+
+    # Dynamic position sizing based on Claude's confidence rating
+    confidence = recommended.get("confidence", "MEDIUM").upper()
+    if confidence == "HIGH":
+        size_pct = MAX_POSITION_SIZE       # 70%
+    elif confidence == "LOW":
+        size_pct = POSITION_SIZE_LOW       # 30%
+    else:
+        size_pct = POSITION_SIZE_MEDIUM    # 50%
+    position_size = min(
+        float(recommended.get("position_size_dollars", balance * size_pct)),
+        balance * size_pct
+    )
+    print(f"💼 Position size: ${position_size:.2f} ({confidence} confidence → {size_pct*100:.0f}% of account)")
 
     # ── Rescan every 20 min until 9:45am ET ────────────────
     #
@@ -1647,7 +1788,7 @@ def main():
             print("⏭️  9:45am rescan skipped — trade already entered")
             return
         updated = run_rescan(email_content, market_data, balance,
-                             scan_state["analysis"], n)
+                             scan_state["analysis"], n, market_context=market_context)
         if trade_entered.is_set():
             return
         scan_state["analysis"] = updated
@@ -1689,7 +1830,7 @@ def main():
             break
 
         analysis = run_rescan(email_content, market_data, balance,
-                              analysis, scan_number)
+                              analysis, scan_number, market_context=market_context)
         scan_state["analysis"] = analysis
         scan_number += 1
 
@@ -1759,7 +1900,7 @@ def main():
     trade_result = monitor_trade(
         ticker_to_trade, shares,
         entry_price, target_price, stop_loss,
-        stream, stop_order_id
+        stream, stop_order_id, vwap=vwap
     )
 
     # ── Step 10: Send summary + cleanup ───────────────────

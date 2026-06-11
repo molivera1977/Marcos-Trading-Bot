@@ -53,9 +53,11 @@ import pytz
 try:
     from webull.core.client import ApiClient
     from webull.trade.trade_client import TradeClient
+    from webull.data.data_client import DataClient as WebullDataClient
     WEBULL_SDK_AVAILABLE = True
 except ImportError:
     WEBULL_SDK_AVAILABLE = False
+    WebullDataClient = None
     print("⚠️  webull-openapi-python-sdk not installed — trading disabled")
 
 # ============================================================
@@ -128,6 +130,25 @@ def _make_webull_client():
         return api_client, trade_client
     except Exception as e:
         print(f"⚠️  Webull SDK init error: {e}")
+        return None, None
+
+
+def _make_data_client():
+    """Initialize the Webull DataClient for market screening."""
+    if not WEBULL_SDK_AVAILABLE or WebullDataClient is None:
+        return None, None
+    try:
+        _pre_populate_webull_token()
+        api_client = ApiClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us",
+                               token_check_duration_seconds=60,
+                               token_check_interval_seconds=5)
+        api_client.set_token_dir(WEBULL_TOKEN_DIR)
+        api_client.add_endpoint("us", TRADING_HOST)
+        data_client = WebullDataClient(api_client)
+        print("✅ Webull DataClient initialized")
+        return api_client, data_client
+    except Exception as e:
+        print(f"⚠️  Webull DataClient init error: {e}")
         return None, None
 
 # Trading rules
@@ -550,6 +571,107 @@ def get_premarket_data(ticker):
     }
 
 
+def scan_morning_gappers():
+    """
+    Use Webull's screener to find pre-market top gainers and unusual-volume stocks.
+    Returns a list of candidate dicts (symbol, change_pct, price, relative_volume, market_cap).
+    Called at bot startup (~8:45am) so Claude can compare these against Kev's picks.
+    """
+    print("🔍 Scanning Webull screener for morning gappers...")
+    _, data_client = _make_data_client()
+    if not data_client:
+        print("⚠️  DataClient unavailable — skipping gapper scan")
+        return []
+
+    gappers = {}   # symbol -> dict, deduplicated
+
+    # ── Pre-market top gainers ────────────────────────────────────────────────
+    try:
+        res = data_client.screener.get_gainers_losers(
+            rank_type="PRE_MARKET",
+            category="US_STOCK",
+            sort_by="CHANGE_RATIO",
+            direction="DESC",
+            page_size=30,
+        )
+        if res.status_code == 200:
+            raw = res.json()
+            items = raw if isinstance(raw, list) else raw.get("data", raw.get("items", []))
+            for item in items:
+                sym    = item.get("symbol", "")
+                chg    = float(item.get("change_ratio") or 0) * 100   # decimal → pct
+                price  = float(item.get("price") or item.get("close") or 0)
+                mktcap = float(item.get("market_value") or 0)
+                vol    = float(item.get("volume") or 0)
+                if not sym or price <= 0:
+                    continue
+                # Momentum setup: price $1–$30, >8% pre-market gap, not tiny cap
+                if price < 1 or price > 30:
+                    continue
+                if chg < 8:
+                    continue
+                gappers[sym] = {
+                    "symbol": sym, "change_pct": round(chg, 2),
+                    "price": price, "market_cap": mktcap,
+                    "premarket_volume": vol, "relative_volume": None,
+                    "source": "pre_market_gainer",
+                }
+            print(f"   Pre-market gainers: {len(gappers)} candidates after filter")
+        else:
+            print(f"⚠️  Gainers screener error: {res.status_code}")
+    except Exception as e:
+        print(f"⚠️  Gainers screener exception: {e}")
+
+    # ── Unusual relative volume (10-day) — catches late gappers ──────────────
+    try:
+        res = data_client.screener.get_most_active(
+            category="US_STOCK",
+            rank_type="RELATIVE_VOLUME_10D",
+            sort_by="RELATIVE_VOLUME_10D",
+            direction="DESC",
+            page_size=30,
+        )
+        if res.status_code == 200:
+            raw = res.json()
+            items = raw if isinstance(raw, list) else raw.get("data", raw.get("items", []))
+            new_from_vol = 0
+            for item in items:
+                sym     = item.get("symbol", "")
+                chg     = float(item.get("change_ratio") or 0) * 100
+                price   = float(item.get("price") or item.get("close") or 0)
+                mktcap  = float(item.get("market_value") or 0)
+                rel_vol = float(item.get("relative_volume_10d") or 0)
+                vol     = float(item.get("volume") or 0)
+                if not sym or price <= 0:
+                    continue
+                if price < 1 or price > 30:
+                    continue
+                if rel_vol < 3.0:   # at least 3× 10-day average volume
+                    continue
+                if sym in gappers:
+                    gappers[sym]["relative_volume"] = rel_vol
+                else:
+                    if chg >= 5:    # lower bar for volume-driven candidates
+                        gappers[sym] = {
+                            "symbol": sym, "change_pct": round(chg, 2),
+                            "price": price, "market_cap": mktcap,
+                            "premarket_volume": vol, "relative_volume": rel_vol,
+                            "source": "unusual_volume",
+                        }
+                        new_from_vol += 1
+            print(f"   Relative-volume adds: {new_from_vol} more candidates")
+        else:
+            print(f"⚠️  Volume screener error: {res.status_code}")
+    except Exception as e:
+        print(f"⚠️  Volume screener exception: {e}")
+
+    # Sort by gap % descending, cap at top 10
+    results = sorted(gappers.values(), key=lambda x: x["change_pct"], reverse=True)[:10]
+    print(f"✅ Morning gapper scan complete — {len(results)} candidates: "
+          f"{[r['symbol'] for r in results]}")
+    return results
+
+
 def get_account_balance():
     """Get available cash using the official Webull SDK."""
     _, trade_client = _make_webull_client()
@@ -666,7 +788,7 @@ def calculate_vwap(bars) -> float:
 # STEP 3 — CLAUDE OPUS ANALYZES THE SETUPS
 # ============================================================
 
-def analyze_with_claude(email_content, market_data_list, account_balance):
+def analyze_with_claude(email_content, market_data_list, account_balance, gappers=None):
     print("🧠 Sending data to Claude Opus AI for analysis...")
 
     market_text = "\n".join([
@@ -679,6 +801,18 @@ def analyze_with_claude(email_content, market_data_list, account_balance):
         f"Market Cap: ${d['market_cap']}\n"
         for d in market_data_list
     ])
+
+    if gappers:
+        gapper_lines = []
+        for g in gappers:
+            rel = f"{g['relative_volume']:.1f}x avg vol" if g.get("relative_volume") else "rel vol N/A"
+            gapper_lines.append(
+                f"  {g['symbol']}: +{g['change_pct']}% pre-mkt | ${g['price']:.2f} | "
+                f"{rel} | mktcap ${g['market_cap']:,.0f} | source: {g['source']}"
+            )
+        gapper_section = "WEBULL MORNING GAPPER SCAN (live pre-market movers):\n" + "\n".join(gapper_lines)
+    else:
+        gapper_section = "WEBULL MORNING GAPPER SCAN: unavailable (screener did not return data)"
 
     prompt = f"""
 You are an AI trading assistant for Marcos Olivera, a retail trader
@@ -693,18 +827,24 @@ Trading window: Entry by 10:00am ET, hold until 11:00am max
 KEV'S WATCHLIST EMAIL/TRANSCRIPT:
 {email_content}
 
-LIVE PRE-MARKET DATA FROM WEBULL:
+LIVE PRE-MARKET DATA FROM WEBULL (Kev's picks):
 {market_text}
+
+{gapper_section}
 
 YOUR JOB:
 1. Read Kev's exact setup rules for each ticker from his transcript
 2. Cross-reference with the live pre-market data
 3. For each ticker decide: GO or NO-GO based on Kev's rules
-4. For GO trades: set exact expected VWAP entry price, profit target, stop-loss
-5. Pick the BEST single trade (max 1 trade)
-6. Never risk more than 70% of account on one position
-7. Honor Kev's rules exactly — if he says NO BREAK = NO TRADE, honor that
-8. Flag any major risks (earnings, halts, offerings, T12 halts)
+4. ALSO evaluate the Webull morning gappers — these are stocks NOT in Kev's list
+   but showing strong pre-market momentum RIGHT NOW. If any gapper looks better
+   than Kev's picks (stronger gap %, higher relative volume, clean chart setup),
+   include it as an additional candidate and consider it for the trade.
+5. For GO trades: set exact expected VWAP entry price, profit target, stop-loss
+6. Pick the BEST single trade (max 1 trade) — could be from Kev's list OR a gapper
+7. Never risk more than 70% of account on one position
+8. Honor Kev's rules exactly — if he says NO BREAK = NO TRADE, honor that
+9. Flag any major risks (earnings, halts, offerings, T12 halts)
 
 TRADING RULES:
 - Entry: Only on confirmed VWAP reclaim with volume (bot handles this automatically)
@@ -1379,19 +1519,22 @@ def main():
         tickers = ["UNKNOWN"]
     print(f"📋 Tickers: {tickers}  (subject='{clean_subject[:80]}')")
 
-    # ── Step 3: Pre-market data ────────────────────────────
+    # ── Step 3: Pre-market data + Webull gapper scan ──────
     market_data = []
     for t in tickers:
         if t != "UNKNOWN":
             market_data.append(get_premarket_data(t))
             time.sleep(0.5)
 
+    # Scan Webull screener for morning gappers (~8:50am — before analysis)
+    gappers = scan_morning_gappers()
+
     # ── Step 4: Account balance ────────────────────────────
     balance = get_account_balance()
     print(f"💰 Balance: ${balance:.2f}")
 
     # ── Step 5: Claude Opus analysis ───────────────────────
-    analysis = analyze_with_claude(email_content, market_data, balance)
+    analysis = analyze_with_claude(email_content, market_data, balance, gappers=gappers)
     if not analysis:
         send_summary_email(None, None, balance)
         return
@@ -1409,7 +1552,10 @@ def main():
                                             balance * MAX_POSITION_SIZE))
 
     # ── Step 6: Open real-time MQTT stream ─────────────────
-    stream = WebullStream(tickers)
+    # Include gapper tickers in the stream so we can trade them if Claude picks one
+    gapper_syms = [g["symbol"] for g in gappers] if gappers else []
+    stream_tickers = list(dict.fromkeys(tickers + gapper_syms))  # deduped, order preserved
+    stream = WebullStream(stream_tickers)
 
     # ── Step 7: Wait for VWAP entry ────────────────────────
     entry_price, vwap = wait_for_vwap_entry(ticker_to_trade, stream)

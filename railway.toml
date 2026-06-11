@@ -3,7 +3,7 @@ builder = "nixpacks"
 
 [deploy]
 startCommand = "python ${START_APP:-marcos_trading_bot.py}"
-restartPolicyType = "on_failure"
+restartPolicyType = "never"
 
 [cron]
 schedule = "45 12 * * 1-5"

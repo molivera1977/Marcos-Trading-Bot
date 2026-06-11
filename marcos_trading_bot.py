@@ -1490,6 +1490,44 @@ Railway.app
         print(f"❌ Email error: {e}")
 
 # ============================================================
+# RESCAN HELPER
+# ============================================================
+
+def run_rescan(email_content, market_data, balance, current_analysis, scan_number):
+    """
+    Re-runs the full gapper scan + Claude analysis.
+    Returns the new analysis. If Claude switches tickers, sends an update email.
+    """
+    now = datetime.now(EASTERN)
+    print(f"\n{'─'*55}")
+    print(f"🔄 RE-SCAN #{scan_number} — {now.strftime('%I:%M %p ET')}")
+    print(f"{'─'*55}")
+
+    gappers     = scan_morning_gappers()
+    new_analysis = analyze_with_claude(email_content, market_data, balance, gappers=gappers)
+    if not new_analysis:
+        print("⚠️  Re-scan Claude call failed — keeping current pick")
+        return current_analysis
+
+    old_rec = (current_analysis.get("recommended_trade") or {})
+    new_rec = (new_analysis.get("recommended_trade") or {})
+    old_t   = old_rec.get("ticker", "NONE")
+    new_t   = new_rec.get("ticker", "NONE")
+
+    if new_t and new_t != old_t:
+        print(f"🔄 Claude switched pick: {old_t} → {new_t}")
+        send_alert_email(
+            f"🔄 Bot updated pick: {new_t} (was {old_t}) | Re-scan #{scan_number}",
+            f"Re-scan #{scan_number} at {now.strftime('%I:%M %p ET')} found a stronger setup.\n\n"
+            f"{new_analysis.get('plain_english_summary', '')}"
+        )
+    else:
+        print(f"✅ Re-scan #{scan_number} confirms: {new_t} still the pick")
+
+    return new_analysis
+
+
+# ============================================================
 # MAIN
 # ============================================================
 
@@ -1587,14 +1625,97 @@ def main():
     position_size   = float(recommended.get("position_size_dollars",
                                             balance * MAX_POSITION_SIZE))
 
+    # ── Rescan every 20 min until 9:45am ET ────────────────
+    #
+    # Pre-market rescans (before 9:30am): run in main thread.
+    # The bot is idle during this window anyway — might as well keep checking.
+    #
+    # Post-open rescan (9:45am): fires via background Timer while VWAP watch runs.
+    # If Claude switches the pick before a trade is entered, we honor the switch.
+    # Once a trade is entered (trade_entered event), the background rescan is a no-op.
+
+    RESCAN_CUTOFF_HOUR, RESCAN_CUTOFF_MIN = 9, 45   # stop rescanning at 9:45am
+    RESCAN_INTERVAL_SECS = 20 * 60                   # 20 minutes
+
+    trade_entered = threading.Event()   # set when buy order is placed
+    scan_state    = {"analysis": analysis, "ticker": ticker_to_trade,
+                     "position_size": position_size}
+
+    def _background_rescan_at_945(n):
+        """Fires once at 9:45am via threading.Timer while VWAP wait is active."""
+        if trade_entered.is_set():
+            print("⏭️  9:45am rescan skipped — trade already entered")
+            return
+        updated = run_rescan(email_content, market_data, balance,
+                             scan_state["analysis"], n)
+        if trade_entered.is_set():
+            return
+        scan_state["analysis"] = updated
+        rec = updated.get("recommended_trade") or {}
+        if rec.get("action") == "BUY" and rec.get("ticker"):
+            scan_state["ticker"]        = rec["ticker"]
+            scan_state["position_size"] = float(rec.get("position_size_dollars",
+                                                        balance * MAX_POSITION_SIZE))
+
+    scan_number = 1
+    while True:
+        now          = datetime.now(EASTERN)
+        cutoff_today = now.replace(hour=RESCAN_CUTOFF_HOUR,
+                                   minute=RESCAN_CUTOFF_MIN, second=0, microsecond=0)
+        next_scan_dt = now + timedelta(seconds=RESCAN_INTERVAL_SECS)
+
+        market_open = now.hour > 9 or (now.hour == 9 and now.minute >= 30)
+
+        if market_open or next_scan_dt >= cutoff_today:
+            # Schedule the 9:45am rescan in background if we haven't passed it yet
+            secs_to_945 = (cutoff_today - now).total_seconds()
+            if secs_to_945 > 0:
+                t = threading.Timer(secs_to_945, _background_rescan_at_945,
+                                    args=[scan_number])
+                t.daemon = True
+                t.start()
+                print(f"⏳ 9:45am background re-scan scheduled "
+                      f"(in {secs_to_945/60:.0f} min)")
+            break
+
+        # Sleep until next 20-min mark
+        sleep_secs = (next_scan_dt - now).total_seconds()
+        print(f"⏳ Next re-scan #{scan_number} in {sleep_secs/60:.0f} min "
+              f"({next_scan_dt.strftime('%I:%M %p ET')})...")
+        time.sleep(sleep_secs)
+
+        now = datetime.now(EASTERN)
+        if now.hour > 9 or (now.hour == 9 and now.minute >= 30):
+            break
+
+        analysis = run_rescan(email_content, market_data, balance,
+                              analysis, scan_number)
+        scan_state["analysis"] = analysis
+        scan_number += 1
+
+        rec = analysis.get("recommended_trade") or {}
+        if rec.get("action") != "BUY":
+            print("🔒 Re-scan says HOLD CASH — aborting")
+            send_summary_email(analysis, None, balance)
+            return
+        ticker_to_trade           = rec.get("ticker", ticker_to_trade)
+        position_size             = float(rec.get("position_size_dollars",
+                                                  balance * MAX_POSITION_SIZE))
+        scan_state["ticker"]        = ticker_to_trade
+        scan_state["position_size"] = position_size
+
+    # Use the latest pick from scan_state (may have been updated by 9:45 timer)
+    ticker_to_trade = scan_state["ticker"]
+    position_size   = scan_state["position_size"]
+    analysis        = scan_state["analysis"]
+
     # ── Step 6: Open real-time MQTT stream ─────────────────
-    # Include gapper tickers in the stream so we can trade them if Claude picks one
-    gapper_syms = [g["symbol"] for g in gappers] if gappers else []
-    stream_tickers = list(dict.fromkeys(tickers + gapper_syms))  # deduped, order preserved
-    stream = WebullStream(stream_tickers)
+    gapper_syms    = [g["symbol"] for g in gappers] if gappers else []
+    stream_tickers = list(dict.fromkeys([ticker_to_trade] + tickers + gapper_syms))
+    stream         = WebullStream(stream_tickers)
 
     # ── Step 7: Wait for VWAP entry ────────────────────────
-    entry_price, vwap = wait_for_vwap_entry(ticker_to_trade, stream)
+    entry_price, vwap = wait_for_vwap_entry(scan_state["ticker"], stream)
 
     if not entry_price:
         note = f"\n\nNOTE: {ticker_to_trade} never reclaimed VWAP by 10am. Cash preserved."
@@ -1627,6 +1748,8 @@ def main():
         send_summary_email(analysis, None, balance)
         stream.stop()
         return
+
+    trade_entered.set()   # stop the 9:45am background rescan from switching ticker
 
     # ── Alert 2: Trade entered! ────────────────────────────
     send_entry_alert(ticker_to_trade, shares, entry_price,

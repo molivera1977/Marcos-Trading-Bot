@@ -2,12 +2,8 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "python marcos_trading_bot.py"
-restartPolicyType = "never"
+startCommand = "python ${START_APP:-marcos_trading_bot.py}"
+restartPolicyType = "on_failure"
 
 [cron]
 schedule = "45 12 * * 1-5"
-# Runs at 8:45am EDT (UTC-4 in summer = 12:45 UTC)
-# In winter (EST = UTC-5) this fires at 7:45am ET — still fine for pre-market
-# Monday through Friday only
-# Automatically skips weekends

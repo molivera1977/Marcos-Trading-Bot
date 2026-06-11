@@ -665,9 +665,44 @@ def scan_morning_gappers():
     except Exception as e:
         print(f"⚠️  Volume screener exception: {e}")
 
-    # Sort by gap % descending, cap at top 10
-    results = sorted(gappers.values(), key=lambda x: x["change_pct"], reverse=True)[:10]
-    print(f"✅ Morning gapper scan complete — {len(results)} candidates: "
+    # ── Float check via yfinance — filter out large-float stocks ─────────────
+    # Webull screener doesn't return float, so we check each candidate separately.
+    # Small float (<50M) + big gap + volume = the real momentum setup.
+    print(f"   Checking float for {len(gappers)} candidates...")
+    float_checked = []
+    for sym, g in gappers.items():
+        try:
+            import yfinance as yf
+            info = yf.Ticker(sym).info or {}
+            float_shares = info.get("floatShares") or info.get("sharesOutstanding") or 0
+            g["float_shares"] = float_shares
+            float_m = float_shares / 1_000_000
+            if float_shares == 0:
+                # No float data — keep the candidate but note it
+                g["float_label"] = "float N/A"
+                float_checked.append(g)
+            elif float_shares <= 50_000_000:
+                g["float_label"] = f"{float_m:.1f}M float"
+                float_checked.append(g)
+                print(f"   ✅ {sym}: +{g['change_pct']}% | {g['float_label']} ← SMALL FLOAT")
+            else:
+                print(f"   ❌ {sym}: skipped — {float_m:.0f}M float (too large)")
+            time.sleep(0.3)   # avoid yfinance rate-limit
+        except Exception as e:
+            g["float_shares"] = 0
+            g["float_label"] = "float N/A"
+            float_checked.append(g)
+            print(f"   ⚠️  {sym}: float check failed ({e}) — keeping candidate")
+
+    # Score: reward big gap % on tiny float
+    # score = change_pct / float_in_millions  (higher = better)
+    def _gapper_score(g):
+        f = g.get("float_shares") or 0
+        float_m = f / 1_000_000 if f > 0 else 25   # assume 25M if unknown
+        return g["change_pct"] / max(float_m, 0.1)
+
+    results = sorted(float_checked, key=_gapper_score, reverse=True)[:10]
+    print(f"✅ Morning gapper scan complete — {len(results)} small-float candidates: "
           f"{[r['symbol'] for r in results]}")
     return results
 
@@ -805,12 +840,13 @@ def analyze_with_claude(email_content, market_data_list, account_balance, gapper
     if gappers:
         gapper_lines = []
         for g in gappers:
-            rel = f"{g['relative_volume']:.1f}x avg vol" if g.get("relative_volume") else "rel vol N/A"
+            rel       = f"{g['relative_volume']:.1f}x avg vol" if g.get("relative_volume") else "rel vol N/A"
+            float_lbl = g.get("float_label", "float N/A")
             gapper_lines.append(
                 f"  {g['symbol']}: +{g['change_pct']}% pre-mkt | ${g['price']:.2f} | "
-                f"{rel} | mktcap ${g['market_cap']:,.0f} | source: {g['source']}"
+                f"{float_lbl} | {rel} | source: {g['source']}"
             )
-        gapper_section = "WEBULL MORNING GAPPER SCAN (live pre-market movers):\n" + "\n".join(gapper_lines)
+        gapper_section = "WEBULL MORNING GAPPER SCAN (small-float pre-market movers):\n" + "\n".join(gapper_lines)
     else:
         gapper_section = "WEBULL MORNING GAPPER SCAN: unavailable (screener did not return data)"
 

@@ -2241,6 +2241,23 @@ def main():
         _pre_populate_webull_token()
         check_token_expiry()
         check_webull_connection()
+
+        # Print all accounts so we can verify the correct WEBULL_ACCOUNT_ID
+        _, tc = _make_webull_client()
+        if tc:
+            res = tc.account_v2.get_account_list()
+            if res.status_code == 200:
+                all_accounts = res.json()
+                print(f"\n📋 ALL WEBULL ACCOUNTS ({len(all_accounts) if isinstance(all_accounts, list) else '?'}):")
+                if isinstance(all_accounts, list):
+                    for i, acct in enumerate(all_accounts):
+                        print(f"   [{i}] account_id={acct.get('account_id')}  type={acct.get('account_type')}  status={acct.get('account_status')}  currency={acct.get('currency')}")
+                else:
+                    print(f"   Raw: {str(all_accounts)[:300]}")
+            else:
+                print(f"⚠️  Could not list accounts: {res.status_code} {res.text[:200]}")
+        print(f"\n🔑 Currently using WEBULL_ACCOUNT_ID: {WEBULL_ACCOUNT_ID}\n")
+
         balance = get_account_balance()
         print(f"💰 Balance: ${balance:.2f}")
         stream = WebullStream([TEST_TRADE])

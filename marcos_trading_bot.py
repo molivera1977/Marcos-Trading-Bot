@@ -627,14 +627,17 @@ def get_market_context():
     """
     print("🌎 Checking SPY pre-market direction...")
     try:
-        spy   = yf.Ticker("SPY")
-        info  = spy.info or {}
-        pre_price  = info.get("preMarketPrice") or info.get("regularMarketPrice") or 0
-        pre_change = info.get("preMarketChangePercent") or 0
-        if abs(pre_change) < 1:
-            pre_change = pre_change * 100   # decimal → pct
+        q = _get_webull_quote("SPY")
+        pre_price  = q.get("pre_market_price") or q.get("last_price") or 0
+        pre_change = q.get("pre_market_change_pct") or q.get("change_ratio") or 0
+        prev_close = q.get("prev_close") or 0
+
+        # Sanity check — SPY never moves more than 5% pre-market; yfinance ghost data
+        if abs(pre_change) > 5:
+            print(f"⚠️  SPY pre-market change {pre_change:+.1f}% looks wrong — clamping to 0")
+            pre_change = 0
+
         pre_change = round(pre_change, 2)
-        prev_close = info.get("regularMarketPreviousClose") or 0
 
         if pre_change >= 0.5:
             sentiment = "BULLISH"

@@ -999,36 +999,36 @@ def _get_webull_quote(ticker) -> dict:
 
 def check_webull_connection() -> bool:
     """
-    Quick health check — fetches a SPY quote to verify the Webull token
-    and endpoint are working before committing to the session.
-    Sends an alert email and returns False if the connection is broken.
+    Quick health check — only meaningful during the trading window (8-10am ET).
+    Outside that window, Webull's market-data endpoint returns errors normally
+    (no active session), so we skip the check to avoid false-alarm emails.
     """
+    et_now = datetime.now(pytz.timezone("America/New_York"))
+    if not (8 <= et_now.hour < 10):
+        print(f"🔗 Webull health check skipped (outside trading window — {et_now.strftime('%H:%M')} ET)")
+        return True
+
     print("🔗 Checking Webull API connection...")
     try:
         q = _get_webull_quote("SPY")
-        if q:  # non-empty dict = SDK responded (even if price=0 outside market hours)
-            price = q.get("last_price", 0)
-            if price > 0:
-                print(f"✅ Webull API healthy — SPY @ ${price:.2f}")
-            else:
-                print("✅ Webull API reachable — SPY price 0 (market closed)")
+        price = q.get("last_price", 0) if q else 0
+        if price > 0:
+            print(f"✅ Webull API healthy — SPY @ ${price:.2f}")
             return True
-        # Empty dict = SDK call failed (non-200 / auth error)
-        print("⚠️  Webull API unreachable — SDK returned no data")
+        print("⚠️  Webull API returned no data during trading window")
     except Exception as e:
         print(f"⚠️  Webull connection error: {e}")
-        q = None
-    if q is None or not q:
-        send_alert_email(
-            "⚠️ Webull API health check failed — bot may not trade today",
-            "The bot could not reach the Webull API at startup.\n\n"
-            "Possible causes:\n"
-            "- Access token expired (check Railway env vars)\n"
-            "- Webull API outage\n"
-            "- Network issue on Railway\n\n"
-            "The bot will continue running but order placement may fail. "
-            "Check your Webull credentials and redeploy if needed."
-        )
+
+    send_alert_email(
+        "⚠️ Webull API health check failed — bot may not trade today",
+        "The bot could not reach the Webull API at startup.\n\n"
+        "Possible causes:\n"
+        "- Access token expired (check Railway env vars)\n"
+        "- Webull API outage\n"
+        "- Network issue on Railway\n\n"
+        "The bot will continue running but order placement may fail. "
+        "Check your Webull credentials and redeploy if needed."
+    )
     return False
 
 

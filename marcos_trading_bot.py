@@ -499,11 +499,14 @@ def read_todays_tickers():
         best_score = -1
         best_id    = None
 
-        # ── Pass 1: score by SUBJECT HEADER ONLY (fast, reliable on iCloud) ──
+        today_et    = datetime.now(EASTERN).date()
+        yesterday_et = today_et - timedelta(days=1)
+
+        # ── Pass 1: score by SUBJECT + DATE headers (fast, reliable on iCloud) ──
         for msg_id in candidates:
             try:
                 _, hdr_data = mail.fetch(msg_id,
-                    "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM)])")
+                    "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE)])")
                 raw_h = None
                 for part in hdr_data:
                     if isinstance(part, tuple):
@@ -514,6 +517,21 @@ def read_todays_tickers():
                 hdr_msg = email.message_from_bytes(raw_h)
                 subj_c  = hdr_msg.get("subject", "") or ""
                 from_c  = hdr_msg.get("from", "") or ""
+                date_str = hdr_msg.get("date", "") or ""
+
+                # Recency bonus: heavily prefer today's and yesterday's emails so
+                # an old email with more tickers never outranks a fresh one.
+                recency_bonus = 0
+                try:
+                    from email.utils import parsedate_to_datetime
+                    sent_dt   = parsedate_to_datetime(date_str)
+                    sent_date = sent_dt.astimezone(EASTERN).date()
+                    if sent_date == today_et:
+                        recency_bonus = 20   # today always wins
+                    elif sent_date == yesterday_et:
+                        recency_bonus = 10   # yesterday beats anything older
+                except Exception:
+                    pass
 
                 skip_score = {"THE","FOR","AND","NOT","ALL","DAY","TOP","NEW","BIG",
                               "HOT","PDT","RE","AI","ET","FW","FWD","TO","IN","UP",
@@ -524,9 +542,9 @@ def read_todays_tickers():
                     r'\bWATCHLIST\b|\bPICK\b|\bTICKER\b|\bSETUP\b|\bPLAY\b', subj_upper))
                 caps_hits = len([t for t in re.findall(r'\b[A-Z]{2,5}\b', subj_upper)
                                  if t not in skip_score])
-                score = dollar_hits * 5 + watchlist_hits * 3 + min(caps_hits, 10)
+                score = dollar_hits * 5 + watchlist_hits * 3 + min(caps_hits, 10) + recency_bonus
                 print(f"   [{msg_id.decode() if isinstance(msg_id,bytes) else msg_id}] "
-                      f"score={score:2d}  subj={subj_c[:60]!r}")
+                      f"score={score:2d} (recency+{recency_bonus})  subj={subj_c[:60]!r}")
 
                 if score > best_score:
                     best_score   = score

@@ -1079,8 +1079,12 @@ def get_premarket_volume_trend(ticker) -> dict:
         if resp.status_code != 200:
             return {"trend": "N/A", "ratio": None}
 
-        data = resp.json().get("data", {})
-        bars = data.get("items", data) if isinstance(data, dict) else data
+        raw  = resp.json()
+        if isinstance(raw, list):
+            bars = raw
+        else:
+            data = raw.get("data", {}) if isinstance(raw, dict) else {}
+            bars = data.get("items", data) if isinstance(data, dict) else data
         if not isinstance(bars, list) or len(bars) < 3:
             return {"trend": "N/A", "ratio": None}
 
@@ -1164,11 +1168,14 @@ def get_intraday_bars(ticker, count=30):
         if resp.status_code != 200:
             print(f"⚠️  Intraday bars {resp.status_code} for {ticker}")
             return []
-        data = resp.json().get("data", {})
+        raw = resp.json()
+        if isinstance(raw, list):
+            return raw
+        data = raw.get("data", {}) if isinstance(raw, dict) else {}
+        if isinstance(data, list):
+            return data
         if isinstance(data, dict):
             return data.get("items", [])
-        elif isinstance(data, list):
-            return data
     except Exception as e:
         print(f"⚠️  Intraday bars error for {ticker}: {e}")
     return []

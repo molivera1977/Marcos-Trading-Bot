@@ -964,15 +964,19 @@ def _get_webull_quote(ticker) -> dict:
             print(f"⚠️  Webull snapshot {resp.status_code} for {ticker}")
             return {}
 
-        raw  = resp.json()
-        data = raw.get("data", {})
-        if isinstance(data, dict):
-            items = data.get("items", [])
-            d = items[0] if items else data
-        elif isinstance(data, list):
-            d = data[0] if data else {}
+        raw = resp.json()
+        # SDK may return a list directly, a {"data": [...]}, or {"data": {"items": [...]}}
+        if isinstance(raw, list):
+            d = raw[0] if raw else {}
         else:
-            d = {}
+            data = raw.get("data", {}) if isinstance(raw, dict) else {}
+            if isinstance(data, list):
+                d = data[0] if data else {}
+            elif isinstance(data, dict):
+                items = data.get("items", [])
+                d = items[0] if items else data
+            else:
+                d = {}
 
         last   = float(d.get("close")     or d.get("last_price")   or d.get("lastPrice")   or d.get("c") or 0)
         bid    = float(d.get("bid_price")  or d.get("bidPrice")     or d.get("bid")         or 0)
@@ -1050,7 +1054,7 @@ def get_premarket_volume_trend(ticker) -> dict:
         resp = dc.market_data.get_history_bar(
             symbol=ticker,
             category="US_STOCK",
-            timespan="m15",
+            timespan="M15",
             count="12",
             trading_sessions="PRE_MARKET",
         )
@@ -1136,7 +1140,7 @@ def get_intraday_bars(ticker, count=30):
         resp = dc.market_data.get_history_bar(
             symbol=ticker,
             category="US_STOCK",
-            timespan="m1",
+            timespan="M1",
             count=str(count),
             trading_sessions="REGULAR,PRE_MARKET",
         )

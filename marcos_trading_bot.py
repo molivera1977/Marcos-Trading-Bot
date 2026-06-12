@@ -1074,7 +1074,7 @@ def get_premarket_volume_trend(ticker) -> dict:
             category="US_STOCK",
             timespan="M15",
             count="12",
-            trading_sessions="PRE_MARKET",
+            trading_sessions="PRE",
         )
         if resp.status_code != 200:
             return {"trend": "N/A", "ratio": None}
@@ -1160,7 +1160,6 @@ def get_intraday_bars(ticker, count=30):
             category="US_STOCK",
             timespan="M1",
             count=str(count),
-            trading_sessions="REGULAR,PRE_MARKET",
         )
         if resp.status_code != 200:
             print(f"⚠️  Intraday bars {resp.status_code} for {ticker}")

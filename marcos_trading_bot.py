@@ -936,27 +936,9 @@ def get_account_balance():
 
 
 def _get_price_rest(ticker) -> float:
-    """REST fallback for current price when MQTT is unavailable."""
-    try:
-        path   = "/openapi/market-data/stock/quotes"
-        params = {"symbol": ticker, "category": "US_STOCK"}
-        resp   = _get(path, query_params=params, host=MARKET_HOST)
-        resp.raise_for_status()
-        raw  = resp.json()
-        data = raw.get("data", {})
-        if isinstance(data, dict):
-            items = data.get("items", [])
-            d = items[0] if items else data
-        elif isinstance(data, list):
-            d = data[0] if data else {}
-        else:
-            d = {}
-        price = (d.get("last_price") or d.get("lastPrice") or
-                 d.get("close")      or d.get("c") or 0)
-        return float(price) if price else 0
-    except Exception:
-        pass
-    return 0
+    """REST fallback for current price when MQTT is unavailable. Uses SDK."""
+    q = _get_webull_quote(ticker)
+    return q.get("last_price", 0) or 0
 
 
 def _get_webull_quote(ticker) -> dict:
@@ -1135,18 +1117,21 @@ def check_bid_ask_spread(ticker) -> tuple[bool, float]:
 
 
 def get_intraday_bars(ticker, count=30):
-    """Fetch 1-minute intraday bars for VWAP calculation."""
+    """Fetch 1-minute intraday bars for VWAP calculation. Uses SDK."""
     try:
-        path   = "/openapi/market-data/stock/bars"
-        params = {
-            "symbol":           ticker,
-            "category":         "US_STOCK",
-            "timespan":         "m1",
-            "count":            str(count),
-            "trading_sessions": "REGULAR,PRE_MARKET",
-        }
-        resp = _get(path, query_params=params, host=MARKET_HOST)
-        resp.raise_for_status()
+        dc = _get_data_client()
+        if not dc:
+            return []
+        resp = dc.market_data.get_history_bar(
+            symbol=ticker,
+            category="US_STOCK",
+            timespan="m1",
+            count=str(count),
+            trading_sessions="REGULAR,PRE_MARKET",
+        )
+        if resp.status_code != 200:
+            print(f"⚠️  Intraday bars {resp.status_code} for {ticker}")
+            return []
         data = resp.json().get("data", {})
         if isinstance(data, dict):
             return data.get("items", [])

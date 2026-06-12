@@ -192,7 +192,8 @@ MAX_SPREAD_PCT        = 0.015  # Skip entry if bid-ask spread > 1.5% of ask pric
 VWAP_VOL_MULTIPLIER   = 1.5    # Require 1.5× average minute volume for VWAP reclaim confirmation
 TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 7 days
 LOG_FILE              = "/tmp/trade_log.csv"
-DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
+DRY_RUN    = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
+TEST_TRADE = os.environ.get("TEST_TRADE", "").strip().upper()  # e.g. "AAPL" — skips VWAP wait, buys 1 share
 EASTERN = pytz.timezone("America/New_York")
 
 # Sector → ETF mapping for sector-level market context
@@ -2225,6 +2226,55 @@ def main():
     print(f"🤖 MARCOS TRADING BOT STARTING UP")
     print(f"📅 {now.strftime('%A, %B %d, %Y at %I:%M %p ET')}")
     print(f"{'='*60}\n")
+
+    # ── TEST_TRADE fast-path ───────────────────────────────
+    # Set TEST_TRADE=AAPL (or any ticker) on Railway to skip the normal flow
+    # and fire a real 1-share buy+stop order immediately, proving execution works.
+    if TEST_TRADE:
+        print(f"🧪 TEST_TRADE MODE — ticker: {TEST_TRADE}")
+        _pre_populate_webull_token()
+        check_token_expiry()
+        check_webull_connection()
+        balance = get_account_balance()
+        print(f"💰 Balance: ${balance:.2f}")
+        stream = WebullStream([TEST_TRADE])
+        snap = get_live_quote(TEST_TRADE)
+        if not snap:
+            print(f"❌ Could not get quote for {TEST_TRADE} — aborting test trade")
+            stream.stop()
+            return
+        entry_price = float(snap.get("close") or snap.get("last") or 0)
+        if entry_price <= 0:
+            print(f"❌ Bad quote price ({entry_price}) — aborting test trade")
+            stream.stop()
+            return
+        shares    = 1
+        stop_loss = round(entry_price * (1 - STOP_LOSS_PCT), 4)
+        target    = round(entry_price * (1 + TARGET_PCT), 4)
+        print(f"\n{'='*60}")
+        print(f"🎯 TEST TRADE:")
+        print(f"   Ticker:  {TEST_TRADE}")
+        print(f"   Entry:   ${entry_price:.2f}")
+        print(f"   Shares:  {shares}")
+        print(f"   Stop:    ${stop_loss:.2f} (-{STOP_LOSS_PCT*100:.0f}%)")
+        print(f"   Target:  ${target:.2f} (+{TARGET_PCT*100:.0f}%)")
+        print(f"{'='*60}\n")
+        order_id, stop_order_id = execute_trade(TEST_TRADE, shares, entry_price, stop_loss, target)
+        if not order_id:
+            print("❌ TEST TRADE: buy order failed")
+            stream.stop()
+            return
+        print("✅ TEST TRADE: buy + stop orders placed!")
+        send_entry_alert(TEST_TRADE, shares, entry_price, stop_loss, target, entry_price, entry_price * shares)
+        trade_result = monitor_trade(
+            TEST_TRADE, shares, entry_price, target, stop_loss,
+            stream, stop_order_id, vwap=entry_price
+        )
+        stream.stop()
+        new_balance = get_account_balance()
+        pnl         = trade_result.get("profit_loss", 0)
+        print(f"\n✅ TEST TRADE COMPLETE — P&L: ${pnl:.2f} | New balance: ${new_balance:.2f}")
+        return
 
     # Hard time gate — exit immediately if outside the 8:30–10:30am ET window.
     minutes_et = now.hour * 60 + now.minute

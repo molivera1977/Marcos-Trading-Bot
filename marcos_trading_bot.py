@@ -1486,6 +1486,11 @@ def wait_for_vwap_entry(ticker, stream: WebullStream):
 # Orders are identified by our own client_order_id (UUID hex), not
 # Webull's internal orderId — that's what cancel/replace uses too.
 
+def _px(price) -> str:
+    """Format price per Webull rules: 2 decimal places for >= $1, 4 for sub-dollar."""
+    return f"{price:.2f}" if price >= 1.0 else f"{price:.4f}"
+
+
 def _place_order(ticker, shares, side, order_type,
                  stop_price=None, limit_price=None, client_order_id=None):
     """
@@ -1514,9 +1519,9 @@ def _place_order(ticker, shares, side, order_type,
         "entrust_type":            "QTY",
     }
     if stop_price is not None:
-        order["aux_price"] = f"{stop_price:.4f}"
+        order["aux_price"] = _px(stop_price)
     if limit_price is not None:
-        order["limit_price"] = f"{limit_price:.4f}"
+        order["limit_price"] = _px(limit_price)
 
     try:
         res = trade_client.order_v2.place_order(WEBULL_ACCOUNT_ID, [order])
@@ -1545,7 +1550,8 @@ def execute_trade(ticker, shares, entry_price, stop_loss, target):
         return fake_id, uuid.uuid4().hex
 
     shares      = max(1, int(shares))   # Webull requires whole shares
-    limit_price = round(entry_price * (1 + ENTRY_LIMIT_BUFFER), 4)
+    decimals    = 2 if entry_price >= 1.0 else 4
+    limit_price = round(entry_price * (1 + ENTRY_LIMIT_BUFFER), decimals)
     print(f"🚀 Executing: BUY {shares} shares of {ticker} "
           f"@ limit ${limit_price:.2f} (VWAP entry ${entry_price:.2f} +1%)...")
 

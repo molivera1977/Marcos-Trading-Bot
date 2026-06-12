@@ -180,7 +180,8 @@ TARGET_PCT            = 0.20   # 20% full profit target
 PARTIAL_EXIT_PCT      = 0.15   # Sell half at 15% gain
 BREAKEVEN_TRIGGER_PCT = 0.10   # Move stop to breakeven at 10% gain
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
-VWAP_ENTRY_TIMEOUT    = 10     # Give up on VWAP entry after 10am ET
+VWAP_ENTRY_TIMEOUT    = 10     # Give up on VWAP entry after 10:30am ET
+VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of cutoff
 TRADE_WINDOW_END_HOUR = 11     # Force close all positions by 11am ET
 ENTRY_LIMIT_BUFFER    = 0.01   # Limit buy 1% above VWAP reclaim — caps slippage on small floats
 EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry, exit immediately
@@ -1232,14 +1233,15 @@ def analyze_with_claude(email_content, market_data_list, account_balance,
         market_context_section = "OVERALL MARKET CONTEXT: SPY data unavailable"
 
     prompt = f"""
-You are an AI trading assistant for Marcos Olivera, a retail trader
-using Kev's Momentum trading system (TradeMomentum.org).
+You are an aggressive momentum trading bot for Marcos Olivera.
+Your job is to FIND trades, not avoid them. Marcos wants to trade every day
+there is a legitimate setup. Be nimble. Attack opportunities.
 
 Today's date: {datetime.now(EASTERN).strftime("%A, %B %d, %Y")}
 Account balance: ${account_balance:.2f}
 Market open: 9:30am ET
-Entry strategy: Wait for confirmed VWAP reclaim with volume after open
-Trading window: Entry by 10:00am ET, hold until 11:00am max
+Entry strategy: VWAP reclaim with volume after open
+Trading window: Entry by 10:30am ET, hold until 11:00am max
 
 {market_context_section}
 
@@ -1251,35 +1253,53 @@ LIVE PRE-MARKET DATA FROM WEBULL (Kev's picks):
 
 {gapper_section}
 
-YOUR JOB:
-1. Read Kev's exact setup rules for each ticker from his transcript
-2. Cross-reference with the live pre-market data AND the news/catalyst for each ticker
-3. For each ticker decide: GO or NO-GO based on Kev's rules
-4. ALSO evaluate the Webull morning gappers — these are stocks NOT in Kev's list
-   but showing strong pre-market momentum RIGHT NOW. If any gapper looks better
-   than Kev's picks (stronger gap %, higher relative volume, clean chart setup,
-   real catalyst), include it as an additional candidate and consider it for the trade.
-5. CATALYST QUALITY matters — a gap with a real catalyst (news, FDA, contract, earnings)
-   is far more likely to hold than a gap with no clear reason. Weight this heavily.
-6. MARKET CONTEXT matters — if SPY is bearish, be much more selective. Only take
-   the absolute cleanest setup. If neutral/bullish, you can be more aggressive.
-7. For GO trades: set exact expected VWAP entry price, profit target, stop-loss
-8. Pick the BEST single trade (max 1 trade) — could be from Kev's list OR a gapper
-9. Set confidence as HIGH only if: strong catalyst + small float + good volume + clean setup
-   Set MEDIUM if: decent setup but catalyst unclear or float on the larger side
-   Set LOW if: marginal setup — small size or skip entirely
-10. Never risk more than 70% of account on one position
-11. Honor Kev's rules exactly — if he says NO BREAK = NO TRADE, honor that
-12. Flag any major risks (earnings, halts, offerings, T12 halts, gap-and-crap patterns)
+YOUR JOB — FIND THE BEST TRADE AVAILABLE:
 
-TRADING RULES:
-- Entry: Only on confirmed VWAP reclaim with volume (bot handles this automatically)
-- Stop loss: 7% below actual entry (recalculated at VWAP entry)
-- At +10%: stop moves to breakeven automatically
-- At +15%: sells half, sets 5% trailing stop on remainder
+STEP 1 — GAPPER SCAN FIRST (primary source):
+The Webull morning gapper scan is your best opportunity list. These are stocks
+moving RIGHT NOW with real pre-market momentum. For each gapper evaluate:
+  - Float under 20M shares = high squeeze potential
+  - Gap 8%+ pre-market = strong momentum
+  - Relative volume 2x+ = real buyers, not noise
+  - Price between $0.50–$20 = tradeable on a small account
+A stock meeting 3 of these 4 criteria IS a tradeable setup. Pick the best one.
+
+STEP 2 — KEV'S PICKS (secondary):
+If Kev's email has specific break levels or rules, honor them.
+If his email is commentary/educational with no specific rules, treat it as
+background context only — the gapper scan takes over as your trade source.
+
+STEP 3 — CATALYST:
+A news catalyst is a BONUS, not a requirement. Momentum IS the catalyst
+for small-float gap plays. "No news found" does NOT mean no trade.
+Small-float stocks gap on order flow, short squeeze, and sector momentum —
+not always on news. Do NOT hold cash just because there's no headline.
+DO avoid: stocks under investigation, SEC halted, or with active dilution news.
+
+STEP 4 — MARKET CONTEXT:
+- SPY bearish (< -1%): take only the single strongest setup at LOW size (30%)
+- SPY neutral or bullish: be aggressive, full position sizing
+
+STEP 5 — RISK FILTERS (hard NO-GO):
+- Active SEC halt or T12 restriction
+- Stock price > account balance (can't buy even 1 share)
+- Bid-ask spread > 3% (bot checks this automatically at entry)
+- Already up 200%+ pre-market with no volume (gap-and-crap trap)
+
+POSITION SIZING:
+- HIGH confidence: 70% of account (${account_balance * 0.70:.2f})
+- MEDIUM confidence: 50% of account (${account_balance * 0.50:.2f})
+- LOW confidence: 30% of account (${account_balance * 0.30:.2f})
+- If the best setup is LOW confidence, still TAKE IT at small size rather than hold cash.
+  Holding cash is only correct when ALL setups fail the hard NO-GO filters above.
+
+TRADING RULES (bot handles execution automatically):
+- Entry: VWAP reclaim with 1.5x volume confirmation
+- Stop loss: 7% below entry
+- At +10%: stop moves to breakeven
+- At +15%: sell half, trail remainder
 - At +20%: full exit
 - Hard close: 11:00am ET
-- If no VWAP reclaim by 10:00am: hold cash
 
 Respond in this EXACT JSON format:
 {{
@@ -1297,7 +1317,7 @@ Respond in this EXACT JSON format:
       "position_size_dollars": 0.00,
       "vwap_level": 0.00,
       "risk_flags": [],
-      "kev_rule_check": "Did pre-market confirm Kev's rule? Yes/No and why"
+      "kev_rule_check": "Kev's rule applied or N/A if gapper-only pick"
     }}
   ],
   "recommended_trade": {{
@@ -1312,7 +1332,7 @@ Respond in this EXACT JSON format:
     "vwap_level": 0.00,
     "execute_at": "On VWAP reclaim after 9:30am" or "NO TRADE TODAY"
   }},
-  "plain_english_summary": "Text Marcos at 8:55am. Tell him what the bot is doing and why. Friendly and clear."
+  "plain_english_summary": "Text Marcos. Tell him the pick, why, and what to expect. Be direct and confident."
 }}
 """
 
@@ -1368,8 +1388,8 @@ def wait_for_vwap_entry(ticker, stream: WebullStream):
     while True:
         now = datetime.now(EASTERN)
 
-        if now.hour >= VWAP_ENTRY_TIMEOUT:
-            print(f"⏰ {ticker} never reclaimed VWAP by 10am. Holding cash.")
+        if now.hour > VWAP_ENTRY_TIMEOUT or (now.hour == VWAP_ENTRY_TIMEOUT and now.minute >= VWAP_ENTRY_TIMEOUT_MIN):
+            print(f"⏰ {ticker} never reclaimed VWAP by 10:30am. Holding cash.")
             return None, None
 
         if now.hour < 9 or (now.hour == 9 and now.minute < 30):

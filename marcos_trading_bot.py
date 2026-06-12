@@ -182,9 +182,9 @@ TARGET_PCT            = 0.20   # 20% full profit target
 PARTIAL_EXIT_PCT      = 0.15   # Sell half at 15% gain
 BREAKEVEN_TRIGGER_PCT = 0.10   # Move stop to breakeven at 10% gain
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
-VWAP_ENTRY_TIMEOUT    = 14     # Give up on VWAP entry after 2:00pm ET (extended for afternoon test)
-VWAP_ENTRY_TIMEOUT_MIN = 0    # minute component of cutoff
-TRADE_WINDOW_END_HOUR = 13     # Force close all positions by 1pm ET (extended for afternoon test)
+VWAP_ENTRY_TIMEOUT    = 10     # Give up on VWAP entry after 10:30am ET
+VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of cutoff
+TRADE_WINDOW_END_HOUR = 11     # Force close all positions by 11am ET
 ENTRY_LIMIT_BUFFER    = 0.01   # Limit buy 1% above VWAP reclaim — caps slippage on small floats
 EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry, exit immediately
 SPY_BEAR_SKIP_PCT     = -1.0   # Skip the day entirely if SPY pre-market < -1%
@@ -2226,11 +2226,9 @@ def main():
     print(f"📅 {now.strftime('%A, %B %d, %Y at %I:%M %p ET')}")
     print(f"{'='*60}\n")
 
-    # Hard time gate — exit immediately if outside the 8:30–2:00pm ET window.
-    # Extended to 2:00pm for afternoon test run on June 12, 2026.
-    # Revert to 10:30am (10 * 60 + 30) after testing.
+    # Hard time gate — exit immediately if outside the 8:30–10:30am ET window.
     minutes_et = now.hour * 60 + now.minute
-    if not (8 * 60 + 30 <= minutes_et <= 14 * 60):
+    if not (8 * 60 + 30 <= minutes_et <= 10 * 60 + 30):
         print(f"⏰ Outside trading window ({now.strftime('%H:%M')} ET) — exiting.")
         return
 

@@ -1848,20 +1848,62 @@ def post_balance_to_dashboard(balance: float):
 # STEP 7 — ALERT EMAILS (fired in real-time during the session)
 # ============================================================
 
-def send_alert_email(subject, body):
-    """Sends email via Resend API over HTTPS — bypasses Railway's SMTP block."""
+def _html_wrap(sections_html: str) -> str:
+    """Wrap email content in a clean, large-font HTML shell."""
+    return f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body style="margin:0;padding:0;background:#0f0f1a;font-family:Arial,sans-serif;font-size:17px;color:#e8e8f0;">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:0 auto;">
+<tr><td style="padding:24px 20px 8px;">
+  <div style="font-size:13px;color:#7c7ca0;letter-spacing:1px;">MARCOS TRADING BOT &nbsp;·&nbsp; RAILWAY.APP</div>
+</td></tr>
+{sections_html}
+<tr><td style="padding:16px 20px 32px;">
+  <div style="font-size:13px;color:#555570;border-top:1px solid #2a2a3e;padding-top:12px;">
+    Claude Opus AI + Webull OpenAPI v2 &nbsp;·&nbsp; Railway.app
+  </div>
+</td></tr>
+</table></body></html>"""
+
+
+def _section(title: str, rows_html: str, color: str = "#6c63ff") -> str:
+    """A titled card section for HTML emails."""
+    return f"""
+<tr><td style="padding:8px 20px;">
+  <div style="background:#1a1a2e;border-radius:10px;border-left:4px solid {color};padding:18px 20px;">
+    <div style="font-size:13px;font-weight:bold;color:{color};letter-spacing:1.5px;margin-bottom:12px;">{title}</div>
+    {rows_html}
+  </div>
+</td></tr>"""
+
+
+def _row(label: str, value: str, big: bool = False) -> str:
+    size = "20px" if big else "17px"
+    return (f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
+            f'border-bottom:1px solid #2a2a3e;">'
+            f'<span style="color:#9090b0;font-size:15px;">{label}</span>'
+            f'<span style="font-weight:bold;font-size:{size};color:#e8e8f0;">{value}</span>'
+            f'</div>')
+
+
+def send_alert_email(subject, body, html=None):
+    """Sends email via Resend API. Accepts optional html for rich formatting."""
     if DRY_RUN:
         subject = f"[DRY RUN] {subject}"
     print(f"📲 Sending alert to {SUMMARY_EMAIL}: {subject}")
     try:
         resend.api_key = RESEND_API_KEY
-        footer = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nMarcos Trading Bot | Railway.app"
-        r = resend.Emails.send({
+        payload = {
             "from":    "Marcos Trading Bot <onboarding@resend.dev>",
             "to":      [SUMMARY_EMAIL],
             "subject": subject,
-            "text":    body + footer,
-        })
+            "text":    body,
+        }
+        if html:
+            payload["html"] = html
+        r = resend.Emails.send(payload)
         print(f"✅ Alert sent! Resend id={getattr(r, 'id', r)}")
     except Exception as e:
         print(f"❌ Alert email error: {e}")
@@ -1873,75 +1915,93 @@ def send_plan_alert(analysis, balance):
     action      = recommended.get("action", "HOLD CASH")
     ticker      = recommended.get("ticker", "N/A")
     today       = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
+    conf        = recommended.get("confidence", "N/A")
+    conf_color  = {"HIGH": "#00c851", "MEDIUM": "#ffbb33", "LOW": "#ff6b35"}.get(conf, "#9090b0")
 
     if action == "BUY":
         subject = f"🤖 Bot Plan — {ticker} is the pick | {today}"
-        body = f"""Good morning Marcos! Claude just finished the pre-market analysis.
+        plain = (f"Good morning Marcos! Claude picked {ticker}.\n\n"
+                 f"Entry: ~${recommended.get('entry_price',0):.2f} | "
+                 f"Target: ${recommended.get('target_price',0):.2f} | "
+                 f"Stop: ${recommended.get('stop_loss',0):.2f}\n\n"
+                 f"{analysis.get('plain_english_summary','')}")
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TODAY'S PLAN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Ticker:      {ticker}
-Action:      Watching for VWAP reclaim after 9:30am
-Entry:       ~${recommended.get('entry_price', 0):.2f} (on VWAP reclaim)
-Target:      ${recommended.get('target_price', 0):.2f} (+20%)
-Stop loss:   ${recommended.get('stop_loss', 0):.2f} (-7%)
-Size:        ${recommended.get('position_size_dollars', 0):.2f}
-Confidence:  {recommended.get('confidence', 'N/A')}
-Account:     ${balance:.2f}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CLAUDE SAYS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{analysis.get('plain_english_summary', '')}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ALL TICKERS REVIEWED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+        ticker_rows = ""
         for t in analysis.get("tickers", []):
-            e = "✅" if t["verdict"] == "GO" else "❌"
-            body += f"\n{e} {t['ticker']} — {t['verdict']}: {t['reason']}"
-        body += "\n\nThe bot is now watching for the VWAP reclaim. You'll get another email the moment it enters."
+            go   = t["verdict"] == "GO"
+            icon = "✅" if go else "❌"
+            clr  = "#00c851" if go else "#ff4444"
+            ticker_rows += (f'<div style="padding:8px 0;border-bottom:1px solid #2a2a3e;">'
+                            f'<span style="font-size:16px;">{icon} <strong style="color:{clr};">{t["ticker"]}</strong>'
+                            f' — {t["verdict"]}</span>'
+                            f'<div style="color:#9090b0;font-size:15px;margin-top:4px;">{t["reason"]}</div>'
+                            f'</div>')
+
+        html = _html_wrap(
+            f'<tr><td style="padding:16px 20px 4px;">'
+            f'<div style="font-size:26px;font-weight:bold;color:#ffffff;">Good morning Marcos! 👋</div>'
+            f'<div style="font-size:16px;color:#9090b0;margin-top:6px;">Claude just finished the pre-market analysis for {today}</div>'
+            f'</td></tr>'
+            + _section("TODAY'S PLAN", (
+                _row("Ticker", f'<span style="font-size:24px;color:#6c63ff;">{ticker}</span>', big=True)
+                + _row("Action", "Watching for VWAP reclaim after 9:30am")
+                + _row("Entry", f"~${recommended.get('entry_price',0):.2f}")
+                + _row("Target", f"${recommended.get('target_price',0):.2f} (+20%)", big=True)
+                + _row("Stop Loss", f"${recommended.get('stop_loss',0):.2f} (-7%)")
+                + _row("Position Size", f"${recommended.get('position_size_dollars',0):.2f}")
+                + _row("Confidence", f'<span style="color:{conf_color};">{conf}</span>')
+                + _row("Account", f"${balance:.2f}")
+            ), color="#6c63ff")
+            + _section("CLAUDE SAYS", f'<div style="font-size:17px;line-height:1.7;color:#d0d0e8;">{analysis.get("plain_english_summary","")}</div>', color="#00c851")
+            + _section("ALL TICKERS REVIEWED", ticker_rows, color="#ffbb33")
+            + f'<tr><td style="padding:12px 20px;">'
+            f'<div style="background:#1a2a1a;border-radius:8px;padding:14px 18px;color:#00c851;font-size:16px;">'
+            f'🔍 Bot is now watching for the VWAP reclaim. You\'ll get another email the moment it enters.</div></td></tr>'
+        )
     else:
         subject = f"🤖 Bot Plan — 💤 No trade today | {today}"
-        body = f"""Good morning Marcos! Claude finished the analysis.
+        plain = f"No trade today. Cash: ${balance:.2f}\n\n{analysis.get('plain_english_summary','')}"
+        html = _html_wrap(
+            f'<tr><td style="padding:16px 20px 4px;">'
+            f'<div style="font-size:26px;font-weight:bold;color:#ffffff;">Good morning Marcos! 👋</div>'
+            f'<div style="font-size:16px;color:#9090b0;margin-top:6px;">{today}</div>'
+            f'</td></tr>'
+            + _section("NO TRADE TODAY",
+                f'<div style="font-size:17px;line-height:1.7;color:#d0d0e8;">{analysis.get("plain_english_summary","")}</div>'
+                + f'<div style="margin-top:14px;">' + _row("Cash Preserved", f"${balance:.2f}", big=True) + '</div>',
+                color="#ffbb33")
+        )
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-NO TRADE TODAY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{analysis.get('plain_english_summary', '')}
-
-Cash staying put: ${balance:.2f}"""
-
-    send_alert_email(subject, body)
+    send_alert_email(subject, plain, html=html)
 
 
 def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap, position_size):
     """Alert 2 — Fired the moment the buy order is placed."""
     now_str = datetime.now(EASTERN).strftime("%I:%M:%S %p ET")
     subject = f"🚀 TRADE ENTERED — {ticker} @ ${entry_price:.2f} | {now_str}"
-    body = f"""The bot just entered a trade!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TRADE ENTERED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Ticker:      {ticker}
-Filled at:   ${entry_price:.2f}
-Shares:      {shares}
-Position:    ${position_size:.2f}
-VWAP:        ${vwap:.2f} ✅ reclaimed with volume
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-LEVELS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 Target:   ${target_price:.2f} (+20%)
-⚠️  Breakeven move triggers at: +10%
-💰 Partial exit (half) at: +15%
-🛑 Stop loss: ${stop_loss:.2f} (-7%)
-⏰ Hard close: 11:00am ET
-
-You'll get an email at partial exit (+15%) and again when the trade closes."""
-    send_alert_email(subject, body)
+    plain = (f"TRADE ENTERED: {ticker} @ ${entry_price:.2f} | {shares} shares | ${position_size:.2f}\n"
+             f"Target: ${target_price:.2f} | Stop: ${stop_loss:.2f} | VWAP: ${vwap:.2f}")
+    html = _html_wrap(
+        f'<tr><td style="padding:16px 20px 4px;">'
+        f'<div style="font-size:28px;font-weight:bold;color:#00c851;">🚀 TRADE ENTERED!</div>'
+        f'<div style="font-size:16px;color:#9090b0;margin-top:6px;">{now_str}</div>'
+        f'</td></tr>'
+        + _section("FILL DETAILS", (
+            _row("Ticker",    f'<span style="font-size:24px;color:#6c63ff;">{ticker}</span>', big=True)
+            + _row("Filled At",  f"${entry_price:.2f}")
+            + _row("Shares",     str(shares))
+            + _row("Position",   f"${position_size:.2f}")
+            + _row("VWAP",       f"${vwap:.2f} ✅")
+        ), color="#00c851")
+        + _section("LEVELS TO WATCH", (
+            _row("🎯 Target (+20%)",      f"${target_price:.2f}", big=True)
+            + _row("💰 Partial exit (+15%)", "Sell half, trail rest")
+            + _row("⚡ Breakeven (+10%)",    "Stop moves to entry")
+            + _row("🛑 Stop Loss (-7%)",     f"${stop_loss:.2f}")
+            + _row("⏰ Hard Close",           "11:00am ET")
+        ), color="#ffbb33")
+    )
+    send_alert_email(subject, plain, html=html)
 
 
 def send_partial_exit_alert(ticker, half_shares, partial_price, entry_price,
@@ -1950,24 +2010,25 @@ def send_partial_exit_alert(ticker, half_shares, partial_price, entry_price,
     now_str = datetime.now(EASTERN).strftime("%I:%M:%S %p ET")
     profit  = (partial_price - entry_price) * half_shares
     subject = f"💰 PARTIAL EXIT — {ticker} +{profit_pct:.1f}% at {now_str}"
-    body = f"""The bot just sold half the position at +{profit_pct:.1f}%!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PARTIAL EXIT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Ticker:       {ticker}
-Sold:         {half_shares} shares @ ${partial_price:.2f}
-Gain so far:  +{profit_pct:.1f}% (${profit:+.2f})
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-STILL IN TRADE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Remaining:    {remaining_shares} shares
-Trailing stop now at: ${new_stop:.2f} (5% below high)
-Target still: +20% full exit
-
-The bot is letting the rest ride with a trailing stop. You'll get a final email when it closes."""
-    send_alert_email(subject, body)
+    plain = (f"Sold half at +{profit_pct:.1f}% (${profit:+.2f}). "
+             f"{remaining_shares} shares remain. Trailing stop: ${new_stop:.2f}")
+    html = _html_wrap(
+        f'<tr><td style="padding:16px 20px 4px;">'
+        f'<div style="font-size:28px;font-weight:bold;color:#00c851;">💰 PARTIAL EXIT!</div>'
+        f'<div style="font-size:16px;color:#9090b0;margin-top:6px;">{now_str}</div>'
+        f'</td></tr>'
+        + _section("SOLD", (
+            _row("Ticker",      ticker)
+            + _row("Sold",      f"{half_shares} shares @ ${partial_price:.2f}")
+            + _row("Gain",      f'+{profit_pct:.1f}% (${profit:+.2f})', big=True)
+        ), color="#00c851")
+        + _section("STILL IN TRADE", (
+            _row("Remaining Shares", str(remaining_shares))
+            + _row("Trailing Stop",  f"${new_stop:.2f} (5% below high)")
+            + _row("Full Exit",      "+20% target")
+        ), color="#6c63ff")
+    )
+    send_alert_email(subject, plain, html=html)
 
 
 # ============================================================
@@ -1976,8 +2037,8 @@ The bot is letting the rest ride with a trailing stop. You'll get a final email 
 
 def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_log_line=""):
     print(f"📨 Sending summary email to {SUMMARY_EMAIL}...")
-    today    = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
-    dry_tag  = "[DRY RUN] " if DRY_RUN else ""
+    today   = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
+    dry_tag = "[DRY RUN] " if DRY_RUN else ""
 
     if trade_result and analysis:
         recommended = analysis.get("recommended_trade", {})
@@ -1986,68 +2047,59 @@ def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_l
         pnl_pct     = trade_result.get("profit_loss_pct", 0)
         exit_reason = trade_result.get("exit_reason", "N/A")
         exit_price  = trade_result.get("exit_price", 0)
-        emoji       = "✅" if pnl > 0 else "🔴"
-        result_line = f"{emoji} {ticker}: {pnl_pct:+.1f}% (${pnl:+.2f})"
+        win         = pnl >= 0
+        result_line = f"{'✅' if win else '🔴'} {ticker}: {pnl_pct:+.1f}% (${pnl:+.2f})"
         subject     = f"{dry_tag}Trading Bot Summary — {today} | {result_line}"
-        body = f"""
-Good morning Marcos! Here's your trading summary for {today}.
+        pnl_color   = "#00c851" if win else "#ff4444"
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TRADE RESULT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{result_line}
-Exit reason:  {exit_reason}
-Exit price:   ${exit_price:.2f}
-New balance:  ~${account_balance + pnl:.2f}
+        ticker_rows = ""
+        for t in (analysis.get("tickers") or []):
+            go = t["verdict"] == "GO"
+            ticker_rows += (f'<div style="padding:8px 0;border-bottom:1px solid #2a2a3e;">'
+                            f'<span style="font-size:16px;">{"✅" if go else "❌"} '
+                            f'<strong style="color:{"#00c851" if go else "#ff4444"};">{t["ticker"]}</strong> — {t["verdict"]}</span>'
+                            f'<div style="color:#9090b0;font-size:15px;margin-top:3px;">{t["reason"]}</div>'
+                            f'</div>')
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CLAUDE'S ANALYSIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{analysis.get('plain_english_summary', '')}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ALL TICKERS REVIEWED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-        for t in analysis.get("tickers", []):
-            e = "✅" if t["verdict"] == "GO" else "❌"
-            body += f"\n{e} {t['ticker']} — {t['verdict']}\n   {t['reason']}\n   Kev check: {t['kev_rule_check']}\n"
+        html = _html_wrap(
+            f'<tr><td style="padding:16px 20px 4px;">'
+            f'<div style="font-size:26px;font-weight:bold;color:#ffffff;">Trading Summary — {today}</div>'
+            f'</td></tr>'
+            + _section("TRADE RESULT", (
+                _row("Ticker",      ticker)
+                + _row("P&L",       f'<span style="color:{pnl_color};font-size:22px;">{pnl_pct:+.1f}% (${pnl:+.2f})</span>', big=True)
+                + _row("Exit",      f"${exit_price:.2f} — {exit_reason}")
+                + _row("New Balance", f"${account_balance + pnl:.2f}", big=True)
+            ), color=pnl_color)
+            + _section("CLAUDE'S ANALYSIS", f'<div style="font-size:17px;line-height:1.7;color:#d0d0e8;">{analysis.get("plain_english_summary","")}</div>', color="#6c63ff")
+            + _section("ALL TICKERS REVIEWED", ticker_rows, color="#ffbb33")
+            + (f'<tr><td style="padding:8px 20px;">'
+               f'<div style="background:#1a1a2e;border-radius:8px;padding:14px 18px;">'
+               f'<div style="font-size:13px;color:#7c7ca0;margin-bottom:6px;">TRADE LOG</div>'
+               f'<pre style="font-size:13px;color:#9090b0;margin:0;white-space:pre-wrap;">'
+               f'Date,Ticker,Entry,Exit,Shares,P&L$,P&L%,Exit Reason,Confidence,Float\n{csv_log_line}</pre>'
+               f'</div></td></tr>' if csv_log_line else "")
+        )
+        plain = f"{result_line}\nExit: ${exit_price:.2f} — {exit_reason}\nBalance: ~${account_balance+pnl:.2f}"
     else:
-        subject      = f"{dry_tag}Trading Bot Summary — {today} | 💤 No Trade Today"
-        plain        = analysis.get("plain_english_summary", "") if analysis else "No watchlist email found."
-        body = f"""
-Good morning Marcos! Here's your trading summary for {today}.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-NO TRADE TAKEN TODAY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Cash preserved: ${account_balance:.2f}
-
-{plain}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-REMINDER
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Send tonight's tickers to: molivera1977@icloud.com
-Paste Kev's TikTok transcript in the body.
-The bot reads it at 8:45am tomorrow.
-"""
-
-    if csv_log_line:
-        body += f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TRADE LOG (paste into your spreadsheet)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Date,Ticker,Entry,Exit,Shares,P&L$,P&L%,Exit Reason,Confidence,Float
-{csv_log_line}
-"""
-
-    body += f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Marcos Trading Bot | Claude Opus AI + Webull OpenAPI v2
-Railway.app
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
+        subject = f"{dry_tag}Trading Bot Summary — {today} | 💤 No Trade Today"
+        plain_summary = analysis.get("plain_english_summary", "") if analysis else "No watchlist email found."
+        html = _html_wrap(
+            f'<tr><td style="padding:16px 20px 4px;">'
+            f'<div style="font-size:26px;font-weight:bold;color:#ffffff;">Trading Summary — {today}</div>'
+            f'</td></tr>'
+            + _section("NO TRADE TAKEN TODAY", (
+                _row("Cash Preserved", f"${account_balance:.2f}", big=True)
+                + f'<div style="margin-top:12px;font-size:17px;line-height:1.7;color:#d0d0e8;">{plain_summary}</div>'
+            ), color="#ffbb33")
+            + _section("REMINDER", (
+                f'<div style="font-size:16px;color:#d0d0e8;line-height:1.8;">'
+                f'Send tonight\'s tickers to: <strong>molivera1977@icloud.com</strong><br>'
+                f'Paste Kev\'s TikTok transcript in the body.<br>'
+                f'The bot reads it at 8:45am tomorrow.</div>'
+            ), color="#6c63ff")
+        )
+        plain = f"No trade today. Cash: ${account_balance:.2f}\n\n{plain_summary}"
 
     try:
         resend.api_key = RESEND_API_KEY
@@ -2055,7 +2107,8 @@ Railway.app
             "from":    "Marcos Trading Bot <onboarding@resend.dev>",
             "to":      [SUMMARY_EMAIL],
             "subject": subject,
-            "text":    body,
+            "text":    plain,
+            "html":    html,
         })
         print(f"✅ Summary email sent!")
     except Exception as e:

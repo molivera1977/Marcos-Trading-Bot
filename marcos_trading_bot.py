@@ -1006,22 +1006,29 @@ def check_webull_connection() -> bool:
     print("🔗 Checking Webull API connection...")
     try:
         q = _get_webull_quote("SPY")
-        if q.get("last_price", 0) > 0:
-            print(f"✅ Webull API healthy — SPY @ ${q['last_price']:.2f}")
+        if q:  # non-empty dict = SDK responded (even if price=0 outside market hours)
+            price = q.get("last_price", 0)
+            if price > 0:
+                print(f"✅ Webull API healthy — SPY @ ${price:.2f}")
+            else:
+                print("✅ Webull API reachable — SPY price 0 (market closed)")
             return True
-        print("⚠️  Webull quote returned empty data")
+        # Empty dict = SDK call failed (non-200 / auth error)
+        print("⚠️  Webull API unreachable — SDK returned no data")
     except Exception as e:
         print(f"⚠️  Webull connection error: {e}")
-    send_alert_email(
-        "⚠️ Webull API health check failed — bot may not trade today",
-        "The bot could not reach the Webull API at startup.\n\n"
-        "Possible causes:\n"
-        "- Access token expired (check Railway env vars)\n"
-        "- Webull API outage\n"
-        "- Network issue on Railway\n\n"
-        "The bot will continue running but order placement may fail. "
-        "Check your Webull credentials and redeploy if needed."
-    )
+        q = None
+    if q is None or not q:
+        send_alert_email(
+            "⚠️ Webull API health check failed — bot may not trade today",
+            "The bot could not reach the Webull API at startup.\n\n"
+            "Possible causes:\n"
+            "- Access token expired (check Railway env vars)\n"
+            "- Webull API outage\n"
+            "- Network issue on Railway\n\n"
+            "The bot will continue running but order placement may fail. "
+            "Check your Webull credentials and redeploy if needed."
+        )
     return False
 
 

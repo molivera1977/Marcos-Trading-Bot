@@ -266,7 +266,7 @@ US_MARKET_HOLIDAYS = {
 WEBULL_MQTT_HOST  = "stream.webull.com"
 WEBULL_MQTT_PORT  = 443          # WebSocket over TLS
 MQTT_LOOP_SLEEP   = 0.5          # When streaming: check every 0.5s
-POLL_LOOP_SLEEP   = 5            # Fallback polling: check every 5s (was 15s)
+POLL_LOOP_SLEEP   = 3            # REST polling interval: check every 3s
 
 # ============================================================
 # WEBULL OPENAPI v2 — SIGNATURE & HEADERS
@@ -408,62 +408,10 @@ class WebullStream:
         self._connect()
 
     def _connect(self):
-        """Use the SDK's DataStreamingClient — it resolves the MQTT host via the
-        Webull API, which works on Railway where raw DNS to stream.webull.com fails."""
-        if not WebullStreamingClient:
-            self.connected = False
-            return
-        try:
-            import uuid
-            session_id = str(uuid.uuid4())
-            self.client = WebullStreamingClient(
-                app_key=WEBULL_APP_KEY,
-                app_secret=WEBULL_APP_SECRET,
-                region_id="us",
-                session_id=session_id,
-            )
-
-            def _on_connect_success(streaming_client, api_client, quotes_session_id):
-                self.connected = True
-                tickers_str = ",".join(self.tickers)
-                streaming_client.subscribe(
-                    symbols=tickers_str,
-                    category="US_STOCK",
-                    sub_types=["snapshot"],
-                )
-                print(f"📡 SDK stream connected — subscribed: {self.tickers}")
-
-            def _on_subscribe_success(streaming_client, api_client, quotes_session_id):
-                print(f"📡 SDK stream subscription confirmed")
-
-            self.client.on_connect_success  = _on_connect_success
-            self.client.on_subscribe_success = _on_subscribe_success
-
-            # Register message handler — SDK calls this as (client, topic, decoded_result)
-            def _snapshot_handler(sdk_client, topic, result):
-                try:
-                    sym   = result.basic.symbol.upper()
-                    price = float(result.price or 0)
-                    vol   = float(result.volume or 0)
-                    if price > 0:
-                        with _price_lock:
-                            _price_registry[sym] = price
-                            if vol > 0:
-                                _price_registry[f"{sym}_vol"] = vol
-                except Exception:
-                    pass
-
-            self.client.on_quotes_message = _snapshot_handler
-
-            self.client.connect_and_loop_async(thread_daemon=True)
-            time.sleep(3)
-            if self.connected:
-                print(f"📡 SDK stream active — real-time prices ({len(self.tickers)} tickers)")
-            else:
-                print(f"⚠️  SDK stream not yet connected — using {POLL_LOOP_SLEEP}s polling fallback")
-        except Exception as e:
-            print(f"⚠️  SDK stream error: {e} — using {POLL_LOOP_SLEEP}s polling fallback")
-            self.connected = False
+        """Streaming disabled — Webull streaming token stays PENDING (not enabled for this key).
+        Using fast REST polling instead."""
+        self.connected = False
+        print(f"📊 Using {POLL_LOOP_SLEEP}s REST polling for price updates")
 
     def get_price(self, ticker: str) -> float:
         """

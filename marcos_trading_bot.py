@@ -1424,30 +1424,26 @@ Respond in this EXACT JSON format:
 
 VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't change faster
 
-def wait_for_vwap_entry(ticker, stream: WebullStream,
-                        cutoff_hour=VWAP_ENTRY_TIMEOUT,
-                        cutoff_min=VWAP_ENTRY_TIMEOUT_MIN):
+def wait_for_vwap_entry(candidates: list, stream: WebullStream):
     """
-    After 9:30am open, watches price vs VWAP using the real-time stream.
-    Price is checked at stream frequency (0.5s MQTT / 3s polling).
-    Intraday bars are refreshed every 30s — VWAP is stable enough for this.
-    Times out at cutoff_hour:cutoff_min ET — returns (None, None) so caller
-    can try the next ranked ticker.
-    Returns (entry_price, vwap) or (None, None).
+    Watches ALL candidate tickers simultaneously every loop tick.
+    Takes the first one that reclaims VWAP with 1.5x volume confirmation.
+    Priority order is preserved — if two trigger on the same tick, the
+    higher-ranked one wins.
+    Hard cutoff: 10:30am ET.
+    Returns (winner_ticker, entry_price, vwap) or (None, None, None).
     """
-    cutoff_label = f"{cutoff_hour}:{cutoff_min:02d}am"
-    print(f"\n⏳ Watching {ticker} for VWAP reclaim (cutoff {cutoff_label} ET)...")
+    print(f"\n⏳ Scanning {len(candidates)} candidate(s) for VWAP reclaim: {', '.join(candidates)}")
 
-    cached_bars      = []
-    last_bar_fetch   = 0.0   # epoch seconds of last bars API call
-    cached_vwap      = 0.0
+    # Per-ticker bar cache: {ticker: {"bars": [...], "vwap": float, "fetched": float}}
+    cache = {t: {"bars": [], "vwap": 0.0, "fetched": 0.0} for t in candidates}
 
     while True:
         now = datetime.now(EASTERN)
 
-        if now.hour > cutoff_hour or (now.hour == cutoff_hour and now.minute >= cutoff_min):
-            print(f"⏰ {ticker} — no VWAP reclaim by {cutoff_label}. Moving on.")
-            return None, None
+        if now.hour > VWAP_ENTRY_TIMEOUT or (now.hour == VWAP_ENTRY_TIMEOUT and now.minute >= VWAP_ENTRY_TIMEOUT_MIN):
+            print(f"⏰ 10:30am cutoff — no VWAP reclaim across any candidate. Holding cash.")
+            return None, None, None
 
         if now.hour < 9 or (now.hour == 9 and now.minute < 30):
             mins = (9 * 60 + 30) - (now.hour * 60 + now.minute)
@@ -1455,35 +1451,42 @@ def wait_for_vwap_entry(ticker, stream: WebullStream,
             time.sleep(30)
             continue
 
-        # ── Refresh bars every 30s, use cache in between ────
-        if time.time() - last_bar_fetch >= VWAP_BAR_CACHE_SECS:
-            fresh = get_intraday_bars(ticker)
-            if fresh:
-                cached_bars    = fresh
-                cached_vwap    = calculate_vwap(cached_bars)
-                last_bar_fetch = time.time()
+        # ── Refresh bars for each ticker on their own 30s cadence ──
+        for t in candidates:
+            if time.time() - cache[t]["fetched"] >= VWAP_BAR_CACHE_SECS:
+                fresh = get_intraday_bars(t)
+                if fresh:
+                    cache[t]["bars"]    = fresh
+                    cache[t]["vwap"]    = calculate_vwap(fresh)
+                    cache[t]["fetched"] = time.time()
 
-        current_price = stream.get_price(ticker)
+        # ── Check each ticker — take first confirmed reclaim ───────
+        status_parts = []
+        for t in candidates:
+            bars  = cache[t]["bars"]
+            vwap  = cache[t]["vwap"]
+            price = stream.get_price(t)
 
-        if not cached_bars or current_price <= 0 or cached_vwap <= 0:
-            time.sleep(stream.loop_sleep())
-            continue
+            if not bars or price <= 0 or vwap <= 0:
+                status_parts.append(f"{t}:no data")
+                continue
 
-        pct_vs_vwap = ((current_price - cached_vwap) / cached_vwap) * 100
-        print(f"📊 {ticker}: ${current_price:.2f} | VWAP: ${cached_vwap:.2f} ({pct_vs_vwap:+.1f}%)")
+            pct = ((price - vwap) / vwap) * 100
+            status_parts.append(f"{t}:${price:.2f}({pct:+.1f}%)")
 
-        if current_price > cached_vwap:
-            last_vol = float(cached_bars[-1].get("volume") or
-                             cached_bars[-1].get("v") or 0)
-            avg_vol  = sum(float(b.get("volume") or b.get("v") or 0)
-                          for b in cached_bars) / len(cached_bars)
-            if last_vol >= avg_vol * VWAP_VOL_MULTIPLIER:
-                print(f"✅ VWAP reclaim confirmed! ${current_price:.2f} > VWAP ${cached_vwap:.2f} "
-                      f"with {last_vol/avg_vol:.1f}× avg volume")
-                return current_price, cached_vwap
-            else:
-                print(f"⚠️  Above VWAP but volume light ({last_vol/avg_vol:.1f}× avg — need {VWAP_VOL_MULTIPLIER}×). Waiting...")
+            if price > vwap:
+                last_vol = float(bars[-1].get("volume") or bars[-1].get("v") or 0)
+                avg_vol  = sum(float(b.get("volume") or b.get("v") or 0)
+                               for b in bars) / len(bars)
+                if last_vol >= avg_vol * VWAP_VOL_MULTIPLIER:
+                    print(f"\n✅ {t} VWAP reclaim confirmed! "
+                          f"${price:.2f} > VWAP ${vwap:.2f} "
+                          f"with {last_vol/avg_vol:.1f}× avg volume")
+                    return t, price, vwap
+                else:
+                    status_parts[-1] += f" ⚠️vol:{last_vol/avg_vol:.1f}x"
 
+        print(f"📊 {' | '.join(status_parts)}")
         time.sleep(stream.loop_sleep())
 
 # ============================================================
@@ -2542,40 +2545,15 @@ def main():
         sym = t.get("ticker", "").upper()
         if sym and sym != ticker_to_trade and t.get("verdict") == "GO":
             ranked_candidates.append(sym)
-    if len(ranked_candidates) > 1:
-        print(f"📋 Ticker watch order: {' → '.join(ranked_candidates)}")
+    print(f"📋 Watching simultaneously: {' | '.join(ranked_candidates)}")
 
     # ── Step 7: Open real-time stream (all candidates) ─────
     gapper_syms    = [g["symbol"] for g in gappers] if gappers else []
     stream_tickers = list(dict.fromkeys(ranked_candidates + tickers + gapper_syms))
     stream         = WebullStream(stream_tickers)
 
-    # ── Step 8: Wait for VWAP entry — try each ticker in order ──
-    entry_price  = None
-    vwap         = None
-    ticker_to_trade = ranked_candidates[0]
-
-    for i, candidate in enumerate(ranked_candidates):
-        is_last = (i == len(ranked_candidates) - 1)
-        if i == 0 and len(ranked_candidates) > 1:
-            # Give the top pick until 9:50am, then fall through to backup
-            c_hour, c_min = 9, FIRST_TICKER_CUTOFF_MIN
-        else:
-            # Each subsequent pick gets the remaining window until 10:30am
-            c_hour, c_min = VWAP_ENTRY_TIMEOUT, VWAP_ENTRY_TIMEOUT_MIN
-
-        entry_price, vwap = wait_for_vwap_entry(candidate, stream,
-                                                 cutoff_hour=c_hour,
-                                                 cutoff_min=c_min)
-        if entry_price:
-            ticker_to_trade = candidate
-            position_size   = float(
-                (analysis.get("recommended_trade") or {}).get("position_size_dollars")
-                or balance * MAX_POSITION_SIZE
-            )
-            break
-        if not is_last:
-            print(f"🔄 Switching to backup ticker: {ranked_candidates[i+1]}")
+    # ── Step 8: Watch all GO tickers at once — first confirmed reclaim wins ──
+    ticker_to_trade, entry_price, vwap = wait_for_vwap_entry(ranked_candidates, stream)
 
     if not entry_price:
         note = f"\n\nNOTE: No ticker reclaimed VWAP by 10:30am ({', '.join(ranked_candidates)}). Cash preserved."

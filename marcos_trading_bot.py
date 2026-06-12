@@ -875,16 +875,19 @@ def get_account_balance():
     _, trade_client = _make_webull_client()
     if trade_client:
         try:
-            # Step 1: account list gives us the account ID (not balance)
-            res = trade_client.account_v2.get_account_list()
-            if res.status_code == 200:
-                accounts = res.json()
-                if isinstance(accounts, list) and accounts:
-                    global WEBULL_ACCOUNT_ID
-                    WEBULL_ACCOUNT_ID = accounts[0].get("account_id", WEBULL_ACCOUNT_ID)
-                    print(f"✅ Account ID: {WEBULL_ACCOUNT_ID}")
+            # Step 1: only auto-discover account ID if not explicitly set via env var
+            if not os.environ.get("WEBULL_ACCOUNT_ID", "").strip():
+                res = trade_client.account_v2.get_account_list()
+                if res.status_code == 200:
+                    accounts = res.json()
+                    if isinstance(accounts, list) and accounts:
+                        global WEBULL_ACCOUNT_ID
+                        WEBULL_ACCOUNT_ID = accounts[0].get("account_id", WEBULL_ACCOUNT_ID)
+                        print(f"✅ Account ID (auto-discovered): {WEBULL_ACCOUNT_ID}")
+                else:
+                    print(f"⚠️  Account list error: {res.status_code} {res.text[:200]}")
             else:
-                print(f"⚠️  Account list error: {res.status_code} {res.text[:200]}")
+                print(f"✅ Account ID (from env): {WEBULL_ACCOUNT_ID}")
 
             # Step 2: dedicated balance endpoint
             if WEBULL_ACCOUNT_ID:

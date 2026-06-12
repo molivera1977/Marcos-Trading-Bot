@@ -63,10 +63,12 @@ try:
     from webull.core.client import ApiClient
     from webull.trade.trade_client import TradeClient
     from webull.data.data_client import DataClient as WebullDataClient
+    from webull.data.data_streaming_client import DataStreamingClient as WebullStreamingClient
     WEBULL_SDK_AVAILABLE = True
 except ImportError:
     WEBULL_SDK_AVAILABLE = False
     WebullDataClient = None
+    WebullStreamingClient = None
     print("⚠️  webull-openapi-python-sdk not installed — trading disabled")
 
 # ============================================================
@@ -406,48 +408,63 @@ class WebullStream:
         self._connect()
 
     def _connect(self):
-        try:
-            self.client = mqtt.Client(transport="websockets")
-            self.client.on_connect = self._on_connect
-            self.client.on_message = self._on_message
-            self.client.username_pw_set(WEBULL_APP_KEY, WEBULL_APP_SECRET)
-            self.client.tls_set()
-            self.client.connect(WEBULL_MQTT_HOST, WEBULL_MQTT_PORT, keepalive=30)
-            self.client.loop_start()
-            time.sleep(3)  # Allow time to handshake
-            if self.connected:
-                print(f"📡 MQTT stream connected — real-time prices active")
-            else:
-                print(f"⚠️  MQTT stream unavailable — using 15s polling fallback")
-        except Exception as e:
-            print(f"⚠️  MQTT connection error: {e} — using 15s polling fallback")
+        """Use the SDK's DataStreamingClient — it resolves the MQTT host via the
+        Webull API, which works on Railway where raw DNS to stream.webull.com fails."""
+        if not WebullStreamingClient:
             self.connected = False
-
-    def _on_connect(self, client, userdata, flags, rc):
-        if rc == 0:
-            self.connected = True
-            for ticker in self.tickers:
-                topic = f"quote/ticker/{ticker}"
-                client.subscribe(topic, qos=0)
-                print(f"   ✅ Subscribed: {ticker}")
-        else:
-            print(f"⚠️  MQTT rejected (rc={rc})")
-
-    def _on_message(self, client, userdata, msg):
+            return
         try:
-            data   = json.loads(msg.payload.decode())
-            ticker = msg.topic.split("/")[-1].upper()
-            price  = float(
-                data.get("close") or
-                data.get("lastPrice") or
-                data.get("last_price") or
-                data.get("price") or 0
+            import uuid
+            session_id = str(uuid.uuid4())
+            self.client = WebullStreamingClient(
+                app_key=WEBULL_APP_KEY,
+                app_secret=WEBULL_APP_SECRET,
+                region_id="us",
+                session_id=session_id,
             )
-            if price > 0:
-                with _price_lock:
-                    _price_registry[ticker] = price
-        except Exception:
-            pass
+
+            def _on_connect_success(streaming_client, api_client, quotes_session_id):
+                self.connected = True
+                tickers_str = ",".join(self.tickers)
+                streaming_client.subscribe(
+                    symbols=tickers_str,
+                    category="US_STOCK",
+                    sub_types=["snapshot"],
+                )
+                print(f"📡 SDK stream connected — subscribed: {self.tickers}")
+
+            def _on_subscribe_success(streaming_client, api_client, quotes_session_id):
+                print(f"📡 SDK stream subscription confirmed")
+
+            self.client.on_connect_success  = _on_connect_success
+            self.client.on_subscribe_success = _on_subscribe_success
+
+            # Register snapshot callback
+            original_on_message = getattr(self.client, '_on_message_callback', None)
+            def _snapshot_handler(result):
+                try:
+                    sym   = result.basic.symbol.upper()
+                    price = float(result.price or 0)
+                    vol   = float(result.volume or 0)
+                    if price > 0:
+                        with _price_lock:
+                            _price_registry[sym] = price
+                            if vol > 0:
+                                _price_registry[f"{sym}_vol"] = vol
+                except Exception:
+                    pass
+
+            self.client.on_quotes_subscribe = _snapshot_handler
+
+            self.client.connect_and_loop_async(thread_daemon=True)
+            time.sleep(3)
+            if self.connected:
+                print(f"📡 SDK stream active — real-time prices ({len(self.tickers)} tickers)")
+            else:
+                print(f"⚠️  SDK stream not yet connected — using {POLL_LOOP_SLEEP}s polling fallback")
+        except Exception as e:
+            print(f"⚠️  SDK stream error: {e} — using {POLL_LOOP_SLEEP}s polling fallback")
+            self.connected = False
 
     def get_price(self, ticker: str) -> float:
         """
@@ -467,7 +484,6 @@ class WebullStream:
     def stop(self):
         if self.client:
             try:
-                self.client.loop_stop()
                 self.client.disconnect()
             except Exception:
                 pass

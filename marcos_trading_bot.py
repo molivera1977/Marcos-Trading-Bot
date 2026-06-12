@@ -182,8 +182,9 @@ TARGET_PCT            = 0.20   # 20% full profit target
 PARTIAL_EXIT_PCT      = 0.15   # Sell half at 15% gain
 BREAKEVEN_TRIGGER_PCT = 0.10   # Move stop to breakeven at 10% gain
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
-VWAP_ENTRY_TIMEOUT    = 10     # Give up on VWAP entry after 10:30am ET
-VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of cutoff
+VWAP_ENTRY_TIMEOUT     = 10    # Final cutoff hour — give up by 10:30am ET
+VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
+FIRST_TICKER_CUTOFF_MIN = 20  # Switch to backup ticker if #1 hasn't set up by 9:50am ET
 TRADE_WINDOW_END_HOUR = 11     # Force close all positions by 11am ET
 ENTRY_LIMIT_BUFFER    = 0.01   # Limit buy 1% above VWAP reclaim — caps slippage on small floats
 EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry, exit immediately
@@ -1423,15 +1424,19 @@ Respond in this EXACT JSON format:
 
 VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't change faster
 
-def wait_for_vwap_entry(ticker, stream: WebullStream):
+def wait_for_vwap_entry(ticker, stream: WebullStream,
+                        cutoff_hour=VWAP_ENTRY_TIMEOUT,
+                        cutoff_min=VWAP_ENTRY_TIMEOUT_MIN):
     """
     After 9:30am open, watches price vs VWAP using the real-time stream.
-    Price is checked at stream frequency (0.5s MQTT / 15s polling).
+    Price is checked at stream frequency (0.5s MQTT / 3s polling).
     Intraday bars are refreshed every 30s — VWAP is stable enough for this.
-    Times out at 10am — holds cash if no reclaim.
+    Times out at cutoff_hour:cutoff_min ET — returns (None, None) so caller
+    can try the next ranked ticker.
     Returns (entry_price, vwap) or (None, None).
     """
-    print(f"\n⏳ Waiting for {ticker} VWAP reclaim after open...")
+    cutoff_label = f"{cutoff_hour}:{cutoff_min:02d}am"
+    print(f"\n⏳ Watching {ticker} for VWAP reclaim (cutoff {cutoff_label} ET)...")
 
     cached_bars      = []
     last_bar_fetch   = 0.0   # epoch seconds of last bars API call
@@ -1440,8 +1445,8 @@ def wait_for_vwap_entry(ticker, stream: WebullStream):
     while True:
         now = datetime.now(EASTERN)
 
-        if now.hour > VWAP_ENTRY_TIMEOUT or (now.hour == VWAP_ENTRY_TIMEOUT and now.minute >= VWAP_ENTRY_TIMEOUT_MIN):
-            print(f"⏰ {ticker} never reclaimed VWAP by 10:30am. Holding cash.")
+        if now.hour > cutoff_hour or (now.hour == cutoff_hour and now.minute >= cutoff_min):
+            print(f"⏰ {ticker} — no VWAP reclaim by {cutoff_label}. Moving on.")
             return None, None
 
         if now.hour < 9 or (now.hour == 9 and now.minute < 30):
@@ -2530,16 +2535,50 @@ def main():
     position_size   = scan_state["position_size"]
     analysis        = scan_state["analysis"]
 
-    # ── Step 6: Open real-time MQTT stream ─────────────────
+    # ── Step 6: Build ranked candidate list ────────────────
+    # Primary pick first, then any other GO tickers from Claude's analysis
+    ranked_candidates = [ticker_to_trade]
+    for t in (analysis.get("tickers") or []):
+        sym = t.get("ticker", "").upper()
+        if sym and sym != ticker_to_trade and t.get("verdict") == "GO":
+            ranked_candidates.append(sym)
+    if len(ranked_candidates) > 1:
+        print(f"📋 Ticker watch order: {' → '.join(ranked_candidates)}")
+
+    # ── Step 7: Open real-time stream (all candidates) ─────
     gapper_syms    = [g["symbol"] for g in gappers] if gappers else []
-    stream_tickers = list(dict.fromkeys([ticker_to_trade] + tickers + gapper_syms))
+    stream_tickers = list(dict.fromkeys(ranked_candidates + tickers + gapper_syms))
     stream         = WebullStream(stream_tickers)
 
-    # ── Step 7: Wait for VWAP entry ────────────────────────
-    entry_price, vwap = wait_for_vwap_entry(scan_state["ticker"], stream)
+    # ── Step 8: Wait for VWAP entry — try each ticker in order ──
+    entry_price  = None
+    vwap         = None
+    ticker_to_trade = ranked_candidates[0]
+
+    for i, candidate in enumerate(ranked_candidates):
+        is_last = (i == len(ranked_candidates) - 1)
+        if i == 0 and len(ranked_candidates) > 1:
+            # Give the top pick until 9:50am, then fall through to backup
+            c_hour, c_min = 9, FIRST_TICKER_CUTOFF_MIN
+        else:
+            # Each subsequent pick gets the remaining window until 10:30am
+            c_hour, c_min = VWAP_ENTRY_TIMEOUT, VWAP_ENTRY_TIMEOUT_MIN
+
+        entry_price, vwap = wait_for_vwap_entry(candidate, stream,
+                                                 cutoff_hour=c_hour,
+                                                 cutoff_min=c_min)
+        if entry_price:
+            ticker_to_trade = candidate
+            position_size   = float(
+                (analysis.get("recommended_trade") or {}).get("position_size_dollars")
+                or balance * MAX_POSITION_SIZE
+            )
+            break
+        if not is_last:
+            print(f"🔄 Switching to backup ticker: {ranked_candidates[i+1]}")
 
     if not entry_price:
-        note = f"\n\nNOTE: {ticker_to_trade} never reclaimed VWAP by 2:00pm. Cash preserved."
+        note = f"\n\nNOTE: No ticker reclaimed VWAP by 10:30am ({', '.join(ranked_candidates)}). Cash preserved."
         analysis["plain_english_summary"] += note
         send_summary_email(analysis, None, balance)
         stream.stop()

@@ -54,7 +54,7 @@ import anthropic
 import resend
 import yfinance as yf
 import paho.mqtt.client as mqtt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 import pytz
 
@@ -161,6 +161,15 @@ def _make_data_client():
     except Exception as e:
         print(f"⚠️  Webull DataClient init error: {e}")
         return None, None
+
+_cached_data_client = None   # reused across calls to avoid reinit overhead
+
+def _get_data_client():
+    """Return a cached DataClient, initializing once per process."""
+    global _cached_data_client
+    if _cached_data_client is None:
+        _, _cached_data_client = _make_data_client()
+    return _cached_data_client
 
 # Trading rules
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade (HIGH confidence)
@@ -299,7 +308,7 @@ def _webull_headers(method, path, host, query_params=None, body_dict=None):
         hmac_algo  = hashlib.sha256
         body_hash  = lambda s: hashlib.sha256(s.encode()).hexdigest().upper()
 
-    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     nonce     = str(uuid.uuid5(uuid.NAMESPACE_URL,
                                socket.gethostname() + str(uuid.uuid1())))
 
@@ -952,15 +961,23 @@ def _get_price_rest(ticker) -> float:
 
 def _get_webull_quote(ticker) -> dict:
     """
-    Fetch a live real-time quote from Webull REST API.
-    Returns price, pre-market change%, volume, bid, ask, prev_close.
+    Fetch a live real-time quote via the official Webull SDK (properly authenticated).
     Falls back to empty dict on any error so callers can fall back to yfinance.
     """
     try:
-        path   = "/openapi/market-data/stock/quotes"
-        params = {"symbol": ticker, "category": "US_STOCK"}
-        resp   = _get(path, query_params=params, host=MARKET_HOST)
-        resp.raise_for_status()
+        dc = _get_data_client()
+        if not dc:
+            return {}
+
+        resp = dc.market_data.get_snapshot(
+            symbols=ticker,
+            category="US_STOCK",
+            extend_hour_required=True,
+        )
+        if resp.status_code != 200:
+            print(f"⚠️  Webull snapshot {resp.status_code} for {ticker}")
+            return {}
+
         raw  = resp.json()
         data = raw.get("data", {})
         if isinstance(data, dict):
@@ -971,25 +988,25 @@ def _get_webull_quote(ticker) -> dict:
         else:
             d = {}
 
-        last   = float(d.get("last_price")   or d.get("lastPrice")   or d.get("close") or d.get("c") or 0)
-        bid    = float(d.get("bid_price")     or d.get("bidPrice")    or d.get("bid")   or 0)
-        ask    = float(d.get("ask_price")     or d.get("askPrice")    or d.get("ask")   or 0)
-        vol    = float(d.get("volume")        or d.get("v")           or 0)
-        pclose = float(d.get("pre_close")     or d.get("preClose")    or d.get("close") or 0)
-        chg_r  = float(d.get("change_ratio")  or d.get("changeRatio") or 0)
+        last   = float(d.get("close")     or d.get("last_price")   or d.get("lastPrice")   or d.get("c") or 0)
+        bid    = float(d.get("bid_price")  or d.get("bidPrice")     or d.get("bid")         or 0)
+        ask    = float(d.get("ask_price")  or d.get("askPrice")     or d.get("ask")         or 0)
+        vol    = float(d.get("volume")     or d.get("v")            or 0)
+        pclose = float(d.get("pre_close")  or d.get("preClose")     or last                 or 0)
+        chg_r  = float(d.get("change_ratio")  or d.get("changeRatio")   or 0)
         pre_p  = float(d.get("pre_market_price")        or d.get("preMarketPrice")        or last or 0)
         pre_r  = float(d.get("pre_market_change_ratio") or d.get("preMarketChangeRatio")  or chg_r or 0)
 
-        if abs(pre_r) < 1:
-            pre_r = pre_r * 100   # decimal → percent
+        if abs(pre_r) < 1 and pre_r != 0:
+            pre_r = pre_r * 100
 
         return {
-            "last_price":      last,
-            "bid":             bid,
-            "ask":             ask,
-            "volume":          vol,
-            "prev_close":      pclose,
-            "change_ratio":    round(chg_r * 100 if abs(chg_r) < 1 else chg_r, 2),
+            "last_price":            last,
+            "bid":                   bid,
+            "ask":                   ask,
+            "volume":                vol,
+            "prev_close":            pclose,
+            "change_ratio":          round(chg_r * 100 if abs(chg_r) < 1 else chg_r, 2),
             "pre_market_price":      pre_p,
             "pre_market_change_pct": round(pre_r, 2),
         }
@@ -1028,28 +1045,31 @@ def check_webull_connection() -> bool:
 
 def get_premarket_volume_trend(ticker) -> dict:
     """
-    Fetch 15-minute pre-market bars and determine if volume is
+    Fetch 15-minute pre-market bars via the Webull SDK and determine if volume is
     accelerating (picking up into the open) or fading (dying off).
     Returns a dict with trend label and ratio vs earlier bars.
     """
     try:
-        path   = "/openapi/market-data/stock/bars"
-        params = {
-            "symbol":           ticker,
-            "category":         "US_STOCK",
-            "timespan":         "m15",
-            "count":            "12",        # up to 3 hours of 15-min bars
-            "trading_sessions": "PRE_MARKET",
-        }
-        resp = _get(path, query_params=params, host=MARKET_HOST)
-        resp.raise_for_status()
+        dc = _get_data_client()
+        if not dc:
+            return {"trend": "N/A", "ratio": None}
+
+        resp = dc.market_data.get_history_bar(
+            symbol=ticker,
+            category="US_STOCK",
+            timespan="m15",
+            count="12",
+            trading_sessions="PRE_MARKET",
+        )
+        if resp.status_code != 200:
+            return {"trend": "N/A", "ratio": None}
+
         data = resp.json().get("data", {})
         bars = data.get("items", data) if isinstance(data, dict) else data
-        if not bars or len(bars) < 3:
+        if not isinstance(bars, list) or len(bars) < 3:
             return {"trend": "N/A", "ratio": None}
 
         vols = [float(b.get("volume") or b.get("v") or 0) for b in bars]
-        # Compare last 2 bars (closest to open) vs first half
         early_avg = sum(vols[:len(vols)//2]) / max(len(vols)//2, 1)
         late_avg  = sum(vols[len(vols)//2:]) / max(len(vols) - len(vols)//2, 1)
 

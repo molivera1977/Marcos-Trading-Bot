@@ -439,9 +439,8 @@ class WebullStream:
             self.client.on_connect_success  = _on_connect_success
             self.client.on_subscribe_success = _on_subscribe_success
 
-            # Register snapshot callback
-            original_on_message = getattr(self.client, '_on_message_callback', None)
-            def _snapshot_handler(result):
+            # Register message handler — SDK calls this as (client, topic, decoded_result)
+            def _snapshot_handler(sdk_client, topic, result):
                 try:
                     sym   = result.basic.symbol.upper()
                     price = float(result.price or 0)
@@ -454,7 +453,7 @@ class WebullStream:
                 except Exception:
                     pass
 
-            self.client.on_quotes_subscribe = _snapshot_handler
+            self.client.on_quotes_message = _snapshot_handler
 
             self.client.connect_and_loop_async(thread_daemon=True)
             time.sleep(3)

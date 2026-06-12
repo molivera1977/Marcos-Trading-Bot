@@ -2102,6 +2102,14 @@ def main():
     print(f"📅 {now.strftime('%A, %B %d, %Y at %I:%M %p ET')}")
     print(f"{'='*60}\n")
 
+    # Hard time gate — exit immediately if outside the 8:30–10:30am ET window.
+    # Deploy-triggered runs (from git pushes) fire at arbitrary times; this stops
+    # them from burning API calls and sending emails outside market hours.
+    minutes_et = now.hour * 60 + now.minute
+    if not (8 * 60 + 30 <= minutes_et <= 10 * 60 + 30):
+        print(f"⏰ Outside trading window ({now.strftime('%H:%M')} ET) — exiting.")
+        return
+
     # ── Credential check ───────────────────────────────────
     tok = WEBULL_ACCESS_TOKEN
     key = WEBULL_APP_KEY

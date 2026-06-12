@@ -2238,12 +2238,12 @@ def main():
         balance = get_account_balance()
         print(f"💰 Balance: ${balance:.2f}")
         stream = WebullStream([TEST_TRADE])
-        snap = get_live_quote(TEST_TRADE)
+        snap = _get_webull_quote(TEST_TRADE)
         if not snap:
             print(f"❌ Could not get quote for {TEST_TRADE} — aborting test trade")
             stream.stop()
             return
-        entry_price = float(snap.get("close") or snap.get("last") or 0)
+        entry_price = float(snap.get("last_price") or snap.get("close") or 0)
         if entry_price <= 0:
             print(f"❌ Bad quote price ({entry_price}) — aborting test trade")
             stream.stop()

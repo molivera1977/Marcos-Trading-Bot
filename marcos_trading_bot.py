@@ -1012,7 +1012,7 @@ def check_webull_connection() -> bool:
     (no active session), so we skip the check to avoid false-alarm emails.
     """
     et_now = datetime.now(pytz.timezone("America/New_York"))
-    if not (8 <= et_now.hour < 10):
+    if not (8 <= et_now.hour < 13):
         print(f"🔗 Webull health check skipped (outside trading window — {et_now.strftime('%H:%M')} ET)")
         return True
 
@@ -2418,7 +2418,7 @@ def main():
     entry_price, vwap = wait_for_vwap_entry(scan_state["ticker"], stream)
 
     if not entry_price:
-        note = f"\n\nNOTE: {ticker_to_trade} never reclaimed VWAP by 10am. Cash preserved."
+        note = f"\n\nNOTE: {ticker_to_trade} never reclaimed VWAP by 12:30pm. Cash preserved."
         analysis["plain_english_summary"] += note
         send_summary_email(analysis, None, balance)
         stream.stop()

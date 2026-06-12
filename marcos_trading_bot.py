@@ -2327,6 +2327,15 @@ def main():
     target_price = round(entry_price * (1 + TARGET_PCT), 4)
     shares       = max(1, int(position_size / entry_price))
 
+    # Hard guard: if 1 share costs more than the full account, skip (e.g. high-priced IPO)
+    if entry_price > balance:
+        note = (f"\n\n⚠️ {ticker_to_trade} priced at ${entry_price:.2f} — exceeds full account "
+                f"(${balance:.2f}). Holding cash.")
+        analysis["plain_english_summary"] += note
+        send_summary_email(analysis, None, balance)
+        stream.stop()
+        return
+
     print(f"\n{'='*60}")
     print(f"🎯 TRADE PLAN:")
     print(f"   Ticker:  {ticker_to_trade}")

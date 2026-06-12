@@ -1549,11 +1549,11 @@ def execute_trade(ticker, shares, entry_price, stop_loss, target):
     print(f"🚀 Executing: BUY {shares} shares of {ticker} "
           f"@ limit ${limit_price:.2f} (VWAP entry ${entry_price:.2f} +1%)...")
 
-    buy_id = _place_order(ticker, shares, "BUY", "LMT", limit_price=limit_price)
+    buy_id = _place_order(ticker, shares, "BUY", "LIMIT", limit_price=limit_price)
     if not buy_id:
         print(f"⚠️  Buy order failed — retrying in 3s...")
         time.sleep(3)
-        buy_id = _place_order(ticker, shares, "BUY", "LMT", limit_price=limit_price)
+        buy_id = _place_order(ticker, shares, "BUY", "LIMIT", limit_price=limit_price)
     if not buy_id:
         print(f"❌ Buy order failed after retry for {ticker}")
         return None, None
@@ -1572,7 +1572,7 @@ def close_position(ticker, shares):
     if DRY_RUN:
         print(f"🧪 DRY RUN — simulating SELL {shares} shares of {ticker}")
         return True
-    result = _place_order(ticker, shares, "SELL", "MKT")
+    result = _place_order(ticker, shares, "SELL", "MARKET")
     if result:
         print("✅ Position closed!")
         return True
@@ -1612,7 +1612,7 @@ def place_stop_order(ticker, shares, stop_price):
         fake_id = uuid.uuid4().hex
         print(f"🧪 DRY RUN — simulating stop order: ${stop_price:.2f} × {shares} shares")
         return fake_id
-    result = _place_order(ticker, shares, "SELL", "STP", stop_price=stop_price)
+    result = _place_order(ticker, shares, "SELL", "STOP LOSS", stop_price=stop_price)
     if result:
         print(f"🛡️  Stop order placed: ${stop_price:.2f} × {shares} shares")
     else:

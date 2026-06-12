@@ -1197,6 +1197,52 @@ def calculate_vwap(bars) -> float:
 # STEP 3 — CLAUDE OPUS ANALYZES THE SETUPS
 # ============================================================
 
+def _sanitize_for_prompt(text: str) -> str:
+    """Strip characters that cause JSON parse errors when Claude quotes them back."""
+    if not text:
+        return ""
+    # Remove control characters (except tab/newline which are fine in prompts)
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    # Replace backslashes (confuse JSON string escaping)
+    text = text.replace('\\', '/')
+    # Replace curly quotes and other smart-quote variants with plain apostrophe
+    text = text.replace('“', "'").replace('”', "'")
+    text = text.replace('‘', "'").replace('’', "'")
+    # Collapse excessive whitespace
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def _repair_json(raw: str) -> dict | None:
+    """Try to salvage a truncated or slightly malformed JSON response from Claude."""
+    # Already valid?
+    try:
+        return json.loads(raw)
+    except Exception:
+        pass
+    # Truncated response — find the last complete top-level field and close the object
+    # Strategy: find the last '}' before the unterminated field and close cleanly
+    try:
+        # Find the last well-formed key: up to "plain_english_summary"
+        for end_marker in ['"plain_english_summary"', '"recommended_trade"', '"tickers"']:
+            idx = raw.rfind(end_marker)
+            if idx == -1:
+                continue
+            # Find the colon after the key
+            colon = raw.find(':', idx)
+            if colon == -1:
+                continue
+            # Truncate just before this field and close the JSON
+            truncated = raw[:idx].rstrip().rstrip(',') + '\n  "plain_english_summary": "Analysis truncated — check Railway logs."\n}'
+            try:
+                return json.loads(truncated)
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return None
+
+
 def analyze_with_claude(email_content, market_data_list, account_balance,
                         gappers=None, market_context=None):
     print("🧠 Sending data to Claude Opus AI for analysis...")
@@ -1260,6 +1306,8 @@ def analyze_with_claude(email_content, market_data_list, account_balance,
     else:
         market_context_section = "OVERALL MARKET CONTEXT: SPY data unavailable"
 
+    email_safe = _sanitize_for_prompt(email_content)
+
     prompt = f"""
 You are a smart, data-driven, opportunistic momentum trading bot for Marcos Olivera.
 Your edge is reading live data fast and acting when the numbers line up.
@@ -1274,7 +1322,7 @@ Trading window: Entry by 10:30am ET, hold until 11:00am max
 {market_context_section}
 
 KEV'S WATCHLIST EMAIL/TRANSCRIPT:
-{email_content}
+{email_safe}
 
 LIVE PRE-MARKET DATA FROM WEBULL (Kev's picks):
 {market_text}
@@ -1388,9 +1436,14 @@ Respond in this EXACT JSON format:
             raw = raw.split("```json")[1].split("```")[0].strip()
         elif "```" in raw:
             raw = raw.split("```")[1].split("```")[0].strip()
-        analysis = json.loads(raw)
-        print("✅ Claude Opus analysis complete!")
-        return analysis
+
+        analysis = _repair_json(raw)
+        if analysis:
+            print("✅ Claude Opus analysis complete!")
+            return analysis
+
+        print(f"❌ Claude JSON parse failed. Raw response (first 500 chars):\n{raw[:500]}")
+        return None
     except Exception as e:
         print(f"❌ Claude API error: {e}")
         return None

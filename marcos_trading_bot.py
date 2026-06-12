@@ -442,6 +442,8 @@ class WebullStream:
 def read_todays_tickers():
     print("📧 Checking iCloud email for tonight's watchlist...")
     try:
+        import socket
+        socket.setdefaulttimeout(20)   # 20s timeout on all socket ops including IMAP
         mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
         mail.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
         mail.select("inbox")
@@ -2240,9 +2242,13 @@ def main():
     print(f"🔑 ACCOUNT_ID: {WEBULL_ACCOUNT_ID}")
 
     # ── Token expiry warning + API health check ────────────
+    print("🔄 Step: pre-populating token...")
     _pre_populate_webull_token()
+    print("🔄 Step: checking token expiry...")
     check_token_expiry()
+    print("🔄 Step: checking Webull connection...")
     check_webull_connection()
+    print("🔄 Step: market/holiday check...")
 
     if now.weekday() >= 5:
         print("📅 Weekend — markets closed.")
@@ -2257,6 +2263,7 @@ def main():
         print("🧪 DRY RUN MODE — all trades will be simulated, no real orders placed")
 
     # ── Step 1: Read iCloud email ──────────────────────────
+    print("🔄 Step: reading iCloud email...")
     subject, email_content = read_todays_tickers()
     if not email_content:
         send_summary_email(None, None, get_account_balance())

@@ -128,20 +128,30 @@ def _make_data_client():
 
 def run_scan():
     """
-    1. Webull screener → top pre-market gainers + unusual relative volume
-    2. Filter: price $1–$30, gap >8%, dedup
+    1. Webull screener → live gainers (market hours) or pre-market gainers (before open)
+    2. Filter: price $1–$30, gap >5% intraday / >8% pre-market, dedup
     3. yfinance float check → drop anything >50M shares
     4. Score by gap% / float_millions, return top 15
     """
+    now_et      = datetime.now(EASTERN)
+    market_open = now_et.hour > 9 or (now_et.hour == 9 and now_et.minute >= 30)
+    after_hours = now_et.hour >= 16
+    rank_type   = "CHANGE_RATIO" if market_open else "PRE_MARKET"
+    min_chg     = 5 if market_open else 8
+    if after_hours:
+        rank_type = "CHANGE_RATIO"   # use day's final change after close
+        min_chg   = 5
+    source_label = "Live gainer" if market_open else "Pre-mkt gainer"
+
     data_client = _make_data_client()
     candidates = {}
     errors = []
 
     if data_client:
-        # Pre-market top gainers
+        # Top gainers — live intraday or pre-market depending on time
         try:
             res = data_client.screener.get_gainers_losers(
-                rank_type="PRE_MARKET",
+                rank_type=rank_type,
                 category="US_STOCK",
                 sort_by="CHANGE_RATIO",
                 direction="DESC",
@@ -156,13 +166,13 @@ def run_scan():
                     price = float(item.get("price") or item.get("close") or 0)
                     mktcap = float(item.get("market_value") or 0)
                     vol   = float(item.get("volume") or 0)
-                    if not sym or price < 1 or price > 30 or chg < 8:
+                    if not sym or price < 1 or price > 30 or chg < min_chg:
                         continue
                     candidates[sym] = {
                         "symbol": sym, "change_pct": round(chg, 2),
                         "price": round(price, 2), "market_cap": mktcap,
                         "premarket_volume": int(vol), "relative_volume": None,
-                        "float_shares": 0, "float_label": "—", "source": "Pre-mkt gainer",
+                        "float_shares": 0, "float_label": "—", "source": source_label,
                     }
             else:
                 errors.append(f"Gainers: HTTP {res.status_code}")
@@ -329,7 +339,7 @@ HTML = """<!DOCTYPE html>
     <div class="logo-icon">📈</div>
     <div>
       <h1>Marcos Scanner</h1>
-      <sub>Pre-market small-float gappers</sub>
+      <sub id="scanner-sub">Small-float movers</sub>
     </div>
   </div>
   <div class="header-right">
@@ -347,7 +357,7 @@ HTML = """<!DOCTYPE html>
 
 <div class="body">
   <div class="section-header">
-    <span class="section-title">Small-float pre-market movers</span>
+    <span class="section-title" id="section-title">Small-float movers</span>
     <span class="live-dot" id="live-badge">Live</span>
   </div>
 
@@ -418,6 +428,16 @@ function renderResults(d){
     }
   }
 
+  // Market state label
+  var stateLabels = {
+    premarket:   {sub:'Pre-market small-float gappers', title:'Small-float pre-market movers'},
+    open:        {sub:'Live market small-float movers',  title:'Small-float live market movers'},
+    after_hours: {sub:'After-hours small-float movers',  title:'Small-float after-hours movers'},
+  };
+  var lbl = stateLabels[d.market_state] || stateLabels['open'];
+  document.getElementById('scanner-sub').textContent  = lbl.sub;
+  document.getElementById('section-title').textContent = lbl.title;
+
   // Timestamp
   var now=new Date(d.updated);
   document.getElementById('ts').textContent='Updated '+now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
@@ -455,10 +475,11 @@ function renderResults(d){
 // Auto-scan on load
 runScan();
 
-// Auto-refresh every 5 minutes during market hours (6am–noon ET is pre-market/open)
+// Auto-refresh every 5 minutes during market hours (4am–5pm ET)
 setInterval(function(){
-  var h=new Date().getHours();
-  if(h>=6&&h<13){runScan();}
+  var etHour = new Date().toLocaleString('en-US',{timeZone:'America/New_York',hour:'numeric',hour12:false});
+  var h = parseInt(etHour);
+  if(h>=4&&h<17){runScan();}
 },5*60*1000);
 </script>
 </body>
@@ -475,11 +496,21 @@ def index():
 @app.route("/api/scan")
 def api_scan():
     results, errors = run_scan()
+    now_et      = datetime.now(EASTERN)
+    market_open = now_et.hour > 9 or (now_et.hour == 9 and now_et.minute >= 30)
+    after_hours = now_et.hour >= 16
+    if after_hours:
+        market_state = "after_hours"
+    elif market_open:
+        market_state = "open"
+    else:
+        market_state = "premarket"
     return jsonify({
-        "results": results,
-        "errors": errors,
-        "updated": datetime.now(EASTERN).isoformat(),
-        "count": len(results),
+        "results":      results,
+        "errors":       errors,
+        "updated":      now_et.isoformat(),
+        "count":        len(results),
+        "market_state": market_state,
     })
 
 

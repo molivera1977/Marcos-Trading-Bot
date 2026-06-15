@@ -2244,55 +2244,32 @@ def run_rescan(email_content, market_data, balance, current_analysis,
 
 def get_open_position():
     """
-    Query Webull for any open equity positions on the account.
-    Tries balance endpoint (positions field), then a direct positions endpoint.
+    Query Webull for any open equity positions using the dedicated positions endpoint.
     Returns (ticker, shares, avg_cost) or (None, 0, 0) if flat.
     """
     _, trade_client = _make_webull_client()
     if not trade_client:
         return None, 0, 0
-
-    def _parse_positions(positions):
-        for pos in (positions or []):
-            qty = int(float(pos.get("quantity") or pos.get("qty") or pos.get("holdingQuantity") or 0))
+    try:
+        res = trade_client.account.get_account_position(WEBULL_ACCOUNT_ID, page_size=50)
+        if res.status_code != 200:
+            print(f"⚠️  Position check failed: {res.status_code}")
+            return None, 0, 0
+        data = res.json()
+        # Unwrap envelope if present
+        items = data if isinstance(data, list) else (
+                data.get("data") or data.get("items") or data.get("positions") or [])
+        print(f"🔍 Position check — {len(items)} position(s) found")
+        for pos in items:
+            qty = int(float(pos.get("quantity") or pos.get("qty") or 0))
             if qty > 0:
-                ticker   = (pos.get("symbol") or pos.get("ticker") or
+                ticker   = (pos.get("symbol") or pos.get("ticker_symbol") or
                             pos.get("tickerSymbol") or "").strip().upper()
                 avg_cost = float(pos.get("average_cost") or pos.get("avg_cost") or
-                                 pos.get("averageCost") or pos.get("costPrice") or 0)
+                                 pos.get("cost_price") or pos.get("costPrice") or 0)
                 if ticker and avg_cost > 0:
+                    print(f"⚡ Found open position: {ticker} × {qty} @ ${avg_cost:.2f}")
                     return ticker, qty, avg_cost
-        return None, 0, 0
-
-    try:
-        # Attempt 1: balance endpoint (sometimes includes positions)
-        res = trade_client.account_v2.get_account_balance(WEBULL_ACCOUNT_ID)
-        if res.status_code == 200:
-            data = res.json()
-            if isinstance(data.get("data"), dict):
-                data = data["data"]
-            print(f"🔍 Position check — balance keys: {list(data.keys())[:10]}")
-            positions = (data.get("positions") or data.get("account_positions") or
-                         data.get("holdingStocks") or [])
-            ticker, qty, avg_cost = _parse_positions(positions)
-            if ticker:
-                return ticker, qty, avg_cost
-
-        # Attempt 2: dedicated positions endpoint (if available on this SDK version)
-        if hasattr(trade_client, "asset_v1"):
-            res2 = trade_client.asset_v1.get_positions(WEBULL_ACCOUNT_ID)
-            if res2.status_code == 200:
-                data2 = res2.json()
-                if isinstance(data2, list):
-                    positions2 = data2
-                elif isinstance(data2.get("data"), list):
-                    positions2 = data2["data"]
-                else:
-                    positions2 = []
-                ticker, qty, avg_cost = _parse_positions(positions2)
-                if ticker:
-                    return ticker, qty, avg_cost
-
     except Exception as e:
         print(f"⚠️  Could not check open positions: {e}")
     return None, 0, 0

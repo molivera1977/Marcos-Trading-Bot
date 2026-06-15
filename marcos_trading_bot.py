@@ -1389,7 +1389,7 @@ Respond in this EXACT JSON format:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         # Stream the response — analysis can be long and we don't want request timeouts
         with client.messages.stream(
-            model="claude-opus-4-8",
+            model="claude-sonnet-4-6",
             max_tokens=4000,
             thinking={"type": "adaptive"},
             messages=[{"role": "user", "content": prompt}]

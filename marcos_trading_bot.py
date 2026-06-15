@@ -182,15 +182,16 @@ TARGET_PCT            = 0.20   # 20% full profit target
 PARTIAL_EXIT_PCT      = 0.15   # Sell half at 15% gain
 BREAKEVEN_TRIGGER_PCT = 0.10   # Move stop to breakeven at 10% gain
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
-VWAP_ENTRY_TIMEOUT     = 10    # Final cutoff hour — give up by 10:30am ET
-VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
+VWAP_ENTRY_TIMEOUT     = 11    # Final cutoff hour — give up by 11:00am ET
+VWAP_ENTRY_TIMEOUT_MIN = 0    # minute component of final cutoff
 FIRST_TICKER_CUTOFF_MIN = 20  # Switch to backup ticker if #1 hasn't set up by 9:50am ET
-TRADE_WINDOW_END_HOUR = 11     # Force close all positions by 11am ET
+TRADE_WINDOW_END_HOUR = 11     # Force close all positions by 11:30am ET
+TRADE_WINDOW_END_MIN  = 30    # minute component of force close
 ENTRY_LIMIT_BUFFER    = 0.01   # Limit buy 1% above VWAP reclaim — caps slippage on small floats
 EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry, exit immediately
 SPY_BEAR_SKIP_PCT     = -1.0   # Skip the day entirely if SPY pre-market < -1%
 MAX_SPREAD_PCT        = 0.015  # Skip entry if bid-ask spread > 1.5% of ask price
-VWAP_VOL_MULTIPLIER   = 1.5    # Require 1.5× average minute volume for VWAP reclaim confirmation
+VWAP_VOL_MULTIPLIER   = 1.0    # Require 1.0× average minute volume for VWAP reclaim confirmation
 TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 7 days
 LOG_FILE              = "/tmp/trade_log.csv"
 DRY_RUN    = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
@@ -1287,7 +1288,7 @@ Today's date: {datetime.now(EASTERN).strftime("%A, %B %d, %Y")}
 Account balance: ${account_balance:.2f}
 Market open: 9:30am ET
 Entry: VWAP reclaim with volume after open
-Trading window: Entry by 10:30am ET, hold until 11:00am max
+Trading window: Entry by 11:00am ET, hold until 11:30am max
 
 {market_context_section}
 
@@ -1347,7 +1348,7 @@ TRADING RULES (bot handles execution):
 - +10%: stop to breakeven
 - +15%: sell half, trail rest
 - +20%: full exit
-- Hard close: 11:00am ET
+- Hard close: 11:30am ET
 
 Respond in this EXACT JSON format:
 {{
@@ -1430,7 +1431,7 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream):
     Takes the first one that reclaims VWAP with 1.5x volume confirmation.
     Priority order is preserved — if two trigger on the same tick, the
     higher-ranked one wins.
-    Hard cutoff: 10:30am ET.
+    Hard cutoff: 11:00am ET.
     Returns (winner_ticker, entry_price, vwap) or (None, None, None).
     """
     print(f"\n⏳ Scanning {len(candidates)} candidate(s) for VWAP reclaim: {', '.join(candidates)}")
@@ -1442,7 +1443,7 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream):
         now = datetime.now(EASTERN)
 
         if now.hour > VWAP_ENTRY_TIMEOUT or (now.hour == VWAP_ENTRY_TIMEOUT and now.minute >= VWAP_ENTRY_TIMEOUT_MIN):
-            print(f"⏰ 10:30am cutoff — no VWAP reclaim across any candidate. Holding cash.")
+            print(f"⏰ 11:00am cutoff — no VWAP reclaim across any candidate. Holding cash.")
             return None, None, None
 
         if now.hour < 9 or (now.hour == 9 and now.minute < 30):
@@ -1702,15 +1703,17 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     while True:
         now = datetime.now(EASTERN)
 
-        # ── Hard close at 11am ──────────────────────────
-        if now.hour >= TRADE_WINDOW_END_HOUR:
-            print("⏰ 11:00am — Force closing all positions")
+        # ── Hard close at 11:30am ───────────────────────
+        past_end = (now.hour > TRADE_WINDOW_END_HOUR or
+                    (now.hour == TRADE_WINDOW_END_HOUR and now.minute >= TRADE_WINDOW_END_MIN))
+        if past_end:
+            print("⏰ 11:30am — Force closing all positions")
             current_price = stream.get_price(ticker)
             if remaining_shares > 0:
                 cancel_order(placed_stop_id)
                 close_position(ticker, remaining_shares)
             result["exit_price"]  = current_price
-            result["exit_reason"] = "11am time stop"
+            result["exit_reason"] = "11:30am time stop"
             break
 
         current_price = stream.get_price(ticker)
@@ -2076,7 +2079,7 @@ def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap,
             + _row("💰 Partial exit (+15%)", "Sell half, trail rest")
             + _row("⚡ Breakeven (+10%)",    "Stop moves to entry")
             + _row("🛑 Stop Loss (-7%)",     f"${stop_loss:.2f}")
-            + _row("⏰ Hard Close",           "11:00am ET")
+            + _row("⏰ Hard Close",           "11:30am ET")
         ), color="#ffbb33")
     )
     send_alert_email(subject, plain, html=html)
@@ -2338,9 +2341,9 @@ def main():
         print(f"\n✅ TEST TRADE COMPLETE — P&L: ${pnl:.2f} | New balance: ${new_balance:.2f}")
         return
 
-    # Hard time gate — exit immediately if outside the 8:30–10:30am ET window.
+    # Hard time gate — exit immediately if outside the 8:30am–11:00am ET window.
     minutes_et = now.hour * 60 + now.minute
-    if not (8 * 60 + 30 <= minutes_et <= 10 * 60 + 30):
+    if not (8 * 60 + 30 <= minutes_et <= 11 * 60 + 0):
         print(f"⏰ Outside trading window ({now.strftime('%H:%M')} ET) — exiting.")
         return
 
@@ -2581,7 +2584,7 @@ def main():
     stream         = WebullStream(stream_tickers)
 
     # ── Steps 8-10: Trade loop — keep watching remaining candidates after each exit ──
-    # After a trade closes, remove that ticker and watch whoever's left until 10:30am.
+    # After a trade closes, remove that ticker and watch whoever's left until 11:00am.
     remaining_candidates = list(ranked_candidates)
     trade_count          = 0
     session_pnl          = 0.0
@@ -2590,7 +2593,7 @@ def main():
     while remaining_candidates:
         now = datetime.now(EASTERN)
         if now.hour > VWAP_ENTRY_TIMEOUT or (now.hour == VWAP_ENTRY_TIMEOUT and now.minute >= VWAP_ENTRY_TIMEOUT_MIN):
-            print("⏰ 10:30am — entry cutoff reached, no more trades")
+            print("⏰ 11:00am — entry cutoff reached, no more trades")
             break
 
         if trade_count > 0:
@@ -2601,7 +2604,7 @@ def main():
         ticker_to_trade, entry_price, vwap = wait_for_vwap_entry(remaining_candidates, stream)
 
         if not entry_price:
-            note = (f"\n\nNOTE: No ticker reclaimed VWAP by 10:30am "
+            note = (f"\n\nNOTE: No ticker reclaimed VWAP by 11:00am "
                     f"({', '.join(remaining_candidates)}). Cash preserved.")
             analysis["plain_english_summary"] += note
             break

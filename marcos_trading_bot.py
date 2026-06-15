@@ -1216,7 +1216,7 @@ def _repair_json(raw: str) -> dict | None:
 
 def analyze_with_claude(email_content, market_data_list, account_balance,
                         gappers=None, market_context=None):
-    print("🧠 Sending data to Claude Opus AI for analysis...")
+    print("🧠 Sending data to Claude Sonnet AI for analysis...")
 
     def _sector_line(d):
         se = d.get("sector_etf") or {}
@@ -1391,7 +1391,6 @@ Respond in this EXACT JSON format:
         with client.messages.stream(
             model="claude-sonnet-4-6",
             max_tokens=4000,
-            thinking={"type": "adaptive"},
             messages=[{"role": "user", "content": prompt}]
         ) as stream:
             message = stream.get_final_message()
@@ -1410,7 +1409,7 @@ Respond in this EXACT JSON format:
 
         analysis = _repair_json(raw)
         if analysis:
-            print("✅ Claude Opus analysis complete!")
+            print("✅ Claude Sonnet analysis complete!")
             return analysis
 
         print(f"❌ Claude JSON parse failed. Raw response (first 500 chars):\n{raw[:500]}")

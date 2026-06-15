@@ -2701,6 +2701,13 @@ def main():
             print("⏰ 11:00am — entry cutoff reached, no more trades")
             break
 
+        # Cash account hard limit: 1 trade per day to prevent Good Faith Violations.
+        # T+1 settlement means proceeds from Trade 1 are unsettled — reusing them
+        # triggers a GFV regardless of what the balance API reports.
+        if trade_count >= 1:
+            print("🛑 Cash account: 1 trade/day limit reached — stopping to avoid GFV")
+            break
+
         # After first trade, rescan live market for fresh opportunities
         if trade_count > 0:
             print(f"\n🔄 Trade #{trade_count} done — rescanning live market for next setup...")

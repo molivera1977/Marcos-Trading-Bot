@@ -181,6 +181,7 @@ def _get_data_client():
     return _cached_data_client
 
 # Trading rules
+MAX_TRADE_DOLLARS     = 100.00 # Hard cap per trade until system proves reliable
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade (HIGH confidence)
 POSITION_SIZE_MEDIUM  = 0.50   # 50% for MEDIUM confidence
 POSITION_SIZE_LOW     = 0.30   # 30% for LOW confidence
@@ -2584,9 +2585,10 @@ def main():
         size_pct = POSITION_SIZE_MEDIUM    # 50%
     position_size = min(
         float(recommended.get("position_size_dollars", balance * size_pct)),
-        balance * size_pct
+        balance * size_pct,
+        MAX_TRADE_DOLLARS
     )
-    print(f"💼 Position size: ${position_size:.2f} ({confidence} confidence → {size_pct*100:.0f}% of account)")
+    print(f"💼 Position size: ${position_size:.2f} (capped at ${MAX_TRADE_DOLLARS:.0f} max)")
 
     # ── Rescan every 20 min until 9:45am ET ────────────────
     #
@@ -2757,7 +2759,7 @@ def main():
         remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
 
         # Recalculate position size from current balance, then stop/target from entry
-        position_size = current_balance * MAX_POSITION_SIZE
+        position_size = min(current_balance * MAX_POSITION_SIZE, MAX_TRADE_DOLLARS)
         stop_loss     = round(entry_price * (1 - STOP_LOSS_PCT), 4)
         target_price  = round(entry_price * (1 + TARGET_PCT), 4)
         shares        = max(1, int(position_size / entry_price))

@@ -2245,25 +2245,54 @@ def run_rescan(email_content, market_data, balance, current_analysis,
 def get_open_position():
     """
     Query Webull for any open equity positions on the account.
+    Tries balance endpoint (positions field), then a direct positions endpoint.
     Returns (ticker, shares, avg_cost) or (None, 0, 0) if flat.
     """
     _, trade_client = _make_webull_client()
     if not trade_client:
         return None, 0, 0
-    try:
-        res = trade_client.account_v2.get_account_balance(WEBULL_ACCOUNT_ID)
-        if res.status_code != 200:
-            return None, 0, 0
-        data = res.json()
-        if isinstance(data.get("data"), dict):
-            data = data["data"]
-        positions = data.get("positions") or data.get("account_positions") or []
-        for pos in positions:
-            qty = int(float(pos.get("quantity") or pos.get("qty") or 0))
+
+    def _parse_positions(positions):
+        for pos in (positions or []):
+            qty = int(float(pos.get("quantity") or pos.get("qty") or pos.get("holdingQuantity") or 0))
             if qty > 0:
-                ticker   = pos.get("symbol") or pos.get("ticker") or ""
-                avg_cost = float(pos.get("average_cost") or pos.get("avg_cost") or 0)
-                return ticker.upper(), qty, avg_cost
+                ticker   = (pos.get("symbol") or pos.get("ticker") or
+                            pos.get("tickerSymbol") or "").strip().upper()
+                avg_cost = float(pos.get("average_cost") or pos.get("avg_cost") or
+                                 pos.get("averageCost") or pos.get("costPrice") or 0)
+                if ticker and avg_cost > 0:
+                    return ticker, qty, avg_cost
+        return None, 0, 0
+
+    try:
+        # Attempt 1: balance endpoint (sometimes includes positions)
+        res = trade_client.account_v2.get_account_balance(WEBULL_ACCOUNT_ID)
+        if res.status_code == 200:
+            data = res.json()
+            if isinstance(data.get("data"), dict):
+                data = data["data"]
+            print(f"🔍 Position check — balance keys: {list(data.keys())[:10]}")
+            positions = (data.get("positions") or data.get("account_positions") or
+                         data.get("holdingStocks") or [])
+            ticker, qty, avg_cost = _parse_positions(positions)
+            if ticker:
+                return ticker, qty, avg_cost
+
+        # Attempt 2: dedicated positions endpoint (if available on this SDK version)
+        if hasattr(trade_client, "asset_v1"):
+            res2 = trade_client.asset_v1.get_positions(WEBULL_ACCOUNT_ID)
+            if res2.status_code == 200:
+                data2 = res2.json()
+                if isinstance(data2, list):
+                    positions2 = data2
+                elif isinstance(data2.get("data"), list):
+                    positions2 = data2["data"]
+                else:
+                    positions2 = []
+                ticker, qty, avg_cost = _parse_positions(positions2)
+                if ticker:
+                    return ticker, qty, avg_cost
+
     except Exception as e:
         print(f"⚠️  Could not check open positions: {e}")
     return None, 0, 0
@@ -2333,16 +2362,17 @@ def main():
     print(f"{'='*60}\n")
 
     # ── Resume if position already open (e.g. redeployed mid-trade) ──
+    # Must happen BEFORE the time gate so a redeploy at any hour resumes correctly.
     _pre_populate_webull_token()
     if resume_monitoring_if_open():
         return
 
-    # ── Startup ping — so you always know the bot woke up ──
+    # ── Time gate — exit if outside 8:30am–11:00am ET ─────
     try:
         resend.api_key = RESEND_API_KEY
         resend.Emails.send({
             "from":    "Marcos Trading Bot <onboarding@resend.dev>",
-            "to":      [GMAIL_ADDRESS],
+            "to":      [EMAIL_ADDRESS],
             "subject": f"🤖 Bot is alive — {now.strftime('%a %b %d %I:%M %p ET')}",
             "html":    f"<p>Bot started at <b>{now.strftime('%I:%M %p ET')}</b>. "
                        f"Reading email, scanning gappers, running analysis...</p>"

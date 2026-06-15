@@ -885,11 +885,15 @@ def scan_morning_gappers():
 
 
 def get_account_balance():
-    """Get available cash using the official Webull SDK."""
+    """
+    Get SETTLED cash only — critical for cash accounts.
+    Using unsettled proceeds to fund a new trade and selling before settlement
+    triggers a Good Faith Violation (GFV). 3 GFVs = 90-day account restriction.
+    Returns settled cash only, with total balance logged for reference.
+    """
     _, trade_client = _make_webull_client()
     if trade_client:
         try:
-            # Step 1: only auto-discover account ID if not explicitly set via env var
             if not os.environ.get("WEBULL_ACCOUNT_ID", "").strip():
                 res = trade_client.account_v2.get_account_list()
                 if res.status_code == 200:
@@ -903,35 +907,46 @@ def get_account_balance():
             else:
                 print(f"✅ Account ID (from env): {WEBULL_ACCOUNT_ID}")
 
-            # Step 2: dedicated balance endpoint
             if WEBULL_ACCOUNT_ID:
                 bal = trade_client.account_v2.get_account_balance(WEBULL_ACCOUNT_ID)
                 if bal.status_code == 200:
                     data = bal.json()
-                    # Unwrap nested "data" if present
                     if isinstance(data.get("data"), dict):
                         data = data["data"]
-                    # Top-level field names confirmed from API response
-                    cash = float(data.get("total_cash_balance") or 0)
-                    # Fall through to per-currency assets if top-level is 0
-                    if not cash:
+
+                    # Try to get settled cash specifically — cash accounts must only
+                    # trade with settled funds to avoid Good Faith Violations
+                    settled = float(data.get("settled_cash") or
+                                    data.get("settled_funds") or
+                                    data.get("cash_available_for_trading") or 0)
+                    total   = float(data.get("total_cash_balance") or
+                                    data.get("net_cash_balance") or 0)
+
+                    # Fall through to per-currency assets
+                    if not settled and not total:
                         assets = data.get("account_currency_assets") or []
                         for asset in assets:
                             if asset.get("currency") == "USD":
-                                cash = float(asset.get("cash_balance") or 0)
+                                settled = float(asset.get("settled_cash") or
+                                                asset.get("settled_funds") or 0)
+                                total   = float(asset.get("cash_balance") or 0)
                                 break
-                    if cash and cash > 0:
-                        print(f"💰 Balance: ${cash:.2f}")
-                        return cash
-                    # API returned 0 — likely a permissions limitation
-                    print("⚠️  Webull API returned $0 balance (permissions) — using ACCOUNT_BALANCE env var")
+
+                    if settled > 0:
+                        print(f"💰 Settled cash: ${settled:.2f} | Total balance: ${total:.2f}")
+                        return settled
+                    if total > 0:
+                        print(f"⚠️  Could not read settled cash separately — using total: ${total:.2f}")
+                        print(f"   (Cash account: avoid multiple same-day trades to prevent GFV)")
+                        return total
+
+                    print("⚠️  Webull API returned $0 — using ACCOUNT_BALANCE env var")
                 else:
                     print(f"⚠️  Balance endpoint error: {bal.status_code} {bal.text[:200]}")
 
         except Exception as e:
             print(f"⚠️  Balance SDK error: {e}")
 
-    # Fallback to manually set env var
     manual = float(os.environ.get("ACCOUNT_BALANCE", "0"))
     if manual:
         print(f"💰 Using manual balance: ${manual:.2f}")

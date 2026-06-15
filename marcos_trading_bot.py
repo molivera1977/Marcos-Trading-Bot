@@ -1623,18 +1623,32 @@ def place_stop_order(ticker, shares, stop_price):
     """
     Place a live stop-loss sell order on Webull.
     Returns the client_order_id, or None if it fails.
+    Tries STP (stop-market) first, falls back to STP_LMT (stop-limit $0.10 below stop).
+    Software stop in monitor_trade() is always active as final backup.
     """
     shares = max(1, int(shares))
     if DRY_RUN:
         fake_id = uuid.uuid4().hex
         print(f"🧪 DRY RUN — simulating stop order: ${stop_price:.2f} × {shares} shares")
         return fake_id
-    result = _place_order(ticker, shares, "SELL", "STOP LOSS", stop_price=stop_price)
+
+    # Try stop-market first
+    result = _place_order(ticker, shares, "SELL", "STP", stop_price=stop_price)
     if result:
-        print(f"🛡️  Stop order placed: ${stop_price:.2f} × {shares} shares")
-    else:
-        print(f"⚠️  Stop order failed for {ticker} @ ${stop_price:.2f}")
-    return result
+        print(f"🛡️  Stop order placed (STP): ${stop_price:.2f} × {shares} shares")
+        return result
+
+    # Fallback: stop-limit with limit $0.10 below stop (wide enough to fill on any gap)
+    print(f"⚠️  STP failed — trying STP_LMT fallback for {ticker} @ ${stop_price:.2f}")
+    limit_price = round(stop_price - 0.10, 2)
+    result = _place_order(ticker, shares, "SELL", "STP_LMT",
+                          stop_price=stop_price, limit_price=limit_price)
+    if result:
+        print(f"🛡️  Stop order placed (STP_LMT): stop=${stop_price:.2f} limit=${limit_price:.2f} × {shares} shares")
+        return result
+
+    print(f"⚠️  Exchange stop failed for {ticker} — software stop active at ${stop_price:.2f}")
+    return None
 
 
 def update_stop_order(ticker, shares, new_price, old_client_order_id):

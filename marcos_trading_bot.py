@@ -1311,7 +1311,7 @@ Score each candidate on these DATA signals (+1 point each):
   ✦ Sector ETF is BULLISH       → wind at its back
   ✦ Price $0.50–$15             → tradeable size on this account
   ✦ News catalyst exists        → bonus conviction (not required)
-  ✦ Kev specifically flagged it → expert endorsement
+  ✦ Kev specifically flagged it → context only (tiebreaker, not a point)
 
 Score 5+ = HIGH confidence → 70% size (${account_balance * 0.70:.2f})
 Score 3–4 = MEDIUM confidence → 50% size (${account_balance * 0.50:.2f})
@@ -1343,7 +1343,7 @@ NO-GO filters below, TAKE THE TRADE. Do not wait for a perfect score.
   Only skip on confirmed BAD news (dilution, halt, investigation).
 
 TRADING RULES (bot handles execution):
-- Entry: VWAP reclaim with 1.5x volume confirmation
+- Entry: VWAP reclaim with average volume confirmation (1.0x)
 - Stop: 7% below entry
 - +10%: stop to breakeven
 - +15%: sell half, trail rest

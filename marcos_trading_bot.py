@@ -2239,6 +2239,89 @@ def run_rescan(email_content, market_data, balance, current_analysis,
 
 
 # ============================================================
+# OPEN POSITION RESUME
+# ============================================================
+
+def get_open_position():
+    """
+    Query Webull for any open equity positions on the account.
+    Returns (ticker, shares, avg_cost) or (None, 0, 0) if flat.
+    """
+    _, trade_client = _make_webull_client()
+    if not trade_client:
+        return None, 0, 0
+    try:
+        res = trade_client.account_v2.get_account_balance(WEBULL_ACCOUNT_ID)
+        if res.status_code != 200:
+            return None, 0, 0
+        data = res.json()
+        if isinstance(data.get("data"), dict):
+            data = data["data"]
+        positions = data.get("positions") or data.get("account_positions") or []
+        for pos in positions:
+            qty = int(float(pos.get("quantity") or pos.get("qty") or 0))
+            if qty > 0:
+                ticker   = pos.get("symbol") or pos.get("ticker") or ""
+                avg_cost = float(pos.get("average_cost") or pos.get("avg_cost") or 0)
+                return ticker.upper(), qty, avg_cost
+    except Exception as e:
+        print(f"⚠️  Could not check open positions: {e}")
+    return None, 0, 0
+
+
+def resume_monitoring_if_open():
+    """
+    If a position is already open (e.g. bot was redeployed mid-trade),
+    skip the scan and go straight to monitoring with recalculated levels.
+    Returns True if we resumed (caller should return after), False if flat.
+    """
+    ticker, shares, avg_cost = get_open_position()
+    if not ticker or shares <= 0 or avg_cost <= 0:
+        return False
+
+    print(f"\n⚡ OPEN POSITION DETECTED: {ticker} × {shares} shares @ ${avg_cost:.2f}")
+    print(f"   Resuming monitoring — skipping scan and analysis.\n")
+
+    stop_loss    = round(avg_cost * (1 - STOP_LOSS_PCT), 2)
+    target_price = round(avg_cost * (1 + TARGET_PCT), 2)
+
+    print(f"   Stop:   ${stop_loss:.2f} (-{STOP_LOSS_PCT*100:.0f}%)")
+    print(f"   Target: ${target_price:.2f} (+{TARGET_PCT*100:.0f}%)")
+
+    try:
+        resend.api_key = RESEND_API_KEY
+        resend.Emails.send({
+            "from":    "Trading Bot <onboarding@resend.dev>",
+            "to":      [EMAIL_ADDRESS],
+            "subject": f"⚡ Bot resumed monitoring {ticker} after redeploy",
+            "text":    (f"Railway redeployed while {ticker} was open.\n\n"
+                        f"Resuming monitoring:\n"
+                        f"  Entry (avg cost): ${avg_cost:.2f}\n"
+                        f"  Shares: {shares}\n"
+                        f"  Stop:   ${stop_loss:.2f}\n"
+                        f"  Target: ${target_price:.2f}\n\n"
+                        f"Software stop is active. Force close at 11:30am ET."),
+        })
+    except Exception as e:
+        print(f"⚠️  Resume alert email failed: {e}")
+
+    stream = WebullStream([ticker])
+    trade_result = monitor_trade(
+        ticker, shares, avg_cost, target_price, stop_loss,
+        stream, stop_order_id=None
+    )
+
+    _open_trade["active"] = False
+    stream.stop()
+    new_balance = get_account_balance()
+    pnl = trade_result.get("profit_loss", 0)
+    exit_reason = trade_result.get("exit_reason", "N/A")
+    print(f"\n✅ RESUMED TRADE COMPLETE — {ticker} | P&L: ${pnl:+.2f} | {exit_reason}")
+    send_summary_email({}, trade_result, new_balance)
+    return True
+
+
+# ============================================================
 # MAIN
 # ============================================================
 
@@ -2248,6 +2331,11 @@ def main():
     print(f"🤖 MARCOS TRADING BOT STARTING UP")
     print(f"📅 {now.strftime('%A, %B %d, %Y at %I:%M %p ET')}")
     print(f"{'='*60}\n")
+
+    # ── Resume if position already open (e.g. redeployed mid-trade) ──
+    _pre_populate_webull_token()
+    if resume_monitoring_if_open():
+        return
 
     # ── Startup ping — so you always know the bot woke up ──
     try:

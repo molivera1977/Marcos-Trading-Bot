@@ -2244,6 +2244,20 @@ def main():
     print(f"📅 {now.strftime('%A, %B %d, %Y at %I:%M %p ET')}")
     print(f"{'='*60}\n")
 
+    # ── Startup ping — so you always know the bot woke up ──
+    try:
+        resend.api_key = RESEND_API_KEY
+        resend.Emails.send({
+            "from":    "Marcos Trading Bot <onboarding@resend.dev>",
+            "to":      [GMAIL_ADDRESS],
+            "subject": f"🤖 Bot is alive — {now.strftime('%a %b %d %I:%M %p ET')}",
+            "html":    f"<p>Bot started at <b>{now.strftime('%I:%M %p ET')}</b>. "
+                       f"Reading email, scanning gappers, running analysis...</p>"
+                       f"<p>You'll get the full plan email within a few minutes.</p>",
+        })
+    except Exception as e:
+        print(f"⚠️  Startup ping failed: {e}")
+
     # ── TEST_TRADE fast-path ───────────────────────────────
     # Set TEST_TRADE=AAPL (or any ticker) on Railway to skip the normal flow
     # and fire a real 1-share buy+stop order immediately, proving execution works.

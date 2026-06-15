@@ -2580,130 +2580,154 @@ def main():
     stream_tickers = list(dict.fromkeys(ranked_candidates + tickers + gapper_syms))
     stream         = WebullStream(stream_tickers)
 
-    # ── Step 8: Watch all GO tickers at once — first confirmed reclaim wins ──
-    ticker_to_trade, entry_price, vwap = wait_for_vwap_entry(ranked_candidates, stream)
+    # ── Steps 8-10: Trade loop — keep watching remaining candidates after each exit ──
+    # After a trade closes, remove that ticker and watch whoever's left until 10:30am.
+    remaining_candidates = list(ranked_candidates)
+    trade_count          = 0
+    session_pnl          = 0.0
+    current_balance      = balance
 
-    if not entry_price:
-        note = f"\n\nNOTE: No ticker reclaimed VWAP by 10:30am ({', '.join(ranked_candidates)}). Cash preserved."
-        analysis["plain_english_summary"] += note
-        send_summary_email(analysis, None, balance)
-        stream.stop()
-        return
+    while remaining_candidates:
+        now = datetime.now(EASTERN)
+        if now.hour > VWAP_ENTRY_TIMEOUT or (now.hour == VWAP_ENTRY_TIMEOUT and now.minute >= VWAP_ENTRY_TIMEOUT_MIN):
+            print("⏰ 10:30am — entry cutoff reached, no more trades")
+            break
 
-    # Recalculate stop/target from actual VWAP entry
-    stop_loss    = round(entry_price * (1 - STOP_LOSS_PCT), 4)
-    target_price = round(entry_price * (1 + TARGET_PCT), 4)
-    shares       = max(1, int(position_size / entry_price))
+        if trade_count > 0:
+            print(f"\n🔄 Trade #{trade_count} done — {len(remaining_candidates)} candidate(s) left: "
+                  f"{', '.join(remaining_candidates)}")
 
-    # Hard guard: if 1 share costs more than the full account, skip (e.g. high-priced IPO)
-    if entry_price > balance:
-        note = (f"\n\n⚠️ {ticker_to_trade} priced at ${entry_price:.2f} — exceeds full account "
-                f"(${balance:.2f}). Holding cash.")
-        analysis["plain_english_summary"] += note
-        send_summary_email(analysis, None, balance)
-        stream.stop()
-        return
+        # ── Step 8: Watch remaining GO tickers — first confirmed reclaim wins ──
+        ticker_to_trade, entry_price, vwap = wait_for_vwap_entry(remaining_candidates, stream)
 
-    print(f"\n{'='*60}")
-    print(f"🎯 TRADE PLAN:")
-    print(f"   Ticker:  {ticker_to_trade}")
-    print(f"   VWAP:    ${vwap:.2f}")
-    print(f"   Entry:   ${entry_price:.2f}")
-    print(f"   Shares:  {shares}")
-    print(f"   Target:  ${target_price:.2f} (+{TARGET_PCT*100:.0f}%)")
-    print(f"   Stop:    ${stop_loss:.2f} (-{STOP_LOSS_PCT*100:.0f}%)")
-    print(f"   Size:    ${position_size:.2f}")
-    print(f"{'='*60}\n")
+        if not entry_price:
+            note = (f"\n\nNOTE: No ticker reclaimed VWAP by 10:30am "
+                    f"({', '.join(remaining_candidates)}). Cash preserved.")
+            analysis["plain_english_summary"] += note
+            break
 
-    # ── Step 8a: Bid-ask spread check ─────────────────────
-    spread_ok, spread_pct = check_bid_ask_spread(ticker_to_trade)
-    if not spread_ok:
-        note = (f"\n\nNOTE: {ticker_to_trade} spread was {spread_pct*100:.2f}% — "
-                f"above the {MAX_SPREAD_PCT*100:.1f}% limit. Entry skipped to avoid bad fill.")
-        analysis["plain_english_summary"] += note
-        send_summary_email(analysis, None, balance)
-        stream.stop()
-        return
+        # Remove traded ticker so we don't re-enter it
+        remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
 
-    # ── Step 8b: Execute ───────────────────────────────────
-    order_id, stop_order_id = execute_trade(
-        ticker_to_trade, shares, entry_price, stop_loss, target_price
-    )
-    if not order_id:
-        send_summary_email(analysis, None, balance)
-        stream.stop()
-        return
+        # Recalculate position size from current balance, then stop/target from entry
+        position_size = current_balance * MAX_POSITION_SIZE
+        stop_loss     = round(entry_price * (1 - STOP_LOSS_PCT), 4)
+        target_price  = round(entry_price * (1 + TARGET_PCT), 4)
+        shares        = max(1, int(position_size / entry_price))
 
-    trade_entered.set()   # stop the 9:45am background rescan from switching ticker
+        # Hard guard: if 1 share costs more than the full account, skip
+        if entry_price > current_balance:
+            print(f"⚠️ {ticker_to_trade} @ ${entry_price:.2f} exceeds balance ${current_balance:.2f} — skipping")
+            continue
 
-    # Register open position so SIGTERM handler can alert if bot is killed mid-trade
-    _open_trade.update({
-        "active":      True,
-        "ticker":      ticker_to_trade,
-        "entry_price": entry_price,
-        "shares":      shares,
-        "stop_loss":   stop_loss,
-        "target":      target_price,
-    })
+        print(f"\n{'='*60}")
+        print(f"🎯 TRADE #{trade_count + 1} PLAN:")
+        print(f"   Ticker:  {ticker_to_trade}")
+        print(f"   VWAP:    ${vwap:.2f}")
+        print(f"   Entry:   ${entry_price:.2f}")
+        print(f"   Shares:  {shares}")
+        print(f"   Target:  ${target_price:.2f} (+{TARGET_PCT*100:.0f}%)")
+        print(f"   Stop:    ${stop_loss:.2f} (-{STOP_LOSS_PCT*100:.0f}%)")
+        print(f"   Size:    ${position_size:.2f}")
+        print(f"{'='*60}\n")
 
-    # ── Alert 2: Trade entered! ────────────────────────────
-    send_entry_alert(ticker_to_trade, shares, entry_price,
-                     stop_loss, target_price, vwap, position_size)
+        # ── Step 8a: Bid-ask spread check ─────────────────────
+        spread_ok, spread_pct = check_bid_ask_spread(ticker_to_trade)
+        if not spread_ok:
+            print(f"⚠️ {ticker_to_trade} spread {spread_pct*100:.2f}% too wide — skipping, watching next")
+            continue
 
-    # ── Step 9: Monitor with real-time stream ──────────────
-    trade_result = monitor_trade(
-        ticker_to_trade, shares,
-        entry_price, target_price, stop_loss,
-        stream, stop_order_id, vwap=vwap
-    )
+        # ── Step 8b: Execute ───────────────────────────────────
+        order_id, stop_order_id = execute_trade(
+            ticker_to_trade, shares, entry_price, stop_loss, target_price
+        )
+        if not order_id:
+            print(f"⚠️ Order failed for {ticker_to_trade} — skipping, watching next")
+            continue
 
-    # ── Step 10: Log result, send summary + cleanup ────────
-    _open_trade["active"] = False   # disarm SIGTERM emergency alert
+        trade_entered.set()   # stop any pending 9:45am rescan from switching ticker
+
+        # Register open position so SIGTERM handler can alert if bot is killed mid-trade
+        _open_trade.update({
+            "active":      True,
+            "ticker":      ticker_to_trade,
+            "entry_price": entry_price,
+            "shares":      shares,
+            "stop_loss":   stop_loss,
+            "target":      target_price,
+        })
+
+        # ── Alert: Trade entered! ──────────────────────────────
+        send_entry_alert(ticker_to_trade, shares, entry_price,
+                         stop_loss, target_price, vwap, position_size)
+
+        # ── Step 9: Monitor ────────────────────────────────────
+        trade_result = monitor_trade(
+            ticker_to_trade, shares,
+            entry_price, target_price, stop_loss,
+            stream, stop_order_id, vwap=vwap
+        )
+
+        # ── Step 10: Log result per trade ──────────────────────
+        _open_trade["active"] = False
+        current_balance = get_account_balance()
+        pnl             = trade_result.get("profit_loss", 0)
+        pnl_pct         = trade_result.get("profit_loss_pct", 0)
+        exit_reason     = trade_result.get("exit_reason", "N/A")
+        session_pnl    += pnl
+        trade_count    += 1
+
+        float_shares = next(
+            (d.get("float_shares", "N/A") for d in market_data if d.get("ticker") == ticker_to_trade),
+            "N/A"
+        )
+        csv_row = log_trade_result(
+            date         = datetime.now(EASTERN).strftime("%Y-%m-%d"),
+            ticker       = ticker_to_trade,
+            entry        = entry_price,
+            exit_price   = trade_result.get("exit_price", entry_price),
+            shares       = shares,
+            pnl          = pnl,
+            pnl_pct      = pnl_pct,
+            exit_reason  = exit_reason,
+            confidence   = confidence,
+            float_shares = float_shares,
+        )
+
+        post_to_dashboard({
+            "date":            datetime.now(EASTERN).strftime("%Y-%m-%d"),
+            "ticker":          ticker_to_trade,
+            "entry":           entry_price,
+            "exit":            trade_result.get("exit_price", entry_price),
+            "shares":          shares,
+            "pnl":             pnl,
+            "pnl_pct":         pnl_pct,
+            "exit_reason":     exit_reason,
+            "confidence":      confidence,
+            "float_shares":    str(float_shares),
+            "position_size":   position_size,
+            "account_balance": current_balance,
+        })
+
+        send_summary_email(analysis, trade_result, current_balance, csv_log_line=csv_row)
+
+        print(f"\n{'='*60}")
+        print(f"✅ TRADE #{trade_count} COMPLETE — {ticker_to_trade}")
+        print(f"   Result:  ${pnl:+.2f} ({pnl_pct:+.1f}%)")
+        print(f"   Reason:  {exit_reason}")
+        print(f"   Balance: ${current_balance:.2f}")
+        print(f"   Session P&L so far: ${session_pnl:+.2f}")
+        print(f"{'='*60}\n")
+
+    # ── Session wrap-up ────────────────────────────────────
+    if trade_count == 0:
+        send_summary_email(analysis, None, current_balance)
+
     stream.stop()
-    new_balance = get_account_balance()
-    pnl         = trade_result.get("profit_loss", 0)
-    pnl_pct     = trade_result.get("profit_loss_pct", 0)
-    exit_reason = trade_result.get("exit_reason", "N/A")
-
-    float_shares = next(
-        (d.get("float_shares", "N/A") for d in market_data if d.get("ticker") == ticker_to_trade),
-        "N/A"
-    )
-    csv_row = log_trade_result(
-        date         = datetime.now(EASTERN).strftime("%Y-%m-%d"),
-        ticker       = ticker_to_trade,
-        entry        = entry_price,
-        exit_price   = trade_result.get("exit_price", entry_price),
-        shares       = shares,
-        pnl          = pnl,
-        pnl_pct      = pnl_pct,
-        exit_reason  = exit_reason,
-        confidence   = confidence,
-        float_shares = float_shares,
-    )
-
-    post_to_dashboard({
-        "date":            datetime.now(EASTERN).strftime("%Y-%m-%d"),
-        "ticker":          ticker_to_trade,
-        "entry":           entry_price,
-        "exit":            trade_result.get("exit_price", entry_price),
-        "shares":          shares,
-        "pnl":             pnl,
-        "pnl_pct":         pnl_pct,
-        "exit_reason":     exit_reason,
-        "confidence":      confidence,
-        "float_shares":    str(float_shares),
-        "position_size":   position_size,
-        "account_balance": new_balance,
-    })
-
-    send_summary_email(analysis, trade_result, new_balance, csv_log_line=csv_row)
-
     print(f"\n{'='*60}")
-    print(f"✅ SESSION COMPLETE")
-    print(f"   Result:  ${pnl:+.2f} ({pnl_pct:+.1f}%)")
-    print(f"   Reason:  {exit_reason}")
-    print(f"   Balance: ${new_balance:.2f}")
+    print(f"✅ SESSION COMPLETE — {trade_count} trade(s)")
+    print(f"   Session P&L: ${session_pnl:+.2f}")
+    print(f"   Balance:     ${current_balance:.2f}")
     print(f"{'='*60}\n")
 
 

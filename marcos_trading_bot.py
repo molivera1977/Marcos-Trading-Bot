@@ -2691,11 +2691,15 @@ def main():
     # ── Steps 8-10: Trade loop — fresh market scan after each exit ──────────────
     # First pass uses pre-market candidates. After each trade, rescan the LIVE
     # market for new movers — don't stay locked to the 8:45am pre-market list.
-    remaining_candidates = list(ranked_candidates)
-    traded_tickers       = set()
-    trade_count          = 0
-    session_pnl          = 0.0
-    current_balance      = balance
+    remaining_candidates  = list(ranked_candidates)
+    traded_tickers        = set()
+    trade_count           = 0
+    session_pnl           = 0.0
+    current_balance       = balance
+    # Track settled capital remaining — each $100 trade draws from the starting
+    # settled pool (not from same-day proceeds), so no GFV risk as long as
+    # settled_remaining >= MAX_TRADE_DOLLARS before each entry.
+    settled_remaining     = balance
 
     while True:
         now = datetime.now(EASTERN)
@@ -2703,11 +2707,10 @@ def main():
             print("⏰ 11:00am — entry cutoff reached, no more trades")
             break
 
-        # Cash account hard limit: 1 trade per day to prevent Good Faith Violations.
-        # T+1 settlement means proceeds from Trade 1 are unsettled — reusing them
-        # triggers a GFV regardless of what the balance API reports.
-        if trade_count >= 1:
-            print("🛑 Cash account: 1 trade/day limit reached — stopping to avoid GFV")
+        # GFV protection: each trade pulls $100 from the starting settled pool.
+        # Stop when settled capital remaining < $100 (can't fund another trade).
+        if settled_remaining < MAX_TRADE_DOLLARS:
+            print(f"🛑 Settled capital exhausted (${settled_remaining:.2f} left) — done for today")
             break
 
         # After first trade, rescan live market for fresh opportunities
@@ -2860,12 +2863,15 @@ def main():
 
         send_summary_email(analysis, trade_result, current_balance, csv_log_line=csv_row)
 
+        settled_remaining -= MAX_TRADE_DOLLARS  # deduct from settled pool (not reusing proceeds)
+
         print(f"\n{'='*60}")
         print(f"✅ TRADE #{trade_count} COMPLETE — {ticker_to_trade}")
         print(f"   Result:  ${pnl:+.2f} ({pnl_pct:+.1f}%)")
         print(f"   Reason:  {exit_reason}")
         print(f"   Balance: ${current_balance:.2f}")
         print(f"   Session P&L so far: ${session_pnl:+.2f}")
+        print(f"   Settled pool remaining: ${settled_remaining:.2f}")
         print(f"{'='*60}\n")
 
     # ── Session wrap-up ────────────────────────────────────

@@ -756,39 +756,44 @@ def scan_morning_gappers():
         return []
 
     gappers = {}   # symbol -> dict, deduplicated
+    now_et  = datetime.now(EASTERN)
+    market_open = now_et.hour > 9 or (now_et.hour == 9 and now_et.minute >= 30)
 
-    # ── Pre-market top gainers ────────────────────────────────────────────────
+    # ── Gainers: pre-market screener before open, live market screener after ──
+    # After 9:30am PRE_MARKET rankings go stale — switch to real-time movers.
+    rank_type  = "CHANGE_RATIO" if market_open else "PRE_MARKET"
+    min_chg    = 5 if market_open else 8   # lower bar intraday — moves develop slower
+    scan_label = "Live market gainers" if market_open else "Pre-market gainers"
     try:
         res = data_client.screener.get_gainers_losers(
-            rank_type="PRE_MARKET",
+            rank_type=rank_type,
             category="US_STOCK",
             sort_by="CHANGE_RATIO",
             direction="DESC",
-            page_size=30,
+            page_size=50,
         )
         if res.status_code == 200:
             raw = res.json()
             items = raw if isinstance(raw, list) else raw.get("data", raw.get("items", []))
             for item in items:
                 sym    = item.get("symbol", "")
-                chg    = float(item.get("change_ratio") or 0) * 100   # decimal → pct
+                chg    = float(item.get("change_ratio") or 0) * 100
                 price  = float(item.get("price") or item.get("close") or 0)
                 mktcap = float(item.get("market_value") or 0)
                 vol    = float(item.get("volume") or 0)
                 if not sym or price <= 0:
                     continue
-                # Momentum setup: price $1–$30, >8% pre-market gap, not tiny cap
                 if price < 1 or price > 30:
                     continue
-                if chg < 8:
+                if chg < min_chg:
                     continue
                 gappers[sym] = {
                     "symbol": sym, "change_pct": round(chg, 2),
                     "price": price, "market_cap": mktcap,
                     "premarket_volume": vol, "relative_volume": None,
-                    "source": "pre_market_gainer",
+                    "source": "live_gainer" if market_open else "pre_market_gainer",
                 }
-            print(f"   Pre-market gainers: {len(gappers)} candidates after filter")
+            print(f"   {scan_label}: {len(gappers)} candidates after filter")
         else:
             print(f"⚠️  Gainers screener error: {res.status_code}")
     except Exception as e:
@@ -2666,22 +2671,55 @@ def main():
     stream_tickers = list(dict.fromkeys(ranked_candidates + tickers + gapper_syms))
     stream         = WebullStream(stream_tickers)
 
-    # ── Steps 8-10: Trade loop — keep watching remaining candidates after each exit ──
-    # After a trade closes, remove that ticker and watch whoever's left until 11:00am.
+    # ── Steps 8-10: Trade loop — fresh market scan after each exit ──────────────
+    # First pass uses pre-market candidates. After each trade, rescan the LIVE
+    # market for new movers — don't stay locked to the 8:45am pre-market list.
     remaining_candidates = list(ranked_candidates)
+    traded_tickers       = set()
     trade_count          = 0
     session_pnl          = 0.0
     current_balance      = balance
 
-    while remaining_candidates:
+    while True:
         now = datetime.now(EASTERN)
         if now.hour > VWAP_ENTRY_TIMEOUT or (now.hour == VWAP_ENTRY_TIMEOUT and now.minute >= VWAP_ENTRY_TIMEOUT_MIN):
             print("⏰ 11:00am — entry cutoff reached, no more trades")
             break
 
+        # After first trade, rescan live market for fresh opportunities
         if trade_count > 0:
-            print(f"\n🔄 Trade #{trade_count} done — {len(remaining_candidates)} candidate(s) left: "
-                  f"{', '.join(remaining_candidates)}")
+            print(f"\n🔄 Trade #{trade_count} done — rescanning live market for next setup...")
+            fresh_gappers = scan_morning_gappers()
+            for g in fresh_gappers:
+                g["news"] = get_news_catalyst(g["symbol"])
+                time.sleep(0.1)
+            fresh_analysis = analyze_with_claude(
+                email_content, market_data, current_balance,
+                gappers=fresh_gappers, market_context=get_market_context()
+            )
+            if fresh_analysis:
+                rec = fresh_analysis.get("recommended_trade") or {}
+                new_candidates = []
+                if rec.get("action") == "BUY" and rec.get("ticker"):
+                    new_candidates.append(rec["ticker"].upper())
+                for t in (fresh_analysis.get("tickers") or []):
+                    sym = t.get("ticker", "").upper()
+                    if sym and sym not in new_candidates and t.get("verdict") == "GO":
+                        new_candidates.append(sym)
+                # Remove already-traded tickers
+                remaining_candidates = [t for t in new_candidates if t not in traded_tickers]
+                # Subscribe stream to any new tickers
+                for t in remaining_candidates:
+                    if t not in stream_tickers:
+                        stream_tickers.append(t)
+                print(f"📋 Fresh candidates: {' | '.join(remaining_candidates) or 'none'}")
+            else:
+                remaining_candidates = [t for t in remaining_candidates if t not in traded_tickers]
+                print(f"⚠️  Live rescan failed — watching remaining pre-market picks: {remaining_candidates}")
+
+        if not remaining_candidates:
+            print("📋 No more candidates — session complete")
+            break
 
         # ── Step 8: Watch remaining GO tickers — first confirmed reclaim wins ──
         ticker_to_trade, entry_price, vwap = wait_for_vwap_entry(remaining_candidates, stream)
@@ -2692,7 +2730,8 @@ def main():
             analysis["plain_english_summary"] += note
             break
 
-        # Remove traded ticker so we don't re-enter it
+        # Track traded tickers so fresh scans don't re-enter them
+        traded_tickers.add(ticker_to_trade)
         remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
 
         # Recalculate position size from current balance, then stop/target from entry

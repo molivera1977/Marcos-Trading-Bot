@@ -2319,7 +2319,7 @@ def resume_monitoring_if_open():
         resend.api_key = RESEND_API_KEY
         resend.Emails.send({
             "from":    "Trading Bot <onboarding@resend.dev>",
-            "to":      [EMAIL_ADDRESS],
+            "to":      [SUMMARY_EMAIL],
             "subject": f"⚡ Bot resumed monitoring {ticker} after redeploy",
             "text":    (f"Railway redeployed while {ticker} was open.\n\n"
                         f"Resuming monitoring:\n"
@@ -2370,7 +2370,7 @@ def main():
         resend.api_key = RESEND_API_KEY
         resend.Emails.send({
             "from":    "Marcos Trading Bot <onboarding@resend.dev>",
-            "to":      [EMAIL_ADDRESS],
+            "to":      [SUMMARY_EMAIL],
             "subject": f"🤖 Bot is alive — {now.strftime('%a %b %d %I:%M %p ET')}",
             "html":    f"<p>Bot started at <b>{now.strftime('%I:%M %p ET')}</b>. "
                        f"Reading email, scanning gappers, running analysis...</p>"

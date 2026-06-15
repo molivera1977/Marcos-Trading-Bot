@@ -49,6 +49,7 @@ import base64
 import socket
 import pathlib
 import threading
+import logging
 import requests
 import anthropic
 import resend
@@ -57,6 +58,12 @@ import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 import pytz
+
+# Silence noisy SDK loggers — they flood Railway's 500 logs/sec limit
+logging.getLogger("webull").setLevel(logging.ERROR)
+logging.getLogger("webull_openapi").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("requests").setLevel(logging.WARNING)
 
 # Official Webull OpenAPI Python SDK
 try:

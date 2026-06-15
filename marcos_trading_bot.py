@@ -1628,33 +1628,15 @@ def cancel_order(client_order_id):
 
 def place_stop_order(ticker, shares, stop_price):
     """
-    Place a live stop-loss sell order on Webull.
-    Returns the client_order_id, or None if it fails.
-    Tries STP (stop-market) first, falls back to STP_LMT (stop-limit $0.10 below stop).
-    Software stop in monitor_trade() is always active as final backup.
+    Webull OpenAPI rejects all stop order types (STP, STP_LMT, STOP LOSS).
+    Rely entirely on the software stop in monitor_trade() which fires a MARKET
+    sell the moment price <= stop level. Returns None always.
     """
     shares = max(1, int(shares))
     if DRY_RUN:
-        fake_id = uuid.uuid4().hex
-        print(f"🧪 DRY RUN — simulating stop order: ${stop_price:.2f} × {shares} shares")
-        return fake_id
-
-    # Try stop-market first
-    result = _place_order(ticker, shares, "SELL", "STP", stop_price=stop_price)
-    if result:
-        print(f"🛡️  Stop order placed (STP): ${stop_price:.2f} × {shares} shares")
-        return result
-
-    # Fallback: stop-limit with limit $0.10 below stop (wide enough to fill on any gap)
-    print(f"⚠️  STP failed — trying STP_LMT fallback for {ticker} @ ${stop_price:.2f}")
-    limit_price = round(stop_price - 0.10, 2)
-    result = _place_order(ticker, shares, "SELL", "STP_LMT",
-                          stop_price=stop_price, limit_price=limit_price)
-    if result:
-        print(f"🛡️  Stop order placed (STP_LMT): stop=${stop_price:.2f} limit=${limit_price:.2f} × {shares} shares")
-        return result
-
-    print(f"⚠️  Exchange stop failed for {ticker} — software stop active at ${stop_price:.2f}")
+        print(f"🧪 DRY RUN — software stop only: ${stop_price:.2f} × {shares} shares")
+        return None
+    print(f"🛡️  Software stop armed at ${stop_price:.2f} × {shares} shares (exchange stops unsupported)")
     return None
 
 

@@ -2597,10 +2597,18 @@ def main():
     print(f"💰 Balance: ${balance:.2f}")
     post_balance_to_dashboard(balance)
 
-    # ── Step 5: Claude Opus analysis ───────────────────────
-    analysis = analyze_with_claude(email_content, market_data, balance,
-                                   gappers=gappers, market_context=market_context)
+    # ── Step 5: Claude analysis — up to 3 attempts ────────
+    analysis = None
+    for _attempt in range(3):
+        analysis = analyze_with_claude(email_content, market_data, balance,
+                                       gappers=gappers, market_context=market_context)
+        if analysis:
+            break
+        if _attempt < 2:
+            print(f"⚠️ Claude parse failed (attempt {_attempt+1}/3) — retrying in 20s...")
+            time.sleep(20)
     if not analysis:
+        print("❌ Claude failed 3 times — ending session.")
         send_summary_email(None, None, balance)
         return
 

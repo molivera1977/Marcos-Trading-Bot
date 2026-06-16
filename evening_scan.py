@@ -9,8 +9,8 @@ Runs at 7pm ET weekdays via Railway cron: 0 23 * * 1-5
 5. Sends "Tonight's Watchlist" email
 """
 
-import os, sys, time, json, pathlib
-from datetime import datetime
+import os, sys, time, json, pathlib, imaplib, email, re, socket
+from datetime import datetime, timedelta
 import pytz
 import requests
 
@@ -26,6 +26,10 @@ RESEND_API_KEY     = os.environ.get("RESEND_API_KEY", "")
 SUMMARY_EMAIL      = os.environ.get("SUMMARY_EMAIL", "molivera1977@gmail.com")
 SCREENER_URL       = os.environ.get("SCREENER_URL", "").rstrip("/")
 DASHBOARD_SECRET   = os.environ.get("DASHBOARD_SECRET", "marcos2026")
+EMAIL_ADDRESS      = os.environ.get("EMAIL_ADDRESS", "molivera1977@icloud.com")
+EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD", "")
+IMAP_SERVER        = "imap.mail.me.com"
+IMAP_PORT          = 993
 
 # ── Webull client ───────────────────────────────────────────────────────────
 def _pre_populate_token():
@@ -78,6 +82,95 @@ def get_news(ticker: str) -> list:
         return lines if lines else ["No recent news"]
     except Exception:
         return ["News unavailable"]
+
+# ── Read Kev's evening email/transcript ────────────────────────────────────
+def read_kev_evening_email() -> str:
+    """
+    Read Kev's latest watchlist email from iCloud inbox.
+    Looks for emails received today or yesterday — scores by subject keywords.
+    Returns the email body text, or empty string if nothing found.
+    """
+    if not EMAIL_APP_PASSWORD:
+        print("⚠️  No EMAIL_APP_PASSWORD — cannot read Kev's email")
+        return ""
+    print("📧 Checking iCloud email for Kev's evening watchlist...")
+    try:
+        socket.setdefaulttimeout(20)
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
+        mail.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
+        mail.select("inbox")
+
+        since_date = (datetime.now() - timedelta(days=1)).strftime("%d-%b-%Y")
+        _, all_msgs = mail.search(None, f'(SINCE "{since_date}")')
+        all_ids = all_msgs[0].split() if all_msgs[0] else []
+        if not all_ids:
+            print("⚠️  No recent emails found in iCloud")
+            mail.logout()
+            return ""
+
+        today_et     = datetime.now(EASTERN).date()
+        yesterday_et = today_et - timedelta(days=1)
+        skip_words   = {"THE","FOR","AND","NOT","ALL","DAY","TOP","NEW","BIG","HOT",
+                        "RE","AI","ET","FW","FWD","TO","IN","UP","AM","PM"}
+
+        best_id, best_score, best_subject = None, -1, ""
+        for msg_id in all_ids:
+            try:
+                _, hdr_data = mail.fetch(msg_id,
+                    "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE)])")
+                raw_h = next((p[1] for p in hdr_data if isinstance(p, tuple)), b"")
+                hdr   = email.message_from_bytes(raw_h)
+                subj  = hdr.get("subject", "") or ""
+                date_str = hdr.get("date", "") or ""
+
+                recency = 0
+                try:
+                    from email.utils import parsedate_to_datetime
+                    sent_date = parsedate_to_datetime(date_str).astimezone(EASTERN).date()
+                    if sent_date == today_et:
+                        recency = 20
+                    elif sent_date == yesterday_et:
+                        recency = 10
+                except Exception:
+                    pass
+
+                subj_up = subj.upper()
+                score = (len(re.findall(r'\$[A-Z]{2,5}\b', subj_up)) * 5
+                       + len(re.findall(r'\bWATCHLIST\b|\bPICK\b|\bSETUP\b|\bPLAY\b', subj_up)) * 3
+                       + min(len([t for t in re.findall(r'\b[A-Z]{2,5}\b', subj_up)
+                                  if t not in skip_words]), 10)
+                       + recency)
+                if score > best_score:
+                    best_score, best_subject, best_id = score, subj, msg_id
+            except Exception:
+                pass
+
+        if best_id is None:
+            mail.logout()
+            return ""
+
+        _, body_data = mail.fetch(best_id, "(RFC822)")
+        raw_b = next((p[1] for p in body_data if isinstance(p, tuple)), b"")
+        msg_b = email.message_from_bytes(raw_b)
+        body  = ""
+        if msg_b.is_multipart():
+            for part in msg_b.walk():
+                if part.get_content_type() == "text/plain":
+                    payload = part.get_payload(decode=True)
+                    body = payload.decode("utf-8", errors="ignore") if isinstance(payload, bytes) else ""
+                    break
+        else:
+            payload = msg_b.get_payload(decode=True)
+            body = payload.decode("utf-8", errors="ignore") if isinstance(payload, bytes) else str(payload or "")
+
+        mail.logout()
+        if body:
+            print(f"✅ Kev's email found (score={best_score}): {best_subject[:70]!r}")
+            return f"{best_subject}\n\n{body}"
+        return ""
+    except Exception as e:
+        print(f"⚠️  Email read error: {e}")
+        return ""
 
 # ── Evening scan ─────────────────────────────────────────────────────────────
 def scan_today_movers() -> list:
@@ -196,8 +289,9 @@ def analyze_evening(candidates: list, kev_email: str = "") -> dict | None:
         print("⚠️  No candidates to analyze")
         return None
 
-    today = datetime.now(EASTERN).strftime("%Y-%m-%d")
-    day   = datetime.now(EASTERN).strftime("%A")
+    now   = datetime.now(EASTERN)
+    today = now.strftime("%Y-%m-%d")
+    day   = now.strftime("%A")
 
     # Build candidate block
     lines = []
@@ -213,7 +307,14 @@ def analyze_evening(candidates: list, kev_email: str = "") -> dict | None:
         )
     candidates_text = "\n".join(lines)
 
-    kev_section = f"\nKEV'S WATCHLIST (if any):\n{kev_email}\n" if kev_email.strip() else ""
+    kev_section = (f"\nKEV'S EVENING WATCHLIST/VIDEO TRANSCRIPT:\n{kev_email}\n"
+                   "\nIMPORTANT: Kev is a professional momentum trader who posts his watchlist "
+                   "nightly. If he flagged a stock tonight, that IS a signal — his community "
+                   "will be watching it at open. Cross-reference with your gapper scan. "
+                   "A stock on Kev's list AND in your scan = highest conviction.\n"
+                   if kev_email.strip() else
+                   "\nKEV'S WATCHLIST: Not found in tonight's email — build watchlist from "
+                   "today's movers only.\n")
 
     prompt = f"""You are MARCO — a seasoned small-cap momentum trader with 15 years of experience.
 
@@ -443,12 +544,19 @@ def main():
         print("📅 Weekend — no evening scan.")
         return
 
+    # Read Kev's evening watchlist email (posted between 6-9pm)
+    kev_email = read_kev_evening_email()
+    if kev_email:
+        print(f"✅ Kev's watchlist loaded ({len(kev_email)} chars)")
+    else:
+        print("⚠️  No Kev email found tonight — proceeding with market scan only")
+
     candidates = scan_today_movers()
     if not candidates:
         print("⚠️  No candidates found — market may have been quiet today.")
         return
 
-    analysis = analyze_evening(candidates)
+    analysis = analyze_evening(candidates, kev_email=kev_email)
     if not analysis:
         print("❌ MARCO analysis failed — no watchlist tonight.")
         return

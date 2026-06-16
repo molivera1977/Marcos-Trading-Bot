@@ -771,7 +771,7 @@ def scan_morning_gappers():
             category="US_STOCK",
             sort_by="CHANGE_RATIO",
             direction="DESC",
-            page_size=50,
+            page_size=100,
         )
         if res.status_code == 200:
             raw = res.json()
@@ -807,7 +807,7 @@ def scan_morning_gappers():
             rank_type="RELATIVE_VOLUME_10D",
             sort_by="RELATIVE_VOLUME_10D",
             direction="DESC",
-            page_size=30,
+            page_size=50,
         )
         if res.status_code == 200:
             raw = res.json()
@@ -824,12 +824,12 @@ def scan_morning_gappers():
                     continue
                 if price < 1 or price > 30:
                     continue
-                if rel_vol < 3.0:   # at least 3× 10-day average volume
+                if rel_vol < 2.0:   # at least 2× 10-day average volume
                     continue
                 if sym in gappers:
                     gappers[sym]["relative_volume"] = rel_vol
                 else:
-                    if chg >= 5:    # lower bar for volume-driven candidates
+                    if chg >= 3:    # catch early movers — MARCO judges the rest
                         gappers[sym] = {
                             "symbol": sym, "change_pct": round(chg, 2),
                             "price": price, "market_cap": mktcap,
@@ -879,7 +879,7 @@ def scan_morning_gappers():
         float_m = f / 1_000_000 if f > 0 else 25   # assume 25M if unknown
         return g["change_pct"] / max(float_m, 0.1)
 
-    results = sorted(float_checked, key=_gapper_score, reverse=True)[:10]
+    results = sorted(float_checked, key=_gapper_score, reverse=True)[:15]
     print(f"✅ Morning gapper scan complete — {len(results)} small-float candidates: "
           f"{[r['symbol'] for r in results]}")
     return results

@@ -155,7 +155,7 @@ def run_scan():
                 category="US_STOCK",
                 sort_by="CHANGE_RATIO",
                 direction="DESC",
-                page_size=40,
+                page_size=100,
             )
             if res.status_code == 200:
                 raw = res.json()
@@ -186,7 +186,7 @@ def run_scan():
                 rank_type="RELATIVE_VOLUME_10D",
                 sort_by="RELATIVE_VOLUME_10D",
                 direction="DESC",
-                page_size=40,
+                page_size=50,
             )
             if res.status_code == 200:
                 raw = res.json()
@@ -198,11 +198,11 @@ def run_scan():
                     mktcap  = float(item.get("market_value") or 0)
                     rel_vol = float(item.get("relative_volume_10d") or 0)
                     vol     = float(item.get("volume") or 0)
-                    if not sym or price < 1 or price > 30 or rel_vol < 3:
+                    if not sym or price < 1 or price > 30 or rel_vol < 2:
                         continue
                     if sym in candidates:
                         candidates[sym]["relative_volume"] = round(rel_vol, 1)
-                    elif chg >= 5:
+                    elif chg >= 3:
                         candidates[sym] = {
                             "symbol": sym, "change_pct": round(chg, 2),
                             "price": round(price, 2), "market_cap": mktcap,

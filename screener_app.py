@@ -40,6 +40,22 @@ app = Flask(__name__)
 
 _trades: list = []
 _account: dict = {"balance": 0.0, "updated": ""}
+_evening_watchlist: dict = {}          # Latest watchlist from evening scan
+WATCHLIST_FILE = pathlib.Path("/tmp/marcos_evening_watchlist.json")
+
+def _load_watchlist():
+    global _evening_watchlist
+    if WATCHLIST_FILE.exists():
+        try:
+            _evening_watchlist = json.loads(WATCHLIST_FILE.read_text())
+        except Exception:
+            pass
+
+def _save_watchlist():
+    try:
+        WATCHLIST_FILE.write_text(json.dumps(_evening_watchlist, indent=2))
+    except Exception as e:
+        print(f"⚠️  Could not save watchlist: {e}")
 
 def _load_trades():
     global _trades, _account
@@ -90,6 +106,7 @@ def _compute_stats():
     }
 
 _load_trades()
+_load_watchlist()
 
 # ── Webull helpers ─────────────────────────────────────────────────────────────
 
@@ -567,6 +584,25 @@ def update_account():
 @app.route("/api/trades")
 def api_trades():
     return jsonify({"trades": _trades, "stats": _compute_stats(), "account": _account})
+
+
+@app.route("/api/evening_watchlist", methods=["POST"])
+def save_evening_watchlist():
+    secret = request.headers.get("X-Dashboard-Secret", "")
+    if secret != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    global _evening_watchlist
+    _evening_watchlist = request.get_json(silent=True) or {}
+    _evening_watchlist["saved_at"] = datetime.now(EASTERN).isoformat()
+    _save_watchlist()
+    picks = len(_evening_watchlist.get("top_picks", []))
+    print(f"🌙 Evening watchlist saved — {picks} picks")
+    return jsonify({"status": "ok", "picks": picks})
+
+
+@app.route("/api/evening_watchlist", methods=["GET"])
+def get_evening_watchlist():
+    return jsonify(_evening_watchlist)
 
 
 @app.route("/dashboard")

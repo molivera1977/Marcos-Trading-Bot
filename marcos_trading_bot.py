@@ -1244,7 +1244,7 @@ def _repair_json(raw: str) -> dict | None:
 
 
 def analyze_with_claude(email_content, market_data_list, account_balance,
-                        gappers=None, market_context=None):
+                        gappers=None, market_context=None, evening_watchlist=None):
     print("🧠 Sending data to Claude Sonnet AI for analysis...")
 
     def _sector_line(d):
@@ -1306,6 +1306,28 @@ def analyze_with_claude(email_content, market_data_list, account_balance,
     else:
         market_context_section = "OVERALL MARKET CONTEXT: SPY data unavailable"
 
+    # Build evening watchlist section for MARCO
+    if evening_watchlist and evening_watchlist.get("top_picks"):
+        ew_picks = evening_watchlist["top_picks"]
+        ew_lines = []
+        for p in ew_picks:
+            ew_lines.append(
+                f"  {p['ticker']}: {p.get('thesis','')} | "
+                f"Watch level: ${p.get('key_level',0):.2f} | "
+                f"Entry trigger: {p.get('entry_trigger','')} | "
+                f"Confidence: {p.get('confidence','')} | "
+                f"Risk: {p.get('risk_note','')}"
+            )
+        evening_section = (
+            "LAST NIGHT'S WATCHLIST (MARCO's pre-screened picks from yesterday evening):\n"
+            + "\n".join(ew_lines)
+            + "\n\nNOTE: These were pre-screened last night. Confirm they are still showing "
+            "momentum this morning before treating as GO. If pre-market confirms the thesis, "
+            "weight these picks HIGHER than cold gapper scan finds."
+        )
+    else:
+        evening_section = "LAST NIGHT'S WATCHLIST: Not available (evening scan may not have run yet)"
+
     email_safe = _sanitize_for_prompt(email_content)
 
     prompt = f"""
@@ -1335,6 +1357,8 @@ Entry: VWAP reclaim — price must hold above VWAP for 3 consecutive polls (≈9
 Trading window: Entry by 3:30pm ET, force close all positions by 3:45pm ET
 
 {market_context_section}
+
+{evening_section}
 
 KEV'S WATCHLIST EMAIL/TRANSCRIPT:
 {email_safe}
@@ -1997,6 +2021,35 @@ def post_balance_to_dashboard(balance: float):
         pass
 
 
+def _fetch_evening_watchlist() -> dict:
+    """
+    Fetch last night's watchlist from the screener app.
+    Returns empty dict if unavailable or from a different date.
+    """
+    if not SCREENER_URL:
+        return {}
+    try:
+        r = requests.get(f"{SCREENER_URL}/api/evening_watchlist", timeout=8)
+        if r.status_code != 200:
+            return {}
+        data = r.json()
+        if not data or not data.get("top_picks"):
+            return {}
+        # Only use watchlist from last night (not days old)
+        saved_at = data.get("saved_at", "")
+        if saved_at:
+            from datetime import timedelta
+            saved_dt = datetime.fromisoformat(saved_at).astimezone(EASTERN)
+            age_hours = (datetime.now(EASTERN) - saved_dt).total_seconds() / 3600
+            if age_hours > 18:
+                print(f"⚠️  Evening watchlist is {age_hours:.0f}h old — skipping")
+                return {}
+        return data
+    except Exception as e:
+        print(f"⚠️  Could not fetch evening watchlist: {e}")
+        return {}
+
+
 # ============================================================
 # STEP 7 — ALERT EMAILS (fired in real-time during the session)
 # ============================================================
@@ -2617,6 +2670,32 @@ def main():
         g["news"] = get_news_catalyst(g["symbol"])
         time.sleep(0.3)
 
+    # ── Read last night's evening watchlist (if available) ──
+    evening_watchlist = _fetch_evening_watchlist()
+    if evening_watchlist:
+        picks = evening_watchlist.get("top_picks", [])
+        print(f"🌙 Evening watchlist loaded — {len(picks)} pre-screened picks: "
+              f"{[p['ticker'] for p in picks]}")
+        # Ensure evening watchlist picks are in the gapper list so MARCO sees them
+        existing_syms = {g["symbol"] for g in gappers}
+        for pick in picks:
+            sym = pick.get("ticker", "")
+            if sym and sym not in existing_syms:
+                gappers.append({
+                    "symbol": sym,
+                    "change_pct": 0,
+                    "price": pick.get("key_level", 0),
+                    "float_label": pick.get("float_label", "N/A"),
+                    "source": "evening_watchlist",
+                    "news": [pick.get("thesis", "On last night's watchlist")],
+                    "evening_thesis": pick.get("thesis", ""),
+                    "evening_key_level": pick.get("key_level", 0),
+                    "evening_confidence": pick.get("confidence", ""),
+                })
+                existing_syms.add(sym)
+    else:
+        evening_watchlist = {}
+
     # ── Step 4: Account balance ────────────────────────────
     balance = get_account_balance()
     print(f"💰 Balance: ${balance:.2f}")
@@ -2626,7 +2705,8 @@ def main():
     analysis = None
     for _attempt in range(3):
         analysis = analyze_with_claude(email_content, market_data, balance,
-                                       gappers=gappers, market_context=market_context)
+                                       gappers=gappers, market_context=market_context,
+                                       evening_watchlist=evening_watchlist)
         if analysis:
             break
         if _attempt < 2:

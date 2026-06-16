@@ -2998,4 +2998,20 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    RESCAN_INTERVAL_MINUTES = 30
+
+    while True:
+        main()
+
+        now_et = datetime.now(EASTERN)
+        cutoff = now_et.hour > VWAP_ENTRY_TIMEOUT or (
+            now_et.hour == VWAP_ENTRY_TIMEOUT and now_et.minute >= VWAP_ENTRY_TIMEOUT_MIN
+        )
+        if cutoff or now_et.weekday() >= 5:
+            print("⏰ Past 3:30pm or weekend — done for today.")
+            break
+
+        next_et = now_et.hour * 60 + now_et.minute + RESCAN_INTERVAL_MINUTES
+        next_h, next_m = divmod(next_et, 60)
+        print(f"\n🔄 Auto-rescan in {RESCAN_INTERVAL_MINUTES} min (~{next_h}:{next_m:02d} ET) — looking for new setups...")
+        time.sleep(RESCAN_INTERVAL_MINUTES * 60)

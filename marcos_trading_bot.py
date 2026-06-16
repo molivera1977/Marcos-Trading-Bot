@@ -1331,7 +1331,7 @@ Today's date: {datetime.now(EASTERN).strftime("%A, %B %d, %Y")}
 Account balance: ${account_balance:.2f}
 Market open: 9:30am ET
 Entry: VWAP reclaim with volume after open
-Trading window: Entry by 11:00am ET, hold until 11:30am max
+Trading window: Entry by 3:30pm ET, force close all positions by 3:45pm ET
 
 {market_context_section}
 
@@ -1394,7 +1394,7 @@ TRADING RULES (bot handles execution):
 - +10%: stop to breakeven
 - +15%: sell half, trail rest
 - +20%: full exit
-- Hard close: 11:30am ET
+- Hard close: 3:45pm ET (force exit all positions before market close)
 
 Respond in this EXACT JSON format:
 {{
@@ -1750,17 +1750,17 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     while True:
         now = datetime.now(EASTERN)
 
-        # ── Hard close at 11:30am ───────────────────────
+        # ── Hard close at 3:45pm ───────────────────────
         past_end = (now.hour > TRADE_WINDOW_END_HOUR or
                     (now.hour == TRADE_WINDOW_END_HOUR and now.minute >= TRADE_WINDOW_END_MIN))
         if past_end:
-            print("⏰ 11:30am — Force closing all positions")
+            print("⏰ 3:45pm — Force closing all positions")
             current_price = stream.get_price(ticker)
             if remaining_shares > 0:
                 cancel_order(placed_stop_id)
                 close_position(ticker, remaining_shares)
             result["exit_price"]  = current_price
-            result["exit_reason"] = "11:30am time stop"
+            result["exit_reason"] = "3:45pm time stop"
             break
 
         current_price = stream.get_price(ticker)
@@ -2126,7 +2126,7 @@ def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap,
             + _row("💰 Partial exit (+15%)", "Sell half, trail rest")
             + _row("⚡ Breakeven (+10%)",    "Stop moves to entry")
             + _row("🛑 Stop Loss (-7%)",     f"${stop_loss:.2f}")
-            + _row("⏰ Hard Close",           "11:30am ET")
+            + _row("⏰ Hard Close",           "3:45pm ET")
         ), color="#ffbb33")
     )
     send_alert_email(subject, plain, html=html)
@@ -2365,7 +2365,7 @@ def resume_monitoring_if_open():
                         f"  Shares: {shares}\n"
                         f"  Stop:   ${stop_loss:.2f}\n"
                         f"  Target: ${target_price:.2f}\n\n"
-                        f"Software stop is active. Force close at 11:30am ET."),
+                        f"Software stop is active. Force close at 3:45pm ET."),
         })
     except Exception as e:
         print(f"⚠️  Resume alert email failed: {e}")
@@ -2751,7 +2751,7 @@ def main():
     while True:
         now = datetime.now(EASTERN)
         if now.hour > VWAP_ENTRY_TIMEOUT or (now.hour == VWAP_ENTRY_TIMEOUT and now.minute >= VWAP_ENTRY_TIMEOUT_MIN):
-            print("⏰ 11:00am — entry cutoff reached, no more trades")
+            print("⏰ 3:30pm — entry cutoff reached, no more trades")
             break
 
         # GFV protection: each trade pulls $100 from the starting settled pool.

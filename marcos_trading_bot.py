@@ -1470,25 +1470,32 @@ Respond in this EXACT JSON format:
 
 VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't change faster
 
-def wait_for_vwap_entry(candidates: list, stream: WebullStream):
+INTRADAY_RESCAN_INTERVAL = 10 * 60  # Rescan live market every 10 minutes while watching
+
+def wait_for_vwap_entry(candidates: list, stream: WebullStream,
+                         rescan_callback=None, traded_tickers: set = None):
     """
     Watches ALL candidate tickers simultaneously every loop tick.
     Takes the first one that reclaims VWAP with 1.5x volume confirmation.
     Priority order is preserved — if two trigger on the same tick, the
     higher-ranked one wins.
-    Hard cutoff: 11:00am ET.
+    Rescans the live market every 10 minutes to pick up new movers.
+    Hard cutoff: 3:30pm ET.
     Returns (winner_ticker, entry_price, vwap) or (None, None, None).
     """
-    print(f"\n⏳ Scanning {len(candidates)} candidate(s) for VWAP reclaim: {', '.join(candidates)}")
+    if traded_tickers is None:
+        traded_tickers = set()
+    print(f"\n⏳ Watching {len(candidates)} candidate(s) for VWAP reclaim: {', '.join(candidates)}")
 
     # Per-ticker bar cache: {ticker: {"bars": [...], "vwap": float, "fetched": float}}
     cache = {t: {"bars": [], "vwap": 0.0, "fetched": 0.0} for t in candidates}
+    last_rescan = time.time()
 
     while True:
         now = datetime.now(EASTERN)
 
         if now.hour > VWAP_ENTRY_TIMEOUT or (now.hour == VWAP_ENTRY_TIMEOUT and now.minute >= VWAP_ENTRY_TIMEOUT_MIN):
-            print(f"⏰ 11:00am cutoff — no VWAP reclaim across any candidate. Holding cash.")
+            print(f"⏰ 3:30pm cutoff — no VWAP reclaim across any candidate. Holding cash.")
             return None, None, None
 
         if now.hour < 9 or (now.hour == 9 and now.minute < 30):
@@ -1533,6 +1540,19 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream):
                     status_parts[-1] += f" ⚠️vol:{last_vol/avg_vol:.1f}x"
 
         print(f"📊 {' | '.join(status_parts)}")
+
+        # ── 10-minute live rescan — pick up new movers ─────────
+        if rescan_callback and time.time() - last_rescan >= INTRADAY_RESCAN_INTERVAL:
+            print(f"🔄 10-min rescan — checking live market for new setups...")
+            new_candidates = rescan_callback(exclude=traded_tickers | set(candidates))
+            if new_candidates:
+                for t in new_candidates:
+                    if t not in candidates:
+                        candidates.append(t)
+                        cache[t] = {"bars": [], "vwap": 0.0, "fetched": 0.0}
+                        print(f"   ➕ Added {t} to watchlist")
+            last_rescan = time.time()
+
         time.sleep(stream.loop_sleep())
 
 # ============================================================
@@ -2768,10 +2788,36 @@ def main():
             break
 
         # ── Step 8: Watch remaining GO tickers — first confirmed reclaim wins ──
-        ticker_to_trade, entry_price, vwap = wait_for_vwap_entry(remaining_candidates, stream)
+        def _intraday_rescan(exclude=None):
+            """Called every 10 min inside wait_for_vwap_entry to add fresh movers."""
+            exclude = exclude or set()
+            fresh = scan_morning_gappers()
+            fresh_analysis = analyze_with_claude(
+                email_content, market_data, current_balance,
+                gappers=fresh, market_context=get_market_context()
+            )
+            if not fresh_analysis:
+                return []
+            rec = fresh_analysis.get("recommended_trade") or {}
+            new = []
+            if rec.get("action") == "BUY" and rec.get("ticker"):
+                t = rec["ticker"].upper()
+                if t not in exclude:
+                    new.append(t)
+            for item in (fresh_analysis.get("tickers") or []):
+                t = item.get("ticker", "").upper()
+                if t and t not in exclude and t not in new and item.get("verdict") == "GO":
+                    new.append(t)
+            return new
+
+        ticker_to_trade, entry_price, vwap = wait_for_vwap_entry(
+            remaining_candidates, stream,
+            rescan_callback=_intraday_rescan,
+            traded_tickers=traded_tickers
+        )
 
         if not entry_price:
-            note = (f"\n\nNOTE: No ticker reclaimed VWAP by 11:00am "
+            note = (f"\n\nNOTE: No ticker reclaimed VWAP by 3:30pm "
                     f"({', '.join(remaining_candidates)}). Cash preserved.")
             analysis["plain_english_summary"] += note
             break

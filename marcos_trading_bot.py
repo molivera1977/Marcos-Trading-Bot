@@ -190,11 +190,11 @@ TARGET_PCT            = 0.20   # 20% full profit target
 PARTIAL_EXIT_PCT      = 0.15   # Sell half at 15% gain
 BREAKEVEN_TRIGGER_PCT = 0.10   # Move stop to breakeven at 10% gain
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
-VWAP_ENTRY_TIMEOUT     = 11    # Final cutoff hour — give up by 11:30am ET
+VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
 FIRST_TICKER_CUTOFF_MIN = 20  # Switch to backup ticker if #1 hasn't set up by 9:50am ET
-TRADE_WINDOW_END_HOUR = 11     # Force close all positions by 11:30am ET
-TRADE_WINDOW_END_MIN  = 30    # minute component of force close
+TRADE_WINDOW_END_HOUR = 15     # Force close all positions by 3:45pm ET (before market close)
+TRADE_WINDOW_END_MIN  = 45    # minute component of force close
 ENTRY_LIMIT_BUFFER    = 0.01   # Limit buy 1% above VWAP reclaim — caps slippage on small floats
 EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry, exit immediately
 SPY_BEAR_SKIP_PCT     = -1.0   # Skip the day entirely if SPY pre-market < -1%
@@ -2383,7 +2383,7 @@ def main():
     if resume_monitoring_if_open():
         return
 
-    # ── Time gate — exit if outside 8:30am–11:00am ET ─────
+    # ── Time gate — exit if outside 8:30am–3:30pm ET ─────
     try:
         resend.api_key = RESEND_API_KEY
         resend.Emails.send({
@@ -2464,7 +2464,7 @@ def main():
         print(f"\n✅ TEST TRADE COMPLETE — P&L: ${pnl:.2f} | New balance: ${new_balance:.2f}")
         return
 
-    # Hard time gate — exit immediately if outside the 8:30am–11:00am ET window.
+    # Hard time gate — exit immediately if outside the 8:30am–3:30pm ET window.
     minutes_et = now.hour * 60 + now.minute
     if not (8 * 60 + 30 <= minutes_et <= 11 * 60 + 0):
         print(f"⏰ Outside trading window ({now.strftime('%H:%M')} ET) — exiting.")

@@ -2394,6 +2394,7 @@ def main():
                        f"Reading email, scanning gappers, running analysis...</p>"
                        f"<p>You'll get the full plan email within a few minutes.</p>",
         })
+        print(f"✅ Startup ping sent to {SUMMARY_EMAIL}")
     except Exception as e:
         print(f"⚠️  Startup ping failed: {e}")
 

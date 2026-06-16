@@ -2805,7 +2805,26 @@ def main():
         # ── Step 8a: Bid-ask spread check ─────────────────────
         spread_ok, spread_pct = check_bid_ask_spread(ticker_to_trade)
         if not spread_ok:
-            print(f"⚠️ {ticker_to_trade} spread {spread_pct*100:.2f}% too wide — skipping, watching next")
+            print(f"⚠️ {ticker_to_trade} spread {spread_pct*100:.2f}% too wide — rescanning live market")
+            fresh_gappers = scan_morning_gappers()
+            fresh_analysis = analyze_with_claude(
+                email_content, market_data, current_balance,
+                gappers=fresh_gappers, market_context=get_market_context()
+            )
+            if fresh_analysis:
+                rec = fresh_analysis.get("recommended_trade") or {}
+                new_candidates = []
+                if rec.get("action") == "BUY" and rec.get("ticker"):
+                    new_candidates.append(rec["ticker"].upper())
+                for t in (fresh_analysis.get("tickers") or []):
+                    sym = t.get("ticker", "").upper()
+                    if sym and sym not in new_candidates and t.get("verdict") == "GO":
+                        new_candidates.append(sym)
+                remaining_candidates = [t for t in new_candidates
+                                        if t not in traded_tickers and t != ticker_to_trade]
+                print(f"🔄 Rescan found: {' | '.join(remaining_candidates) or 'no new candidates'}")
+            else:
+                remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
             continue
 
         # ── Step 8b: Execute ───────────────────────────────────
@@ -2813,7 +2832,26 @@ def main():
             ticker_to_trade, shares, entry_price, stop_loss, target_price
         )
         if not order_id:
-            print(f"⚠️ Order failed for {ticker_to_trade} — skipping, watching next")
+            print(f"⚠️ Order failed for {ticker_to_trade} — rescanning live market")
+            fresh_gappers = scan_morning_gappers()
+            fresh_analysis = analyze_with_claude(
+                email_content, market_data, current_balance,
+                gappers=fresh_gappers, market_context=get_market_context()
+            )
+            if fresh_analysis:
+                rec = fresh_analysis.get("recommended_trade") or {}
+                new_candidates = []
+                if rec.get("action") == "BUY" and rec.get("ticker"):
+                    new_candidates.append(rec["ticker"].upper())
+                for t in (fresh_analysis.get("tickers") or []):
+                    sym = t.get("ticker", "").upper()
+                    if sym and sym not in new_candidates and t.get("verdict") == "GO":
+                        new_candidates.append(sym)
+                remaining_candidates = [t for t in new_candidates
+                                        if t not in traded_tickers and t != ticker_to_trade]
+                print(f"🔄 Rescan found: {' | '.join(remaining_candidates) or 'no new candidates'}")
+            else:
+                remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
             continue
 
         trade_entered.set()   # stop any pending 9:45am rescan from switching ticker

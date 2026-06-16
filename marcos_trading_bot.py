@@ -785,7 +785,7 @@ def scan_morning_gappers():
                 vol    = float(item.get("volume") or 0)
                 if not sym or price <= 0:
                     continue
-                if price < 1 or price > 30:
+                if price < 0.50 or price > 30:
                     continue
                 if chg < min_chg:
                     continue
@@ -823,7 +823,7 @@ def scan_morning_gappers():
                 vol     = float(item.get("volume") or 0)
                 if not sym or price <= 0:
                     continue
-                if price < 1 or price > 30:
+                if price < 0.50 or price > 30:
                     continue
                 if rel_vol < 2.0:   # at least 2× 10-day average volume
                     continue
@@ -1354,8 +1354,8 @@ Score each candidate on these DATA signals (+1 point each):
   ✦ Short interest > 15%        → squeeze fuel
   ✦ Sector ETF is BULLISH       → wind at its back
   ✦ Price $0.50–$15             → tradeable size on this account
-  ✦ News catalyst exists        → bonus conviction (not required)
-  ✦ Kev specifically flagged it → context only (tiebreaker, not a point)
+  ✦ News catalyst exists        → real driver behind the move
+  ✦ Kev specifically flagged it → community awareness + his read = real edge, +1 point
 
 Score 5+ = HIGH confidence → 70% size (${account_balance * 0.70:.2f})
 Score 3–4 = MEDIUM confidence → 50% size (${account_balance * 0.50:.2f})
@@ -1374,20 +1374,35 @@ is a trade. A murky 4-point setup with red flags is a pass. Use judgment.
   ✗ Active dilution/offering news in the headline
   ✗ Already confirmed gap-and-crap (trading below open immediately)
 
+━━━ SUB-$1 PLAYS ━━━
+  Stocks under $1 at scan time can be valid — CCTG opened at $0.91 and ran to $2.09.
+  The pattern: tiny float + real catalyst + crosses $1 at open = explosive move.
+  Score them normally. Extra scrutiny on spread and float quality, but don't auto-reject.
+
 ━━━ MARKET CONTEXT ━━━
   SPY < -1%: take the top-scoring setup at LOW size (30%) — don't skip entirely
   SPY -1% to +1%: MEDIUM sizing on your best setup
   SPY > +1%: full confidence sizing — momentum market, attack it
 
 ━━━ KEV'S EMAIL ━━━
-  If Kev gave specific break levels → honor them as a bonus signal (+1 to score)
-  If his email is commentary/educational → use it as context, not a gate
-  The gapper scan is always a valid trade source independent of Kev's email
+  Kev is a professional small-cap momentum trader who scans pre-market AND intraday.
+  If Kev flagged it: that is real community awareness + professional read = +1 point (already scored above).
+  If Kev gave a specific break level (e.g. "watch $2.50 for a breakout") → that level is your VWAP proxy.
+  If his email is general commentary → use as context only.
+  The gapper scan is always a valid trade source independent of Kev's email.
 
 ━━━ CATALYST NOTE ━━━
-  News = bonus signal, NOT a requirement. Small-float stocks move on order
-  flow, short squeeze, and sector momentum. "No news found" ≠ no trade.
-  Only skip on confirmed BAD news (dilution, halt, investigation).
+  News = real signal that drives sustained moves. "No news found" ≠ no trade — small floats
+  move on order flow, squeeze, and sector momentum. But confirmed catalyst (PR, FDA, earnings
+  beat, halt+resume) dramatically increases conviction. Weight it heavily when present.
+
+  IMPORTANT — Pre-market volume fading does NOT mean the play is dead:
+  Community watchlist plays (like Kev's picks) often show fading pre-market volume because
+  retail waits for the open. The real move comes AT and AFTER 9:30am. Do NOT reject a
+  Kev-flagged catalyst play solely because pre-market volume is light. Judge it on float,
+  gap, and catalyst strength instead.
+
+  Only skip on confirmed BAD news (dilution, offering, halt, SEC investigation).
 
 TRADING RULES (bot handles execution):
 - Entry: VWAP reclaim confirmed by 3 consecutive ticks above VWAP with 1.5× volume — no fakes
@@ -1471,7 +1486,7 @@ Respond in this EXACT JSON format:
 
 VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't change faster
 
-INTRADAY_RESCAN_INTERVAL = 10 * 60  # Rescan live market every 10 minutes while watching
+INTRADAY_RESCAN_INTERVAL = 5 * 60   # Rescan live market every 5 minutes while watching
 
 def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                          rescan_callback=None, traded_tickers: set = None):

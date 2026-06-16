@@ -166,7 +166,7 @@ def run_scan():
                     price = float(item.get("price") or item.get("close") or 0)
                     mktcap = float(item.get("market_value") or 0)
                     vol   = float(item.get("volume") or 0)
-                    if not sym or price < 1 or price > 30 or chg < min_chg:
+                    if not sym or price < 0.50 or price > 30 or chg < min_chg:
                         continue
                     candidates[sym] = {
                         "symbol": sym, "change_pct": round(chg, 2),
@@ -198,7 +198,7 @@ def run_scan():
                     mktcap  = float(item.get("market_value") or 0)
                     rel_vol = float(item.get("relative_volume_10d") or 0)
                     vol     = float(item.get("volume") or 0)
-                    if not sym or price < 1 or price > 30 or rel_vol < 2:
+                    if not sym or price < 0.50 or price > 30 or rel_vol < 2:
                         continue
                     if sym in candidates:
                         candidates[sym]["relative_volume"] = round(rel_vol, 1)

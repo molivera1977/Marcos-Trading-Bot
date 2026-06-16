@@ -84,10 +84,12 @@ def get_news(ticker: str) -> list:
         return ["News unavailable"]
 
 # ── Read Kev's evening email/transcript ────────────────────────────────────
-def read_kev_evening_email() -> str:
+def read_kev_evening_email(today_only: bool = False) -> str:
     """
     Read Kev's latest watchlist email from iCloud inbox.
     Looks for emails received today or yesterday — scores by subject keywords.
+    today_only=True: skips emails from yesterday (used when polling so we don't
+    mistake yesterday's post for tonight's).
     Returns the email body text, or empty string if nothing found.
     """
     if not EMAIL_APP_PASSWORD:
@@ -113,6 +115,8 @@ def read_kev_evening_email() -> str:
         skip_words   = {"THE","FOR","AND","NOT","ALL","DAY","TOP","NEW","BIG","HOT",
                         "RE","AI","ET","FW","FWD","TO","IN","UP","AM","PM"}
 
+        from email.utils import parsedate_to_datetime
+
         best_id, best_score, best_subject = None, -1, ""
         for msg_id in all_ids:
             try:
@@ -124,12 +128,14 @@ def read_kev_evening_email() -> str:
                 date_str = hdr.get("date", "") or ""
 
                 recency = 0
+                sent_date = None
                 try:
-                    from email.utils import parsedate_to_datetime
                     sent_date = parsedate_to_datetime(date_str).astimezone(EASTERN).date()
                     if sent_date == today_et:
                         recency = 20
                     elif sent_date == yesterday_et:
+                        if today_only:
+                            continue   # polling mode: ignore yesterday's email
                         recency = 10
                 except Exception:
                     pass
@@ -642,12 +648,26 @@ def main():
         print("❌ MARCO analysis failed — no watchlist tonight.")
         return
 
-    # Step 3: NOW read Kev's email (after MARCO has committed to his picks)
-    kev_email = read_kev_evening_email()
-    if kev_email:
-        print(f"✅ Kev's watchlist loaded ({len(kev_email)} chars)")
-    else:
-        print("⚠️  No Kev email found tonight — calibration skipped")
+    # Step 3: Poll for Kev's email until 10:30pm ET (he posts anywhere between 6–10pm)
+    # today_only=True so we never mistake yesterday's post for tonight's
+    KEV_POLL_INTERVAL = 10 * 60   # check every 10 minutes
+    KEV_CUTOFF_HOUR, KEV_CUTOFF_MIN = 22, 30   # give up at 10:30pm ET
+
+    kev_email = ""
+    while True:
+        kev_email = read_kev_evening_email(today_only=True)
+        if kev_email:
+            print(f"✅ Kev's email found ({len(kev_email)} chars)")
+            break
+        now_et = datetime.now(EASTERN)
+        past_cutoff = (now_et.hour > KEV_CUTOFF_HOUR or
+                       (now_et.hour == KEV_CUTOFF_HOUR and now_et.minute >= KEV_CUTOFF_MIN))
+        if past_cutoff:
+            print("⏰ 10:30pm ET — Kev didn't post tonight, continuing without calibration")
+            break
+        next_check = now_et + timedelta(seconds=KEV_POLL_INTERVAL)
+        print(f"   No Kev email yet — checking again at {next_check.strftime('%I:%M %p ET')}...")
+        time.sleep(KEV_POLL_INTERVAL)
 
     # Step 4: Compare and produce calibration report
     kev_tickers = extract_kev_tickers(kev_email)

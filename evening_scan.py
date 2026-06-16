@@ -283,8 +283,12 @@ def scan_today_movers() -> list:
     print(f"✅ Evening scan: {len(results)} candidates after float filter")
     return results
 
-# ── MARCO evening analysis ──────────────────────────────────────────────────
-def analyze_evening(candidates: list, kev_email: str = "") -> dict | None:
+# ── MARCO independent analysis (no Kev input) ──────────────────────────────
+def analyze_evening(candidates: list) -> dict | None:
+    """
+    MARCO analyzes today's movers with ZERO knowledge of Kev's picks.
+    This is the independent test — we compare his output to Kev afterward.
+    """
     if not candidates:
         print("⚠️  No candidates to analyze")
         return None
@@ -293,7 +297,6 @@ def analyze_evening(candidates: list, kev_email: str = "") -> dict | None:
     today = now.strftime("%Y-%m-%d")
     day   = now.strftime("%A")
 
-    # Build candidate block
     lines = []
     for g in candidates:
         news_str = " | ".join(g.get("news", [])) if isinstance(g.get("news"), list) else str(g.get("news", ""))
@@ -307,66 +310,38 @@ def analyze_evening(candidates: list, kev_email: str = "") -> dict | None:
         )
     candidates_text = "\n".join(lines)
 
-    kev_section = (f"\nKEV'S EVENING WATCHLIST/VIDEO TRANSCRIPT:\n{kev_email}\n"
-                   "\nIMPORTANT: Kev is a professional momentum trader who posts his watchlist "
-                   "nightly. If he flagged a stock tonight, that IS a signal — his community "
-                   "will be watching it at open. Cross-reference with your gapper scan. "
-                   "A stock on Kev's list AND in your scan = highest conviction.\n"
-                   if kev_email.strip() else
-                   "\nKEV'S WATCHLIST: Not found in tonight's email — build watchlist from "
-                   "today's movers only.\n")
-
     prompt = f"""You are MARCO — a seasoned small-cap momentum trader with 15 years of experience.
 
-It's 7pm ET on {day}, {today}. The market closed hours ago. Your job right now is NOT to trade —
-it's to PREPARE. You're building tomorrow's watchlist for Marcos Olivera.
+It's 9:30pm ET on {day}, {today}. Market closed hours ago. Your job: build tomorrow's watchlist
+for Marcos Olivera using ONLY the market data below. No outside input. Your own read.
 
-TODAY'S MOVERS (what actually moved today):
+TODAY'S MOVERS:
 {candidates_text}
-{kev_section}
 
-YOUR EVENING JOB:
+For each candidate assess:
+1. CATALYST FRESHNESS — Fresh (PR today, FDA, earnings) or played out (been running 3-5 days)?
+2. SETUP QUALITY — Healthy (closed near high, volume dried up) or exhausted (gap-and-crap, closed at lows)?
+3. KEY LEVEL TOMORROW — Be specific. "Watch $2.50" not "watch for momentum."
+4. SQUEEZE POTENTIAL — Tiny float + short interest + fresh catalyst = flag it.
+5. WHAT KILLS IT — Be honest about the risk.
 
-For each candidate, assess these questions:
-1. CATALYST FRESHNESS — Is the driver behind today's move fresh or played out?
-   Fresh = PR dropped today, FDA decision, earnings beat, halt+resume on news.
-   Played out = stock has been running 3-5 days, no new catalyst, extension play only.
+Only put a stock on the list if you genuinely see a path to +15-30% tomorrow.
+3 real picks beat 10 lukewarm ones. Sub-$1 stocks with tiny floats and fresh catalysts are valid.
 
-2. SETUP QUALITY FOR TOMORROW — Did it hold well or does it look exhausted?
-   Healthy: Closed near the high, held above open, volume dried up into close (consolidating).
-   Exhausted: Huge spike then sold off hard, closed near lows, gap-and-crap pattern.
-
-3. KEY LEVEL TOMORROW — What price level matters at the open?
-   Usually: today's high (breakout), VWAP (reclaim play), or day's open (failed follow-through).
-   Be specific. "Watch $2.50" is useful. "Watch for momentum" is not.
-
-4. FLOAT + SQUEEZE POTENTIAL — Small float + short interest + catalyst = squeeze.
-   Flag any stock where all three align.
-
-5. RISK — What kills this play? (Already extended, dilution risk, sector rotating out, etc.)
-
-CRITICAL RULE: Only put a stock on tomorrow's watchlist if you genuinely believe there is a
-realistic scenario where it moves another 15-30%+ tomorrow. Don't pad the list. 3 real
-setups beat 10 lukewarm ones. If today was a one-day wonder with no follow-through potential,
-say so and skip it.
-
-SUB-$1 PLAYS: If a stock closed near $1 with catalyst and tiny float, it can absolutely
-break out through $1 tomorrow. Don't auto-skip sub-dollar stocks.
-
-Respond in this EXACT JSON format:
+Respond in EXACT JSON:
 {{
   "watchlist_date": "{today}",
-  "for_trading_date": "tomorrow's date",
-  "market_summary": "2-3 sentences on today's overall tape and what it means for tomorrow",
+  "for_trading_date": "{(now + timedelta(days=1)).strftime('%Y-%m-%d')}",
+  "market_summary": "2-3 sentences on today's tape and what it means for tomorrow",
   "top_picks": [
     {{
       "ticker": "SYMBOL",
-      "thesis": "Why this plays tomorrow — specific and direct",
+      "thesis": "Why this plays tomorrow",
       "catalyst_fresh": true or false,
       "setup_quality": "STRONG / MODERATE / WEAK",
       "key_level": 0.00,
-      "key_level_note": "What happens at this level (e.g. break above = entry, hold = base)",
-      "entry_trigger": "Specific condition to enter (e.g. VWAP reclaim with volume at open)",
+      "key_level_note": "What happens at this level",
+      "entry_trigger": "Specific entry condition",
       "target": 0.00,
       "stop": 0.00,
       "float_label": "xM",
@@ -376,19 +351,16 @@ Respond in this EXACT JSON format:
     }}
   ],
   "skip_list": [
-    {{
-      "ticker": "SYMBOL",
-      "reason": "Why this is NOT on the watchlist"
-    }}
+    {{"ticker": "SYMBOL", "reason": "Why skipped"}}
   ],
-  "plain_english_summary": "Text Marcos tonight. Tell him your top 1-2 picks for tomorrow, what level to watch, and what the plan is. Be direct. He needs to know what to look for at 9:30am."
+  "plain_english_summary": "MARCO's own read — top 1-2 picks, levels, plan. Direct and specific."
 }}
 """
 
     try:
         import anthropic
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        print("🧠 MARCO analyzing tonight's candidates...")
+        print("🧠 MARCO building independent watchlist (no Kev input)...")
         with client.messages.stream(
             model="claude-sonnet-4-6",
             max_tokens=8000,
@@ -401,14 +373,13 @@ Respond in this EXACT JSON format:
             if block.type == "text":
                 raw = block.text.strip()
                 break
-
         if "```json" in raw:
             raw = raw.split("```json")[1].split("```")[0].strip()
         elif "```" in raw:
             raw = raw.split("```")[1].split("```")[0].strip()
 
         result = json.loads(raw)
-        print(f"✅ MARCO evening analysis complete — {len(result.get('top_picks', []))} picks")
+        print(f"✅ MARCO independent analysis: {len(result.get('top_picks', []))} picks")
         return result
 
     except json.JSONDecodeError as e:
@@ -417,6 +388,56 @@ Respond in this EXACT JSON format:
     except Exception as e:
         print(f"❌ Claude API error: {e}")
         return None
+
+
+# ── Extract Kev's tickers from his email ───────────────────────────────────
+def extract_kev_tickers(kev_email: str) -> list:
+    """Pull ticker symbols out of Kev's email/transcript."""
+    if not kev_email:
+        return []
+    skip = {"THE","FOR","AND","NOT","ALL","DAY","TOP","NEW","BIG","HOT","PDT",
+            "RE","AI","ET","AM","PM","VWAP","MACD","HIGH","HOLD","BUY","SELL"}
+    text = kev_email.upper()
+    # $TICKER format first (most reliable)
+    tickers = re.findall(r'\$([A-Z]{2,5})\b', text)
+    if not tickers:
+        # bare caps fallback
+        tickers = [t for t in re.findall(r'\b[A-Z]{2,5}\b', text) if t not in skip]
+    # deduplicate preserving order
+    seen, result = set(), []
+    for t in tickers:
+        if t not in seen:
+            seen.add(t)
+            result.append(t)
+    return result[:10]
+
+
+# ── Compare MARCO vs Kev ────────────────────────────────────────────────────
+def compare_picks(marco_analysis: dict, kev_tickers: list) -> dict:
+    """
+    Side-by-side comparison: where do MARCO and Kev agree?
+    Agreement = highest conviction for tomorrow.
+    """
+    marco_tickers = [p["ticker"] for p in marco_analysis.get("top_picks", [])]
+    overlap   = [t for t in marco_tickers if t in kev_tickers]
+    marco_only = [t for t in marco_tickers if t not in kev_tickers]
+    kev_only   = [t for t in kev_tickers  if t not in marco_tickers]
+
+    print(f"\n📊 CALIBRATION REPORT")
+    print(f"   MARCO picked:  {marco_tickers}")
+    print(f"   Kev picked:    {kev_tickers}")
+    print(f"   ✅ Overlap:    {overlap}  ← highest conviction")
+    print(f"   🔵 MARCO only: {marco_only}")
+    print(f"   🟡 Kev only:   {kev_only}  ← MARCO missed these")
+
+    return {
+        "marco_picks":  marco_tickers,
+        "kev_picks":    kev_tickers,
+        "overlap":      overlap,
+        "marco_only":   marco_only,
+        "kev_only":     kev_only,
+        "score": f"{len(overlap)}/{len(kev_tickers)} of Kev's picks matched" if kev_tickers else "No Kev picks to compare",
+    }
 
 # ── Post watchlist to screener app ──────────────────────────────────────────
 def post_watchlist(analysis: dict):
@@ -437,8 +458,71 @@ def post_watchlist(analysis: dict):
     except Exception as e:
         print(f"⚠️  Dashboard post error: {e}")
 
+# ── Calibration HTML block ─────────────────────────────────────────────────
+def _calibration_html(comparison: dict, kev_email: str) -> str:
+    if not comparison.get("kev_picks") and not comparison.get("marco_picks"):
+        return ""
+
+    marco_picks = comparison.get("marco_picks", [])
+    kev_picks   = comparison.get("kev_picks", [])
+    overlap     = comparison.get("overlap", [])
+    marco_only  = comparison.get("marco_only", [])
+    kev_only    = comparison.get("kev_only", [])
+    score       = comparison.get("score", "")
+
+    def badge(ticker, bg, fg):
+        return (f'<span style="display:inline-block;margin:3px;padding:4px 12px;'
+                f'background:{bg};color:{fg};border-radius:20px;font-size:13px;font-weight:700">'
+                f'{ticker}</span>')
+
+    overlap_badges  = "".join(badge(t, "#1a3a2a", "#3fb950") for t in overlap)  or "<em style='color:#484f58'>None</em>"
+    m_only_badges   = "".join(badge(t, "#0d2a4a", "#58a6ff") for t in marco_only) or "<em style='color:#484f58'>None</em>"
+    kev_only_badges = "".join(badge(t, "#3a2a0a", "#d29922") for t in kev_only)   or "<em style='color:#484f58'>None</em>"
+
+    kev_snippet = ""
+    if kev_email:
+        first_400 = kev_email[:400].replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
+        kev_snippet = f"""
+      <div style="margin-top:16px;padding:12px;background:#0d1117;border-radius:8px;border:1px solid #21262d">
+        <div style="font-size:11px;color:#484f58;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Kev's Email Preview</div>
+        <div style="font-size:12px;color:#8b949e;line-height:1.5">{first_400}…</div>
+      </div>"""
+
+    return f"""
+      <div style="padding:20px 28px;border-top:1px solid #21262d">
+        <div style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px">
+          📊 CALIBRATION — MARCO vs Kev · {score}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px">
+            <div style="font-size:11px;color:#58a6ff;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">🔵 MARCO Picked</div>
+            <div>{"".join(badge(t, "#0d2a4a", "#58a6ff") for t in marco_picks) or "<em style='color:#484f58'>None</em>"}</div>
+          </div>
+          <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px">
+            <div style="font-size:11px;color:#d29922;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">🟡 Kev Picked</div>
+            <div>{"".join(badge(t, "#3a2a0a", "#d29922") for t in kev_picks) or "<em style='color:#484f58'>None</em>"}</div>
+          </div>
+        </div>
+        <div style="background:#0e2a1a;border:1px solid #1a3a2a;border-radius:8px;padding:14px;margin-bottom:12px">
+          <div style="font-size:11px;color:#3fb950;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">✅ OVERLAP — Highest Conviction</div>
+          <div>{overlap_badges}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px">
+            <div style="font-size:11px;color:#484f58;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">MARCO only (Kev skipped)</div>
+            <div>{m_only_badges}</div>
+          </div>
+          <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px">
+            <div style="font-size:11px;color:#f85149;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">🔴 MARCO missed (Kev found)</div>
+            <div>{kev_only_badges}</div>
+          </div>
+        </div>
+        {kev_snippet}
+      </div>"""
+
+
 # ── Send watchlist email ────────────────────────────────────────────────────
-def send_watchlist_email(analysis: dict, candidates: list):
+def send_watchlist_email(analysis: dict, comparison: dict, kev_email: str):
     if not RESEND_API_KEY:
         print("⚠️  No RESEND_API_KEY — skipping email")
         return
@@ -514,6 +598,8 @@ def send_watchlist_email(analysis: dict, candidates: list):
 
       {"<div style='padding:0 28px 20px'><div style='font-size:12px;color:#484f58;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px'>Skipped (not worth watching tomorrow)</div><ul style='margin:0;padding-left:18px'>" + skip_html + "</ul></div>" if skip_html else ""}
 
+      {_calibration_html(comparison, kev_email)}
+
       <div style="padding:16px 28px;background:#161b22;border-top:1px solid #21262d;font-size:11px;color:#484f58;text-align:center">
         Bot will read this watchlist at 8:45am and prioritize these picks at open.
       </div>
@@ -544,32 +630,43 @@ def main():
         print("📅 Weekend — no evening scan.")
         return
 
-    # Read Kev's evening watchlist email (posted between 6-9pm)
-    kev_email = read_kev_evening_email()
-    if kev_email:
-        print(f"✅ Kev's watchlist loaded ({len(kev_email)} chars)")
-    else:
-        print("⚠️  No Kev email found tonight — proceeding with market scan only")
-
+    # Step 1: Scan market data independently
     candidates = scan_today_movers()
     if not candidates:
         print("⚠️  No candidates found — market may have been quiet today.")
         return
 
-    analysis = analyze_evening(candidates, kev_email=kev_email)
+    # Step 2: MARCO analyzes with ZERO Kev input — pure independent read
+    analysis = analyze_evening(candidates)
     if not analysis:
         print("❌ MARCO analysis failed — no watchlist tonight.")
         return
 
+    # Step 3: NOW read Kev's email (after MARCO has committed to his picks)
+    kev_email = read_kev_evening_email()
+    if kev_email:
+        print(f"✅ Kev's watchlist loaded ({len(kev_email)} chars)")
+    else:
+        print("⚠️  No Kev email found tonight — calibration skipped")
+
+    # Step 4: Compare and produce calibration report
+    kev_tickers = extract_kev_tickers(kev_email)
+    comparison  = compare_picks(analysis, kev_tickers)
+
+    # Step 5: Post and email
     post_watchlist(analysis)
-    send_watchlist_email(analysis, candidates)
+    send_watchlist_email(analysis, comparison, kev_email)
 
     picks = analysis.get("top_picks", [])
     print(f"\n{'='*60}")
     print(f"🌙 EVENING SCAN COMPLETE")
-    print(f"   {len(picks)} picks for tomorrow:")
+    print(f"   MARCO's {len(picks)} picks for tomorrow:")
     for p in picks:
-        print(f"   {p['ticker']:6s} | Watch ${p.get('key_level',0):.2f} | {p.get('confidence','')} | {p.get('thesis','')[:60]}")
+        overlap_tag = " ✅ OVERLAP WITH KEV" if p["ticker"] in comparison.get("overlap", []) else ""
+        print(f"   {p['ticker']:6s} | Watch ${p.get('key_level',0):.2f} | {p.get('confidence','')} | {p.get('thesis','')[:60]}{overlap_tag}")
+    if comparison.get("kev_only"):
+        print(f"\n   🟡 Kev picked but MARCO missed: {comparison['kev_only']}")
+    print(f"   Calibration: {comparison.get('score','')}")
     print(f"{'='*60}\n")
 
 if __name__ == "__main__":

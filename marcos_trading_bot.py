@@ -199,7 +199,8 @@ ENTRY_LIMIT_BUFFER    = 0.01   # Limit buy 1% above VWAP reclaim — caps slippa
 EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry, exit immediately
 SPY_BEAR_SKIP_PCT     = -1.0   # Skip the day entirely if SPY pre-market < -1%
 MAX_SPREAD_PCT        = 0.03   # Skip entry if bid-ask spread > 3% of ask price
-VWAP_VOL_MULTIPLIER   = 1.0    # Require 1.0× average minute volume for VWAP reclaim confirmation
+VWAP_VOL_MULTIPLIER   = 1.5    # Require 1.5× average minute volume for VWAP reclaim confirmation
+VWAP_CONFIRM_TICKS   = 3      # Price must hold above VWAP for this many consecutive polls before entry
 TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 7 days
 LOG_FILE              = "/tmp/trade_log.csv"
 DRY_RUN    = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
@@ -1330,7 +1331,7 @@ YOUR PERSONALITY AND EDGE:
 Today's date: {datetime.now(EASTERN).strftime("%A, %B %d, %Y")}
 Account balance: ${account_balance:.2f}
 Market open: 9:30am ET
-Entry: VWAP reclaim with volume after open
+Entry: VWAP reclaim — price must hold above VWAP for 3 consecutive polls (≈9s) with 1.5× volume
 Trading window: Entry by 3:30pm ET, force close all positions by 3:45pm ET
 
 {market_context_section}
@@ -1389,7 +1390,7 @@ is a trade. A murky 4-point setup with red flags is a pass. Use judgment.
   Only skip on confirmed BAD news (dilution, halt, investigation).
 
 TRADING RULES (bot handles execution):
-- Entry: VWAP reclaim with average volume confirmation (1.0x)
+- Entry: VWAP reclaim confirmed by 3 consecutive ticks above VWAP with 1.5× volume — no fakes
 - Stop: 7% below entry
 - +10%: stop to breakeven
 - +15%: sell half, trail rest
@@ -1476,7 +1477,7 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                          rescan_callback=None, traded_tickers: set = None):
     """
     Watches ALL candidate tickers simultaneously every loop tick.
-    Takes the first one that reclaims VWAP with 1.5x volume confirmation.
+    Takes the first one that holds above VWAP for 3 consecutive polls with 1.5× volume confirmation.
     Priority order is preserved — if two trigger on the same tick, the
     higher-ranked one wins.
     Rescans the live market every 10 minutes to pick up new movers.
@@ -1487,8 +1488,8 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
         traded_tickers = set()
     print(f"\n⏳ Watching {len(candidates)} candidate(s) for VWAP reclaim: {', '.join(candidates)}")
 
-    # Per-ticker bar cache: {ticker: {"bars": [...], "vwap": float, "fetched": float}}
-    cache = {t: {"bars": [], "vwap": 0.0, "fetched": 0.0} for t in candidates}
+    # Per-ticker bar cache: {ticker: {"bars": [...], "vwap": float, "fetched": float, "ticks_above": int}}
+    cache = {t: {"bars": [], "vwap": 0.0, "fetched": 0.0, "ticks_above": 0} for t in candidates}
     last_rescan = time.time()
 
     while True:
@@ -1528,16 +1529,25 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
             status_parts.append(f"{t}:${price:.2f}({pct:+.1f}%)")
 
             if price > vwap:
+                cache[t]["ticks_above"] += 1
+                ticks = cache[t]["ticks_above"]
                 last_vol = float(bars[-1].get("volume") or bars[-1].get("v") or 0)
                 avg_vol  = sum(float(b.get("volume") or b.get("v") or 0)
                                for b in bars) / len(bars)
-                if last_vol >= avg_vol * VWAP_VOL_MULTIPLIER:
+                vol_ok = last_vol >= avg_vol * VWAP_VOL_MULTIPLIER
+                if ticks < VWAP_CONFIRM_TICKS:
+                    status_parts[-1] += f" ⏳{ticks}/{VWAP_CONFIRM_TICKS}ticks"
+                elif vol_ok:
                     print(f"\n✅ {t} VWAP reclaim confirmed! "
                           f"${price:.2f} > VWAP ${vwap:.2f} "
-                          f"with {last_vol/avg_vol:.1f}× avg volume")
+                          f"held {ticks} ticks with {last_vol/avg_vol:.1f}× avg volume")
                     return t, price, vwap
                 else:
-                    status_parts[-1] += f" ⚠️vol:{last_vol/avg_vol:.1f}x"
+                    status_parts[-1] += f" ⏳holding({ticks}ticks) ⚠️vol:{last_vol/avg_vol:.1f}x"
+            else:
+                if cache[t]["ticks_above"] > 0:
+                    print(f"   {t} dropped back below VWAP after {cache[t]['ticks_above']} tick(s) — resetting")
+                cache[t]["ticks_above"] = 0
 
         print(f"📊 {' | '.join(status_parts)}")
 

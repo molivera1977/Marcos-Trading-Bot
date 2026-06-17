@@ -950,9 +950,23 @@ def get_account_balance():
         except Exception as e:
             print(f"⚠️  Balance SDK error: {e}")
 
+    # Try screener_app — it persists the last known balance across sessions,
+    # which beats the stale ACCOUNT_BALANCE env var after T+1 unsettled periods.
+    screener = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if screener:
+        try:
+            r = requests.get(f"{screener}/api/account_balance", timeout=5)
+            if r.status_code == 200:
+                stored = float(r.json().get("balance") or 0)
+                if stored > 0:
+                    print(f"💰 Balance from screener_app: ${stored:.2f} (last updated: {r.json().get('updated','?')})")
+                    return stored
+        except Exception as e:
+            print(f"⚠️  Could not read screener balance: {e}")
+
     manual = float(os.environ.get("ACCOUNT_BALANCE", "0"))
     if manual:
-        print(f"💰 Using manual balance: ${manual:.2f}")
+        print(f"💰 Using manual balance (env var): ${manual:.2f}")
         return manual
     print("⚠️  Could not read real balance — defaulting to $100")
     return 100.0
@@ -3042,7 +3056,14 @@ def main():
                     confidence_map[sym] = conf
         allowed, blocked = [], []
         for sym in candidates:
-            if sym in traded or sym == exclude_ticker:
+            if sym == exclude_ticker:
+                continue
+            if sym in traded:
+                # Previously traded — treat like soft NO-GO: only re-enter on HIGH confidence
+                if confidence_map.get(sym) == "HIGH" and sym not in h_nogo and sym not in s_nogo:
+                    allowed.append(sym)
+                else:
+                    blocked.append(f"{sym}(re-entry/not-HIGH)")
                 continue
             if sym in h_nogo:
                 blocked.append(sym)
@@ -3316,10 +3337,29 @@ def main():
         send_summary_email(analysis, None, current_balance)
 
     stream.stop()
+
+    # Persist the end-of-session balance to screener_app so tomorrow's startup
+    # reads the correct number instead of the stale ACCOUNT_BALANCE env var.
+    # Use display_balance (session start + P&L) — T+1 means Webull settled cash
+    # won't reflect today's proceeds until tomorrow anyway.
+    end_balance = balance + session_pnl
+    screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if screener_url:
+        try:
+            requests.post(
+                f"{screener_url}/api/update_account",
+                json={"balance": round(end_balance, 2)},
+                headers={"X-Dashboard-Secret": DASHBOARD_SECRET},
+                timeout=5,
+            )
+            print(f"💾 Saved end-of-session balance ${end_balance:.2f} to screener_app")
+        except Exception as e:
+            print(f"⚠️  Could not save balance to screener_app: {e}")
+
     print(f"\n{'='*60}")
     print(f"✅ SESSION COMPLETE — {trade_count} trade(s)")
     print(f"   Session P&L: ${session_pnl:+.2f}")
-    print(f"   Balance:     ${current_balance:.2f}")
+    print(f"   Balance:     ${end_balance:.2f}")
     print(f"{'='*60}\n")
 
 

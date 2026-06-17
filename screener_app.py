@@ -673,6 +673,11 @@ def update_account():
     return jsonify({"status": "ok", "balance": _account["balance"]})
 
 
+@app.route("/api/account_balance", methods=["GET"])
+def get_account_balance_api():
+    return jsonify({"balance": _account.get("balance", 0.0), "updated": _account.get("updated", "")})
+
+
 @app.route("/api/trades")
 def api_trades():
     return jsonify({"trades": _trades, "stats": _compute_stats(), "account": _account})

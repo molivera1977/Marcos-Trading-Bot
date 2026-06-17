@@ -1497,6 +1497,7 @@ Respond in this EXACT JSON format:
     {{
       "ticker": "SYMBOL",
       "verdict": "GO" or "NO-GO",
+      "score": 0,
       "reason": "Plain English explanation",
       "setup_confirmed": true or false,
       "entry_price": 0.00,
@@ -2971,15 +2972,27 @@ def main():
     analysis        = scan_state["analysis"]
 
     # ── Step 6: Build ranked candidate list ────────────────
-    # Lock in morning NO-GOs — a ticker MARCO rejected at 8:45am cannot be
-    # traded via rescan. It didn't gain a catalyst by 10:30am.
-    morning_nogo = {
-        t.get("ticker", "").upper()
-        for t in (analysis.get("tickers") or [])
-        if t.get("verdict") == "NO-GO"
-    }
-    if morning_nogo:
-        print(f"🚫 Morning NO-GO lock: {', '.join(sorted(morning_nogo))} — blocked for full session")
+    # Split morning NO-GOs into hard and soft locks:
+    #   hard_nogo (score ≤2): truly weak — locked all session, no override
+    #   soft_nogo (score 3+): narrative rejection (e.g. no news) on a decent
+    #                         setup — rescan can unlock ONLY if fresh analysis
+    #                         returns HIGH confidence (score 5+)
+    hard_nogo = set()
+    soft_nogo = set()
+    for t in (analysis.get("tickers") or []):
+        if t.get("verdict") != "NO-GO":
+            continue
+        sym   = t.get("ticker", "").upper()
+        score = int(t.get("score") or 0)
+        if score >= 3:
+            soft_nogo.add(sym)
+        else:
+            hard_nogo.add(sym)
+    morning_nogo = hard_nogo | soft_nogo
+    if hard_nogo:
+        print(f"🔒 Hard lock (score ≤2): {', '.join(sorted(hard_nogo))} — blocked all session")
+    if soft_nogo:
+        print(f"⚠️  Soft lock (score 3+): {', '.join(sorted(soft_nogo))} — need HIGH confidence rescan to trade")
 
     # Primary pick first, then any other GO tickers from Claude's analysis
     ranked_candidates = [ticker_to_trade]
@@ -3006,6 +3019,33 @@ def main():
     # settled pool (not from same-day proceeds), so no GFV risk as long as
     # settled_remaining >= MAX_TRADE_DOLLARS before each entry.
     settled_remaining     = balance
+
+    def _filter_rescan(candidates, fresh_analysis, traded, h_nogo, s_nogo, exclude_ticker=None):
+        """Filter rescan candidates: block hard NO-GOs, allow soft NO-GOs only on HIGH confidence."""
+        confidence_map = {}
+        for item in ([fresh_analysis.get("recommended_trade")] +
+                     (fresh_analysis.get("tickers") or [])):
+            if item and item.get("ticker"):
+                sym = item["ticker"].upper()
+                conf = str(item.get("confidence") or "").upper()
+                if conf:
+                    confidence_map[sym] = conf
+        allowed, blocked = [], []
+        for sym in candidates:
+            if sym in traded or sym == exclude_ticker:
+                continue
+            if sym in h_nogo:
+                blocked.append(sym)
+            elif sym in s_nogo:
+                if confidence_map.get(sym) == "HIGH":
+                    allowed.append(sym)
+                else:
+                    blocked.append(f"{sym}(soft/not-HIGH)")
+            else:
+                allowed.append(sym)
+        if blocked:
+            print(f"🚫 Rescan filtered: {', '.join(blocked)}")
+        return allowed
 
     while True:
         now = datetime.now(EASTERN)
@@ -3039,12 +3079,9 @@ def main():
                     sym = t.get("ticker", "").upper()
                     if sym and sym not in new_candidates and t.get("verdict") == "GO":
                         new_candidates.append(sym)
-                # Remove already-traded and morning NO-GO tickers
-                remaining_candidates = [t for t in new_candidates
-                                        if t not in traded_tickers and t not in morning_nogo]
-                blocked = [t for t in new_candidates if t in morning_nogo]
-                if blocked:
-                    print(f"🚫 Rescan blocked morning NO-GO(s): {', '.join(blocked)}")
+                remaining_candidates = _filter_rescan(
+                    new_candidates, fresh_analysis, traded_tickers,
+                    hard_nogo, soft_nogo)
                 # Subscribe stream to any new tickers
                 for t in remaining_candidates:
                     if t not in stream_tickers:
@@ -3061,7 +3098,7 @@ def main():
         # ── Step 8: Watch remaining GO tickers — first confirmed reclaim wins ──
         def _intraday_rescan(exclude=None):
             """Called every 10 min inside wait_for_vwap_entry to add fresh movers."""
-            exclude = (exclude or set()) | morning_nogo  # never resurface morning NO-GOs
+            exclude = (exclude or set()) | hard_nogo  # hard NO-GOs never resurface
             fresh = scan_morning_gappers()
             fresh_analysis = analyze_with_claude(
                 email_content, market_data, current_balance,
@@ -3137,10 +3174,9 @@ def main():
                     sym = t.get("ticker", "").upper()
                     if sym and sym not in new_candidates and t.get("verdict") == "GO":
                         new_candidates.append(sym)
-                remaining_candidates = [t for t in new_candidates
-                                        if t not in traded_tickers
-                                        and t != ticker_to_trade
-                                        and t not in morning_nogo]
+                remaining_candidates = _filter_rescan(
+                    new_candidates, fresh_analysis, traded_tickers,
+                    hard_nogo, soft_nogo, exclude_ticker=ticker_to_trade)
                 print(f"🔄 Rescan found: {' | '.join(remaining_candidates) or 'no new candidates'}")
             else:
                 remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
@@ -3166,10 +3202,9 @@ def main():
                     sym = t.get("ticker", "").upper()
                     if sym and sym not in new_candidates and t.get("verdict") == "GO":
                         new_candidates.append(sym)
-                remaining_candidates = [t for t in new_candidates
-                                        if t not in traded_tickers
-                                        and t != ticker_to_trade
-                                        and t not in morning_nogo]
+                remaining_candidates = _filter_rescan(
+                    new_candidates, fresh_analysis, traded_tickers,
+                    hard_nogo, soft_nogo, exclude_ticker=ticker_to_trade)
                 print(f"🔄 Rescan found: {' | '.join(remaining_candidates) or 'no new candidates'}")
             else:
                 remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]

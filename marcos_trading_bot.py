@@ -1181,6 +1181,19 @@ def get_intraday_bars(ticker, count=30):
     return []
 
 
+def calculate_90ma(bars) -> float:
+    """90-period simple moving average of close prices (Kev's second entry filter alongside VWAP)."""
+    if not bars:
+        return 0.0
+    closes = []
+    for b in bars[-90:]:
+        c = b.get("close") or b.get("c") or b.get("vwap") or 0
+        try:
+            closes.append(float(c))
+        except (TypeError, ValueError):
+            pass
+    return sum(closes) / len(closes) if closes else 0.0
+
 def calculate_vwap(bars) -> float:
     """Calculate VWAP from 1-minute bars. Handles camelCase and snake_case field names."""
     total_pv, total_vol = 0, 0
@@ -1353,7 +1366,7 @@ YOUR PERSONALITY AND EDGE:
 Today's date: {datetime.now(EASTERN).strftime("%A, %B %d, %Y")}
 Account balance: ${account_balance:.2f}
 Market open: 9:30am ET
-Entry: VWAP reclaim — price must hold above VWAP for 3 consecutive polls (≈9s) with 1.5× volume
+Entry: VWAP + 90MA reclaim — price must hold above BOTH for 3 consecutive polls (≈9s) with 1.5× volume
 Trading window: Entry by 3:30pm ET, force close all positions by 3:45pm ET
 
 {market_context_section}
@@ -1408,12 +1421,39 @@ is a trade. A murky 4-point setup with red flags is a pass. Use judgment.
   SPY -1% to +1%: MEDIUM sizing on your best setup
   SPY > +1%: full confidence sizing — momentum market, attack it
 
-━━━ KEV'S EMAIL ━━━
-  Kev is a professional small-cap momentum trader who scans pre-market AND intraday.
-  If Kev flagged it: that is real community awareness + professional read = +1 point (already scored above).
-  If Kev gave a specific break level (e.g. "watch $2.50 for a breakout") → that level is your VWAP proxy.
-  If his email is general commentary → use as context only.
-  The gapper scan is always a valid trade source independent of Kev's email.
+━━━ KEV'S METHODOLOGY (internalize this — it's how the best setups are found) ━━━
+  Kev is a professional small-cap momentum trader. His entry framework:
+
+  ENTRY TRIGGER — VWAP + 90MA reclaim together:
+  The bot watches for price to hold above BOTH VWAP and the 90-period MA for 3 ticks
+  with 1.5× volume. This is Kev's exact setup — a single VWAP cross without 90MA
+  confirmation is a false signal (what burned us on SUGP).
+
+  PRE-MARKET HIGHS = RESISTANCE:
+  If the stock tested VWAP in pre-market and got rejected twice, those rejection highs
+  are now resistance. The play only works if price can reclaim AND hold above those highs.
+  Flag this in your analysis: "pre-market VWAP rejections at $X.XX — needs to clear that."
+
+  PSYCHOLOGICAL LEVELS ($1, $2, $3, $5, $10):
+  Whole dollar levels are massive resistance. Kev's CCTG entry was specifically at
+  $1.10 — he waited for buyers to step OVER $1.00 before entering. When a stock is
+  approaching a whole dollar level, note it: "key psychological level at $X — entry is
+  the BREAK and HOLD above it, not the approach."
+
+  BOTTOMING TAILS ON PULLBACKS = RE-ENTRY:
+  After the first squeeze, Kev looks for pullbacks to VWAP + 90MA with wicks off the
+  low (buyers rejecting the dip). These are valid re-entries. Note in your plan if the
+  setup has a second-leg potential after the first halt/squeeze.
+
+  BACKSIDE AWARENESS:
+  Once a stock makes its big move and fails to break the next whole-dollar level,
+  the move is over. "Overtrading the backside" is how profits get given back.
+  Flag the exit signal: rejection candle at key level = done, take full exit.
+
+  KEV'S EMAIL:
+  If Kev flagged it: real community awareness + professional read = +1 point (scored above).
+  If Kev gave a specific break level → that IS the entry trigger, treat it as the psychological level.
+  If his email is general commentary → context only.
 
 ━━━ CATALYST NOTE ━━━
   News = real signal that drives sustained moves. "No news found" ≠ no trade — small floats
@@ -1429,7 +1469,7 @@ is a trade. A murky 4-point setup with red flags is a pass. Use judgment.
   Only skip on confirmed BAD news (dilution, offering, halt, SEC investigation).
 
 TRADING RULES (bot handles execution):
-- Entry: VWAP reclaim confirmed by 3 consecutive ticks above VWAP with 1.5× volume — no fakes
+- Entry: VWAP + 90MA reclaim confirmed by 3 consecutive ticks above BOTH levels with 1.5× volume — no fakes
 - Stop: 7% below entry
 - +10%: stop to breakeven
 - +15%: sell half, trail rest
@@ -1527,8 +1567,8 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
         traded_tickers = set()
     print(f"\n⏳ Watching {len(candidates)} candidate(s) for VWAP reclaim: {', '.join(candidates)}")
 
-    # Per-ticker bar cache: {ticker: {"bars": [...], "vwap": float, "fetched": float, "ticks_above": int}}
-    cache = {t: {"bars": [], "vwap": 0.0, "fetched": 0.0, "ticks_above": 0} for t in candidates}
+    # Per-ticker bar cache: {ticker: {"bars": [...], "vwap": float, "ma90": float, "fetched": float, "ticks_above": int}}
+    cache = {t: {"bars": [], "vwap": 0.0, "ma90": 0.0, "fetched": 0.0, "ticks_above": 0} for t in candidates}
     last_rescan = time.time()
 
     while True:
@@ -1551,6 +1591,7 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                 if fresh:
                     cache[t]["bars"]    = fresh
                     cache[t]["vwap"]    = calculate_vwap(fresh)
+                    cache[t]["ma90"]    = calculate_90ma(fresh)
                     cache[t]["fetched"] = time.time()
 
         # ── Check each ticker — take first confirmed reclaim ───────
@@ -1558,6 +1599,7 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
         for t in candidates:
             bars  = cache[t]["bars"]
             vwap  = cache[t]["vwap"]
+            ma90  = cache[t]["ma90"]
             price = stream.get_price(t)
 
             if not bars or price <= 0 or vwap <= 0:
@@ -1565,9 +1607,14 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                 continue
 
             pct = ((price - vwap) / vwap) * 100
-            status_parts.append(f"{t}:${price:.2f}({pct:+.1f}%)")
+            ma90_tag = f" 90MA:${ma90:.2f}" if ma90 > 0 else ""
+            status_parts.append(f"{t}:${price:.2f}({pct:+.1f}%){ma90_tag}")
 
-            if price > vwap:
+            # Kev's entry: price must be above BOTH VWAP and the 90MA
+            above_vwap = price > vwap
+            above_90ma = ma90 <= 0 or price > ma90   # if 90MA not yet available, don't block
+
+            if above_vwap and above_90ma:
                 cache[t]["ticks_above"] += 1
                 ticks = cache[t]["ticks_above"]
                 last_vol = float(bars[-1].get("volume") or bars[-1].get("v") or 0)
@@ -1577,16 +1624,19 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                 if ticks < VWAP_CONFIRM_TICKS:
                     status_parts[-1] += f" ⏳{ticks}/{VWAP_CONFIRM_TICKS}ticks"
                 elif vol_ok:
-                    print(f"\n✅ {t} VWAP reclaim confirmed! "
-                          f"${price:.2f} > VWAP ${vwap:.2f} "
+                    print(f"\n✅ {t} VWAP+90MA reclaim confirmed! "
+                          f"${price:.2f} > VWAP ${vwap:.2f} & 90MA ${ma90:.2f} "
                           f"held {ticks} ticks with {last_vol/avg_vol:.1f}× avg volume")
                     return t, price, vwap
                 else:
                     status_parts[-1] += f" ⏳holding({ticks}ticks) ⚠️vol:{last_vol/avg_vol:.1f}x"
             else:
                 if cache[t]["ticks_above"] > 0:
-                    print(f"   {t} dropped back below VWAP after {cache[t]['ticks_above']} tick(s) — resetting")
+                    reason = "VWAP" if not above_vwap else "90MA"
+                    print(f"   {t} dropped back below {reason} after {cache[t]['ticks_above']} tick(s) — resetting")
                 cache[t]["ticks_above"] = 0
+                if above_vwap and not above_90ma:
+                    status_parts[-1] += f" ⚠️below90MA"
 
         print(f"📊 {' | '.join(status_parts)}")
 
@@ -1598,7 +1648,7 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                 for t in new_candidates:
                     if t not in candidates:
                         candidates.append(t)
-                        cache[t] = {"bars": [], "vwap": 0.0, "fetched": 0.0}
+                        cache[t] = {"bars": [], "vwap": 0.0, "ma90": 0.0, "fetched": 0.0, "ticks_above": 0}
                         print(f"   ➕ Added {t} to watchlist")
             last_rescan = time.time()
 

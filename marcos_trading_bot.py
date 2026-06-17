@@ -1724,19 +1724,56 @@ def _place_order(ticker, shares, side, order_type,
     return None
 
 
+def get_actual_fill_price(order_id, timeout_secs=8):
+    """
+    Poll Webull for the actual average fill price of a buy order.
+    Returns the fill price, or None if it can't be read in time.
+    """
+    _, trade_client = _make_webull_client()
+    if not trade_client:
+        return None
+    deadline = time.time() + timeout_secs
+    while time.time() < deadline:
+        try:
+            res = trade_client.order_v2.query_order_detail(WEBULL_ACCOUNT_ID, order_id)
+            if res.status_code == 200:
+                data = res.json()
+                if isinstance(data.get("data"), dict):
+                    data = data["data"]
+                status = str(data.get("status") or data.get("orderStatus") or "").upper()
+                if "FILL" in status or "FILLED" in status:
+                    price = float(
+                        data.get("avgFilledPrice") or
+                        data.get("avg_filled_price") or
+                        data.get("filledPrice") or
+                        data.get("filled_price") or
+                        data.get("averagePrice") or
+                        data.get("average_price") or 0
+                    )
+                    if price > 0:
+                        print(f"✅ Actual fill price confirmed: ${price:.2f}")
+                        return price
+        except Exception as e:
+            print(f"⚠️ Fill price check error: {e}")
+        time.sleep(1)
+    print("⚠️ Could not confirm fill price from Webull — using trigger price")
+    return None
+
+
 def execute_trade(ticker, shares, entry_price, stop_loss, target):
     """
     Places a limit buy order (1% above VWAP entry) then a stop order.
     Using LMT instead of MKT caps slippage on small-float fast-moving stocks.
     Retries the buy order once after 3s on transient API failures.
-    Returns (buy_client_order_id, stop_client_order_id) — both needed to manage the trade.
-    Returns (None, None) on failure.
+    Returns (buy_client_order_id, stop_client_order_id, actual_fill_price).
+    actual_fill_price is the confirmed Webull fill — use it for stop/target/P&L.
+    Returns (None, None, None) on failure.
     """
     if DRY_RUN:
         fake_id = uuid.uuid4().hex
         print(f"🧪 DRY RUN — simulating BUY {shares} shares of {ticker} @ ${entry_price:.2f}")
         print(f"   Stop: ${stop_loss:.2f}  Target: ${target:.2f}")
-        return fake_id, uuid.uuid4().hex
+        return fake_id, uuid.uuid4().hex, entry_price
 
     shares      = max(1, int(shares))   # Webull requires whole shares
     decimals    = 2 if entry_price >= 1.0 else 4
@@ -1751,13 +1788,18 @@ def execute_trade(ticker, shares, entry_price, stop_loss, target):
         buy_id = _place_order(ticker, shares, "BUY", "LIMIT", limit_price=limit_price)
     if not buy_id:
         print(f"❌ Buy order failed after retry for {ticker}")
-        return None, None
+        return None, None, None
 
     print(f"✅ Buy order placed! Client ID: {buy_id}")
-    time.sleep(2)   # Let fill confirm before placing stop
+
+    # Read actual fill price before placing stop — stop must be based on real entry
+    actual_fill = get_actual_fill_price(buy_id, timeout_secs=8) or entry_price
+    if actual_fill != entry_price:
+        print(f"📊 Fill slippage: trigger ${entry_price:.2f} → actual fill ${actual_fill:.2f} "
+              f"({((actual_fill - entry_price) / entry_price * 100):+.2f}%)")
 
     stop_id = place_stop_order(ticker, shares, stop_loss)
-    return buy_id, stop_id
+    return buy_id, stop_id, actual_fill
 
 
 def close_position(ticker, shares):
@@ -3089,7 +3131,7 @@ def main():
             continue
 
         # ── Step 8b: Execute ───────────────────────────────────
-        order_id, stop_order_id = execute_trade(
+        order_id, stop_order_id, actual_fill = execute_trade(
             ticker_to_trade, shares, entry_price, stop_loss, target_price
         )
         if not order_id:
@@ -3116,6 +3158,14 @@ def main():
             continue
 
         trade_entered.set()   # stop any pending 9:45am rescan from switching ticker
+
+        # Use actual fill price for all downstream calculations — stop and target
+        # must be based on what we actually paid, not the VWAP trigger price
+        if actual_fill and actual_fill != entry_price:
+            entry_price  = actual_fill
+            stop_loss    = round(entry_price * (1 - STOP_LOSS_PCT), 4)
+            target_price = round(entry_price * (1 + TARGET_PCT), 4)
+            shares       = max(1, int(position_size / entry_price))
 
         # Register open position so SIGTERM handler can alert if bot is killed mid-trade
         _open_trade.update({

@@ -201,6 +201,7 @@ SPY_BEAR_SKIP_PCT     = -1.0   # Skip the day entirely if SPY pre-market < -1%
 MAX_SPREAD_PCT        = 0.03   # Skip entry if bid-ask spread > 3% of ask price
 VWAP_VOL_MULTIPLIER   = 1.5    # Require 1.5× average minute volume for VWAP reclaim confirmation
 VWAP_CONFIRM_TICKS   = 3      # Price must hold above VWAP for this many consecutive polls before entry
+MAX_VWAP_EXTENSION   = 0.15   # Don't enter if price is >15% above VWAP — too extended, fade risk
 TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 7 days
 LOG_FILE              = "/tmp/trade_log.csv"
 DRY_RUN    = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
@@ -1629,6 +1630,15 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
             above_90ma = ma90 <= 0 or price > ma90   # if 90MA not yet available, don't block
 
             if above_vwap and above_90ma:
+                # Reject entry if price is too extended above VWAP — chasing a
+                # stock 31% above VWAP (like ICCM at $7.91 vs VWAP $6.04) is a
+                # fade setup, not a reclaim. Wait for price to come back in range.
+                extension = (price - vwap) / vwap
+                if extension > MAX_VWAP_EXTENSION:
+                    cache[t]["ticks_above"] = 0
+                    status_parts[-1] += f" 🚫EXTENDED(+{extension*100:.0f}%>VWAP)"
+                    continue
+
                 cache[t]["ticks_above"] += 1
                 ticks = cache[t]["ticks_above"]
                 last_vol = float(bars[-1].get("volume") or bars[-1].get("v") or 0)

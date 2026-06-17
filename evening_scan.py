@@ -86,6 +86,28 @@ def get_news(ticker: str) -> list:
     except Exception:
         return ["News unavailable"]
 
+# ── Read Kev's transcript from screener app (submitted via web form) ────────
+def read_kev_from_screener() -> str:
+    """
+    Checks the screener app API for a Kev transcript submitted today via the web form.
+    This is the most reliable source — no email, no file system, just a direct API call.
+    """
+    if not SCREENER_URL:
+        return ""
+    try:
+        r = requests.get(f"{SCREENER_URL}/api/kev_picks", timeout=8)
+        if r.status_code == 200:
+            data = r.json()
+            transcript = data.get("transcript", "")
+            saved_at   = data.get("saved_at_display", "")
+            if transcript:
+                print(f"✅ Kev's picks loaded from screener (saved {saved_at}, {len(transcript)} chars)")
+                return transcript
+    except Exception as e:
+        print(f"⚠️  Screener kev picks error: {e}")
+    return ""
+
+
 # ── Read Kev's transcript from local iCloud folder ─────────────────────────
 def read_kev_lesson_file(today_only: bool = True) -> str:
     """
@@ -722,11 +744,15 @@ def main():
 
     kev_email = ""
     while True:
-        # Check local iCloud file first (immediate, no IMAP) — works when user saves transcript
+        # 1. Screener web form (most reliable — user pastes transcript directly)
+        kev_email = read_kev_from_screener()
+        if kev_email:
+            break
+        # 2. Local iCloud file (works when running on Mac)
         kev_email = read_kev_lesson_file(today_only=True)
         if kev_email:
             break
-        # Fall back to IMAP — checks both inbox and Sent folder
+        # 3. IMAP email — checks both inbox and Sent folder
         kev_email = read_kev_evening_email(today_only=True)
         if kev_email:
             break

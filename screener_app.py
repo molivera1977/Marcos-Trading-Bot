@@ -41,7 +41,9 @@ app = Flask(__name__)
 _trades: list = []
 _account: dict = {"balance": 0.0, "updated": ""}
 _evening_watchlist: dict = {}          # Latest watchlist from evening scan
+_kev_picks: dict = {}                  # Kev's transcript submitted via web form
 WATCHLIST_FILE = pathlib.Path("/tmp/marcos_evening_watchlist.json")
+KEV_PICKS_FILE = pathlib.Path("/tmp/marcos_kev_picks.json")
 
 def _load_watchlist():
     global _evening_watchlist
@@ -56,6 +58,20 @@ def _save_watchlist():
         WATCHLIST_FILE.write_text(json.dumps(_evening_watchlist, indent=2))
     except Exception as e:
         print(f"⚠️  Could not save watchlist: {e}")
+
+def _load_kev_picks():
+    global _kev_picks
+    if KEV_PICKS_FILE.exists():
+        try:
+            _kev_picks = json.loads(KEV_PICKS_FILE.read_text())
+        except Exception:
+            pass
+
+def _save_kev_picks():
+    try:
+        KEV_PICKS_FILE.write_text(json.dumps(_kev_picks, indent=2))
+    except Exception as e:
+        print(f"⚠️  Could not save Kev picks: {e}")
 
 def _load_trades():
     global _trades, _account
@@ -107,6 +123,7 @@ def _compute_stats():
 
 _load_trades()
 _load_watchlist()
+_load_kev_picks()
 
 # ── Webull helpers ─────────────────────────────────────────────────────────────
 
@@ -498,7 +515,82 @@ setInterval(function(){
   var h = parseInt(etHour);
   if(h>=4&&h<17){runScan();}
 },5*60*1000);
+
+// ── Kev's Picks modal ──────────────────────────────────────────────────────
+function openKevModal(){
+  document.getElementById('kev-modal').style.display='flex';
+  document.getElementById('kev-textarea').focus();
+  // Show saved status if already submitted today
+  fetch('/api/kev_picks').then(r=>r.json()).then(function(d){
+    if(d.transcript){
+      document.getElementById('kev-status').textContent='Last saved: '+d.saved_at_display;
+      document.getElementById('kev-textarea').value=d.transcript;
+    }
+  }).catch(function(){});
+}
+function closeKevModal(){
+  document.getElementById('kev-modal').style.display='none';
+}
+function submitKevPicks(){
+  var text=document.getElementById('kev-textarea').value.trim();
+  if(!text){alert('Paste Kev\\'s transcript first.');return;}
+  var btn=document.getElementById('kev-submit-btn');
+  btn.disabled=true;btn.textContent='Saving…';
+  fetch('/api/kev_picks',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({transcript:text})
+  }).then(function(r){return r.json()}).then(function(d){
+    if(d.status==='ok'){
+      document.getElementById('kev-status').textContent='✅ Saved ('+d.chars+' chars) — evening scan will pick this up';
+      btn.textContent='Saved!';
+      setTimeout(function(){closeKevModal();btn.disabled=false;btn.textContent='Save Kev\\'s Picks';},1500);
+    } else {
+      btn.disabled=false;btn.textContent='Save Kev\\'s Picks';
+      alert('Error: '+(d.error||'unknown'));
+    }
+  }).catch(function(e){
+    btn.disabled=false;btn.textContent='Save Kev\\'s Picks';
+    alert('Network error: '+e);
+  });
+}
 </script>
+
+<!-- Floating Kev button -->
+<button onclick="openKevModal()" style="position:fixed;bottom:24px;right:24px;z-index:100;
+  background:#1a3a2a;color:#3fb950;border:1px solid #2d5a3d;border-radius:50px;
+  font-family:inherit;font-size:14px;font-weight:600;padding:12px 20px;cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,0,0,.4)">📝 Kev's Picks</button>
+
+<!-- Modal overlay -->
+<div id="kev-modal" style="display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:16px">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:14px;
+    width:100%;max-width:540px;padding:24px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:700">📝 Kev's Picks</div>
+        <div style="font-size:12px;color:#8b949e;margin-top:2px">Paste tonight's full transcript</div>
+      </div>
+      <button onclick="closeKevModal()" style="background:none;border:none;color:#8b949e;
+        font-size:22px;cursor:pointer;padding:4px 8px">×</button>
+    </div>
+    <textarea id="kev-textarea" placeholder="Paste Kev's full transcript here — tickers, levels, setup explanations, everything..." style="
+      width:100%;height:220px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;
+      border-radius:8px;padding:12px;font-family:inherit;font-size:13px;line-height:1.6;
+      resize:vertical;outline:none"></textarea>
+    <div id="kev-status" style="font-size:12px;color:#8b949e;min-height:16px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeKevModal()" style="padding:9px 18px;border-radius:8px;
+        border:1px solid #30363d;background:transparent;color:#8b949e;font-family:inherit;
+        font-size:13px;cursor:pointer">Cancel</button>
+      <button id="kev-submit-btn" onclick="submitKevPicks()" style="padding:9px 20px;
+        border-radius:8px;border:1px solid #2d5a3d;background:#1a3a2a;color:#3fb950;
+        font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Save Kev's Picks</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
 """
@@ -603,6 +695,34 @@ def save_evening_watchlist():
 @app.route("/api/evening_watchlist", methods=["GET"])
 def get_evening_watchlist():
     return jsonify(_evening_watchlist)
+
+
+@app.route("/api/kev_picks", methods=["POST"])
+def save_kev_picks():
+    global _kev_picks
+    data = request.get_json(silent=True) or {}
+    transcript = (data.get("transcript") or "").strip()
+    if not transcript:
+        return jsonify({"error": "transcript required"}), 400
+    now_et = datetime.now(EASTERN)
+    _kev_picks = {
+        "transcript": transcript,
+        "date": now_et.strftime("%Y-%m-%d"),
+        "saved_at": now_et.isoformat(),
+        "saved_at_display": now_et.strftime("%I:%M %p ET"),
+    }
+    _save_kev_picks()
+    print(f"📝 Kev's picks saved ({len(transcript)} chars)")
+    return jsonify({"status": "ok", "chars": len(transcript)})
+
+
+@app.route("/api/kev_picks", methods=["GET"])
+def get_kev_picks():
+    # Only return if saved today — don't let yesterday's picks bleed in
+    today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    if _kev_picks.get("date") == today:
+        return jsonify(_kev_picks)
+    return jsonify({})
 
 
 @app.route("/dashboard")

@@ -2971,6 +2971,16 @@ def main():
     analysis        = scan_state["analysis"]
 
     # ── Step 6: Build ranked candidate list ────────────────
+    # Lock in morning NO-GOs — a ticker MARCO rejected at 8:45am cannot be
+    # traded via rescan. It didn't gain a catalyst by 10:30am.
+    morning_nogo = {
+        t.get("ticker", "").upper()
+        for t in (analysis.get("tickers") or [])
+        if t.get("verdict") == "NO-GO"
+    }
+    if morning_nogo:
+        print(f"🚫 Morning NO-GO lock: {', '.join(sorted(morning_nogo))} — blocked for full session")
+
     # Primary pick first, then any other GO tickers from Claude's analysis
     ranked_candidates = [ticker_to_trade]
     for t in (analysis.get("tickers") or []):
@@ -3029,8 +3039,12 @@ def main():
                     sym = t.get("ticker", "").upper()
                     if sym and sym not in new_candidates and t.get("verdict") == "GO":
                         new_candidates.append(sym)
-                # Remove already-traded tickers
-                remaining_candidates = [t for t in new_candidates if t not in traded_tickers]
+                # Remove already-traded and morning NO-GO tickers
+                remaining_candidates = [t for t in new_candidates
+                                        if t not in traded_tickers and t not in morning_nogo]
+                blocked = [t for t in new_candidates if t in morning_nogo]
+                if blocked:
+                    print(f"🚫 Rescan blocked morning NO-GO(s): {', '.join(blocked)}")
                 # Subscribe stream to any new tickers
                 for t in remaining_candidates:
                     if t not in stream_tickers:
@@ -3047,7 +3061,7 @@ def main():
         # ── Step 8: Watch remaining GO tickers — first confirmed reclaim wins ──
         def _intraday_rescan(exclude=None):
             """Called every 10 min inside wait_for_vwap_entry to add fresh movers."""
-            exclude = exclude or set()
+            exclude = (exclude or set()) | morning_nogo  # never resurface morning NO-GOs
             fresh = scan_morning_gappers()
             fresh_analysis = analyze_with_claude(
                 email_content, market_data, current_balance,
@@ -3124,7 +3138,9 @@ def main():
                     if sym and sym not in new_candidates and t.get("verdict") == "GO":
                         new_candidates.append(sym)
                 remaining_candidates = [t for t in new_candidates
-                                        if t not in traded_tickers and t != ticker_to_trade]
+                                        if t not in traded_tickers
+                                        and t != ticker_to_trade
+                                        and t not in morning_nogo]
                 print(f"🔄 Rescan found: {' | '.join(remaining_candidates) or 'no new candidates'}")
             else:
                 remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
@@ -3151,7 +3167,9 @@ def main():
                     if sym and sym not in new_candidates and t.get("verdict") == "GO":
                         new_candidates.append(sym)
                 remaining_candidates = [t for t in new_candidates
-                                        if t not in traded_tickers and t != ticker_to_trade]
+                                        if t not in traded_tickers
+                                        and t != ticker_to_trade
+                                        and t not in morning_nogo]
                 print(f"🔄 Rescan found: {' | '.join(remaining_candidates) or 'no new candidates'}")
             else:
                 remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]

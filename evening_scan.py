@@ -181,6 +181,7 @@ def read_kev_evening_email(today_only: bool = False) -> str:
 # ── Evening scan ─────────────────────────────────────────────────────────────
 def scan_today_movers() -> list:
     print("🔍 Scanning today's movers...")
+    socket.setdefaulttimeout(30)   # Webull screener hangs after hours without this
     data_client = _make_data_client()
     candidates = {}
 
@@ -252,8 +253,25 @@ def scan_today_movers() -> list:
     except Exception as e:
         print(f"⚠️  Volume error: {e}")
 
-    # Enrich with float, news, day stats via yfinance
+    # If Webull screener returned nothing (common after hours), fall back to yfinance movers
     import yfinance as yf
+    if not candidates:
+        print("⚠️  Webull screener returned nothing — falling back to yfinance top movers")
+        fallback_tickers = ["CCTG","AHMA","SUGP","SOPA","MARA","RIOT","AGFY","ABAT",
+                            "VERB","IMPP","ILUS","PROG","BBIG","ATER","CLOV","WISH"]
+        for sym in fallback_tickers:
+            try:
+                info  = yf.Ticker(sym).fast_info
+                price = getattr(info, "last_price", 0) or 0
+                if 0.50 <= price <= 30:
+                    candidates[sym] = {
+                        "symbol": sym, "change_pct": 0, "price": round(price, 2),
+                        "volume": 0, "market_cap": 0, "source": "yfinance_fallback",
+                    }
+            except Exception:
+                pass
+        print(f"   Fallback: {len(candidates)} tickers to check")
+
     results = []
     print(f"   Checking float + news for {len(candidates)} candidates...")
     for sym, g in candidates.items():

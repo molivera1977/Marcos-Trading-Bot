@@ -2325,14 +2325,16 @@ def send_partial_exit_alert(ticker, half_shares, partial_price, entry_price,
 # STEP 8 — FINAL SUMMARY EMAIL
 # ============================================================
 
-def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_log_line=""):
+def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_log_line="", traded_ticker=None):
     print(f"📨 Sending summary email to {SUMMARY_EMAIL}...")
     today   = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
     dry_tag = "[DRY RUN] " if DRY_RUN else ""
 
     if trade_result and analysis:
         recommended = analysis.get("recommended_trade", {})
-        ticker      = recommended.get("ticker", "N/A")
+        # Use the actual traded ticker if provided — analysis may reflect a
+        # different ticker when the bot pivoted to a rescan pick
+        ticker      = traded_ticker or recommended.get("ticker", "N/A")
         pnl         = trade_result.get("profit_loss", 0)
         pnl_pct     = trade_result.get("profit_loss_pct", 0)
         exit_reason = trade_result.get("exit_reason", "N/A")
@@ -3177,7 +3179,13 @@ def main():
             "account_balance": current_balance,
         })
 
-        send_summary_email(analysis, trade_result, current_balance, csv_log_line=csv_row)
+        # Display balance = session start balance + cumulative P&L.
+        # Do NOT use get_account_balance() here — it returns settled cash only,
+        # and just-sold proceeds won't settle until T+1, making the balance look
+        # ~$100 lower than reality.
+        display_balance = balance + session_pnl
+        send_summary_email(analysis, trade_result, display_balance,
+                           csv_log_line=csv_row, traded_ticker=ticker_to_trade)
 
         settled_remaining -= MAX_TRADE_DOLLARS  # deduct from settled pool (not reusing proceeds)
 

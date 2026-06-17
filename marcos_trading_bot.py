@@ -2071,6 +2071,27 @@ def post_balance_to_dashboard(balance: float):
         pass
 
 
+def _fetch_kev_picks_from_screener() -> str:
+    """
+    Read Kev's transcript submitted via the screener web form today.
+    Returns the full transcript text, or empty string if not found / not today's.
+    """
+    if not SCREENER_URL:
+        return ""
+    try:
+        r = requests.get(f"{SCREENER_URL}/api/kev_picks", timeout=8)
+        if r.status_code == 200:
+            data = r.json()
+            transcript = data.get("transcript", "")
+            saved_at   = data.get("saved_at_display", "")
+            if transcript:
+                print(f"✅ Kev's picks loaded from screener (saved {saved_at}, {len(transcript)} chars)")
+                return transcript
+    except Exception as e:
+        print(f"⚠️  Screener kev picks fetch error: {e}")
+    return ""
+
+
 def _fetch_evening_watchlist() -> dict:
     """
     Fetch last night's watchlist from the screener app.
@@ -2646,9 +2667,19 @@ def main():
     if DRY_RUN:
         print("🧪 DRY RUN MODE — all trades will be simulated, no real orders placed")
 
-    # ── Step 1: Read iCloud email ──────────────────────────
-    print("🔄 Step: reading iCloud email...")
-    subject, email_content = read_todays_tickers()
+    # ── Step 1: Read Kev's picks ───────────────────────────
+    # Primary: screener web form (user pastes transcript directly — most reliable)
+    # Fallback: iCloud IMAP email
+    print("🔄 Step: reading Kev's picks...")
+    kev_screener = _fetch_kev_picks_from_screener()
+    if kev_screener:
+        subject = "Kev's Picks (screener)"
+        email_content = kev_screener
+        print(f"📝 Using Kev's transcript from screener ({len(email_content)} chars)")
+    else:
+        print("🔄 Screener empty — falling back to iCloud email...")
+        subject, email_content = read_todays_tickers()
+
     if not email_content:
         send_summary_email(None, None, get_account_balance())
         return

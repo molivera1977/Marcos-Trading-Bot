@@ -3202,21 +3202,53 @@ def main():
     print(f"{'='*60}\n")
 
 
+def next_trading_open(now_et):
+    """Return the next 8:45am ET weekday datetime from now."""
+    candidate = now_et.replace(hour=8, minute=45, second=0, microsecond=0)
+    if now_et >= candidate:
+        candidate += timedelta(days=1)
+    while candidate.weekday() >= 5:
+        candidate += timedelta(days=1)
+    return candidate
+
+
+def in_trading_window(now_et):
+    """True if we should be scanning/trading right now."""
+    if now_et.weekday() >= 5:
+        return False
+    past_open  = (now_et.hour, now_et.minute) >= (8, 45)
+    past_close = now_et.hour > VWAP_ENTRY_TIMEOUT or (
+        now_et.hour == VWAP_ENTRY_TIMEOUT and now_et.minute >= VWAP_ENTRY_TIMEOUT_MIN
+    )
+    return past_open and not past_close
+
+
 if __name__ == "__main__":
     RESCAN_INTERVAL_MINUTES = 30
 
+    print("🤖 Marcos Trading Bot — always-on worker mode")
+
     while True:
+        now_et = datetime.now(EASTERN)
+
+        if not in_trading_window(now_et):
+            wake = next_trading_open(now_et)
+            sleep_secs = (wake - now_et).total_seconds()
+            print(f"💤 Outside trading hours — sleeping until {wake.strftime('%A %b %d at 8:45am ET')} ({sleep_secs/3600:.1f}h away)")
+            time.sleep(sleep_secs)
+            continue
+
+        # In trading window — run a full scan/trade session
         main()
 
         now_et = datetime.now(EASTERN)
-        cutoff = now_et.hour > VWAP_ENTRY_TIMEOUT or (
-            now_et.hour == VWAP_ENTRY_TIMEOUT and now_et.minute >= VWAP_ENTRY_TIMEOUT_MIN
-        )
-        if cutoff or now_et.weekday() >= 5:
-            print("⏰ Past 3:30pm or weekend — done for today.")
-            break
-
-        next_et = now_et.hour * 60 + now_et.minute + RESCAN_INTERVAL_MINUTES
-        next_h, next_m = divmod(next_et, 60)
-        print(f"\n🔄 Auto-rescan in {RESCAN_INTERVAL_MINUTES} min (~{next_h}:{next_m:02d} ET) — looking for new setups...")
-        time.sleep(RESCAN_INTERVAL_MINUTES * 60)
+        if not in_trading_window(now_et):
+            wake = next_trading_open(now_et)
+            sleep_secs = (wake - now_et).total_seconds()
+            print(f"⏰ Session complete — sleeping until {wake.strftime('%A %b %d at 8:45am ET')} ({sleep_secs/3600:.1f}h away)")
+            time.sleep(sleep_secs)
+        else:
+            next_et_min = now_et.hour * 60 + now_et.minute + RESCAN_INTERVAL_MINUTES
+            next_h, next_m = divmod(next_et_min, 60)
+            print(f"\n🔄 Auto-rescan in {RESCAN_INTERVAL_MINUTES} min (~{next_h}:{next_m:02d} ET) — looking for new setups...")
+            time.sleep(RESCAN_INTERVAL_MINUTES * 60)

@@ -30,6 +30,9 @@ EMAIL_ADDRESS      = os.environ.get("EMAIL_ADDRESS", "molivera1977@icloud.com")
 EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD", "")
 IMAP_SERVER        = "imap.mail.me.com"
 IMAP_PORT          = 993
+ICLOUD_PICKS_DIR   = os.path.expanduser(
+    "~/Library/Mobile Documents/com~apple~CloudDocs/Downloads - iCloud Drive/Kev's Picks"
+)
 
 # ── Webull client ───────────────────────────────────────────────────────────
 def _pre_populate_token():
@@ -83,6 +86,35 @@ def get_news(ticker: str) -> list:
     except Exception:
         return ["News unavailable"]
 
+# ── Read Kev's transcript from local iCloud folder ─────────────────────────
+def read_kev_lesson_file(today_only: bool = True) -> str:
+    """
+    Check ~/iCloud Drive/Kev's Picks/ for today's transcript file.
+    Filename format: 'Lessons from M:D:YY.txt' (macOS uses : instead of / in filenames).
+    Returns file content, or empty string if not found (e.g., when running on Railway).
+    """
+    def _try_date(dt) -> str:
+        fname = f"Lessons from {dt.month}:{dt.day}:{str(dt.year)[2:]}.txt"
+        fpath = os.path.join(ICLOUD_PICKS_DIR, fname)
+        if os.path.exists(fpath):
+            try:
+                content = pathlib.Path(fpath).read_text(encoding="utf-8").strip()
+                if content:
+                    print(f"📂 Kev's lesson file found: {fname} ({len(content)} chars)")
+                    return content
+            except Exception as e:
+                print(f"⚠️  Lesson file read error: {e}")
+        return ""
+
+    now_et = datetime.now(EASTERN)
+    result = _try_date(now_et)
+    if result:
+        return result
+    if not today_only:
+        result = _try_date(now_et - timedelta(days=1))
+    return result
+
+
 # ── Read Kev's evening email/transcript ────────────────────────────────────
 def read_kev_evening_email(today_only: bool = False) -> str:
     """
@@ -96,26 +128,27 @@ def read_kev_evening_email(today_only: bool = False) -> str:
         print("⚠️  No EMAIL_APP_PASSWORD — cannot read Kev's email")
         return ""
     print("📧 Checking iCloud email for Kev's evening watchlist...")
-    try:
-        socket.setdefaulttimeout(20)
-        mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
-        mail.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
-        mail.select("inbox")
+    from email.utils import parsedate_to_datetime
 
-        since_date = (datetime.now() - timedelta(days=1)).strftime("%d-%b-%Y")
-        _, all_msgs = mail.search(None, f'(SINCE "{since_date}")')
-        all_ids = all_msgs[0].split() if all_msgs[0] else []
-        if not all_ids:
-            print("⚠️  No recent emails found in iCloud")
-            mail.logout()
-            return ""
+    today_et     = datetime.now(EASTERN).date()
+    yesterday_et = today_et - timedelta(days=1)
+    skip_words   = {"THE","FOR","AND","NOT","ALL","DAY","TOP","NEW","BIG","HOT",
+                    "RE","AI","ET","FW","FWD","TO","IN","UP","AM","PM"}
+    since_date   = (datetime.now() - timedelta(days=1)).strftime("%d-%b-%Y")
 
-        today_et     = datetime.now(EASTERN).date()
-        yesterday_et = today_et - timedelta(days=1)
-        skip_words   = {"THE","FOR","AND","NOT","ALL","DAY","TOP","NEW","BIG","HOT",
-                        "RE","AI","ET","FW","FWD","TO","IN","UP","AM","PM"}
-
-        from email.utils import parsedate_to_datetime
+    def _search_mailbox(mail, mailbox_name) -> tuple:
+        """Search one mailbox, return (best_id, best_score, best_subject)."""
+        try:
+            status, _ = mail.select(mailbox_name)
+            if status != "OK":
+                return None, -1, ""
+        except Exception:
+            return None, -1, ""
+        try:
+            _, all_msgs = mail.search(None, f'(SINCE "{since_date}")')
+            all_ids = all_msgs[0].split() if all_msgs[0] else []
+        except Exception:
+            return None, -1, ""
 
         best_id, best_score, best_subject = None, -1, ""
         for msg_id in all_ids:
@@ -128,14 +161,13 @@ def read_kev_evening_email(today_only: bool = False) -> str:
                 date_str = hdr.get("date", "") or ""
 
                 recency = 0
-                sent_date = None
                 try:
                     sent_date = parsedate_to_datetime(date_str).astimezone(EASTERN).date()
                     if sent_date == today_et:
                         recency = 20
                     elif sent_date == yesterday_et:
                         if today_only:
-                            continue   # polling mode: ignore yesterday's email
+                            continue
                         recency = 10
                 except Exception:
                     pass
@@ -150,11 +182,28 @@ def read_kev_evening_email(today_only: bool = False) -> str:
                     best_score, best_subject, best_id = score, subj, msg_id
             except Exception:
                 pass
+        return best_id, best_score, best_subject
+
+    try:
+        socket.setdefaulttimeout(20)
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
+        mail.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
+
+        # Check both inbox and Sent — self-sent emails from iCloud go to Sent
+        inbox_id, inbox_score, inbox_subj = _search_mailbox(mail, "inbox")
+        sent_id,  sent_score,  sent_subj  = _search_mailbox(mail, "Sent Messages")
+
+        if inbox_score >= sent_score:
+            best_id, best_score, best_subject, best_mailbox = inbox_id, inbox_score, inbox_subj, "inbox"
+        else:
+            best_id, best_score, best_subject, best_mailbox = sent_id, sent_score, sent_subj, "Sent Messages"
 
         if best_id is None:
+            print("⚠️  No matching email found in inbox or Sent")
             mail.logout()
             return ""
 
+        mail.select(best_mailbox)
         _, body_data = mail.fetch(best_id, "(RFC822)")
         raw_b = next((p[1] for p in body_data if isinstance(p, tuple)), b"")
         msg_b = email.message_from_bytes(raw_b)
@@ -171,7 +220,7 @@ def read_kev_evening_email(today_only: bool = False) -> str:
 
         mail.logout()
         if body:
-            print(f"✅ Kev's email found (score={best_score}): {best_subject[:70]!r}")
+            print(f"✅ Kev's email found in {best_mailbox} (score={best_score}): {best_subject[:70]!r}")
             return f"{best_subject}\n\n{body}"
         return ""
     except Exception as e:
@@ -673,9 +722,13 @@ def main():
 
     kev_email = ""
     while True:
+        # Check local iCloud file first (immediate, no IMAP) — works when user saves transcript
+        kev_email = read_kev_lesson_file(today_only=True)
+        if kev_email:
+            break
+        # Fall back to IMAP — checks both inbox and Sent folder
         kev_email = read_kev_evening_email(today_only=True)
         if kev_email:
-            print(f"✅ Kev's email found ({len(kev_email)} chars)")
             break
         now_et = datetime.now(EASTERN)
         past_cutoff = (now_et.hour > KEV_CUTOFF_HOUR or
@@ -684,7 +737,7 @@ def main():
             print("⏰ 10:30pm ET — Kev didn't post tonight, continuing without calibration")
             break
         next_check = now_et + timedelta(seconds=KEV_POLL_INTERVAL)
-        print(f"   No Kev email yet — checking again at {next_check.strftime('%I:%M %p ET')}...")
+        print(f"   No Kev picks yet — checking again at {next_check.strftime('%I:%M %p ET')}...")
         time.sleep(KEV_POLL_INTERVAL)
 
     # Step 4: Compare and produce calibration report

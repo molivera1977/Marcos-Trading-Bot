@@ -1394,10 +1394,10 @@ Score each candidate on these DATA signals (+1 point each):
   ✦ News catalyst exists        → real driver behind the move
   ✦ Kev specifically flagged it → community awareness + his read = real edge, +1 point
 
-Score 5+ = HIGH confidence → 70% size (${account_balance * 0.70:.2f})
-Score 3–4 = MEDIUM confidence → 50% size (${account_balance * 0.50:.2f})
-Score 2–3 = LOW confidence → 30% size (${account_balance * 0.30:.2f})
-Score 1   = MINIMUM confidence → 20% size (${account_balance * 0.20:.2f})
+Score 5+ = HIGH confidence    → $100 (full size)
+Score 3–4 = MEDIUM confidence → $75
+Score 2–3 = LOW confidence    → $50
+Score 1   = MINIMUM           → $20
 Score 0   = NO-TRADE — nothing real is here
 
 Pick the highest-scoring candidate. If it scores ≥ 1 and clears the hard
@@ -1516,7 +1516,7 @@ Respond in this EXACT JSON format:
     "stop_loss": 0.00,
     "position_size_dollars": 0.00,
     "shares_to_buy": 0,
-    "confidence": "HIGH/MEDIUM/LOW",
+    "confidence": "HIGH/MEDIUM/LOW/MINIMUM",
     "vwap_level": 0.00,
     "execute_at": "On VWAP reclaim after 9:30am" or "NO TRADE TODAY"
   }},
@@ -2827,13 +2827,19 @@ def main():
         size_pct = MAX_POSITION_SIZE       # 70%
     elif confidence == "LOW":
         size_pct = POSITION_SIZE_LOW       # 30%
+    elif confidence == "MINIMUM":
+        size_pct = 0                       # use fixed $20, not a percentage
     else:
         size_pct = POSITION_SIZE_MEDIUM    # 50%
-    position_size = min(
-        float(recommended.get("position_size_dollars", balance * size_pct)),
-        balance * size_pct,
-        MAX_TRADE_DOLLARS
-    )
+
+    if confidence == "MINIMUM":
+        position_size = 20.00
+    else:
+        position_size = min(
+            float(recommended.get("position_size_dollars", balance * size_pct)),
+            balance * size_pct,
+            MAX_TRADE_DOLLARS
+        )
     print(f"💼 Position size: ${position_size:.2f} (capped at ${MAX_TRADE_DOLLARS:.0f} max)")
 
     # ── Rescan every 20 min until 9:45am ET ────────────────

@@ -1200,6 +1200,36 @@ def get_intraday_bars(ticker, count=30):
     return []
 
 
+def get_intraday_bars_full(ticker):
+    """
+    Fetch today's 1-minute bars INCLUDING pre-market via yfinance (prepost=True).
+    Used ONLY for VWAP calculation so the bot's VWAP matches chart VWAP.
+    For gap stocks with heavy pre-market volume, omitting pre-market bars produces
+    a fake low VWAP that triggers false reclaim signals (e.g. CAST $9.23 vs real $11.21).
+    Falls back to SDK bars if yfinance fails.
+    """
+    try:
+        df = yf.download(ticker, period="1d", interval="1m", prepost=True,
+                         progress=False, auto_adjust=False)
+        if df is None or df.empty:
+            return []
+        bars = []
+        for _, row in df.iterrows():
+            try:
+                bars.append({
+                    "high":   float(row["High"]),
+                    "low":    float(row["Low"]),
+                    "close":  float(row["Close"]),
+                    "volume": float(row["Volume"]),
+                })
+            except (TypeError, ValueError):
+                continue
+        return bars
+    except Exception as e:
+        print(f"⚠️  Full-day bars (yfinance) error for {ticker}: {e}")
+        return []
+
+
 def calculate_90ma(bars) -> float:
     """90-period simple moving average of close prices (Kev's second entry filter alongside VWAP)."""
     if not bars:
@@ -1628,7 +1658,10 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
         traded_tickers = set()
     print(f"\n⏳ Watching {len(candidates)} candidate(s) for VWAP entry (reclaim or pullback bounce): {', '.join(candidates)}")
 
-    # Per-ticker bar cache
+    # Per-ticker bar cache.
+    # "bars" = regular-session SDK bars (volume comparison + 90MA)
+    # "vwap" = computed from full-day yfinance bars (includes pre-market) so it
+    #          matches the chart VWAP rather than a misleadingly low intraday figure.
     cache = {t: {"bars": [], "vwap": 0.0, "ma90": 0.0, "fetched": 0.0,
                  "ticks_above": 0, "high_water": 0.0, "pullback_mode": False}
              for t in candidates}
@@ -1650,12 +1683,18 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
         # ── Refresh bars for each ticker on their own 30s cadence ──
         for t in candidates:
             if time.time() - cache[t]["fetched"] >= VWAP_BAR_CACHE_SECS:
+                # Regular session bars: volume comparison + 90MA
                 fresh = get_intraday_bars(t)
                 if fresh:
-                    cache[t]["bars"]    = fresh
-                    cache[t]["vwap"]    = calculate_vwap(fresh)
-                    cache[t]["ma90"]    = calculate_90ma(fresh)
-                    cache[t]["fetched"] = time.time()
+                    cache[t]["bars"] = fresh
+                    cache[t]["ma90"] = calculate_90ma(fresh)
+                # Full-day bars including pre-market: VWAP only
+                full = get_intraday_bars_full(t)
+                if full:
+                    cache[t]["vwap"] = calculate_vwap(full)
+                elif fresh:
+                    cache[t]["vwap"] = calculate_vwap(fresh)  # fallback if yfinance fails
+                cache[t]["fetched"] = time.time()
 
         # ── Check each ticker — take first confirmed reclaim ───────
         status_parts = []

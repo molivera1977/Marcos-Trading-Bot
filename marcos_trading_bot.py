@@ -986,11 +986,21 @@ def get_account_balance():
                         _push_balance_to_screener(settled)
                         return settled
                     if total > 0:
+                        # Log all keys in the response so we can find the settled cash field
+                        top_keys = list(data.keys())
+                        asset_keys = []
+                        for asset in (data.get("account_currency_assets") or []):
+                            asset_keys = list(asset.keys())
+                            break
                         print(f"⚠️  Could not read settled cash separately — using total: ${total:.2f}")
+                        print(f"   Raw keys: {top_keys}")
+                        if asset_keys:
+                            print(f"   Asset keys: {asset_keys}")
                         _push_balance_to_screener(total)
                         return total
 
                     print("⚠️  Webull API returned $0 — using ACCOUNT_BALANCE env var")
+                    print(f"   Raw response: {str(data)[:500]}")
                 else:
                     print(f"⚠️  Balance endpoint error: {bal.status_code} {bal.text[:200]}")
 
@@ -2907,12 +2917,6 @@ def main():
         print(f"⏰ Outside trading window ({now.strftime('%H:%M')} ET) — exiting.")
         return
 
-    # GFV guard — cash accounts: one trade per day only.
-    # Proceeds from a completed trade are unsettled until T+1. A second trade
-    # that uses those proceeds and sells same day triggers a Good Faith Violation.
-    if _already_traded_today():
-        print("🔒 Already traded today — holding cash to avoid Good Faith Violation (GFV).")
-        return
 
     # ── Credential check ───────────────────────────────────
     tok = WEBULL_ACCESS_TOKEN

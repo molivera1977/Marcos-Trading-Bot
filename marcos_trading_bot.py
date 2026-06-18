@@ -3436,11 +3436,17 @@ def main():
     if soft_nogo:
         print(f"⚠️  Soft lock (score 3+): {', '.join(sorted(soft_nogo))} — need HIGH confidence rescan to trade")
 
-    # Primary pick first, then any other GO tickers from Claude's analysis
+    # Primary pick first, then any other GO tickers, then soft-lock tickers as backups.
+    # Soft-lock tickers scored 3+ with Claude — decent setups that got a narrative NO-GO
+    # (e.g. no news, sector headwind). They belong in the watch list; the VWAP pre-filter
+    # will drop any that don't have a real setup by the time we start watching.
     ranked_candidates = [ticker_to_trade]
     for t in (analysis.get("tickers") or []):
         sym = t.get("ticker", "").upper()
         if sym and sym != ticker_to_trade and t.get("verdict") == "GO":
+            ranked_candidates.append(sym)
+    for sym in sorted(soft_nogo):
+        if sym not in ranked_candidates:
             ranked_candidates.append(sym)
     print(f"📋 Watching simultaneously: {' | '.join(ranked_candidates)}")
 

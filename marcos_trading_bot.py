@@ -180,6 +180,71 @@ def _get_data_client():
         _, _cached_data_client = _make_data_client()
     return _cached_data_client
 
+
+_wb_fundamentals_logged: set = set()
+
+def _get_webull_fundamentals(ticker: str) -> dict:
+    """
+    Fetch float, avg_vol, market_cap, sector from Webull instrument + company_profile APIs.
+    Logs the full raw response the first time each ticker is requested — helps discover
+    which fields are actually available so we can stop relying on yfinance for fundamentals.
+    Returns dict; values are None when the field isn't available.
+    """
+    result: dict = {"float_shares": None, "avg_volume": None, "market_cap": None, "sector": None}
+    dc = _get_data_client()
+    if not dc:
+        return result
+
+    # ── instrument call — basic stats ─────────────────────────────────────────
+    try:
+        resp = dc.instrument.get_instrument(symbols=ticker)
+        if resp and resp.status_code == 200:
+            raw = resp.json()
+            log_key = f"{ticker}_instrument"
+            if log_key not in _wb_fundamentals_logged:
+                _wb_fundamentals_logged.add(log_key)
+                print(f"🔬 [Webull instrument raw for {ticker}]: {raw}")
+            items = (raw if isinstance(raw, list)
+                     else raw.get("data", raw.get("items", [raw] if isinstance(raw, dict) else [])))
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                fs = (item.get("float_shares") or item.get("floatShares") or
+                      item.get("float") or item.get("shares_float") or 0)
+                av = (item.get("avg_vol") or item.get("averageVolume") or
+                      item.get("average_volume") or item.get("avg_volume_10d") or 0)
+                mc = (item.get("market_cap") or item.get("marketCap") or
+                      item.get("market_value") or item.get("total_market_value") or 0)
+                if fs:
+                    result["float_shares"] = float(fs)
+                if av:
+                    result["avg_volume"] = float(av)
+                if mc:
+                    result["market_cap"] = float(mc)
+                break
+    except Exception as e:
+        print(f"⚠️  Webull instrument error for {ticker}: {e}")
+
+    # ── company_profile call — sector / industry ───────────────────────────────
+    try:
+        resp = dc.instrument.get_company_profile(ticker)
+        if resp and resp.status_code == 200:
+            raw = resp.json()
+            log_key = f"{ticker}_profile"
+            if log_key not in _wb_fundamentals_logged:
+                _wb_fundamentals_logged.add(log_key)
+                print(f"🔬 [Webull company_profile raw for {ticker}]: {raw}")
+            data = raw.get("data", raw) if isinstance(raw, dict) else {}
+            sect = (data.get("sector") or data.get("industry") or
+                    data.get("sic_industry") or data.get("industryName") or None)
+            if sect:
+                result["sector"] = sect
+    except Exception as e:
+        print(f"⚠️  Webull company_profile error for {ticker}: {e}")
+
+    return result
+
+
 # Trading rules
 MAX_TRADE_DOLLARS     = 100.00 # Hard cap per trade until system proves reliable
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade (HIGH confidence)
@@ -700,22 +765,40 @@ def get_premarket_data(ticker):
     prev_close = wb.get("prev_close", "N/A")
     source     = "Webull live"
 
-    # ── Static fundamentals from yfinance (float, avg vol, mkt cap, short interest) ──
-    avg_vol    = "N/A"
-    mkt_cap    = "N/A"
-    float_sh   = "N/A"
-    short_pct  = "N/A"
-    sector     = "N/A"
+    # ── Static fundamentals: Webull primary, yfinance fallback ───────────────
+    avg_vol   = "N/A"
+    mkt_cap   = "N/A"
+    float_sh  = "N/A"
+    short_pct = "N/A"
+    sector    = "N/A"
+
+    wb_fund = _get_webull_fundamentals(ticker)
+    if wb_fund["float_shares"]:
+        float_sh = wb_fund["float_shares"]
+    if wb_fund["avg_volume"]:
+        avg_vol = wb_fund["avg_volume"]
+    if wb_fund["market_cap"]:
+        mkt_cap = wb_fund["market_cap"]
+    if wb_fund["sector"]:
+        sector = wb_fund["sector"]
+
+    # yfinance for any fields Webull didn't provide (float, avg_vol, mkt_cap, sector)
+    # always yfinance for short interest — no Webull SDK endpoint for it
+    needs_yf_fundamentals = float_sh == "N/A" or avg_vol == "N/A" or mkt_cap == "N/A" or sector == "N/A"
     try:
-        info      = yf.Ticker(ticker).info or {}
-        avg_vol   = info.get("averageVolume10days") or info.get("averageVolume") or "N/A"
-        mkt_cap   = info.get("marketCap") or "N/A"
-        float_sh  = info.get("floatShares") or info.get("sharesOutstanding") or "N/A"
-        sector    = info.get("sector") or info.get("industry") or "N/A"
+        info = yf.Ticker(ticker).info or {}
+        if float_sh == "N/A":
+            float_sh  = info.get("floatShares") or info.get("sharesOutstanding") or "N/A"
+        if avg_vol == "N/A":
+            avg_vol   = info.get("averageVolume10days") or info.get("averageVolume") or "N/A"
+        if mkt_cap == "N/A":
+            mkt_cap   = info.get("marketCap") or "N/A"
+        if sector == "N/A":
+            sector    = info.get("sector") or info.get("industry") or "N/A"
         raw_short = info.get("shortPercentOfFloat")
         if raw_short is not None:
             short_pct = f"{round(raw_short * 100 if raw_short < 1 else raw_short, 1)}%"
-        # Fall back to yfinance price only if Webull returned nothing
+        # Price fallback — only if Webull returned nothing
         if pre_price == "N/A" or pre_price == 0:
             pre_price  = info.get("preMarketPrice") or info.get("regularMarketPrice") or "N/A"
             pre_change = info.get("preMarketChangePercent") or "N/A"
@@ -849,20 +932,31 @@ def scan_morning_gappers():
     except Exception as e:
         print(f"⚠️  Volume screener exception: {e}")
 
-    # ── Float check via yfinance — filter out large-float stocks ─────────────
-    # Webull screener doesn't return float, so we check each candidate separately.
+    # ── Float check: Webull instrument primary, yfinance fallback ────────────
     # Small float (<50M) + big gap + volume = the real momentum setup.
     print(f"   Checking float for {len(gappers)} candidates...")
     float_checked = []
     for sym, g in gappers.items():
         try:
-            import yfinance as yf
-            info = yf.Ticker(sym).info or {}
-            float_shares = info.get("floatShares") or info.get("sharesOutstanding") or 0
+            float_shares: float = 0
+
+            # Primary: Webull instrument API
+            wb_fund = _get_webull_fundamentals(sym)
+            if wb_fund["float_shares"]:
+                float_shares = wb_fund["float_shares"]
+
+            # Fallback: yfinance
+            if not float_shares:
+                try:
+                    info = yf.Ticker(sym).info or {}
+                    float_shares = float(info.get("floatShares") or info.get("sharesOutstanding") or 0)
+                    time.sleep(0.2)   # light rate-limit avoidance
+                except Exception:
+                    pass
+
             g["float_shares"] = float_shares
-            float_m = float_shares / 1_000_000
-            if float_shares == 0:
-                # No float data — keep the candidate but note it
+            float_m = float_shares / 1_000_000 if float_shares else 0
+            if not float_shares:
                 g["float_label"] = "float N/A"
                 float_checked.append(g)
             elif float_shares <= 50_000_000:
@@ -871,7 +965,6 @@ def scan_morning_gappers():
                 print(f"   ✅ {sym}: +{g['change_pct']}% | {g['float_label']} ← SMALL FLOAT")
             else:
                 print(f"   ❌ {sym}: skipped — {float_m:.0f}M float (too large)")
-            time.sleep(0.3)   # avoid yfinance rate-limit
         except Exception as e:
             g["float_shares"] = 0
             g["float_label"] = "float N/A"
@@ -1188,18 +1281,22 @@ def get_premarket_volume_trend(ticker) -> dict:
 
 def get_sector_etf_direction(sector: str) -> dict:
     """
-    Map the stock's sector to its ETF and fetch that ETF's pre-market direction.
-    Returns dict with etf ticker, change%, and sentiment.
-    ETFs are liquid — yfinance direction signal is reliable even with delay.
+    Map the stock's sector to its ETF and fetch that ETF's pre-market direction via Webull.
     """
     etf = SECTOR_ETFS.get(sector)
     if not etf:
         return {"etf": None, "sector": sector, "change_pct": None, "sentiment": "UNKNOWN"}
     try:
-        info     = yf.Ticker(etf).info or {}
-        chg      = info.get("preMarketChangePercent") or info.get("regularMarketChangePercent") or 0
-        if isinstance(chg, (int, float)) and abs(chg) < 1:
-            chg = chg * 100
+        wb  = _get_webull_quote(etf)
+        chg = wb.get("pre_market_change_pct") or wb.get("change_pct") or 0
+        if isinstance(chg, (int, float)) and chg != 0 and abs(chg) < 1:
+            chg = chg * 100   # normalize decimal to percent
+        if chg == 0:
+            # Derive from price vs prev_close when change field is missing
+            price = wb.get("pre_market_price") or wb.get("last_price") or 0
+            prev  = wb.get("prev_close") or 0
+            if price and prev:
+                chg = (price - prev) / prev * 100
         chg = round(chg, 2)
         sentiment = "BULLISH" if chg >= 0.3 else "BEARISH" if chg <= -0.3 else "NEUTRAL"
         print(f"   Sector ETF {etf} ({sector}): {chg:+.2f}% → {sentiment}")

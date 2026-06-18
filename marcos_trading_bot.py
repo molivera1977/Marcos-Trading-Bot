@@ -2819,16 +2819,17 @@ def get_open_position(retries=4, delay=8):
                         if isinstance(v, (list, dict)):
                             print(f"   .{k} → {type(v).__name__}[{len(v)}]: {str(v)[:300]}")
             items = data if isinstance(data, list) else (
-                    data.get("data") or data.get("items") or data.get("positions") or
-                    data.get("position_list") or data.get("positionList") or [])
+                    data.get("holdings") or data.get("data") or data.get("items") or
+                    data.get("positions") or data.get("position_list") or data.get("positionList") or [])
             print(f"🔍 Position check (attempt {attempt}) — {len(items)} position(s) found")
             for pos in items:
                 qty = int(float(pos.get("quantity") or pos.get("qty") or 0))
                 if qty > 0:
                     ticker   = (pos.get("symbol") or pos.get("ticker_symbol") or
                                 pos.get("tickerSymbol") or "").strip().upper()
-                    avg_cost = float(pos.get("average_cost") or pos.get("avg_cost") or
-                                     pos.get("cost_price") or pos.get("costPrice") or 0)
+                    avg_cost = float(pos.get("unit_cost") or pos.get("average_cost") or
+                                     pos.get("avg_cost") or pos.get("cost_price") or
+                                     pos.get("costPrice") or 0)
                     if ticker and avg_cost > 0:
                         print(f"⚡ Found open position: {ticker} × {qty} @ ${avg_cost:.2f}")
                         return ticker, qty, avg_cost

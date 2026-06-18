@@ -185,60 +185,58 @@ _wb_fundamentals_logged: set = set()
 
 def _get_webull_fundamentals(ticker: str) -> dict:
     """
-    Fetch float, avg_vol, market_cap, sector from Webull instrument + company_profile APIs.
-    Logs the full raw response the first time each ticker is requested — helps discover
-    which fields are actually available so we can stop relying on yfinance for fundamentals.
+    Fetch sector, easy_to_borrow, and shortable from Webull instrument + company_profile APIs.
+    Float, avg_vol, and market_cap are NOT available in Webull SDK — those stay on yfinance.
     Returns dict; values are None when the field isn't available.
     """
-    result: dict = {"float_shares": None, "avg_volume": None, "market_cap": None, "sector": None}
+    result: dict = {
+        "float_shares":   None,
+        "avg_volume":     None,
+        "market_cap":     None,
+        "sector":         None,
+        "easy_to_borrow": None,   # True/False — short interest proxy
+        "shortable":      None,   # True/False — borrow availability
+    }
     dc = _get_data_client()
     if not dc:
         return result
 
-    # ── instrument call — basic stats ─────────────────────────────────────────
+    # ── instrument call — margin/trading metadata ──────────────────────────────
+    # NOTE: Webull instrument API has NO float, avg_vol, or market_cap.
+    # Useful fields: easy_to_borrow (short interest proxy), shortable.
     try:
         resp = dc.instrument.get_instrument(symbols=ticker)
         if resp and resp.status_code == 200:
             raw = resp.json()
-            log_key = f"{ticker}_instrument"
-            if log_key not in _wb_fundamentals_logged:
-                _wb_fundamentals_logged.add(log_key)
-                print(f"🔬 [Webull instrument raw for {ticker}]: {raw}")
             items = (raw if isinstance(raw, list)
                      else raw.get("data", raw.get("items", [raw] if isinstance(raw, dict) else [])))
             for item in items:
                 if not isinstance(item, dict):
                     continue
-                fs = (item.get("float_shares") or item.get("floatShares") or
-                      item.get("float") or item.get("shares_float") or 0)
-                av = (item.get("avg_vol") or item.get("averageVolume") or
-                      item.get("average_volume") or item.get("avg_volume_10d") or 0)
-                mc = (item.get("market_cap") or item.get("marketCap") or
-                      item.get("market_value") or item.get("total_market_value") or 0)
-                if fs:
-                    result["float_shares"] = float(fs)
-                if av:
-                    result["avg_volume"] = float(av)
-                if mc:
-                    result["market_cap"] = float(mc)
+                etb = item.get("easy_to_borrow")
+                sht = item.get("shortable")
+                if etb is not None:
+                    result["easy_to_borrow"] = bool(etb)
+                if sht is not None:
+                    result["shortable"] = bool(sht)
                 break
     except Exception as e:
         print(f"⚠️  Webull instrument error for {ticker}: {e}")
 
-    # ── company_profile call — sector / industry ───────────────────────────────
+    # ── company_profile call — sector from industries list ─────────────────────
     try:
         resp = dc.instrument.get_company_profile(ticker)
         if resp and resp.status_code == 200:
             raw = resp.json()
-            log_key = f"{ticker}_profile"
-            if log_key not in _wb_fundamentals_logged:
-                _wb_fundamentals_logged.add(log_key)
-                print(f"🔬 [Webull company_profile raw for {ticker}]: {raw}")
             data = raw.get("data", raw) if isinstance(raw, dict) else {}
-            sect = (data.get("sector") or data.get("industry") or
-                    data.get("sic_industry") or data.get("industryName") or None)
-            if sect:
-                result["sector"] = sect
+            # industries is a list like ["Technology", "Software"]
+            industries = data.get("industries") or []
+            if industries and isinstance(industries, list):
+                result["sector"] = industries[0]
+            else:
+                sect = data.get("sector") or data.get("industry") or data.get("sic_industry") or None
+                if sect:
+                    result["sector"] = sect
     except Exception as e:
         print(f"⚠️  Webull company_profile error for {ticker}: {e}")
 
@@ -773,18 +771,13 @@ def get_premarket_data(ticker):
     sector    = "N/A"
 
     wb_fund = _get_webull_fundamentals(ticker)
-    if wb_fund["float_shares"]:
-        float_sh = wb_fund["float_shares"]
-    if wb_fund["avg_volume"]:
-        avg_vol = wb_fund["avg_volume"]
-    if wb_fund["market_cap"]:
-        mkt_cap = wb_fund["market_cap"]
     if wb_fund["sector"]:
         sector = wb_fund["sector"]
+    # easy_to_borrow is a real-time Webull field — use as short interest proxy
+    if wb_fund["easy_to_borrow"] is not None:
+        short_pct = "ETB" if wb_fund["easy_to_borrow"] else "HTB"   # Hard-To-Borrow = high SI
 
-    # yfinance for any fields Webull didn't provide (float, avg_vol, mkt_cap, sector)
-    # always yfinance for short interest — no Webull SDK endpoint for it
-    needs_yf_fundamentals = float_sh == "N/A" or avg_vol == "N/A" or mkt_cap == "N/A" or sector == "N/A"
+    # yfinance for float, avg_vol, market_cap — not available in Webull SDK
     try:
         info = yf.Ticker(ticker).info or {}
         if float_sh == "N/A":
@@ -795,9 +788,11 @@ def get_premarket_data(ticker):
             mkt_cap   = info.get("marketCap") or "N/A"
         if sector == "N/A":
             sector    = info.get("sector") or info.get("industry") or "N/A"
-        raw_short = info.get("shortPercentOfFloat")
-        if raw_short is not None:
-            short_pct = f"{round(raw_short * 100 if raw_short < 1 else raw_short, 1)}%"
+        # Supplement easy_to_borrow with numeric short% if Webull didn't provide it
+        if short_pct == "N/A":
+            raw_short = info.get("shortPercentOfFloat")
+            if raw_short is not None:
+                short_pct = f"{round(raw_short * 100 if raw_short < 1 else raw_short, 1)}%"
         # Price fallback — only if Webull returned nothing
         if pre_price == "N/A" or pre_price == 0:
             pre_price  = info.get("preMarketPrice") or info.get("regularMarketPrice") or "N/A"

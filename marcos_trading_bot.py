@@ -1283,9 +1283,8 @@ def get_sector_etf_direction(sector: str) -> dict:
         return {"etf": None, "sector": sector, "change_pct": None, "sentiment": "UNKNOWN"}
     try:
         wb  = _get_webull_quote(etf)
+        # pre_market_change_pct from _get_webull_quote is already in percent — don't normalize again
         chg = wb.get("pre_market_change_pct") or wb.get("change_pct") or 0
-        if isinstance(chg, (int, float)) and chg != 0 and abs(chg) < 1:
-            chg = chg * 100   # normalize decimal to percent
         if chg == 0:
             # Derive from price vs prev_close when change field is missing
             price = wb.get("pre_market_price") or wb.get("last_price") or 0
@@ -2811,8 +2810,17 @@ def get_open_position(retries=4, delay=8):
             if res.status_code != 200:
                 raise RuntimeError(f"HTTP {res.status_code}")
             data = res.json()
+            # Log raw structure on first attempt to diagnose parsing misses
+            if attempt == 1:
+                top_keys = list(data.keys()) if isinstance(data, dict) else f"list[{len(data)}]"
+                print(f"🔬 Position API raw top-level: {top_keys}")
+                if isinstance(data, dict):
+                    for k, v in data.items():
+                        if isinstance(v, (list, dict)):
+                            print(f"   .{k} → {type(v).__name__}[{len(v)}]: {str(v)[:300]}")
             items = data if isinstance(data, list) else (
-                    data.get("data") or data.get("items") or data.get("positions") or [])
+                    data.get("data") or data.get("items") or data.get("positions") or
+                    data.get("position_list") or data.get("positionList") or [])
             print(f"🔍 Position check (attempt {attempt}) — {len(items)} position(s) found")
             for pos in items:
                 qty = int(float(pos.get("quantity") or pos.get("qty") or 0))

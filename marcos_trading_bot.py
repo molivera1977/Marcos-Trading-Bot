@@ -2387,17 +2387,22 @@ def send_alert_email(subject, body, html=None):
 
 
 def send_plan_alert(analysis, balance):
-    """Alert 1 — Fired right after Claude finishes analysis (~8:55am)."""
+    """Alert 1 — Fired right after Claude finishes analysis (~8:55am or mid-day rescan)."""
     recommended = analysis.get("recommended_trade", {})
     action      = recommended.get("action", "HOLD CASH")
     ticker      = recommended.get("ticker", "N/A")
-    today       = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
+    now_et      = datetime.now(EASTERN)
+    today       = now_et.strftime("%A, %B %d, %Y")
+    hour        = now_et.hour
+    greeting    = ("Good morning" if hour < 12 else
+                   "Good afternoon" if hour < 17 else "Good evening")
+    scan_label  = "morning analysis" if hour < 10 else "mid-day rescan"
     conf        = recommended.get("confidence", "N/A")
     conf_color  = {"HIGH": "#00c851", "MEDIUM": "#ffbb33", "LOW": "#ff6b35"}.get(conf, "#9090b0")
 
     if action == "BUY":
         subject = f"🤖 Bot Plan — {ticker} is the pick | {today}"
-        plain = (f"Good morning Marcos! Claude picked {ticker}.\n\n"
+        plain = (f"{greeting} Marcos! Claude picked {ticker} ({scan_label}).\n\n"
                  f"Entry: ~${recommended.get('entry_price',0):.2f} | "
                  f"Target: ${recommended.get('target_price',0):.2f} | "
                  f"Stop: ${recommended.get('stop_loss',0):.2f}\n\n"
@@ -2416,8 +2421,8 @@ def send_plan_alert(analysis, balance):
 
         html = _html_wrap(
             f'<tr><td style="padding:16px 20px 4px;">'
-            f'<div style="font-size:26px;font-weight:bold;color:#ffffff;">Good morning Marcos! 👋</div>'
-            f'<div style="font-size:16px;color:#9090b0;margin-top:6px;">Claude just finished the pre-market analysis for {today}</div>'
+            f'<div style="font-size:26px;font-weight:bold;color:#ffffff;">{greeting} Marcos! 👋</div>'
+            f'<div style="font-size:16px;color:#9090b0;margin-top:6px;">Claude just finished the {scan_label} for {today}</div>'
             f'</td></tr>'
             + _section("TODAY'S PLAN", (
                 _row("Ticker", f'<span style="font-size:24px;color:#6c63ff;">{ticker}</span>', big=True)
@@ -2436,12 +2441,12 @@ def send_plan_alert(analysis, balance):
             f'🔍 Bot is now watching for the VWAP reclaim. You\'ll get another email the moment it enters.</div></td></tr>'
         )
     else:
-        subject = f"🤖 Bot Plan — 💤 No trade today | {today}"
-        plain = f"No trade today. Cash: ${balance:.2f}\n\n{analysis.get('plain_english_summary','')}"
+        subject = f"🤖 Bot Plan — 💤 No trade | {today}"
+        plain = f"No trade this {scan_label}. Cash: ${balance:.2f}\n\n{analysis.get('plain_english_summary','')}"
         html = _html_wrap(
             f'<tr><td style="padding:16px 20px 4px;">'
-            f'<div style="font-size:26px;font-weight:bold;color:#ffffff;">Good morning Marcos! 👋</div>'
-            f'<div style="font-size:16px;color:#9090b0;margin-top:6px;">{today}</div>'
+            f'<div style="font-size:26px;font-weight:bold;color:#ffffff;">{greeting} Marcos! 👋</div>'
+            f'<div style="font-size:16px;color:#9090b0;margin-top:6px;">{scan_label.capitalize()} — {today}</div>'
             f'</td></tr>'
             + _section("NO TRADE TODAY",
                 f'<div style="font-size:17px;line-height:1.7;color:#d0d0e8;">{analysis.get("plain_english_summary","")}</div>'

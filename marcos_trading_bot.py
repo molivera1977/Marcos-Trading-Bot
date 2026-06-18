@@ -891,6 +891,33 @@ def scan_morning_gappers():
     return results
 
 
+def _mark_traded_today():
+    """Tell screener_app a trade was completed today. Blocks second trade (GFV guard)."""
+    screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not screener_url:
+        return
+    try:
+        requests.post(f"{screener_url}/api/traded_today",
+                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
+        print("🔒 Marked traded_today — no second trade allowed (GFV guard)")
+    except Exception as e:
+        print(f"⚠️  Could not mark traded_today: {e}")
+
+
+def _already_traded_today() -> bool:
+    """Check if a trade was already completed today. Returns True = block new entry."""
+    screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not screener_url:
+        return False
+    try:
+        r = requests.get(f"{screener_url}/api/traded_today", timeout=5)
+        if r.status_code == 200:
+            return r.json().get("traded_today", False)
+    except Exception:
+        pass
+    return False
+
+
 def _push_balance_to_screener(balance: float):
     """Push current balance to screener_app so the dashboard always shows live data."""
     screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
@@ -2880,6 +2907,13 @@ def main():
         print(f"⏰ Outside trading window ({now.strftime('%H:%M')} ET) — exiting.")
         return
 
+    # GFV guard — cash accounts: one trade per day only.
+    # Proceeds from a completed trade are unsettled until T+1. A second trade
+    # that uses those proceeds and sells same day triggers a Good Faith Violation.
+    if _already_traded_today():
+        print("🔒 Already traded today — holding cash to avoid Good Faith Violation (GFV).")
+        return
+
     # ── Credential check ───────────────────────────────────
     tok = WEBULL_ACCESS_TOKEN
     key = WEBULL_APP_KEY
@@ -3433,6 +3467,8 @@ def main():
 
         # ── Step 10: Log result per trade ──────────────────────
         _open_trade["active"] = False
+        # Mark trade completed today — prevents second trade using unsettled proceeds (GFV guard)
+        _mark_traded_today()
         current_balance = get_account_balance()
         pnl             = trade_result.get("profit_loss", 0)
         pnl_pct         = trade_result.get("profit_loss_pct", 0)

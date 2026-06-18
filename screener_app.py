@@ -678,6 +678,26 @@ def get_account_balance_api():
     return jsonify({"balance": _account.get("balance", 0.0), "updated": _account.get("updated", "")})
 
 
+@app.route("/api/traded_today", methods=["GET"])
+def get_traded_today():
+    """Returns whether a trade was already completed today (GFV guard)."""
+    today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    traded = _account.get("traded_date") == today
+    return jsonify({"traded_today": traded, "date": today})
+
+
+@app.route("/api/traded_today", methods=["POST"])
+def set_traded_today():
+    """Mark that a trade was completed today. Bot calls this after every exit."""
+    secret = request.headers.get("X-Dashboard-Secret", "")
+    if secret != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    _account["traded_date"] = today
+    _save_trades()
+    return jsonify({"status": "ok", "traded_date": today})
+
+
 @app.route("/api/trades")
 def api_trades():
     return jsonify({"trades": _trades, "stats": _compute_stats(), "account": _account})

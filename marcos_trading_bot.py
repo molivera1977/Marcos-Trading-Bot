@@ -197,7 +197,9 @@ TRADE_WINDOW_END_HOUR = 15     # Force close all positions by 3:45pm ET (before 
 TRADE_WINDOW_END_MIN  = 45    # minute component of force close
 ENTRY_LIMIT_BUFFER    = 0.01   # Limit buy 1% above VWAP reclaim — caps slippage on small floats
 EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry, exit immediately
-SPY_BEAR_SKIP_PCT     = -1.0   # Skip the day entirely if SPY pre-market < -1%
+SPY_BEAR_SKIP_PCT     = -2.5   # Skip the day entirely if SPY pre-market < -2.5%
+# Small-cap momentum plays are largely uncorrelated to SPY on catalyst days.
+# -1% is a normal red morning — Kev trades ICCM day-2 regardless of SPY.
 MAX_SPREAD_PCT        = 0.03   # Skip entry if bid-ask spread > 3% of ask price
 VWAP_VOL_MULTIPLIER   = 1.5    # Require 1.5× average minute volume for VWAP reclaim confirmation
 VWAP_CONFIRM_TICKS   = 3      # Price must hold above VWAP for this many consecutive polls before entry

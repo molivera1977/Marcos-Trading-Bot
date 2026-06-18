@@ -1819,24 +1819,47 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
     # any run that happened before monitoring started (e.g. morning gap).
     # Without this, a stock that ran to $9 at open then pulled back looks
     # identical to one that never ran — and the pullback logic never fires.
+    # Also drops candidates that have no valid setup path from here.
     print("📈 Seeding prior-run history from today's bars...")
-    for t in candidates:
+    to_drop = []
+    for t in list(candidates):
         try:
             seed_bars = get_intraday_bars_full(t)
             if not seed_bars:
+                print(f"   {t}: no intraday data — watching for fresh breakout")
                 continue
             today_high = max(float(b.get("high") or b.get("h") or
                                    b.get("close") or b.get("c") or 0)
                              for b in seed_bars)
             seed_vwap  = calculate_vwap(seed_bars)
+            if seed_vwap > 0:
+                cache[t]["vwap"] = seed_vwap  # pre-populate so drop check works
             if seed_vwap > 0 and today_high >= seed_vwap * (1 + VWAP_PULLBACK_MIN_RUN):
                 cache[t]["high_water"] = today_high
                 print(f"   {t}: today's high ${today_high:.2f} vs VWAP ${seed_vwap:.2f} "
                       f"(+{(today_high/seed_vwap-1)*100:.1f}%) — pullback detection armed")
             else:
+                # No meaningful prior run — check if current price is already too far
+                # below VWAP to have any realistic setup. If so, drop immediately.
+                current = stream.get_price(t)
+                if current > 0 and seed_vwap > 0:
+                    gap_pct = (current - seed_vwap) / seed_vwap
+                    if gap_pct < -VWAP_PULLBACK_MIN_RUN:
+                        print(f"   ⛔ {t}: ${current:.2f} is {gap_pct*100:.1f}% below VWAP "
+                              f"${seed_vwap:.2f} with no prior run — no valid setup, dropping")
+                        to_drop.append(t)
+                        continue
                 print(f"   {t}: no meaningful prior run above VWAP — watching for fresh breakout")
         except Exception as e:
             print(f"   {t}: seed error — {e}")
+    if to_drop:
+        for t in to_drop:
+            candidates.remove(t)
+            del cache[t]
+        if not candidates:
+            print("⛔ All candidates dropped — none have a valid VWAP setup. Holding cash.")
+            return None, None, None
+        print(f"📋 Remaining candidates after VWAP filter: {', '.join(candidates)}")
 
     last_rescan = time.time()
 

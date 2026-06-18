@@ -3224,9 +3224,52 @@ def main():
             print(f"⚠️ Claude parse failed (attempt {_attempt+1}/3) — retrying in 20s...")
             time.sleep(20)
     if not analysis:
-        print("❌ Claude failed 3 times — ending session.")
-        send_summary_email(None, None, balance)
-        return
+        # Claude API unavailable (credits exhausted, outage, etc.)
+        # Fall back to the top gapper so the bot can still run.
+        if gappers:
+            top = gappers[0]
+            sym = top["symbol"]
+            price = float(top.get("price") or top.get("premarket_price") or 0)
+            print(f"⚠️  Claude unavailable — falling back to top gapper: {sym} @ ${price:.2f}")
+            analysis = {
+                "analysis_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+                "market_summary": f"Claude API unavailable — auto-selected top gapper {sym}.",
+                "tickers": [{
+                    "ticker": sym,
+                    "verdict": "GO",
+                    "score": 5,
+                    "reason": "Auto-selected: top gapper by pre-market % move (Claude offline).",
+                    "setup_confirmed": True,
+                    "entry_price": price,
+                    "target_price": round(price * 1.10, 2),
+                    "stop_loss":    round(price * 0.93, 2),
+                    "position_size_dollars": round(balance * POSITION_SIZE_MEDIUM, 2),
+                    "vwap_level": 0.0,
+                    "risk_flags": ["Claude API offline — reduced confidence"],
+                    "kev_rule_check": "N/A",
+                }],
+                "recommended_trade": {
+                    "ticker": sym,
+                    "action": "BUY",
+                    "entry_price": price,
+                    "target_price": round(price * 1.10, 2),
+                    "stop_loss":    round(price * 0.93, 2),
+                    "position_size_dollars": round(balance * POSITION_SIZE_MEDIUM, 2),
+                    "shares_to_buy": 0,
+                    "confidence": "LOW",
+                    "vwap_level": 0.0,
+                    "execute_at": "On VWAP reclaim after 9:30am",
+                },
+                "plain_english_summary": (
+                    f"⚠️ Claude API offline. Auto-selected {sym} as top gapper "
+                    f"(+{top.get('change_pct',0):.1f}% pre-mkt). "
+                    f"Using LOW confidence / 50% position size. Watch VWAP closely."
+                ),
+            }
+        else:
+            print("❌ Claude failed 3 times and no gappers available — ending session.")
+            send_summary_email(None, None, balance)
+            return
 
     # ── Alert 1: Send the plan email right now (~8:55am) ──────
     send_plan_alert(analysis, balance)

@@ -508,6 +508,87 @@ def extract_kev_tickers(kev_email: str) -> list:
 
 
 # ── Compare MARCO vs Kev ────────────────────────────────────────────────────
+def review_kev_picks(kev_tickers: list, candidates: list, marco_analysis: dict) -> list:
+    """
+    Second MARCO pass: explicitly review each of Kev's picks.
+    Runs AFTER the independent analysis so calibration integrity is preserved.
+    Returns a list of {ticker, verdict, saw_it, reasoning, what_changes_it}.
+    """
+    if not kev_tickers or not ANTHROPIC_API_KEY:
+        return []
+
+    import yfinance as yf
+
+    candidates_by_sym = {c["symbol"]: c for c in candidates}
+    lines = []
+    for sym in kev_tickers:
+        if sym in candidates_by_sym:
+            c = candidates_by_sym[sym]
+            news_str = " | ".join(c.get("news", [])) if isinstance(c.get("news"), list) else str(c.get("news", ""))
+            lines.append(
+                f"  {sym}: +{c['change_pct']}% | Close ${c['price']} | "
+                f"Float {c.get('float_label','?')} | Short {c.get('short_interest',0)}% | "
+                f"Open ${c.get('day_open',0)} High ${c.get('day_high',0)} Low ${c.get('day_low',0)} | "
+                f"Vol {c.get('volume',0):,} | News: {news_str}"
+            )
+        else:
+            try:
+                hist = yf.Ticker(sym).history(period="1d", interval="1d")
+                if not hist.empty:
+                    row = hist.iloc[-1]
+                    chg = (row["Close"] - row["Open"]) / row["Open"] * 100
+                    lines.append(
+                        f"  {sym}: {chg:+.1f}% | Close ${row['Close']:.2f} | "
+                        f"Open ${row['Open']:.2f} High ${row['High']:.2f} Low ${row['Low']:.2f} | "
+                        f"Vol {int(row['Volume']):,} | Float/Short: not in screener"
+                    )
+                else:
+                    lines.append(f"  {sym}: no intraday data available")
+            except Exception as e:
+                lines.append(f"  {sym}: could not fetch ({e})")
+
+    marco_picks = [p["ticker"] for p in marco_analysis.get("top_picks", [])]
+    prompt = f"""You are MARCO. Tonight you independently picked: {marco_picks}.
+
+Kev picked these stocks for tomorrow: {kev_tickers}
+
+Here is their data:
+{chr(10).join(lines)}
+
+For EACH of Kev's picks give your honest take. Did you see it and skip it, or did it not appear in your scan?
+Is Kev right about the day-2 potential? Be direct — agree or disagree and say why.
+
+Respond ONLY in JSON:
+{{
+  "kev_pick_reviews": [
+    {{
+      "ticker": "SYMBOL",
+      "verdict": "GO" or "NO-GO" or "WATCH",
+      "saw_it": true or false,
+      "reasoning": "2-3 sentences — honest disagreement is fine",
+      "what_changes_it": "Specific price action that would reverse your call"
+    }}
+  ]
+}}"""
+
+    try:
+        import anthropic, re
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        print(f"🧠 MARCO reviewing Kev's picks: {kev_tickers}...")
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = resp.content[0].text.strip()
+        m = re.search(r"\{.*\}", text, re.DOTALL)
+        if m:
+            return json.loads(m.group()).get("kev_pick_reviews", [])
+    except Exception as e:
+        print(f"⚠️  Kev pick review error: {e}")
+    return []
+
+
 def compare_picks(marco_analysis: dict, kev_tickers: list) -> dict:
     """
     Side-by-side comparison: where do MARCO and Kev agree?
@@ -554,7 +635,34 @@ def post_watchlist(analysis: dict):
         print(f"⚠️  Dashboard post error: {e}")
 
 # ── Calibration HTML block ─────────────────────────────────────────────────
-def _calibration_html(comparison: dict, kev_email: str) -> str:
+def _kev_reviews_html(reviews: list) -> str:
+    if not reviews:
+        return ""
+    verdict_color = {"GO": "#3fb950", "NO-GO": "#f85149", "WATCH": "#d29922"}
+    rows = ""
+    for r in reviews:
+        color = verdict_color.get(r.get("verdict", "WATCH"), "#8b949e")
+        saw = "✅ Saw it, chose to skip" if r.get("saw_it") else "❌ Not in MARCO's scan"
+        rows += f"""
+        <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-weight:700;font-size:15px;color:#e6edf3">{r.get('ticker')}</span>
+            <span style="font-size:11px;font-weight:700;color:{color};background:{color}22;padding:2px 10px;border-radius:20px">{r.get('verdict','?')}</span>
+            <span style="font-size:11px;color:#484f58">{saw}</span>
+          </div>
+          <div style="font-size:13px;color:#c9d1d9;margin-bottom:6px">{r.get('reasoning','')}</div>
+          <div style="font-size:12px;color:#484f58"><em>What changes it:</em> {r.get('what_changes_it','')}</div>
+        </div>"""
+    return f"""
+      <div style="padding:16px 28px;border-top:1px solid #21262d">
+        <div style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">
+          🧠 MARCO'S TAKE ON KEV'S PICKS
+        </div>
+        {rows}
+      </div>"""
+
+
+def _calibration_html(comparison: dict, kev_email: str, kev_reviews: list = None) -> str:
     if not comparison.get("kev_picks") and not comparison.get("marco_picks"):
         return ""
 
@@ -613,11 +721,12 @@ def _calibration_html(comparison: dict, kev_email: str) -> str:
           </div>
         </div>
         {kev_snippet}
-      </div>"""
+      </div>
+      {_kev_reviews_html(kev_reviews or [])}"""
 
 
 # ── Send watchlist email ────────────────────────────────────────────────────
-def send_watchlist_email(analysis: dict, comparison: dict, kev_email: str):
+def send_watchlist_email(analysis: dict, comparison: dict, kev_email: str, kev_reviews: list = None):
     if not RESEND_API_KEY:
         print("⚠️  No RESEND_API_KEY — skipping email")
         return
@@ -693,7 +802,7 @@ def send_watchlist_email(analysis: dict, comparison: dict, kev_email: str):
 
       {"<div style='padding:0 28px 20px'><div style='font-size:12px;color:#484f58;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px'>Skipped (not worth watching tomorrow)</div><ul style='margin:0;padding-left:18px'>" + skip_html + "</ul></div>" if skip_html else ""}
 
-      {_calibration_html(comparison, kev_email)}
+      {_calibration_html(comparison, kev_email, kev_reviews)}
 
       <div style="padding:16px 28px;background:#161b22;border-top:1px solid #21262d;font-size:11px;color:#484f58;text-align:center">
         Bot will read this watchlist at 8:45am and prioritize these picks at open.
@@ -770,9 +879,13 @@ def main():
     kev_tickers = extract_kev_tickers(kev_email)
     comparison  = compare_picks(analysis, kev_tickers)
 
+    # Step 4b: MARCO explicitly reviews Kev's picks — runs AFTER independent analysis
+    # so calibration integrity is preserved. Adds "MARCO's take on Kev's picks" to email.
+    kev_reviews = review_kev_picks(kev_tickers, candidates, analysis) if kev_tickers else []
+
     # Step 5: Post and email
     post_watchlist(analysis)
-    send_watchlist_email(analysis, comparison, kev_email)
+    send_watchlist_email(analysis, comparison, kev_email, kev_reviews)
 
     picks = analysis.get("top_picks", [])
     print(f"\n{'='*60}")

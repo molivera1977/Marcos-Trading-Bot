@@ -1401,34 +1401,52 @@ LIVE PRE-MARKET DATA FROM WEBULL (Kev's picks):
 ━━━ HOW TO SCORE EACH SETUP ━━━
 
 Score each candidate on these DATA signals (+1 point each):
-  ✦ Float < 10M shares          → tight float, big moves possible
-  ✦ Gap 8–50% pre-market        → real momentum, not noise
-  ✦ Relative volume ≥ 2x        → real buyers showing up
-  ✦ Pre-mkt volume ACCELERATING → buying is building, not fading
-  ✦ Short interest > 15%        → squeeze fuel
-  ✦ Sector ETF is BULLISH       → wind at its back
-  ✦ Price $0.50–$15             → tradeable size on this account
-  ✦ News catalyst exists        → real driver behind the move
-  ✦ Kev specifically flagged it → community awareness + his read = real edge, +1 point
+  ✦ Float < 10M shares                    → tight float, big moves possible
+  ✦ Gap 8–50% pre-market, OR gap >50%     → real momentum (see volume rule below)
+    with pre-market volume > 1× float
+  ✦ Relative volume ≥ 2x                  → real buyers showing up
+  ✦ Pre-mkt volume ACCELERATING           → buying is building, not fading
+  ✦ Short interest > 15%                  → squeeze fuel
+  ✦ Sector ETF is BULLISH                 → wind at its back
+  ✦ Price $0.50–$15                       → tradeable size on this account
+  ✦ News catalyst exists                  → real driver behind the move
+  ✦ Kev specifically flagged it           → professional read + community awareness, +1 point
+  ✦ Day-2 continuation (ran 20%+ previous → proven buyers exist, story still alive
+    session and holding structure today)
 
-Score 5+ = HIGH confidence    → $100 (full size)
-Score 3–4 = MEDIUM confidence → $75
-Score 2–3 = LOW confidence    → $50
-Score 1   = MINIMUM           → $20
-Score 0   = NO-TRADE — nothing real is here
+VOLUME AS CATALYST: When pre-market volume exceeds 1× the float before open,
+that volume IS the catalyst — someone is in this stock. A 112% gap with 56M
+pre-market shares on a 16M float is not a mystery pump, it is institutional or
+whale activity. Do NOT disqualify it on gap% alone. Score it and trade it.
 
-Pick the highest-scoring candidate. If it scores ≥ 1 and clears the hard
-NO-GO filters below, TAKE THE TRADE at the appropriate confidence size.
-A score of 0 = the only true NO-TRADE. Score 1+ means something real is there
-— take it at minimum size. Kev finds a setup every single day. Your job is to
-find the BEST available setup and trade it at the right size. NO-TRADE is the
-last resort, not the default.
+━━━ POSITION SIZING — CATALYST DETERMINES SIZE ━━━
 
-THE SCORE IS THE DECISION. Do not layer narrative reasoning on top of the
-score to talk yourself out of a trade. If the top candidate scores ≥ 1 and
-clears the hard NO-GO list, you TRADE it. "No news" is already priced into
-the score as 0 points on that criterion — it does NOT add negative points or
-justify sitting out. Missing catalyst = smaller edge, not a veto.
+The score tells you WHAT to trade. The catalyst tells you HOW MUCH.
+
+  CATALYST PRESENT (news, FDA, earnings, OR pre-mkt volume > 1× float):
+    Score 5+  → $100 (HIGH — full size, attack it)
+    Score 3–4 → $75  (MEDIUM)
+    Score 1–2 → $50  (LOW)
+
+  NO CATALYST, but Kev flagged it (day-2 continuation or his specific pick):
+    Score 5+  → $75  (MEDIUM max — Kev's read is real but no confirmed news)
+    Score 3–4 → $50  (LOW)
+    Score 1–2 → $20  (MINIMUM)
+
+  NO CATALYST, NOT flagged by Kev (pure technical play):
+    Any score → $20  (MINIMUM — no story behind the move)
+
+  Score 0   → NO-TRADE regardless of catalyst
+
+This sizing rule exists because: every losing trade so far has been a
+no-catalyst technical play entered at $75-$100. ATPC, LPA, ICCM, CLWT —
+all had clean setups, all faded immediately. No story = no sustained buying.
+Save full size for when there is a REASON buyers will keep showing up.
+
+THE SCORE IS THE DECISION ON WHAT TO TRADE. THE CATALYST IS THE DECISION
+ON SIZE. Do not use "no catalyst" to skip a trade entirely — use it to size
+down. A $20 trade on a clean technical setup is fine. A $100 trade on a
+no-catalyst gap is not.
 
 ━━━ HARD NO-GO (skip only for these) ━━━
   ✗ Active SEC halt or T12 restriction
@@ -1443,16 +1461,26 @@ justify sitting out. Missing catalyst = smaller edge, not a veto.
   Score them normally. Extra scrutiny on spread and float quality, but don't auto-reject.
 
 ━━━ MARKET CONTEXT ━━━
-  SPY < -1.5%: take the top-scoring setup at LOW size (30%) — don't skip entirely
-  SPY -1.5% to +1%: MEDIUM sizing on your best setup
-  SPY > +1%: full confidence sizing — momentum market, attack it
+  SPY < -2.5%: skip the day — genuine crash, momentum plays fail
+  SPY -2.5% to 0%: normal red day — trade the setup, not the macro.
+    Small-cap momentum is uncorrelated to SPY on catalyst-driven days.
+  SPY > 0%: tailwind — full catalyst-based sizing applies
 
-  SPY between -1.5% and 0% is a NORMAL trading day — do NOT use a mildly red
-  market as a narrative reason to sit out. Small-cap momentum is largely
-  uncorrelated to SPY on catalyst-driven days. Trade the setup, not the macro.
+  Do NOT use a mildly red market to reduce size beyond the catalyst rule above.
+  The catalyst rule already accounts for risk. SPY context is informational only
+  unless it is a genuine crash day (-2.5%+).
 
 ━━━ KEV'S METHODOLOGY (internalize this — it's how the best setups are found) ━━━
   Kev is a professional small-cap momentum trader. His entry framework:
+
+  DAY-2 CONTINUATION (Kev's bread and butter):
+  A stock that ran 20%+ yesterday with buyers confirmed (closed in top half of range,
+  held structure) is often a better setup than a fresh no-catalyst gapper. Proven
+  buyers exist. The story is still alive. Kev trades day-2 plays more than anything
+  else. If yesterday's big mover is gapping up again or showing pre-market strength,
+  score it as day-2 continuation (+1 point) and treat it as a higher-conviction setup
+  than a fresh mystery gapper. ICCM ran 200% one day — day-2 potential is real.
+  CAST ran 35% one day — day-2 potential is real.
 
   ENTRY TRIGGER — VWAP + 90MA reclaim together:
   The bot watches for price to hold above BOTH VWAP and the 90-period MA for 3 ticks

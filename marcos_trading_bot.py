@@ -3392,7 +3392,7 @@ def main():
 
         # GFV protection: each trade pulls $100 from the starting settled pool.
         # Stop when settled capital remaining < $100 (can't fund another trade).
-        if settled_remaining < MAX_TRADE_DOLLARS:
+        if not DRY_RUN and settled_remaining < MAX_TRADE_DOLLARS:
             print(f"🛑 Settled capital exhausted (${settled_remaining:.2f} left) — done for today")
             break
 

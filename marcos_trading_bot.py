@@ -2867,9 +2867,11 @@ def main():
         print(f"\n✅ TEST TRADE COMPLETE — P&L: ${pnl:.2f} | New balance: ${new_balance:.2f}")
         return
 
-    # Hard time gate — exit immediately if outside the 8:30am–3:30pm ET window.
+    # Hard time gate — exit if outside 8:30am–3:30pm ET.
+    # Allow mid-day restarts (e.g. Railway redeploy) to resume scanning until cutoff.
     minutes_et = now.hour * 60 + now.minute
-    if not (8 * 60 + 30 <= minutes_et <= 11 * 60 + 0):
+    cutoff_min = VWAP_ENTRY_TIMEOUT * 60 + VWAP_ENTRY_TIMEOUT_MIN
+    if not (8 * 60 + 30 <= minutes_et <= cutoff_min):
         print(f"⏰ Outside trading window ({now.strftime('%H:%M')} ET) — exiting.")
         return
 

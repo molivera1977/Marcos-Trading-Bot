@@ -264,11 +264,12 @@ SPY_BEAR_SKIP_PCT     = -2.5   # Skip the day entirely if SPY pre-market < -2.5%
 # Small-cap momentum plays are largely uncorrelated to SPY on catalyst days.
 # -1% is a normal red morning — Kev trades ICCM day-2 regardless of SPY.
 MAX_SPREAD_PCT        = 0.03   # Skip entry if bid-ask spread > 3% of ask price
-VWAP_VOL_MULTIPLIER   = 1.5    # Require 1.5× average minute volume for VWAP reclaim confirmation
+VWAP_VOL_MULTIPLIER   = 2.0    # Require 2× average minute volume for VWAP reclaim confirmation
 VWAP_CONFIRM_TICKS   = 3      # Price must hold above VWAP for this many consecutive polls before entry
 MAX_VWAP_EXTENSION   = 0.15   # Don't enter if price is >15% above VWAP — too extended, fade risk
 VWAP_PULLBACK_ZONE   = 0.03   # Within 3% of VWAP counts as "at VWAP" for pullback detection
-VWAP_PULLBACK_MIN_RUN = 0.02  # High-water must be ≥2% above VWAP before pullback mode activates
+VWAP_PULLBACK_MIN_RUN = 0.05  # High-water must be ≥5% above VWAP before pullback mode activates
+MIN_ABS_VOL_ENTRY    = 15_000 # Bounce bar must have ≥15k shares — blocks thin afternoon noise
 TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 7 days
 LOG_FILE              = "/tmp/trade_log.csv"
 DRY_RUN    = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
@@ -1813,6 +1814,30 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
     cache = {t: {"bars": [], "vwap": 0.0, "ma90": 0.0, "fetched": 0.0,
                  "ticks_above": 0, "high_water": 0.0, "pullback_mode": False}
              for t in candidates}
+
+    # Seed high_water from today's intraday bars so the bot knows about
+    # any run that happened before monitoring started (e.g. morning gap).
+    # Without this, a stock that ran to $9 at open then pulled back looks
+    # identical to one that never ran — and the pullback logic never fires.
+    print("📈 Seeding prior-run history from today's bars...")
+    for t in candidates:
+        try:
+            seed_bars = get_intraday_bars_full(t)
+            if not seed_bars:
+                continue
+            today_high = max(float(b.get("high") or b.get("h") or
+                                   b.get("close") or b.get("c") or 0)
+                             for b in seed_bars)
+            seed_vwap  = calculate_vwap(seed_bars)
+            if seed_vwap > 0 and today_high >= seed_vwap * (1 + VWAP_PULLBACK_MIN_RUN):
+                cache[t]["high_water"] = today_high
+                print(f"   {t}: today's high ${today_high:.2f} vs VWAP ${seed_vwap:.2f} "
+                      f"(+{(today_high/seed_vwap-1)*100:.1f}%) — pullback detection armed")
+            else:
+                print(f"   {t}: no meaningful prior run above VWAP — watching for fresh breakout")
+        except Exception as e:
+            print(f"   {t}: seed error — {e}")
+
     last_rescan = time.time()
 
     while True:
@@ -1890,16 +1915,21 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                                for b in bars) / max(len(bars), 1)
                 req_ticks = 1 if in_pb else VWAP_CONFIRM_TICKS
                 vol_mult  = 1.0 if in_pb else VWAP_VOL_MULTIPLIER
-                vol_ok    = avg_vol == 0 or last_vol >= avg_vol * vol_mult
-                label     = "PULLBACK↑" if in_pb else "RECLAIM"
+                vol_rel_ok = avg_vol == 0 or last_vol >= avg_vol * vol_mult
+                vol_abs_ok = last_vol >= MIN_ABS_VOL_ENTRY
+                vol_ok     = vol_rel_ok and vol_abs_ok
+                label      = "PULLBACK↑" if in_pb else "RECLAIM"
 
                 if ticks < req_ticks:
                     status_parts[-1] += f" ⏳{label}:{ticks}/{req_ticks}"
                 elif vol_ok:
                     print(f"\n✅ {t} VWAP+90MA {label} confirmed! "
                           f"${price:.2f} > VWAP ${vwap:.2f} & 90MA ${ma90:.2f} "
-                          f"held {ticks} tick(s) vol={last_vol/avg_vol if avg_vol else 0:.1f}x")
+                          f"held {ticks} tick(s) vol={last_vol/avg_vol if avg_vol else 0:.1f}x "
+                          f"({int(last_vol):,} shares)")
                     return t, price, vwap
+                elif not vol_abs_ok:
+                    status_parts[-1] += f" ⏳{label}:vol{int(last_vol):,}<{MIN_ABS_VOL_ENTRY:,}abs"
                 else:
                     # Re-arm pullback mode so next tick still gets fast entry
                     if in_pb:
@@ -1941,9 +1971,21 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                 for t in new_candidates:
                     if t not in candidates:
                         candidates.append(t)
+                        hw = 0.0
+                        try:
+                            sb = get_intraday_bars_full(t)
+                            if sb:
+                                th = max(float(b.get("high") or b.get("h") or
+                                               b.get("close") or b.get("c") or 0) for b in sb)
+                                sv = calculate_vwap(sb)
+                                if sv > 0 and th >= sv * (1 + VWAP_PULLBACK_MIN_RUN):
+                                    hw = th
+                        except Exception:
+                            pass
                         cache[t] = {"bars": [], "vwap": 0.0, "ma90": 0.0, "fetched": 0.0,
-                                    "ticks_above": 0, "high_water": 0.0, "pullback_mode": False}
-                        print(f"   ➕ Added {t} to watchlist")
+                                    "ticks_above": 0, "high_water": hw, "pullback_mode": False}
+                        print(f"   ➕ Added {t} to watchlist"
+                              + (f" (prior high ${hw:.2f})" if hw > 0 else ""))
             last_rescan = time.time()
 
         time.sleep(stream.loop_sleep())

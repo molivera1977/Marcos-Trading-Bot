@@ -204,6 +204,8 @@ MAX_SPREAD_PCT        = 0.03   # Skip entry if bid-ask spread > 3% of ask price
 VWAP_VOL_MULTIPLIER   = 1.5    # Require 1.5× average minute volume for VWAP reclaim confirmation
 VWAP_CONFIRM_TICKS   = 3      # Price must hold above VWAP for this many consecutive polls before entry
 MAX_VWAP_EXTENSION   = 0.15   # Don't enter if price is >15% above VWAP — too extended, fade risk
+VWAP_PULLBACK_ZONE   = 0.03   # Within 3% of VWAP counts as "at VWAP" for pullback detection
+VWAP_PULLBACK_MIN_RUN = 0.02  # High-water must be ≥2% above VWAP before pullback mode activates
 TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 7 days
 LOG_FILE              = "/tmp/trade_log.csv"
 DRY_RUN    = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
@@ -1624,10 +1626,12 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
     """
     if traded_tickers is None:
         traded_tickers = set()
-    print(f"\n⏳ Watching {len(candidates)} candidate(s) for VWAP reclaim: {', '.join(candidates)}")
+    print(f"\n⏳ Watching {len(candidates)} candidate(s) for VWAP entry (reclaim or pullback bounce): {', '.join(candidates)}")
 
-    # Per-ticker bar cache: {ticker: {"bars": [...], "vwap": float, "ma90": float, "fetched": float, "ticks_above": int}}
-    cache = {t: {"bars": [], "vwap": 0.0, "ma90": 0.0, "fetched": 0.0, "ticks_above": 0} for t in candidates}
+    # Per-ticker bar cache
+    cache = {t: {"bars": [], "vwap": 0.0, "ma90": 0.0, "fetched": 0.0,
+                 "ticks_above": 0, "high_water": 0.0, "pullback_mode": False}
+             for t in candidates}
     last_rescan = time.time()
 
     while True:
@@ -1671,38 +1675,68 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
 
             # Kev's entry: price must be above BOTH VWAP and the 90MA
             above_vwap = price > vwap
-            above_90ma = ma90 <= 0 or price > ma90   # if 90MA not yet available, don't block
+            above_90ma = ma90 <= 0 or price > ma90
 
             if above_vwap and above_90ma:
-                # Reject entry if price is too extended above VWAP — chasing a
-                # stock 31% above VWAP (like ICCM at $7.91 vs VWAP $6.04) is a
-                # fade setup, not a reclaim. Wait for price to come back in range.
                 extension = (price - vwap) / vwap
                 if extension > MAX_VWAP_EXTENSION:
                     cache[t]["ticks_above"] = 0
                     status_parts[-1] += f" 🚫EXTENDED(+{extension*100:.0f}%>VWAP)"
                     continue
 
+                # Track high-water mark above VWAP
+                cache[t]["high_water"] = max(cache[t]["high_water"], price)
+
+                # Pullback mode: entered when price pulled back to VWAP after a prior run.
+                # Pullback bounce = faster entry (1 tick, 1.0x vol) vs fresh reclaim (3 ticks, 1.5x vol).
+                in_pb = cache[t]["pullback_mode"]
+                cache[t]["pullback_mode"] = False  # clear now that we're above VWAP
+
                 cache[t]["ticks_above"] += 1
                 ticks = cache[t]["ticks_above"]
                 last_vol = float(bars[-1].get("volume") or bars[-1].get("v") or 0)
                 avg_vol  = sum(float(b.get("volume") or b.get("v") or 0)
-                               for b in bars) / len(bars)
-                vol_ok = last_vol >= avg_vol * VWAP_VOL_MULTIPLIER
-                if ticks < VWAP_CONFIRM_TICKS:
-                    status_parts[-1] += f" ⏳{ticks}/{VWAP_CONFIRM_TICKS}ticks"
+                               for b in bars) / max(len(bars), 1)
+                req_ticks = 1 if in_pb else VWAP_CONFIRM_TICKS
+                vol_mult  = 1.0 if in_pb else VWAP_VOL_MULTIPLIER
+                vol_ok    = avg_vol == 0 or last_vol >= avg_vol * vol_mult
+                label     = "PULLBACK↑" if in_pb else "RECLAIM"
+
+                if ticks < req_ticks:
+                    status_parts[-1] += f" ⏳{label}:{ticks}/{req_ticks}"
                 elif vol_ok:
-                    print(f"\n✅ {t} VWAP+90MA reclaim confirmed! "
+                    print(f"\n✅ {t} VWAP+90MA {label} confirmed! "
                           f"${price:.2f} > VWAP ${vwap:.2f} & 90MA ${ma90:.2f} "
-                          f"held {ticks} ticks with {last_vol/avg_vol:.1f}× avg volume")
+                          f"held {ticks} tick(s) vol={last_vol/avg_vol if avg_vol else 0:.1f}x")
                     return t, price, vwap
                 else:
-                    status_parts[-1] += f" ⏳holding({ticks}ticks) ⚠️vol:{last_vol/avg_vol:.1f}x"
+                    # Re-arm pullback mode so next tick still gets fast entry
+                    if in_pb:
+                        cache[t]["pullback_mode"] = True
+                    status_parts[-1] += f" ⏳{label}:vol{last_vol/avg_vol if avg_vol else 0:.1f}x"
             else:
                 if cache[t]["ticks_above"] > 0:
                     reason = "VWAP" if not above_vwap else "90MA"
-                    print(f"   {t} dropped back below {reason} after {cache[t]['ticks_above']} tick(s) — resetting")
+                    print(f"   {t} dropped below {reason} after {cache[t]['ticks_above']} tick(s)")
                 cache[t]["ticks_above"] = 0
+
+                # Detect pullback to VWAP after a meaningful prior run
+                hw = cache[t]["high_water"]
+                if hw >= vwap * (1 + VWAP_PULLBACK_MIN_RUN):
+                    pct_from_vwap = (price - vwap) / vwap  # negative when below VWAP
+                    if abs(pct_from_vwap) <= VWAP_PULLBACK_ZONE:
+                        if not cache[t]["pullback_mode"]:
+                            print(f"   {t} pullback to VWAP ${vwap:.2f} "
+                                  f"(high ${hw:.2f}, now {pct_from_vwap*100:+.1f}%) — watching for bounce")
+                        cache[t]["pullback_mode"] = True
+                        status_parts[-1] += f" 🔄PB({pct_from_vwap*100:+.1f}%)"
+                    elif price < vwap * (1 - VWAP_PULLBACK_ZONE * 2):
+                        # Dropped too far — setup blown through, full reset
+                        if cache[t]["pullback_mode"]:
+                            print(f"   {t} failed pullback — dropped too far below VWAP, resetting")
+                        cache[t]["pullback_mode"] = False
+                        cache[t]["high_water"] = 0.0
+
                 if above_vwap and not above_90ma:
                     status_parts[-1] += f" ⚠️below90MA"
 
@@ -1716,7 +1750,8 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                 for t in new_candidates:
                     if t not in candidates:
                         candidates.append(t)
-                        cache[t] = {"bars": [], "vwap": 0.0, "ma90": 0.0, "fetched": 0.0, "ticks_above": 0}
+                        cache[t] = {"bars": [], "vwap": 0.0, "ma90": 0.0, "fetched": 0.0,
+                                    "ticks_above": 0, "high_water": 0.0, "pullback_mode": False}
                         print(f"   ➕ Added {t} to watchlist")
             last_rescan = time.time()
 

@@ -1857,9 +1857,10 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
             candidates.remove(t)
             del cache[t]
         if not candidates:
-            print("⛔ All candidates dropped — none have a valid VWAP setup. Holding cash.")
-            return None, None, None
-        print(f"📋 Remaining candidates after VWAP filter: {', '.join(candidates)}")
+            print("⚠️  All initial candidates dropped (no valid VWAP setup). "
+                  "Entering watch loop — rescan will find new movers.")
+        else:
+            print(f"📋 Remaining candidates after VWAP filter: {', '.join(candidates)}")
 
     last_rescan = time.time()
 
@@ -1984,7 +1985,10 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                 if above_vwap and not above_90ma:
                     status_parts[-1] += f" ⚠️below90MA"
 
-        print(f"📊 {' | '.join(status_parts)}")
+        if status_parts:
+            print(f"📊 {' | '.join(status_parts)}")
+        else:
+            print(f"📊 No candidates — waiting for rescan to find a setup...")
 
         # ── 10-minute live rescan — pick up new movers ─────────
         if rescan_callback and time.time() - last_rescan >= INTRADAY_RESCAN_INTERVAL:

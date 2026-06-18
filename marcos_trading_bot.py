@@ -2636,46 +2636,78 @@ def run_rescan(email_content, market_data, balance, current_analysis,
 # OPEN POSITION RESUME
 # ============================================================
 
-def get_open_position():
+def get_open_position(retries=4, delay=8):
     """
     Query Webull for any open equity positions using the dedicated positions endpoint.
-    Returns (ticker, shares, avg_cost) or (None, 0, 0) if flat.
+    Returns (ticker, shares, avg_cost) or (None, 0, 0) if confirmed flat.
+    Raises RuntimeError if all retries fail — caller must NOT assume flat on error.
     """
     _, trade_client = _make_webull_client()
     if not trade_client:
-        return None, 0, 0
-    try:
-        res = trade_client.account.get_account_position(WEBULL_ACCOUNT_ID, page_size=50)
-        if res.status_code != 200:
-            print(f"⚠️  Position check failed: {res.status_code}")
-            return None, 0, 0
-        data = res.json()
-        # Unwrap envelope if present
-        items = data if isinstance(data, list) else (
-                data.get("data") or data.get("items") or data.get("positions") or [])
-        print(f"🔍 Position check — {len(items)} position(s) found")
-        for pos in items:
-            qty = int(float(pos.get("quantity") or pos.get("qty") or 0))
-            if qty > 0:
-                ticker   = (pos.get("symbol") or pos.get("ticker_symbol") or
-                            pos.get("tickerSymbol") or "").strip().upper()
-                avg_cost = float(pos.get("average_cost") or pos.get("avg_cost") or
-                                 pos.get("cost_price") or pos.get("costPrice") or 0)
-                if ticker and avg_cost > 0:
-                    print(f"⚡ Found open position: {ticker} × {qty} @ ${avg_cost:.2f}")
-                    return ticker, qty, avg_cost
-    except Exception as e:
-        print(f"⚠️  Could not check open positions: {e}")
-    return None, 0, 0
+        raise RuntimeError("Webull client unavailable — cannot confirm position status")
+
+    last_err = None
+    for attempt in range(1, retries + 1):
+        try:
+            res = trade_client.account.get_account_position(WEBULL_ACCOUNT_ID, page_size=50)
+            if res.status_code != 200:
+                raise RuntimeError(f"HTTP {res.status_code}")
+            data = res.json()
+            items = data if isinstance(data, list) else (
+                    data.get("data") or data.get("items") or data.get("positions") or [])
+            print(f"🔍 Position check (attempt {attempt}) — {len(items)} position(s) found")
+            for pos in items:
+                qty = int(float(pos.get("quantity") or pos.get("qty") or 0))
+                if qty > 0:
+                    ticker   = (pos.get("symbol") or pos.get("ticker_symbol") or
+                                pos.get("tickerSymbol") or "").strip().upper()
+                    avg_cost = float(pos.get("average_cost") or pos.get("avg_cost") or
+                                     pos.get("cost_price") or pos.get("costPrice") or 0)
+                    if ticker and avg_cost > 0:
+                        print(f"⚡ Found open position: {ticker} × {qty} @ ${avg_cost:.2f}")
+                        return ticker, qty, avg_cost
+            return None, 0, 0  # confirmed flat
+        except Exception as e:
+            last_err = e
+            print(f"⚠️  Position check attempt {attempt}/{retries} failed: {e}")
+            if attempt < retries:
+                time.sleep(delay)
+
+    raise RuntimeError(f"Position check failed after {retries} attempts: {last_err}")
 
 
 def resume_monitoring_if_open():
     """
     If a position is already open (e.g. bot was redeployed mid-trade),
     skip the scan and go straight to monitoring with recalculated levels.
-    Returns True if we resumed (caller should return after), False if flat.
+    Returns True if we resumed (caller should return after), False if confirmed flat.
+    Sends an alert email and blocks if the position check is inconclusive.
     """
-    ticker, shares, avg_cost = get_open_position()
+    try:
+        ticker, shares, avg_cost = get_open_position()
+    except RuntimeError as e:
+        # Cannot confirm position status — do NOT start trading.
+        # Send an alert and block until manually resolved.
+        msg = (f"⚠️ Bot restarted but could not confirm position status.\n\n"
+               f"Error: {e}\n\n"
+               f"The bot will NOT trade until Webull confirms the account is flat.\n"
+               f"Check your Webull app and restart the Railway service if no position is open.")
+        print(f"\n🚨 POSITION CHECK FAILED — blocking bot until resolved.\n{msg}")
+        try:
+            resend.api_key = RESEND_API_KEY
+            resend.Emails.send({
+                "from":    "Trading Bot <onboarding@resend.dev>",
+                "to":      [SUMMARY_EMAIL],
+                "subject": "🚨 Bot blocked — position status unknown after restart",
+                "text":    msg,
+            })
+        except Exception:
+            pass
+        # Block indefinitely — Railway will restart the service if it crashes,
+        # so we sleep-loop to hold the process without crashing and spinning.
+        while True:
+            time.sleep(60)
+
     if not ticker or shares <= 0 or avg_cost <= 0:
         return False
 

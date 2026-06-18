@@ -1080,6 +1080,9 @@ def _get_webull_quote(ticker) -> dict:
         if abs(pre_r) < 1 and pre_r != 0:
             pre_r = pre_r * 100
 
+        vwap = float(d.get("vwap") or d.get("vwap_price") or d.get("average_price") or
+                     d.get("avgPrice") or d.get("dayAvgPrice") or 0)
+
         return {
             "last_price":            last,
             "bid":                   bid,
@@ -1089,6 +1092,7 @@ def _get_webull_quote(ticker) -> dict:
             "change_ratio":          round(chg_r * 100 if abs(chg_r) < 1 else chg_r, 2),
             "pre_market_price":      pre_p,
             "pre_market_change_pct": round(pre_r, 2),
+            "vwap":                  vwap,
         }
     except Exception as e:
         print(f"⚠️  Webull quote error for {ticker}: {e}")
@@ -1741,12 +1745,16 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                 if fresh:
                     cache[t]["bars"] = fresh
                     cache[t]["ma90"] = calculate_90ma(fresh)
-                # Full-day bars including pre-market: VWAP only
-                full = get_intraday_bars_full(t)
-                if full:
-                    cache[t]["vwap"] = calculate_vwap(full)
-                elif fresh:
-                    cache[t]["vwap"] = calculate_vwap(fresh)  # fallback if yfinance fails
+                # VWAP: prefer Webull snapshot (matches chart exactly), fall back to yfinance
+                wb_vwap = _get_webull_quote(t).get("vwap", 0)
+                if wb_vwap > 0:
+                    cache[t]["vwap"] = wb_vwap
+                else:
+                    full = get_intraday_bars_full(t)
+                    if full:
+                        cache[t]["vwap"] = calculate_vwap(full)
+                    elif fresh:
+                        cache[t]["vwap"] = calculate_vwap(fresh)
                 cache[t]["fetched"] = time.time()
 
         # ── Check each ticker — take first confirmed reclaim ───────

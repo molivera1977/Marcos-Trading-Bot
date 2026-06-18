@@ -971,15 +971,15 @@ def get_account_balance():
                     total   = float(data.get("total_cash_balance") or
                                     data.get("net_cash_balance") or 0)
 
-                    # Fall through to per-currency assets
-                    if not settled and not total:
-                        assets = data.get("account_currency_assets") or []
-                        for asset in assets:
-                            if asset.get("currency") == "USD":
-                                settled = float(asset.get("settled_cash") or
-                                                asset.get("settled_funds") or 0)
-                                total   = float(asset.get("cash_balance") or 0)
-                                break
+                    # Always check per-currency assets — this is where Webull puts settled_cash
+                    assets = data.get("account_currency_assets") or []
+                    for asset in assets:
+                        if asset.get("currency") == "USD":
+                            settled = float(asset.get("settled_cash") or
+                                            asset.get("settled_funds") or 0)
+                            total   = float(asset.get("cash_balance") or
+                                            asset.get("buying_power") or total or 0)
+                            break
 
                     if settled > 0:
                         print(f"💰 Settled cash: ${settled:.2f} | Total balance: ${total:.2f}")

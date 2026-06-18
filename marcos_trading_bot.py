@@ -891,6 +891,21 @@ def scan_morning_gappers():
     return results
 
 
+def _push_balance_to_screener(balance: float):
+    """Push current balance to screener_app so the dashboard always shows live data."""
+    screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not screener_url or balance <= 0:
+        return
+    try:
+        requests.post(f"{screener_url}/api/update_account",
+                      json={"balance": round(balance, 2)},
+                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET},
+                      timeout=5)
+        print(f"📡 Balance synced to screener_app: ${balance:.2f}")
+    except Exception as e:
+        print(f"⚠️  Could not sync balance to screener_app: {e}")
+
+
 def get_account_balance():
     """
     Get SETTLED cash only — critical for cash accounts.
@@ -941,10 +956,11 @@ def get_account_balance():
 
                     if settled > 0:
                         print(f"💰 Settled cash: ${settled:.2f} | Total balance: ${total:.2f}")
+                        _push_balance_to_screener(settled)
                         return settled
                     if total > 0:
                         print(f"⚠️  Could not read settled cash separately — using total: ${total:.2f}")
-                        print(f"   (Cash account: avoid multiple same-day trades to prevent GFV)")
+                        _push_balance_to_screener(total)
                         return total
 
                     print("⚠️  Webull API returned $0 — using ACCOUNT_BALANCE env var")

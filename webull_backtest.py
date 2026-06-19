@@ -163,14 +163,30 @@ def _bar_val(bar: dict, *keys):
 
 
 def _bar_ts_ms(bar: dict):
-    """Extract the bar's timestamp in milliseconds."""
+    """Extract the bar's timestamp in milliseconds. Handles both int-ms and ISO strings."""
     for k in ("timestamp", "time", "t", "ts", "beginTime", "begin_time",
               "open_time", "openTime", "startTime", "start_time"):
         v = bar.get(k)
-        if v is not None:
+        if v is None:
+            continue
+        # Try integer milliseconds first
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            pass
+        # Try ISO string e.g. '2026-06-18T04:00:00.000+0000'
+        if isinstance(v, str):
             try:
-                return int(v)
-            except (TypeError, ValueError):
+                from datetime import datetime as _dt
+                # Normalize +0000 → +00:00 for fromisoformat
+                s = v.replace("+0000", "+00:00").replace("-0000", "+00:00")
+                if "." in s:
+                    fmt = "%Y-%m-%dT%H:%M:%S.%f%z"
+                else:
+                    fmt = "%Y-%m-%dT%H:%M:%S%z"
+                dt = _dt.strptime(s, fmt)
+                return int(dt.timestamp() * 1000)
+            except (ValueError, ImportError):
                 pass
     return None
 

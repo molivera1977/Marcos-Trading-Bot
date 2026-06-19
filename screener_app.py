@@ -335,7 +335,10 @@ HTML = """<!DOCTYPE html>
   table{width:100%;border-collapse:collapse;font-size:13px}
   thead th{padding:10px 16px;text-align:left;font-size:11px;font-weight:500;color:#8b949e;
            text-transform:uppercase;letter-spacing:.4px;background:#161b22;
-           border-bottom:1px solid #21262d}
+           border-bottom:1px solid #21262d;cursor:pointer;user-select:none;white-space:nowrap}
+  thead th:hover{color:#e6edf3;background:#1c2128}
+  thead th.sort-asc::after{content:' ▲';font-size:9px}
+  thead th.sort-desc::after{content:' ▼';font-size:9px}
   tbody tr{border-bottom:1px solid #161b22;transition:background .1s}
   tbody tr:last-child{border-bottom:none}
   tbody tr:hover{background:#161b22}
@@ -420,8 +423,13 @@ HTML = """<!DOCTYPE html>
     <table>
       <thead>
         <tr>
-          <th>Ticker</th><th>Price</th><th>Gap %</th><th>Float</th>
-          <th>Rel vol</th><th>Mkt cap</th><th>Source</th>
+          <th onclick="sortBy('symbol')">Ticker</th>
+          <th onclick="sortBy('price')">Price</th>
+          <th onclick="sortBy('change_pct')" class="sort-desc">Gap %</th>
+          <th onclick="sortBy('float_shares')">Float</th>
+          <th onclick="sortBy('relative_volume')">Rel vol</th>
+          <th onclick="sortBy('market_cap')">Mkt cap</th>
+          <th>Source</th>
         </tr>
       </thead>
       <tbody id="tbody"><tr><td colspan="7" class="empty">Click "Scan now" to load.</td></tr></tbody>
@@ -433,6 +441,24 @@ HTML = """<!DOCTYPE html>
 <script>
 function fmt(n){return n==null?'—':n.toLocaleString()}
 function fmtM(n){if(!n||n===0)return'—';var m=n/1e6;return m<1?(m*1000).toFixed(0)+'K':m.toFixed(1)+'M'}
+
+var _scanData = [];
+var _sortCol = 'change_pct';
+var _sortAsc = false;
+
+function sortBy(col){
+  if(_sortCol===col){ _sortAsc=!_sortAsc; }
+  else { _sortCol=col; _sortAsc=(col==='symbol'); }
+  // Update header classes
+  document.querySelectorAll('thead th').forEach(function(th){
+    th.classList.remove('sort-asc','sort-desc');
+  });
+  var ths=document.querySelectorAll('thead th');
+  var colMap={symbol:0,price:1,change_pct:2,float_shares:3,relative_volume:4,market_cap:5};
+  var idx=colMap[col];
+  if(idx!=null) ths[idx].classList.add(_sortAsc?'sort-asc':'sort-desc');
+  renderRows(_scanData);
+}
 
 var _filterOn = false;
 function applyFilter(on){
@@ -447,6 +473,35 @@ function toggleFilter(){
   var btn = document.getElementById('filter-btn');
   if(_filterOn){ btn.classList.remove('off'); applyFilter(true); }
   else { btn.classList.add('off'); applyFilter(false); }
+}
+
+function renderRows(rows){
+  var sorted=rows.slice().sort(function(a,b){
+    var av=a[_sortCol], bv=b[_sortCol];
+    if(av==null||av===undefined) av=_sortAsc?'￿':-Infinity;
+    if(bv==null||bv===undefined) bv=_sortAsc?'￿':-Infinity;
+    if(typeof av==='string') return _sortAsc?av.localeCompare(bv):bv.localeCompare(av);
+    return _sortAsc?av-bv:bv-av;
+  });
+  var tbody=document.getElementById('tbody');
+  tbody.innerHTML=sorted.map(function(r){
+    var isBot=r.change_pct>=15&&r.change_pct<=30;
+    var gapClass=r.change_pct>=15?'gap-hot':'gap-warm';
+    var floatClass=r.float_tier==='small'?'float-small':r.float_tier==='medium'?'float-med':'float-na';
+    var relVol=r.relative_volume?r.relative_volume.toFixed(1)+'×':'—';
+    var mktcap=r.market_cap?'$'+fmtM(r.market_cap):'—';
+    var botBadge=isBot?'<span class="bot-pill">BOT</span>':'';
+    return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
+      +'<td class="ticker-cell">'+r.symbol+botBadge+'</td>'
+      +'<td class="price-cell">$'+r.price.toFixed(2)+'</td>'
+      +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
+      +'<td class="'+floatClass+'">'+r.float_label+'</td>'
+      +'<td>'+relVol+'</td>'
+      +'<td>'+mktcap+'</td>'
+      +'<td><span class="source-badge">'+r.source+'</span></td>'
+      +'</tr>';
+  }).join('');
+  if(_filterOn) applyFilter(true);
 }
 
 function runScan(){
@@ -507,36 +562,17 @@ function renderResults(d){
   var now=new Date(d.updated);
   document.getElementById('ts').textContent='Updated '+now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
 
-  // Table
+  // Cache and render table
+  _scanData = rows;
+  _sortCol = 'change_pct'; _sortAsc = false;
   var tbody=document.getElementById('tbody');
   if(!rows.length){
     tbody.innerHTML='<tr><td colspan="7" class="empty">No candidates found. Markets may be closed or pre-market data unavailable.</td></tr>';
     return;
   }
-
   var botCount=rows.filter(function(r){return r.change_pct>=15&&r.change_pct<=30;}).length;
   document.getElementById('s-bot-count').textContent=botCount?botCount+' bot candidates':'';
-
-  tbody.innerHTML=rows.map(function(r){
-    var isBot=r.change_pct>=15&&r.change_pct<=30;
-    var gapClass=r.change_pct>=15?'gap-hot':'gap-warm';
-    var floatClass=r.float_tier==='small'?'float-small':r.float_tier==='medium'?'float-med':'float-na';
-    var relVol=r.relative_volume?r.relative_volume.toFixed(1)+'×':'—';
-    var mktcap=r.market_cap?'$'+fmtM(r.market_cap):'—';
-    var botBadge=isBot?'<span class="bot-pill">BOT</span>':'';
-    return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
-      +'<td class="ticker-cell">'+r.symbol+botBadge+'</td>'
-      +'<td class="price-cell">$'+r.price.toFixed(2)+'</td>'
-      +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
-      +'<td class="'+floatClass+'">'+r.float_label+'</td>'
-      +'<td>'+relVol+'</td>'
-      +'<td>'+mktcap+'</td>'
-      +'<td><span class="source-badge">'+r.source+'</span></td>'
-      +'</tr>';
-  }).join('');
-
-  // Reapply filter if active
-  if(!document.getElementById('filter-btn').classList.contains('off')){applyFilter(true);};
+  renderRows(rows);
 
   // Errors
   if(errs.length){

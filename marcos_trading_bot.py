@@ -3301,6 +3301,29 @@ def main():
     # ── Alert 1: Send the plan email right now (~8:55am) ──────
     send_plan_alert(analysis, balance)
 
+    # ── Log today's scan for future backtesting ────────────────────────
+    # Saves every day's gapper list + Claude's picks to scan_log.jsonl so
+    # we can replay the strategy against real historical data later.
+    try:
+        import json as _json
+        log_entry = {
+            "date":      datetime.now(EASTERN).strftime("%Y-%m-%d"),
+            "kev_tickers": tickers,
+            "gappers":   [{"symbol": g["symbol"], "change_pct": g.get("change_pct", 0),
+                           "price": g.get("price", 0), "float_label": g.get("float_label", "")}
+                          for g in (gappers or [])],
+            "claude_pick":   (analysis.get("recommended_trade") or {}).get("ticker"),
+            "claude_action": (analysis.get("recommended_trade") or {}).get("action"),
+            "all_tickers":   [t.get("ticker") for t in (analysis.get("tickers") or [])
+                              if t.get("ticker")],
+        }
+        log_path = os.path.join(os.path.dirname(__file__), "scan_log.jsonl")
+        with open(log_path, "a") as _f:
+            _f.write(_json.dumps(log_entry) + "\n")
+        print(f"📝 Scan logged to scan_log.jsonl ({log_entry['date']})")
+    except Exception as _e:
+        print(f"⚠️  Scan log write failed: {_e}")
+
     recommended = analysis.get("recommended_trade", {})
     if recommended.get("action") != "BUY":
         print("🔒 Claude says: HOLD CASH today.")

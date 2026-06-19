@@ -362,6 +362,18 @@ HTML = """<!DOCTYPE html>
           padding:12px 16px;margin-top:16px;font-size:12px;color:#f85149}
   .empty{text-align:center;padding:48px;color:#8b949e;font-size:14px}
 
+  /* ── Bot candidate highlighting ── */
+  tr.bot-candidate{background:#0d1f14}
+  tr.bot-candidate:hover{background:#112b1a}
+  tr.bot-candidate td.ticker-cell{font-weight:700;color:#3fb950}
+  .bot-pill{display:inline-block;background:#1a3a2a;border:1px solid #2d5a3d;
+            color:#3fb950;font-size:10px;font-weight:600;padding:1px 6px;
+            border-radius:4px;margin-left:6px;vertical-align:middle}
+  .filter-btn{font-size:12px;font-family:inherit;padding:5px 12px;border-radius:8px;
+              border:1px solid #2d5a3d;background:#1a3a2a;color:#3fb950;cursor:pointer;white-space:nowrap}
+  .filter-btn.off{background:transparent;border-color:#30363d;color:#8b949e}
+  .stat-sub{font-size:11px;color:#8b949e;margin-top:2px}
+
   @media(max-width:700px){
     .stats{grid-template-columns:repeat(2,1fr)}
     thead th:nth-child(6),tbody td:nth-child(6){display:none}
@@ -384,7 +396,7 @@ HTML = """<!DOCTYPE html>
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-label">Candidates</div><div class="stat-value" id="s-count">—</div></div>
+  <div class="stat"><div class="stat-label">Candidates</div><div class="stat-value" id="s-count">—</div><div class="stat-sub" id="s-bot-count"></div></div>
   <div class="stat"><div class="stat-label">Avg gap</div><div class="stat-value green" id="s-gap">—</div></div>
   <div class="stat"><div class="stat-label">Smallest float</div><div class="stat-value green" id="s-float">—</div></div>
   <div class="stat"><div class="stat-label">Top rel vol</div><div class="stat-value" id="s-vol">—</div></div>
@@ -393,12 +405,15 @@ HTML = """<!DOCTYPE html>
 <div class="body">
   <div class="section-header">
     <span class="section-title" id="section-title">Small-float movers</span>
-    <span class="live-dot" id="live-badge">Live</span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="filter-btn" id="filter-btn" onclick="toggleFilter()">🤖 Bot candidates only</button>
+      <span class="live-dot" id="live-badge">Live</span>
+    </div>
   </div>
 
   <div class="loader" id="loader">
     <div class="spinner"></div>
-    Scanning Webull screener + checking floats via yfinance…
+    Scanning Webull screener…
   </div>
 
   <div class="table-wrap" id="table-wrap">
@@ -418,6 +433,21 @@ HTML = """<!DOCTYPE html>
 <script>
 function fmt(n){return n==null?'—':n.toLocaleString()}
 function fmtM(n){if(!n||n===0)return'—';var m=n/1e6;return m<1?(m*1000).toFixed(0)+'K':m.toFixed(1)+'M'}
+
+var _filterOn = false;
+function applyFilter(on){
+  var rows = document.querySelectorAll('#tbody tr');
+  rows.forEach(function(row){
+    if(on && row.dataset.bot==='0') row.style.display='none';
+    else row.style.display='';
+  });
+}
+function toggleFilter(){
+  _filterOn = !_filterOn;
+  var btn = document.getElementById('filter-btn');
+  if(_filterOn){ btn.classList.remove('off'); applyFilter(true); }
+  else { btn.classList.add('off'); applyFilter(false); }
+}
 
 function runScan(){
   var btn=document.getElementById('scan-btn');
@@ -484,13 +514,18 @@ function renderResults(d){
     return;
   }
 
+  var botCount=rows.filter(function(r){return r.change_pct>=15&&r.change_pct<=30;}).length;
+  document.getElementById('s-bot-count').textContent=botCount?botCount+' bot candidates':'';
+
   tbody.innerHTML=rows.map(function(r){
+    var isBot=r.change_pct>=15&&r.change_pct<=30;
     var gapClass=r.change_pct>=15?'gap-hot':'gap-warm';
     var floatClass=r.float_tier==='small'?'float-small':r.float_tier==='medium'?'float-med':'float-na';
     var relVol=r.relative_volume?r.relative_volume.toFixed(1)+'×':'—';
     var mktcap=r.market_cap?'$'+fmtM(r.market_cap):'—';
-    return '<tr>'
-      +'<td class="ticker-cell">'+r.symbol+'</td>'
+    var botBadge=isBot?'<span class="bot-pill">BOT</span>':'';
+    return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
+      +'<td class="ticker-cell">'+r.symbol+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+'</td>'
       +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
       +'<td class="'+floatClass+'">'+r.float_label+'</td>'
@@ -499,6 +534,9 @@ function renderResults(d){
       +'<td><span class="source-badge">'+r.source+'</span></td>'
       +'</tr>';
   }).join('');
+
+  // Reapply filter if active
+  if(!document.getElementById('filter-btn').classList.contains('off')){applyFilter(true);};
 
   // Errors
   if(errs.length){

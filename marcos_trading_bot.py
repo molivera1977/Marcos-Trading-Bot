@@ -248,11 +248,20 @@ MAX_TRADE_DOLLARS     = 100.00 # Hard cap per trade until system proves reliable
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade (HIGH confidence)
 POSITION_SIZE_MEDIUM  = 0.50   # 50% for MEDIUM confidence
 POSITION_SIZE_LOW     = 0.30   # 30% for LOW confidence
-STOP_LOSS_PCT         = 0.07   # 7% initial stop loss
+STOP_LOSS_PCT         = 0.07   # 7% emergency exchange stop (EMA9 fires first)
 TARGET_PCT            = 0.20   # 20% full profit target
-PARTIAL_EXIT_PCT      = 0.15   # Sell half at 15% gain
+PARTIAL_EXIT_PCT      = 0.10   # Sell half at +10% (v8 backtest optimum)
 BREAKEVEN_TRIGGER_PCT = 0.10   # Move stop to breakeven at 10% gain
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
+
+# ── v8 Flat Top Breakout strategy parameters ──────────────────
+FLAT_TOP_WINDOW    = 8      # bars of consolidation required
+FLAT_TOP_MAX_RANGE = 0.050  # max high-to-low range for flat top (<5%)
+EMA_PERIOD         = 9      # EMA period for stop
+EMA_CONFIRM_BARS   = 2      # consecutive bars below EMA9 before stop fires
+EMA_CHECK_INTERVAL = 60     # seconds between EMA9 bar fetches during trade monitoring
+ENTRY_CUTOFF_HOUR  = 10     # no new entries after 10:30am ET
+ENTRY_CUTOFF_MIN   = 30
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
 FIRST_TICKER_CUTOFF_MIN = 20  # Switch to backup ticker if #1 hasn't set up by 9:50am ET
@@ -1392,6 +1401,24 @@ def calculate_90ma(bars) -> float:
             pass
     return sum(closes) / len(closes) if closes else 0.0
 
+def calculate_ema9(bars) -> float:
+    """EMA9 of close prices from 1-min bars. Used for the v8 2-bar confirm stop."""
+    closes = []
+    for b in bars:
+        c = b.get("close") or b.get("c") or 0
+        try:
+            closes.append(float(c))
+        except (TypeError, ValueError):
+            pass
+    if len(closes) < EMA_PERIOD:
+        return 0.0
+    k = 2 / (EMA_PERIOD + 1)
+    ema = sum(closes[:EMA_PERIOD]) / EMA_PERIOD
+    for c in closes[EMA_PERIOD:]:
+        ema = c * k + ema * (1 - k)
+    return ema
+
+
 def calculate_vwap(bars) -> float:
     """Calculate VWAP from 1-minute bars. Handles camelCase and snake_case field names."""
     total_pv, total_vol = 0, 0
@@ -1791,6 +1818,121 @@ Respond in this EXACT JSON format:
 VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't change faster
 
 INTRADAY_RESCAN_INTERVAL = 5 * 60   # Rescan live market every 5 minutes while watching
+
+
+def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
+                             rescan_callback=None, traded_tickers: set = None):
+    """
+    v8 strategy: watches all candidate tickers for a flat top breakout.
+    Flat top = FLAT_TOP_WINDOW consecutive 1-min bars consolidating within
+    FLAT_TOP_MAX_RANGE (<5%) high-to-low, then price breaks above window high.
+    Requires price above VWAP at breakout.
+    No new entries after ENTRY_CUTOFF_HOUR:ENTRY_CUTOFF_MIN (10:30am ET).
+    Returns (winner_ticker, entry_price, vwap) or (None, None, None).
+    """
+    if traded_tickers is None:
+        traded_tickers = set()
+    print(f"\n⏳ [v8] Watching {len(candidates)} candidate(s) for flat top breakout: {', '.join(candidates)}")
+
+    cache = {t: {"bars": [], "vwap": 0.0, "fetched": 0.0} for t in candidates}
+    last_rescan = time.time()
+
+    while True:
+        now = datetime.now(EASTERN)
+
+        # Hard cutoff: no new entries after 10:30am
+        past_entry_cutoff = (now.hour > ENTRY_CUTOFF_HOUR or
+                             (now.hour == ENTRY_CUTOFF_HOUR and now.minute >= ENTRY_CUTOFF_MIN))
+        if past_entry_cutoff:
+            print(f"⏰ 10:30am entry cutoff — no flat top breakout detected. Holding cash.")
+            return None, None, None
+
+        if now.hour < 9 or (now.hour == 9 and now.minute < 30):
+            mins = (9 * 60 + 30) - (now.hour * 60 + now.minute)
+            print(f"⏳ Market opens in ~{mins} min...")
+            time.sleep(30)
+            continue
+
+        # Refresh bars for each ticker every 30s
+        for t in candidates:
+            if time.time() - cache[t]["fetched"] >= VWAP_BAR_CACHE_SECS:
+                fresh = get_intraday_bars(t, count=max(FLAT_TOP_WINDOW + 5, 30))
+                if fresh:
+                    cache[t]["bars"] = fresh
+                wb_vwap = _get_webull_quote(t).get("vwap", 0)
+                if wb_vwap > 0:
+                    cache[t]["vwap"] = wb_vwap
+                else:
+                    full = get_intraday_bars_full(t)
+                    if full:
+                        cache[t]["vwap"] = calculate_vwap(full)
+                cache[t]["fetched"] = time.time()
+
+        # Check each ticker for flat top breakout
+        status_parts = []
+        for t in candidates:
+            bars = cache[t]["bars"]
+            vwap = cache[t]["vwap"]
+            price = stream.get_price(t)
+
+            if not bars or price <= 0:
+                status_parts.append(f"{t}:no data")
+                continue
+
+            # Need at least FLAT_TOP_WINDOW completed bars + 1 in-progress
+            completed = bars[:-1]
+            if len(completed) < FLAT_TOP_WINDOW:
+                status_parts.append(f"{t}:${price:.2f} (need {FLAT_TOP_WINDOW-len(completed)} more bars)")
+                continue
+
+            window = completed[-FLAT_TOP_WINDOW:]
+            highs = [float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in window]
+            lows  = [float(b.get("low")  or b.get("l") or b.get("close") or b.get("c") or 0) for b in window]
+            w_high = max(h for h in highs if h > 0)
+            w_low  = min(l for l in lows  if l > 0)
+
+            if w_low <= 0:
+                status_parts.append(f"{t}:${price:.2f} bad bars")
+                continue
+
+            rng = (w_high - w_low) / w_low
+            is_flat = rng <= FLAT_TOP_MAX_RANGE
+
+            vwap_tag = f" VWAP:${vwap:.2f}" if vwap > 0 else ""
+            if not is_flat:
+                status_parts.append(f"{t}:${price:.2f} range={rng*100:.1f}%>{FLAT_TOP_MAX_RANGE*100:.0f}%{vwap_tag}")
+                continue
+
+            # Flat top confirmed — check for breakout above window high
+            if price > w_high:
+                if vwap > 0 and price < vwap:
+                    status_parts.append(f"{t}:${price:.2f} BREAK but below VWAP{vwap_tag}")
+                    continue
+                print(f"\n✅ {t} FLAT TOP BREAKOUT! ${price:.2f} > window high ${w_high:.2f} "
+                      f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window)"
+                      + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
+                return t, price, vwap
+            else:
+                gap_to_break = (w_high - price) / price * 100
+                status_parts.append(f"{t}:${price:.2f} flat({rng*100:.1f}%) hi:${w_high:.2f} -{gap_to_break:.1f}%{vwap_tag}")
+
+        if status_parts:
+            print(f"📊 {' | '.join(status_parts)}")
+
+        # 5-min live rescan
+        if rescan_callback and time.time() - last_rescan >= INTRADAY_RESCAN_INTERVAL:
+            print(f"🔄 5-min rescan — checking live market for new setups...")
+            new_candidates = rescan_callback(exclude=traded_tickers | set(candidates))
+            if new_candidates:
+                for t in new_candidates:
+                    if t not in candidates:
+                        candidates.append(t)
+                        cache[t] = {"bars": [], "vwap": 0.0, "fetched": 0.0}
+                        print(f"   ➕ Added {t} to flat top watch list")
+            last_rescan = time.time()
+
+        time.sleep(VWAP_BAR_CACHE_SECS)
+
 
 def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                          rescan_callback=None, traded_tickers: set = None):
@@ -2247,6 +2389,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     partial_taken      = False
     partial_price      = 0.0
     entry_time         = time.time()   # for early fade window
+    last_ema_check     = 0.0           # epoch of last EMA9 bar fetch
 
     result = {"exit_price": entry_price, "exit_reason": "Unknown",
               "profit_loss": 0, "profit_loss_pct": 0}
@@ -2339,6 +2482,28 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             result["exit_price"]  = current_price
             result["exit_reason"] = "Target hit ✅"
             remaining_shares = 0
+            break
+
+        # ── EMA9 2-bar confirm stop (v8 primary exit) ─────────────
+        if remaining_shares > 0 and time.time() - last_ema_check >= EMA_CHECK_INTERVAL:
+            bars = get_intraday_bars(ticker, count=EMA_PERIOD + 5)
+            if bars and len(bars) >= EMA_PERIOD + 2:
+                ema9 = calculate_ema9(bars)
+                completed = bars[:-1]   # exclude in-progress bar
+                if len(completed) >= 2 and ema9 > 0:
+                    lc = float(completed[-1].get("close") or completed[-1].get("c") or 0)
+                    pc = float(completed[-2].get("close") or completed[-2].get("c") or 0)
+                    if lc > 0 and pc > 0 and lc < ema9 and pc < ema9:
+                        print(f"📉 EMA9 2-bar stop: {ticker} last 2 bars below EMA9 ${ema9:.2f} "
+                              f"(${pc:.2f}, ${lc:.2f}) — exiting at market.")
+                        cancel_order(placed_stop_id)
+                        close_position(ticker, remaining_shares)
+                        result["exit_price"]  = stream.get_price(ticker)
+                        result["exit_reason"] = "EMA STOP 2BAR"
+                        remaining_shares = 0
+            last_ema_check = time.time()
+
+        if remaining_shares == 0:
             break
 
         # ── Software stop detection (backup to exchange stop) ──
@@ -3573,9 +3738,9 @@ def main():
             print("📋 No more candidates — session complete")
             break
 
-        # ── Step 8: Watch remaining GO tickers — first confirmed reclaim wins ──
+        # ── Step 8: Watch remaining GO tickers — first flat top breakout wins ──
         def _intraday_rescan(exclude=None):
-            """Called every 10 min inside wait_for_vwap_entry to add fresh movers."""
+            """Called every 5 min inside wait_for_flat_top_entry to add fresh movers."""
             exclude = (exclude or set()) | hard_nogo  # hard NO-GOs never resurface
             fresh = scan_morning_gappers()
             fresh_analysis = analyze_with_claude(
@@ -3596,14 +3761,14 @@ def main():
                     new.append(t)
             return new
 
-        ticker_to_trade, entry_price, vwap = wait_for_vwap_entry(
+        ticker_to_trade, entry_price, vwap = wait_for_flat_top_entry(
             remaining_candidates, stream,
             rescan_callback=_intraday_rescan,
             traded_tickers=traded_tickers
         )
 
         if not entry_price:
-            note = (f"\n\nNOTE: No ticker reclaimed VWAP by 3:30pm "
+            note = (f"\n\nNOTE: No flat top breakout by 10:30am "
                     f"({', '.join(remaining_candidates)}). Cash preserved.")
             analysis["plain_english_summary"] += note
             break

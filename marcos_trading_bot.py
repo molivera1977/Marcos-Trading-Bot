@@ -3489,206 +3489,28 @@ def main():
     except Exception as _e:
         print(f"⚠️  Scan log write failed: {_e}")
 
-    recommended = analysis.get("recommended_trade", {})
-    if recommended.get("action") != "BUY":
-        print("🔒 Claude says: HOLD CASH today.")
-        return
-
-    ticker_to_trade = recommended.get("ticker")
-
-    # Dynamic position sizing based on Claude's confidence rating
-    confidence = recommended.get("confidence", "MEDIUM").upper()
-    if confidence == "HIGH":
-        size_pct = MAX_POSITION_SIZE       # 70%
-    elif confidence == "LOW":
-        size_pct = POSITION_SIZE_LOW       # 30%
-    elif confidence == "MINIMUM":
-        size_pct = 0                       # use fixed $20, not a percentage
-    else:
-        size_pct = POSITION_SIZE_MEDIUM    # 50%
-
-    if confidence == "MINIMUM":
-        position_size = 20.00
-    else:
-        position_size = min(
-            float(recommended.get("position_size_dollars", balance * size_pct)),
-            balance * size_pct,
-            MAX_TRADE_DOLLARS
-        )
+    # Technicals decide — flat position size, no Claude gating
+    confidence    = "TECHNICAL"
+    position_size = min(balance * MAX_POSITION_SIZE, MAX_TRADE_DOLLARS)
     print(f"💼 Position size: ${position_size:.2f} (capped at ${MAX_TRADE_DOLLARS:.0f} max)")
 
-    # ── Rescan every 20 min until 9:45am ET ────────────────
-    #
-    # Pre-market rescans (before 9:30am): run in main thread.
-    # The bot is idle during this window anyway — might as well keep checking.
-    #
-    # Post-open rescan (9:45am): fires via background Timer while VWAP watch runs.
-    # If Claude switches the pick before a trade is entered, we honor the switch.
-    # Once a trade is entered (trade_entered event), the background rescan is a no-op.
+    # ── Step 6: Build candidate list from all gap stocks ───────────────────────
+    # Technicals decide — every 15-30% gapper is watched simultaneously.
+    # Sorted by gap % descending so the largest movers are first.
+    gapper_syms = [g["symbol"] for g in gappers if g.get("symbol")]
+    print(f"📋 Watching all {len(gapper_syms)} gappers: {' | '.join(gapper_syms)}")
 
-    RESCAN_CUTOFF_HOUR, RESCAN_CUTOFF_MIN = 9, 45   # stop rescanning at 9:45am
-    RESCAN_INTERVAL_SECS = 20 * 60                   # 20 minutes
-
-    trade_entered = threading.Event()   # set when buy order is placed
-    scan_state    = {"analysis": analysis, "ticker": ticker_to_trade,
-                     "position_size": position_size}
-
-    def _background_rescan_at_945(n):
-        """Fires once at 9:45am via threading.Timer while VWAP wait is active."""
-        if trade_entered.is_set():
-            print("⏭️  9:45am rescan skipped — trade already entered")
-            return
-        updated = run_rescan(email_content, market_data, balance,
-                             scan_state["analysis"], n, market_context=market_context)
-        if trade_entered.is_set():
-            return
-        scan_state["analysis"] = updated
-        rec = updated.get("recommended_trade") or {}
-        if rec.get("action") == "BUY" and rec.get("ticker"):
-            scan_state["ticker"]        = rec["ticker"]
-            scan_state["position_size"] = float(rec.get("position_size_dollars",
-                                                        balance * MAX_POSITION_SIZE))
-
-    scan_number = 1
-    while True:
-        now          = datetime.now(EASTERN)
-        cutoff_today = now.replace(hour=RESCAN_CUTOFF_HOUR,
-                                   minute=RESCAN_CUTOFF_MIN, second=0, microsecond=0)
-        next_scan_dt = now + timedelta(seconds=RESCAN_INTERVAL_SECS)
-
-        market_open = now.hour > 9 or (now.hour == 9 and now.minute >= 30)
-
-        if market_open or next_scan_dt >= cutoff_today:
-            # Schedule the 9:45am rescan in background if we haven't passed it yet
-            secs_to_945 = (cutoff_today - now).total_seconds()
-            if secs_to_945 > 0:
-                t = threading.Timer(secs_to_945, _background_rescan_at_945,
-                                    args=[scan_number])
-                t.daemon = True
-                t.start()
-                print(f"⏳ 9:45am background re-scan scheduled "
-                      f"(in {secs_to_945/60:.0f} min)")
-            break
-
-        # Sleep until next 20-min mark
-        sleep_secs = (next_scan_dt - now).total_seconds()
-        print(f"⏳ Next re-scan #{scan_number} in {sleep_secs/60:.0f} min "
-              f"({next_scan_dt.strftime('%I:%M %p ET')})...")
-        time.sleep(sleep_secs)
-
-        now = datetime.now(EASTERN)
-        if now.hour > 9 or (now.hour == 9 and now.minute >= 30):
-            break
-
-        analysis = run_rescan(email_content, market_data, balance,
-                              analysis, scan_number, market_context=market_context)
-        scan_state["analysis"] = analysis
-        scan_number += 1
-
-        rec = analysis.get("recommended_trade") or {}
-        if rec.get("action") != "BUY":
-            print("🔒 Re-scan says HOLD CASH — aborting")
-            send_summary_email(analysis, None, balance)
-            return
-        ticker_to_trade           = rec.get("ticker", ticker_to_trade)
-        position_size             = float(rec.get("position_size_dollars",
-                                                  balance * MAX_POSITION_SIZE))
-        scan_state["ticker"]        = ticker_to_trade
-        scan_state["position_size"] = position_size
-
-    # Use the latest pick from scan_state (may have been updated by 9:45 timer)
-    ticker_to_trade = scan_state["ticker"]
-    position_size   = scan_state["position_size"]
-    analysis        = scan_state["analysis"]
-
-    # ── Step 6: Build ranked candidate list ────────────────
-    # Split morning NO-GOs into hard and soft locks:
-    #   hard_nogo (score ≤2): truly weak — locked all session, no override
-    #   soft_nogo (score 3+): narrative rejection (e.g. no news) on a decent
-    #                         setup — rescan can unlock ONLY if fresh analysis
-    #                         returns HIGH confidence (score 5+)
-    hard_nogo = set()
-    soft_nogo = set()
-    for t in (analysis.get("tickers") or []):
-        if t.get("verdict") != "NO-GO":
-            continue
-        sym   = t.get("ticker", "").upper()
-        score = int(t.get("score") or 0)
-        if score >= 3:
-            soft_nogo.add(sym)
-        else:
-            hard_nogo.add(sym)
-    morning_nogo = hard_nogo | soft_nogo
-    if hard_nogo:
-        print(f"🔒 Hard lock (score ≤2): {', '.join(sorted(hard_nogo))} — blocked all session")
-    if soft_nogo:
-        print(f"⚠️  Soft lock (score 3+): {', '.join(sorted(soft_nogo))} — need HIGH confidence rescan to trade")
-
-    # Primary pick first, then any other GO tickers, then soft-lock tickers as backups.
-    # Soft-lock tickers scored 3+ with Claude — decent setups that got a narrative NO-GO
-    # (e.g. no news, sector headwind). They belong in the watch list; the VWAP pre-filter
-    # will drop any that don't have a real setup by the time we start watching.
-    ranked_candidates = [ticker_to_trade]
-    for t in (analysis.get("tickers") or []):
-        sym = t.get("ticker", "").upper()
-        if sym and sym != ticker_to_trade and t.get("verdict") == "GO":
-            ranked_candidates.append(sym)
-    for sym in sorted(soft_nogo):
-        if sym not in ranked_candidates:
-            ranked_candidates.append(sym)
-    print(f"📋 Watching simultaneously: {' | '.join(ranked_candidates)}")
-
-    # ── Step 7: Open real-time stream (all candidates) ─────
-    gapper_syms    = [g["symbol"] for g in gappers] if gappers else []
-    stream_tickers = list(dict.fromkeys(ranked_candidates + tickers + gapper_syms))
+    # ── Step 7: Open real-time stream (all candidates) ─────────────────────────
+    stream_tickers = list(dict.fromkeys(gapper_syms + tickers))
     stream         = WebullStream(stream_tickers)
 
-    # ── Steps 8-10: Trade loop — fresh market scan after each exit ──────────────
-    # First pass uses pre-market candidates. After each trade, rescan the LIVE
-    # market for new movers — don't stay locked to the 8:45am pre-market list.
-    remaining_candidates  = list(ranked_candidates)
+    # ── Steps 8-10: Trade loop ─────────────────────────────────────────────────
+    remaining_candidates  = list(gapper_syms)
     traded_tickers        = set()
     trade_count           = 0
     session_pnl           = 0.0
     current_balance       = balance
-    # Track settled capital remaining — each $100 trade draws from the starting
-    # settled pool (not from same-day proceeds), so no GFV risk as long as
-    # settled_remaining >= MAX_TRADE_DOLLARS before each entry.
     settled_remaining     = balance
-
-    def _filter_rescan(candidates, fresh_analysis, traded, h_nogo, s_nogo, exclude_ticker=None):
-        """Filter rescan candidates: block hard NO-GOs, allow soft NO-GOs only on HIGH confidence."""
-        confidence_map = {}
-        for item in ([fresh_analysis.get("recommended_trade")] +
-                     (fresh_analysis.get("tickers") or [])):
-            if item and item.get("ticker"):
-                sym = item["ticker"].upper()
-                conf = str(item.get("confidence") or "").upper()
-                if conf:
-                    confidence_map[sym] = conf
-        allowed, blocked = [], []
-        for sym in candidates:
-            if sym == exclude_ticker:
-                continue
-            if sym in traded:
-                # Previously traded — treat like soft NO-GO: only re-enter on HIGH confidence
-                if confidence_map.get(sym) == "HIGH" and sym not in h_nogo and sym not in s_nogo:
-                    allowed.append(sym)
-                else:
-                    blocked.append(f"{sym}(re-entry/not-HIGH)")
-                continue
-            if sym in h_nogo:
-                blocked.append(sym)
-            elif sym in s_nogo:
-                if confidence_map.get(sym) == "HIGH":
-                    allowed.append(sym)
-                else:
-                    blocked.append(f"{sym}(soft/not-HIGH)")
-            else:
-                allowed.append(sym)
-        if blocked:
-            print(f"🚫 Rescan filtered: {', '.join(blocked)}")
-        return allowed
 
     while True:
         now = datetime.now(EASTERN)
@@ -3702,64 +3524,28 @@ def main():
             print(f"🛑 Settled capital exhausted (${settled_remaining:.2f} left) — done for today")
             break
 
-        # After first trade, rescan live market for fresh opportunities
+        # After first trade, rescan for fresh gap stocks — technicals only
         if trade_count > 0:
             print(f"\n🔄 Trade #{trade_count} done — rescanning live market for next setup...")
             fresh_gappers = scan_morning_gappers()
-            for g in fresh_gappers:
-                g["news"] = get_news_catalyst(g["symbol"])
-                time.sleep(0.1)
-            fresh_analysis = analyze_with_claude(
-                email_content, market_data, current_balance,
-                gappers=fresh_gappers, market_context=get_market_context()
-            )
-            if fresh_analysis:
-                rec = fresh_analysis.get("recommended_trade") or {}
-                new_candidates = []
-                if rec.get("action") == "BUY" and rec.get("ticker"):
-                    new_candidates.append(rec["ticker"].upper())
-                for t in (fresh_analysis.get("tickers") or []):
-                    sym = t.get("ticker", "").upper()
-                    if sym and sym not in new_candidates and t.get("verdict") == "GO":
-                        new_candidates.append(sym)
-                remaining_candidates = _filter_rescan(
-                    new_candidates, fresh_analysis, traded_tickers,
-                    hard_nogo, soft_nogo)
-                # Subscribe stream to any new tickers
-                for t in remaining_candidates:
-                    if t not in stream_tickers:
-                        stream_tickers.append(t)
-                print(f"📋 Fresh candidates: {' | '.join(remaining_candidates) or 'none'}")
-            else:
-                remaining_candidates = [t for t in remaining_candidates if t not in traded_tickers]
-                print(f"⚠️  Live rescan failed — watching remaining pre-market picks: {remaining_candidates}")
+            remaining_candidates = [g["symbol"] for g in fresh_gappers
+                                    if g.get("symbol") and g["symbol"] not in traded_tickers]
+            for t in remaining_candidates:
+                if t not in stream_tickers:
+                    stream_tickers.append(t)
+            print(f"📋 Fresh candidates: {' | '.join(remaining_candidates) or 'none'}")
 
         if not remaining_candidates:
             print("📋 No more candidates — session complete")
             break
 
-        # ── Step 8: Watch remaining GO tickers — first flat top breakout wins ──
+        # ── Step 8: Watch all gappers — first flat top breakout wins ──────────
         def _intraday_rescan(exclude=None):
-            """Called every 5 min inside wait_for_flat_top_entry to add fresh movers."""
-            exclude = (exclude or set()) | hard_nogo  # hard NO-GOs never resurface
+            """Called every 5 min inside wait_for_flat_top_entry to surface new gap stocks."""
+            exclude = exclude or set()
             fresh = scan_morning_gappers()
-            fresh_analysis = analyze_with_claude(
-                email_content, market_data, current_balance,
-                gappers=fresh, market_context=get_market_context()
-            )
-            if not fresh_analysis:
-                return []
-            rec = fresh_analysis.get("recommended_trade") or {}
-            new = []
-            if rec.get("action") == "BUY" and rec.get("ticker"):
-                t = rec["ticker"].upper()
-                if t not in exclude:
-                    new.append(t)
-            for item in (fresh_analysis.get("tickers") or []):
-                t = item.get("ticker", "").upper()
-                if t and t not in exclude and t not in new and item.get("verdict") == "GO":
-                    new.append(t)
-            return new
+            return [g["symbol"] for g in fresh
+                    if g.get("symbol") and g["symbol"] not in exclude]
 
         ticker_to_trade, entry_price, vwap = wait_for_flat_top_entry(
             remaining_candidates, stream,
@@ -3802,27 +3588,8 @@ def main():
         # ── Step 8a: Bid-ask spread check ─────────────────────
         spread_ok, spread_pct = check_bid_ask_spread(ticker_to_trade)
         if not spread_ok:
-            print(f"⚠️ {ticker_to_trade} spread {spread_pct*100:.2f}% too wide — rescanning live market")
-            fresh_gappers = scan_morning_gappers()
-            fresh_analysis = analyze_with_claude(
-                email_content, market_data, current_balance,
-                gappers=fresh_gappers, market_context=get_market_context()
-            )
-            if fresh_analysis:
-                rec = fresh_analysis.get("recommended_trade") or {}
-                new_candidates = []
-                if rec.get("action") == "BUY" and rec.get("ticker"):
-                    new_candidates.append(rec["ticker"].upper())
-                for t in (fresh_analysis.get("tickers") or []):
-                    sym = t.get("ticker", "").upper()
-                    if sym and sym not in new_candidates and t.get("verdict") == "GO":
-                        new_candidates.append(sym)
-                remaining_candidates = _filter_rescan(
-                    new_candidates, fresh_analysis, traded_tickers,
-                    hard_nogo, soft_nogo, exclude_ticker=ticker_to_trade)
-                print(f"🔄 Rescan found: {' | '.join(remaining_candidates) or 'no new candidates'}")
-            else:
-                remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
+            print(f"⚠️ {ticker_to_trade} spread {spread_pct*100:.2f}% too wide — skipping to next candidate")
+            remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
             continue
 
         # ── Step 8b: Execute ───────────────────────────────────
@@ -3830,30 +3597,9 @@ def main():
             ticker_to_trade, shares, entry_price, stop_loss, target_price
         )
         if not order_id:
-            print(f"⚠️ Order failed for {ticker_to_trade} — rescanning live market")
-            fresh_gappers = scan_morning_gappers()
-            fresh_analysis = analyze_with_claude(
-                email_content, market_data, current_balance,
-                gappers=fresh_gappers, market_context=get_market_context()
-            )
-            if fresh_analysis:
-                rec = fresh_analysis.get("recommended_trade") or {}
-                new_candidates = []
-                if rec.get("action") == "BUY" and rec.get("ticker"):
-                    new_candidates.append(rec["ticker"].upper())
-                for t in (fresh_analysis.get("tickers") or []):
-                    sym = t.get("ticker", "").upper()
-                    if sym and sym not in new_candidates and t.get("verdict") == "GO":
-                        new_candidates.append(sym)
-                remaining_candidates = _filter_rescan(
-                    new_candidates, fresh_analysis, traded_tickers,
-                    hard_nogo, soft_nogo, exclude_ticker=ticker_to_trade)
-                print(f"🔄 Rescan found: {' | '.join(remaining_candidates) or 'no new candidates'}")
-            else:
-                remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
+            print(f"⚠️ Order failed for {ticker_to_trade} — skipping to next candidate")
+            remaining_candidates = [t for t in remaining_candidates if t != ticker_to_trade]
             continue
-
-        trade_entered.set()   # stop any pending 9:45am rescan from switching ticker
 
         # Use actual fill price for all downstream calculations — stop and target
         # must be based on what we actually paid, not the VWAP trigger price

@@ -81,7 +81,7 @@ POSITION_DOLLARS   = 100.00
 TARGET_PCT         = 0.10
 VWAP_REQUIRED      = True
 MAX_TRADES_PER_DAY = 2
-DAILY_BAR_LOOKBACK = 1250    # trading days to scan; 1250 ≈ 5 years
+DAILY_BAR_LOOKBACK = 1200    # trading days to scan; 1200 = API max (~4.75 years)
 RATE_LIMIT_SLEEP   = 0.3     # seconds between API calls to avoid throttling
 DEBUG_ONLY         = os.environ.get("DEBUG_ONLY", "0") in ("1", "true", "yes")
 DEBUG_MAX_TICKERS  = 5       # when DEBUG_ONLY=1, stop after this many tickers

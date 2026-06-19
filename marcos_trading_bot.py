@@ -3259,8 +3259,8 @@ def main():
         subject, email_content = read_todays_tickers()
 
     if not email_content:
-        send_summary_email(None, None, get_account_balance())
-        return
+        print("📭 No Kev picks today — running on gapper scan alone.")
+        email_content = ""
 
     # ── Step 2: Extract tickers ────────────────────────────
     # Strip reply/forward prefixes before parsing
@@ -3296,9 +3296,10 @@ def main():
             tickers = [t for t in re.findall(r'\b[A-Z]{2,5}\b', body_text)
                        if t not in skip][:5]
 
-    if not tickers:
-        tickers = ["UNKNOWN"]
-    print(f"📋 Tickers: {tickers}  (subject='{clean_subject[:80]}')")
+    if tickers:
+        print(f"📋 Kev's tickers (educational): {tickers}  (subject='{clean_subject[:80]}')")
+    else:
+        print("📭 No tickers parsed from Kev's content — gapper scan is the sole source")
 
     # ── Step 3: Market context + pre-market data + gapper scan ──
     market_context = get_market_context()

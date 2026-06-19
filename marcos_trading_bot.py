@@ -2972,55 +2972,6 @@ def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_l
 # RESCAN HELPER
 # ============================================================
 
-def run_rescan(email_content, market_data, balance, current_analysis,
-               scan_number, market_context=None):
-    """
-    Re-runs the full gapper scan + Claude analysis.
-    Returns the new analysis. If Claude switches tickers, sends an update email.
-    """
-    now = datetime.now(EASTERN)
-    print(f"\n{'─'*55}")
-    print(f"🔄 RE-SCAN #{scan_number} — {now.strftime('%I:%M %p ET')}")
-    print(f"{'─'*55}")
-
-    gappers = scan_morning_gappers()
-    for g in gappers:
-        g["news"] = get_news_catalyst(g["symbol"])
-        time.sleep(0.3)
-
-    # Always fetch fresh SPY — it can move significantly between rescans
-    ctx = get_market_context()
-    spy_chg = ctx.get("spy_change_pct", 0)
-    if isinstance(spy_chg, (int, float)) and spy_chg <= SPY_BEAR_SKIP_PCT:
-        print(f"🚫 Rescan #{scan_number}: SPY now {spy_chg:+.2f}% — below threshold. Aborting.")
-        current_analysis["plain_english_summary"] += (
-            f"\n\nNOTE: Market deteriorated to SPY {spy_chg:+.2f}% during rescan #{scan_number}. "
-            f"Holding cash — momentum plays not viable in this environment."
-        )
-        return current_analysis
-
-    new_analysis = analyze_with_claude(email_content, market_data, balance,
-                                       gappers=gappers, market_context=ctx)
-    if not new_analysis:
-        print("⚠️  Re-scan Claude call failed — keeping current pick")
-        return current_analysis
-
-    old_rec = (current_analysis.get("recommended_trade") or {})
-    new_rec = (new_analysis.get("recommended_trade") or {})
-    old_t   = old_rec.get("ticker", "NONE")
-    new_t   = new_rec.get("ticker", "NONE")
-
-    if new_t and new_t != old_t:
-        print(f"🔄 Claude switched pick: {old_t} → {new_t}")
-        send_alert_email(
-            f"🔄 Bot updated pick: {new_t} (was {old_t}) | Re-scan #{scan_number}",
-            f"Re-scan #{scan_number} at {now.strftime('%I:%M %p ET')} found a stronger setup.\n\n"
-            f"{new_analysis.get('plain_english_summary', '')}"
-        )
-    else:
-        print(f"✅ Re-scan #{scan_number} confirms: {new_t} still the pick")
-
-    return new_analysis
 
 
 # ============================================================

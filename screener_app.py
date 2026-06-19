@@ -42,6 +42,7 @@ _trades: list = []
 _account: dict = {"balance": 0.0, "updated": ""}
 _evening_watchlist: dict = {}          # Latest watchlist from evening scan
 _kev_picks: dict = {}                  # Kev's transcript submitted via web form
+_watching: dict = {}                   # Live watch list posted by bot each session
 WATCHLIST_FILE = pathlib.Path("/tmp/marcos_evening_watchlist.json")
 KEV_PICKS_FILE = pathlib.Path("/tmp/marcos_kev_picks.json")
 
@@ -722,6 +723,26 @@ def get_evening_watchlist():
     return jsonify(_evening_watchlist)
 
 
+@app.route("/api/watching", methods=["POST"])
+def save_watching():
+    global _watching
+    data = request.get_json(silent=True) or {}
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    _watching = {
+        "tickers":    data.get("tickers", []),
+        "status":     data.get("status", "watching"),
+        "started_at": data.get("started_at", datetime.now(EASTERN).isoformat()),
+        "updated":    datetime.now(EASTERN).isoformat(),
+    }
+    print(f"👀 Watch list updated: {_watching['tickers']} [{_watching['status']}]")
+    return jsonify({"ok": True})
+
+@app.route("/api/watching", methods=["GET"])
+def get_watching():
+    return jsonify(_watching)
+
+
 @app.route("/api/kev_picks", methods=["POST"])
 def save_kev_picks():
     global _kev_picks
@@ -844,6 +865,26 @@ tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
 
 /* ── No-trade days row ── */
 .no-trade-row td{color:#484f58;font-style:italic}
+
+/* ── Strategy + Watch panel ── */
+.strategy-panel{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 28px}
+@media(max-width:700px){.strategy-panel{grid-template-columns:1fr}}
+.panel-card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:16px 18px}
+.panel-title{font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
+.param-grid{display:flex;flex-wrap:wrap;gap:8px}
+.param-pill{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:5px 10px;font-size:12px}
+.param-pill span{color:#8b949e;margin-right:4px}
+.param-pill strong{color:#e6edf3}
+.watch-tickers{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.watch-chip{background:#1a3a2a;border:1px solid #2d5a3d;color:#3fb950;
+            border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600}
+.watch-chip.trading{background:#2a1a3a;border-color:#5a3d8a;color:#c084fc}
+.watch-status{font-size:12px;color:#8b949e;margin-bottom:10px}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.status-dot.watching{background:#d29922;animation:pulse 2s infinite}
+.status-dot.trading{background:#c084fc;animation:pulse 1s infinite}
+.status-dot.idle{background:#484f58}
+.idle-msg{color:#484f58;font-size:13px;font-style:italic}
 </style>
 </head>
 <body>
@@ -853,7 +894,7 @@ tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
     <div class="logo-icon">📈</div>
     <div>
       <h1>Marcos Trades Dashboard</h1>
-      <sub>Powered by Claude Opus AI + Webull OpenAPI</sub>
+      <sub>v8 Flat Top Breakout — Webull OpenAPI</sub>
     </div>
   </div>
   <div class="header-right">
@@ -884,6 +925,27 @@ tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
         <div style="font-size:24px;font-weight:700;color:#e6edf3" id="totalTrades">—</div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="strategy-panel">
+  <div class="panel-card">
+    <div class="panel-title">v8 Strategy Parameters</div>
+    <div class="param-grid">
+      <div class="param-pill"><span>Gap</span><strong>15 – 30%</strong></div>
+      <div class="param-pill"><span>Flat Top</span><strong>8 bars &lt;5% range</strong></div>
+      <div class="param-pill"><span>Entry Cutoff</span><strong>10:30am ET</strong></div>
+      <div class="param-pill"><span>Exit</span><strong>EMA9 2-bar confirm</strong></div>
+      <div class="param-pill"><span>Partial Exit</span><strong>+10%</strong></div>
+      <div class="param-pill"><span>Stop</span><strong>7% emergency</strong></div>
+      <div class="param-pill"><span>Max Size</span><strong>$100 / trade</strong></div>
+      <div class="param-pill"><span>VWAP</span><strong>required</strong></div>
+    </div>
+  </div>
+  <div class="panel-card">
+    <div class="panel-title">Currently Watching</div>
+    <div class="watch-status" id="watchStatus"><span class="status-dot idle"></span>Loading...</div>
+    <div class="watch-tickers" id="watchTickers"></div>
   </div>
 </div>
 
@@ -1060,9 +1122,34 @@ function renderChart(curve){
   });
 }
 
+function loadWatching(){
+  fetch('/api/watching')
+    .then(r=>r.json())
+    .then(d=>{
+      const statusEl  = document.getElementById('watchStatus');
+      const tickersEl = document.getElementById('watchTickers');
+      if(!d || !d.tickers || d.tickers.length===0){
+        statusEl.innerHTML = '<span class="status-dot idle"></span>Idle — outside market hours or no setup';
+        tickersEl.innerHTML = '';
+        return;
+      }
+      const st = d.status || 'watching';
+      const cls = st === 'trading' ? 'trading' : 'watching';
+      const label = st === 'trading' ? 'In trade' : 'Scanning for flat top breakout';
+      const since = d.started_at ? new Date(d.started_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
+      statusEl.innerHTML = `<span class="status-dot ${cls}"></span>${label}${since?' since '+since:''}`;
+      tickersEl.innerHTML = d.tickers.map(t=>
+        `<span class="watch-chip ${cls}">${t}</span>`
+      ).join('');
+    })
+    .catch(()=>{});
+}
+
 // Auto-refresh every 60 seconds
 loadData();
+loadWatching();
 setInterval(loadData, 60000);
+setInterval(loadWatching, 30000);
 </script>
 </body>
 </html>"""

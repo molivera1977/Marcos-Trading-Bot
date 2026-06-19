@@ -1016,6 +1016,22 @@ def _already_traded_today() -> bool:
     return False
 
 
+def _post_watching_to_screener(tickers: list, status: str = "watching"):
+    """Push the live watch list to screener_app so the dashboard shows what the bot is monitoring."""
+    screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not screener_url:
+        return
+    try:
+        requests.post(f"{screener_url}/api/watching",
+                      json={"tickers": tickers, "status": status,
+                            "started_at": datetime.now(EASTERN).isoformat()},
+                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET},
+                      timeout=5)
+        print(f"📡 Watch list posted to dashboard: {tickers}")
+    except Exception as e:
+        print(f"⚠️  Could not post watch list to screener_app: {e}")
+
+
 def _push_balance_to_screener(balance: float):
     """Push current balance to screener_app so the dashboard always shows live data."""
     screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
@@ -3456,6 +3472,7 @@ def main():
     # Sorted by gap % descending so the largest movers are first.
     gapper_syms = [g["symbol"] for g in gappers if g.get("symbol")]
     print(f"📋 Watching all {len(gapper_syms)} gappers: {' | '.join(gapper_syms)}")
+    _post_watching_to_screener(gapper_syms)
 
     # ── Step 7: Open real-time stream (all candidates) ─────────────────────────
     stream_tickers = list(dict.fromkeys(gapper_syms + tickers))
@@ -3575,6 +3592,7 @@ def main():
             _open_trade.update({"active": True, "ticker": ticker,
                                 "entry_price": entry_price, "shares": shares,
                                 "stop_loss": stop_loss, "target": target_price})
+            _post_watching_to_screener([ticker], status="trading")
             send_entry_alert(ticker, shares, entry_price,
                              stop_loss, target_price, vwap, pos_size)
 

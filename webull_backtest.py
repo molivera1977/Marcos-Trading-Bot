@@ -83,58 +83,69 @@ VWAP_REQUIRED      = True
 MAX_TRADES_PER_DAY = 2
 DAILY_BAR_LOOKBACK = 400     # trading days to scan; 400 ≈ 1.5 years
 RATE_LIMIT_SLEEP   = 0.3     # seconds between API calls to avoid throttling
+DEBUG_ONLY         = os.environ.get("DEBUG_ONLY", "0") in ("1", "true", "yes")
+DEBUG_MAX_TICKERS  = 5       # when DEBUG_ONLY=1, stop after this many tickers
 
 
 # ── Ticker universe (same as stress_test.py) ─────────────────────────────────
 UNIVERSE = [
-    # From previous backtests — known momentum names
-    "ATPC","LASE","ASNS","CDT","ARTL","TPET","STAK","BIAF","MNDR","GRNQ",
-    "TDTH","CAST","AHMA","RGNT","CMND","GOVX","PHGE","MNTS","IINN","ZJYL",
-    "RCAT","HCWB","LPRO","HITI","APWC","GFAI","PAVS","BRTX","SBEV","RLAY",
-    "DBGI","ADTX","WHLR","CLRB",
-    # Common small-cap momentum names
-    "MDJH","MGOL","MEGI","BFRI","NKLA","CENN","MULN","IDEX","PEGY",
-    "RELI","GMVD","GPUS","MFON","AEYE","CODA","PRTY","MEGL",
-    "KTTA","HYMC","ACST","ATNF","BIOR","BTBT","BZFD","CIFS","CRKN","DARE",
-    "DPRO","EPAZ","EVTV","FFIE","FORW","FTFT","GHSI","GXAI",
-    "HLBZ","IMPP","IPDN","JBDI","KAVL","LGMK","LIXT","LKCO",
-    "LTBR","MITI","MKUL","MNPR","NBTX","NCPL","NKGN","NLSP","NOVV",
-    "NRSN","NRXP","NSYS","NTRB","NVNI","NXGL",
-    "OCUP","OPFI","ORPH","OTLK","OXBR",
-    "PALT","PAYO","PBLA","PESI","PGEN","PHVS","PLRX","PRPH","PRST","PRVB",
-    "PULM","PYPL","QBTS",
-    "RCKT","RDZN","RELI","RETO","RGLS","RNAZ","ROIV","RPID","RPRX","RSLS",
-    "RUBY","RZLT","SAMA","SATX","SCNX","SDIG","SERA","SGLB","SGLY","SHPW",
-    "SIGL","SING","SISI","SJIU","SKYX","SLGG","SLRX","SOBR","SONN","SONX",
-    "SPRB","SPRC","SPRO","SRTX","SSSS","SSYS","STAF","STEM","STGS","STIX",
-    "STOK","STRM","SUMR","SUNL","SUNW","SUPN","SURF","SURG","SWAG","SWAV",
-    "SXTC","SYRA","SYTA",
-    "TCON","TGLS","THTX","TILS","TISI","TLGA","TLRY","TLSS","TMBR","TMDI",
-    "TNON","TOCA","TOGI","TPCO","TPVG","TRDA","TRIB","TRIL","TRIM","TRKA",
-    "TRNX","TRSA","TSHA","TSNS","TSVT","TTAM","TTCF","TTOO","TTSH",
-    "TUEM","TVTX","TWNK","TWST","TXMD","TYRA",
-    # Kev's specific stocks from videos
-    "GLXG","PPCB","WTO","SER","TNT","NVF","MTEK","MNDR","CREG","GXAI",
+    # Active small-cap/micro-cap momentum stocks (verified tradeable)
+    # These are real names that Webull knows about
+    "TLRY","SNDL","NKLA","CENN","MULN","IDEX","FFIE","BTBT","SONN",
+    "HYMC","OCUP","OPFI","ROIV","RCKT","QBTS","PYPL","SUPN","STEM",
+    "SKYX","SUNW","SURF","SDIG","LTBR","ORPH","PLRX","PGEN","PHVS",
+    "RNAZ","RPID","RBBN","RPRX","RSLS","RUBY","RZLT",
+    # From Kev's videos — may be delisted but worth trying
+    "MTEK","CREG","GXAI","MDJH","MGOL","MEGI","BFRI","KTTA",
+    "ACST","ATNF","BIOR","BZFD","CIFS","CRKN","DARE","DPRO","EPAZ",
+    "IMPP","IPDN","KAVL","LGMK","LKCO","MITI","MKUL","MNPR",
+    "NCPL","NKGN","NOVV","NVNI","NXGL","OXBR","PBLA","PESI",
+    "PRPH","PRVB","PULM","RZLT","SAMA","SCNX","SGLB","SGLY",
+    "SIGL","SING","SISI","SOBR","SPRB","SPRC","SPRO","SRTX",
+    "STAF","STGS","STIX","STOK","STRM","SUMR","SUNL","SURG",
+    "SWAG","SXTC","SYRA","SYTA","TCON","TGLS","TPVG","TRDA",
+    "TRIB","TSHA","TTAM","TVTX","TWST","TXMD","TYRA",
+    # Known active small-cap gap runners
+    "SOUN","GFAI","RCAT","HITI","APWC","PAVS","BRTX","SBEV","RLAY",
+    "DBGI","ADTX","WHLR","CLRB","CMND","GOVX","PHGE","IINN","ZJYL",
+    "LPRO","HCWB","TDTH","AHMA","RGNT","CAST","GRNQ","MNTS",
+    "ATPC","LASE","CDT","ARTL","TPET","STAK","BIAF","MNDR",
+    "GLXG","PPCB","WTO","SER",
 ]
 UNIVERSE = list(dict.fromkeys(UNIVERSE))  # deduplicate
 
 
 # ── Webull bar helpers ────────────────────────────────────────────────────────
 
+_debug_printed = False
+
 def _parse_bars(resp) -> list:
     """Extract list of bars from a Webull API response."""
+    global _debug_printed
     if resp.status_code != 200:
         return []
     raw = resp.json()
+
+    bars = None
     if isinstance(raw, list):
-        return raw
-    if isinstance(raw, dict):
+        bars = raw
+    elif isinstance(raw, dict):
         data = raw.get("data", raw)
         if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            return data.get("items", data.get("list", []))
-    return []
+            bars = data
+        elif isinstance(data, dict):
+            bars = data.get("items", data.get("list", data.get("bars", [])))
+
+    if bars is None:
+        bars = []
+
+    # First time we get bars, dump one so we can see the actual field names
+    if bars and not _debug_printed:
+        _debug_printed = True
+        print(f"\n  [DEBUG] Raw bar keys: {list(bars[0].keys())}")
+        print(f"  [DEBUG] Sample bar:   {bars[0]}\n")
+
+    return bars
 
 
 def _bar_val(bar: dict, *keys):
@@ -438,6 +449,10 @@ def main():
     print("Phase 1 — scanning daily bars for gap-up days...\n")
 
     for i, ticker in enumerate(UNIVERSE, 1):
+        if DEBUG_ONLY and i > DEBUG_MAX_TICKERS:
+            print(f"\n  [DEBUG_ONLY] Stopping after {DEBUG_MAX_TICKERS} tickers.")
+            break
+
         daily = fetch_daily_bars(ticker)
         if not daily:
             print(f"  [{i:3d}/{len(UNIVERSE)}] {ticker:8s}  no daily data")

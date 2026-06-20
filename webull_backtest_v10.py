@@ -1,37 +1,57 @@
 #!/usr/bin/env python3
 """
-Webull Deep Historical Backtest — v10 (Kev's Full System)
-==========================================================
+Webull Deep Historical Backtest — v10 (Kev's Complete System)
+==============================================================
 v8 confirmed leader: 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV. v9 result unknown.
 
-v10 applies every lesson learned from @momentum.official (Kev's TikTok):
+Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ videos):
 
-  ENTRY FILTERS (new):
-    1. START_TIME "09:45" — no entries in first 15 min (Kev: "let things settle")
-    2. EMA9 > EMA20 required at entry — A+ Setup: bullish EMA stack
-    3. Quality gate: last bar of window must be within 3% of window high
-       (price consolidating near resistance, not fading from it = good pullback)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ENTRY FILTERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. START_TIME 09:45 — "let things settle" (Kev never trades the open spike)
+  2. TIME_CUTOFF 11:00 — Kev's community session ends at 11am; afternoon = trap
+  3. Above VWAP — VWAP is the line of control; below it = do not trade
+  4. EMA9 > EMA20 — A+ Setup requires bullish EMA stack (confirmed from checklist video)
+  5. Price < $20 — Kev's hard filter (small-cap focus)
+  6. GAP 15–30% — qualifying gap-up day filter
 
-  EXIT SYSTEM (new):
-    4. Trailing stop: stop trails "a smidge below" (1.5%) each new HIGH bar's low.
-       Floor rule: stop never drops below entry price.
-       Exit fires when close crosses below trail_stop. (replaces 2-bar EMA9 stop)
-    5. Overextension exit: price > EMA9 * 1.08 → sell (approximates red down arrows).
-       Only arms after 3 bars post-entry so we don't exit a legitimate breakout.
-    6. Partial exit: 25% of position at +10% (was 50% in v9). Kev: "a quarter."
-       Remaining 75% runs on trail stop or overextension.
+  FLAT TOP BREAKOUT (Entry Type 1 — "No Break No Trade"):
+  7. 8-bar consolidation window with <5% range — the flat top at resistance
+  8. Breakout bar volume > 1.5x window average — confirms genuine break, not fake-out
+     (This was a TODO comment in v9 that was never actually coded — now fixed)
+  9. Last bar of window within 3% of window high — price near resistance, not fading
+ 10. Window second half avg high >= first half avg high — no descending highs pattern
+     (Kev: "lower highs = bad pullback = do NOT enter")
 
-  FILTERS UNCHANGED from v9:
-    - Flat top breakout: 8-bar consolidation window, <5% range, price breaks above
-    - Above VWAP at entry
-    - Gap 15–30%
-    - Min price $1.50
-    - TIME_CUTOFF 11:00 AM
+  EMA PULLBACK BOUNCE (Entry Type 2 — "Catching the Bottom"):
+ 11. Previous bar touched EMA9 (within 0.5%) — the pullback reached the fast EMA
+ 12. Current bar bounces above EMA9 — buyers stepped in at the EMA
+ 13. Prior high exists above current price (2%+ higher) — a real run-up preceded the pullback
+ 14. Bounce bar volume > 1.2x the bars immediately before — buyer volume on bounce
 
-  NOT IMPLEMENTED (requires data not in Webull bar API):
-    - Float < 20M filter (our universe is pre-filtered to small/micro-cap)
-    - Halt detection (halted candles appear as gaps in 1-min data)
-    - Circuit breaker halt-up setup (needs halt scanner feed)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  EXIT SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 15. Trailing stop — "a smidge below" (1.5%) each NEW HIGH bar's low; only moves up.
+     Floor rule: stop never drops below entry price. (Kev's #1 lesson from CTNT video)
+ 16. EMA bounce initial stop — EMA9 at entry × (1 - 2.5%) for pullback entries.
+     Kev: "less than 5 cents of risk" on a $2 stock = ~2.5% below EMA.
+ 17. Overextension exit — price > EMA9 × 1.08 → sell remaining.
+     Arms after 3 bars so we don't exit a legitimate initial breakout.
+     (Approximates red DOWN arrows Kev calls "the one signal")
+ 18. Partial exit — sell 25% ("a quarter") at first target. Kev is explicit: "Quarter, 25%, 1/4"
+     Flat top: target = +10% from entry.
+     EMA bounce: target = prior high before the pullback (Kev: "the past high").
+ 19. Time stop — 15:30 ET; Kev's window is 9:00–11:00 AM; afternoon halts are traps
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  NOT IMPLEMENTABLE (data constraints):
+    - Float < 20M (no float data in Webull bar API; universe pre-filtered to small-cap)
+    - Halt-up continuation (halt candles appear as gaps; no halt feed available)
+    - News catalyst filter (no real-time news in historical bar data)
+    - Daily P&L stop (not applicable to per-trade backtest)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import os
@@ -39,7 +59,7 @@ import sys
 import time
 import pathlib
 import json
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timezone
 
 import pytz
 import pandas as pd
@@ -83,36 +103,43 @@ print("✅  Webull DataClient initialized")
 
 # ── Strategy constants ────────────────────────────────────────────────────────
 
-# Entry timing
-START_TIME         = "09:45"    # NEW: no entries before 9:45 AM (let things settle)
-TIME_CUTOFF        = "11:00"    # no entries after 11:00 AM (Kev's window)
+# Timing (lesson 1 & 2)
+START_TIME         = "09:45"
+TIME_CUTOFF        = "11:00"
 
-# EMA periods — confirmed from Kev's A+ checklist video
+# Stock filters (lessons 3–6)
+MIN_PRICE          = 1.50
+MAX_PRICE          = 20.0       # Kev's explicit filter
+MIN_GAP_PCT        = 0.15
+MAX_GAP_PCT        = 0.30
+VWAP_REQUIRED      = True
+
+# EMA periods — confirmed from A+ checklist video (lessons 4)
 EMA_SHORT          = 9
 EMA_LONG           = 20
 
-# Flat top detection (unchanged from v9)
+# Flat top breakout (lessons 7–10)
 FLAT_TOP_WINDOW    = 8
-FLAT_TOP_MAX_RANGE = 0.050      # <5.0% high-to-low range in consolidation window
+FLAT_TOP_MAX_RANGE = 0.050      # <5% range in consolidation window
+VOL_SPIKE_MULT     = 1.5        # breakout bar must be 1.5x window avg volume (lesson 8)
+WINDOW_TOP_GATE    = 0.03       # last bar within 3% of window high (lesson 9)
 
-# Quality gate: last bar of window must be within X% of window's max high
-# Ensures price is still near resistance when breakout fires (not already fading)
-WINDOW_TOP_GATE    = 0.03       # 3%
+# EMA pullback bounce (lessons 11–14)
+EMA_BOUNCE_LOOKBACK = 20        # bars to look back for prior high
+EMA_BOUNCE_TOUCH    = 0.005     # within 0.5% of EMA9 counts as "touched" (lesson 11)
+EMA_BOUNCE_VOL_MULT = 1.2       # bounce bar must be 1.2x prior 3 bars avg (lesson 14)
+EMA_STOP_BUFFER     = 0.025     # initial stop = EMA9 × (1 - 2.5%) for pullback entries (lesson 16)
 
-# Exit parameters
-TRAIL_BUFFER_PCT   = 0.015      # stop = bar_low * (1 - 0.015) = "a smidge below"
-OVEREXT_MULT       = 1.08       # price > ema9 * 1.08 → overextension exit (red arrows)
-OVEREXT_MIN_BARS   = 3          # arms overextension check after this many bars post-entry
-PARTIAL_PCT        = 0.25       # sell 25% of shares at first target (Kev: "a quarter")
-TARGET_PCT         = 0.10       # +10% = first partial exit target
+# Exit system (lessons 15–19)
+TRAIL_BUFFER_PCT   = 0.015      # stop trails 1.5% below each new high bar's low (lesson 15)
+OVEREXT_MULT       = 1.08       # exit when price > EMA9 × 1.08 (lesson 17)
+OVEREXT_MIN_BARS   = 3          # overextension check only arms after 3 bars (lesson 17)
+PARTIAL_PCT        = 0.25       # sell 25% at first target — "a quarter" (lesson 18)
+TARGET_PCT         = 0.10       # flat top partial target: +10% (lesson 18)
 
-# Other filters
+# Simulation
 MIN_ABS_VOL        = 10_000
-MIN_PRICE          = 1.50
-MIN_GAP_PCT        = 0.15
-MAX_GAP_PCT        = 0.30
 POSITION_DOLLARS   = 100.00
-VWAP_REQUIRED      = True
 MAX_TRADES_PER_DAY = 2
 DAILY_BAR_LOOKBACK = 400
 RATE_LIMIT_SLEEP   = 0.3
@@ -149,7 +176,7 @@ UNIVERSE = [
 UNIVERSE = list(dict.fromkeys(UNIVERSE))
 
 
-# ── Webull bar helpers (unchanged from v9) ────────────────────────────────────
+# ── Webull bar helpers ────────────────────────────────────────────────────────
 
 _debug_printed = False
 
@@ -203,12 +230,8 @@ def _bar_ts_ms(bar: dict):
             try:
                 from datetime import datetime as _dt
                 s = v.replace("+0000", "+00:00").replace("-0000", "+00:00")
-                if "." in s:
-                    fmt = "%Y-%m-%dT%H:%M:%S.%f%z"
-                else:
-                    fmt = "%Y-%m-%dT%H:%M:%S%z"
-                dt = _dt.strptime(s, fmt)
-                return int(dt.timestamp() * 1000)
+                fmt = "%Y-%m-%dT%H:%M:%S.%f%z" if "." in s else "%Y-%m-%dT%H:%M:%S%z"
+                return int(_dt.strptime(s, fmt).timestamp() * 1000)
             except (ValueError, ImportError):
                 pass
     return None
@@ -233,10 +256,8 @@ def _day_end_ms(d: date) -> int:
 def fetch_daily_bars(ticker: str) -> list:
     try:
         resp = dc.market_data.get_history_bar(
-            symbol=ticker,
-            category="US_STOCK",
-            timespan="D",
-            count=str(DAILY_BAR_LOOKBACK),
+            symbol=ticker, category="US_STOCK",
+            timespan="D", count=str(DAILY_BAR_LOOKBACK),
         )
         return _parse_bars(resp)
     except Exception as e:
@@ -253,8 +274,7 @@ def find_gap_days(ticker: str, bars: list) -> list:
     if ts_first and ts_last and ts_first > ts_last:
         bars = list(reversed(bars))
     for i in range(1, len(bars)):
-        cur  = bars[i]
-        prev = bars[i - 1]
+        cur, prev = bars[i], bars[i - 1]
         open_p  = _bar_val(cur,  "open", "o", "opening")
         close_p = _bar_val(prev, "close", "c", "closing")
         if open_p <= 0 or close_p <= 0:
@@ -267,12 +287,11 @@ def find_gap_days(ticker: str, bars: list) -> list:
             bar_date = _ms_to_et(ts).date()
         else:
             d_raw = cur.get("date") or cur.get("trade_date") or cur.get("tradeDate")
-            if d_raw:
-                try:
-                    bar_date = date.fromisoformat(str(d_raw)[:10])
-                except ValueError:
-                    continue
-            else:
+            if not d_raw:
+                continue
+            try:
+                bar_date = date.fromisoformat(str(d_raw)[:10])
+            except ValueError:
                 continue
         results.append((bar_date, open_p, close_p, gap))
     return results
@@ -283,10 +302,8 @@ def find_gap_days(ticker: str, bars: list) -> list:
 def fetch_minute_bars(ticker: str, day: date) -> pd.DataFrame:
     try:
         resp = dc.market_data.get_history_bar(
-            symbol=ticker,
-            category="US_STOCK",
-            timespan="M1",
-            count="500",
+            symbol=ticker, category="US_STOCK",
+            timespan="M1", count="500",
             start_time=_day_start_ms(day),
             end_time=_day_end_ms(day),
         )
@@ -298,44 +315,48 @@ def fetch_minute_bars(ticker: str, day: date) -> pd.DataFrame:
             ts = _bar_ts_ms(b)
             if not ts:
                 continue
-            dt = _ms_to_et(ts)
             rows.append({
-                "datetime": dt,
-                "Open":     _bar_val(b, "open",   "o"),
-                "High":     _bar_val(b, "high",   "h"),
-                "Low":      _bar_val(b, "low",    "l"),
-                "Close":    _bar_val(b, "close",  "c"),
-                "Volume":   _bar_val(b, "volume", "v"),
+                "datetime": _ms_to_et(ts),
+                "Open":  _bar_val(b, "open",   "o"),
+                "High":  _bar_val(b, "high",   "h"),
+                "Low":   _bar_val(b, "low",    "l"),
+                "Close": _bar_val(b, "close",  "c"),
+                "Volume":_bar_val(b, "volume", "v"),
             })
         if not rows:
             return pd.DataFrame()
         df = pd.DataFrame(rows).set_index("datetime")
         df.index = pd.to_datetime(df.index)
         df.sort_index(inplace=True)
-        df = df.between_time("09:30", "15:59")
-        return df
+        return df.between_time("09:30", "15:59")
     except Exception as e:
         print(f"    ⚠  minute bars error {ticker} {day}: {e}")
         return pd.DataFrame()
 
 
-# ── Phase 3: strategy ─────────────────────────────────────────────────────────
+# ── Phase 3: indicators ───────────────────────────────────────────────────────
 
 def _add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["tp"]    = (df["High"] + df["Low"] + df["Close"]) / 3
     df["vwap"]  = (df["tp"] * df["Volume"]).cumsum() / df["Volume"].cumsum()
-    df["ema9"]  = df["Close"].ewm(span=EMA_SHORT, adjust=False).mean()  # fast
-    df["ema20"] = df["Close"].ewm(span=EMA_LONG,  adjust=False).mean()  # slow
+    df["ema9"]  = df["Close"].ewm(span=EMA_SHORT, adjust=False).mean()
+    df["ema20"] = df["Close"].ewm(span=EMA_LONG,  adjust=False).mean()
     return df
 
 
+# ── Entry type 1: Flat Top Breakout ──────────────────────────────────────────
+
 def _detect_flat_top(df: pd.DataFrame, i: int) -> bool:
+    """
+    "No Break No Trade" — price consolidates at resistance, then breaks above with volume.
+    Returns True if bar i is a valid flat top breakout.
+    """
     if i < FLAT_TOP_WINDOW:
         return False
 
     t_str = df.index[i].strftime("%H:%M")
-    if t_str < START_TIME or t_str >= TIME_CUTOFF:  # NEW: enforce 09:45 start
+    if t_str < START_TIME or t_str >= TIME_CUTOFF:
         return False
 
     price = float(df["Close"].iloc[i])
@@ -344,11 +365,14 @@ def _detect_flat_top(df: pd.DataFrame, i: int) -> bool:
     ema20 = float(df["ema20"].iloc[i])
     vol   = float(df["Volume"].iloc[i])
 
-    if price < MIN_PRICE:
+    # Basic filters (lessons 3, 4, 5)
+    if price < MIN_PRICE or price > MAX_PRICE:
         return False
     if VWAP_REQUIRED and price <= vwap:
         return False
-    if ema9 <= ema20:       # NEW: A+ Setup requires 9 EMA > 20 EMA (bullish stack)
+    if ema9 <= ema20:
+        return False
+    if vol < MIN_ABS_VOL:
         return False
 
     window = df.iloc[i - FLAT_TOP_WINDOW : i]
@@ -357,33 +381,130 @@ def _detect_flat_top(df: pd.DataFrame, i: int) -> bool:
 
     if w_low <= 0:
         return False
+
+    # Flat top range check (lesson 7)
     if (w_high - w_low) / w_low > FLAT_TOP_MAX_RANGE:
         return False
+
+    # Price must break above the window's high (lesson 7)
     if price <= w_high:
         return False
-    if vol < MIN_ABS_VOL:
+
+    # Lesson 8: breakout bar volume must be 1.5x the consolidation window average.
+    # (confirms genuine break — not thin-volume fake-out)
+    window_avg_vol = float(window["Volume"].mean())
+    if window_avg_vol > 0 and vol < window_avg_vol * VOL_SPIKE_MULT:
         return False
 
-    # NEW: quality gate — last bar in window must be near the top of the range.
+    # Lesson 9: last bar in window must still be near the top of the range.
     # If price faded significantly before the "breakout", it's a bad setup.
     last_high = float(window["High"].iloc[-1])
     if last_high < w_high * (1 - WINDOW_TOP_GATE):
         return False
 
+    # Lesson 10: no descending highs pattern in the window (bad pullback filter).
+    # Split window in half — second half avg high must be >= first half avg high.
+    # "Lower highs = bad pullback = do NOT enter" — Kev
+    half = FLAT_TOP_WINDOW // 2
+    first_half_avg  = float(window["High"].iloc[:half].mean())
+    second_half_avg = float(window["High"].iloc[half:].mean())
+    if second_half_avg < first_half_avg * 0.99:
+        return False
+
     return True
 
 
-def _simulate(df: pd.DataFrame, entry_i: int, entry_price: float) -> dict | None:
-    shares        = POSITION_DOLLARS / entry_price
-    target        = entry_price * (1 + TARGET_PCT)
-    partial_done  = False
-    partial_price = 0.0
-    partial_sold  = shares * PARTIAL_PCT   # 25% sold at target
-    remaining     = shares                 # starts at 100%, drops to 75% after partial
+# ── Entry type 2: EMA Pullback Bounce ────────────────────────────────────────
 
-    # Trailing stop: starts at entry price (floor rule — never below entry)
-    trail_stop    = entry_price
-    highest_high  = entry_price            # track new highs to know when to trail
+def _detect_ema_bounce(df: pd.DataFrame, i: int) -> tuple[bool, float]:
+    """
+    "Catching the Bottom" — price pulled back to EMA9 and is now bouncing.
+    Returns (True, prior_high) if bar i is a valid EMA bounce entry.
+    prior_high is used as the partial exit target.
+    """
+    if i < EMA_BOUNCE_LOOKBACK + 1:
+        return False, 0.0
+
+    t_str = df.index[i].strftime("%H:%M")
+    if t_str < START_TIME or t_str >= TIME_CUTOFF:
+        return False, 0.0
+
+    price      = float(df["Close"].iloc[i])
+    ema9       = float(df["ema9"].iloc[i])
+    ema20      = float(df["ema20"].iloc[i])
+    vwap       = float(df["vwap"].iloc[i])
+    vol        = float(df["Volume"].iloc[i])
+    prev_close = float(df["Close"].iloc[i - 1])
+    prev_ema9  = float(df["ema9"].iloc[i - 1])
+
+    # Basic filters (lessons 3, 4, 5)
+    if price < MIN_PRICE or price > MAX_PRICE:
+        return False, 0.0
+    if VWAP_REQUIRED and price <= vwap:
+        return False, 0.0
+    if ema9 <= ema20:
+        return False, 0.0
+    if vol < MIN_ABS_VOL:
+        return False, 0.0
+
+    # Lesson 11: previous bar touched or crossed EMA9 (the pullback reached the EMA)
+    if prev_close > prev_ema9 * (1 + EMA_BOUNCE_TOUCH):
+        return False, 0.0
+
+    # Lesson 12: current bar is now above EMA9 (the bounce)
+    if price <= ema9:
+        return False, 0.0
+
+    # Lesson 13: there was a meaningful prior high (a real run-up preceded this pullback)
+    lookback   = df.iloc[i - EMA_BOUNCE_LOOKBACK : i]
+    prior_high = float(lookback["High"].max())
+    if prior_high < price * 1.02:
+        return False, 0.0
+
+    # Also confirm: price was genuinely above EMA9 during the run-up
+    # (price spent time above EMA9 before pulling back — not just always below)
+    ema9_lookback  = lookback["ema9"]
+    highs_lookback = lookback["High"]
+    had_run_above  = any(
+        float(highs_lookback.iloc[k]) > float(ema9_lookback.iloc[k]) * 1.02
+        for k in range(len(lookback))
+    )
+    if not had_run_above:
+        return False, 0.0
+
+    # Lesson 14: bounce bar volume > 1.2x the average of the 3 bars before it
+    # (confirms buyers stepping in at EMA, not just quiet drift back above)
+    pre_bounce_vol = df["Volume"].iloc[i - 3 : i].mean()
+    if pre_bounce_vol > 0 and vol < pre_bounce_vol * EMA_BOUNCE_VOL_MULT:
+        return False, 0.0
+
+    return True, prior_high
+
+
+# ── Simulate a trade ─────────────────────────────────────────────────────────
+
+def _simulate(
+    df: pd.DataFrame,
+    entry_i: int,
+    entry_price: float,
+    initial_stop: float,
+    target: float,
+    entry_type: str,
+) -> dict | None:
+    """
+    Run the trade forward bar by bar.
+    initial_stop: starting stop level (entry_price for flat top; EMA9-buffer for bounce)
+    target: price for 25% partial exit
+    """
+    shares       = POSITION_DOLLARS / entry_price
+    partial_done = False
+    partial_price= 0.0
+    partial_sold = shares * PARTIAL_PCT     # 25% sold at target
+    remaining    = shares                   # drops to 75% after partial
+
+    # Trailing stop starts at initial_stop; floor = entry_price once in profit
+    trail_stop   = initial_stop
+    highest_high = entry_price              # tracks new highs to know when to trail
 
     for j in range(entry_i + 1, len(df)):
         row   = df.iloc[j]
@@ -395,46 +516,49 @@ def _simulate(df: pd.DataFrame, entry_i: int, entry_price: float) -> dict | None
         last  = (j == len(df) - 1) or t_str >= "15:30"
 
         if last:
-            pnl = _calc_pnl(entry_price, partial_price, price, shares,
+            pnl = _calc_pnl(entry_price, partial_price, price,
                             partial_done, partial_sold, remaining)
             return _make_result(df, entry_i, entry_price, price, "TIME",
-                                pnl, shares, partial_done, partial_price)
+                                pnl, partial_done, partial_price, entry_type)
 
-        # Partial exit: sell 25% at +10%
+        # Lesson 18: partial exit — sell 25% at target
         if not partial_done and price >= target:
             partial_price = price
             partial_done  = True
-            remaining     = shares - partial_sold   # 75% left
+            remaining     = shares - partial_sold
+            # After partial profit: stop floor rises to entry_price (break-even rule)
+            trail_stop = max(trail_stop, entry_price)
 
-        # Overextension exit: price extended too far above EMA9 (red down arrows)
-        # Only arms after OVEREXT_MIN_BARS bars so we don't exit a legitimate breakout.
+        # Lesson 17: overextension exit — price extended too far above EMA9
+        # Only arms after OVEREXT_MIN_BARS bars to avoid exiting a legitimate breakout
         bars_in = j - entry_i
         if bars_in >= OVEREXT_MIN_BARS and ema9 > 0 and price > ema9 * OVEREXT_MULT:
-            pnl = _calc_pnl(entry_price, partial_price, price, shares,
+            pnl = _calc_pnl(entry_price, partial_price, price,
                             partial_done, partial_sold, remaining)
             return _make_result(df, entry_i, entry_price, price, "OVEREXT",
-                                pnl, shares, partial_done, partial_price)
+                                pnl, partial_done, partial_price, entry_type)
 
-        # Update trailing stop: trail below each NEW high bar's low (not every bar).
-        # Floor: stop never goes below entry price.
+        # Lesson 15: trailing stop — only moves up when a new high candle forms.
+        # "Place stop a smidge below each new candle's low" — Kev (CTNT video)
         if high > highest_high:
-            highest_high  = high
-            new_stop = low * (1 - TRAIL_BUFFER_PCT)
-            trail_stop = max(trail_stop, new_stop)
+            highest_high = high
+            candidate    = low * (1 - TRAIL_BUFFER_PCT)
+            # Floor: once profitable (partial done), stop can't drop below entry
+            floor        = entry_price if partial_done else initial_stop
+            trail_stop   = max(trail_stop, candidate, floor)
 
         # Exit when close crosses below the trailing stop
         if price <= trail_stop:
             next_open = float(df.iloc[j + 1]["Open"]) if j + 1 < len(df) else price
-            pnl = _calc_pnl(entry_price, partial_price, next_open, shares,
+            pnl = _calc_pnl(entry_price, partial_price, next_open,
                             partial_done, partial_sold, remaining)
             return _make_result(df, entry_i, entry_price, next_open, "TRAIL STOP",
-                                pnl, shares, partial_done, partial_price)
+                                pnl, partial_done, partial_price, entry_type)
 
     return None
 
 
-def _calc_pnl(entry, partial_price, exit_price, shares,
-              partial_done, partial_sold, remaining):
+def _calc_pnl(entry, partial_price, exit_price, partial_done, partial_sold, remaining):
     p = 0.0
     if partial_done:
         p += (partial_price - entry) * partial_sold
@@ -443,22 +567,25 @@ def _calc_pnl(entry, partial_price, exit_price, shares,
 
 
 def _make_result(df, entry_i, entry_price, exit_price, reason,
-                 pnl, shares, partial_done, partial_price):
+                 pnl, partial_done, partial_price, entry_type):
     partial_str = f" (25%@${partial_price:.2f})" if partial_done else ""
     return {
         "entry_time":  df.index[entry_i].strftime("%H:%M"),
         "entry":       entry_price,
         "exit":        exit_price,
         "exit_reason": reason,
+        "entry_type":  entry_type,
         "pnl":         round(pnl, 2),
         "gain_pct":    round((exit_price - entry_price) / entry_price * 100, 2),
         "partial":     partial_str,
     }
 
 
+# ── Run one gap day ───────────────────────────────────────────────────────────
+
 def run_day(ticker: str, day: date, gap_pct: float) -> dict:
     df = fetch_minute_bars(ticker, day)
-    if df is None or len(df) < FLAT_TOP_WINDOW + 3:
+    if df is None or len(df) < max(FLAT_TOP_WINDOW, EMA_BOUNCE_LOOKBACK) + 3:
         return {"ticker": ticker, "day": day, "note": "insufficient 1-min data", "trades": []}
 
     df     = _add_indicators(df)
@@ -466,14 +593,42 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
     count  = 0
     last_i = -1
 
-    for i in range(FLAT_TOP_WINDOW, len(df)):
+    for i in range(max(FLAT_TOP_WINDOW, EMA_BOUNCE_LOOKBACK + 1), len(df)):
         if count >= MAX_TRADES_PER_DAY:
             break
         if i <= last_i + 3:
             continue
+
+        # Try flat top breakout first (higher-conviction setup)
         if _detect_flat_top(df, i):
-            ep     = float(df["Close"].iloc[i])
-            result = _simulate(df, i, ep)
+            ep = float(df["Close"].iloc[i])
+            result = _simulate(
+                df, i, ep,
+                initial_stop=ep,                    # floor from entry (trail starts here)
+                target=ep * (1 + TARGET_PCT),       # +10% partial target
+                entry_type="FLAT_TOP",
+            )
+            if result:
+                trades.append(result)
+                count  += 1
+                last_i  = i
+            continue
+
+        # Try EMA pullback bounce
+        is_bounce, prior_high = _detect_ema_bounce(df, i)
+        if is_bounce:
+            ep   = float(df["Close"].iloc[i])
+            ema9 = float(df["ema9"].iloc[i])
+            # Initial stop = EMA9 at entry × (1 - 2.5%) — "less than 5 cents risk on $2 stock"
+            initial_stop = ema9 * (1 - EMA_STOP_BUFFER)
+            # Target = prior high before the pullback (Kev: "the past high")
+            target = prior_high if prior_high > ep * 1.02 else ep * (1 + TARGET_PCT)
+            result = _simulate(
+                df, i, ep,
+                initial_stop=initial_stop,
+                target=target,
+                entry_type="EMA_BOUNCE",
+            )
             if result:
                 trades.append(result)
                 count  += 1
@@ -498,11 +653,12 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
 
 def main():
     print(f"\n{'='*70}")
-    print(f"  WEBULL DEEP BACKTEST v10 — Kev's Full System")
+    print(f"  WEBULL DEEP BACKTEST v10 — Kev's Complete System")
     print(f"  Universe: {len(UNIVERSE)} tickers | Daily lookback: {DAILY_BAR_LOOKBACK} bars")
-    print(f"  Entry: {START_TIME}–{TIME_CUTOFF} | Above VWAP | EMA9>EMA20 | Flat top <{FLAT_TOP_MAX_RANGE*100:.0f}% {FLAT_TOP_WINDOW}-bar")
-    print(f"  Exit: Trail stop {TRAIL_BUFFER_PCT*100:.1f}%/new-high | Overext EMA9x{OVEREXT_MULT} (>{OVEREXT_MIN_BARS}bars)")
-    print(f"  Partial: {int(PARTIAL_PCT*100)}% at +{TARGET_PCT*100:.0f}% | Gap {MIN_GAP_PCT*100:.0f}%–{MAX_GAP_PCT*100:.0f}%")
+    print(f"  Entry window: {START_TIME}–{TIME_CUTOFF} | Gap: {MIN_GAP_PCT*100:.0f}%–{MAX_GAP_PCT*100:.0f}%")
+    print(f"  Flat top: {FLAT_TOP_WINDOW}-bar <{FLAT_TOP_MAX_RANGE*100:.0f}% | Vol spike: >{VOL_SPIKE_MULT}x window avg")
+    print(f"  EMA bounce: {EMA_BOUNCE_LOOKBACK}-bar lookback | Touch: {EMA_BOUNCE_TOUCH*100:.1f}%")
+    print(f"  Exit: trail {TRAIL_BUFFER_PCT*100:.1f}%/new-high | overext EMA9×{OVEREXT_MULT} (>{OVEREXT_MIN_BARS}bars) | 25% partial")
     print(f"{'='*70}\n")
 
     # Phase 1: scan daily bars
@@ -539,7 +695,6 @@ def main():
         time.sleep(RATE_LIMIT_SLEEP)
 
     all_gaps.sort(key=lambda x: x[1])
-
     print(f"\n{'─'*70}")
     print(f"Total qualifying gap days: {len(all_gaps)}")
     if all_gaps:
@@ -571,23 +726,31 @@ def main():
     save_results(all_results)
 
 
+# ── Reporting ─────────────────────────────────────────────────────────────────
+
 def print_report(results, all_gaps):
     all_trades = []
     for r in results:
         for t in r.get("trades", []):
             y = r["day"].year if isinstance(r["day"], date) else int(str(r["day"])[:4])
-            all_trades.append({**t, "ticker": r["ticker"], "day": r["day"],
-                                "gap_pct": r.get("gap_pct", 0), "year": str(y)})
+            all_trades.append({
+                **t,
+                "ticker":  r["ticker"],
+                "day":     r["day"],
+                "gap_pct": r.get("gap_pct", 0),
+                "year":    str(y),
+            })
 
     n_gap_days = len(all_gaps)
     n_signal   = len([r for r in results if r.get("trades")])
 
     print(f"\n{'='*70}")
-    print(f"  RESULTS SUMMARY — v10 (Kev's Full System)")
+    print(f"  RESULTS SUMMARY — v10 (Kev's Complete System)")
     print(f"{'='*70}")
-    print(f"  Gap-up days scanned   : {n_gap_days}")
-    print(f"  Days with signal      : {n_signal}  ({n_signal/n_gap_days*100:.0f}%)" if n_gap_days else "")
-    print(f"  Days with no signal   : {n_gap_days - n_signal}")
+    if n_gap_days:
+        print(f"  Gap-up days scanned   : {n_gap_days}")
+        print(f"  Days with signal      : {n_signal}  ({n_signal/n_gap_days*100:.0f}%)")
+        print(f"  Days with no signal   : {n_gap_days - n_signal}")
     print(f"  Total trades          : {len(all_trades)}")
 
     if not all_trades:
@@ -614,8 +777,23 @@ def print_report(results, all_gaps):
         span  = (max(dates) - min(dates)).days
         print(f"  Date range            : {min(dates)} → {max(dates)}  ({span} days)")
 
+    # By entry type
+    print(f"\n  ── By entry type ──────────────────────────────────────────")
+    for etype in ("FLAT_TOP", "EMA_BOUNCE"):
+        et = [t for t in all_trades if t.get("entry_type") == etype]
+        if et:
+            ew = [t for t in et if t["pnl"] > 0]
+            aw = sum(t["pnl"] for t in ew)  / len(ew)  if ew  else 0
+            al_list = [t for t in et if t["pnl"] <= 0]
+            al = sum(t["pnl"] for t in al_list) / len(al_list) if al_list else 0
+            rr_et = abs(aw / al) if al else float("inf")
+            print(f"    {etype:12s}  {len(et):3d} trades  "
+                  f"{len(ew)/len(et)*100:.0f}% WR  "
+                  f"W/L {rr_et:.2f}  "
+                  f"${sum(t['pnl'] for t in et):+.2f}")
+
     # By exit reason
-    print(f"\n  By exit reason:")
+    print(f"\n  ── By exit reason ──────────────────────────────────────────")
     by_reason = {}
     for t in all_trades:
         by_reason.setdefault(t["exit_reason"], []).append(t)
@@ -625,7 +803,7 @@ def print_report(results, all_gaps):
               f"${sum(t['pnl'] for t in ts):+.2f}")
 
     # By year
-    print(f"\n  By year:")
+    print(f"\n  ── By year ─────────────────────────────────────────────────")
     by_year = {}
     for t in all_trades:
         by_year.setdefault(t["year"], []).append(t)
@@ -635,49 +813,50 @@ def print_report(results, all_gaps):
         print(f"    {y}  {len(ts):3d} trades  {w/len(ts)*100:.0f}% WR  "
               f"${sum(t['pnl'] for t in ts):+.2f}")
 
+    # By entry time bucket
+    print(f"\n  ── By entry time ───────────────────────────────────────────")
+    for h_s, h_e in [("09:45","10:00"),("10:00","10:15"),
+                     ("10:15","10:30"),("10:30","10:45"),("10:45","11:00")]:
+        bucket = [t for t in all_trades
+                  if h_s <= t.get("entry_time", "00:00") < h_e]
+        if bucket:
+            bw = [t for t in bucket if t["pnl"] > 0]
+            print(f"    {h_s}–{h_e}  {len(bucket):3d} trades  "
+                  f"{len(bw)/len(bucket)*100:.0f}% WR  "
+                  f"${sum(t['pnl'] for t in bucket):+.2f}")
+
     # By gap bucket
-    print(f"\n  By gap % bucket:")
+    print(f"\n  ── By gap % ────────────────────────────────────────────────")
     for lo, hi in [(15, 20), (20, 25), (25, 30)]:
         bucket = [t for t in all_trades if lo <= t["gap_pct"] < hi]
         if bucket:
             bw = [t for t in bucket if t["pnl"] > 0]
-            print(f"    {lo}-{hi}%  {len(bucket):3d} trades  "
-                  f"{len(bw)/len(bucket)*100:.0f}% WR  "
-                  f"${sum(t['pnl'] for t in bucket):+.2f}")
-
-    # Entry time distribution
-    print(f"\n  By entry time bucket:")
-    for h_start, h_end in [("09:45", "10:00"), ("10:00", "10:15"),
-                             ("10:15", "10:30"), ("10:30", "10:45"),
-                             ("10:45", "11:00")]:
-        bucket = [t for t in all_trades
-                  if h_start <= t.get("entry_time", "00:00") < h_end]
-        if bucket:
-            bw = [t for t in bucket if t["pnl"] > 0]
-            print(f"    {h_start}–{h_end}  {len(bucket):3d} trades  "
+            print(f"    {lo}–{hi}%  {len(bucket):3d} trades  "
                   f"{len(bw)/len(bucket)*100:.0f}% WR  "
                   f"${sum(t['pnl'] for t in bucket):+.2f}")
 
     # Partial exit stats
     partials = [t for t in all_trades if t.get("partial")]
-    print(f"\n  Partial exit (25% at +10%) fired: {len(partials)}/{len(all_trades)} trades "
+    print(f"\n  Partial exit (25%) fired : {len(partials)}/{len(all_trades)} trades "
           f"({len(partials)/len(all_trades)*100:.0f}%)")
 
     # Top winners / losers
-    print(f"\n  Top 10 winners:")
+    print(f"\n  ── Top 10 winners ──────────────────────────────────────────")
     for t in sorted(wins, key=lambda x: -x["pnl"])[:10]:
-        print(f"    {t['day']}  {t['ticker']:<8} gap={t['gap_pct']:>4.0f}%  "
-              f"entry=${t.get('entry',0):.2f}  gain={t.get('gain_pct',0):>+.2f}%  "
-              f"pnl=${t['pnl']:+.2f}  {t.get('exit_reason','?')}  {t.get('partial','')}")
-    print(f"\n  Top 10 losers:")
+        print(f"    {t['day']}  {t['ticker']:<8} [{t.get('entry_type','?'):10}] "
+              f"gap={t['gap_pct']:>4.0f}%  "
+              f"@${t.get('entry',0):.2f}  {t.get('gain_pct',0):>+.2f}%  "
+              f"${t['pnl']:+.2f}  {t.get('exit_reason','?')}  {t.get('partial','')}")
+
+    print(f"\n  ── Top 10 losers ───────────────────────────────────────────")
     for t in sorted(losses, key=lambda x: x["pnl"])[:10]:
-        print(f"    {t['day']}  {t['ticker']:<8} gap={t['gap_pct']:>4.0f}%  "
-              f"entry=${t.get('entry',0):.2f}  gain={t.get('gain_pct',0):>+.2f}%  "
-              f"pnl=${t['pnl']:+.2f}  {t.get('exit_reason','?')}")
+        print(f"    {t['day']}  {t['ticker']:<8} [{t.get('entry_type','?'):10}] "
+              f"gap={t['gap_pct']:>4.0f}%  "
+              f"@${t.get('entry',0):.2f}  {t.get('gain_pct',0):>+.2f}%  "
+              f"${t['pnl']:+.2f}  {t.get('exit_reason','?')}")
 
     print(f"\n{'='*70}")
-    print(f"  v8 confirmed leader: 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV")
-    print(f"  (v9 result unknown — v8 is the baseline to beat)")
+    print(f"  BASELINE: v8 confirmed leader — 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV")
     print(f"{'='*70}")
 
 
@@ -692,7 +871,7 @@ def save_results(results):
             "note":    r.get("note", ""),
         } for r in results], f, indent=2)
     print(f"\n  Raw results saved → {out}")
-    print(f"  (v10: Kev's full system — EMA9>20 gate, 09:45 start, trail stop, overext exit, 25% partial)")
+    print(f"  v10: Kev's complete system | 19 lessons applied | 2 entry types")
 
 
 if __name__ == "__main__":

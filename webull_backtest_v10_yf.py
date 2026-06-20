@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """
-Webull Deep Historical Backtest — v10 (Kev's Complete System)
-==============================================================
+Webull Deep Historical Backtest — v10-YF (Kev's Complete System, 4.5-Year Extended)
+=====================================================================================
+Same strategy as v10 (25 lessons, all Kev rules). Difference: Phase 1 (daily gap
+scanning) uses yfinance instead of Webull. yfinance daily bars go back decades with
+no API token — this extends the backtest from ~1.5 years to 4.5 years.
+
+Phase 2 (1-min bar simulation) still uses Webull. Older gap days where Webull has
+no 1-min data are logged as "insufficient 1-min data" and skipped — the per-year
+data coverage table in the report shows exactly how many years have full vs partial
+1-min coverage.
+
 v8 confirmed leader: 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV. v9 result unknown.
 
-Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ videos):
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ENTRY FILTERS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   1.  START_TIME 09:45 — "let things settle" (Kev never trades the open spike)
   2.  TIME_CUTOFF 11:00 — Kev's window; afternoon = trap (down-halt risk)
   3.  Above VWAP — VWAP is the line of control; below = do not trade
@@ -33,9 +40,9 @@ Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ vid
   15. Price was above EMA9 during that run (not just a dead stock drifting)
   16. Bounce bar volume > 1.2× preceding 3 bars — buyer volume confirms the bounce
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   EXIT SYSTEM
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   17. Trailing stop — 1.5% below each NEW HIGH bar's low; only moves up.
       Floor: stop never drops below entry price.
       (Kev's CTNT video: "Now stop letting green trades turn red")
@@ -50,9 +57,9 @@ Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ vid
       (Kev directly confirmed: "Quarter, 25%, 1/4")
   22. Time stop — force exit by 15:30 ET.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   HALT-UP AWARENESS (detected from 1-min bar timestamp gaps)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   23. Halt detection — gaps > 90s between consecutive 1-min bars = circuit halt.
       (CRVO's 09:36→09:46 gap confirmed visible in Webull 1-min data)
   24. Hold through halt-up — trail stop does NOT fire during halt gap.
@@ -60,13 +67,13 @@ Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ vid
   25. Overext grace — overextension check suppressed for 3 bars after halt resumes.
       (Post-halt gap-up is momentum, not overextension)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   NOT IMPLEMENTABLE (data constraints):
     - Historical float (yfinance gives current only; used as best proxy)
     - News/catalyst filter (no historical news feed in bar data)
     - Daily P&L stop (not applicable to per-trade backtest)
-    - Pre-market volume (yfinance 1-min goes back 7 days only; useless for 1.5yr bt)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    - Pre-market volume (yfinance 1-min goes back 7 days only; useless for bt)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import os
@@ -162,8 +169,9 @@ HALT_GAP_SECONDS   = 90           # gap > 90s between consecutive 1-min bars = h
 MIN_ABS_VOL        = 10_000
 POSITION_DOLLARS   = 100.00
 MAX_TRADES_PER_DAY = 2
-DAILY_BAR_LOOKBACK = 400         # Webull daily bars per ticker (~1.5 years)
-RATE_LIMIT_SLEEP   = 0.3         # sleep between all Webull API calls
+BACKTEST_YEARS     = 4.5          # yfinance daily bars — unlimited history, no token needed
+WEBULL_RATE_SLEEP  = 0.3          # sleep between Webull 1-min API calls (Phase 2)
+YF_RATE_SLEEP      = 0.1          # sleep between yfinance daily bar calls (Phase 1)
 DEBUG_ONLY         = os.environ.get("DEBUG_ONLY", "0") in ("1", "true", "yes")
 DEBUG_MAX_TICKERS  = 5
 
@@ -231,7 +239,7 @@ def _prefetch_floats(tickers: list) -> None:
     print(f"  ❓ unknown float: {unknown} tickers (will allow through)\n")
 
 
-# ── Webull bar helpers ────────────────────────────────────────────────────────
+# ── Webull bar helpers (used only for Phase 2 1-min bars) ────────────────────
 
 _debug_printed = False
 
@@ -304,53 +312,45 @@ def _day_end_ms(d: date) -> int:
     return int(ET.localize(datetime(d.year, d.month, d.day, 16, 0, 0)).timestamp() * 1000)
 
 
-# ── Phase 1: daily bars via Webull ───────────────────────────────────────────
+# ── Phase 1: daily bars via yfinance (unlimited history) ──────────────────────
+#
+# yfinance daily bars go back decades — no token needed, no Webull API calls
+# consumed, freeing all Webull quota for the 1-min intraday Phase 2 fetch.
+# This is what enables a 4.5-year backtest without any paid data subscription.
 
-def fetch_daily_bars(ticker: str) -> list:
+def fetch_daily_bars(ticker: str) -> pd.DataFrame:
+    """Fetch split-adjusted daily OHLCV bars via yfinance. Unlimited lookback."""
     try:
-        resp = dc.market_data.get_history_bar(
-            symbol=ticker, category="US_STOCK",
-            timespan="D", count=str(DAILY_BAR_LOOKBACK),
-        )
-        return _parse_bars(resp)
-    except Exception as e:
-        print(f"    ⚠  daily bars error for {ticker}: {e}")
-        return []
+        start = (date.today() - timedelta(days=int(BACKTEST_YEARS * 365 + 60))).isoformat()
+        df    = yf.Ticker(ticker).history(start=start, interval="1d", auto_adjust=True)
+        return df.sort_index() if not df.empty else pd.DataFrame()
+    except Exception:
+        return pd.DataFrame()
 
 
-def find_gap_days(ticker: str, bars: list) -> list:
+def find_gap_days(ticker: str, daily_df: pd.DataFrame) -> list:
+    """
+    Find all gap-up days (MIN_GAP_PCT–MAX_GAP_PCT) in a yfinance daily DataFrame.
+    Returns list of (date, open_price, prior_close, gap_pct).
+    """
     results = []
-    if len(bars) < 2:
+    if len(daily_df) < 2:
         return results
-    ts_first = _bar_ts_ms(bars[0])
-    ts_last  = _bar_ts_ms(bars[-1])
-    if ts_first and ts_last and ts_first > ts_last:
-        bars = list(reversed(bars))
-    for i in range(1, len(bars)):
-        cur, prev = bars[i], bars[i - 1]
-        open_p  = _bar_val(cur,  "open", "o", "opening")
-        close_p = _bar_val(prev, "close", "c", "closing")
+    for i in range(1, len(daily_df)):
+        open_p  = float(daily_df["Open"].iloc[i])
+        close_p = float(daily_df["Close"].iloc[i - 1])
         if open_p <= 0 or close_p <= 0:
             continue
         gap = (open_p - close_p) / close_p
         if gap < MIN_GAP_PCT or gap > MAX_GAP_PCT:
             continue
-        ts = _bar_ts_ms(cur)
-        if ts:
-            bar_date = _ms_to_et(ts).date()
-        else:
-            d_raw = cur.get("date") or cur.get("trade_date") or cur.get("tradeDate")
-            if not d_raw:
-                continue
-            try:
-                bar_date = date.fromisoformat(str(d_raw)[:10])
-            except ValueError:
-                continue
+        idx = daily_df.index[i]
+        bar_date = idx.date() if hasattr(idx, "date") else idx.to_pydatetime().date()
         results.append((bar_date, open_p, close_p, gap))
     return results
 
 
-# ── Phase 2: 1-min bars + halt detection ─────────────────────────────────────
+# ── Phase 2: 1-min bars + halt detection (Webull) ────────────────────────────
 
 def fetch_minute_bars(ticker: str, day: date) -> tuple:
     """
@@ -730,17 +730,17 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
 
 def main():
     print(f"\n{'='*70}")
-    print(f"  WEBULL DEEP BACKTEST v10 — Kev's Complete System (25 lessons)")
-    print(f"  Universe: {len(UNIVERSE)} tickers | Daily lookback: {DAILY_BAR_LOOKBACK} bars")
+    print(f"  WEBULL DEEP BACKTEST v10-YF — Kev's Complete System (25 lessons)")
+    print(f"  Universe: {len(UNIVERSE)} tickers | Daily lookback: {BACKTEST_YEARS} years (yfinance)")
     print(f"{'='*70}\n")
 
     # Lesson 6: prefetch float data for universe
     _prefetch_floats(UNIVERSE)
 
-    # Phase 1: scan daily bars for gap-up days
+    # Phase 1: scan daily bars for gap-up days (yfinance — unlimited history)
     all_gaps = []
     seen     = set()
-    print("Phase 1 — scanning daily bars for gap-up days...\n")
+    print("Phase 1 — scanning daily bars for gap-up days (yfinance, no token needed)...\n")
 
     for i, ticker in enumerate(UNIVERSE, 1):
         if DEBUG_ONLY and i > DEBUG_MAX_TICKERS:
@@ -754,9 +754,9 @@ def main():
             continue
 
         daily = fetch_daily_bars(ticker)
-        if not daily:
+        if daily.empty:
             print(f"  [{i:3d}/{len(UNIVERSE)}] {ticker:8s}  no daily data")
-            time.sleep(RATE_LIMIT_SLEEP)
+            time.sleep(YF_RATE_SLEEP)
             continue
 
         gaps = find_gap_days(ticker, daily)
@@ -774,7 +774,7 @@ def main():
         else:
             print(f"  [{i:3d}/{len(UNIVERSE)}] {ticker:8s}  {len(daily):4d} daily bars  0 gap days")
 
-        time.sleep(RATE_LIMIT_SLEEP)
+        time.sleep(YF_RATE_SLEEP)
 
     all_gaps.sort(key=lambda x: x[1])
     print(f"\n{'─'*70}")
@@ -787,8 +787,8 @@ def main():
         print("No gap days found. Check credentials and ticker list.")
         return
 
-    # Phase 2 & 3: fetch 1-min bars + run strategy
-    print("Phase 2 — running strategy on each gap day...\n")
+    # Phase 2 & 3: fetch Webull 1-min bars + run strategy
+    print("Phase 2 — running strategy on each gap day (Webull 1-min bars)...\n")
     all_results = []
 
     for j, (ticker, day, gap_pct) in enumerate(all_gaps, 1):
@@ -804,7 +804,7 @@ def main():
               f"gap={gap_pct:+.0f}%{halt_str}  "
               f"{'→ ' + str(n_trades) + ' trade(s)' if n_trades else '(no signal)' if not note else note}")
 
-        time.sleep(RATE_LIMIT_SLEEP)
+        time.sleep(WEBULL_RATE_SLEEP)
 
     print_report(all_results, all_gaps)
     save_results(all_results)
@@ -830,7 +830,8 @@ def print_report(results, all_gaps):
     n_float_skip = len([r for r in results if "float" in r.get("note", "")])
 
     print(f"\n{'='*70}")
-    print(f"  RESULTS SUMMARY — v10 (Kev's Complete System, 25 lessons)")
+    print(f"  RESULTS SUMMARY — v10-YF (Kev's Complete System, 25 lessons)")
+    print(f"  Phase 1: yfinance daily bars ({BACKTEST_YEARS} years) | Phase 2: Webull 1-min")
     print(f"{'='*70}")
     if n_gap_days:
         print(f"  Gap-up days scanned   : {n_gap_days}")
@@ -862,6 +863,25 @@ def print_report(results, all_gaps):
         dates = [g[1] for g in all_gaps]
         span  = (max(dates) - min(dates)).days
         print(f"  Date range            : {min(dates)} → {max(dates)}  ({span} days)")
+
+    # Per-year data coverage (yfinance gap days vs Webull 1-min data availability)
+    print(f"\n  ── Data coverage by year ─────────────────────────────────────")
+    coverage = {}
+    for r in results:
+        day = r["day"]
+        y = day.year if isinstance(day, date) else int(str(day)[:4])
+        coverage.setdefault(y, {"gap_days": 0, "with_data": 0, "float_skip": 0})
+        note = r.get("note", "")
+        if "float" in note:
+            coverage[y]["float_skip"] += 1
+        else:
+            coverage[y]["gap_days"] += 1
+            if "insufficient" not in note:
+                coverage[y]["with_data"] += 1
+    for y in sorted(coverage):
+        c = coverage[y]
+        pct = c["with_data"] / c["gap_days"] * 100 if c["gap_days"] else 0
+        print(f"    {y}  {c['gap_days']:3d} gap days  {c['with_data']:3d} with 1-min data ({pct:.0f}%)")
 
     # By entry type
     print(f"\n  ── By entry type ──────────────────────────────────────────")
@@ -895,8 +915,8 @@ def print_report(results, all_gaps):
         print(f"    {reason:14s}  {len(ts):3d} trades  {w/len(ts)*100:.0f}% WR  "
               f"${sum(t['pnl'] for t in ts):+.2f}")
 
-    # By year
-    print(f"\n  ── By year ─────────────────────────────────────────────────")
+    # By year (trade results)
+    print(f"\n  ── By year (trades) ────────────────────────────────────────")
     by_year = {}
     for t in all_trades:
         by_year.setdefault(t["year"], []).append(t)
@@ -955,7 +975,7 @@ def print_report(results, all_gaps):
 
 
 def save_results(results):
-    out = "/tmp/webull_backtest_v10_results.json"
+    out = "/tmp/webull_backtest_v10_yf_results.json"
     with open(out, "w") as f:
         json.dump([{
             "ticker":     r["ticker"],
@@ -966,7 +986,7 @@ def save_results(results):
             "note":       r.get("note", ""),
         } for r in results], f, indent=2)
     print(f"\n  Raw results saved → {out}")
-    print(f"  v10: 25 lessons applied | 2 entry types | float filter | halt detection")
+    print(f"  v10-YF: 25 lessons | yfinance daily ({BACKTEST_YEARS}yr) | Webull 1-min | float filter | halt detection")
 
 
 if __name__ == "__main__":

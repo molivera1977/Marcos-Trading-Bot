@@ -2,7 +2,7 @@
 """
 Webull Deep Historical Backtest — v10 (Kev's Full System)
 ==========================================================
-v9 results: 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV.
+v8 confirmed leader: 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV. v9 result unknown.
 
 v10 applies every lesson learned from @momentum.official (Kev's TikTok):
 
@@ -676,7 +676,8 @@ def print_report(results, all_gaps):
               f"pnl=${t['pnl']:+.2f}  {t.get('exit_reason','?')}")
 
     print(f"\n{'='*70}")
-    print(f"  v9 baseline: 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV")
+    print(f"  v8 confirmed leader: 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV")
+    print(f"  (v9 result unknown — v8 is the baseline to beat)")
     print(f"{'='*70}")
 
 

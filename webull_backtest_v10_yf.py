@@ -173,8 +173,8 @@ TIME_STOP          = "11:30"     # FIXED (lesson 22): was 15:30 — Kev's danger
 MIN_PRICE          = 0.50        # matches live bot floor; Kev trades sub-$1 (even sub-$0.20) setups
 MAX_PRICE          = 20.0
 MAX_FLOAT          = 20_000_000   # Kev's explicit filter: < 20M shares
-MIN_GAP_PCT        = 0.15
-MAX_GAP_PCT        = 0.30
+MIN_GAP_PCT        = 0.05   # widened: 15% was invented internally, not from Kev; 5% still requires a real gap-up mover
+MAX_GAP_PCT        = 2.00   # effectively no upper cap; big gap days (50-200%+) on sub-$1 stocks are Kev's bread-and-butter
 VWAP_REQUIRED      = True
 RVOL_MIN           = 1.5         # lesson 28: Kev's screener "Relative Volume: Over 1.5"
 MIN_DAILY_RANGE_PCT = 0.10        # lesson 29 ("Daily Range," A+ checklist item 5): the
@@ -221,7 +221,7 @@ HALT_GAP_SECONDS   = 90           # gap > 90s between consecutive 1-min bars = h
 # Simulation
 MIN_ABS_VOL        = 10_000
 POSITION_DOLLARS   = 100.00
-MAX_TRADES_PER_DAY = 2
+MAX_TRADES_PER_DAY = 10   # Kev enters 6-10 trades/day, sometimes multiple times in the same stock
 BACKTEST_YEARS     = 4.5          # yfinance daily bars — unlimited history, no token needed
 WEBULL_RATE_SLEEP  = 0.3          # sleep between Webull 1-min API calls (Phase 2)
 YF_RATE_SLEEP      = 0.1          # sleep between yfinance daily bar calls (Phase 1)

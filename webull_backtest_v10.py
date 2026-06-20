@@ -9,48 +9,63 @@ Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ vid
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ENTRY FILTERS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  1. START_TIME 09:45 — "let things settle" (Kev never trades the open spike)
-  2. TIME_CUTOFF 11:00 — Kev's community session ends at 11am; afternoon = trap
-  3. Above VWAP — VWAP is the line of control; below it = do not trade
-  4. EMA9 > EMA20 — A+ Setup requires bullish EMA stack (confirmed from checklist video)
-  5. Price < $20 — Kev's hard filter (small-cap focus)
-  6. GAP 15–30% — qualifying gap-up day filter
+  1.  START_TIME 09:45 — "let things settle" (Kev never trades the open spike)
+  2.  TIME_CUTOFF 11:00 — Kev's window; afternoon = trap (down-halt risk)
+  3.  Above VWAP — VWAP is the line of control; below = do not trade
+  4.  EMA9 > EMA20 — A+ Setup: bullish EMA stack (confirmed from checklist video)
+  5.  Price < $20 — Kev's hard filter (small-cap focus)
+  6.  Float < 20M shares — Kev's most important pre-filter; prefetched via yfinance
+      (current float used as proxy; if unavailable, ticker is allowed through)
+  7.  GAP 15–30% on daily bar — qualifying gap-up day
 
-  FLAT TOP BREAKOUT (Entry Type 1 — "No Break No Trade"):
-  7. 8-bar consolidation window with <5% range — the flat top at resistance
-  8. Breakout bar volume > 1.5x window average — confirms genuine break, not fake-out
-     (This was a TODO comment in v9 that was never actually coded — now fixed)
-  9. Last bar of window within 3% of window high — price near resistance, not fading
- 10. Window second half avg high >= first half avg high — no descending highs pattern
-     (Kev: "lower highs = bad pullback = do NOT enter")
+  FLAT TOP BREAKOUT — Entry Type 1 ("No Break No Trade"):
+  8.  8-bar consolidation window with <5% H/L range
+  9.  Breakout bar volume > 1.5× window average — genuine break, not fake-out
+      (Was a TODO comment in every prior version — now actually coded)
+  10. Last bar of window within 3% of window high — price near resistance, not fading
+  11. Window 2nd-half avg high >= 1st-half avg high — no descending highs pattern
+      (Kev: "lower highs = bad pullback = do NOT enter")
 
-  EMA PULLBACK BOUNCE (Entry Type 2 — "Catching the Bottom"):
- 11. Previous bar touched EMA9 (within 0.5%) — the pullback reached the fast EMA
- 12. Current bar bounces above EMA9 — buyers stepped in at the EMA
- 13. Prior high exists above current price (2%+ higher) — a real run-up preceded the pullback
- 14. Bounce bar volume > 1.2x the bars immediately before — buyer volume on bounce
+  EMA PULLBACK BOUNCE — Entry Type 2 ("Catching the Bottom"):
+  12. Previous bar touched EMA9 (within 0.5%) — pullback reached the fast EMA
+  13. Current bar bounces above EMA9 — buyers stepped in at the EMA
+  14. Prior high exists 2%+ above current price — real run-up preceded the pullback
+  15. Price was above EMA9 during that run (not just a dead stock drifting)
+  16. Bounce bar volume > 1.2× preceding 3 bars — buyer volume confirms the bounce
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   EXIT SYSTEM
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- 15. Trailing stop — "a smidge below" (1.5%) each NEW HIGH bar's low; only moves up.
-     Floor rule: stop never drops below entry price. (Kev's #1 lesson from CTNT video)
- 16. EMA bounce initial stop — EMA9 at entry × (1 - 2.5%) for pullback entries.
-     Kev: "less than 5 cents of risk" on a $2 stock = ~2.5% below EMA.
- 17. Overextension exit — price > EMA9 × 1.08 → sell remaining.
-     Arms after 3 bars so we don't exit a legitimate initial breakout.
-     (Approximates red DOWN arrows Kev calls "the one signal")
- 18. Partial exit — sell 25% ("a quarter") at first target. Kev is explicit: "Quarter, 25%, 1/4"
-     Flat top: target = +10% from entry.
-     EMA bounce: target = prior high before the pullback (Kev: "the past high").
- 19. Time stop — 15:30 ET; Kev's window is 9:00–11:00 AM; afternoon halts are traps
+  17. Trailing stop — 1.5% below each NEW HIGH bar's low; only moves up.
+      Floor: stop never drops below entry price.
+      (Kev's CTNT video: "Now stop letting green trades turn red")
+  18. EMA bounce initial stop — EMA9 at entry × (1 − 2.5%).
+      Kev: "less than 5 cents of risk" on a $2 stock ≈ 2.5% below EMA9.
+  19. Break-even rule — after partial exit fires, trail_stop floor = entry_price.
+  20. Overextension exit — price > EMA9 × 1.08 → sell remaining.
+      Arms after 3 bars. Skips 3 bars after a halt-up (gap-up is expected, not overext).
+      (Approximates red DOWN arrows: "the one signal to learn")
+  21. Partial exit — sell 25% ("a quarter") at first target.
+      Flat top: target = +10%. EMA bounce: target = prior high before pullback.
+      (Kev directly confirmed: "Quarter, 25%, 1/4")
+  22. Time stop — force exit by 15:30 ET.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  HALT-UP AWARENESS (detected from 1-min bar timestamp gaps)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  23. Halt detection — gaps > 90s between consecutive 1-min bars = circuit halt.
+      (CRVO's 09:36→09:46 gap confirmed visible in Webull 1-min data)
+  24. Hold through halt-up — trail stop does NOT fire during halt gap.
+      The next bar after halt resumes naturally; trail stop updates from post-halt high.
+  25. Overext grace — overextension check suppressed for 3 bars after halt resumes.
+      (Post-halt gap-up is momentum, not overextension)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   NOT IMPLEMENTABLE (data constraints):
-    - Float < 20M (no float data in Webull bar API; universe pre-filtered to small-cap)
-    - Halt-up continuation (halt candles appear as gaps; no halt feed available)
-    - News catalyst filter (no real-time news in historical bar data)
+    - Historical float (yfinance gives current only; used as best proxy)
+    - News/catalyst filter (no historical news feed in bar data)
     - Daily P&L stop (not applicable to per-trade backtest)
+    - Pre-market volume (yfinance 1-min goes back 7 days only; useless for 1.5yr bt)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -63,6 +78,7 @@ from datetime import datetime, date, timezone
 
 import pytz
 import pandas as pd
+import yfinance as yf
 
 ET = pytz.timezone("America/New_York")
 
@@ -103,39 +119,44 @@ print("✅  Webull DataClient initialized")
 
 # ── Strategy constants ────────────────────────────────────────────────────────
 
-# Timing (lesson 1 & 2)
+# Timing (lessons 1–2)
 START_TIME         = "09:45"
 TIME_CUTOFF        = "11:00"
 
-# Stock filters (lessons 3–6)
+# Stock filters (lessons 3–7)
 MIN_PRICE          = 1.50
-MAX_PRICE          = 20.0       # Kev's explicit filter
+MAX_PRICE          = 20.0
+MAX_FLOAT          = 20_000_000   # Kev's explicit filter: < 20M shares
 MIN_GAP_PCT        = 0.15
 MAX_GAP_PCT        = 0.30
 VWAP_REQUIRED      = True
 
-# EMA periods — confirmed from A+ checklist video (lessons 4)
+# EMA periods — confirmed from A+ checklist video (lesson 4)
 EMA_SHORT          = 9
 EMA_LONG           = 20
 
-# Flat top breakout (lessons 7–10)
+# Flat top breakout (lessons 8–11)
 FLAT_TOP_WINDOW    = 8
-FLAT_TOP_MAX_RANGE = 0.050      # <5% range in consolidation window
-VOL_SPIKE_MULT     = 1.5        # breakout bar must be 1.5x window avg volume (lesson 8)
-WINDOW_TOP_GATE    = 0.03       # last bar within 3% of window high (lesson 9)
+FLAT_TOP_MAX_RANGE = 0.050        # <5% H/L range in consolidation window
+VOL_SPIKE_MULT     = 1.5          # breakout bar > 1.5× window avg volume (lesson 9)
+WINDOW_TOP_GATE    = 0.03         # last bar within 3% of window high (lesson 10)
 
-# EMA pullback bounce (lessons 11–14)
-EMA_BOUNCE_LOOKBACK = 20        # bars to look back for prior high
-EMA_BOUNCE_TOUCH    = 0.005     # within 0.5% of EMA9 counts as "touched" (lesson 11)
-EMA_BOUNCE_VOL_MULT = 1.2       # bounce bar must be 1.2x prior 3 bars avg (lesson 14)
-EMA_STOP_BUFFER     = 0.025     # initial stop = EMA9 × (1 - 2.5%) for pullback entries (lesson 16)
+# EMA pullback bounce (lessons 12–16)
+EMA_BOUNCE_LOOKBACK = 20          # bars to look back for prior high
+EMA_BOUNCE_TOUCH    = 0.005       # ≤0.5% above EMA9 counts as "touched" (lesson 12)
+EMA_BOUNCE_VOL_MULT = 1.2         # bounce bar > 1.2× prior 3-bar avg (lesson 16)
+EMA_STOP_BUFFER     = 0.025       # initial stop = EMA9 × (1 − 2.5%) (lesson 18)
 
-# Exit system (lessons 15–19)
-TRAIL_BUFFER_PCT   = 0.015      # stop trails 1.5% below each new high bar's low (lesson 15)
-OVEREXT_MULT       = 1.08       # exit when price > EMA9 × 1.08 (lesson 17)
-OVEREXT_MIN_BARS   = 3          # overextension check only arms after 3 bars (lesson 17)
-PARTIAL_PCT        = 0.25       # sell 25% at first target — "a quarter" (lesson 18)
-TARGET_PCT         = 0.10       # flat top partial target: +10% (lesson 18)
+# Exit system (lessons 17–22)
+TRAIL_BUFFER_PCT   = 0.015        # trail 1.5% below each new high bar's low (lesson 17)
+OVEREXT_MULT       = 1.08         # exit when price > EMA9 × 1.08 (lesson 20)
+OVEREXT_MIN_BARS   = 3            # arms after 3 bars post-entry (lesson 20)
+HALT_OVEREXT_GRACE = 3            # additional bars of overext suppression after halt-up (lesson 25)
+PARTIAL_PCT        = 0.25         # sell 25% at first target (lesson 21)
+TARGET_PCT         = 0.10         # flat top partial target: +10%
+
+# Halt detection (lessons 23–25)
+HALT_GAP_SECONDS   = 90           # gap > 90s between consecutive 1-min bars = halt
 
 # Simulation
 MIN_ABS_VOL        = 10_000
@@ -145,6 +166,9 @@ DAILY_BAR_LOOKBACK = 400
 RATE_LIMIT_SLEEP   = 0.3
 DEBUG_ONLY         = os.environ.get("DEBUG_ONLY", "0") in ("1", "true", "yes")
 DEBUG_MAX_TICKERS  = 5
+
+# Float cache — populated by _prefetch_floats() at startup (lesson 6)
+FLOAT_CACHE: dict = {}
 
 
 # ── Ticker universe ───────────────────────────────────────────────────────────
@@ -174,6 +198,37 @@ UNIVERSE = [
     "CRVO","CTNT","TNT","ALAR",
 ]
 UNIVERSE = list(dict.fromkeys(UNIVERSE))
+
+
+# ── Float prefetch (lesson 6) ─────────────────────────────────────────────────
+
+def _prefetch_floats(tickers: list) -> None:
+    """
+    Fetch current float for all tickers via yfinance. Results cached in FLOAT_CACHE.
+    Uses current float as a proxy for historical — best available without a paid feed.
+    Tickers with no float data are allowed through (benefit of the doubt).
+    """
+    print(f"Fetching float data for {len(tickers)} tickers via yfinance...")
+    allowed = blocked = unknown = 0
+    for sym in tickers:
+        try:
+            info = yf.Ticker(sym).info
+            f    = info.get("floatShares") or info.get("sharesFloat")
+            FLOAT_CACHE[sym] = f
+            if f is None:
+                unknown += 1
+            elif f <= MAX_FLOAT:
+                allowed += 1
+            else:
+                blocked += 1
+        except Exception:
+            FLOAT_CACHE[sym] = None
+            unknown += 1
+        time.sleep(0.05)   # light rate limiting
+
+    print(f"  ✅ under {MAX_FLOAT//1_000_000}M: {allowed} tickers")
+    print(f"  ❌ over  {MAX_FLOAT//1_000_000}M: {blocked} tickers (will skip)")
+    print(f"  ❓ unknown float: {unknown} tickers (will allow through)\n")
 
 
 # ── Webull bar helpers ────────────────────────────────────────────────────────
@@ -217,8 +272,8 @@ def _bar_val(bar: dict, *keys):
 
 
 def _bar_ts_ms(bar: dict):
-    for k in ("timestamp", "time", "t", "ts", "beginTime", "begin_time",
-              "open_time", "openTime", "startTime", "start_time"):
+    for k in ("timestamp","time","t","ts","beginTime","begin_time",
+              "open_time","openTime","startTime","start_time"):
         v = bar.get(k)
         if v is None:
             continue
@@ -242,13 +297,11 @@ def _ms_to_et(ms: int) -> datetime:
 
 
 def _day_start_ms(d: date) -> int:
-    dt = ET.localize(datetime(d.year, d.month, d.day, 9, 30, 0))
-    return int(dt.timestamp() * 1000)
+    return int(ET.localize(datetime(d.year, d.month, d.day, 9, 30, 0)).timestamp() * 1000)
 
 
 def _day_end_ms(d: date) -> int:
-    dt = ET.localize(datetime(d.year, d.month, d.day, 16, 0, 0))
-    return int(dt.timestamp() * 1000)
+    return int(ET.localize(datetime(d.year, d.month, d.day, 16, 0, 0)).timestamp() * 1000)
 
 
 # ── Phase 1: daily bars ───────────────────────────────────────────────────────
@@ -297,9 +350,15 @@ def find_gap_days(ticker: str, bars: list) -> list:
     return results
 
 
-# ── Phase 2: 1-min bars ───────────────────────────────────────────────────────
+# ── Phase 2: 1-min bars + halt detection ─────────────────────────────────────
 
-def fetch_minute_bars(ticker: str, day: date) -> pd.DataFrame:
+def fetch_minute_bars(ticker: str, day: date) -> tuple:
+    """
+    Returns (df, halt_bar_indices) where halt_bar_indices is a set of integer
+    positions in df where a circuit-breaker halt gap was detected (>90s gap
+    between consecutive 1-min bars). These positions mark the FIRST bar after
+    each halt resumed.
+    """
     try:
         resp = dc.market_data.get_history_bar(
             symbol=ticker, category="US_STOCK",
@@ -309,7 +368,7 @@ def fetch_minute_bars(ticker: str, day: date) -> pd.DataFrame:
         )
         bars = _parse_bars(resp)
         if not bars:
-            return pd.DataFrame()
+            return pd.DataFrame(), set()
         rows = []
         for b in bars:
             ts = _bar_ts_ms(b)
@@ -324,14 +383,25 @@ def fetch_minute_bars(ticker: str, day: date) -> pd.DataFrame:
                 "Volume":_bar_val(b, "volume", "v"),
             })
         if not rows:
-            return pd.DataFrame()
+            return pd.DataFrame(), set()
         df = pd.DataFrame(rows).set_index("datetime")
         df.index = pd.to_datetime(df.index)
         df.sort_index(inplace=True)
-        return df.between_time("09:30", "15:59")
+        df = df.between_time("09:30", "15:59")
+
+        # Lesson 23: detect halt gaps — consecutive bars >90s apart (but <12h = not overnight)
+        halt_bars: set = set()
+        ts_list = df.index.to_list()
+        for k in range(1, len(ts_list)):
+            gap_s = (ts_list[k] - ts_list[k - 1]).total_seconds()
+            if HALT_GAP_SECONDS < gap_s < 43200:
+                halt_bars.add(k)
+
+        return df, halt_bars
+
     except Exception as e:
         print(f"    ⚠  minute bars error {ticker} {day}: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame(), set()
 
 
 # ── Phase 3: indicators ───────────────────────────────────────────────────────
@@ -349,12 +419,10 @@ def _add_indicators(df: pd.DataFrame) -> pd.DataFrame:
 
 def _detect_flat_top(df: pd.DataFrame, i: int) -> bool:
     """
-    "No Break No Trade" — price consolidates at resistance, then breaks above with volume.
-    Returns True if bar i is a valid flat top breakout.
+    "No Break No Trade" — price consolidates at resistance, breaks above with volume.
     """
     if i < FLAT_TOP_WINDOW:
         return False
-
     t_str = df.index[i].strftime("%H:%M")
     if t_str < START_TIME or t_str >= TIME_CUTOFF:
         return False
@@ -365,12 +433,11 @@ def _detect_flat_top(df: pd.DataFrame, i: int) -> bool:
     ema20 = float(df["ema20"].iloc[i])
     vol   = float(df["Volume"].iloc[i])
 
-    # Basic filters (lessons 3, 4, 5)
-    if price < MIN_PRICE or price > MAX_PRICE:
+    if price < MIN_PRICE or price > MAX_PRICE:       # lessons 5
         return False
-    if VWAP_REQUIRED and price <= vwap:
+    if VWAP_REQUIRED and price <= vwap:              # lesson 3
         return False
-    if ema9 <= ema20:
+    if ema9 <= ema20:                                # lesson 4
         return False
     if vol < MIN_ABS_VOL:
         return False
@@ -378,37 +445,29 @@ def _detect_flat_top(df: pd.DataFrame, i: int) -> bool:
     window = df.iloc[i - FLAT_TOP_WINDOW : i]
     w_high = float(window["High"].max())
     w_low  = float(window["Low"].min())
-
     if w_low <= 0:
         return False
 
-    # Flat top range check (lesson 7)
+    # Lesson 8: flat top range
     if (w_high - w_low) / w_low > FLAT_TOP_MAX_RANGE:
         return False
-
-    # Price must break above the window's high (lesson 7)
+    # Price must break above the window's high
     if price <= w_high:
         return False
 
-    # Lesson 8: breakout bar volume must be 1.5x the consolidation window average.
-    # (confirms genuine break — not thin-volume fake-out)
+    # Lesson 9: breakout bar volume > 1.5× consolidation window average
     window_avg_vol = float(window["Volume"].mean())
     if window_avg_vol > 0 and vol < window_avg_vol * VOL_SPIKE_MULT:
         return False
 
-    # Lesson 9: last bar in window must still be near the top of the range.
-    # If price faded significantly before the "breakout", it's a bad setup.
+    # Lesson 10: last bar in window must still be near the top
     last_high = float(window["High"].iloc[-1])
     if last_high < w_high * (1 - WINDOW_TOP_GATE):
         return False
 
-    # Lesson 10: no descending highs pattern in the window (bad pullback filter).
-    # Split window in half — second half avg high must be >= first half avg high.
-    # "Lower highs = bad pullback = do NOT enter" — Kev
+    # Lesson 11: no descending highs — 2nd half of window avg high >= 1st half
     half = FLAT_TOP_WINDOW // 2
-    first_half_avg  = float(window["High"].iloc[:half].mean())
-    second_half_avg = float(window["High"].iloc[half:].mean())
-    if second_half_avg < first_half_avg * 0.99:
+    if float(window["High"].iloc[half:].mean()) < float(window["High"].iloc[:half].mean()) * 0.99:
         return False
 
     return True
@@ -416,15 +475,13 @@ def _detect_flat_top(df: pd.DataFrame, i: int) -> bool:
 
 # ── Entry type 2: EMA Pullback Bounce ────────────────────────────────────────
 
-def _detect_ema_bounce(df: pd.DataFrame, i: int) -> tuple[bool, float]:
+def _detect_ema_bounce(df: pd.DataFrame, i: int) -> tuple:
     """
-    "Catching the Bottom" — price pulled back to EMA9 and is now bouncing.
-    Returns (True, prior_high) if bar i is a valid EMA bounce entry.
-    prior_high is used as the partial exit target.
+    "Catching the Bottom" — price pulled back to EMA9 and is bouncing.
+    Returns (True, prior_high) if valid; prior_high used as partial exit target.
     """
     if i < EMA_BOUNCE_LOOKBACK + 1:
         return False, 0.0
-
     t_str = df.index[i].strftime("%H:%M")
     if t_str < START_TIME or t_str >= TIME_CUTOFF:
         return False, 0.0
@@ -437,51 +494,46 @@ def _detect_ema_bounce(df: pd.DataFrame, i: int) -> tuple[bool, float]:
     prev_close = float(df["Close"].iloc[i - 1])
     prev_ema9  = float(df["ema9"].iloc[i - 1])
 
-    # Basic filters (lessons 3, 4, 5)
-    if price < MIN_PRICE or price > MAX_PRICE:
+    if price < MIN_PRICE or price > MAX_PRICE:      # lesson 5
         return False, 0.0
-    if VWAP_REQUIRED and price <= vwap:
+    if VWAP_REQUIRED and price <= vwap:             # lesson 3
         return False, 0.0
-    if ema9 <= ema20:
+    if ema9 <= ema20:                               # lesson 4
         return False, 0.0
     if vol < MIN_ABS_VOL:
         return False, 0.0
 
-    # Lesson 11: previous bar touched or crossed EMA9 (the pullback reached the EMA)
+    # Lesson 12: prev bar touched EMA9 (within 0.5% above — it pulled back)
     if prev_close > prev_ema9 * (1 + EMA_BOUNCE_TOUCH):
         return False, 0.0
 
-    # Lesson 12: current bar is now above EMA9 (the bounce)
+    # Lesson 13: current bar bounced above EMA9
     if price <= ema9:
         return False, 0.0
 
-    # Lesson 13: there was a meaningful prior high (a real run-up preceded this pullback)
+    # Lesson 14: prior high exists (a real run-up preceded this pullback)
     lookback   = df.iloc[i - EMA_BOUNCE_LOOKBACK : i]
     prior_high = float(lookback["High"].max())
     if prior_high < price * 1.02:
         return False, 0.0
 
-    # Also confirm: price was genuinely above EMA9 during the run-up
-    # (price spent time above EMA9 before pulling back — not just always below)
-    ema9_lookback  = lookback["ema9"]
-    highs_lookback = lookback["High"]
-    had_run_above  = any(
-        float(highs_lookback.iloc[k]) > float(ema9_lookback.iloc[k]) * 1.02
+    # Lesson 15: price was above EMA9 during the prior run (not always below)
+    had_run = any(
+        float(lookback["High"].iloc[k]) > float(lookback["ema9"].iloc[k]) * 1.02
         for k in range(len(lookback))
     )
-    if not had_run_above:
+    if not had_run:
         return False, 0.0
 
-    # Lesson 14: bounce bar volume > 1.2x the average of the 3 bars before it
-    # (confirms buyers stepping in at EMA, not just quiet drift back above)
-    pre_bounce_vol = df["Volume"].iloc[i - 3 : i].mean()
-    if pre_bounce_vol > 0 and vol < pre_bounce_vol * EMA_BOUNCE_VOL_MULT:
+    # Lesson 16: bounce bar volume > 1.2× the 3 bars before it
+    pre_vol = df["Volume"].iloc[i - 3 : i].mean()
+    if pre_vol > 0 and vol < pre_vol * EMA_BOUNCE_VOL_MULT:
         return False, 0.0
 
     return True, prior_high
 
 
-# ── Simulate a trade ─────────────────────────────────────────────────────────
+# ── Trade simulation ──────────────────────────────────────────────────────────
 
 def _simulate(
     df: pd.DataFrame,
@@ -490,21 +542,25 @@ def _simulate(
     initial_stop: float,
     target: float,
     entry_type: str,
+    halt_bars: set,
 ) -> dict | None:
     """
-    Run the trade forward bar by bar.
-    initial_stop: starting stop level (entry_price for flat top; EMA9-buffer for bounce)
-    target: price for 25% partial exit
+    Runs the trade forward bar by bar applying Kev's full exit system.
+
+    initial_stop : entry_price for flat top (break-even from start);
+                   EMA9 × (1 − 2.5%) for EMA bounce (defined risk below EMA).
+    target       : price at which 25% partial is sold.
+    halt_bars    : set of df integer positions that immediately follow a halt gap.
     """
     shares       = POSITION_DOLLARS / entry_price
     partial_done = False
     partial_price= 0.0
-    partial_sold = shares * PARTIAL_PCT     # 25% sold at target
-    remaining    = shares                   # drops to 75% after partial
+    partial_sold = shares * PARTIAL_PCT
+    remaining    = shares
 
-    # Trailing stop starts at initial_stop; floor = entry_price once in profit
-    trail_stop   = initial_stop
-    highest_high = entry_price              # tracks new highs to know when to trail
+    trail_stop    = initial_stop
+    highest_high  = entry_price
+    post_halt_grace = 0       # bars to suppress overext check after halt-up
 
     for j in range(entry_i + 1, len(df)):
         row   = df.iloc[j]
@@ -515,45 +571,54 @@ def _simulate(
         t_str = df.index[j].strftime("%H:%M")
         last  = (j == len(df) - 1) or t_str >= "15:30"
 
+        # Lesson 25: detect halt-up — first bar after a halt gap
+        is_post_halt = j in halt_bars
+        if is_post_halt:
+            post_halt_grace = HALT_OVEREXT_GRACE   # suppress overext for next N bars
+
         if last:
             pnl = _calc_pnl(entry_price, partial_price, price,
                             partial_done, partial_sold, remaining)
             return _make_result(df, entry_i, entry_price, price, "TIME",
-                                pnl, partial_done, partial_price, entry_type)
+                                pnl, partial_done, partial_price, entry_type,
+                                j in halt_bars)
 
-        # Lesson 18: partial exit — sell 25% at target
+        # Lesson 21: partial exit — 25% at first target
         if not partial_done and price >= target:
             partial_price = price
             partial_done  = True
             remaining     = shares - partial_sold
-            # After partial profit: stop floor rises to entry_price (break-even rule)
+            # Lesson 19: after partial, floor rises to entry (break-even rule)
             trail_stop = max(trail_stop, entry_price)
 
-        # Lesson 17: overextension exit — price extended too far above EMA9
-        # Only arms after OVEREXT_MIN_BARS bars to avoid exiting a legitimate breakout
+        # Lesson 20: overextension exit (suppressed during post-halt grace period)
         bars_in = j - entry_i
-        if bars_in >= OVEREXT_MIN_BARS and ema9 > 0 and price > ema9 * OVEREXT_MULT:
+        if post_halt_grace > 0:
+            post_halt_grace -= 1
+        elif bars_in >= OVEREXT_MIN_BARS and ema9 > 0 and price > ema9 * OVEREXT_MULT:
             pnl = _calc_pnl(entry_price, partial_price, price,
                             partial_done, partial_sold, remaining)
             return _make_result(df, entry_i, entry_price, price, "OVEREXT",
-                                pnl, partial_done, partial_price, entry_type)
+                                pnl, partial_done, partial_price, entry_type,
+                                j in halt_bars)
 
-        # Lesson 15: trailing stop — only moves up when a new high candle forms.
+        # Lesson 17: trailing stop — only updates when a new high bar forms.
         # "Place stop a smidge below each new candle's low" — Kev (CTNT video)
         if high > highest_high:
             highest_high = high
             candidate    = low * (1 - TRAIL_BUFFER_PCT)
-            # Floor: once profitable (partial done), stop can't drop below entry
             floor        = entry_price if partial_done else initial_stop
             trail_stop   = max(trail_stop, candidate, floor)
 
-        # Exit when close crosses below the trailing stop
+        # Lessons 24: trail stop does NOT fire inside a halt (no bars exist).
+        # The first post-halt bar is already handled — trail updates naturally.
         if price <= trail_stop:
             next_open = float(df.iloc[j + 1]["Open"]) if j + 1 < len(df) else price
             pnl = _calc_pnl(entry_price, partial_price, next_open,
                             partial_done, partial_sold, remaining)
             return _make_result(df, entry_i, entry_price, next_open, "TRAIL STOP",
-                                pnl, partial_done, partial_price, entry_type)
+                                pnl, partial_done, partial_price, entry_type,
+                                j in halt_bars)
 
     return None
 
@@ -567,26 +632,39 @@ def _calc_pnl(entry, partial_price, exit_price, partial_done, partial_sold, rema
 
 
 def _make_result(df, entry_i, entry_price, exit_price, reason,
-                 pnl, partial_done, partial_price, entry_type):
-    partial_str = f" (25%@${partial_price:.2f})" if partial_done else ""
+                 pnl, partial_done, partial_price, entry_type, halt_involved):
     return {
-        "entry_time":  df.index[entry_i].strftime("%H:%M"),
-        "entry":       entry_price,
-        "exit":        exit_price,
-        "exit_reason": reason,
-        "entry_type":  entry_type,
-        "pnl":         round(pnl, 2),
-        "gain_pct":    round((exit_price - entry_price) / entry_price * 100, 2),
-        "partial":     partial_str,
+        "entry_time":    df.index[entry_i].strftime("%H:%M"),
+        "entry":         entry_price,
+        "exit":          exit_price,
+        "exit_reason":   reason,
+        "entry_type":    entry_type,
+        "pnl":           round(pnl, 2),
+        "gain_pct":      round((exit_price - entry_price) / entry_price * 100, 2),
+        "partial":       f" (25%@${partial_price:.2f})" if partial_done else "",
+        "halt_involved": halt_involved,
     }
 
 
 # ── Run one gap day ───────────────────────────────────────────────────────────
 
 def run_day(ticker: str, day: date, gap_pct: float) -> dict:
-    df = fetch_minute_bars(ticker, day)
-    if df is None or len(df) < max(FLAT_TOP_WINDOW, EMA_BOUNCE_LOOKBACK) + 3:
+    # Lesson 6: float filter — skip entire ticker-day if float > 20M
+    ticker_float = FLOAT_CACHE.get(ticker)
+    if ticker_float and ticker_float > MAX_FLOAT:
+        return {
+            "ticker": ticker, "day": day,
+            "note": f"float {ticker_float/1e6:.0f}M > {MAX_FLOAT//1_000_000}M",
+            "trades": [],
+        }
+
+    df, halt_bars = fetch_minute_bars(ticker, day)
+    min_bars = max(FLAT_TOP_WINDOW, EMA_BOUNCE_LOOKBACK + 1) + 3
+    if df is None or len(df) < min_bars:
         return {"ticker": ticker, "day": day, "note": "insufficient 1-min data", "trades": []}
+
+    if halt_bars:
+        print(f"      🔔 {len(halt_bars)} halt gap(s) detected on {ticker} {day}")
 
     df     = _add_indicators(df)
     trades = []
@@ -599,14 +677,15 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
         if i <= last_i + 3:
             continue
 
-        # Try flat top breakout first (higher-conviction setup)
+        # Flat top breakout (higher conviction — try first)
         if _detect_flat_top(df, i):
-            ep = float(df["Close"].iloc[i])
+            ep     = float(df["Close"].iloc[i])
             result = _simulate(
                 df, i, ep,
-                initial_stop=ep,                    # floor from entry (trail starts here)
-                target=ep * (1 + TARGET_PCT),       # +10% partial target
-                entry_type="FLAT_TOP",
+                initial_stop = ep,                      # break-even floor from entry
+                target       = ep * (1 + TARGET_PCT),   # +10%
+                entry_type   = "FLAT_TOP",
+                halt_bars    = halt_bars,
             )
             if result:
                 trades.append(result)
@@ -614,20 +693,17 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
                 last_i  = i
             continue
 
-        # Try EMA pullback bounce
+        # EMA pullback bounce
         is_bounce, prior_high = _detect_ema_bounce(df, i)
         if is_bounce:
             ep   = float(df["Close"].iloc[i])
             ema9 = float(df["ema9"].iloc[i])
-            # Initial stop = EMA9 at entry × (1 - 2.5%) — "less than 5 cents risk on $2 stock"
-            initial_stop = ema9 * (1 - EMA_STOP_BUFFER)
-            # Target = prior high before the pullback (Kev: "the past high")
-            target = prior_high if prior_high > ep * 1.02 else ep * (1 + TARGET_PCT)
             result = _simulate(
                 df, i, ep,
-                initial_stop=initial_stop,
-                target=target,
-                entry_type="EMA_BOUNCE",
+                initial_stop = ema9 * (1 - EMA_STOP_BUFFER),   # EMA9 − 2.5%
+                target       = prior_high if prior_high > ep * 1.02 else ep * (1 + TARGET_PCT),
+                entry_type   = "EMA_BOUNCE",
+                halt_bars    = halt_bars,
             )
             if result:
                 trades.append(result)
@@ -638,14 +714,15 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
     high_p  = float(df["High"].max())
     close_p = float(df["Close"].iloc[-1])
     return {
-        "ticker":  ticker,
-        "day":     day,
-        "gap_pct": round(gap_pct * 100, 1),
-        "open":    open_p,
-        "high":    high_p,
-        "close":   close_p,
-        "change":  round((close_p - open_p) / open_p * 100, 1),
-        "trades":  trades,
+        "ticker":     ticker,
+        "day":        day,
+        "gap_pct":    round(gap_pct * 100, 1),
+        "open":       open_p,
+        "high":       high_p,
+        "close":      close_p,
+        "change":     round((close_p - open_p) / open_p * 100, 1),
+        "halt_count": len(halt_bars),
+        "trades":     trades,
     }
 
 
@@ -653,15 +730,14 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
 
 def main():
     print(f"\n{'='*70}")
-    print(f"  WEBULL DEEP BACKTEST v10 — Kev's Complete System")
+    print(f"  WEBULL DEEP BACKTEST v10 — Kev's Complete System (25 lessons)")
     print(f"  Universe: {len(UNIVERSE)} tickers | Daily lookback: {DAILY_BAR_LOOKBACK} bars")
-    print(f"  Entry window: {START_TIME}–{TIME_CUTOFF} | Gap: {MIN_GAP_PCT*100:.0f}%–{MAX_GAP_PCT*100:.0f}%")
-    print(f"  Flat top: {FLAT_TOP_WINDOW}-bar <{FLAT_TOP_MAX_RANGE*100:.0f}% | Vol spike: >{VOL_SPIKE_MULT}x window avg")
-    print(f"  EMA bounce: {EMA_BOUNCE_LOOKBACK}-bar lookback | Touch: {EMA_BOUNCE_TOUCH*100:.1f}%")
-    print(f"  Exit: trail {TRAIL_BUFFER_PCT*100:.1f}%/new-high | overext EMA9×{OVEREXT_MULT} (>{OVEREXT_MIN_BARS}bars) | 25% partial")
     print(f"{'='*70}\n")
 
-    # Phase 1: scan daily bars
+    # Lesson 6: prefetch float data for universe
+    _prefetch_floats(UNIVERSE)
+
+    # Phase 1: scan daily bars for gap-up days
     all_gaps = []
     seen     = set()
     print("Phase 1 — scanning daily bars for gap-up days...\n")
@@ -670,6 +746,12 @@ def main():
         if DEBUG_ONLY and i > DEBUG_MAX_TICKERS:
             print(f"\n  [DEBUG_ONLY] Stopping after {DEBUG_MAX_TICKERS} tickers.")
             break
+
+        # Skip daily scan if we already know float is too large (save API calls)
+        f = FLOAT_CACHE.get(ticker)
+        if f and f > MAX_FLOAT:
+            print(f"  [{i:3d}/{len(UNIVERSE)}] {ticker:8s}  ❌ float={f/1e6:.0f}M — skipped")
+            continue
 
         daily = fetch_daily_bars(ticker)
         if not daily:
@@ -705,7 +787,7 @@ def main():
         print("No gap days found. Check credentials and ticker list.")
         return
 
-    # Phase 2 & 3: run strategy
+    # Phase 2 & 3: fetch 1-min bars + run strategy
     print("Phase 2 — running strategy on each gap day...\n")
     all_results = []
 
@@ -715,9 +797,11 @@ def main():
 
         n_trades = len(result.get("trades", []))
         note     = result.get("note", "")
+        halts    = result.get("halt_count", 0)
         flag     = "✅" if n_trades > 0 else "  "
+        halt_str = f" 🔔{halts}" if halts else ""
         print(f"  [{j:4d}/{len(all_gaps)}] {flag} {ticker:8s} {day}  "
-              f"gap={gap_pct:+.0f}%  "
+              f"gap={gap_pct:+.0f}%{halt_str}  "
               f"{'→ ' + str(n_trades) + ' trade(s)' if n_trades else '(no signal)' if not note else note}")
 
         time.sleep(RATE_LIMIT_SLEEP)
@@ -741,16 +825,18 @@ def print_report(results, all_gaps):
                 "year":    str(y),
             })
 
-    n_gap_days = len(all_gaps)
-    n_signal   = len([r for r in results if r.get("trades")])
+    n_gap_days   = len(all_gaps)
+    n_signal     = len([r for r in results if r.get("trades")])
+    n_float_skip = len([r for r in results if "float" in r.get("note", "")])
 
     print(f"\n{'='*70}")
-    print(f"  RESULTS SUMMARY — v10 (Kev's Complete System)")
+    print(f"  RESULTS SUMMARY — v10 (Kev's Complete System, 25 lessons)")
     print(f"{'='*70}")
     if n_gap_days:
         print(f"  Gap-up days scanned   : {n_gap_days}")
+        print(f"  Skipped (float >20M)  : {n_float_skip}")
         print(f"  Days with signal      : {n_signal}  ({n_signal/n_gap_days*100:.0f}%)")
-        print(f"  Days with no signal   : {n_gap_days - n_signal}")
+        print(f"  Days with no signal   : {n_gap_days - n_signal - n_float_skip}")
     print(f"  Total trades          : {len(all_trades)}")
 
     if not all_trades:
@@ -783,14 +869,21 @@ def print_report(results, all_gaps):
         et = [t for t in all_trades if t.get("entry_type") == etype]
         if et:
             ew = [t for t in et if t["pnl"] > 0]
-            aw = sum(t["pnl"] for t in ew)  / len(ew)  if ew  else 0
-            al_list = [t for t in et if t["pnl"] <= 0]
-            al = sum(t["pnl"] for t in al_list) / len(al_list) if al_list else 0
+            el = [t for t in et if t["pnl"] <= 0]
+            aw = sum(t["pnl"] for t in ew) / len(ew) if ew else 0
+            al = sum(t["pnl"] for t in el) / len(el) if el else 0
             rr_et = abs(aw / al) if al else float("inf")
             print(f"    {etype:12s}  {len(et):3d} trades  "
-                  f"{len(ew)/len(et)*100:.0f}% WR  "
-                  f"W/L {rr_et:.2f}  "
+                  f"{len(ew)/len(et)*100:.0f}% WR  W/L {rr_et:.2f}  "
                   f"${sum(t['pnl'] for t in et):+.2f}")
+
+    # Halt-involved trades
+    halt_trades = [t for t in all_trades if t.get("halt_involved")]
+    if halt_trades:
+        hw = [t for t in halt_trades if t["pnl"] > 0]
+        print(f"\n  ── Halt-involved trades: {len(halt_trades)} "
+              f"({len(hw)/len(halt_trades)*100:.0f}% WR  "
+              f"${sum(t['pnl'] for t in halt_trades):+.2f})")
 
     # By exit reason
     print(f"\n  ── By exit reason ──────────────────────────────────────────")
@@ -813,12 +906,11 @@ def print_report(results, all_gaps):
         print(f"    {y}  {len(ts):3d} trades  {w/len(ts)*100:.0f}% WR  "
               f"${sum(t['pnl'] for t in ts):+.2f}")
 
-    # By entry time bucket
+    # By entry time
     print(f"\n  ── By entry time ───────────────────────────────────────────")
     for h_s, h_e in [("09:45","10:00"),("10:00","10:15"),
                      ("10:15","10:30"),("10:30","10:45"),("10:45","11:00")]:
-        bucket = [t for t in all_trades
-                  if h_s <= t.get("entry_time", "00:00") < h_e]
+        bucket = [t for t in all_trades if h_s <= t.get("entry_time","00:00") < h_e]
         if bucket:
             bw = [t for t in bucket if t["pnl"] > 0]
             print(f"    {h_s}–{h_e}  {len(bucket):3d} trades  "
@@ -843,20 +935,22 @@ def print_report(results, all_gaps):
     # Top winners / losers
     print(f"\n  ── Top 10 winners ──────────────────────────────────────────")
     for t in sorted(wins, key=lambda x: -x["pnl"])[:10]:
-        print(f"    {t['day']}  {t['ticker']:<8} [{t.get('entry_type','?'):10}] "
-              f"gap={t['gap_pct']:>4.0f}%  "
-              f"@${t.get('entry',0):.2f}  {t.get('gain_pct',0):>+.2f}%  "
-              f"${t['pnl']:+.2f}  {t.get('exit_reason','?')}  {t.get('partial','')}")
+        h = "🔔" if t.get("halt_involved") else "  "
+        print(f"  {h} {t['day']}  {t['ticker']:<8} [{t.get('entry_type','?'):10}] "
+              f"gap={t['gap_pct']:>4.0f}%  @${t.get('entry',0):.2f}  "
+              f"{t.get('gain_pct',0):>+.2f}%  ${t['pnl']:+.2f}  "
+              f"{t.get('exit_reason','?')}  {t.get('partial','')}")
 
     print(f"\n  ── Top 10 losers ───────────────────────────────────────────")
     for t in sorted(losses, key=lambda x: x["pnl"])[:10]:
-        print(f"    {t['day']}  {t['ticker']:<8} [{t.get('entry_type','?'):10}] "
-              f"gap={t['gap_pct']:>4.0f}%  "
-              f"@${t.get('entry',0):.2f}  {t.get('gain_pct',0):>+.2f}%  "
-              f"${t['pnl']:+.2f}  {t.get('exit_reason','?')}")
+        h = "🔔" if t.get("halt_involved") else "  "
+        print(f"  {h} {t['day']}  {t['ticker']:<8} [{t.get('entry_type','?'):10}] "
+              f"gap={t['gap_pct']:>4.0f}%  @${t.get('entry',0):.2f}  "
+              f"{t.get('gain_pct',0):>+.2f}%  ${t['pnl']:+.2f}  "
+              f"{t.get('exit_reason','?')}")
 
     print(f"\n{'='*70}")
-    print(f"  BASELINE: v8 confirmed leader — 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV")
+    print(f"  BASELINE TO BEAT: v8 — 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV")
     print(f"{'='*70}")
 
 
@@ -864,14 +958,15 @@ def save_results(results):
     out = "/tmp/webull_backtest_v10_results.json"
     with open(out, "w") as f:
         json.dump([{
-            "ticker":  r["ticker"],
-            "day":     str(r.get("day", "")),
-            "gap_pct": r.get("gap_pct", 0),
-            "trades":  r.get("trades", []),
-            "note":    r.get("note", ""),
+            "ticker":     r["ticker"],
+            "day":        str(r.get("day", "")),
+            "gap_pct":    r.get("gap_pct", 0),
+            "halt_count": r.get("halt_count", 0),
+            "trades":     r.get("trades", []),
+            "note":       r.get("note", ""),
         } for r in results], f, indent=2)
     print(f"\n  Raw results saved → {out}")
-    print(f"  v10: Kev's complete system | 19 lessons applied | 2 entry types")
+    print(f"  v10: 25 lessons applied | 2 entry types | float filter | halt detection")
 
 
 if __name__ == "__main__":

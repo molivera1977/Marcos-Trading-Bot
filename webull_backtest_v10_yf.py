@@ -131,12 +131,13 @@ START_TIME         = "09:45"
 TIME_CUTOFF        = "11:00"
 
 # Stock filters (lessons 3–7)
-MIN_PRICE          = 1.50
+MIN_PRICE          = 0.50        # matches live bot floor; Kev trades sub-$1 (even sub-$0.20) setups
 MAX_PRICE          = 20.0
 MAX_FLOAT          = 20_000_000   # Kev's explicit filter: < 20M shares
 MIN_GAP_PCT        = 0.15
 MAX_GAP_PCT        = 0.30
 VWAP_REQUIRED      = True
+RVOL_MIN           = 1.5         # lesson 28: Kev's screener "Relative Volume: Over 1.5"
 
 # EMA periods — confirmed from A+ checklist video (lesson 4)
 EMA_SHORT          = 9
@@ -153,6 +154,11 @@ EMA_BOUNCE_LOOKBACK = 20          # bars to look back for prior high
 EMA_BOUNCE_TOUCH    = 0.005       # ≤0.5% above EMA9 counts as "touched" (lesson 12)
 EMA_BOUNCE_VOL_MULT = 1.2         # bounce bar > 1.2× prior 3-bar avg (lesson 16)
 EMA_STOP_BUFFER     = 0.025       # initial stop = EMA9 × (1 − 2.5%) (lesson 18)
+MIN_RR              = 3.0        # Kev's stated minimum R:R ("15c reward vs <5c risk") (lesson 14b)
+
+# Halt-squeeze continuation (lesson 26, new entry type)
+HALT_CONT_MIN_PCT = 0.0           # resumed price must be >= pre-halt high (no discount allowed)
+MAX_CLEAN_HALTS   = 5             # lesson 27 ("Clean P.A."): >5 halts/day = chop storm, not a clean setup
 
 # Exit system (lessons 17–22)
 TRAIL_BUFFER_PCT   = 0.015        # trail 1.5% below each new high bar's low (lesson 17)
@@ -344,6 +350,19 @@ def find_gap_days(ticker: str, daily_df: pd.DataFrame) -> list:
         gap = (open_p - close_p) / close_p
         if gap < MIN_GAP_PCT or gap > MAX_GAP_PCT:
             continue
+
+        # Lesson 28 (new): RVOL > 1.5x trailing 20-day avg volume — Kev's screener
+        # filter ("Relative Volume: Over 1.5"). Previously only intraday relative
+        # volume (breakout bar vs its own window) was checked.
+        trailing_vols = [
+            float(v) for v in daily_df["Volume"].iloc[max(0, i - 20):i].tolist() if v and v > 0
+        ]
+        if trailing_vols:
+            avg_vol = sum(trailing_vols) / len(trailing_vols)
+            day_vol = float(daily_df["Volume"].iloc[i])
+            if avg_vol > 0 and day_vol > 0 and day_vol / avg_vol < RVOL_MIN:
+                continue
+
         idx = daily_df.index[i]
         bar_date = idx.date() if hasattr(idx, "date") else idx.to_pydatetime().date()
         results.append((bar_date, open_p, close_p, gap))
@@ -517,6 +536,13 @@ def _detect_ema_bounce(df: pd.DataFrame, i: int) -> tuple:
     if prior_high < price * 1.02:
         return False, 0.0
 
+    # Lesson 14b: minimum 3:1 reward:risk to the prior high, per Kev's stated minimum
+    # ("15c reward vs <5c risk on a ~$2 stock"). Without this, thin setups with a
+    # ~2% target and ~2.5% stop risk would qualify at well under 1:1.
+    risk = price - ema9 * (1 - EMA_STOP_BUFFER)
+    if risk <= 0 or prior_high < price + risk * MIN_RR:
+        return False, 0.0
+
     # Lesson 15: price was above EMA9 during the prior run (not always below)
     had_run = any(
         float(lookback["High"].iloc[k]) > float(lookback["ema9"].iloc[k]) * 1.02
@@ -531,6 +557,40 @@ def _detect_ema_bounce(df: pd.DataFrame, i: int) -> tuple:
         return False, 0.0
 
     return True, prior_high
+
+
+# ── Entry type 3: Halt-Squeeze Continuation ──────────────────────────────────
+
+def _detect_halt_continuation(df: pd.DataFrame, i: int, halt_bars: set) -> bool:
+    """
+    "Catch halts before they squeeze" — buy the bar that resumes after a circuit-
+    breaker halt-up, if it continues above the pre-halt high (CRVO example: halted
+    near $5.47-5.95, resumed at $6.00, ran to $6.58).
+    """
+    if i not in halt_bars:
+        return False
+    t_str = df.index[i].strftime("%H:%M")
+    if t_str < START_TIME or t_str >= TIME_CUTOFF:
+        return False
+
+    price = float(df["Close"].iloc[i])
+    vwap  = float(df["vwap"].iloc[i])
+    vol   = float(df["Volume"].iloc[i])
+
+    if price < MIN_PRICE or price > MAX_PRICE:
+        return False
+    if VWAP_REQUIRED and price <= vwap:
+        return False
+    if vol < MIN_ABS_VOL:
+        return False
+
+    # Resumed price must continue at/above the pre-halt high — an up-halt that
+    # resumes LOWER is a down-halt-style trap, not the squeeze continuation Kev plays.
+    pre_halt_high = float(df["High"].iloc[:i].max()) if i > 0 else 0.0
+    if pre_halt_high <= 0 or price < pre_halt_high * (1 - HALT_CONT_MIN_PCT):
+        return False
+
+    return True
 
 
 # ── Trade simulation ──────────────────────────────────────────────────────────
@@ -677,12 +737,41 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
         if i <= last_i + 3:
             continue
 
-        # Flat top breakout (higher conviction — try first)
-        if _detect_flat_top(df, i):
-            ep     = float(df["Close"].iloc[i])
+        # Lesson 27 ("Clean P.A."): skip pattern-based entries on chop-storm days.
+        # Kev's halt examples (CRVO, TNT) involve a single clean halt, not dozens —
+        # a ticker re-triggering circuit breakers 10-90x/day is unreadable chop,
+        # not the "clean, predictable" setup he describes.
+        clean_day = len(halt_bars) <= MAX_CLEAN_HALTS
+
+        # Halt-squeeze continuation — Entry Type 3 ("catch halts before they squeeze").
+        # Buy the bar that resumes after a halt if it continues above the pre-halt
+        # high. Allowed even on multi-halt days since this IS Kev's halt-trading setup.
+        if _detect_halt_continuation(df, i, halt_bars):
+            ep        = float(df["Close"].iloc[i])
+            entry_low = float(df["Low"].iloc[i])
             result = _simulate(
                 df, i, ep,
-                initial_stop = ep,                      # break-even floor from entry
+                initial_stop = entry_low * (1 - TRAIL_BUFFER_PCT),  # smidge below entry candle's low
+                target       = ep * (1 + TARGET_PCT * 1.5),         # halt continuations tend to run further
+                entry_type   = "HALT_CONT",
+                halt_bars    = halt_bars,
+            )
+            if result:
+                trades.append(result)
+                count  += 1
+                last_i  = i
+            continue
+
+        if not clean_day:
+            continue
+
+        # Flat top breakout (higher conviction — try first)
+        if _detect_flat_top(df, i):
+            ep        = float(df["Close"].iloc[i])
+            entry_low = float(df["Low"].iloc[i])
+            result = _simulate(
+                df, i, ep,
+                initial_stop = entry_low * (1 - TRAIL_BUFFER_PCT),  # smidge below entry candle's low (was: zero-buffer at ep)
                 target       = ep * (1 + TARGET_PCT),   # +10%
                 entry_type   = "FLAT_TOP",
                 halt_bars    = halt_bars,
@@ -701,7 +790,7 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
             result = _simulate(
                 df, i, ep,
                 initial_stop = ema9 * (1 - EMA_STOP_BUFFER),   # EMA9 − 2.5%
-                target       = prior_high if prior_high > ep * 1.02 else ep * (1 + TARGET_PCT),
+                target       = prior_high,   # already enforces >= 3:1 R:R (lesson 14b)
                 entry_type   = "EMA_BOUNCE",
                 halt_bars    = halt_bars,
             )
@@ -885,7 +974,7 @@ def print_report(results, all_gaps):
 
     # By entry type
     print(f"\n  ── By entry type ──────────────────────────────────────────")
-    for etype in ("FLAT_TOP", "EMA_BOUNCE"):
+    for etype in ("FLAT_TOP", "EMA_BOUNCE", "HALT_CONT"):
         et = [t for t in all_trades if t.get("entry_type") == etype]
         if et:
             ew = [t for t in et if t["pnl"] > 0]

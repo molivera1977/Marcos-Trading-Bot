@@ -74,7 +74,7 @@ import sys
 import time
 import pathlib
 import json
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timezone
 
 import pytz
 import pandas as pd
@@ -801,7 +801,7 @@ def main():
         flag     = "✅" if n_trades > 0 else "  "
         halt_str = f" 🔔{halts}" if halts else ""
         print(f"  [{j:4d}/{len(all_gaps)}] {flag} {ticker:8s} {day}  "
-              f"gap={gap_pct:+.0f}%{halt_str}  "
+              f"gap={gap_pct*100:+.0f}%{halt_str}  "
               f"{'→ ' + str(n_trades) + ' trade(s)' if n_trades else '(no signal)' if not note else note}")
 
         time.sleep(RATE_LIMIT_SLEEP)

@@ -197,6 +197,7 @@ EMA_STOP_BUFFER     = 0.025       # initial stop = EMA9 × (1 − 2.5%) (lesson 
 MIN_RR              = 3.0        # Kev's stated minimum R:R ("15c reward vs <5c risk") (lesson 14b)
 
 # Halt-squeeze continuation (lesson 26, new entry type)
+HALT_CONT_ENABLED = False         # DISABLED: 38 trades, -$39.65, W/L only 0.86 — structural drag
 HALT_CONT_MIN_PCT = 0.0           # resumed price must be >= pre-halt high (no discount allowed)
 MAX_CLEAN_HALTS   = 5             # lesson 27 ("Clean P.A."): >5 halts/day = chop storm, not a clean setup
 
@@ -880,7 +881,7 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
         # Halt-squeeze continuation — Entry Type 3 ("catch halts before they squeeze").
         # Buy the bar that resumes after a halt if it continues above the pre-halt
         # high. Allowed even on multi-halt days since this IS Kev's halt-trading setup.
-        if _detect_halt_continuation(df, i, halt_bars):
+        if HALT_CONT_ENABLED and _detect_halt_continuation(df, i, halt_bars):
             ep        = float(df["Close"].iloc[i])
             entry_low = float(df["Low"].iloc[i])
             result = _simulate(
@@ -1143,13 +1144,15 @@ def print_report(results, all_gaps):
                   f"{len(bw)/len(bucket)*100:.0f}% WR  "
                   f"${sum(t['pnl'] for t in bucket):+.2f}")
 
-    # By gap bucket
+    # By gap bucket — full range so we can see where edge lives
     print(f"\n  ── By gap % ────────────────────────────────────────────────")
-    for lo, hi in [(15, 20), (20, 25), (25, 30)]:
+    gap_ranges = [(5, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50), (50, 100), (100, 999)]
+    for lo, hi in gap_ranges:
         bucket = [t for t in all_trades if lo <= t["gap_pct"] < hi]
         if bucket:
             bw = [t for t in bucket if t["pnl"] > 0]
-            print(f"    {lo}–{hi}%  {len(bucket):3d} trades  "
+            label = f"{lo}–{hi}%" if hi < 999 else f"{lo}%+"
+            print(f"    {label:<10} {len(bucket):3d} trades  "
                   f"{len(bw)/len(bucket)*100:.0f}% WR  "
                   f"${sum(t['pnl'] for t in bucket):+.2f}")
 

@@ -166,8 +166,10 @@ TIME_STOP          = "11:30"     # FIXED (lesson 22): was 15:30 — Kev's danger
 MIN_PRICE          = 0.50        # matches live bot floor; Kev trades sub-$1 (even sub-$0.20) setups
 MAX_PRICE          = 20.0
 MAX_FLOAT          = 20_000_000   # Kev's explicit filter: < 20M shares
-MIN_GAP_PCT        = 0.05   # widened: 15% was invented internally, not from Kev; 5% still requires a real gap-up mover
-MAX_GAP_PCT        = 2.00   # effectively no upper cap; big gap days (50-200%+) on sub-$1 stocks are Kev's bread-and-butter
+MIN_GAP_PCT        = 0.05   # 5% floor — still requires a meaningful gap-up mover
+MAX_GAP_PCT        = 0.20   # DATA: 0% WR on every bucket above 20% (5 trades at 100%+ cost -$36.73).
+                              # Stocks that gapped 30-200% are too extended; trail stop fires every time.
+                              # 5-20% range: 33 trades, avg +$2.03 EV/trade vs 20%+ range: 19 trades, -$3.44 EV/trade.
 VWAP_REQUIRED      = True
 RVOL_MIN           = 1.5         # lesson 28: Kev's screener "Relative Volume: Over 1.5"
 MIN_DAILY_RANGE_PCT = 0.10        # lesson 29 ("Daily Range," A+ checklist item 5): the

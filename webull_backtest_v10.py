@@ -225,7 +225,9 @@ FLOAT_CACHE: dict = {}
 
 
 # ── Ticker universe ───────────────────────────────────────────────────────────
-UNIVERSE = [
+# UNIVERSE_BASE is a hardcoded seed list used as a fallback if screener calls fail.
+# _build_universe() expands it dynamically at runtime using Webull's screener.
+UNIVERSE_BASE = [
     # Active small-cap/micro-cap momentum stocks
     "TLRY","SNDL","NKLA","CENN","MULN","IDEX","FFIE","BTBT","SONN",
     "HYMC","OCUP","OPFI","ROIV","RCKT","QBTS","PYPL","SUPN","STEM",
@@ -250,7 +252,76 @@ UNIVERSE = [
     # Added from June 2026 Kev videos
     "CRVO","CTNT","TNT","ALAR",
 ]
-UNIVERSE = list(dict.fromkeys(UNIVERSE))
+UNIVERSE_BASE = list(dict.fromkeys(UNIVERSE_BASE))
+
+
+def _build_universe() -> list:
+    """
+    Build the ticker universe by calling Webull's live screener endpoints and
+    merging with UNIVERSE_BASE. The screener surfaces whichever small-caps are
+    currently active on Webull — all are guaranteed to have Webull bar data.
+    Falls back gracefully to UNIVERSE_BASE if all screener calls fail.
+    """
+    print("Building universe from Webull screener + base list...")
+    dynamic: set = set()
+
+    # Top gainers (by % change and pre-market)
+    for rank in ("CHANGE_RATIO", "PRE_MARKET"):
+        try:
+            res = dc.screener.get_gainers_losers(
+                rank_type=rank,
+                category="US_STOCK",
+                sort_by="CHANGE_RATIO",
+                direction="DESC",
+                page_size=200,
+            )
+            if res.status_code == 200:
+                raw   = res.json()
+                items = raw if isinstance(raw, list) else raw.get("data", raw.get("items", []))
+                added = 0
+                for item in items:
+                    sym   = (item.get("symbol") or "").strip()
+                    price = float(item.get("price") or item.get("close") or 0)
+                    if sym and MIN_PRICE <= price <= MAX_PRICE:
+                        dynamic.add(sym)
+                        added += 1
+                print(f"  Screener [{rank}]: +{added} tickers")
+            else:
+                print(f"  Screener [{rank}]: HTTP {res.status_code}")
+        except Exception as e:
+            print(f"  Screener [{rank}] error: {e}")
+        time.sleep(RATE_LIMIT_SLEEP)
+
+    # Unusual relative volume (catches movers the gainers list misses)
+    try:
+        res = dc.screener.get_most_active(
+            category="US_STOCK",
+            rank_type="RELATIVE_VOLUME_10D",
+            sort_by="RELATIVE_VOLUME_10D",
+            direction="DESC",
+            page_size=200,
+        )
+        if res.status_code == 200:
+            raw   = res.json()
+            items = raw if isinstance(raw, list) else raw.get("data", raw.get("items", []))
+            added = 0
+            for item in items:
+                sym   = (item.get("symbol") or "").strip()
+                price = float(item.get("price") or item.get("close") or 0)
+                if sym and MIN_PRICE <= price <= MAX_PRICE:
+                    dynamic.add(sym)
+                    added += 1
+            print(f"  Screener [RELATIVE_VOLUME_10D]: +{added} tickers")
+        else:
+            print(f"  Screener [RELATIVE_VOLUME_10D]: HTTP {res.status_code}")
+    except Exception as e:
+        print(f"  Screener [RELATIVE_VOLUME_10D] error: {e}")
+    time.sleep(RATE_LIMIT_SLEEP)
+
+    # Merge: dynamic results first (more current), then base list for any gaps
+    combined = list(dict.fromkeys(list(dynamic) + UNIVERSE_BASE))
+    print(f"  Dynamic: {len(dynamic)} | Base: {len(UNIVERSE_BASE)} | Combined: {len(combined)} tickers\n")
+    return combined
 
 
 # ── Float prefetch (lesson 6) ─────────────────────────────────────────────────
@@ -881,6 +952,9 @@ def run_day(ticker: str, day: date, gap_pct: float) -> dict:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    # Build universe dynamically from Webull screener + hardcoded base list
+    UNIVERSE = _build_universe()
+
     print(f"\n{'='*70}")
     print(f"  WEBULL DEEP BACKTEST v10 — Kev's Complete System (25 lessons)")
     print(f"  Universe: {len(UNIVERSE)} tickers | Daily lookback: {DAILY_BAR_LOOKBACK} bars")

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Webull Deep Historical Backtest — v10.1 (Kev's Complete System)
+Webull Deep Historical Backtest — v10.2 (Kev's Complete System)
 ==============================================================
 v8 confirmed leader: 78 trades, 31% WR, 3.49:1 W/L, +$0.74 EV. v10/v10-YF both
-came in negative EV. Code audit (2026-06-20) found 6 concrete bugs/gaps vs
+came in negative EV. Code audit (2026-06-20) found 9 concrete bugs/gaps vs
 Kev's actual lessons — all fixed below (marked NEW or FIXED).
 
 Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ videos):
@@ -24,6 +24,9 @@ Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ vid
       ("Relative Volume: Over 1.5"). Previously only intraday relative volume
       (breakout bar vs its own window) was checked — the actual day-level
       screener criterion was missing entirely.
+  29. Daily Range >= 10% (H/L on the gap day itself) — NEW: A+ checklist item 5
+      ("Daily Range"). A dull stock that merely gapped on the open but didn't
+      move much intraday isn't the "explosive" setup Kev screens for.
 
   FLAT TOP BREAKOUT — Entry Type 1 ("No Break No Trade"):
   8.  8-bar consolidation window with <5% H/L range
@@ -32,6 +35,9 @@ Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ vid
   10. Last bar of window within 3% of window high — price near resistance, not fading
   11. Window 2nd-half avg high >= 1st-half avg high — no descending highs pattern
       (Kev: "lower highs = bad pullback = do NOT enter")
+  30. NEW ("avoid being someone's liquidity"): reject if the breakout level is
+      >5% below an earlier, bigger high made the same session — that's chasing
+      a fading top / distribution pattern, not a fresh breakout.
 
   EMA PULLBACK BOUNCE — Entry Type 2 ("Catching the Bottom"):
   12. Previous bar touched EMA9 (within 0.5%) — pullback reached the fast EMA
@@ -75,7 +81,10 @@ Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ vid
   21. Partial exit — sell 25% ("a quarter") at first target.
       Flat top: target = +10%. EMA bounce: target = prior high before pullback.
       (Kev directly confirmed: "Quarter, 25%, 1/4")
-  22. Time stop — force exit by 15:30 ET.
+  22. FIXED — Time stop now forces exit by 11:30 ET (was 15:30). Kev's session
+      ends at 11am and he explicitly warns the down-halt danger zone starts as
+      early as 11:30am-noon with no circuit-breaker protection going down — the
+      old 15:30 cutoff let open positions ride straight into that trap.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   HALT-UP AWARENESS (detected from 1-min bar timestamp gaps)
@@ -149,6 +158,9 @@ print("✅  Webull DataClient initialized")
 # Timing (lessons 1–2)
 START_TIME         = "09:45"
 TIME_CUTOFF        = "11:00"
+TIME_STOP          = "11:30"     # FIXED (lesson 22): was 15:30 — Kev's danger zone starts
+                                  # ~11:30am-noon (down-halt traps, no circuit breaker
+                                  # protection on the way down); his session ends at 11am.
 
 # Stock filters (lessons 3–7)
 MIN_PRICE          = 0.50        # matches live bot floor; Kev trades sub-$1 (even sub-$0.20) setups
@@ -158,6 +170,14 @@ MIN_GAP_PCT        = 0.15
 MAX_GAP_PCT        = 0.30
 VWAP_REQUIRED      = True
 RVOL_MIN           = 1.5         # lesson 28: Kev's screener "Relative Volume: Over 1.5"
+MIN_DAILY_RANGE_PCT = 0.10        # lesson 29 ("Daily Range," A+ checklist item 5): the
+                                  # gap day itself must have a meaningful (>=10%) H/L
+                                  # range — not a dull stock barely moving intraday
+DISTRIBUTION_GATE_PCT = 0.05      # lesson 30 ("avoid being someone's liquidity"): reject
+                                  # FLAT_TOP breakouts that are a lower-high off an earlier,
+                                  # bigger spike (the breakout level is >5% below the day's
+                                  # already-made high) — that's chasing a fading top, not a
+                                  # fresh breakout
 
 # EMA periods — confirmed from A+ checklist video (lesson 4)
 EMA_SHORT          = 9
@@ -380,6 +400,14 @@ def find_gap_days(ticker: str, bars: list) -> list:
             if avg_vol > 0 and day_vol > 0 and day_vol / avg_vol < RVOL_MIN:
                 continue
 
+        # Lesson 29 (new, A+ checklist item 5 "Daily Range"): the gap day itself
+        # needs a meaningful H/L range — a dull stock barely moving intraday isn't
+        # the "explosive" setup Kev screens for, even if it gapped on the open.
+        day_high = _bar_val(cur, "high", "h")
+        day_low  = _bar_val(cur, "low",  "l")
+        if day_low > 0 and (day_high - day_low) / day_low < MIN_DAILY_RANGE_PCT:
+            continue
+
         ts = _bar_ts_ms(cur)
         if ts:
             bar_date = _ms_to_et(ts).date()
@@ -514,6 +542,15 @@ def _detect_flat_top(df: pd.DataFrame, i: int) -> bool:
     half = FLAT_TOP_WINDOW // 2
     if float(window["High"].iloc[half:].mean()) < float(window["High"].iloc[:half].mean()) * 0.99:
         return False
+
+    # Lesson 30 ("avoid being someone's liquidity"): reject if this breakout is a
+    # LOWER high off an earlier, bigger spike today. Kev's red flag: "stock already
+    # made a BIG first move -> pulled back -> consolidating at a lower level" — you'd
+    # be buying the exits of whoever bought the real high, not a fresh breakout.
+    if i > FLAT_TOP_WINDOW:
+        day_prior_high = float(df["High"].iloc[:i - FLAT_TOP_WINDOW].max())
+        if day_prior_high > w_high * (1 + DISTRIBUTION_GATE_PCT):
+            return False
 
     return True
 
@@ -655,7 +692,7 @@ def _simulate(
         low   = float(row["Low"])
         ema9  = float(row["ema9"])
         t_str = df.index[j].strftime("%H:%M")
-        last  = (j == len(df) - 1) or t_str >= "15:30"
+        last  = (j == len(df) - 1) or t_str >= TIME_STOP
 
         # Lesson 25: detect halt-up — first bar after a halt gap
         is_post_halt = j in halt_bars

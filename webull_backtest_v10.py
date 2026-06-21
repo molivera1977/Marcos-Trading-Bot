@@ -175,7 +175,7 @@ RVOL_MIN           = 1.5         # lesson 28: Kev's screener "Relative Volume: O
 MIN_DAILY_RANGE_PCT = 0.10        # lesson 29 ("Daily Range," A+ checklist item 5): the
                                   # gap day itself must have a meaningful (>=10%) H/L
                                   # range — not a dull stock barely moving intraday
-DISTRIBUTION_GATE_PCT = 0.10      # TEST: sweeping disabled/0.02/0.05/0.10/0.20
+DISTRIBUTION_GATE_PCT = 0.20      # TEST: sweeping disabled/0.02/0.05/0.10/0.20
                                   # FLAT_TOP breakouts that are a lower-high off an earlier,
                                   # bigger spike (the breakout level is >5% below the day's
                                   # already-made high) — that's chasing a fading top, not a

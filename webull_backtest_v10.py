@@ -175,7 +175,7 @@ RVOL_MIN           = 1.5         # lesson 28: Kev's screener "Relative Volume: O
 MIN_DAILY_RANGE_PCT = 0.10        # lesson 29 ("Daily Range," A+ checklist item 5): the
                                   # gap day itself must have a meaningful (>=10%) H/L
                                   # range — not a dull stock barely moving intraday
-DISTRIBUTION_GATE_PCT = 0.05      # lesson 30 ("avoid being someone's liquidity"): reject
+DISTRIBUTION_GATE_PCT = 9.99      # TEST: disabled (9.99=never triggers) — sweeping disabled/0.02/0.05/0.10/0.20
                                   # FLAT_TOP breakouts that are a lower-high off an earlier,
                                   # bigger spike (the breakout level is >5% below the day's
                                   # already-made high) — that's chasing a fading top, not a
@@ -186,7 +186,7 @@ EMA_SHORT          = 9
 EMA_LONG           = 20
 
 # Flat top breakout (lessons 8–11)
-FLAT_TOP_WINDOW    = 3   # TEST: trying below 4 — trend suggested lower was better
+FLAT_TOP_WINDOW    = 4   # LOCKED: winner from sweep — peak at 4, worse in both directions
 FLAT_TOP_MAX_RANGE = 0.050        # LOCKED: winner from sweep (0.05 > all others)
 VOL_SPIKE_MULT     = 1.5          # breakout bar > 1.5× window avg volume (lesson 9)
 WINDOW_TOP_GATE    = 0.03         # last bar within 3% of window high (lesson 10)

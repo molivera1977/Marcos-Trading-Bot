@@ -171,7 +171,7 @@ MAX_GAP_PCT        = 0.20   # DATA: 0% WR on every bucket above 20% (5 trades at
                               # Stocks that gapped 30-200% are too extended; trail stop fires every time.
                               # 5-20% range: 33 trades, avg +$2.03 EV/trade vs 20%+ range: 19 trades, -$3.44 EV/trade.
 VWAP_REQUIRED      = True
-RVOL_MIN           = 1.5         # lesson 28: Kev's screener "Relative Volume: Over 1.5"
+RVOL_MIN           = 1.0         # TEST: sweeping 1.0/1.2/1.5 — Kev says "Over 1.5" but testing lower
 MIN_DAILY_RANGE_PCT = 0.10        # lesson 29 ("Daily Range," A+ checklist item 5): the
                                   # gap day itself must have a meaningful (>=10%) H/L
                                   # range — not a dull stock barely moving intraday

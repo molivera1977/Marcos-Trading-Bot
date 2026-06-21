@@ -157,7 +157,7 @@ print("✅  Webull DataClient initialized")
 
 # Timing (lessons 1–2)
 START_TIME         = "09:45"
-TIME_CUTOFF        = "11:00"
+TIME_CUTOFF        = "10:45"   # TEST: was 11:00 — 10:45-11:00 slot negative in every run
 TIME_STOP          = "11:30"     # FIXED (lesson 22): was 15:30 — Kev's danger zone starts
                                   # ~11:30am-noon (down-halt traps, no circuit breaker
                                   # protection on the way down); his session ends at 11am.
@@ -171,7 +171,7 @@ MAX_GAP_PCT        = 0.20   # DATA: 0% WR on every bucket above 20% (5 trades at
                               # Stocks that gapped 30-200% are too extended; trail stop fires every time.
                               # 5-20% range: 33 trades, avg +$2.03 EV/trade vs 20%+ range: 19 trades, -$3.44 EV/trade.
 VWAP_REQUIRED      = True
-RVOL_MIN           = 2.0         # TEST: sweeping 1.0/1.2/1.5/2.0 — trend favors higher
+RVOL_MIN           = 1.5         # LOCKED: winner from sweep — Kev's own 1.5 setting is correct
 MIN_DAILY_RANGE_PCT = 0.10        # lesson 29 ("Daily Range," A+ checklist item 5): the
                                   # gap day itself must have a meaningful (>=10%) H/L
                                   # range — not a dull stock barely moving intraday

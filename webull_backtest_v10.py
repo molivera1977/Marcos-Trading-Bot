@@ -186,8 +186,8 @@ EMA_SHORT          = 9
 EMA_LONG           = 20
 
 # Flat top breakout (lessons 8–11)
-FLAT_TOP_WINDOW    = 7   # TEST: was 8 — sweeping 4→8 to find Kev's actual consolidation window
-FLAT_TOP_MAX_RANGE = 0.050        # <5% H/L range in consolidation window
+FLAT_TOP_WINDOW    = 4   # LOCKED: winner from sweep (4 > 5 > 6 > 7 > 8 on all metrics)
+FLAT_TOP_MAX_RANGE = 0.030        # TEST: sweeping 0.03→0.05→0.08→0.10→0.15
 VOL_SPIKE_MULT     = 1.5          # breakout bar > 1.5× window avg volume (lesson 9)
 WINDOW_TOP_GATE    = 0.03         # last bar within 3% of window high (lesson 10)
 

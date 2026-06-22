@@ -255,13 +255,13 @@ BREAKEVEN_TRIGGER_PCT = 0.10   # Move stop to breakeven at 10% gain
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
 
 # ── v8 Flat Top Breakout strategy parameters ──────────────────
-FLAT_TOP_WINDOW    = 8      # bars of consolidation required
-FLAT_TOP_MAX_RANGE = 0.050  # max high-to-low range for flat top (<5%)
+FLAT_TOP_WINDOW    = 4      # Matched to backtest: 4-bar consolidation (sweep winner)
+FLAT_TOP_MAX_RANGE = 0.080  # Matched to backtest: 8% range tolerance (Kev eyeballs, not precise)
 EMA_PERIOD         = 9      # EMA period for stop
 EMA_CONFIRM_BARS   = 2      # consecutive bars below EMA9 before stop fires
 EMA_CHECK_INTERVAL = 60     # seconds between EMA9 bar fetches during trade monitoring
-ENTRY_CUTOFF_HOUR  = 10     # no new entries after 10:30am ET
-ENTRY_CUTOFF_MIN   = 30
+ENTRY_CUTOFF_HOUR  = 11     # Matched to backtest: Kev's full 9:00-11:00 window
+ENTRY_CUTOFF_MIN   = 0
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
 FIRST_TICKER_CUTOFF_MIN = 20  # Switch to backup ticker if #1 hasn't set up by 9:50am ET
@@ -1841,9 +1841,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
     """
     v8 strategy: watches all candidate tickers for flat top breakouts.
     Flat top = FLAT_TOP_WINDOW consecutive 1-min bars consolidating within
-    FLAT_TOP_MAX_RANGE (<5%) high-to-low, then price breaks above window high.
+    FLAT_TOP_MAX_RANGE (<8%) high-to-low, then price breaks above window high.
     Requires price above VWAP at breakout.
-    No new entries after ENTRY_CUTOFF_HOUR:ENTRY_CUTOFF_MIN (10:30am ET).
+    No new entries after ENTRY_CUTOFF_HOUR:ENTRY_CUTOFF_MIN (11:00am ET).
     Returns list of (ticker, entry_price, vwap) — ALL tickers that break out
     in the same polling cycle. Empty list if cutoff reached with no breakout.
     """
@@ -1861,7 +1861,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         past_entry_cutoff = (now.hour > ENTRY_CUTOFF_HOUR or
                              (now.hour == ENTRY_CUTOFF_HOUR and now.minute >= ENTRY_CUTOFF_MIN))
         if past_entry_cutoff:
-            print(f"⏰ 10:30am entry cutoff — no flat top breakout detected. Holding cash.")
+            print(f"⏰ 11:00am entry cutoff — no flat top breakout detected. Holding cash.")
             return []
 
         if now.hour < 9 or (now.hour == 9 and now.minute < 30):
@@ -2913,11 +2913,8 @@ def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_l
     today   = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
     dry_tag = "[DRY RUN] " if DRY_RUN else ""
 
-    if trade_result and analysis:
-        recommended = analysis.get("recommended_trade", {})
-        # Use the actual traded ticker if provided — analysis may reflect a
-        # different ticker when the bot pivoted to a rescan pick
-        ticker      = traded_ticker or recommended.get("ticker", "N/A")
+    if trade_result:
+        ticker      = traded_ticker or "N/A"
         pnl         = trade_result.get("profit_loss", 0)
         pnl_pct     = trade_result.get("profit_loss_pct", 0)
         exit_reason = trade_result.get("exit_reason", "N/A")
@@ -2926,15 +2923,6 @@ def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_l
         result_line = f"{'✅' if win else '🔴'} {ticker}: {pnl_pct:+.1f}% (${pnl:+.2f})"
         subject     = f"{dry_tag}Trading Bot Summary — {today} | {result_line}"
         pnl_color   = "#00c851" if win else "#ff4444"
-
-        ticker_rows = ""
-        for t in (analysis.get("tickers") or []):
-            go = t["verdict"] == "GO"
-            ticker_rows += (f'<div style="padding:8px 0;border-bottom:1px solid #2a2a3e;">'
-                            f'<span style="font-size:16px;">{"✅" if go else "❌"} '
-                            f'<strong style="color:{"#00c851" if go else "#ff4444"};">{t["ticker"]}</strong> — {t["verdict"]}</span>'
-                            f'<div style="color:#9090b0;font-size:15px;margin-top:3px;">{t["reason"]}</div>'
-                            f'</div>')
 
         html = _html_wrap(
             f'<tr><td style="padding:16px 20px 4px;">'
@@ -2946,8 +2934,6 @@ def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_l
                 + _row("Exit",      f"${exit_price:.2f} — {exit_reason}")
                 + _row("New Balance", f"${account_balance + pnl:.2f}", big=True)
             ), color=pnl_color)
-            + _section("CLAUDE'S ANALYSIS", f'<div style="font-size:17px;line-height:1.7;color:#d0d0e8;">{analysis.get("plain_english_summary","")}</div>', color="#6c63ff")
-            + _section("ALL TICKERS REVIEWED", ticker_rows, color="#ffbb33")
             + (f'<tr><td style="padding:8px 20px;">'
                f'<div style="background:#1a1a2e;border-radius:8px;padding:14px 18px;">'
                f'<div style="font-size:13px;color:#7c7ca0;margin-bottom:6px;">TRADE LOG</div>'
@@ -2958,23 +2944,17 @@ def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_l
         plain = f"{result_line}\nExit: ${exit_price:.2f} — {exit_reason}\nBalance: ~${account_balance+pnl:.2f}"
     else:
         subject = f"{dry_tag}Trading Bot Summary — {today} | 💤 No Trade Today"
-        plain_summary = analysis.get("plain_english_summary", "") if analysis else "No watchlist email found."
         html = _html_wrap(
             f'<tr><td style="padding:16px 20px 4px;">'
             f'<div style="font-size:26px;font-weight:bold;color:#ffffff;">Trading Summary — {today}</div>'
             f'</td></tr>'
             + _section("NO TRADE TAKEN TODAY", (
                 _row("Cash Preserved", f"${account_balance:.2f}", big=True)
-                + f'<div style="margin-top:12px;font-size:17px;line-height:1.7;color:#d0d0e8;">{plain_summary}</div>'
+                + f'<div style="margin-top:12px;font-size:17px;line-height:1.7;color:#d0d0e8;">'
+                  f'No flat top breakout detected. Pure technical scanner — watching RVOL + momentum candidates.</div>'
             ), color="#ffbb33")
-            + _section("REMINDER", (
-                f'<div style="font-size:16px;color:#d0d0e8;line-height:1.8;">'
-                f'Send tonight\'s tickers to: <strong>molivera1977@icloud.com</strong><br>'
-                f'Paste Kev\'s TikTok transcript in the body.<br>'
-                f'The bot reads it at 8:45am tomorrow.</div>'
-            ), color="#6c63ff")
         )
-        plain = f"No trade today. Cash: ${account_balance:.2f}\n\n{plain_summary}"
+        plain = f"No trade today. Cash: ${account_balance:.2f}\nNo flat top breakout detected."
 
     try:
         resend.api_key = RESEND_API_KEY
@@ -3133,41 +3113,37 @@ def resume_monitoring_if_open():
 def main():
     now = datetime.now(EASTERN)
     print(f"\n{'='*60}")
-    print(f"🤖 MARCOS TRADING BOT STARTING UP")
+    print(f"🤖 MARCOS TRADING BOT — Pure Technical Scanner")
     print(f"📅 {now.strftime('%A, %B %d, %Y at %I:%M %p ET')}")
     print(f"{'='*60}\n")
 
     # ── Resume if position already open (e.g. redeployed mid-trade) ──
-    # Must happen BEFORE the time gate so a redeploy at any hour resumes correctly.
     _pre_populate_webull_token()
     if resume_monitoring_if_open():
         return
 
-    # ── Time gate — exit if outside 8:30am–3:30pm ET ─────
+    # ── Startup ping ─────
     try:
         resend.api_key = RESEND_API_KEY
         resend.Emails.send({
             "from":    "Marcos Trading Bot <onboarding@resend.dev>",
             "to":      [SUMMARY_EMAIL],
-            "subject": f"🤖 Bot is alive — {now.strftime('%a %b %d %I:%M %p ET')}",
+            "subject": f"🤖 Bot scanning — {now.strftime('%a %b %d %I:%M %p ET')}",
             "html":    f"<p>Bot started at <b>{now.strftime('%I:%M %p ET')}</b>. "
-                       f"Reading email, scanning gappers, running analysis...</p>"
-                       f"<p>You'll get the full plan email within a few minutes.</p>",
+                       f"Scanning Webull screener for RVOL + momentum setups. "
+                       f"Pure technicals — no picks, no AI analysis.</p>",
         })
         print(f"✅ Startup ping sent to {SUMMARY_EMAIL}")
     except Exception as e:
         print(f"⚠️  Startup ping failed: {e}")
 
     # ── TEST_TRADE fast-path ───────────────────────────────
-    # Set TEST_TRADE=AAPL (or any ticker) on Railway to skip the normal flow
-    # and fire a real 1-share buy+stop order immediately, proving execution works.
     if TEST_TRADE:
         print(f"🧪 TEST_TRADE MODE — ticker: {TEST_TRADE}")
         _pre_populate_webull_token()
         check_token_expiry()
         check_webull_connection()
 
-        # Print all accounts so we can verify the correct WEBULL_ACCOUNT_ID
         _, tc = _make_webull_client()
         if tc:
             res = tc.account_v2.get_account_list()
@@ -3261,222 +3237,59 @@ def main():
     if DRY_RUN:
         print("🧪 DRY RUN MODE — all trades will be simulated, no real orders placed")
 
-    # ── Step 1: Read Kev's picks ───────────────────────────
-    # Primary: screener web form (user pastes transcript directly — most reliable)
-    # Fallback: iCloud IMAP email
-    print("🔄 Step: reading Kev's picks...")
-    kev_screener = _fetch_kev_picks_from_screener()
-    if kev_screener:
-        subject = "Kev's Picks (screener)"
-        email_content = kev_screener
-        print(f"📝 Using Kev's transcript from screener ({len(email_content)} chars)")
-    else:
-        print("🔄 Screener empty — falling back to iCloud email...")
-        subject, email_content = read_todays_tickers()
-
-    if not email_content:
-        print("📭 No Kev picks today — running on gapper scan alone.")
-        email_content = ""
-
-    # ── Step 2: Extract tickers ────────────────────────────
-    # Strip reply/forward prefixes before parsing
-    clean_subject = re.sub(r'^(FW|FWD|RE):\s*', '', subject.strip(), flags=re.IGNORECASE)
-    # Generic words that are NOT stock tickers — UK/US excluded since they ARE tickers Kev uses
-    skip = {"THE", "FOR", "AND", "NOT", "ALL", "DAY", "TOP",
-            "NEW", "BIG", "HOT", "PDT", "RE", "AI", "ET", "FW", "FWD",
-            "TO", "IN", "UP", "AM", "PM", "IS", "IT", "ON", "MY",
-            "AT", "BY", "OR", "NO", "IF", "SO", "DO", "BE", "GO",
-            "EST", "EDT", "PST", "HOLD", "BUY", "SELL", "LONG", "SHORT",
-            "PLAY", "OVER", "BACK", "FROM", "WITH", "THAT", "THIS",
-            "THEN", "NEXT", "LAST", "ALSO", "JUST", "WILL", "HAVE",
-            "VWAP", "MACD", "HIGH", "LOWS", "MOVE", "LOOK", "WANT",
-            "GIVE", "MAKE", "PUTS", "GETS", "THAN",
-            "BODY", "SUBJECT", "DATE", "MIME", "CONTENT", "TYPE"}
-
-    # Step 1: extract $TICKER from subject (most reliable — Kev writes $NVDA $TSLA)
-    dollar_in_subject = re.findall(r'\$([A-Z]{1,5})\b', clean_subject.upper())
-    tickers = [t for t in dollar_in_subject if t not in skip][:5]
-
-    # Step 2: bare uppercase words in subject if no $ tickers found
-    if not tickers:
-        tickers = [t for t in re.findall(r'\b[A-Z]{2,5}\b', clean_subject.upper())
-                   if t not in skip][:5]
-
-    # Step 3: scan email body — $TICKER format first, then bare caps
-    if not tickers and email_content:
-        body_text = email_content.upper()
-        dollar_tickers = re.findall(r'\$([A-Z]{1,5})\b', body_text)
-        tickers = [t for t in dollar_tickers if t not in skip][:5]
-
-        if not tickers:
-            tickers = [t for t in re.findall(r'\b[A-Z]{2,5}\b', body_text)
-                       if t not in skip][:5]
-
-    if tickers:
-        print(f"📋 Kev's tickers (educational): {tickers}  (subject='{clean_subject[:80]}')")
-    else:
-        print("📭 No tickers parsed from Kev's content — gapper scan is the sole source")
-
-    # ── Step 3: Market context + pre-market data + gapper scan ──
+    # ── Step 1: Market context + SPY filter ───────────────
     market_context = get_market_context()
 
-    # ── SPY hard filter: skip the day if market is too bearish ──
     spy_chg = market_context.get("spy_change_pct", 0)
     if isinstance(spy_chg, (int, float)) and spy_chg <= SPY_BEAR_SKIP_PCT:
         msg = (f"SPY is down {spy_chg:+.2f}% pre-market — below the {SPY_BEAR_SKIP_PCT}% threshold. "
-               f"Holding cash. Small-cap gap plays have very low success rates on strong red market days.")
+               f"Holding cash.")
         print(f"🚫 {msg}")
-        subject = f"🚫 Bot skipping today — SPY {spy_chg:+.2f}% (market too bearish)"
-        send_alert_email(subject, f"Good morning Marcos!\n\n{msg}\n\nCash preserved: ${get_account_balance():.2f}")
+        send_alert_email(
+            f"🚫 Bot skipping today — SPY {spy_chg:+.2f}% (market too bearish)",
+            f"Good morning Marcos!\n\n{msg}\n\nCash preserved: ${get_account_balance():.2f}")
         return
 
-    market_data = []
-    for t in tickers:
-        if t != "UNKNOWN":
-            data = get_premarket_data(t)
-            data["news"] = get_news_catalyst(t)
-            market_data.append(data)
-            time.sleep(0.5)
-
-    # Scan Webull screener for morning gappers (~8:50am — before analysis)
+    # ── Step 2: Scan Webull screener for RVOL + momentum candidates ──
     gappers = scan_morning_gappers()
 
-    # Fetch news for each gapper too
-    for g in gappers:
-        g["news"] = get_news_catalyst(g["symbol"])
-        time.sleep(0.3)
+    if not gappers:
+        print("📋 No candidates from screener — ending session.")
+        return
 
-    # ── Read last night's evening watchlist (if available) ──
-    evening_watchlist = _fetch_evening_watchlist()
-    if evening_watchlist:
-        picks = evening_watchlist.get("top_picks", [])
-        print(f"🌙 Evening watchlist loaded — {len(picks)} pre-screened picks: "
-              f"{[p['ticker'] for p in picks]}")
-        # Ensure evening watchlist picks are in the gapper list so MARCO sees them
-        existing_syms = {g["symbol"] for g in gappers}
-        for pick in picks:
-            sym = pick.get("ticker", "")
-            if sym and sym not in existing_syms:
-                gappers.append({
-                    "symbol": sym,
-                    "change_pct": 0,
-                    "price": pick.get("key_level", 0),
-                    "float_label": pick.get("float_label", "N/A"),
-                    "source": "evening_watchlist",
-                    "news": [pick.get("thesis", "On last night's watchlist")],
-                    "evening_thesis": pick.get("thesis", ""),
-                    "evening_key_level": pick.get("key_level", 0),
-                    "evening_confidence": pick.get("confidence", ""),
-                })
-                existing_syms.add(sym)
-    else:
-        evening_watchlist = {}
-
-    # ── Step 4: Account balance ────────────────────────────
+    # ── Step 3: Account balance ────────────────────────────
     balance = get_account_balance()
     print(f"💰 Balance: ${balance:.2f}")
     post_balance_to_dashboard(balance)
 
-    # ── Step 5: Claude analysis — up to 3 attempts ────────
-    analysis = None
-    for _attempt in range(3):
-        analysis = analyze_with_claude(email_content, market_data, balance,
-                                       gappers=gappers, market_context=market_context,
-                                       evening_watchlist=evening_watchlist)
-        if analysis:
-            break
-        if _attempt < 2:
-            print(f"⚠️ Claude parse failed (attempt {_attempt+1}/3) — retrying in 20s...")
-            time.sleep(20)
-    if not analysis:
-        # Claude API unavailable (credits exhausted, outage, etc.)
-        # Fall back to the top gapper so the bot can still run.
-        if gappers:
-            top = gappers[0]
-            sym = top["symbol"]
-            price = float(top.get("price") or top.get("premarket_price") or 0)
-            print(f"⚠️  Claude unavailable — falling back to top gapper: {sym} @ ${price:.2f}")
-            analysis = {
-                "analysis_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
-                "market_summary": f"Claude API unavailable — auto-selected top gapper {sym}.",
-                "tickers": [{
-                    "ticker": sym,
-                    "verdict": "GO",
-                    "score": 5,
-                    "reason": "Auto-selected: top gapper by pre-market % move (Claude offline).",
-                    "setup_confirmed": True,
-                    "entry_price": price,
-                    "target_price": round(price * 1.10, 2),
-                    "stop_loss":    round(price * 0.93, 2),
-                    "position_size_dollars": round(balance * POSITION_SIZE_MEDIUM, 2),
-                    "vwap_level": 0.0,
-                    "risk_flags": ["Claude API offline — reduced confidence"],
-                    "kev_rule_check": "N/A",
-                }],
-                "recommended_trade": {
-                    "ticker": sym,
-                    "action": "BUY",
-                    "entry_price": price,
-                    "target_price": round(price * 1.10, 2),
-                    "stop_loss":    round(price * 0.93, 2),
-                    "position_size_dollars": round(balance * POSITION_SIZE_MEDIUM, 2),
-                    "shares_to_buy": 0,
-                    "confidence": "LOW",
-                    "vwap_level": 0.0,
-                    "execute_at": "On VWAP reclaim after 9:30am",
-                },
-                "plain_english_summary": (
-                    f"⚠️ Claude API offline. Auto-selected {sym} as top gapper "
-                    f"(+{top.get('change_pct',0):.1f}% pre-mkt). "
-                    f"Using LOW confidence / 50% position size. Watch VWAP closely."
-                ),
-            }
-        else:
-            print("❌ Claude failed 3 times and no gappers available — ending session.")
-            send_summary_email(None, None, balance)
-            return
-
-    # ── Alert 1: Send the plan email right now (~8:55am) ──────
-    send_plan_alert(analysis, balance)
-
-    # ── Log today's scan for future backtesting ────────────────────────
-    # Saves every day's gapper list + Claude's picks to scan_log.jsonl so
-    # we can replay the strategy against real historical data later.
+    # ── Step 4: Log scan for future backtesting ────────────
     try:
         import json as _json
         log_entry = {
-            "date":      datetime.now(EASTERN).strftime("%Y-%m-%d"),
-            "kev_tickers": tickers,
-            "gappers":   [{"symbol": g["symbol"], "change_pct": g.get("change_pct", 0),
-                           "price": g.get("price", 0), "float_label": g.get("float_label", "")}
-                          for g in (gappers or [])],
-            "claude_pick":   (analysis.get("recommended_trade") or {}).get("ticker"),
-            "claude_action": (analysis.get("recommended_trade") or {}).get("action"),
-            "all_tickers":   [t.get("ticker") for t in (analysis.get("tickers") or [])
-                              if t.get("ticker")],
+            "date":    datetime.now(EASTERN).strftime("%Y-%m-%d"),
+            "gappers": [{"symbol": g["symbol"], "change_pct": g.get("change_pct", 0),
+                         "price": g.get("price", 0), "float_label": g.get("float_label", "")}
+                        for g in gappers],
         }
         log_path = os.path.join(os.path.dirname(__file__), "scan_log.jsonl")
         with open(log_path, "a") as _f:
             _f.write(_json.dumps(log_entry) + "\n")
-        print(f"📝 Scan logged to scan_log.jsonl ({log_entry['date']})")
+        print(f"📝 Scan logged ({log_entry['date']})")
     except Exception as _e:
         print(f"⚠️  Scan log write failed: {_e}")
 
-    # Technicals decide — flat position size, no Claude gating
     confidence    = "TECHNICAL"
     position_size = min(balance * MAX_POSITION_SIZE, MAX_TRADE_DOLLARS)
     print(f"💼 Position size: ${position_size:.2f} (capped at ${MAX_TRADE_DOLLARS:.0f} max)")
 
-    # ── Step 6: Build candidate list from all gap stocks ───────────────────────
-    # Technicals decide — every 15-30% gapper is watched simultaneously.
-    # Sorted by gap % descending so the largest movers are first.
+    # ── Step 5: Build candidate list + open stream ─────────
     gapper_syms = [g["symbol"] for g in gappers if g.get("symbol")]
-    print(f"📋 Watching all {len(gapper_syms)} gappers: {' | '.join(gapper_syms)}")
+    print(f"📋 Watching {len(gapper_syms)} candidates: {' | '.join(gapper_syms)}")
     _post_watching_to_screener(gapper_syms)
 
-    # ── Step 7: Open real-time stream (all candidates) ─────────────────────────
-    stream_tickers = list(dict.fromkeys(gapper_syms + tickers))
+    stream_tickers = list(dict.fromkeys(gapper_syms))
     stream         = WebullStream(stream_tickers)
+    analysis       = None
 
     # ── Steps 8-10: Trade loop ─────────────────────────────────────────────────
     remaining_candidates  = list(gapper_syms)
@@ -3528,9 +3341,7 @@ def main():
         )
 
         if not breakouts:
-            note = (f"\n\nNOTE: No flat top breakout by 10:30am "
-                    f"({', '.join(remaining_candidates)}). Cash preserved.")
-            analysis["plain_english_summary"] += note
+            print(f"⏰ No flat top breakout detected ({', '.join(remaining_candidates)}). Cash preserved.")
             break
 
         # Mark all breakout tickers as traded before threads start

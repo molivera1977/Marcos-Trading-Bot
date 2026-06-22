@@ -125,6 +125,24 @@ def _make_data_client():
         print(f"DataClient error: {e}")
         return None
 
+# ── Market state ───────────────────────────────────────────────────────────────
+
+def _market_state():
+    now_et = datetime.now(EASTERN)
+    is_weekend = now_et.weekday() >= 5
+    market_open = (not is_weekend
+                   and (now_et.hour > 9 or (now_et.hour == 9 and now_et.minute >= 30))
+                   and now_et.hour < 16)
+    premarket = not is_weekend and 4 <= now_et.hour and not market_open and now_et.hour < 10
+    after_hours = not market_open and not premarket
+    if after_hours:
+        state = "after_hours"
+    elif market_open:
+        state = "open"
+    else:
+        state = "premarket"
+    return now_et, market_open, premarket, after_hours, state
+
 # ── Core scan logic ────────────────────────────────────────────────────────────
 
 def run_scan():
@@ -135,9 +153,7 @@ def run_scan():
     4. After hours: add short interest + day stats for tomorrow's watchlist
     5. Score by change% / float_millions, return top 15 (20 evening)
     """
-    now_et      = datetime.now(EASTERN)
-    market_open = now_et.hour > 9 or (now_et.hour == 9 and now_et.minute >= 30)
-    after_hours = now_et.hour >= 16
+    now_et, market_open, premarket, after_hours, _ = _market_state()
     rank_type   = "CHANGE_RATIO" if market_open else "PRE_MARKET"
     min_chg     = 5 if market_open else 8
     max_float   = 50_000_000
@@ -621,15 +637,7 @@ def index():
 @app.route("/api/scan")
 def api_scan():
     results, errors = run_scan()
-    now_et      = datetime.now(EASTERN)
-    market_open = now_et.hour > 9 or (now_et.hour == 9 and now_et.minute >= 30)
-    after_hours = now_et.hour >= 16
-    if after_hours:
-        market_state = "after_hours"
-    elif market_open:
-        market_state = "open"
-    else:
-        market_state = "premarket"
+    now_et, _, _, _, market_state = _market_state()
     return jsonify({
         "results":      results,
         "errors":       errors,

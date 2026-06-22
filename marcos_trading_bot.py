@@ -1200,8 +1200,12 @@ def _get_webull_quote(ticker) -> dict:
         if abs(pre_r) < 1 and pre_r != 0:
             pre_r = pre_r * 100
 
-        vwap = float(d.get("vwap") or d.get("vwap_price") or d.get("average_price") or
-                     d.get("avgPrice") or d.get("dayAvgPrice") or 0)
+        vwap_raw = (d.get("vwap") or d.get("vwap_price") or d.get("average_price") or
+                    d.get("avgPrice") or d.get("dayAvgPrice") or d.get("avgVol") or 0)
+        vwap = float(vwap_raw)
+        if vwap <= 0:
+            all_keys = [k for k in d.keys() if "avg" in k.lower() or "vwap" in k.lower() or "wap" in k.lower()]
+            print(f"⚠️  VWAP=0 for {ticker} | candidate keys: {all_keys} | all keys: {list(d.keys())[:20]}")
 
         return {
             "last_price":            last,
@@ -1897,10 +1901,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 wb_vwap = _get_webull_quote(t).get("vwap", 0)
                 if wb_vwap > 0:
                     cache[t]["vwap"] = wb_vwap
-                else:
+                if cache[t]["vwap"] <= 0:
                     full = get_intraday_bars_full(t)
                     if full:
-                        cache[t]["vwap"] = calculate_vwap(full)
+                        calc_vwap = calculate_vwap(full)
+                        if calc_vwap > 0:
+                            cache[t]["vwap"] = calc_vwap
+                            print(f"📊 {t} VWAP from yfinance bars: ${calc_vwap:.2f}")
+                        else:
+                            print(f"⚠️  {t} VWAP unavailable from both Webull and yfinance")
                 cache[t]["fetched"] = time.time()
 
         # Check each ticker for flat top breakout OR EMA bounce
@@ -1938,7 +1947,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     is_flat = rng <= FLAT_TOP_MAX_RANGE
 
                     if is_flat and price > w_high:
-                        if vwap > 0 and price < vwap:
+                        if vwap <= 0:
+                            status_parts.append(f"{t}:${price:.2f} BREAK but no VWAP — skipped")
+                            continue
+                        if price < vwap:
                             status_parts.append(f"{t}:${price:.2f} BREAK but below VWAP{vwap_tag}")
                             continue
                         print(f"\n✅ {t} FLAT TOP BREAKOUT! ${price:.2f} > window high ${w_high:.2f} "
@@ -1957,7 +1969,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
 
                 touched = prev_close > 0 and prev_ema9 > 0 and prev_close <= prev_ema9 * (1 + EMA_BOUNCE_TOUCH)
                 bounced = price > ema9
-                above_vwap = vwap <= 0 or price > vwap
+                above_vwap = vwap > 0 and price > vwap
 
                 if touched and bounced and above_vwap:
                     lookback_bars = completed[-EMA_BOUNCE_LOOKBACK:]

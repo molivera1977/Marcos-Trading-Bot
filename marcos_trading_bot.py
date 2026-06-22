@@ -281,7 +281,7 @@ SPY_BEAR_SKIP_PCT     = -2.5   # Skip the day entirely if SPY pre-market < -2.5%
 MAX_SPREAD_PCT        = 0.03   # Skip entry if bid-ask spread > 3% of ask price
 VWAP_VOL_MULTIPLIER   = 2.0    # Require 2× average minute volume for VWAP reclaim confirmation
 VWAP_CONFIRM_TICKS   = 3      # Price must hold above VWAP for this many consecutive polls before entry
-MAX_VWAP_EXTENSION   = 0.15   # Don't enter if price is >15% above VWAP — too extended, fade risk
+MAX_VWAP_EXTENSION   = 0.05   # Don't enter if price is >5% above VWAP — chasing, not buying support
 VWAP_PULLBACK_ZONE   = 0.03   # Within 3% of VWAP counts as "at VWAP" for pullback detection
 VWAP_PULLBACK_MIN_RUN = 0.05  # High-water must be ≥5% above VWAP before pullback mode activates
 MIN_ABS_VOL_ENTRY    = 15_000 # Bounce bar must have ≥15k shares — blocks thin afternoon noise
@@ -2070,6 +2070,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         if price < vwap:
                             status_parts.append(f"{t}:${price:.2f} BREAK but below VWAP{vwap_tag}")
                             continue
+                        vwap_ext = (price - vwap) / vwap
+                        if vwap_ext > MAX_VWAP_EXTENSION:
+                            status_parts.append(f"{t}:${price:.2f} BREAK but {vwap_ext*100:.1f}% above VWAP — too extended")
+                            continue
                         print(f"\n✅ {t} FLAT TOP BREAKOUT! ${price:.2f} > window high ${w_high:.2f} "
                               f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window)"
                               + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
@@ -2087,8 +2091,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 touched = prev_close > 0 and prev_ema9 > 0 and prev_close <= prev_ema9 * (1 + EMA_BOUNCE_TOUCH)
                 bounced = price > ema9
                 above_vwap = vwap > 0 and price > vwap
+                vwap_ext = (price - vwap) / vwap if vwap > 0 else 0
+                not_extended = vwap_ext <= MAX_VWAP_EXTENSION
 
-                if touched and bounced and above_vwap:
+                if touched and bounced and above_vwap and not_extended:
                     lookback_bars = completed[-EMA_BOUNCE_LOOKBACK:]
                     prior_high = max(float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in lookback_bars)
 

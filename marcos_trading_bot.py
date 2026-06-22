@@ -1356,6 +1356,123 @@ def check_bid_ask_spread(ticker) -> tuple[bool, float]:
     return ok, spread_pct
 
 
+def check_level2(ticker, entry_price) -> tuple[bool, dict]:
+    """
+    Fetch Level 2 order book from Webull and check for sell walls above entry.
+    Returns (ok, details) — ok=False means heavy resistance, skip entry.
+
+    Checks:
+    1. Sell wall: any single ask level with size > 3× the average ask size
+       within 5% above entry = wall blocking upside
+    2. Buy/sell imbalance: total bid volume vs total ask volume within 5% of price.
+       If asks outweigh bids by > 2:1, sellers are in control
+    3. Thin bids: if total bid support within 3% below entry is < 500 shares,
+       there's no floor if it drops
+    """
+    details = {"wall_at": None, "bid_vol": 0, "ask_vol": 0, "ratio": 0, "reason": ""}
+    try:
+        dc = _get_data_client()
+        if not dc:
+            print(f"⚠️  {ticker}: no data client for L2 — skipping check")
+            return True, details
+
+        resp = dc.market_data.get_quotes(
+            symbol=ticker,
+            category="US_STOCK",
+            depth=20,
+        )
+        if resp.status_code != 200:
+            print(f"⚠️  {ticker}: L2 request failed ({resp.status_code}) — skipping check")
+            return True, details
+
+        raw = resp.json()
+        if isinstance(raw, list):
+            d = raw[0] if raw else {}
+        else:
+            data = raw.get("data", {}) if isinstance(raw, dict) else {}
+            if isinstance(data, list):
+                d = data[0] if data else {}
+            elif isinstance(data, dict):
+                items = data.get("items", [])
+                d = items[0] if items else data
+            else:
+                d = {}
+
+        asks_raw = d.get("asks", d.get("askList", d.get("ask_list", [])))
+        bids_raw = d.get("bids", d.get("bidList", d.get("bid_list", [])))
+
+        if not asks_raw and not bids_raw:
+            all_keys = list(d.keys())[:25]
+            print(f"⚠️  {ticker}: L2 no bid/ask arrays found | keys: {all_keys}")
+            return True, details
+
+        asks = []
+        for a in asks_raw:
+            price = float(a.get("price") or a.get("p") or 0)
+            size  = float(a.get("volume") or a.get("size") or a.get("v") or a.get("s") or 0)
+            if price > 0:
+                asks.append((price, size))
+
+        bids = []
+        for b in bids_raw:
+            price = float(b.get("price") or b.get("p") or 0)
+            size  = float(b.get("volume") or b.get("size") or b.get("v") or b.get("s") or 0)
+            if price > 0:
+                bids.append((price, size))
+
+        upper_bound = entry_price * 1.05
+        lower_bound = entry_price * 0.97
+
+        nearby_asks = [(p, s) for p, s in asks if p <= upper_bound]
+        nearby_bids = [(p, s) for p, s in bids if p >= lower_bound]
+
+        total_ask_vol = sum(s for _, s in nearby_asks)
+        total_bid_vol = sum(s for _, s in nearby_bids)
+        details["ask_vol"] = int(total_ask_vol)
+        details["bid_vol"] = int(total_bid_vol)
+
+        # Check 1: Sell wall — any single level with outsized volume
+        if nearby_asks:
+            avg_ask_size = total_ask_vol / len(nearby_asks)
+            for price, size in nearby_asks:
+                if avg_ask_size > 0 and size >= avg_ask_size * 3 and size >= 500:
+                    details["wall_at"] = price
+                    details["reason"] = f"sell wall {int(size)} shares @ ${price:.2f}"
+                    print(f"🚫 {ticker} L2: SELL WALL — {int(size)} shares @ ${price:.2f} "
+                          f"({size/avg_ask_size:.1f}× avg ask size)")
+                    return False, details
+
+        # Check 2: Buy/sell imbalance
+        if total_bid_vol > 0:
+            ratio = total_ask_vol / total_bid_vol
+            details["ratio"] = round(ratio, 2)
+            if ratio >= 2.0:
+                details["reason"] = f"sellers dominate {ratio:.1f}:1 (ask {int(total_ask_vol)} vs bid {int(total_bid_vol)})"
+                print(f"🚫 {ticker} L2: SELL PRESSURE — asks {int(total_ask_vol)} vs bids {int(total_bid_vol)} "
+                      f"({ratio:.1f}:1 ratio)")
+                return False, details
+        elif total_ask_vol > 0:
+            details["reason"] = "no bid support visible"
+            print(f"🚫 {ticker} L2: NO BIDS — {int(total_ask_vol)} shares on ask, nothing on bid")
+            return False, details
+
+        # Check 3: Thin bids (no floor)
+        close_bids = [(p, s) for p, s in bids if p >= entry_price * 0.97]
+        close_bid_vol = sum(s for _, s in close_bids)
+        if close_bid_vol < 500 and total_ask_vol > 1000:
+            details["reason"] = f"thin bids ({int(close_bid_vol)} shares within 3%)"
+            print(f"🚫 {ticker} L2: THIN BIDS — only {int(close_bid_vol)} shares within 3% below entry")
+            return False, details
+
+        ratio_str = f"{details['ratio']:.1f}:1" if total_bid_vol > 0 else "N/A"
+        print(f"✅ {ticker} L2: bids {int(total_bid_vol)} vs asks {int(total_ask_vol)} ({ratio_str}) — OK")
+        return True, details
+
+    except Exception as e:
+        print(f"⚠️  {ticker}: L2 error: {e} — skipping check")
+        return True, details
+
+
 def get_intraday_bars(ticker, count=30):
     """Fetch 1-minute intraday bars for VWAP calculation. Uses SDK."""
     try:
@@ -3502,6 +3619,13 @@ def main():
             spread_ok, spread_pct = check_bid_ask_spread(ticker)
             if not spread_ok:
                 print(f"⚠️ {ticker} spread {spread_pct*100:.2f}% too wide — skipping")
+                with trade_lock:
+                    settled_remaining += MAX_TRADE_DOLLARS
+                return
+
+            l2_ok, l2_details = check_level2(ticker, entry_price)
+            if not l2_ok:
+                print(f"⚠️ {ticker} L2 rejected: {l2_details.get('reason','')} — skipping")
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
                 return

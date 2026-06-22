@@ -2959,6 +2959,71 @@ def send_partial_exit_alert(ticker, half_shares, partial_price, entry_price,
 # STEP 8 — FINAL SUMMARY EMAIL
 # ============================================================
 
+def _send_morning_watchlist(top_gappers: list, balance: float):
+    today = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
+    dry_tag = "[DRY RUN] " if DRY_RUN else ""
+
+    if not top_gappers:
+        return
+
+    rows_html = ""
+    for i, g in enumerate(top_gappers, 1):
+        sym = g.get("symbol", "?")
+        chg = g.get("change_pct", 0)
+        price = g.get("price", 0)
+        fl = g.get("float_label", "")
+        rows_html += (
+            f'<tr style="border-bottom:1px solid #2a2a40;">'
+            f'<td style="padding:10px 16px;color:#ffffff;font-weight:bold;">{i}</td>'
+            f'<td style="padding:10px 16px;color:#00e676;font-weight:bold;font-size:16px;">{sym}</td>'
+            f'<td style="padding:10px 16px;color:#ffab40;">+{chg:.1f}%</td>'
+            f'<td style="padding:10px 16px;color:#b0b0c0;">${price:.2f}</td>'
+            f'<td style="padding:10px 16px;color:#7c7ca0;font-size:12px;">{fl}</td>'
+            f'</tr>'
+        )
+
+    table = (
+        f'<table style="width:100%;border-collapse:collapse;background:#12122a;border-radius:8px;">'
+        f'<tr style="border-bottom:2px solid #6c63ff;">'
+        f'<th style="padding:10px 16px;color:#6c63ff;text-align:left;">#</th>'
+        f'<th style="padding:10px 16px;color:#6c63ff;text-align:left;">Ticker</th>'
+        f'<th style="padding:10px 16px;color:#6c63ff;text-align:left;">Change</th>'
+        f'<th style="padding:10px 16px;color:#6c63ff;text-align:left;">Price</th>'
+        f'<th style="padding:10px 16px;color:#6c63ff;text-align:left;">Float</th>'
+        f'</tr>'
+        f'{rows_html}</table>'
+    )
+
+    html = _html_wrap(
+        f'<tr><td style="padding:16px 20px 4px;">'
+        f'<div style="font-size:26px;font-weight:bold;color:#ffffff;">Morning Watchlist — {today}</div>'
+        f'<div style="font-size:14px;color:#7c7ca0;margin-top:4px;">'
+        f'{"🧪 DRY RUN — simulated trades only" if DRY_RUN else "🔴 LIVE MODE"}'
+        f'</div>'
+        f'</td></tr>'
+        + _section("TOP CANDIDATES", table, color="#00e676")
+        + _section("ACCOUNT", (
+            _row("Balance", f"${balance:.2f}")
+            + _row("Per Trade", f"${MAX_TRADE_DOLLARS:.0f}")
+            + _row("Entry Types", "Flat Top Breakout + EMA Bounce")
+            + _row("Cutoff", "3:30pm (dry run)" if DRY_RUN else "11:00am")
+        ))
+    )
+
+    subject = f"{dry_tag}Morning Watchlist — {len(top_gappers)} candidates | {today}"
+    try:
+        resend.api_key = RESEND_API_KEY
+        resend.Emails.send({
+            "from": "Marcos Trading Bot <onboarding@resend.dev>",
+            "to": [SUMMARY_EMAIL],
+            "subject": subject,
+            "html": html,
+        })
+        print(f"📧 Morning watchlist email sent — {len(top_gappers)} candidates")
+    except Exception as e:
+        print(f"⚠️  Morning email failed: {e}")
+
+
 def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_log_line="", traded_ticker=None):
     print(f"📨 Sending summary email to {SUMMARY_EMAIL}...")
     today   = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
@@ -3299,6 +3364,9 @@ def main():
     balance = get_account_balance()
     print(f"💰 Balance: ${balance:.2f}")
     post_balance_to_dashboard(balance)
+
+    # ── Morning watchlist email ───────────────────────────
+    _send_morning_watchlist(gappers[:8], balance)
 
     # ── Step 4: Log scan for future backtesting ────────────
     try:

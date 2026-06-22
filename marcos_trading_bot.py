@@ -3237,20 +3237,7 @@ def main():
     if DRY_RUN:
         print("🧪 DRY RUN MODE — all trades will be simulated, no real orders placed")
 
-    # ── Step 1: Market context + SPY filter ───────────────
-    market_context = get_market_context()
-
-    spy_chg = market_context.get("spy_change_pct", 0)
-    if isinstance(spy_chg, (int, float)) and spy_chg <= SPY_BEAR_SKIP_PCT:
-        msg = (f"SPY is down {spy_chg:+.2f}% pre-market — below the {SPY_BEAR_SKIP_PCT}% threshold. "
-               f"Holding cash.")
-        print(f"🚫 {msg}")
-        send_alert_email(
-            f"🚫 Bot skipping today — SPY {spy_chg:+.2f}% (market too bearish)",
-            f"Good morning Marcos!\n\n{msg}\n\nCash preserved: ${get_account_balance():.2f}")
-        return
-
-    # ── Step 2: Scan Webull screener for RVOL + momentum candidates ──
+    # ── Step 1: Scan Webull screener for RVOL + momentum candidates ──
     gappers = scan_morning_gappers()
 
     if not gappers:

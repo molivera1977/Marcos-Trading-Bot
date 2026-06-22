@@ -17,7 +17,7 @@ HOW IT WORKS:
 9. Sends 4 emails throughout the day:
    - ~8:55am: Claude's plan (what it picked and why)
    - On entry: trade filled (price, shares, levels)
-   - At +15%: partial exit alert (half sold, rest riding)
+   - At +8% (AM) / +5% (PM): partial exit (half sold, floor at entry, trail rest)
    - At close: full summary with P&L
 
 SETUP INSTRUCTIONS:
@@ -250,8 +250,15 @@ POSITION_SIZE_MEDIUM  = 0.50   # 50% for MEDIUM confidence
 POSITION_SIZE_LOW     = 0.30   # 30% for LOW confidence
 STOP_LOSS_PCT         = 0.07   # 7% emergency exchange stop (EMA9 fires first)
 TARGET_PCT            = 0.20   # 20% full profit target
-PARTIAL_EXIT_PCT      = 0.10   # Sell half at +10% (v8 backtest optimum)
-BREAKEVEN_TRIGGER_PCT = 0.10   # Move stop to breakeven at 10% gain
+EXIT_TIERS_AM = [          # Morning (9-11am): scale out in 3 tiers
+    (0.08, 0.25),          #   +8%  → sell 25%
+    (0.12, 0.50),          #   +12% → sell 50%
+    (0.20, 1.00),          #   +20% → sell remaining 25%
+]
+EXIT_TIERS_PM = [          # Afternoon (after 11am): scale out in 2 tiers
+    (0.04, 0.50),          #   +4%  → sell 50%
+    (0.06, 1.00),          #   +6%  → sell remaining 50%
+]
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
 
 # ── v10 Entry detection parameters ────────────────────────────
@@ -281,7 +288,7 @@ SPY_BEAR_SKIP_PCT     = -2.5   # Skip the day entirely if SPY pre-market < -2.5%
 MAX_SPREAD_PCT        = 0.03   # Skip entry if bid-ask spread > 3% of ask price
 VWAP_VOL_MULTIPLIER   = 2.0    # Require 2× average minute volume for VWAP reclaim confirmation
 VWAP_CONFIRM_TICKS   = 3      # Price must hold above VWAP for this many consecutive polls before entry
-MAX_VWAP_EXTENSION   = 0.05   # Don't enter if price is >5% above VWAP — chasing, not buying support
+MAX_VWAP_EXTENSION   = 0.08   # Don't enter if price is >8% above VWAP — chasing, not buying support
 VWAP_PULLBACK_ZONE   = 0.03   # Within 3% of VWAP counts as "at VWAP" for pullback detection
 VWAP_PULLBACK_MIN_RUN = 0.05  # High-water must be ≥5% above VWAP before pullback mode activates
 MIN_ABS_VOL_ENTRY    = 15_000 # Bounce bar must have ≥15k shares — blocks thin afternoon noise
@@ -1969,7 +1976,7 @@ TRADING RULES (bot handles execution):
 - Entry: VWAP + 90MA reclaim confirmed by 3 consecutive ticks above BOTH levels with 1.5× volume — no fakes
 - Stop: 7% below entry
 - +10%: stop to breakeven
-- +15%: sell half, trail rest
+- +8% AM / +5% PM: sell half, floor at entry, trail rest
 - +20%: full exit
 - Hard close: 3:45pm ET (force exit all positions before market close)
 
@@ -2667,7 +2674,16 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     remaining_shares   = total_shares
     partial_taken      = False
     partial_price      = 0.0
+    partial_fills      = []
     entry_time         = time.time()   # for early fade window
+
+    entry_hour = datetime.now(EASTERN).hour
+    exit_tiers = EXIT_TIERS_AM if entry_hour < 11 else EXIT_TIERS_PM
+    tier_idx = 0
+    initial_shares = total_shares
+    mode = "AM" if entry_hour < 11 else "PM"
+    tier_desc = ", ".join(f"+{t[0]*100:.0f}%→{t[1]*100:.0f}%" for t in exit_tiers)
+    print(f"   Exit tiers ({mode}): {tier_desc} | Floor at entry after first sell")
     last_ema_check     = 0.0           # epoch of last EMA9 bar fetch
 
     result = {"exit_price": entry_price, "exit_reason": "Unknown",
@@ -2711,18 +2727,9 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if current_price > highest_price:
             highest_price = current_price
 
-        # ── Breakeven stop: move to entry at +10% ───────
-        if not partial_taken and profit_pct >= BREAKEVEN_TRIGGER_PCT * 100 \
-                and current_stop < entry_price:
-            current_stop = entry_price
-            print(f"🔒 Stop → breakeven ${current_stop:.2f}")
-            placed_stop_id    = update_stop_order(ticker, placed_stop_qty,
-                                                  current_stop, placed_stop_id)
-            placed_stop_price = current_stop
-
-        # ── Trailing stop: ratchet up after partial exit ─
+        # ── Trailing stop: ratchet up after partial exit (floor = entry price) ─
         if partial_taken:
-            trail = highest_price * (1 - TRAIL_PCT)
+            trail = max(highest_price * (1 - TRAIL_PCT), entry_price)
             if trail > current_stop:
                 current_stop = trail
                 print(f"📈 Trailing stop → ${current_stop:.2f}")
@@ -2734,34 +2741,43 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
         print(f"💰 {ticker}: ${current_price:.2f} ({profit_pct:+.1f}%) | Stop: ${current_stop:.2f} | Shares: {remaining_shares}")
 
-        # ── Partial exit at +15% ────────────────────────
-        if not partial_taken and profit_pct >= PARTIAL_EXIT_PCT * 100:
-            half = remaining_shares // 2
-            if half < 1:
-                half = 1
-            print(f"💰 PARTIAL EXIT: selling {half} shares at ${current_price:.2f} (+{profit_pct:.1f}%)")
-            cancel_order(placed_stop_id)
-            close_position(ticker, half)
-            partial_price    = current_price
-            partial_taken    = True
-            remaining_shares = remaining_shares - half
-            current_stop     = highest_price * (1 - TRAIL_PCT)
-            placed_stop_id    = place_stop_order(ticker, remaining_shares, current_stop)
-            placed_stop_price = current_stop
-            placed_stop_qty   = remaining_shares
-            print(f"📈 Trailing stop set at ${current_stop:.2f} — letting rest run")
-            send_partial_exit_alert(ticker, half, partial_price, entry_price,
-                                    remaining_shares, current_stop, profit_pct)
+        # ── Tiered exits (AM: 25%@+8%, 50%@+12%, 25%@+20% | PM: 50%@+4%, 50%@+6%) ──
+        if tier_idx < len(exit_tiers) and remaining_shares > 0:
+            tier_pct, tier_cumulative = exit_tiers[tier_idx]
+            if profit_pct >= tier_pct * 100:
+                if tier_cumulative >= 1.0:
+                    sell_qty = remaining_shares
+                else:
+                    sold_so_far = initial_shares - remaining_shares
+                    target_sold = int(initial_shares * tier_cumulative)
+                    sell_qty = max(1, target_sold - sold_so_far)
+                    sell_qty = min(sell_qty, remaining_shares)
 
-        # ── Full target hit ─────────────────────────────
-        if current_price >= target_price and remaining_shares > 0:
-            print(f"🎯 TARGET HIT! Selling {remaining_shares} shares at ${current_price:.2f}")
-            cancel_order(placed_stop_id)
-            close_position(ticker, remaining_shares)
-            result["exit_price"]  = current_price
-            result["exit_reason"] = "Target hit ✅"
-            remaining_shares = 0
-            break
+                tier_label = f"Tier {tier_idx+1}/{len(exit_tiers)}"
+                print(f"💰 {tier_label}: selling {sell_qty} of {remaining_shares} shares "
+                      f"at ${current_price:.2f} (+{profit_pct:.1f}%)")
+                cancel_order(placed_stop_id)
+                close_position(ticker, sell_qty)
+                partial_price    = current_price
+                partial_taken    = True
+                partial_fills.append((sell_qty, current_price))
+                remaining_shares -= sell_qty
+                tier_idx += 1
+
+                if remaining_shares <= 0:
+                    result["exit_price"]  = current_price
+                    result["exit_reason"] = f"Full exit ({tier_label}) ✅"
+                    break
+
+                trail_stop = highest_price * (1 - TRAIL_PCT)
+                current_stop     = max(trail_stop, entry_price)
+                placed_stop_id    = place_stop_order(ticker, remaining_shares, current_stop)
+                placed_stop_price = current_stop
+                placed_stop_qty   = remaining_shares
+                print(f"📈 Floor at entry ${entry_price:.2f}, trail stop ${current_stop:.2f} "
+                      f"— {remaining_shares} shares remaining")
+                send_partial_exit_alert(ticker, sell_qty, partial_price, entry_price,
+                                        remaining_shares, current_stop, profit_pct)
 
         # ── EMA9 2-bar confirm stop (v8 primary exit) ─────────────
         if remaining_shares > 0 and time.time() - last_ema_check >= EMA_CHECK_INTERVAL:
@@ -2798,14 +2814,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
         time.sleep(sleep_secs)
 
-    # ── Blended P&L ─────────────────────────────────────
-    if partial_taken:
-        half = total_shares // 2
-        rest = total_shares - half
-        result["profit_loss"] = (
-            (partial_price - entry_price) * half +
-            (result["exit_price"] - entry_price) * rest
-        )
+    # ── Blended P&L (sum across all tier fills + remaining) ──
+    if partial_fills:
+        pnl = sum((px - entry_price) * qty for qty, px in partial_fills)
+        pnl += (result["exit_price"] - entry_price) * remaining_shares
+        result["profit_loss"] = pnl
     else:
         result["profit_loss"] = (result["exit_price"] - entry_price) * total_shares
 
@@ -3126,7 +3139,7 @@ def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap,
         ), color="#00c851")
         + _section("LEVELS TO WATCH", (
             _row("🎯 Target (+20%)",      f"${target_price:.2f}", big=True)
-            + _row("💰 Partial exit (+15%)", "Sell half, trail rest")
+            + _row("💰 Partial exit (+8% AM/+5% PM)", "Sell half, trail rest")
             + _row("⚡ Breakeven (+10%)",    "Stop moves to entry")
             + _row("🛑 Stop Loss (-7%)",     f"${stop_loss:.2f}")
             + _row("⏰ Hard Close",           "3:45pm ET")
@@ -3137,7 +3150,7 @@ def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap,
 
 def send_partial_exit_alert(ticker, half_shares, partial_price, entry_price,
                             remaining_shares, new_stop, profit_pct):
-    """Alert 3 — Fired when half the position is sold at +15%."""
+    """Alert 3 — Fired when half the position is sold at +8% AM / +5% PM."""
     now_str = datetime.now(EASTERN).strftime("%I:%M:%S %p ET")
     profit  = (partial_price - entry_price) * half_shares
     subject = f"💰 PARTIAL EXIT — {ticker} +{profit_pct:.1f}% at {now_str}"

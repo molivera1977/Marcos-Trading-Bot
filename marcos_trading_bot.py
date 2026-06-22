@@ -254,13 +254,19 @@ PARTIAL_EXIT_PCT      = 0.10   # Sell half at +10% (v8 backtest optimum)
 BREAKEVEN_TRIGGER_PCT = 0.10   # Move stop to breakeven at 10% gain
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
 
-# ── v8 Flat Top Breakout strategy parameters ──────────────────
-FLAT_TOP_WINDOW    = 4      # Matched to backtest: 4-bar consolidation (sweep winner)
-FLAT_TOP_MAX_RANGE = 0.080  # Matched to backtest: 8% range tolerance (Kev eyeballs, not precise)
-EMA_PERIOD         = 9      # EMA period for stop
+# ── v10 Entry detection parameters ────────────────────────────
+FLAT_TOP_WINDOW    = 4      # 4-bar consolidation window
+FLAT_TOP_MAX_RANGE = 0.080  # <8% range tolerance
+EMA_PERIOD         = 9      # EMA9 for stops + bounce detection
+EMA20_PERIOD       = 20     # EMA20 for bullish stack confirmation
 EMA_CONFIRM_BARS   = 2      # consecutive bars below EMA9 before stop fires
 EMA_CHECK_INTERVAL = 60     # seconds between EMA9 bar fetches during trade monitoring
-ENTRY_CUTOFF_HOUR  = 11     # Matched to backtest: Kev's full 9:00-11:00 window
+EMA_BOUNCE_TOUCH   = 0.015  # prev bar within 1.5% above EMA9 = "touched"
+EMA_BOUNCE_LOOKBACK = 20    # bars to look back for prior high
+EMA_BOUNCE_VOL_MULT = 1.2   # bounce bar volume > 1.2× prior 3-bar avg
+EMA_STOP_BUFFER    = 0.025  # initial stop = EMA9 × (1 − 2.5%)
+MIN_RR             = 2.0    # minimum reward:risk ratio for EMA bounce
+ENTRY_CUTOFF_HOUR  = 11     # Kev's full 9:00-11:00 window
 ENTRY_CUTOFF_MIN   = 0
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
@@ -1417,8 +1423,17 @@ def calculate_90ma(bars) -> float:
             pass
     return sum(closes) / len(closes) if closes else 0.0
 
-def calculate_ema9(bars) -> float:
-    """EMA9 of close prices from 1-min bars. Used for the v8 2-bar confirm stop."""
+def _calc_ema(closes: list, period: int) -> float:
+    if len(closes) < period:
+        return 0.0
+    k = 2 / (period + 1)
+    ema = sum(closes[:period]) / period
+    for c in closes[period:]:
+        ema = c * k + ema * (1 - k)
+    return ema
+
+
+def _extract_closes(bars) -> list:
     closes = []
     for b in bars:
         c = b.get("close") or b.get("c") or 0
@@ -1426,13 +1441,15 @@ def calculate_ema9(bars) -> float:
             closes.append(float(c))
         except (TypeError, ValueError):
             pass
-    if len(closes) < EMA_PERIOD:
-        return 0.0
-    k = 2 / (EMA_PERIOD + 1)
-    ema = sum(closes[:EMA_PERIOD]) / EMA_PERIOD
-    for c in closes[EMA_PERIOD:]:
-        ema = c * k + ema * (1 - k)
-    return ema
+    return closes
+
+
+def calculate_ema9(bars) -> float:
+    return _calc_ema(_extract_closes(bars), EMA_PERIOD)
+
+
+def calculate_ema20(bars) -> float:
+    return _calc_ema(_extract_closes(bars), EMA20_PERIOD)
 
 
 def calculate_vwap(bars) -> float:
@@ -1839,13 +1856,13 @@ INTRADAY_RESCAN_INTERVAL = 5 * 60   # Rescan live market every 5 minutes while w
 def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                              rescan_callback=None, traded_tickers: set = None):
     """
-    v8 strategy: watches all candidate tickers for flat top breakouts.
-    Flat top = FLAT_TOP_WINDOW consecutive 1-min bars consolidating within
-    FLAT_TOP_MAX_RANGE (<8%) high-to-low, then price breaks above window high.
-    Requires price above VWAP at breakout.
-    No new entries after ENTRY_CUTOFF_HOUR:ENTRY_CUTOFF_MIN (11:00am ET).
-    Returns list of (ticker, entry_price, vwap) — ALL tickers that break out
-    in the same polling cycle. Empty list if cutoff reached with no breakout.
+    v10 entry detection: watches candidates for TWO entry types:
+    1. Flat top breakout — 4-bar consolidation <8% range, price breaks window high
+    2. EMA bounce — price pulled back to EMA9, bounces with 2:1 R:R to prior high
+    Both require price > VWAP and EMA9 > EMA20 (bullish stack).
+    No new entries after 11:00am ET.
+    Returns list of (ticker, entry_price, vwap, entry_type, extra) where
+    entry_type is "flat_top" or "ema_bounce" and extra has stop/target info.
     """
     if traded_tickers is None:
         traded_tickers = set()
@@ -1873,7 +1890,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         # Refresh bars for each ticker every 30s
         for t in candidates:
             if time.time() - cache[t]["fetched"] >= VWAP_BAR_CACHE_SECS:
-                fresh = get_intraday_bars(t, count=max(FLAT_TOP_WINDOW + 5, 30))
+                fresh = get_intraday_bars(t, count=max(EMA_BOUNCE_LOOKBACK + EMA20_PERIOD + 5, 50))
                 if fresh:
                     cache[t]["bars"] = fresh
                 wb_vwap = _get_webull_quote(t).get("vwap", 0)
@@ -1885,7 +1902,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         cache[t]["vwap"] = calculate_vwap(full)
                 cache[t]["fetched"] = time.time()
 
-        # Check each ticker — collect ALL that break out in this cycle
+        # Check each ticker for flat top breakout OR EMA bounce
         status_parts = []
         breakouts = []
         for t in candidates:
@@ -1897,42 +1914,75 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 status_parts.append(f"{t}:no data")
                 continue
 
-            # Need at least FLAT_TOP_WINDOW completed bars + 1 in-progress
             completed = bars[:-1]
-            if len(completed) < FLAT_TOP_WINDOW:
-                status_parts.append(f"{t}:${price:.2f} (need {FLAT_TOP_WINDOW-len(completed)} more bars)")
+            if len(completed) < EMA20_PERIOD + 2:
+                status_parts.append(f"{t}:${price:.2f} (need more bars)")
                 continue
-
-            window = completed[-FLAT_TOP_WINDOW:]
-            highs = [float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in window]
-            lows  = [float(b.get("low")  or b.get("l") or b.get("close") or b.get("c") or 0) for b in window]
-            w_high = max(h for h in highs if h > 0)
-            w_low  = min(l for l in lows  if l > 0)
-
-            if w_low <= 0:
-                status_parts.append(f"{t}:${price:.2f} bad bars")
-                continue
-
-            rng = (w_high - w_low) / w_low
-            is_flat = rng <= FLAT_TOP_MAX_RANGE
 
             vwap_tag = f" VWAP:${vwap:.2f}" if vwap > 0 else ""
-            if not is_flat:
-                status_parts.append(f"{t}:${price:.2f} range={rng*100:.1f}%>{FLAT_TOP_MAX_RANGE*100:.0f}%{vwap_tag}")
-                continue
+            ema9  = calculate_ema9(completed)
+            ema20 = calculate_ema20(completed)
+            found_entry = False
 
-            # Flat top confirmed — check for breakout above window high
-            if price > w_high:
-                if vwap > 0 and price < vwap:
-                    status_parts.append(f"{t}:${price:.2f} BREAK but below VWAP{vwap_tag}")
-                    continue
-                print(f"\n✅ {t} FLAT TOP BREAKOUT! ${price:.2f} > window high ${w_high:.2f} "
-                      f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window)"
-                      + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
-                breakouts.append((t, price, vwap))
-            else:
-                gap_to_break = (w_high - price) / price * 100
-                status_parts.append(f"{t}:${price:.2f} flat({rng*100:.1f}%) hi:${w_high:.2f} -{gap_to_break:.1f}%{vwap_tag}")
+            # ── Entry type 1: Flat top breakout ──────────────────────
+            if len(completed) >= FLAT_TOP_WINDOW:
+                window = completed[-FLAT_TOP_WINDOW:]
+                highs = [float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in window]
+                lows  = [float(b.get("low")  or b.get("l") or b.get("close") or b.get("c") or 0) for b in window]
+                w_high = max(h for h in highs if h > 0)
+                w_low  = min(l for l in lows  if l > 0)
+
+                if w_low > 0:
+                    rng = (w_high - w_low) / w_low
+                    is_flat = rng <= FLAT_TOP_MAX_RANGE
+
+                    if is_flat and price > w_high:
+                        if vwap > 0 and price < vwap:
+                            status_parts.append(f"{t}:${price:.2f} BREAK but below VWAP{vwap_tag}")
+                            continue
+                        print(f"\n✅ {t} FLAT TOP BREAKOUT! ${price:.2f} > window high ${w_high:.2f} "
+                              f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window)"
+                              + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
+                        breakouts.append((t, price, vwap, "flat_top", {}))
+                        found_entry = True
+                    elif is_flat:
+                        gap_to_break = (w_high - price) / price * 100
+                        status_parts.append(f"{t}:${price:.2f} flat({rng*100:.1f}%) hi:${w_high:.2f} -{gap_to_break:.1f}%{vwap_tag}")
+
+            # ── Entry type 2: EMA bounce ─────────────────────────────
+            if not found_entry and ema9 > 0 and ema20 > 0 and ema9 > ema20:
+                prev_close = float(completed[-1].get("close") or completed[-1].get("c") or 0)
+                prev_ema9  = _calc_ema(_extract_closes(completed[:-1]), EMA_PERIOD)
+
+                touched = prev_close > 0 and prev_ema9 > 0 and prev_close <= prev_ema9 * (1 + EMA_BOUNCE_TOUCH)
+                bounced = price > ema9
+                above_vwap = vwap <= 0 or price > vwap
+
+                if touched and bounced and above_vwap:
+                    lookback_bars = completed[-EMA_BOUNCE_LOOKBACK:]
+                    prior_high = max(float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in lookback_bars)
+
+                    if prior_high >= price * 1.02:
+                        ema_stop = ema9 * (1 - EMA_STOP_BUFFER)
+                        risk = price - ema_stop
+                        reward = prior_high - price
+                        if risk > 0 and reward / risk >= MIN_RR:
+                            vol_now = float(completed[-1].get("volume") or completed[-1].get("v") or 0)
+                            vol_prior = sum(float(b.get("volume") or b.get("v") or 0) for b in completed[-4:-1]) / 3 if len(completed) >= 4 else 0
+                            vol_ok = vol_prior <= 0 or vol_now >= vol_prior * EMA_BOUNCE_VOL_MULT
+
+                            if vol_ok:
+                                print(f"\n✅ {t} EMA BOUNCE! ${price:.2f} bounced off EMA9 ${ema9:.2f} "
+                                      f"(R:R {reward/risk:.1f}:1, target ${prior_high:.2f}, stop ${ema_stop:.2f})"
+                                      + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
+                                breakouts.append((t, price, vwap, "ema_bounce", {
+                                    "ema_stop": round(ema_stop, 4),
+                                    "prior_high": round(prior_high, 4),
+                                }))
+                                found_entry = True
+
+            if not found_entry and t not in [s.split(":")[0] for s in status_parts]:
+                status_parts.append(f"{t}:${price:.2f} EMA9:${ema9:.2f}{vwap_tag}")
 
         if breakouts:
             return breakouts
@@ -3313,9 +3363,8 @@ def main():
             print("📋 No more candidates — session complete")
             break
 
-        # ── Step 8: Watch all gappers — first flat top breakout wins ──────────
+        # ── Step 8: Watch all gappers — flat top breakout OR EMA bounce ────
         def _intraday_rescan(exclude=None):
-            """Called every 5 min inside wait_for_flat_top_entry to surface new gap stocks."""
             exclude = exclude or set()
             fresh = scan_morning_gappers()
             return [g["symbol"] for g in fresh
@@ -3328,11 +3377,12 @@ def main():
         )
 
         if not breakouts:
-            print(f"⏰ No flat top breakout detected ({', '.join(remaining_candidates)}). Cash preserved.")
+            print(f"⏰ No entry detected ({', '.join(remaining_candidates)}). Cash preserved.")
             break
 
         # Mark all breakout tickers as traded before threads start
-        for _t, _ep, _v in breakouts:
+        for entry in breakouts:
+            _t = entry[0]
             traded_tickers.add(_t)
             if _t in remaining_candidates:
                 remaining_candidates.remove(_t)
@@ -3340,8 +3390,9 @@ def main():
         # ── Steps 8-10: Execute + monitor all breakouts in parallel ────────────
         trade_lock = threading.Lock()
 
-        def _trade_worker(ticker, entry_price, vwap):
+        def _trade_worker(ticker, entry_price, vwap, entry_type="flat_top", extra=None):
             nonlocal session_pnl, trade_count, settled_remaining, current_balance
+            extra = extra or {}
 
             with trade_lock:
                 pos_size = min(current_balance * MAX_POSITION_SIZE, MAX_TRADE_DOLLARS)
@@ -3350,9 +3401,13 @@ def main():
                     return
                 settled_remaining -= MAX_TRADE_DOLLARS
 
-            stop_loss    = round(entry_price * (1 - STOP_LOSS_PCT), 4)
-            target_price = round(entry_price * (1 + TARGET_PCT), 4)
-            shares       = max(1, int(pos_size / entry_price))
+            if entry_type == "ema_bounce" and "ema_stop" in extra:
+                stop_loss = round(extra["ema_stop"], 4)
+                target_price = round(extra.get("prior_high", entry_price * (1 + TARGET_PCT)), 4)
+            else:
+                stop_loss = round(entry_price * (1 - STOP_LOSS_PCT), 4)
+                target_price = round(entry_price * (1 + TARGET_PCT), 4)
+            shares = max(1, int(pos_size / entry_price))
 
             if entry_price > current_balance:
                 print(f"⚠️ {ticker} @ ${entry_price:.2f} exceeds balance — skipping")
@@ -3360,8 +3415,9 @@ def main():
                     settled_remaining += MAX_TRADE_DOLLARS
                 return
 
+            tag = "EMA BOUNCE" if entry_type == "ema_bounce" else "FLAT TOP"
             print(f"\n{'='*60}")
-            print(f"🎯 ENTERING: {ticker}  entry=${entry_price:.2f}  "
+            print(f"🎯 ENTERING [{tag}]: {ticker}  entry=${entry_price:.2f}  "
                   f"target=${target_price:.2f}  stop=${stop_loss:.2f}  shares={shares}")
             print(f"{'='*60}\n")
 
@@ -3382,10 +3438,13 @@ def main():
                 return
 
             if actual_fill and actual_fill != entry_price:
-                entry_price  = actual_fill
-                stop_loss    = round(entry_price * (1 - STOP_LOSS_PCT), 4)
-                target_price = round(entry_price * (1 + TARGET_PCT), 4)
-                shares       = max(1, int(pos_size / entry_price))
+                entry_price = actual_fill
+                if entry_type == "ema_bounce" and "ema_stop" in extra:
+                    stop_loss = round(extra["ema_stop"], 4)
+                else:
+                    stop_loss = round(entry_price * (1 - STOP_LOSS_PCT), 4)
+                    target_price = round(entry_price * (1 + TARGET_PCT), 4)
+                shares = max(1, int(pos_size / entry_price))
 
             _open_trade.update({"active": True, "ticker": ticker,
                                 "entry_price": entry_price, "shares": shares,
@@ -3429,6 +3488,7 @@ def main():
             post_to_dashboard({
                 "date":            datetime.now(EASTERN).strftime("%Y-%m-%d"),
                 "ticker":          ticker,
+                "entry_type":      entry_type,
                 "entry":           entry_price,
                 "exit":            trade_result.get("exit_price", entry_price),
                 "shares":          shares,
@@ -3443,13 +3503,14 @@ def main():
             send_summary_email(analysis, trade_result, display_balance,
                                csv_log_line=csv_row, traded_ticker=ticker)
 
+            tag = "EMA BOUNCE" if entry_type == "ema_bounce" else "FLAT TOP"
             print(f"\n{'='*60}")
-            print(f"✅ COMPLETE — {ticker}  ${pnl:+.2f} ({pnl_pct:+.1f}%)  [{exit_reason}]")
+            print(f"✅ COMPLETE [{tag}] — {ticker}  ${pnl:+.2f} ({pnl_pct:+.1f}%)  [{exit_reason}]")
             print(f"   Session P&L: ${session_pnl:+.2f}  |  Balance: ${current_balance:.2f}")
             print(f"{'='*60}\n")
 
-        threads = [threading.Thread(target=_trade_worker, args=(t, ep, v), daemon=True)
-                   for t, ep, v in breakouts]
+        threads = [threading.Thread(target=_trade_worker, args=entry, daemon=True)
+                   for entry in breakouts]
         for th in threads:
             th.start()
         for th in threads:

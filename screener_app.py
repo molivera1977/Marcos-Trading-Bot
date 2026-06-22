@@ -129,20 +129,25 @@ def _make_data_client():
 
 def run_scan():
     """
-    1. Webull screener → live gainers (market hours) or pre-market gainers (before open)
-    2. Filter: price $1–$30, gap >5% intraday / >8% pre-market, dedup
-    3. yfinance float check → drop anything >50M shares
-    4. Score by gap% / float_millions, return top 15
+    1. Webull screener → live gainers / pre-market / after-hours movers
+    2. Filter: price $0.50–$30, move threshold varies by session
+    3. yfinance float check → drop large floats (50M live, 100M evening)
+    4. After hours: add short interest + day stats for tomorrow's watchlist
+    5. Score by change% / float_millions, return top 15 (20 evening)
     """
     now_et      = datetime.now(EASTERN)
     market_open = now_et.hour > 9 or (now_et.hour == 9 and now_et.minute >= 30)
     after_hours = now_et.hour >= 16
     rank_type   = "CHANGE_RATIO" if market_open else "PRE_MARKET"
     min_chg     = 5 if market_open else 8
+    max_float   = 50_000_000
+    top_n       = 15
     if after_hours:
-        rank_type = "CHANGE_RATIO"   # use day's final change after close
-        min_chg   = 5
-    source_label = "Live gainer" if market_open else "Pre-mkt gainer"
+        rank_type = "CHANGE_RATIO"
+        min_chg   = 10
+        max_float = 100_000_000
+        top_n     = 20
+    source_label = "Live gainer" if market_open else ("Today's mover" if after_hours else "Pre-mkt gainer")
 
     data_client = _make_data_client()
     candidates = {}
@@ -199,11 +204,13 @@ def run_scan():
                     mktcap  = float(item.get("market_value") or 0)
                     rel_vol = float(item.get("relative_volume_10d") or 0)
                     vol     = float(item.get("volume") or 0)
-                    if not sym or price < 0.50 or price > 30 or rel_vol < 2:
+                    rvol_min = 3 if after_hours else 2
+                    chg_min  = 5 if after_hours else 3
+                    if not sym or price < 0.50 or price > 30 or rel_vol < rvol_min:
                         continue
                     if sym in candidates:
                         candidates[sym]["relative_volume"] = round(rel_vol, 1)
-                    elif chg >= 3:
+                    elif chg >= chg_min:
                         candidates[sym] = {
                             "symbol": sym, "change_pct": round(chg, 2),
                             "price": round(price, 2), "market_cap": mktcap,
@@ -217,7 +224,7 @@ def run_scan():
     else:
         errors.append("Webull SDK not available — check env vars")
 
-    # Float check via yfinance
+    # Float check + enrichment via yfinance
     results = []
     for sym, g in candidates.items():
         try:
@@ -228,16 +235,25 @@ def run_scan():
             if float_sh == 0:
                 g["float_label"] = "N/A"
                 g["float_tier"] = "unknown"
-                results.append(g)
             elif float_sh <= 10_000_000:
                 g["float_label"] = f"{float_m:.1f}M"
                 g["float_tier"] = "small"
-                results.append(g)
-            elif float_sh <= 50_000_000:
+            elif float_sh <= max_float:
                 g["float_label"] = f"{float_m:.1f}M"
                 g["float_tier"] = "medium"
-                results.append(g)
-            # >50M — drop
+            else:
+                time.sleep(0.3)
+                continue
+            if after_hours:
+                g["short_interest"] = round((info.get("shortPercentOfFloat") or 0) * 100, 1)
+                g["day_high"] = info.get("dayHigh") or 0
+                g["day_low"] = info.get("dayLow") or 0
+                g["day_open"] = info.get("open") or 0
+                day_range = 0
+                if g["day_open"] and g["day_high"] and g["day_low"]:
+                    day_range = round((g["day_high"] - g["day_low"]) / g["day_open"] * 100, 1)
+                g["day_range_pct"] = day_range
+            results.append(g)
             time.sleep(0.3)
         except Exception:
             g["float_shares"] = 0
@@ -250,7 +266,7 @@ def run_scan():
         float_m = f / 1_000_000 if f > 0 else 25
         return g["change_pct"] / max(float_m, 0.1)
 
-    results = sorted(results, key=score, reverse=True)[:15]
+    results = sorted(results, key=score, reverse=True)[:top_n]
     return results, errors
 
 # ── HTML template ──────────────────────────────────────────────────────────────
@@ -394,11 +410,13 @@ HTML = """<!DOCTYPE html>
           <th onclick="sortBy('change_pct')" class="sort-desc">Move %</th>
           <th onclick="sortBy('float_shares')">Float</th>
           <th onclick="sortBy('relative_volume')">Rel vol</th>
+          <th class="evening-col" style="display:none" onclick="sortBy('short_interest')">Short %</th>
+          <th class="evening-col" style="display:none" onclick="sortBy('day_range_pct')">Day range</th>
           <th onclick="sortBy('market_cap')">Mkt cap</th>
           <th>Source</th>
         </tr>
       </thead>
-      <tbody id="tbody"><tr><td colspan="7" class="empty">Click "Scan now" to load.</td></tr></tbody>
+      <tbody id="tbody"><tr><td colspan="9" class="empty">Click "Scan now" to load.</td></tr></tbody>
     </table>
   </div>
   <div id="errors-wrap"></div>
@@ -411,6 +429,7 @@ function fmtM(n){if(!n||n===0)return'—';var m=n/1e6;return m<1?(m*1000).toFixe
 var _scanData = [];
 var _sortCol = 'change_pct';
 var _sortAsc = false;
+var _afterHours = false;
 
 function sortBy(col){
   if(_sortCol===col){ _sortAsc=!_sortAsc; }
@@ -457,12 +476,18 @@ function renderRows(rows){
     var relVol=r.relative_volume?r.relative_volume.toFixed(1)+'×':'—';
     var mktcap=r.market_cap?'$'+fmtM(r.market_cap):'—';
     var botBadge=isBot?'<span class="bot-pill">BOT</span>':'';
+    var shortPct = r.short_interest ? r.short_interest.toFixed(1)+'%' : '—';
+    var dayRange = r.day_range_pct ? r.day_range_pct.toFixed(1)+'%' : '—';
+    var shortClass = r.short_interest >= 20 ? 'gap-hot' : r.short_interest >= 10 ? 'gap-warm' : '';
+    var eveningStyle = _afterHours ? '' : 'display:none';
     return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
       +'<td class="ticker-cell">'+r.symbol+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+'</td>'
       +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
       +'<td class="'+floatClass+'">'+r.float_label+'</td>'
       +'<td>'+relVol+'</td>'
+      +'<td class="evening-col" style="'+eveningStyle+'"><span class="'+(shortClass?'gap-pill '+shortClass:'')+'">'+shortPct+'</span></td>'
+      +'<td class="evening-col" style="'+eveningStyle+'">'+dayRange+'</td>'
       +'<td>'+mktcap+'</td>'
       +'<td><span class="source-badge">'+r.source+'</span></td>'
       +'</tr>';
@@ -518,11 +543,27 @@ function renderResults(d){
   var stateLabels = {
     premarket:   {sub:'Pre-market RVOL + momentum',     title:'RVOL + momentum — pre-market'},
     open:        {sub:'Live RVOL + momentum candidates', title:'RVOL + momentum — live market'},
-    after_hours: {sub:'After-hours movers',              title:'RVOL + momentum — after hours'},
+    after_hours: {sub:"Tomorrow's watchlist candidates",  title:"Tomorrow's Watchlist — after hours"},
   };
   var lbl = stateLabels[d.market_state] || stateLabels['open'];
   document.getElementById('scanner-sub').textContent  = lbl.sub;
   document.getElementById('section-title').textContent = lbl.title;
+
+  // After-hours badge
+  var liveBadge = document.getElementById('live-badge');
+  if(d.market_state==='after_hours'){
+    liveBadge.textContent='Evening';
+    liveBadge.style.background='#2d1f00';liveBadge.style.color='#d29922';
+  } else {
+    liveBadge.textContent='Live';
+    liveBadge.style.background='#1a3a2a';liveBadge.style.color='#3fb950';
+  }
+
+  // Toggle evening-only columns
+  _afterHours = d.market_state==='after_hours';
+  document.querySelectorAll('.evening-col').forEach(function(el){
+    el.style.display = _afterHours ? '' : 'none';
+  });
 
   // Timestamp
   var now=new Date(d.updated);
@@ -532,8 +573,9 @@ function renderResults(d){
   _scanData = rows;
   _sortCol = 'change_pct'; _sortAsc = false;
   var tbody=document.getElementById('tbody');
+  var colSpan = _afterHours ? 9 : 7;
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="7" class="empty">No candidates found. Markets may be closed or pre-market data unavailable.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="'+colSpan+'" class="empty">No candidates found. Markets may be closed or pre-market data unavailable.</td></tr>';
     return;
   }
   var botCount=rows.filter(function(r){return (r.relative_volume&&r.relative_volume>=1.5)||r.change_pct>=5;}).length;
@@ -550,12 +592,17 @@ function renderResults(d){
 // Auto-scan on load
 runScan();
 
-// Auto-refresh every 5 minutes during market hours (4am–5pm ET)
+// Auto-refresh: 5 min during market hours, 15 min after hours
 setInterval(function(){
   var etHour = new Date().toLocaleString('en-US',{timeZone:'America/New_York',hour:'numeric',hour12:false});
   var h = parseInt(etHour);
-  if(h>=4&&h<17){runScan();}
-},5*60*1000);
+  if(h>=4&&h<17){ runScan(); }
+}, 5*60*1000);
+setInterval(function(){
+  var etHour = new Date().toLocaleString('en-US',{timeZone:'America/New_York',hour:'numeric',hour12:false});
+  var h = parseInt(etHour);
+  if(h>=17||h<4){ runScan(); }
+}, 15*60*1000);
 
 
 </script>

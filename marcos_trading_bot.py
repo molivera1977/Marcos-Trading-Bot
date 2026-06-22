@@ -285,6 +285,10 @@ MAX_VWAP_EXTENSION   = 0.05   # Don't enter if price is >5% above VWAP — chasi
 VWAP_PULLBACK_ZONE   = 0.03   # Within 3% of VWAP counts as "at VWAP" for pullback detection
 VWAP_PULLBACK_MIN_RUN = 0.05  # High-water must be ≥5% above VWAP before pullback mode activates
 MIN_ABS_VOL_ENTRY    = 15_000 # Bounce bar must have ≥15k shares — blocks thin afternoon noise
+MOMENTUM_BARS        = 3      # Check last N bars for momentum
+MOMENTUM_MIN_AVG_VOL = 10_000 # Avg volume over last N bars must exceed this
+MOMENTUM_VOL_ACCEL   = 1.2    # Current bar vol must be ≥1.2× avg of prior bars
+MOMENTUM_GREEN_BARS  = 2      # At least N of last 3 bars must close green (close > open)
 TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 7 days
 LOG_FILE              = "/tmp/trade_log.csv"
 DRY_RUN    = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
@@ -1470,6 +1474,77 @@ def check_level2(ticker, entry_price) -> tuple[bool, dict]:
 
     except Exception as e:
         print(f"⚠️  {ticker}: L2 error: {e} — skipping check")
+        return True, details
+
+
+def check_momentum(ticker) -> tuple[bool, dict]:
+    """
+    Fetch recent 1-min bars and verify Kev-style momentum:
+    1. Average volume over last MOMENTUM_BARS bars ≥ MOMENTUM_MIN_AVG_VOL
+    2. Current bar volume ≥ MOMENTUM_VOL_ACCEL × avg of prior bars (accelerating)
+    3. At least MOMENTUM_GREEN_BARS of last 3 bars are green (close > open)
+    Returns (ok, details_dict).
+    """
+    details = {"passed": False, "reason": ""}
+    try:
+        bars = get_intraday_bars(ticker, count=MOMENTUM_BARS + 1)
+        if len(bars) < MOMENTUM_BARS:
+            details["reason"] = f"only {len(bars)} bars available (need {MOMENTUM_BARS})"
+            print(f"⚠️  {ticker} momentum: {details['reason']} — passing by default")
+            return True, details
+
+        recent = bars[-(MOMENTUM_BARS):]
+        prior = bars[-(MOMENTUM_BARS + 1):-1] if len(bars) > MOMENTUM_BARS else recent[:-1]
+
+        volumes = []
+        for b in recent:
+            v = float(b.get("volume") or b.get("v") or 0)
+            volumes.append(v)
+        avg_vol = sum(volumes) / len(volumes) if volumes else 0
+        details["avg_vol"] = int(avg_vol)
+
+        if avg_vol < MOMENTUM_MIN_AVG_VOL:
+            details["reason"] = f"avg vol {int(avg_vol):,} < {MOMENTUM_MIN_AVG_VOL:,} min"
+            print(f"❌ {ticker} momentum FAIL: {details['reason']}")
+            return False, details
+
+        prior_vols = [float(b.get("volume") or b.get("v") or 0) for b in prior]
+        prior_avg = sum(prior_vols) / len(prior_vols) if prior_vols else 0
+        current_vol = volumes[-1] if volumes else 0
+        details["current_vol"] = int(current_vol)
+        details["prior_avg_vol"] = int(prior_avg)
+
+        if prior_avg > 0 and current_vol < prior_avg * MOMENTUM_VOL_ACCEL:
+            details["reason"] = (f"vol fading: current {int(current_vol):,} < "
+                                 f"{MOMENTUM_VOL_ACCEL}× prior avg {int(prior_avg):,}")
+            print(f"❌ {ticker} momentum FAIL: {details['reason']}")
+            return False, details
+
+        green_count = 0
+        check_bars = recent[-3:] if len(recent) >= 3 else recent
+        for b in check_bars:
+            o = float(b.get("open") or b.get("o") or 0)
+            c = float(b.get("close") or b.get("c") or 0)
+            h = float(b.get("high") or b.get("h") or c)
+            l = float(b.get("low") or b.get("l") or c)
+            bar_range = h - l
+            if c > o and bar_range > 0 and (c - l) / bar_range >= 0.5:
+                green_count += 1
+        details["green_bars"] = green_count
+
+        if green_count < MOMENTUM_GREEN_BARS:
+            details["reason"] = f"only {green_count}/{len(check_bars)} green bars (need {MOMENTUM_GREEN_BARS})"
+            print(f"❌ {ticker} momentum FAIL: {details['reason']}")
+            return False, details
+
+        details["passed"] = True
+        print(f"✅ {ticker} momentum OK: avg vol {int(avg_vol):,}, "
+              f"current {int(current_vol):,}, {green_count} green bars")
+        return True, details
+
+    except Exception as e:
+        print(f"⚠️  {ticker}: momentum check error: {e} — passing by default")
+        details["reason"] = str(e)
         return True, details
 
 
@@ -3632,6 +3707,13 @@ def main():
             l2_ok, l2_details = check_level2(ticker, entry_price)
             if not l2_ok:
                 print(f"⚠️ {ticker} L2 rejected: {l2_details.get('reason','')} — skipping")
+                with trade_lock:
+                    settled_remaining += MAX_TRADE_DOLLARS
+                return
+
+            mom_ok, mom_details = check_momentum(ticker)
+            if not mom_ok:
+                print(f"⚠️ {ticker} momentum rejected: {mom_details.get('reason','')} — skipping")
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
                 return

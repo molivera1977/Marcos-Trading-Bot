@@ -91,7 +91,6 @@ def _compute_stats():
     }
 
 _load_trades()
-_load_watchlist()
 
 # ── Webull helpers ─────────────────────────────────────────────────────────────
 

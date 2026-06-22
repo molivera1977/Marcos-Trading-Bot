@@ -1397,6 +1397,8 @@ def get_intraday_bars_full(ticker):
                          progress=False, auto_adjust=False)
         if df is None or df.empty:
             return []
+        if hasattr(df.columns, 'nlevels') and df.columns.nlevels > 1:
+            df.columns = df.columns.get_level_values(0)
         bars = []
         for _, row in df.iterrows():
             try:
@@ -1898,18 +1900,16 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 fresh = get_intraday_bars(t, count=max(EMA_BOUNCE_LOOKBACK + EMA20_PERIOD + 5, 50))
                 if fresh:
                     cache[t]["bars"] = fresh
-                wb_vwap = _get_webull_quote(t).get("vwap", 0)
-                if wb_vwap > 0:
-                    cache[t]["vwap"] = wb_vwap
-                if cache[t]["vwap"] <= 0:
-                    full = get_intraday_bars_full(t)
-                    if full:
-                        calc_vwap = calculate_vwap(full)
-                        if calc_vwap > 0:
-                            cache[t]["vwap"] = calc_vwap
-                            print(f"📊 {t} VWAP from yfinance bars: ${calc_vwap:.2f}")
-                        else:
-                            print(f"⚠️  {t} VWAP unavailable from both Webull and yfinance")
+                full_bars = get_intraday_bars(t, count=390)
+                if full_bars:
+                    calc_vwap = calculate_vwap(full_bars)
+                    if calc_vwap > 0:
+                        cache[t]["vwap"] = calc_vwap
+                        print(f"📊 {t} VWAP from Webull bars: ${calc_vwap:.2f}")
+                    else:
+                        print(f"⚠️  {t} VWAP=0 — Webull bars had no volume data")
+                else:
+                    print(f"⚠️  {t} VWAP unavailable — no Webull bars returned")
                 cache[t]["fetched"] = time.time()
 
         # Check each ticker for flat top breakout OR EMA bounce
@@ -2050,9 +2050,9 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
     to_drop = []
     for t in list(candidates):
         try:
-            seed_bars = get_intraday_bars_full(t)
+            seed_bars = get_intraday_bars(t, count=390)
             if not seed_bars:
-                print(f"   {t}: no intraday data — watching for fresh breakout")
+                print(f"   {t}: no Webull intraday data — watching for fresh breakout")
                 continue
             today_high = max(float(b.get("high") or b.get("h") or
                                    b.get("close") or b.get("c") or 0)
@@ -2111,16 +2111,13 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                 if fresh:
                     cache[t]["bars"] = fresh
                     cache[t]["ma90"] = calculate_90ma(fresh)
-                # VWAP: prefer Webull snapshot (matches chart exactly), fall back to yfinance
-                wb_vwap = _get_webull_quote(t).get("vwap", 0)
-                if wb_vwap > 0:
-                    cache[t]["vwap"] = wb_vwap
-                else:
-                    full = get_intraday_bars_full(t)
-                    if full:
-                        cache[t]["vwap"] = calculate_vwap(full)
-                    elif fresh:
-                        cache[t]["vwap"] = calculate_vwap(fresh)
+                full_bars = get_intraday_bars(t, count=390)
+                if full_bars:
+                    calc_vwap = calculate_vwap(full_bars)
+                    if calc_vwap > 0:
+                        cache[t]["vwap"] = calc_vwap
+                elif fresh:
+                    cache[t]["vwap"] = calculate_vwap(fresh)
                 cache[t]["fetched"] = time.time()
 
         # ── Check each ticker — take first confirmed reclaim ───────
@@ -2226,7 +2223,7 @@ def wait_for_vwap_entry(candidates: list, stream: WebullStream,
                         candidates.append(t)
                         hw = 0.0
                         try:
-                            sb = get_intraday_bars_full(t)
+                            sb = get_intraday_bars(t, count=390)
                             if sb:
                                 th = max(float(b.get("high") or b.get("h") or
                                                b.get("close") or b.get("c") or 0) for b in sb)

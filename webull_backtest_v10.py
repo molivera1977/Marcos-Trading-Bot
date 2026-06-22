@@ -19,7 +19,7 @@ Applies every teachable lesson from @momentum.official (Kev's TikTok — 40+ vid
       sub-$1 (even sub-$0.20) trades. Now matches the live bot's tuned floor.
   6.  Float < 20M shares — Kev's most important pre-filter; prefetched via yfinance
       (current float used as proxy; if unavailable, ticker is allowed through)
-  7.  GAP 15–30% on daily bar — qualifying gap-up day
+  7.  RVOL + daily range qualify the day — gap is metadata, not a gate
   28. RVOL > 1.5x trailing 20-day avg volume — NEW: Kev's screener filter
       ("Relative Volume: Over 1.5"). Previously only intraday relative volume
       (breakout bar vs its own window) was checked — the actual day-level
@@ -157,7 +157,7 @@ print("✅  Webull DataClient initialized")
 
 # Timing (lessons 1–2)
 START_TIME         = "09:45"
-TIME_CUTOFF        = "10:45"   # TEST: was 11:00 — 10:45-11:00 slot negative in every run
+TIME_CUTOFF        = "11:00"   # Kev's full window is 9:00-11:00; 10:45-11:00 slot: 71 trades, 49% WR, +$146
 TIME_STOP          = "11:30"     # FIXED (lesson 22): was 15:30 — Kev's danger zone starts
                                   # ~11:30am-noon (down-halt traps, no circuit breaker
                                   # protection on the way down); his session ends at 11am.
@@ -166,20 +166,15 @@ TIME_STOP          = "11:30"     # FIXED (lesson 22): was 15:30 — Kev's danger
 MIN_PRICE          = 0.50        # matches live bot floor; Kev trades sub-$1 (even sub-$0.20) setups
 MAX_PRICE          = 20.0
 MAX_FLOAT          = 20_000_000   # Kev's explicit filter: < 20M shares
-MIN_GAP_PCT        = 0.05   # 5% floor — still requires a meaningful gap-up mover
-MAX_GAP_PCT        = 0.20   # DATA: 0% WR on every bucket above 20% (5 trades at 100%+ cost -$36.73).
-                              # Stocks that gapped 30-200% are too extended; trail stop fires every time.
-                              # 5-20% range: 33 trades, avg +$2.03 EV/trade vs 20%+ range: 19 trades, -$3.44 EV/trade.
+MAX_GAP_PCT        = 2.0    # Only filter >200% gaps (data errors). Gap is metadata, not a gate.
+                              # All gap buckets up to 100% are profitable; 100%+ is -$14 on 15 trades (negligible).
 VWAP_REQUIRED      = True
 RVOL_MIN           = 1.5         # LOCKED: winner from sweep — Kev's own 1.5 setting is correct
 MIN_DAILY_RANGE_PCT = 0.10        # lesson 29 ("Daily Range," A+ checklist item 5): the
                                   # gap day itself must have a meaningful (>=10%) H/L
                                   # range — not a dull stock barely moving intraday
-DISTRIBUTION_GATE_PCT = 0.20      # TEST: sweeping disabled/0.02/0.05/0.10/0.20
-                                  # FLAT_TOP breakouts that are a lower-high off an earlier,
-                                  # bigger spike (the breakout level is >5% below the day's
-                                  # already-made high) — that's chasing a fading top, not a
-                                  # fresh breakout
+DISTRIBUTION_GATE_PCT = 0.15      # Allows 2nd/3rd breakouts per day (Kev trades multiple setups).
+                                  # 0.05 killed legitimate re-entries; 0.15 still blocks obvious distribution.
 
 # EMA periods — confirmed from A+ checklist video (lesson 4)
 EMA_SHORT          = 9
@@ -187,16 +182,16 @@ EMA_LONG           = 20
 
 # Flat top breakout (lessons 8–11)
 FLAT_TOP_WINDOW    = 4   # LOCKED: winner from sweep — peak at 4, worse in both directions
-FLAT_TOP_MAX_RANGE = 0.050        # LOCKED: winner from sweep (0.05 > all others)
+FLAT_TOP_MAX_RANGE = 0.080        # Wider consolidation tolerance (Kev eyeballs, doesn't measure to 5% precision)
 VOL_SPIKE_MULT     = 1.5          # breakout bar > 1.5× window avg volume (lesson 9)
 WINDOW_TOP_GATE    = 0.03         # last bar within 3% of window high (lesson 10)
 
 # EMA pullback bounce (lessons 12–16)
 EMA_BOUNCE_LOOKBACK = 20          # bars to look back for prior high
-EMA_BOUNCE_TOUCH    = 0.005       # ≤0.5% above EMA9 counts as "touched" (lesson 12)
+EMA_BOUNCE_TOUCH    = 0.015       # ≤1.5% above EMA9 counts as "touched" — Kev limits at EMA, bar doesn't need exact touch
 EMA_BOUNCE_VOL_MULT = 1.2         # bounce bar > 1.2× prior 3-bar avg (lesson 16)
 EMA_STOP_BUFFER     = 0.025       # initial stop = EMA9 × (1 − 2.5%) (lesson 18)
-MIN_RR              = 3.0        # Kev's stated minimum R:R ("15c reward vs <5c risk") (lesson 14b)
+MIN_RR              = 2.0        # 2:1 R:R minimum — Kev's "15c vs 5c" was an example, not a floor. 50 EMA bounces at 2.0.
 
 # Halt-squeeze continuation (lesson 26, new entry type)
 HALT_CONT_ENABLED = False         # DISABLED: 38 trades, -$39.65, W/L only 0.86 — structural drag
@@ -446,6 +441,9 @@ def fetch_daily_bars(ticker: str) -> list:
 
 
 def find_gap_days(ticker: str, bars: list) -> list:
+    """Finds qualifying days by RVOL + daily range. Gap is metadata, not a gate.
+    Kev focuses on unusual volume and bullish momentum, not pre-market gaps specifically.
+    Non-gap days were the strongest performers: 149 trades, 57% WR, +$718 P&L."""
     results = []
     if len(bars) < 2:
         return results
@@ -460,13 +458,12 @@ def find_gap_days(ticker: str, bars: list) -> list:
         close_p = _bar_val(prev, "close", "c", "closing")
         if open_p <= 0 or close_p <= 0:
             continue
+
         gap = (open_p - close_p) / close_p
-        if gap < MIN_GAP_PCT or gap > MAX_GAP_PCT:
+
+        if gap > MAX_GAP_PCT:
             continue
 
-        # Lesson 28 (new): RVOL > 1.5x trailing 20-day avg volume — Kev's screener
-        # filter ("Relative Volume: Over 1.5"). Without this, a "gap day" with
-        # unremarkable volume passes through even though Kev's scanner would reject it.
         trailing_vols = [v for v in vols[max(0, i - 20):i] if v > 0]
         if trailing_vols:
             avg_vol = sum(trailing_vols) / len(trailing_vols)
@@ -474,9 +471,6 @@ def find_gap_days(ticker: str, bars: list) -> list:
             if avg_vol > 0 and day_vol > 0 and day_vol / avg_vol < RVOL_MIN:
                 continue
 
-        # Lesson 29 (new, A+ checklist item 5 "Daily Range"): the gap day itself
-        # needs a meaningful H/L range — a dull stock barely moving intraday isn't
-        # the "explosive" setup Kev screens for, even if it gapped on the open.
         day_high = _bar_val(cur, "high", "h")
         day_low  = _bar_val(cur, "low",  "l")
         if day_low > 0 and (day_high - day_low) / day_low < MIN_DAILY_RANGE_PCT:
@@ -966,10 +960,10 @@ def main():
     # Lesson 6: prefetch float data for universe
     _prefetch_floats(UNIVERSE)
 
-    # Phase 1: scan daily bars for gap-up days
+    # Phase 1: scan daily bars for qualifying days (RVOL + range)
     all_gaps = []
     seen     = set()
-    print("Phase 1 — scanning daily bars for gap-up days...\n")
+    print("Phase 1 — scanning daily bars for qualifying days (RVOL + range)...\n")
 
     for i, ticker in enumerate(UNIVERSE, 1):
         if DEBUG_ONLY and i > DEBUG_MAX_TICKERS:
@@ -999,25 +993,25 @@ def main():
             oldest = min(g[0] for g in gaps)
             newest = max(g[0] for g in gaps)
             print(f"  [{i:3d}/{len(UNIVERSE)}] {ticker:8s}  {len(daily):4d} daily bars "
-                  f"({oldest} → {newest})  {len(gaps):3d} gap days")
+                  f"({oldest} → {newest})  {len(gaps):3d} qualifying days")
         else:
-            print(f"  [{i:3d}/{len(UNIVERSE)}] {ticker:8s}  {len(daily):4d} daily bars  0 gap days")
+            print(f"  [{i:3d}/{len(UNIVERSE)}] {ticker:8s}  {len(daily):4d} daily bars  0 qualifying days")
 
         time.sleep(RATE_LIMIT_SLEEP)
 
     all_gaps.sort(key=lambda x: x[1])
     print(f"\n{'─'*70}")
-    print(f"Total qualifying gap days: {len(all_gaps)}")
+    print(f"Total qualifying days (RVOL + range): {len(all_gaps)}")
     if all_gaps:
         print(f"Date range: {all_gaps[0][1]} → {all_gaps[-1][1]}")
     print(f"{'─'*70}\n")
 
     if not all_gaps:
-        print("No gap days found. Check credentials and ticker list.")
+        print("No qualifying days found. Check credentials and ticker list.")
         return
 
     # Phase 2 & 3: fetch 1-min bars + run strategy
-    print("Phase 2 — running strategy on each gap day...\n")
+    print("Phase 2 — running strategy on each qualifying day...\n")
     all_results = []
 
     for j, (ticker, day, gap_pct) in enumerate(all_gaps, 1):
@@ -1029,8 +1023,9 @@ def main():
         halts    = result.get("halt_count", 0)
         flag     = "✅" if n_trades > 0 else "  "
         halt_str = f" 🔔{halts}" if halts else ""
+        gap_label = f"gap={gap_pct*100:+.0f}%" if abs(gap_pct) >= 0.03 else "no gap"
         print(f"  [{j:4d}/{len(all_gaps)}] {flag} {ticker:8s} {day}  "
-              f"gap={gap_pct*100:+.0f}%{halt_str}  "
+              f"{gap_label:>10}{halt_str}  "
               f"{'→ ' + str(n_trades) + ' trade(s)' if n_trades else '(no signal)' if not note else note}")
 
         time.sleep(RATE_LIMIT_SLEEP)
@@ -1062,7 +1057,7 @@ def print_report(results, all_gaps):
     print(f"  RESULTS SUMMARY — v10 (Kev's Complete System, 25 lessons)")
     print(f"{'='*70}")
     if n_gap_days:
-        print(f"  Gap-up days scanned   : {n_gap_days}")
+        print(f"  Qualifying days scanned: {n_gap_days}")
         print(f"  Skipped (float >20M)  : {n_float_skip}")
         print(f"  Days with signal      : {n_signal}  ({n_signal/n_gap_days*100:.0f}%)")
         print(f"  Days with no signal   : {n_gap_days - n_signal - n_float_skip}")
@@ -1138,7 +1133,7 @@ def print_report(results, all_gaps):
     # By entry time
     print(f"\n  ── By entry time ───────────────────────────────────────────")
     for h_s, h_e in [("09:45","10:00"),("10:00","10:15"),
-                     ("10:15","10:30"),("10:30","10:45"),("10:45","11:00")]:
+                     ("10:15","10:30"),("10:30","10:45"),("10:45","11:00"),("11:00","11:15")]:
         bucket = [t for t in all_trades if h_s <= t.get("entry_time","00:00") < h_e]
         if bucket:
             bw = [t for t in bucket if t["pnl"] > 0]
@@ -1148,12 +1143,12 @@ def print_report(results, all_gaps):
 
     # By gap bucket — full range so we can see where edge lives
     print(f"\n  ── By gap % ────────────────────────────────────────────────")
-    gap_ranges = [(5, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50), (50, 100), (100, 999)]
+    gap_ranges = [(-999, 0), (0, 5), (5, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50), (50, 100), (100, 999)]
     for lo, hi in gap_ranges:
         bucket = [t for t in all_trades if lo <= t["gap_pct"] < hi]
         if bucket:
             bw = [t for t in bucket if t["pnl"] > 0]
-            label = f"{lo}–{hi}%" if hi < 999 else f"{lo}%+"
+            label = f"gap down" if lo < 0 else (f"{lo}–{hi}%" if hi < 999 else f"{lo}%+")
             print(f"    {label:<10} {len(bucket):3d} trades  "
                   f"{len(bw)/len(bucket)*100:.0f}% WR  "
                   f"${sum(t['pnl'] for t in bucket):+.2f}")

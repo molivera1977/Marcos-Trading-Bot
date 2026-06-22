@@ -40,39 +40,7 @@ app = Flask(__name__)
 
 _trades: list = []
 _account: dict = {"balance": 0.0, "updated": ""}
-_evening_watchlist: dict = {}          # Latest watchlist from evening scan
-_kev_picks: dict = {}                  # Kev's transcript submitted via web form
 _watching: dict = {}                   # Live watch list posted by bot each session
-WATCHLIST_FILE = pathlib.Path("/tmp/marcos_evening_watchlist.json")
-KEV_PICKS_FILE = pathlib.Path("/tmp/marcos_kev_picks.json")
-
-def _load_watchlist():
-    global _evening_watchlist
-    if WATCHLIST_FILE.exists():
-        try:
-            _evening_watchlist = json.loads(WATCHLIST_FILE.read_text())
-        except Exception:
-            pass
-
-def _save_watchlist():
-    try:
-        WATCHLIST_FILE.write_text(json.dumps(_evening_watchlist, indent=2))
-    except Exception as e:
-        print(f"⚠️  Could not save watchlist: {e}")
-
-def _load_kev_picks():
-    global _kev_picks
-    if KEV_PICKS_FILE.exists():
-        try:
-            _kev_picks = json.loads(KEV_PICKS_FILE.read_text())
-        except Exception:
-            pass
-
-def _save_kev_picks():
-    try:
-        KEV_PICKS_FILE.write_text(json.dumps(_kev_picks, indent=2))
-    except Exception as e:
-        print(f"⚠️  Could not save Kev picks: {e}")
 
 def _load_trades():
     global _trades, _account
@@ -124,7 +92,6 @@ def _compute_stats():
 
 _load_trades()
 _load_watchlist()
-_load_kev_picks()
 
 # ── Webull helpers ─────────────────────────────────────────────────────────────
 
@@ -389,7 +356,7 @@ HTML = """<!DOCTYPE html>
     <div class="logo-icon">📈</div>
     <div>
       <h1>Marcos Scanner</h1>
-      <sub id="scanner-sub">Small-float movers</sub>
+      <sub id="scanner-sub">RVOL + momentum candidates</sub>
     </div>
   </div>
   <div class="header-right">
@@ -400,14 +367,14 @@ HTML = """<!DOCTYPE html>
 
 <div class="stats">
   <div class="stat"><div class="stat-label">Candidates</div><div class="stat-value" id="s-count">—</div><div class="stat-sub" id="s-bot-count"></div></div>
-  <div class="stat"><div class="stat-label">Avg gap</div><div class="stat-value green" id="s-gap">—</div></div>
+  <div class="stat"><div class="stat-label">Avg move</div><div class="stat-value green" id="s-gap">—</div></div>
   <div class="stat"><div class="stat-label">Smallest float</div><div class="stat-value green" id="s-float">—</div></div>
   <div class="stat"><div class="stat-label">Top rel vol</div><div class="stat-value" id="s-vol">—</div></div>
 </div>
 
 <div class="body">
   <div class="section-header">
-    <span class="section-title" id="section-title">Small-float movers</span>
+    <span class="section-title" id="section-title">RVOL + momentum candidates</span>
     <div style="display:flex;align-items:center;gap:10px">
       <button class="filter-btn" id="filter-btn" onclick="toggleFilter()">🤖 Bot candidates only</button>
       <span class="live-dot" id="live-badge">Live</span>
@@ -425,7 +392,7 @@ HTML = """<!DOCTYPE html>
         <tr>
           <th onclick="sortBy('symbol')">Ticker</th>
           <th onclick="sortBy('price')">Price</th>
-          <th onclick="sortBy('change_pct')" class="sort-desc">Gap %</th>
+          <th onclick="sortBy('change_pct')" class="sort-desc">Move %</th>
           <th onclick="sortBy('float_shares')">Float</th>
           <th onclick="sortBy('relative_volume')">Rel vol</th>
           <th onclick="sortBy('market_cap')">Mkt cap</th>
@@ -485,8 +452,8 @@ function renderRows(rows){
   });
   var tbody=document.getElementById('tbody');
   tbody.innerHTML=sorted.map(function(r){
-    var isBot=r.change_pct>=15&&r.change_pct<=30;
-    var gapClass=r.change_pct>=15?'gap-hot':'gap-warm';
+    var isBot=(r.relative_volume&&r.relative_volume>=1.5)||r.change_pct>=5;
+    var gapClass=r.change_pct>=10?'gap-hot':'gap-warm';
     var floatClass=r.float_tier==='small'?'float-small':r.float_tier==='medium'?'float-med':'float-na';
     var relVol=r.relative_volume?r.relative_volume.toFixed(1)+'×':'—';
     var mktcap=r.market_cap?'$'+fmtM(r.market_cap):'—';
@@ -550,9 +517,9 @@ function renderResults(d){
 
   // Market state label
   var stateLabels = {
-    premarket:   {sub:'Pre-market small-float gappers', title:'Small-float pre-market movers'},
-    open:        {sub:'Live market small-float movers',  title:'Small-float live market movers'},
-    after_hours: {sub:'After-hours small-float movers',  title:'Small-float after-hours movers'},
+    premarket:   {sub:'Pre-market RVOL + momentum',     title:'RVOL + momentum — pre-market'},
+    open:        {sub:'Live RVOL + momentum candidates', title:'RVOL + momentum — live market'},
+    after_hours: {sub:'After-hours movers',              title:'RVOL + momentum — after hours'},
   };
   var lbl = stateLabels[d.market_state] || stateLabels['open'];
   document.getElementById('scanner-sub').textContent  = lbl.sub;
@@ -570,7 +537,7 @@ function renderResults(d){
     tbody.innerHTML='<tr><td colspan="7" class="empty">No candidates found. Markets may be closed or pre-market data unavailable.</td></tr>';
     return;
   }
-  var botCount=rows.filter(function(r){return r.change_pct>=15&&r.change_pct<=30;}).length;
+  var botCount=rows.filter(function(r){return (r.relative_volume&&r.relative_volume>=1.5)||r.change_pct>=5;}).length;
   document.getElementById('s-bot-count').textContent=botCount?botCount+' bot candidates':'';
   renderRows(rows);
 
@@ -591,80 +558,8 @@ setInterval(function(){
   if(h>=4&&h<17){runScan();}
 },5*60*1000);
 
-// ── Kev's Picks modal ──────────────────────────────────────────────────────
-function openKevModal(){
-  document.getElementById('kev-modal').style.display='flex';
-  document.getElementById('kev-textarea').focus();
-  // Show saved status if already submitted today
-  fetch('/api/kev_picks').then(r=>r.json()).then(function(d){
-    if(d.transcript){
-      document.getElementById('kev-status').textContent='Last saved: '+d.saved_at_display;
-      document.getElementById('kev-textarea').value=d.transcript;
-    }
-  }).catch(function(){});
-}
-function closeKevModal(){
-  document.getElementById('kev-modal').style.display='none';
-}
-function submitKevPicks(){
-  var text=document.getElementById('kev-textarea').value.trim();
-  if(!text){alert('Paste Kev\\'s transcript first.');return;}
-  var btn=document.getElementById('kev-submit-btn');
-  btn.disabled=true;btn.textContent='Saving…';
-  fetch('/api/kev_picks',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({transcript:text})
-  }).then(function(r){return r.json()}).then(function(d){
-    if(d.status==='ok'){
-      document.getElementById('kev-status').textContent='✅ Saved ('+d.chars+' chars) — evening scan will pick this up';
-      btn.textContent='Saved!';
-      setTimeout(function(){closeKevModal();btn.disabled=false;btn.textContent='Save Kev\\'s Picks';},1500);
-    } else {
-      btn.disabled=false;btn.textContent='Save Kev\\'s Picks';
-      alert('Error: '+(d.error||'unknown'));
-    }
-  }).catch(function(e){
-    btn.disabled=false;btn.textContent='Save Kev\\'s Picks';
-    alert('Network error: '+e);
-  });
-}
+
 </script>
-
-<!-- Floating Kev button -->
-<button onclick="openKevModal()" style="position:fixed;bottom:24px;right:24px;z-index:100;
-  background:#1a3a2a;color:#3fb950;border:1px solid #2d5a3d;border-radius:50px;
-  font-family:inherit;font-size:14px;font-weight:600;padding:12px 20px;cursor:pointer;
-  box-shadow:0 4px 20px rgba(0,0,0,.4)">📝 Kev's Picks</button>
-
-<!-- Modal overlay -->
-<div id="kev-modal" style="display:none;position:fixed;inset:0;z-index:200;
-  background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:16px">
-  <div style="background:#161b22;border:1px solid #30363d;border-radius:14px;
-    width:100%;max-width:540px;padding:24px;display:flex;flex-direction:column;gap:14px">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-size:16px;font-weight:700">📝 Kev's Picks</div>
-        <div style="font-size:12px;color:#8b949e;margin-top:2px">Paste tonight's full transcript</div>
-      </div>
-      <button onclick="closeKevModal()" style="background:none;border:none;color:#8b949e;
-        font-size:22px;cursor:pointer;padding:4px 8px">×</button>
-    </div>
-    <textarea id="kev-textarea" placeholder="Paste Kev's full transcript here — tickers, levels, setup explanations, everything..." style="
-      width:100%;height:220px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;
-      border-radius:8px;padding:12px;font-family:inherit;font-size:13px;line-height:1.6;
-      resize:vertical;outline:none"></textarea>
-    <div id="kev-status" style="font-size:12px;color:#8b949e;min-height:16px"></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button onclick="closeKevModal()" style="padding:9px 18px;border-radius:8px;
-        border:1px solid #30363d;background:transparent;color:#8b949e;font-family:inherit;
-        font-size:13px;cursor:pointer">Cancel</button>
-      <button id="kev-submit-btn" onclick="submitKevPicks()" style="padding:9px 20px;
-        border-radius:8px;border:1px solid #2d5a3d;background:#1a3a2a;color:#3fb950;
-        font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Save Kev's Picks</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
@@ -778,24 +673,6 @@ def api_trades():
     return jsonify({"trades": _trades, "stats": _compute_stats(), "account": _account})
 
 
-@app.route("/api/evening_watchlist", methods=["POST"])
-def save_evening_watchlist():
-    secret = request.headers.get("X-Dashboard-Secret", "")
-    if secret != API_SECRET:
-        return jsonify({"error": "unauthorized"}), 401
-    global _evening_watchlist
-    _evening_watchlist = request.get_json(silent=True) or {}
-    _evening_watchlist["saved_at"] = datetime.now(EASTERN).isoformat()
-    _save_watchlist()
-    picks = len(_evening_watchlist.get("top_picks", []))
-    print(f"🌙 Evening watchlist saved — {picks} picks")
-    return jsonify({"status": "ok", "picks": picks})
-
-
-@app.route("/api/evening_watchlist", methods=["GET"])
-def get_evening_watchlist():
-    return jsonify(_evening_watchlist)
-
 
 @app.route("/api/watching", methods=["POST"])
 def save_watching():
@@ -816,33 +693,6 @@ def save_watching():
 def get_watching():
     return jsonify(_watching)
 
-
-@app.route("/api/kev_picks", methods=["POST"])
-def save_kev_picks():
-    global _kev_picks
-    data = request.get_json(silent=True) or {}
-    transcript = (data.get("transcript") or "").strip()
-    if not transcript:
-        return jsonify({"error": "transcript required"}), 400
-    now_et = datetime.now(EASTERN)
-    _kev_picks = {
-        "transcript": transcript,
-        "date": now_et.strftime("%Y-%m-%d"),
-        "saved_at": now_et.isoformat(),
-        "saved_at_display": now_et.strftime("%I:%M %p ET"),
-    }
-    _save_kev_picks()
-    print(f"📝 Kev's picks saved ({len(transcript)} chars)")
-    return jsonify({"status": "ok", "chars": len(transcript)})
-
-
-@app.route("/api/kev_picks", methods=["GET"])
-def get_kev_picks():
-    # Only return if saved today — don't let yesterday's picks bleed in
-    today = datetime.now(EASTERN).strftime("%Y-%m-%d")
-    if _kev_picks.get("date") == today:
-        return jsonify(_kev_picks)
-    return jsonify({})
 
 
 @app.route("/dashboard")
@@ -925,10 +775,6 @@ tbody tr:hover{background:#1c2128}
 tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
 .ticker-badge{display:inline-block;background:#1c2128;border:1px solid #30363d;
               border-radius:6px;padding:2px 8px;font-weight:600;font-size:12px;color:#e6edf3}
-.conf-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
-.conf-HIGH{background:#1a3a2a;color:#3fb950;border:1px solid #2d5a3d}
-.conf-MEDIUM{background:#2a2a1a;color:#d29922;border:1px solid #5a4a1a}
-.conf-LOW{background:#21262d;color:#8b949e;border:1px solid #30363d}
 .pnl-pos{color:#3fb950;font-weight:600}
 .pnl-neg{color:#f85149;font-weight:600}
 .exit-tag{font-size:11px;color:#8b949e;max-width:160px;overflow:hidden;text-overflow:ellipsis}
@@ -968,7 +814,7 @@ tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
     <div class="logo-icon">📈</div>
     <div>
       <h1>Marcos Trades Dashboard</h1>
-      <sub>v8 Flat Top Breakout — Webull OpenAPI</sub>
+      <sub>v10 Pure Technical Scanner — Webull OpenAPI</sub>
     </div>
   </div>
   <div class="header-right">
@@ -1004,15 +850,15 @@ tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
 
 <div class="strategy-panel">
   <div class="panel-card">
-    <div class="panel-title">v8 Strategy Parameters</div>
+    <div class="panel-title">v10 Strategy Parameters</div>
     <div class="param-grid">
-      <div class="param-pill"><span>Gap</span><strong>15 – 30%</strong></div>
-      <div class="param-pill"><span>Flat Top</span><strong>8 bars &lt;5% range</strong></div>
-      <div class="param-pill"><span>Entry Cutoff</span><strong>10:30am ET</strong></div>
-      <div class="param-pill"><span>Exit</span><strong>EMA9 2-bar confirm</strong></div>
+      <div class="param-pill"><span>Qualify</span><strong>RVOL &gt;1.5× + 10% range</strong></div>
+      <div class="param-pill"><span>Flat Top</span><strong>4 bars &lt;8% range</strong></div>
+      <div class="param-pill"><span>Entry Cutoff</span><strong>11:00am ET</strong></div>
+      <div class="param-pill"><span>Trail Stop</span><strong>5%</strong></div>
       <div class="param-pill"><span>Partial Exit</span><strong>+10%</strong></div>
-      <div class="param-pill"><span>Stop</span><strong>7% emergency</strong></div>
-      <div class="param-pill"><span>Max Size</span><strong>$100 / trade</strong></div>
+      <div class="param-pill"><span>Overext Exit</span><strong>+20%</strong></div>
+      <div class="param-pill"><span>Min R:R</span><strong>2:1</strong></div>
       <div class="param-pill"><span>VWAP</span><strong>required</strong></div>
     </div>
   </div>
@@ -1052,7 +898,6 @@ tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
           <th>P&amp;L $</th>
           <th>P&amp;L %</th>
           <th>Exit Reason</th>
-          <th>Confidence</th>
           <th>Float</th>
         </tr>
       </thead>
@@ -1120,8 +965,8 @@ function renderStats(s, acct){
 function renderTable(trades){
   const tbody = document.getElementById('tradeTable');
   if(!trades || trades.length===0){
-    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">
-      <div class="icon">🤖</div>
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state">
+      <div class="icon">📊</div>
       <p>No trades recorded yet</p>
       <small>The bot will log results here automatically after each session</small>
     </div></td></tr>`;
@@ -1129,7 +974,6 @@ function renderTable(trades){
   }
   const rows = [...trades].reverse().map(t=>{
     const pnlCls  = t.pnl>=0?'pnl-pos':'pnl-neg';
-    const confCls = 'conf-'+(t.confidence||'MEDIUM');
     const pnlSign = t.pnl>=0?'+':'';
     const pctSign = t.pnl_pct>=0?'+':'';
     const fl = t.float_shares ? String(t.float_shares).replace(/(\d)(?=(\d{3})+$)/g,'$1,') : '—';
@@ -1144,7 +988,6 @@ function renderTable(trades){
       <td class="${pnlCls}">${pnlSign}$${Math.abs(t.pnl).toFixed(2)}</td>
       <td class="${pnlCls}">${pctSign}${t.pnl_pct.toFixed(1)}%</td>
       <td class="exit-tag" title="${t.exit_reason||''}">${t.exit_reason||'—'}</td>
-      <td><span class="conf-badge ${confCls}">${t.confidence||'—'}</span></td>
       <td style="color:#8b949e;font-size:12px">${fl}</td>
     </tr>`;
   }).join('');
@@ -1209,7 +1052,7 @@ function loadWatching(){
       }
       const st = d.status || 'watching';
       const cls = st === 'trading' ? 'trading' : 'watching';
-      const label = st === 'trading' ? 'In trade' : 'Scanning for flat top breakout';
+      const label = st === 'trading' ? 'In trade' : 'Watching for flat top breakout';
       const since = d.started_at ? new Date(d.started_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
       statusEl.innerHTML = `<span class="status-dot ${cls}"></span>${label}${since?' since '+since:''}`;
       tickersEl.innerHTML = d.tickers.map(t=>

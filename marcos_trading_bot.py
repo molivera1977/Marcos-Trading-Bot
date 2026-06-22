@@ -1874,12 +1874,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
     while True:
         now = datetime.now(EASTERN)
 
-        # Hard cutoff: no new entries after 10:30am
-        past_entry_cutoff = (now.hour > ENTRY_CUTOFF_HOUR or
-                             (now.hour == ENTRY_CUTOFF_HOUR and now.minute >= ENTRY_CUTOFF_MIN))
-        if past_entry_cutoff:
-            print(f"⏰ 11:00am entry cutoff — no flat top breakout detected. Holding cash.")
-            return []
+        # Entry cutoff — skipped in DRY_RUN for maximum practice data
+        if not DRY_RUN:
+            past_entry_cutoff = (now.hour > ENTRY_CUTOFF_HOUR or
+                                 (now.hour == ENTRY_CUTOFF_HOUR and now.minute >= ENTRY_CUTOFF_MIN))
+            if past_entry_cutoff:
+                print(f"⏰ 11:00am entry cutoff — no entry detected. Holding cash.")
+                return []
 
         if now.hour < 9 or (now.hour == 9 and now.minute < 30):
             mins = (9 * 60 + 30) - (now.hour * 60 + now.minute)

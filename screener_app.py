@@ -31,7 +31,7 @@ WEBULL_ACCESS_TOKEN = os.environ.get("WEBULL_ACCESS_TOKEN", "")
 TRADING_HOST        = "api.webull.com"
 WEBULL_TOKEN_DIR    = "/tmp/webull_token_screener"
 EASTERN             = pytz.timezone("America/New_York")
-TRADES_FILE         = pathlib.Path("/tmp/marcos_trades.json")
+TRADES_FILE         = pathlib.Path("/data/marcos_trades.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/marcos_trades.json")
 API_SECRET          = os.environ.get("DASHBOARD_SECRET", "marcos2026")
 
 app = Flask(__name__)

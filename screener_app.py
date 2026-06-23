@@ -910,10 +910,14 @@ tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
       <div class="param-pill"><span>Flat Top</span><strong>4 bars &lt;8% range</strong></div>
       <div class="param-pill"><span>Entry Cutoff</span><strong>11:00am ET</strong></div>
       <div class="param-pill"><span>Trail Stop</span><strong>5%</strong></div>
-      <div class="param-pill"><span>Partial Exit</span><strong>+10%</strong></div>
-      <div class="param-pill"><span>Overext Exit</span><strong>+20%</strong></div>
+      <div class="param-pill"><span>Partial AM</span><strong>25%@+8%, 50%@+12%, 25%@+20%</strong></div>
+      <div class="param-pill"><span>Partial PM</span><strong>50%@+4%, 50%@+6%</strong></div>
+      <div class="param-pill"><span>VWAP Max Ext</span><strong>8%</strong></div>
       <div class="param-pill"><span>Min R:R</span><strong>2:1</strong></div>
       <div class="param-pill"><span>VWAP</span><strong>required</strong></div>
+      <div class="param-pill"><span>Level 2</span><strong>required</strong></div>
+      <div class="param-pill"><span>Momentum</span><strong>10k vol, 2/3 green</strong></div>
+      <div class="param-pill"><span>Floor</span><strong>entry price after partial</strong></div>
     </div>
   </div>
   <div class="panel-card">

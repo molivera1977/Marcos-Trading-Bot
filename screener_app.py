@@ -726,6 +726,15 @@ def set_traded_today():
 def api_trades():
     return jsonify({"trades": _trades, "stats": _compute_stats(), "account": _account})
 
+@app.route("/api/trades/clear", methods=["POST"])
+def clear_trades():
+    global _trades
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    _trades = []
+    _save_trades()
+    return jsonify({"status": "ok", "total_trades": 0})
+
 
 
 @app.route("/api/watching", methods=["POST"])

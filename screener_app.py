@@ -926,6 +926,7 @@ tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
       <div class="param-pill"><span>VWAP</span><strong>required</strong></div>
       <div class="param-pill"><span>Level 2</span><strong>required</strong></div>
       <div class="param-pill"><span>Momentum</span><strong>10k vol, 2/3 green</strong></div>
+      <div class="param-pill"><span>Topping Tail</span><strong>skip + exit (Kev)</strong></div>
       <div class="param-pill"><span>Floor</span><strong>entry price after partial</strong></div>
     </div>
   </div>

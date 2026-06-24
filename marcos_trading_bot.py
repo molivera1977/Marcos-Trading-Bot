@@ -295,6 +295,11 @@ MOMENTUM_BARS        = 3      # Check last N bars for momentum
 MOMENTUM_MIN_AVG_VOL = 10_000 # Avg volume over last N bars must exceed this
 MOMENTUM_VOL_ACCEL   = 1.2    # Current bar vol must be ≥1.2× avg of prior bars
 MOMENTUM_GREEN_BARS  = 2      # At least N of last 3 bars must close green (close > open)
+# Kev "topping tail / tail off the high" — a candle that spikes up then gets rejected,
+# printing a long upper wick at the highs. He treats it as BOTH an entry-skip ("shouldn't
+# have taken it, we had a tail off the high") AND his #1 exit ("topping tail off the high,
+# I'm done with it"). Confirmed across all 6 daily recaps. See [[project_kev_lessons]].
+TOPPING_TAIL_RATIO   = 0.55   # Upper wick ≥55% of the candle's range = rejection at the high
 TOKEN_EXPIRY_WARN_DAYS = 7     # Email warning when Webull token expires within 7 days
 LOG_FILE              = "/tmp/trade_log.csv"
 DRY_RUN    = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
@@ -1543,6 +1548,13 @@ def check_momentum(ticker) -> tuple[bool, dict]:
             print(f"❌ {ticker} momentum FAIL: {details['reason']}")
             return False, details
 
+        # Kev "tail off the high" — don't enter into a candle that just got rejected at the
+        # highs. Check the most recent COMPLETED bar (bars[-1] is the in-progress bar).
+        if len(bars) >= 2 and is_topping_tail(bars[-2]):
+            details["reason"] = "topping tail on last bar — rejection at the high, skip entry"
+            print(f"❌ {ticker} momentum FAIL: {details['reason']}")
+            return False, details
+
         details["passed"] = True
         print(f"✅ {ticker} momentum OK: avg vol {int(avg_vol):,}, "
               f"current {int(current_vol):,}, {green_count} green bars")
@@ -1654,6 +1666,24 @@ def calculate_ema9(bars) -> float:
 
 def calculate_ema20(bars) -> float:
     return _calc_ema(_extract_closes(bars), EMA20_PERIOD)
+
+
+def is_topping_tail(bar) -> bool:
+    """Kev's 'topping tail / tail off the high' — a candle whose upper wick is ≥
+    TOPPING_TAIL_RATIO of its full range = price spiked up and got rejected at the high.
+    Used as an entry-skip (don't buy into rejection) and as an exit (momentum is done)."""
+    try:
+        o = float(bar.get("open")  or bar.get("o") or 0)
+        c = float(bar.get("close") or bar.get("c") or 0)
+        h = float(bar.get("high")  or bar.get("h") or 0)
+        l = float(bar.get("low")   or bar.get("l") or 0)
+    except (TypeError, ValueError):
+        return False
+    rng = h - l
+    if rng <= 0:
+        return False
+    upper_wick = h - max(o, c)
+    return (upper_wick / rng) >= TOPPING_TAIL_RATIO
 
 
 def calculate_vwap(bars) -> float:
@@ -2794,6 +2824,20 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                         close_position(ticker, remaining_shares)
                         result["exit_price"]  = stream.get_price(ticker)
                         result["exit_reason"] = "EMA STOP 2BAR"
+                        remaining_shares = 0
+
+                # Kev "topping tail off the high" — his #1 exit. If the last completed bar
+                # made a fresh high then got rejected (long upper wick) AND we're in profit,
+                # take the money. Only protects a winner — never exits a loser on a wick.
+                if remaining_shares > 0 and current_price > entry_price:
+                    last_high = float(completed[-1].get("high") or completed[-1].get("h") or 0)
+                    if last_high >= highest_price * 0.99 and is_topping_tail(completed[-1]):
+                        print(f"🔻 Topping tail off the high: {ticker} rejected at ${last_high:.2f} "
+                              f"in profit — taking full exit (Kev exit).")
+                        cancel_order(placed_stop_id)
+                        close_position(ticker, remaining_shares)
+                        result["exit_price"]  = current_price
+                        result["exit_reason"] = "TOPPING TAIL"
                         remaining_shares = 0
             last_ema_check = time.time()
 

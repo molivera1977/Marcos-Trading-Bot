@@ -35,6 +35,7 @@ DRY_RUN mode is active — all orders are simulated. Account cap: $100/trade.
 | Entry limit buffer | Limit buy 1% above VWAP reclaim (caps slippage) |
 | **Level 2 order book (NEW)** | Checks sell walls, bid/ask ratio, thin bids, no-bid |
 | **Momentum filter (NEW)** | Avg vol last 3 bars ≥ 10k, vol acceleration ≥ 1.2×, ≥ 2/3 green bars |
+| **Topping-tail skip (NEW)** | Skip entry if the last completed bar's upper wick ≥ 55% of its range (Kev's "tail off the high" = rejection) |
 | EMA bounce entry | Prev bar within 1.5% of EMA9 = "touch"; 20-bar lookback; bounce vol 1.2× prior 3-bar avg |
 | Position sizing | HIGH 70% / MED 50% / LOW 30% of account; hard cap $100/trade |
 | No late entries | Final cutoff 3:30 PM ET |
@@ -46,6 +47,7 @@ DRY_RUN mode is active — all orders are simulated. Account cap: $100/trade.
 |--------|------|
 | **Morning tiered exits (NEW)** | +8% → sell 25%, +12% → sell 50%, +20% → sell last 25% |
 | **Afternoon tiered exits (NEW)** | +4% → sell 50%, +6% → sell last 50% |
+| **Topping-tail exit (NEW)** | In profit + last bar makes a fresh high then prints upper wick ≥ 55% of range → full exit (Kev's #1 exit) |
 | Trailing stop | 5% below highest price (after first partial) |
 | **Entry floor (NEW)** | After first partial, stop never drops below entry price |
 | EMA9 dynamic stop | 2 consecutive bars below EMA9 (checked every 60s); initial stop = EMA9 × (1 − 2.5%) |

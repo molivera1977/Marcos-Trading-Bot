@@ -673,6 +673,9 @@ def record_trade():
         "confidence":    data.get("confidence", ""),
         "float_shares":  data.get("float_shares", ""),
         "position_size": round(float(data.get("position_size", 0)), 2),
+        # DATA-ONLY: 90 EMA study — where entry sat vs the 90 EMA. Not used for anything yet.
+        "entry_ema90":        data.get("entry_ema90"),
+        "entry_vs_ema90_pct": data.get("entry_vs_ema90_pct"),
         "recorded_at":   datetime.now(EASTERN).isoformat(),
     }
     _trades.append(trade)
@@ -927,6 +930,7 @@ tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
       <div class="param-pill"><span>Level 2</span><strong>required</strong></div>
       <div class="param-pill"><span>Momentum</span><strong>10k vol, 2/3 green</strong></div>
       <div class="param-pill"><span>Topping Tail</span><strong>skip + exit (Kev)</strong></div>
+      <div class="param-pill"><span>90 EMA</span><strong>recording (data-only)</strong></div>
       <div class="param-pill"><span>Floor</span><strong>entry price after partial</strong></div>
     </div>
   </div>

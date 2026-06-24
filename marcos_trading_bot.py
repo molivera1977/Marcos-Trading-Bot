@@ -266,6 +266,8 @@ FLAT_TOP_WINDOW    = 4      # 4-bar consolidation window
 FLAT_TOP_MAX_RANGE = 0.080  # <8% range tolerance
 EMA_PERIOD         = 9      # EMA9 for stops + bounce detection
 EMA20_PERIOD       = 20     # EMA20 for bullish stack confirmation
+EMA90_PERIOD       = 90     # EMA90 — Kev's key pullback/liquidity level. DATA-ONLY for now:
+#                             recorded at entry to study (does NOT affect entries). See [[project_kev_lessons]].
 EMA_CONFIRM_BARS   = 2      # consecutive bars below EMA9 before stop fires
 EMA_CHECK_INTERVAL = 60     # seconds between EMA9 bar fetches during trade monitoring
 EMA_BOUNCE_TOUCH   = 0.015  # prev bar within 1.5% above EMA9 = "touched"
@@ -1668,6 +1670,15 @@ def calculate_ema20(bars) -> float:
     return _calc_ema(_extract_closes(bars), EMA20_PERIOD)
 
 
+def calculate_ema90(bars) -> float:
+    """EMA90 — Kev's key deeper-pullback level. DATA-ONLY: recorded at entry, not used to gate
+    trades yet. Returns 0.0 if there aren't enough bars to be meaningful."""
+    closes = _extract_closes(bars)
+    if len(closes) < EMA90_PERIOD:
+        return 0.0
+    return _calc_ema(closes, EMA90_PERIOD)
+
+
 def is_topping_tail(bar) -> bool:
     """Kev's 'topping tail / tail off the high' — a candle whose upper wick is ≥
     TOPPING_TAIL_RATIO of its full range = price spiked up and got rejected at the high.
@@ -2160,6 +2171,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             vwap_tag = f" VWAP:${vwap:.2f}" if vwap > 0 else ""
             ema9  = calculate_ema9(completed)
             ema20 = calculate_ema20(completed)
+            ema90 = calculate_ema90(completed)   # DATA-ONLY — recorded at entry, not a filter
             found_entry = False
 
             # ── Entry type 1: Flat top breakout ──────────────────────
@@ -2188,7 +2200,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         print(f"\n✅ {t} FLAT TOP BREAKOUT! ${price:.2f} > window high ${w_high:.2f} "
                               f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window)"
                               + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
-                        breakouts.append((t, price, vwap, "flat_top", {}))
+                        breakouts.append((t, price, vwap, "flat_top", {"ema90": round(ema90, 4)}))
                         found_entry = True
                     elif is_flat:
                         gap_to_break = (w_high - price) / price * 100
@@ -2225,6 +2237,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 breakouts.append((t, price, vwap, "ema_bounce", {
                                     "ema_stop": round(ema_stop, 4),
                                     "prior_high": round(prior_high, 4),
+                                    "ema90": round(ema90, 4),
                                 }))
                                 found_entry = True
 
@@ -3726,6 +3739,15 @@ def main():
             nonlocal session_pnl, trade_count, settled_remaining, current_balance
             extra = extra or {}
 
+            # DATA-ONLY: capture where price sat vs the 90 EMA at entry, so we can later study
+            # whether a 90-EMA filter/entry would help. Does NOT affect this trade. See [[project_kev_lessons]].
+            entry_ema90 = float(extra.get("ema90") or 0)
+            entry_vs_ema90_pct = round((entry_price - entry_ema90) / entry_ema90 * 100, 2) if entry_ema90 > 0 else None
+            if entry_vs_ema90_pct is not None:
+                print(f"📐 {ticker} entry ${entry_price:.2f} is {entry_vs_ema90_pct:+.2f}% vs EMA90 ${entry_ema90:.2f} (data-only)")
+            else:
+                print(f"📐 {ticker} EMA90 not available at entry (too few bars) — recording null")
+
             with trade_lock:
                 pos_size = min(current_balance * MAX_POSITION_SIZE, MAX_TRADE_DOLLARS)
                 if not DRY_RUN and settled_remaining < MAX_TRADE_DOLLARS:
@@ -3845,6 +3867,8 @@ def main():
                 "float_shares":    str(float_shares),
                 "position_size":   pos_size,
                 "account_balance": current_balance,
+                "entry_ema90":        round(entry_ema90, 4) if entry_ema90 > 0 else None,
+                "entry_vs_ema90_pct": entry_vs_ema90_pct,
             })
             send_summary_email(analysis, trade_result, display_balance,
                                csv_log_line=csv_row, traded_ticker=ticker)

@@ -41,6 +41,12 @@ DRY_RUN mode is active — all orders are simulated. Account cap: $100/trade.
 | No late entries | Final cutoff 3:30 PM ET |
 | Early fade protection | Exit if price drops below VWAP within 2 min of entry |
 
+## Data-only (recorded, NOT yet used to gate trades)
+
+| Metric | What's captured |
+|--------|-----------------|
+| **90 EMA at entry (NEW)** | For every trade we record the 90 EMA and `entry_vs_ema90_pct` (how far entry was above/below it). Gathering data to decide later if a 90 EMA filter/entry helps. Does not affect any entry or exit. |
+
 ## 3. EXIT SIGNALS
 
 | Signal | Rule |

@@ -49,6 +49,7 @@ import base64
 import socket
 import pathlib
 import threading
+import concurrent.futures
 import logging
 import requests
 import anthropic
@@ -297,6 +298,11 @@ MOMENTUM_BARS        = 3      # Check last N bars for momentum
 MOMENTUM_MIN_AVG_VOL = 10_000 # Avg volume over last N bars must exceed this
 MOMENTUM_VOL_ACCEL   = 1.2    # Current bar vol must be ≥1.2× avg of prior bars
 MOMENTUM_GREEN_BARS  = 2      # At least N of last 3 bars must close green (close > open)
+# Watchdog: a price-quote SDK call has NO built-in timeout, so one hung call can freeze the
+# monitor loop forever and leave a position stuck open (the BOXL incident, June 24). Hard-cap
+# every quote call, and force-exit if the feed goes dead so a position can never sit blind.
+QUOTE_TIMEOUT_SECS   = 8      # Max seconds to wait on a single Webull quote call
+STALE_FEED_EXIT_SECS = 90     # If no valid price for this long mid-trade, force-close for safety
 # Kev "topping tail / tail off the high" — a candle that spikes up then gets rejected,
 # printing a long upper wick at the highs. He treats it as BOTH an entry-skip ("shouldn't
 # have taken it, we had a tail off the high") AND his #1 exit ("topping tail off the high,
@@ -1172,21 +1178,35 @@ def _get_price_rest(ticker) -> float:
     return q.get("last_price", 0) or 0
 
 
+_quote_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4,
+                                                        thread_name_prefix="wb_quote")
+
+
 def _get_webull_quote(ticker) -> dict:
     """
     Fetch a live real-time quote via the official Webull SDK (properly authenticated).
     Falls back to empty dict on any error so callers can fall back to yfinance.
+
+    The SDK's HTTP call has no timeout — a single hung call would freeze the whole monitor
+    loop (the BOXL freeze, June 24). Run it on a worker with a hard QUOTE_TIMEOUT_SECS cap so
+    it can never block; on timeout we return {} and the caller treats it as "no price".
     """
     try:
         dc = _get_data_client()
         if not dc:
             return {}
 
-        resp = dc.market_data.get_snapshot(
+        future = _quote_executor.submit(
+            dc.market_data.get_snapshot,
             symbols=ticker,
             category="US_STOCK",
             extend_hour_required=True,
         )
+        try:
+            resp = future.result(timeout=QUOTE_TIMEOUT_SECS)
+        except concurrent.futures.TimeoutError:
+            print(f"⚠️  Webull quote TIMEOUT for {ticker} (>{QUOTE_TIMEOUT_SECS}s) — treating as no price")
+            return {}
         if resp.status_code != 200:
             print(f"⚠️  Webull snapshot {resp.status_code} for {ticker}")
             return {}
@@ -2718,6 +2738,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     partial_price      = 0.0
     partial_fills      = []
     entry_time         = time.time()   # for early fade window
+    last_good_price    = entry_price   # last valid price seen (for stale-feed safety exit)
+    last_good_price_t  = time.time()   # epoch of last valid price
 
     entry_hour = datetime.now(EASTERN).hour
     exit_tiers = EXIT_TIERS_AM if entry_hour < 11 else EXIT_TIERS_PM
@@ -2749,8 +2771,24 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
         current_price = stream.get_price(ticker)
         if current_price <= 0:
+            # No valid price. If the feed has been dead too long, a position must NOT sit
+            # blind/open (the BOXL freeze) — force-close at the last known price for safety.
+            stale_secs = time.time() - last_good_price_t
+            if remaining_shares > 0 and stale_secs > STALE_FEED_EXIT_SECS:
+                print(f"🛑 {ticker} price feed dead {stale_secs:.0f}s (> {STALE_FEED_EXIT_SECS}s) — "
+                      f"force-closing {remaining_shares} sh at last price ${last_good_price:.2f} for safety.")
+                cancel_order(placed_stop_id)
+                close_position(ticker, remaining_shares)
+                result["exit_price"]  = last_good_price
+                result["exit_reason"] = "STALE FEED SAFETY EXIT"
+                remaining_shares = 0
+                break
             time.sleep(sleep_secs)
             continue
+
+        # Valid price — reset the stale-feed watchdog.
+        last_good_price   = current_price
+        last_good_price_t = time.time()
 
         # ── Early fade: if price drops back below VWAP within 2 min, cut immediately ──
         elapsed = time.time() - entry_time

@@ -1689,17 +1689,27 @@ def check_momentum(ticker) -> tuple[bool, dict]:
 
 
 def get_intraday_bars(ticker, count=30):
-    """Fetch 1-minute intraday bars for VWAP calculation. Uses SDK."""
+    """Fetch 1-minute intraday bars for VWAP calculation. Uses SDK.
+
+    The SDK call has no timeout — used inside monitor_trade (EMA9 stop + topping-tail exit),
+    so a hung call could freeze the loop (same class as the BOXL freeze). Run it on the shared
+    worker with a hard QUOTE_TIMEOUT_SECS cap so it can never block the monitor loop."""
     try:
         dc = _get_data_client()
         if not dc:
             return []
-        resp = dc.market_data.get_history_bar(
+        future = _quote_executor.submit(
+            dc.market_data.get_history_bar,
             symbol=ticker,
             category="US_STOCK",
             timespan="M1",
             count=str(count),
         )
+        try:
+            resp = future.result(timeout=QUOTE_TIMEOUT_SECS)
+        except concurrent.futures.TimeoutError:
+            print(f"⚠️  Intraday bars TIMEOUT for {ticker} (>{QUOTE_TIMEOUT_SECS}s) — returning none")
+            return []
         if resp.status_code != 200:
             print(f"⚠️  Intraday bars {resp.status_code} for {ticker}")
             return []

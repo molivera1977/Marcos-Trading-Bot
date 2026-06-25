@@ -3471,12 +3471,18 @@ def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap,
             + _row("Position",   f"${position_size:.2f}")
             + _row("VWAP",       f"${vwap:.2f} ✅")
         ), color="#00c851")
-        + _section("LEVELS TO WATCH", (
-            _row("🎯 Target (+20%)",      f"${target_price:.2f}", big=True)
-            + _row("💰 Partial exit (+8% AM/+5% PM)", "Sell half, trail rest")
-            + _row("⚡ Breakeven (+10%)",    "Stop moves to entry")
-            + _row("🛑 Stop Loss (-7%)",     f"${stop_loss:.2f}")
-            + _row("⏰ Hard Close",           "3:45pm ET")
+        + _section(f"EXIT PLAN — {('AM' if datetime.now(EASTERN).hour < 11 else 'PM')} tiers", (
+            "".join(
+                _row(f"{'🎯 ' if frac >= 1.0 else '💰 '}Tier {i}: +{pct*100:.0f}% (${entry_price*(1+pct):.2f})",
+                     ("Sell ALL — full exit" if frac >= 1.0 else f"Sell {frac*100:.0f}%"),
+                     big=(frac >= 1.0))
+                for i, (pct, frac) in enumerate(
+                    (EXIT_TIERS_AM if datetime.now(EASTERN).hour < 11 else EXIT_TIERS_PM), 1)
+            )
+            + _row("🛟 After 1st partial", "Stop floor → entry (breakeven)")
+            + _row("📈 Trailing stop",     "Ratchets up under the high")
+            + _row("🛑 Hard Stop",          f"${stop_loss:.2f}")
+            + _row("⏰ Hard Close",          "3:45pm ET")
         ), color="#ffbb33")
     )
     send_alert_email(subject, plain, html=html)

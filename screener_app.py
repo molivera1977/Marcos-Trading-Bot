@@ -879,7 +879,7 @@ fetch('/api/day2').then(r=>r.json()).then(d=>{
   const tb=document.getElementById('rows');
   if(!obs.length){tb.innerHTML='<tr><td colspan="9"><div class="empty">No day-2 observations yet — they\\'ll appear here during market hours.</div></td></tr>';return;}
   tb.innerHTML=obs.map(o=>`<tr>
-    <td>${o.date||'—'}</td><td>${o.time||'—'}</td><td class="tk">${o.ticker}</td>
+    <td>${o.date||'—'}</td><td>${o.time||'—'}</td><td class="tk"><a href="https://www.tradingview.com/chart/?symbol=${o.ticker}" target="_blank" rel="noopener" style="color:#58a6ff;text-decoration:none">${o.ticker} ↗</a></td>
     <td class="${cls(o.day1_move)}">${pct(o.day1_move)}</td>
     <td>${money(o.price)}</td>
     <td class="${cls(o.gap_pct)}">${pct(o.gap_pct)}</td>
@@ -969,7 +969,11 @@ tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:#1c2128}
 tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
 .ticker-badge{display:inline-block;background:#1c2128;border:1px solid #30363d;
-              border-radius:6px;padding:2px 8px;font-weight:600;font-size:12px;color:#e6edf3}
+              border-radius:6px;padding:2px 8px;font-weight:600;font-size:12px;color:#e6edf3;
+              text-decoration:none;cursor:pointer}
+.ticker-badge:hover{border-color:#58a6ff}
+a.watch-chip{text-decoration:none;cursor:pointer}
+a.watch-chip:hover{filter:brightness(1.25)}
 .pnl-pos{color:#3fb950;font-weight:600}
 .pnl-neg{color:#f85149;font-weight:600}
 .exit-tag{font-size:11px;color:#8b949e;max-width:160px;overflow:hidden;text-overflow:ellipsis}
@@ -1181,7 +1185,7 @@ function renderTable(trades){
     const sz = t.position_size ? fmt$(t.position_size) : '—';
     return `<tr>
       <td style="color:#8b949e">${t.date||'—'}</td>
-      <td><span class="ticker-badge">${t.ticker||'—'}</span></td>
+      <td><a class="ticker-badge" href="https://www.tradingview.com/chart/?symbol=${t.ticker||''}" target="_blank" rel="noopener" title="Open chart">${t.ticker||'—'} ↗</a></td>
       <td>${t.entry?'$'+t.entry.toFixed(2):'—'}</td>
       <td>${t.exit?'$'+t.exit.toFixed(2):'—'}</td>
       <td style="color:#8b949e">${t.shares||'—'}</td>
@@ -1257,7 +1261,7 @@ function loadWatching(){
       const since = d.started_at ? new Date(d.started_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
       statusEl.innerHTML = `<span class="status-dot ${cls}"></span>${label}${since?' since '+since:''}`;
       tickersEl.innerHTML = d.tickers.map(t=>
-        `<span class="watch-chip ${cls}">${t}</span>`
+        `<a class="watch-chip ${cls}" href="https://www.tradingview.com/chart/?symbol=${t}" target="_blank" rel="noopener" title="Open ${t} chart">${t} ↗</a>`
       ).join('');
     })
     .catch(()=>{});

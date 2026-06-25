@@ -706,6 +706,12 @@ def record_trade():
         # DATA-ONLY: 90 EMA study — where entry sat vs the 90 EMA. Not used for anything yet.
         "entry_ema90":        data.get("entry_ema90"),
         "entry_vs_ema90_pct": data.get("entry_vs_ema90_pct"),
+        # DATA-ONLY: L1 order-book at entry — study whether adverse book conditions predict
+        # losers (the evidence that would justify paying for TotalView depth). Not gating anything.
+        "entry_l1_ratio":     data.get("entry_l1_ratio"),
+        "entry_ask_size":     data.get("entry_ask_size"),
+        "entry_bid_size":     data.get("entry_bid_size"),
+        "entry_l1_spread":    data.get("entry_l1_spread"),
         "recorded_at":   datetime.now(EASTERN).isoformat(),
     }
     _trades.append(trade)

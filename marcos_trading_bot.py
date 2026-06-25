@@ -1607,120 +1607,75 @@ def check_bid_ask_spread(ticker) -> tuple[bool, float]:
     return ok, spread_pct
 
 
-def check_level2(ticker, entry_price) -> tuple[bool, dict]:
-    """
-    Fetch Level 2 order book from Webull and check for sell walls above entry.
-    Returns (ok, details) — ok=False means heavy resistance, skip entry.
+# ── L1 (top-of-book) order-book guard + instrumentation ──
+# Webull REST market data caps at depth=1 (multi-level = paid Nasdaq TotalView, US$135/mo
+# non-display — see memory project_l2_data_cost). So real overhead-wall detection isn't
+# available for free. Instead we use the inside quote we CAN get and:
+#   • BLOCK only the unambiguous danger case — a real ask with no bid to sell into,
+#   • LOG the inside bid/ask imbalance on EVERY entry (details below flow into the trade
+#     record) so we can later MEASURE whether adverse book conditions correlate with losers.
+#     That data is what would justify (or not) paying for TotalView. No more silent fail-open.
+# NOTE: with only 1 level, inside SIZE is just the top lot and far too noisy to gate on (e.g.
+# TSLA prints a 33-share inside bid yet is deeply liquid). So we LOG size/imbalance and only
+# BLOCK the unambiguous case — an ask with literally no bid in the book.
 
-    Checks:
-    1. Sell wall: any single ask level with size > 3× the average ask size
-       within 5% above entry = wall blocking upside
-    2. Buy/sell imbalance: total bid volume vs total ask volume within 5% of price.
-       If asks outweigh bids by > 2:1, sellers are in control
-    3. Thin bids: if total bid support within 3% below entry is < 500 shares,
-       there's no floor if it drops
-    """
-    details = {"wall_at": None, "bid_vol": 0, "ask_vol": 0, "ratio": 0, "reason": ""}
+def check_level2(ticker, entry_price) -> tuple[bool, dict]:
+    """L1 top-of-book guard. Returns (ok, details); details always carries the inside book
+    for instrumentation. ok=False only on no-bid-support (clear danger)."""
+    details = {"ask_size": 0, "bid_size": 0, "ratio": None, "spread": None,
+               "inside_bid": None, "inside_ask": None, "reason": "", "source": "L1"}
     try:
         dc = _get_data_client()
         if not dc:
-            print(f"⚠️  {ticker}: no data client for L2 — skipping check")
+            details["reason"] = "no data client"
+            return True, details                      # infra error → don't block (but recorded)
+        try:
+            resp = _quote_executor.submit(
+                dc.market_data.get_quotes, symbol=ticker, category="US_STOCK", depth=1
+            ).result(timeout=QUOTE_TIMEOUT_SECS)
+        except Exception as e:
+            details["reason"] = f"L1 fetch error: {str(e)[:60]}"
             return True, details
-
-        resp = dc.market_data.get_quotes(
-            symbol=ticker,
-            category="US_STOCK",
-            depth=20,
-        )
-        if resp.status_code != 200:
-            print(f"⚠️  {ticker}: L2 request failed ({resp.status_code}) — skipping check")
+        if getattr(resp, "status_code", 200) != 200:
+            details["reason"] = f"L1 status {resp.status_code}"
             return True, details
 
         raw = resp.json()
-        if isinstance(raw, list):
-            d = raw[0] if raw else {}
-        else:
-            data = raw.get("data", {}) if isinstance(raw, dict) else {}
-            if isinstance(data, list):
-                d = data[0] if data else {}
-            elif isinstance(data, dict):
-                items = data.get("items", [])
-                d = items[0] if items else data
-            else:
-                d = {}
+        d = raw[0] if isinstance(raw, list) and raw else (raw if isinstance(raw, dict) else {})
+        asks_raw = d.get("asks", d.get("askList", d.get("ask_list", []))) or []
+        bids_raw = d.get("bids", d.get("bidList", d.get("bid_list", []))) or []
 
-        asks_raw = d.get("asks", d.get("askList", d.get("ask_list", [])))
-        bids_raw = d.get("bids", d.get("bidList", d.get("bid_list", [])))
+        def _first(arr):
+            if not arr:
+                return 0.0, 0.0
+            a = arr[0]
+            return (float(a.get("price") or a.get("p") or 0),
+                    float(a.get("size") or a.get("volume") or a.get("v") or a.get("s") or 0))
+        ask_p, ask_s = _first(asks_raw)
+        bid_p, bid_s = _first(bids_raw)
 
-        if not asks_raw and not bids_raw:
-            all_keys = list(d.keys())[:25]
-            print(f"⚠️  {ticker}: L2 no bid/ask arrays found | keys: {all_keys}")
-            return True, details
+        details["inside_ask"] = round(ask_p, 4) if ask_p else None
+        details["inside_bid"] = round(bid_p, 4) if bid_p else None
+        details["ask_size"]   = int(ask_s)
+        details["bid_size"]   = int(bid_s)
+        if ask_p and bid_p:
+            details["spread"] = round(ask_p - bid_p, 4)
+        details["ratio"] = round(ask_s / bid_s, 2) if bid_s > 0 else None
 
-        asks = []
-        for a in asks_raw:
-            price = float(a.get("price") or a.get("p") or 0)
-            size  = float(a.get("volume") or a.get("size") or a.get("v") or a.get("s") or 0)
-            if price > 0:
-                asks.append((price, size))
-
-        bids = []
-        for b in bids_raw:
-            price = float(b.get("price") or b.get("p") or 0)
-            size  = float(b.get("volume") or b.get("size") or b.get("v") or b.get("s") or 0)
-            if price > 0:
-                bids.append((price, size))
-
-        upper_bound = entry_price * 1.05
-        lower_bound = entry_price * 0.97
-
-        nearby_asks = [(p, s) for p, s in asks if p <= upper_bound]
-        nearby_bids = [(p, s) for p, s in bids if p >= lower_bound]
-
-        total_ask_vol = sum(s for _, s in nearby_asks)
-        total_bid_vol = sum(s for _, s in nearby_bids)
-        details["ask_vol"] = int(total_ask_vol)
-        details["bid_vol"] = int(total_bid_vol)
-
-        # Check 1: Sell wall — any single level with outsized volume
-        if nearby_asks:
-            avg_ask_size = total_ask_vol / len(nearby_asks)
-            for price, size in nearby_asks:
-                if avg_ask_size > 0 and size >= avg_ask_size * 3 and size >= 500:
-                    details["wall_at"] = price
-                    details["reason"] = f"sell wall {int(size)} shares @ ${price:.2f}"
-                    print(f"🚫 {ticker} L2: SELL WALL — {int(size)} shares @ ${price:.2f} "
-                          f"({size/avg_ask_size:.1f}× avg ask size)")
-                    return False, details
-
-        # Check 2: Buy/sell imbalance
-        if total_bid_vol > 0:
-            ratio = total_ask_vol / total_bid_vol
-            details["ratio"] = round(ratio, 2)
-            if ratio >= 2.0:
-                details["reason"] = f"sellers dominate {ratio:.1f}:1 (ask {int(total_ask_vol)} vs bid {int(total_bid_vol)})"
-                print(f"🚫 {ticker} L2: SELL PRESSURE — asks {int(total_ask_vol)} vs bids {int(total_bid_vol)} "
-                      f"({ratio:.1f}:1 ratio)")
-                return False, details
-        elif total_ask_vol > 0:
-            details["reason"] = "no bid support visible"
-            print(f"🚫 {ticker} L2: NO BIDS — {int(total_ask_vol)} shares on ask, nothing on bid")
+        # BLOCK only the unambiguous case: an ask exists but the bid side is EMPTY — nothing
+        # to sell into. Inside size is noise (see note above), so it's logged, not gated.
+        if ask_p > 0 and bid_p <= 0:
+            details["reason"] = "no bid in book (nothing to sell into)"
+            print(f"🚫 {ticker} L1: NO BID IN BOOK — ask {int(ask_s)}@${ask_p:.2f}, no bid")
             return False, details
 
-        # Check 3: Thin bids (no floor)
-        close_bids = [(p, s) for p, s in bids if p >= entry_price * 0.97]
-        close_bid_vol = sum(s for _, s in close_bids)
-        if close_bid_vol < 500 and total_ask_vol > 1000:
-            details["reason"] = f"thin bids ({int(close_bid_vol)} shares within 3%)"
-            print(f"🚫 {ticker} L2: THIN BIDS — only {int(close_bid_vol)} shares within 3% below entry")
-            return False, details
-
-        ratio_str = f"{details['ratio']:.1f}:1" if total_bid_vol > 0 else "N/A"
-        print(f"✅ {ticker} L2: bids {int(total_bid_vol)} vs asks {int(total_ask_vol)} ({ratio_str}) — OK")
+        rstr = f"{details['ratio']}:1" if details["ratio"] is not None else "n/a"
+        print(f"📖 {ticker} L1: bid {int(bid_s)}@${bid_p:.2f} | ask {int(ask_s)}@${ask_p:.2f} "
+              f"| ask/bid {rstr} (logged for study)")
         return True, details
 
     except Exception as e:
-        print(f"⚠️  {ticker}: L2 error: {e} — skipping check")
+        details["reason"] = f"L1 error: {str(e)[:60]}"
         return True, details
 
 
@@ -4166,6 +4121,11 @@ def main():
                 "entry_ema90":        round(entry_ema90, 4) if entry_ema90 > 0 else None,
                 "entry_vs_ema90_pct": entry_vs_ema90_pct,
                 "trade_id":           trade_id,
+                # L1 order-book at entry (study: do adverse book conditions predict losers?)
+                "entry_l1_ratio":     l2_details.get("ratio"),
+                "entry_ask_size":     l2_details.get("ask_size"),
+                "entry_bid_size":     l2_details.get("bid_size"),
+                "entry_l1_spread":    l2_details.get("spread"),
             })
             send_summary_email(analysis, trade_result, display_balance,
                                csv_log_line=csv_row, traded_ticker=ticker)

@@ -92,6 +92,29 @@ def _compute_stats():
 
 _load_trades()
 
+# ── Day-Two Observation store (observe-only — how hard day-1 gappers behave on day 2) ──
+OBS_FILE = pathlib.Path("/data/observations.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/observations.json")
+# day2_watch: tickers to observe (auto from each day's gappers + manual seeds).
+# observations: time-series snapshots of those tickers' day-2 behavior.
+_obs: dict = {"day2_watch": [], "observations": [], "daily_gappers": {}}
+
+def _load_obs():
+    global _obs
+    if OBS_FILE.exists():
+        try:
+            _obs.update(json.loads(OBS_FILE.read_text()))
+        except Exception:
+            pass
+
+def _save_obs():
+    try:
+        _obs["observations"] = _obs.get("observations", [])[-5000:]   # keep file bounded
+        OBS_FILE.write_text(json.dumps(_obs, indent=2))
+    except Exception as e:
+        print(f"⚠️  Could not save observations: {e}")
+
+_load_obs()
+
 # ── Webull helpers ─────────────────────────────────────────────────────────────
 
 def _pre_populate_token():
@@ -760,10 +783,116 @@ def get_watching():
     return jsonify(_watching)
 
 
+# ── Day-Two Observation endpoints (observe-only) ──
+@app.route("/api/day2_watch", methods=["POST"])
+def set_day2_watch():
+    """Set/extend the day-two observation list. {"tickers": [...], "mode": "set"|"add"}."""
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    tickers = [t.upper() for t in data.get("tickers", []) if t]
+    if data.get("mode") == "add":
+        merged = list(dict.fromkeys(_obs.get("day2_watch", []) + tickers))
+        _obs["day2_watch"] = merged
+    else:
+        _obs["day2_watch"] = list(dict.fromkeys(tickers))
+    _save_obs()
+    print(f"🔭 Day-2 watch set: {_obs['day2_watch']}")
+    return jsonify({"status": "ok", "day2_watch": _obs["day2_watch"]})
+
+
+@app.route("/api/observe", methods=["POST"])
+def observe():
+    """Append a day-two observation snapshot from the bot. Observe-only — no trading."""
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    rec = {
+        "date":        data.get("date", datetime.now(EASTERN).strftime("%Y-%m-%d")),
+        "time":        datetime.now(EASTERN).strftime("%I:%M %p ET"),
+        "ts":          datetime.now(EASTERN).isoformat(),
+        "ticker":      (data.get("ticker") or "—").upper(),
+        "price":       data.get("price"),
+        "prev_close":  data.get("prev_close"),
+        "gap_pct":     data.get("gap_pct"),        # vs prev close (the day-2 gap)
+        "vwap":        data.get("vwap"),
+        "pct_vs_vwap": data.get("pct_vs_vwap"),
+        "high":        data.get("high"),
+        "day1_move":   data.get("day1_move"),      # how hard it gapped on day 1
+        "day1_date":   data.get("day1_date"),
+        "note":        data.get("note", ""),
+    }
+    _obs.setdefault("observations", []).append(rec)
+    _save_obs()
+    return jsonify({"status": "ok", "count": len(_obs["observations"])})
+
+
+@app.route("/api/gappers", methods=["POST"])
+def log_gappers():
+    """Record a day's hard gappers (for day-2 carryover). {"date","gappers":[{symbol,change_pct,...}]}."""
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    date = data.get("date", datetime.now(EASTERN).strftime("%Y-%m-%d"))
+    _obs.setdefault("daily_gappers", {})[date] = data.get("gappers", [])
+    _save_obs()
+    return jsonify({"status": "ok", "date": date, "n": len(data.get("gappers", []))})
+
+
+@app.route("/api/day2", methods=["GET"])
+def get_day2():
+    return jsonify({"day2_watch": _obs.get("day2_watch", []),
+                    "observations": _obs.get("observations", [])[-500:],
+                    "daily_gappers": _obs.get("daily_gappers", {})})
+
+
 
 @app.route("/dashboard")
 def dashboard():
     return render_template_string(DASHBOARD_HTML)
+
+
+DAY2_HTML = """<!doctype html><html><head><meta charset="utf-8"><title>Day-Two Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{background:#0d1117;color:#e6edf3;font-family:Inter,system-ui,sans-serif;margin:0;padding:24px}
+h1{font-size:20px;margin:0 0 4px}.sub{color:#8b949e;font-size:13px;margin-bottom:20px}
+.watch{margin:12px 0 24px}.chip{display:inline-block;background:#161b22;border:1px solid #30363d;border-radius:8px;
+ padding:6px 12px;margin:4px;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #21262d}
+th{color:#8b949e;font-weight:600}.pos{color:#3fb950}.neg{color:#f85149}.tk{font-weight:700;color:#58a6ff}
+.empty{color:#8b949e;padding:40px;text-align:center}
+</style></head><body>
+<h1>🔭 Day-Two Tracker <span class="sub">observe-only — how hard day-1 gappers behave on day 2</span></h1>
+<div id="watch" class="watch"></div>
+<table><thead><tr><th>Date</th><th>Time</th><th>Ticker</th><th>Day-1 move</th><th>Price</th>
+<th>Gap vs prev close</th><th>VWAP</th><th>vs VWAP</th><th>Day-2 high</th></tr></thead>
+<tbody id="rows"></tbody></table>
+<script>
+function pct(n){return n==null?'—':(n>=0?'+':'')+Number(n).toFixed(1)+'%';}
+function cls(n){return n==null?'':n>=0?'pos':'neg';}
+function money(n){return n==null?'—':'$'+Number(n).toFixed(3);}
+fetch('/api/day2').then(r=>r.json()).then(d=>{
+  document.getElementById('watch').innerHTML = '<b>Watching for day-2:</b> ' +
+    ((d.day2_watch||[]).map(t=>'<span class="chip">'+t+'</span>').join('') || '<span class="sub">none seeded yet</span>');
+  const obs=(d.observations||[]).slice().reverse();
+  const tb=document.getElementById('rows');
+  if(!obs.length){tb.innerHTML='<tr><td colspan="9"><div class="empty">No day-2 observations yet — they\\'ll appear here during market hours.</div></td></tr>';return;}
+  tb.innerHTML=obs.map(o=>`<tr>
+    <td>${o.date||'—'}</td><td>${o.time||'—'}</td><td class="tk">${o.ticker}</td>
+    <td class="${cls(o.day1_move)}">${pct(o.day1_move)}</td>
+    <td>${money(o.price)}</td>
+    <td class="${cls(o.gap_pct)}">${pct(o.gap_pct)}</td>
+    <td>${money(o.vwap)}</td>
+    <td class="${cls(o.pct_vs_vwap)}">${pct(o.pct_vs_vwap)}</td>
+    <td>${money(o.high)}</td></tr>`).join('');
+});
+</script></body></html>"""
+
+
+@app.route("/day2")
+def day2_view():
+    return render_template_string(DAY2_HTML)
 
 
 # ── Dashboard HTML ─────────────────────────────────────────────────────────────

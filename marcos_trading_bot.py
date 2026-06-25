@@ -1076,6 +1076,88 @@ def _push_balance_to_screener(balance: float):
         print(f"⚠️  Could not sync balance to screener_app: {e}")
 
 
+# ============================================================
+# DAY-TWO OBSERVATION (observe-only — gather data on how hard day-1 gappers
+# behave on day 2). Runs on an ISOLATED daemon thread — never touches the trade
+# loop, positions, or orders. Pure read + POST. See [[project_market_observations]].
+# ============================================================
+
+def _seed_day2_from_gappers(gappers: list):
+    """After the morning scan, carry today's hard gappers into tomorrow's day-2 watch list."""
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url or not gappers:
+        return
+    try:
+        syms = [g.get("symbol") for g in gappers if g.get("symbol")]
+        requests.post(f"{url}/api/gappers",
+                      json={"date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+                            "gappers": [{"symbol": g.get("symbol"),
+                                         "change_pct": g.get("change_pct", 0),
+                                         "float_label": g.get("float_label", "")} for g in gappers]},
+                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
+        requests.post(f"{url}/api/day2_watch",
+                      json={"tickers": syms, "mode": "add"},
+                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
+        print(f"🔭 Day-2 carryover seeded: {syms}")
+    except Exception as e:
+        print(f"⚠️  Day-2 seed error: {e}")
+
+
+def _record_day2_observations():
+    """Snapshot day-2 behavior of the carried-over gappers. Observe-only; fully isolated."""
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url:
+        return
+    try:
+        r = requests.get(f"{url}/api/day2", timeout=5)
+        tickers = r.json().get("day2_watch", []) if r.status_code == 200 else []
+    except Exception:
+        return
+    if not tickers:
+        return
+    recorded = 0
+    for t in tickers:
+        try:
+            q = _get_webull_quote(t)
+            price = float(q.get("last_price") or 0)
+            if price <= 0:
+                continue
+            prev = float(q.get("prev_close") or 0)
+            gap  = round((price - prev) / prev * 100, 2) if prev > 0 else None
+            vwap = float(q.get("vwap") or 0)
+            if vwap <= 0:
+                bars = get_intraday_bars(t, count=390)
+                vwap = calculate_vwap(bars) if bars else 0
+                hi   = max((float(b.get("high") or b.get("h") or 0) for b in bars), default=price) if bars else price
+            else:
+                hi = price
+            vsv = round((price - vwap) / vwap * 100, 2) if vwap > 0 else None
+            requests.post(f"{url}/api/observe",
+                          json={"ticker": t, "price": round(price, 4),
+                                "prev_close": round(prev, 4) if prev else None, "gap_pct": gap,
+                                "vwap": round(vwap, 4) if vwap else None, "pct_vs_vwap": vsv,
+                                "high": round(hi, 4)},
+                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
+            recorded += 1
+        except Exception:
+            continue
+    if recorded:
+        print(f"🔭 Day-2 observations recorded for {recorded}/{len(tickers)} ticker(s)")
+
+
+def _day2_observer_loop():
+    """Daemon thread: snapshot the day-2 watch list every 10 min during market hours.
+    Completely isolated from trading — a crash here can never affect a position."""
+    while True:
+        try:
+            now = datetime.now(EASTERN)
+            if now.weekday() < 5 and (9 <= now.hour < 16 or (now.hour == 16 and now.minute == 0)):
+                _record_day2_observations()
+        except Exception as e:
+            print(f"⚠️  Day-2 observer loop error: {e}")
+        time.sleep(600)   # every 10 minutes
+
+
 def get_account_balance():
     """
     Get SETTLED cash only — critical for cash accounts.
@@ -3706,6 +3788,7 @@ def main():
     gapper_syms = [g["symbol"] for g in gappers if g.get("symbol")]
     print(f"📋 Watching {len(gapper_syms)} candidates: {' | '.join(gapper_syms)}")
     _post_watching_to_screener(gapper_syms)
+    _seed_day2_from_gappers(gappers)   # carry today's hard gappers into tomorrow's day-2 observation
 
     stream_tickers = list(dict.fromkeys(gapper_syms))
     stream         = WebullStream(stream_tickers)
@@ -3980,6 +4063,10 @@ if __name__ == "__main__":
     RESCAN_INTERVAL_MINUTES = 30
 
     print("🤖 Marcos Trading Bot — always-on worker mode")
+
+    # Day-2 observation runs on its own isolated daemon thread (never touches trading).
+    threading.Thread(target=_day2_observer_loop, daemon=True, name="day2_observer").start()
+    print("🔭 Day-2 observer thread started (observe-only)")
 
     while True:
         now_et = datetime.now(EASTERN)

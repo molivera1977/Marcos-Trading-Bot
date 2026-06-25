@@ -41,6 +41,7 @@ app = Flask(__name__)
 _trades: list = []
 _account: dict = {"balance": 0.0, "updated": ""}
 _watching: dict = {}                   # Live watch list posted by bot each session
+_trade_state: dict = {}                # Live state of the active trade (entry/price/pnl/stop/target)
 
 def _load_trades():
     global _trades, _account
@@ -780,7 +781,23 @@ def save_watching():
 
 @app.route("/api/watching", methods=["GET"])
 def get_watching():
-    return jsonify(_watching)
+    # include live trade state, but only if fresh (bot stops posting when the trade ends)
+    ts = _trade_state
+    fresh = bool(ts) and (time.time() - ts.get("_recv", 0) <= 90)
+    return jsonify({**_watching, "trade_state": (ts if fresh else None)})
+
+
+@app.route("/api/trade_state", methods=["POST"])
+def set_trade_state():
+    """Live state of the active trade, posted fire-and-forget by the bot each monitor loop."""
+    global _trade_state
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    data["_recv"] = time.time()
+    data["updated"] = datetime.now(EASTERN).strftime("%I:%M:%S %p ET")
+    _trade_state = data
+    return jsonify({"status": "ok"})
 
 
 # ── Day-Two Observation endpoints (observe-only) ──
@@ -995,6 +1012,17 @@ a.watch-chip:hover{filter:brightness(1.25)}
 .param-pill span{color:#8b949e;margin-right:4px}
 .param-pill strong{color:#e6edf3}
 .watch-tickers{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.trade-panel{margin-top:16px;background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px}
+.trade-panel .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.trade-panel .tk{font-size:20px;font-weight:800;color:#58a6ff;text-decoration:none}
+.trade-panel .pnl{font-size:22px;font-weight:800}
+.trade-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.trade-grid .cell{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
+.trade-grid .lbl{color:#8b949e;font-size:11px;text-transform:uppercase}
+.trade-grid .val{font-weight:700;font-size:15px;margin-top:2px}
+.tbar{height:8px;background:#161b22;border-radius:4px;margin-top:12px;overflow:hidden;position:relative}
+.tbar .fill{height:100%;background:linear-gradient(90deg,#f85149,#d29922,#3fb950)}
+.tbar-lbls{display:flex;justify-content:space-between;color:#8b949e;font-size:11px;margin-top:4px}
 .watch-chip{background:#1a3a2a;border:1px solid #2d5a3d;color:#3fb950;
             border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600}
 .watch-chip.trading{background:#2a1a3a;border-color:#5a3d8a;color:#c084fc}
@@ -1071,6 +1099,7 @@ a.watch-chip:hover{filter:brightness(1.25)}
     <div class="panel-title">Currently Watching</div>
     <div class="watch-status" id="watchStatus"><span class="status-dot idle"></span>Loading...</div>
     <div class="watch-tickers" id="watchTickers"></div>
+    <div id="tradePanel"></div>
   </div>
 </div>
 
@@ -1244,12 +1273,40 @@ function renderChart(curve){
   });
 }
 
+function renderTradePanel(ts){
+  const el = document.getElementById('tradePanel');
+  if(!ts || !ts.ticker){ el.innerHTML=''; return; }
+  const pnl = Number(ts.pnl_pct||0);
+  const pnlCls = pnl>=0?'green':'red';
+  // progress from stop (0%) through entry to target (100%)
+  const lo=Number(ts.stop||0), hi=Number(ts.target||0), px=Number(ts.price||0);
+  let prog = (hi>lo) ? ((px-lo)/(hi-lo))*100 : 0; prog=Math.max(0,Math.min(100,prog));
+  const sold = (ts.initial_shares&&ts.remaining_shares!=null)
+    ? `${ts.initial_shares-ts.remaining_shares}/${ts.initial_shares} sold` : '';
+  el.innerHTML = `<div class="trade-panel">
+    <div class="hdr">
+      <a class="tk" href="https://www.tradingview.com/chart/?symbol=${ts.ticker}" target="_blank" rel="noopener">${ts.ticker} ↗</a>
+      <div class="pnl ${pnlCls}">${pnl>=0?'+':''}${pnl.toFixed(1)}%</div>
+    </div>
+    <div class="trade-grid">
+      <div class="cell"><div class="lbl">Entry</div><div class="val">$${Number(ts.entry).toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl">Now</div><div class="val">$${Number(ts.price).toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl">Stop</div><div class="val" style="color:#f85149">$${Number(ts.stop).toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl">Target</div><div class="val" style="color:#3fb950">$${Number(ts.target).toFixed(2)}</div></div>
+    </div>
+    <div class="tbar"><div class="fill" style="width:${prog.toFixed(0)}%"></div></div>
+    <div class="tbar-lbls"><span>🛑 stop</span><span>${sold}${sold&&ts.vwap?' · ':''}${ts.vwap?'VWAP $'+Number(ts.vwap).toFixed(2):''}</span><span>🎯 target</span></div>
+    <div class="tbar-lbls" style="margin-top:6px"><span>High $${Number(ts.highest||ts.price).toFixed(2)}</span><span>updated ${ts.updated||''}</span></div>
+  </div>`;
+}
+
 function loadWatching(){
   fetch('/api/watching')
     .then(r=>r.json())
     .then(d=>{
       const statusEl  = document.getElementById('watchStatus');
       const tickersEl = document.getElementById('watchTickers');
+      renderTradePanel(d && d.trade_state);
       if(!d || !d.tickers || d.tickers.length===0){
         statusEl.innerHTML = '<span class="status-dot idle"></span>Idle — outside market hours or no setup';
         tickersEl.innerHTML = '';

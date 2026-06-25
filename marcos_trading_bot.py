@@ -1076,6 +1076,24 @@ def _push_balance_to_screener(balance: float):
         print(f"⚠️  Could not sync balance to screener_app: {e}")
 
 
+def _post_trade_state(state: dict):
+    """FIRE-AND-FORGET live trade state to the dashboard. Submitted to the thread pool so the
+    monitor loop NEVER waits on it — it cannot delay, block, or hang an exit check."""
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url:
+        return
+    def _send():
+        try:
+            requests.post(f"{url}/api/trade_state", json=state,
+                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=4)
+        except Exception:
+            pass
+    try:
+        _quote_executor.submit(_send)
+    except Exception:
+        pass
+
+
 # ============================================================
 # DAY-TWO OBSERVATION (observe-only — gather data on how hard day-1 gappers
 # behave on day 2). Runs on an ISOLATED daemon thread — never touches the trade
@@ -2902,6 +2920,13 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     placed_stop_price = current_stop
 
         print(f"💰 {ticker}: ${current_price:.2f} ({profit_pct:+.1f}%) | Stop: ${current_stop:.2f} | Shares: {remaining_shares}")
+        _post_trade_state({
+            "ticker": ticker, "entry": round(entry_price, 4), "price": round(current_price, 4),
+            "pnl_pct": round(profit_pct, 2), "stop": round(current_stop, 4),
+            "target": round(target_price, 4), "remaining_shares": remaining_shares,
+            "initial_shares": initial_shares, "partials": len(partial_fills),
+            "highest": round(highest_price, 4), "vwap": round(vwap, 4) if vwap else None,
+        })
 
         # ── Tiered exits (AM: 25%@+8%, 50%@+12%, 25%@+20% | PM: 50%@+4%, 50%@+6%) ──
         if tier_idx < len(exit_tiers) and remaining_shares > 0:

@@ -685,9 +685,15 @@ def record_trade():
     if secret != API_SECRET:
         return jsonify({"error": "unauthorized"}), 401
     data = request.get_json(silent=True) or {}
+    # Idempotency: if this trade_id was already recorded (e.g. normal exit logged, then a
+    # failed clear caused recovery to re-post it), skip the duplicate.
+    tid = data.get("trade_id")
+    if tid and any(t.get("trade_id") == tid for t in _trades):
+        return jsonify({"status": "ok", "deduped": True, "total_trades": len(_trades)})
     trade = {
         "date":          data.get("date", datetime.now(EASTERN).strftime("%Y-%m-%d")),
         "ticker":        data.get("ticker", "UNKNOWN"),
+        "trade_id":      tid,
         "entry":         round(float(data.get("entry", 0)), 2),
         "exit":          round(float(data.get("exit", 0)), 2),
         "shares":        int(data.get("shares", 0)),
@@ -798,6 +804,63 @@ def set_trade_state():
     data["updated"] = datetime.now(EASTERN).strftime("%I:%M:%S %p ET")
     _trade_state = data
     return jsonify({"status": "ok"})
+
+
+# ── Durable open-trade state (survives a bot crash/restart/redeploy) ──
+# The bot has no /data volume of its own, so it persists open positions HERE.
+# On startup the bot pulls these back so an interrupted trade still reaches a recorded exit.
+OPEN_TRADES_FILE = pathlib.Path("/data/open_trades.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/open_trades.json")
+_open_trades: dict = {}
+
+def _load_open_trades():
+    global _open_trades
+    if OPEN_TRADES_FILE.exists():
+        try:
+            _open_trades = json.loads(OPEN_TRADES_FILE.read_text())
+        except Exception:
+            _open_trades = {}
+
+def _save_open_trades_file():
+    try:
+        OPEN_TRADES_FILE.write_text(json.dumps(_open_trades, indent=2))
+    except Exception as e:
+        print(f"⚠️  Could not save open trades: {e}")
+
+_load_open_trades()
+
+
+@app.route("/api/open_trade", methods=["POST"])
+def upsert_open_trade():
+    """Bot persists/updates an open position here each monitor loop (durable recovery state)."""
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    tk = (data.get("ticker") or "").upper()
+    if not tk:
+        return jsonify({"error": "no ticker"}), 400
+    data["updated"] = datetime.now(EASTERN).isoformat()
+    # MERGE: entry posts static context (entry_type, confidence, size...), monitor posts
+    # dynamic state (remaining, partials, stop, highest, tier) — together = full record.
+    _open_trades.setdefault(tk, {}).update(data)
+    _save_open_trades_file()
+    return jsonify({"status": "ok"})
+
+
+@app.route("/api/open_trade/clear", methods=["POST"])
+def clear_open_trade():
+    """Bot removes a position here once it has reached a recorded exit."""
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    tk = (request.get_json(silent=True) or {}).get("ticker", "").upper()
+    if tk in _open_trades:
+        del _open_trades[tk]
+        _save_open_trades_file()
+    return jsonify({"status": "ok", "remaining": list(_open_trades.keys())})
+
+
+@app.route("/api/open_trades", methods=["GET"])
+def get_open_trades():
+    return jsonify({"open_trades": list(_open_trades.values())})
 
 
 # ── Day-Two Observation endpoints (observe-only) ──

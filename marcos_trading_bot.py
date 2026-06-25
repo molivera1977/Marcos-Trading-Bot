@@ -1089,9 +1089,116 @@ def _post_trade_state(state: dict):
         except Exception:
             pass
     try:
-        _quote_executor.submit(_send)
+        _aux_executor.submit(_send)
     except Exception:
         pass
+
+
+# ── Durable open-trade state — persisted to the screener (which has a /data volume) so an
+# open position SURVIVES a bot crash/restart/redeploy and still reaches a recorded exit. ──
+
+def _save_open_trade(state: dict):
+    """Fire-and-forget upsert of the open position to the screener (durable storage)."""
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url:
+        return
+    def _send():
+        try:
+            requests.post(f"{url}/api/open_trade", json=state,
+                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=4)
+        except Exception:
+            pass
+    try:
+        _aux_executor.submit(_send)
+    except Exception:
+        pass
+
+
+def _save_open_trade_sync(state: dict) -> bool:
+    """BLOCKING, confirmed persist — used at ENTRY so the position is durably stored BEFORE
+    monitor_trade runs (closes the crash-right-after-entry window and avoids POST reordering)."""
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url:
+        return False
+    try:
+        r = requests.post(f"{url}/api/open_trade", json=state,
+                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=6)
+        return r.status_code == 200
+    except Exception as e:
+        print(f"⚠️  Entry persist failed for {state.get('ticker')}: {e}")
+        return False
+
+
+def _clear_open_trade(ticker: str):
+    """Remove the open position from durable storage once it has a recorded exit. Blocking
+    (must complete before the run ends) but bounded."""
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url:
+        return
+    try:
+        requests.post(f"{url}/api/open_trade/clear", json={"ticker": ticker},
+                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
+    except Exception:
+        pass
+
+
+def _load_open_trades_from_screener() -> list:
+    """On startup, pull any positions that were left open by a prior (crashed) run."""
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url:
+        return []
+    try:
+        r = requests.get(f"{url}/api/open_trades", timeout=8)
+        if r.status_code == 200:
+            return r.json().get("open_trades", [])
+    except Exception:
+        pass
+    return []
+
+
+def _recover_orphaned_trades():
+    """THE safety net: on startup, close + RECORD any position a crashed prior run left open,
+    so every entered trade reaches a recorded exit regardless of what killed the process.
+    Records the remainder at the current price (the trade was interrupted)."""
+    orphans = _load_open_trades_from_screener()
+    if not orphans:
+        return
+    print(f"♻️  Recovering {len(orphans)} orphaned open trade(s) from a prior run...")
+    for o in orphans:
+        ticker = (o.get("ticker") or "").upper()
+        try:
+            if not ticker:
+                continue
+            entry     = float(o.get("entry_price") or 0)
+            remaining = int(o.get("remaining_shares") or 0)
+            initial   = int(o.get("initial_shares") or remaining or 1)
+            partials  = o.get("partial_fills") or []   # [[qty, price], ...]
+            q  = _get_webull_quote(ticker)
+            px = float(q.get("last_price") or 0) or float(o.get("last_price") or entry)
+            pnl = sum((float(p[1]) - entry) * float(p[0])
+                      for p in partials if isinstance(p, (list, tuple)) and len(p) >= 2)
+            pnl += (px - entry) * remaining
+            pnl_pct = ((px - entry) / entry * 100) if entry > 0 else 0
+            print(f"♻️  {ticker}: recording recovered exit — entry ${entry:.2f} → ${px:.2f} "
+                  f"({pnl_pct:+.1f}%, ${pnl:+.2f})")
+            post_to_dashboard({
+                "date":            o.get("entry_date") or datetime.now(EASTERN).strftime("%Y-%m-%d"),
+                "ticker":          ticker, "entry_type": o.get("entry_type", ""),
+                "entry":           entry, "exit": round(px, 4), "shares": initial,
+                "pnl":             round(pnl, 2), "pnl_pct": round(pnl_pct, 2),
+                "exit_reason":     "RECOVERED after restart",
+                "confidence":      o.get("confidence", ""), "float_shares": "",
+                "position_size":   o.get("position_size", 0),
+                "account_balance": get_account_balance(),
+                "trade_id":        o.get("trade_id"),
+            })
+            send_alert_email(f"♻️ Recovered trade: {ticker} {pnl_pct:+.1f}%",
+                             f"{ticker} was still open when the bot restarted. Closed and recorded "
+                             f"at ${px:.2f} (entry ${entry:.2f}) — P&L ${pnl:+.2f} ({pnl_pct:+.1f}%).")
+            _clear_open_trade(ticker)
+        except Exception as e:
+            print(f"⚠️  Recovery error for {ticker or o}: {e}")
+            _clear_open_trade(ticker)   # don't let a bad record loop forever
 
 
 # ============================================================
@@ -1133,10 +1240,11 @@ def _record_day2_observations():
         return
     if not tickers:
         return
+    tickers = tickers[-10:]   # cap load: only the 10 most-recent day-2 names per cycle
     recorded = 0
     for t in tickers:
         try:
-            q = _get_webull_quote(t)
+            q = _get_webull_quote(t, executor=_aux_executor)   # off the trade pool
             price = float(q.get("last_price") or 0)
             if price <= 0:
                 continue
@@ -1144,7 +1252,7 @@ def _record_day2_observations():
             gap  = round((price - prev) / prev * 100, 2) if prev > 0 else None
             vwap = float(q.get("vwap") or 0)
             if vwap <= 0:
-                bars = get_intraday_bars(t, count=390)
+                bars = get_intraday_bars(t, count=390, executor=_aux_executor)
                 vwap = calculate_vwap(bars) if bars else 0
                 hi   = max((float(b.get("high") or b.get("h") or 0) for b in bars), default=price) if bars else price
             else:
@@ -1159,6 +1267,7 @@ def _record_day2_observations():
             recorded += 1
         except Exception:
             continue
+        time.sleep(0.5)   # de-burst — keep the shared SDK client/executor gentle
     if recorded:
         print(f"🔭 Day-2 observations recorded for {recorded}/{len(tickers)} ticker(s)")
 
@@ -1173,7 +1282,7 @@ def _day2_observer_loop():
                 _record_day2_observations()
         except Exception as e:
             print(f"⚠️  Day-2 observer loop error: {e}")
-        time.sleep(600)   # every 10 minutes
+        time.sleep(900)   # every 15 minutes (reduced load)
 
 
 def get_account_balance():
@@ -1280,9 +1389,14 @@ def _get_price_rest(ticker) -> float:
 
 _quote_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4,
                                                         thread_name_prefix="wb_quote")
+# Separate pool for NON-trade work (dashboard posts, durable-state persistence, day-2
+# observer). Kept off _quote_executor so observation/posting load can never starve the
+# exit-critical price feed (the contention the audit flagged + today's crash trigger).
+_aux_executor = concurrent.futures.ThreadPoolExecutor(max_workers=3,
+                                                      thread_name_prefix="wb_aux")
 
 
-def _get_webull_quote(ticker) -> dict:
+def _get_webull_quote(ticker, executor=None) -> dict:
     """
     Fetch a live real-time quote via the official Webull SDK (properly authenticated).
     Falls back to empty dict on any error so callers can fall back to yfinance.
@@ -1296,7 +1410,7 @@ def _get_webull_quote(ticker) -> dict:
         if not dc:
             return {}
 
-        future = _quote_executor.submit(
+        future = (executor or _quote_executor).submit(
             dc.market_data.get_snapshot,
             symbols=ticker,
             category="US_STOCK",
@@ -1688,17 +1802,18 @@ def check_momentum(ticker) -> tuple[bool, dict]:
         return True, details
 
 
-def get_intraday_bars(ticker, count=30):
+def get_intraday_bars(ticker, count=30, executor=None):
     """Fetch 1-minute intraday bars for VWAP calculation. Uses SDK.
 
     The SDK call has no timeout — used inside monitor_trade (EMA9 stop + topping-tail exit),
     so a hung call could freeze the loop (same class as the BOXL freeze). Run it on the shared
-    worker with a hard QUOTE_TIMEOUT_SECS cap so it can never block the monitor loop."""
+    worker with a hard QUOTE_TIMEOUT_SECS cap so it can never block the monitor loop.
+    Pass executor=_aux_executor (e.g. the day-2 observer) to keep load OFF the trade pool."""
     try:
         dc = _get_data_client()
         if not dc:
             return []
-        future = _quote_executor.submit(
+        future = (executor or _quote_executor).submit(
             dc.market_data.get_history_bar,
             symbol=ticker,
             category="US_STOCK",
@@ -2937,6 +3052,14 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             "initial_shares": initial_shares, "partials": len(partial_fills),
             "highest": round(highest_price, 4), "vwap": round(vwap, 4) if vwap else None,
         })
+        # Durable recovery state — survives a crash/restart so this trade still gets a recorded exit.
+        _save_open_trade({
+            "ticker": ticker, "entry_price": round(entry_price, 4), "target": round(target_price, 4),
+            "stop": round(current_stop, 4), "remaining_shares": remaining_shares,
+            "initial_shares": initial_shares, "highest": round(highest_price, 4),
+            "tier_idx": tier_idx, "partial_fills": partial_fills, "vwap": round(vwap, 4) if vwap else 0,
+            "last_price": round(current_price, 4),
+        })
 
         # ── Tiered exits (AM: 25%@+8%, 50%@+12%, 25%@+20% | PM: 50%@+4%, 50%@+6%) ──
         if tier_idx < len(exit_tiers) and remaining_shares > 0:
@@ -3976,6 +4099,17 @@ def main():
             _post_watching_to_screener([ticker], status="trading")
             send_entry_alert(ticker, shares, entry_price,
                              stop_loss, target_price, vwap, pos_size)
+            # Persist the static context SYNCHRONOUSLY (confirmed) BEFORE monitoring, so a
+            # crash anywhere after this still records a proper exit. trade_id = idempotency key.
+            trade_id = uuid.uuid4().hex
+            _save_open_trade_sync({
+                "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
+                "target": round(target_price, 4), "stop": round(stop_loss, 4),
+                "initial_shares": shares, "remaining_shares": shares, "tier_idx": 0,
+                "partial_fills": [], "entry_type": entry_type, "confidence": confidence,
+                "position_size": pos_size, "vwap": round(vwap, 4) if vwap else 0,
+                "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+            })
 
             trade_result = monitor_trade(
                 ticker, shares, entry_price, target_price, stop_loss,
@@ -4025,9 +4159,11 @@ def main():
                 "account_balance": current_balance,
                 "entry_ema90":        round(entry_ema90, 4) if entry_ema90 > 0 else None,
                 "entry_vs_ema90_pct": entry_vs_ema90_pct,
+                "trade_id":           trade_id,
             })
             send_summary_email(analysis, trade_result, display_balance,
                                csv_log_line=csv_row, traded_ticker=ticker)
+            _clear_open_trade(ticker)   # recorded exit reached — drop durable recovery state
 
             tag = "EMA BOUNCE" if entry_type == "ema_bounce" else "FLAT TOP"
             print(f"\n{'='*60}")
@@ -4098,6 +4234,13 @@ if __name__ == "__main__":
     RESCAN_INTERVAL_MINUTES = 30
 
     print("🤖 Marcos Trading Bot — always-on worker mode")
+
+    # SAFETY NET: recover + record any trade a crashed prior run left open (the invariant —
+    # every entered trade reaches a recorded exit, regardless of what killed the process).
+    try:
+        _recover_orphaned_trades()
+    except Exception as e:
+        print(f"⚠️  Orphan recovery failed: {e}")
 
     # Day-2 observation runs on its own isolated daemon thread (never touches trading).
     threading.Thread(target=_day2_observer_loop, daemon=True, name="day2_observer").start()

@@ -295,7 +295,10 @@ EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry
 MAX_SPREAD_PCT        = 0.03   # Skip entry if bid-ask spread > 3% of ask price
 VWAP_VOL_MULTIPLIER   = 2.0    # Require 2× average minute volume for VWAP reclaim confirmation
 VWAP_CONFIRM_TICKS   = 3      # Price must hold above VWAP for this many consecutive polls before entry
-MAX_VWAP_EXTENSION   = 0.08   # Don't enter if price is >8% above VWAP — chasing, not buying support
+MAX_VWAP_EXTENSION   = 0.04   # Don't enter if price is >4% above VWAP — anti-chase. Interim value:
+                              # the old 0.08 was an UNTESTED guess that let IQST in at +7.5% (chop, 7%
+                              # stop). 2-3% is the ideal (enter at support like Kev) but signal→fill
+                              # latency may not fill that tight — REVISIT with fill-vs-signal ext data.
 VWAP_PULLBACK_ZONE   = 0.03   # Within 3% of VWAP counts as "at VWAP" for pullback detection
 VWAP_PULLBACK_MIN_RUN = 0.05  # High-water must be ≥5% above VWAP before pullback mode activates
 MIN_ABS_VOL_ENTRY    = 15_000 # Bounce bar must have ≥15k shares — blocks thin afternoon noise

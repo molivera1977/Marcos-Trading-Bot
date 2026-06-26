@@ -299,6 +299,9 @@ MAX_VWAP_EXTENSION   = 0.04   # Don't enter if price is >4% above VWAP — anti-
                               # the old 0.08 was an UNTESTED guess that let IQST in at +7.5% (chop, 7%
                               # stop). 2-3% is the ideal (enter at support like Kev) but signal→fill
                               # latency may not fill that tight — REVISIT with fill-vs-signal ext data.
+VWAP_EXT_STUDY_HI    = 0.08   # DATA-ONLY: log flat-top breakouts we SKIP for being in the
+                              # (MAX_VWAP_EXTENSION, 0.08] band — i.e. what the 4% cap newly rejects that
+                              # the old 8% allowed — and track how far each runs AFTER, to judge if 4% is right.
 VWAP_PULLBACK_ZONE   = 0.03   # Within 3% of VWAP counts as "at VWAP" for pullback detection
 VWAP_PULLBACK_MIN_RUN = 0.05  # High-water must be ≥5% above VWAP before pullback mode activates
 MIN_ABS_VOL_ENTRY    = 15_000 # Bounce bar must have ≥15k shares — blocks thin afternoon noise
@@ -1162,6 +1165,55 @@ def _load_open_trades_from_screener() -> list:
     except Exception:
         pass
     return []
+
+
+# ── VWAP-extension SKIP study (data-only) — measures what the 4% cap costs/saves vs the old 8% ──
+_vwap_skips: dict = {}   # ticker -> session skip record (tracks how far it ran AFTER we skipped it)
+
+def _post_vwap_skip(rec: dict):
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url:
+        return
+    def _send():
+        try:
+            requests.post(f"{url}/api/vwap_skip", json=rec,
+                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=4)
+        except Exception:
+            pass
+    try:
+        _aux_executor.submit(_send)
+    except Exception:
+        pass
+
+def _vwap_skip_update_high(ticker: str, price: float):
+    """Refresh the post-skip high-water (catches a runner even after it blows past 8% above VWAP)."""
+    rec = _vwap_skips.get(ticker)
+    if not rec or price <= 0 or price <= rec["high_after"]:
+        return
+    rec["high_after"] = round(price, 4)
+    rec["ran_pct"] = round((rec["high_after"] - rec["skip_price"]) / rec["skip_price"] * 100, 2)
+    _post_vwap_skip(dict(rec))
+
+def _log_vwap_skip(ticker: str, price: float, vwap: float, entry_type: str):
+    """A confirmed breakout skipped ONLY for sitting in the (4%, 8%] band above VWAP. Records it +
+    starts tracking how far it runs after, so we can later judge whether 4% skips winners or losers."""
+    if vwap <= 0:
+        return
+    ext = (price - vwap) / vwap
+    if not (MAX_VWAP_EXTENSION < ext <= VWAP_EXT_STUDY_HI):
+        return
+    rec = _vwap_skips.get(ticker)
+    if rec is None:
+        rec = {"ticker": ticker, "date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+               "first_skip": datetime.now(EASTERN).strftime("%I:%M:%S %p"),
+               "skip_price": round(price, 4), "vwap": round(vwap, 4),
+               "ext_pct": round(ext * 100, 2), "entry_type": entry_type,
+               "high_after": round(price, 4), "ran_pct": 0.0, "skips": 0}
+        _vwap_skips[ticker] = rec
+        print(f"📐 VWAP-skip logged: {ticker} ${price:.2f} = +{ext*100:.1f}% above VWAP (study)")
+    rec["skips"] += 1
+    _vwap_skip_update_high(ticker, price)
+    _post_vwap_skip(dict(_vwap_skips[ticker]))
 
 
 def _recover_orphaned_trades():
@@ -2367,6 +2419,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             vwap = cache[t]["vwap"]
             price = stream.get_price(t)
 
+            if t in _vwap_skips and price > 0:
+                _vwap_skip_update_high(t, price)   # track how far a skipped setup runs after
+
             if not bars or price <= 0:
                 status_parts.append(f"{t}:no data")
                 continue
@@ -2403,6 +2458,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             continue
                         vwap_ext = (price - vwap) / vwap
                         if vwap_ext > MAX_VWAP_EXTENSION:
+                            # DATA-ONLY: a real flat-top breakout skipped just for extension. If it's in
+                            # the (4%, 8%] band, log it + track how far it runs after (4%-cap study).
+                            if vwap_ext <= VWAP_EXT_STUDY_HI:
+                                _log_vwap_skip(t, price, vwap, "flat_top")
                             status_parts.append(f"{t}:${price:.2f} BREAK but {vwap_ext*100:.1f}% above VWAP — too extended")
                             continue
                         print(f"\n✅ {t} FLAT TOP BREAKOUT! ${price:.2f} > window high ${w_high:.2f} "

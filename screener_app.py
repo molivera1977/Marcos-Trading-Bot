@@ -869,6 +869,47 @@ def get_open_trades():
     return jsonify({"open_trades": list(_open_trades.values())})
 
 
+# ── VWAP-extension SKIP study (data-only) — what the 4% cap newly rejects vs the old 8% ──
+VWAP_SKIPS_FILE = pathlib.Path("/data/vwap_skips.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/vwap_skips.json")
+_vwap_skips: dict = {}   # "TICKER|date" -> record
+
+def _load_vwap_skips():
+    global _vwap_skips
+    if VWAP_SKIPS_FILE.exists():
+        try:
+            _vwap_skips = json.loads(VWAP_SKIPS_FILE.read_text())
+        except Exception:
+            _vwap_skips = {}
+_load_vwap_skips()
+
+@app.route("/api/vwap_skip", methods=["POST"])
+def upsert_vwap_skip():
+    """Bot logs a flat-top breakout it skipped for being 4-8% above VWAP, + how far it ran after."""
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    tk = (d.get("ticker") or "").upper()
+    if not tk:
+        return jsonify({"error": "no ticker"}), 400
+    key = f"{tk}|{d.get('date','')}"
+    d["updated"] = datetime.now(EASTERN).isoformat()
+    _vwap_skips.setdefault(key, {}).update(d)
+    try:
+        VWAP_SKIPS_FILE.write_text(json.dumps(_vwap_skips, indent=2))
+    except Exception as e:
+        print(f"⚠️  Could not save vwap_skips: {e}")
+    return jsonify({"status": "ok"})
+
+@app.route("/api/vwap_skips", methods=["GET"])
+def get_vwap_skips():
+    rows = list(_vwap_skips.values())
+    n = len(rows)
+    avg_ran = round(sum(r.get("ran_pct", 0) for r in rows) / n, 2) if n else 0
+    ran5 = sum(1 for r in rows if r.get("ran_pct", 0) >= 5)
+    return jsonify({"count": n, "avg_ran_pct": avg_ran, "ran_5pct_plus": ran5,
+                    "skips": sorted(rows, key=lambda r: r.get("ran_pct", 0), reverse=True)})
+
+
 # ── Day-Two Observation endpoints (observe-only) ──
 @app.route("/api/day2_watch", methods=["POST"])
 def set_day2_watch():

@@ -281,7 +281,7 @@ EMA_BOUNCE_LOOKBACK = 20    # bars to look back for prior high
 EMA_BOUNCE_VOL_MULT = 1.2   # bounce bar volume > 1.2× prior 3-bar avg
 EMA_STOP_BUFFER    = 0.025  # initial stop = EMA9 × (1 − 2.5%)
 # 90-EMA-as-a-signal — Kev enters off WHICHEVER rising MA the pullback holds (9 = the EMA-bounce above)
-MA_PULLBACK_LEVELS      = [20, 50, 90]  # deeper pullback levels checked shallowest-first
+MA_PULLBACK_LEVELS      = [9, 20, 50, 90]  # all of Kev's pullback MAs — fire off the deepest the low held
 MA_PULLBACK_TOUCH_TOL   = 0.005   # low within 0.5% of the MA = "pulled back to it"
 BOTTOM_TAIL_RATIO       = 0.40    # lower wick ≥40% of range = wicked off the low (a buyer stepped in)
 MA_PULLBACK_STOP_BUFFER = 0.01    # stop just below the MA the pullback held
@@ -2113,10 +2113,10 @@ def compute_room(entry_price, stop_loss, bars, premarket_high=None, prior_day_hi
 def _bar_vol(b): return float(b.get("volume") or b.get("v") or 0)
 
 def detect_ma_pullback(completed, price):
-    """Kev's pullback entry off WHICHEVER rising MA the pullback holds (20/50/90, shallowest-first;
-    the 9 is covered by the EMA-bounce). Faithful to the bible: uptrend → price dips to a rising MA →
-    a candle WICKS OFF THE LOW and CLOSES BACK ABOVE that MA ("a buyer stepped in") → on a weak pullback
-    where buyers then return. Returns {ma_name, ma, stop} of the level held, or None.
+    """Kev's pullback entry off WHICHEVER rising MA the pullback holds (9/20/50/90). Faithful to the
+    bible: uptrend (the MA stack) → price dips to a rising MA → a candle WICKS OFF THE LOW and CLOSES
+    BACK ABOVE that MA ("a buyer stepped in") → weak pullback, buyers return, price continuing up.
+    Risk off the DEEPEST support the low actually reached and held. Returns {ma_name, ma, stop} or None.
     Any error returns None (no entry) — a detector bug must never crash the scan loop."""
     try:
         return _detect_ma_pullback(completed, price)
@@ -2130,8 +2130,8 @@ def _detect_ma_pullback(completed, price):
         return None
     ema9 = _calc_ema(closes, EMA_PERIOD)
     ema20 = _calc_ema(closes, EMA20_PERIOD)
-    if not (ema9 > ema20 > 0 and price > ema20):          # stacked uptrend, price above the shallow MA
-        return None
+    if not (ema9 > ema20 > 0):           # uptrend = the MA STACK (fast above slow). NOT price>ema20 —
+        return None                      # a deep pullback to the 50/90 IS below the 20. VWAP is the floor (wiring).
     conf = completed[-1]
     chi, clo, cop, ccl = _bar_high(conf), _bar_low(conf), _bar_open(conf), _bar_close(conf)
     rng = chi - clo
@@ -2145,18 +2145,25 @@ def _detect_ma_pullback(completed, price):
     vol_prior = sum(_bar_vol(b) for b in completed[-4:-1]) / 3 if len(completed) >= 4 else 0
     if vol_prior > 0 and vol_conf < vol_prior * EMA_BOUNCE_VOL_MULT:   # buyers must return > the weak pullback
         return None
-    for period in MA_PULLBACK_LEVELS:                     # 20 → 50 → 90: fire off the level it CLOSED back above
+    # The support held = every rising MA whose level the low REACHED and the candle CLOSED back above.
+    # Risk off the DEEPEST of them (lowest value = where the buyer actually stepped in / the wick low),
+    # so the stop sits below the wick, not inside it.
+    held = []
+    for period in MA_PULLBACK_LEVELS:                     # 9, 20, 50, 90
         ma = _calc_ema(closes, period)
         if ma <= 0:
             continue
-        if not (clo <= ma * (1 + MA_PULLBACK_TOUCH_TOL) and ccl > ma):  # dipped to it, closed back above
-            continue
         ma_prev = _calc_ema(closes[:-MA_RISING_LOOKBACK], period) if len(closes) > period + MA_RISING_LOOKBACK else 0
-        if ma_prev > 0 and ma <= ma_prev:                 # MA must be rising (uptrend)
-            continue
-        return {"ma_name": f"ema{period}", "ma": round(ma, 4),
-                "stop": round(ma * (1 - MA_PULLBACK_STOP_BUFFER), 4)}
-    return None
+        rising = ma_prev <= 0 or ma > ma_prev
+        if clo <= ma * (1 + MA_PULLBACK_TOUCH_TOL) and ccl > ma and rising:   # low reached it, closed above, rising
+            held.append((ma, period))
+    if not held:
+        return None
+    ma, period = min(held, key=lambda x: x[0])           # deepest support the low reached and held
+    # Risk off the LOW where the buyer stepped in: just below the lower of the MA and the wick low,
+    # so the stop is never inside the wick (Kev risks off the candle low / the level held).
+    return {"ma_name": f"ema{period}", "ma": round(ma, 4),
+            "stop": round(min(ma, clo) * (1 - MA_PULLBACK_STOP_BUFFER), 4)}
 
 
 def calculate_ema9(bars) -> float:
@@ -2604,7 +2611,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
     Both require price > VWAP and EMA9 > EMA20 (bullish stack).
     No new entries after 11:00am ET.
     Returns list of (ticker, entry_price, vwap, entry_type, extra) where
-    entry_type is "flat_top" or "ema_bounce" and extra has stop/target info.
+    entry_type is "flat_top" or "ma_pullback" and extra has stop/target info.
     """
     if traded_tickers is None:
         traded_tickers = set()
@@ -2729,51 +2736,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         gap_to_break = (w_high - price) / price * 100
                         status_parts.append(f"{t}:${price:.2f} flat({rng*100:.1f}%) hi:${w_high:.2f} -{gap_to_break:.1f}%{vwap_tag}")
 
-            # ── Entry type 2: EMA bounce ─────────────────────────────
-            if not found_entry and ema9 > 0 and ema20 > 0 and ema9 > ema20:
-                prev_close = float(completed[-1].get("close") or completed[-1].get("c") or 0)
-                prev_ema9  = _calc_ema(_extract_closes(completed[:-1]), EMA_PERIOD)
-
-                touched = prev_close > 0 and prev_ema9 > 0 and prev_close <= prev_ema9 * (1 + EMA_BOUNCE_TOUCH)
-                bounced = price > ema9
-                above_vwap = vwap > 0 and price > vwap
-                vwap_ext = (price - vwap) / vwap if vwap > 0 else 0
-                not_extended = vwap_ext <= MAX_VWAP_EXTENSION
-
-                if touched and bounced and above_vwap and not_extended:
-                    lookback_bars = completed[-EMA_BOUNCE_LOOKBACK:]
-                    prior_high = max(float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in lookback_bars)
-
-                    if prior_high >= price * 1.02:
-                        ema_stop = ema9 * (1 - EMA_STOP_BUFFER)
-                        risk = price - ema_stop
-                        reward = prior_high - price
-                        if risk > 0 and reward / risk >= MIN_RR:
-                            vol_now = float(completed[-1].get("volume") or completed[-1].get("v") or 0)
-                            vol_prior = sum(float(b.get("volume") or b.get("v") or 0) for b in completed[-4:-1]) / 3 if len(completed) >= 4 else 0
-                            vol_ok = vol_prior <= 0 or vol_now >= vol_prior * EMA_BOUNCE_VOL_MULT
-
-                            if vol_ok:
-                                # ── Kev's ROOM gate (risk off the EMA stop; supply from full detection) ──
-                                room = compute_room(price, ema_stop, cache[t].get("full_bars") or bars)
-                                rr_room = room["rr_to_supply"]
-                                if rr_room is not None and rr_room < MIN_ROOM_RR:
-                                    print(f"🚫 {t} EMA BOUNCE but NO ROOM — next supply ${room['next_supply']} "
-                                          f"({room['supply_src']}) = {rr_room}:1 < {MIN_ROOM_RR}:1 — skip")
-                                    _log_room_skip(t, price, "ema_bounce", room)
-                                    continue
-                                print(f"\n✅ {t} EMA BOUNCE! ${price:.2f} bounced off EMA9 ${ema9:.2f} "
-                                      f"(R:R {reward/risk:.1f}:1, target ${prior_high:.2f}, stop ${ema_stop:.2f}) | "
-                                      f"room {rr_room}:1 to ${room['next_supply']} ({room['supply_src']})"
-                                      + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
-                                breakouts.append((t, price, vwap, "ema_bounce", {
-                                    "ema_stop": round(ema_stop, 4),
-                                    "prior_high": round(prior_high, 4),
-                                    "ema90": round(ema90, 4), "room": room,
-                                }))
-                                found_entry = True
-
-            # ── Entry type 3: deep MA pullback (Kev — 20/50/90, whichever the pullback HOLDS) ──
+            # ── Entry type 2: MA pullback (Kev — 9/20/50/90, whichever rising MA the pullback HOLDS) ──
+            # Unified pullback entry (replaced the old narrower EMA9-bounce): one wick-off-low + room logic
+            # across all of Kev's MAs.
             if not found_entry and vwap > 0 and price > vwap:   # above VWAP (don't fight below it)
                 ma_pb = detect_ma_pullback(completed, price)
                 if ma_pb:

@@ -60,11 +60,16 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 import pytz
 
-# Silence noisy SDK loggers — they flood Railway's 500 logs/sec limit
+# Silence noisy SDK loggers — they flood Railway's 500 logs/sec limit (drops real errors).
 logging.getLogger("webull").setLevel(logging.ERROR)
 logging.getLogger("webull_openapi").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("requests").setLevel(logging.WARNING)
+# The Webull SDK RE-RAISES its own child loggers to INFO on every client init, overriding the
+# setLevel calls above — so the token-init storm leaks through and hits Railway's log cap. A
+# global disable below ERROR is the one gate the SDK's per-logger setLevel can't override.
+# The bot's own output is all print()-based, so this muffles only library noise, never our logs.
+logging.disable(logging.WARNING)
 
 # Official Webull OpenAPI Python SDK
 try:

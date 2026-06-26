@@ -290,6 +290,9 @@ TRADE_WINDOW_END_HOUR = 15     # Force close all positions by 3:45pm ET (before 
 TRADE_WINDOW_END_MIN  = 45    # minute component of force close
 ENTRY_LIMIT_BUFFER    = 0.01   # Limit buy 1% above VWAP reclaim — caps slippage on small floats
 EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry, exit immediately
+# Kev "instant resolution or cut": if a breakout never confirms and fades back to entry, cut at break-even
+FAILED_BREAKOUT_SECS    = 75     # window for the breakout to resolve before the cut disarms
+FAILED_BREAKOUT_CONFIRM = 0.015  # +1.5% = "it resolved" (rule disarms); else a fade to ≤entry = instant cut
 # Small-cap momentum plays are largely uncorrelated to SPY on catalyst days.
 # -1% is a normal red morning — Kev trades ICCM day-2 regardless of SPY.
 MAX_SPREAD_PCT        = 0.03   # Skip entry if bid-ask spread > 3% of ask price
@@ -3249,8 +3252,24 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         last_good_price   = current_price
         last_good_price_t = time.time()
 
-        # ── Early fade: if price drops back below VWAP within 2 min, cut immediately ──
+        # ── Failed breakout (Kev: "instant resolution or cut") — if the breakout never confirmed
+        # (+1.5%) and price has faded back to/below entry within the first ~75s, cut at break-even NOW
+        # instead of riding to the −7% stop. Tighter/faster than the VWAP early-fade below. Disarms once
+        # it confirms (+1.5%) or after the window — then tiers/trail/stop manage it. ──
         elapsed = time.time() - entry_time
+        if (elapsed <= FAILED_BREAKOUT_SECS
+                and highest_price < entry_price * (1 + FAILED_BREAKOUT_CONFIRM)
+                and current_price <= entry_price):
+            print(f"✂️  Failed breakout — {ticker} faded to ${current_price:.2f} (≤ entry ${entry_price:.2f}) "
+                  f"without confirming, {elapsed:.0f}s in. Instant cut (Kev's rule).")
+            cancel_order(placed_stop_id)
+            close_position(ticker, remaining_shares)
+            result["exit_price"]  = current_price
+            result["exit_reason"] = "Failed breakout ✂️"
+            remaining_shares = 0
+            break
+
+        # ── Early fade: if price drops back below VWAP within 2 min, cut immediately ──
         if vwap > 0 and elapsed <= EARLY_FADE_SECS and current_price < vwap:
             print(f"⚡ Early fade — {ticker} dropped below VWAP (${vwap:.2f}) "
                   f"within {elapsed:.0f}s of entry. Cutting loss now.")

@@ -2056,17 +2056,12 @@ def _pivot_highs(bars, window=PIVOT_WINDOW):
             peaks.append(h)
     return peaks
 
-def _is_topping_tail(b):
-    """A candle whose upper wick is ≥TOPPING_TAIL_RATIO of its range = sellers rejected the high."""
-    hi, lo = _bar_high(b), _bar_low(b)
-    rng = hi - lo
-    return rng > 0 and (hi - max(_bar_open(b), _bar_close(b))) / rng >= TOPPING_TAIL_RATIO
-
 def _topping_tail_highs(bars):
-    """Highs of topping-tail candles — where a big upper wick shows sellers rejected the high (supply)."""
+    """Highs of topping-tail candles — where a big upper wick shows sellers rejected the high (supply).
+    Uses the canonical is_topping_tail() (defined below; resolved at call time)."""
     out = []
     for b in bars:
-        if _is_topping_tail(b):
+        if is_topping_tail(b):
             out.append(_bar_high(b))
     return out
 
@@ -2679,12 +2674,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             ema90 = calculate_ema90(completed)   # DATA-ONLY — recorded at entry, not a filter
             found_entry = False
 
-            # ── Topping-tail entry-SKIP (Kev: a fresh upper-wick rejection = don't enter into it) ──
-            # If the last completed candle just rejected its high (sellers stepped in), wait for a clean
-            # candle. (ma_pullback is unaffected — its confirmation is a BOTTOMING tail, never topping.)
-            if completed and _is_topping_tail(completed[-1]):
-                status_parts.append(f"{t}:${price:.2f} topping tail — sellers rejected the high, waiting{vwap_tag}")
-                continue
+            # (Topping-tail entry-skip is handled by check_momentum at execution time, on freshly-fetched
+            # bars — see is_topping_tail() in check_momentum. No scan-time duplicate needed.)
 
             # ── Entry type 1: Flat top breakout ──────────────────────
             if len(completed) >= FLAT_TOP_WINDOW:

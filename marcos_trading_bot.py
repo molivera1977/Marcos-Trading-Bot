@@ -2664,9 +2664,6 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             vwap = cache[t]["vwap"]
             price = stream.get_price(t)
 
-            if t in _vwap_skips and price > 0:
-                _vwap_skip_update_high(t, price)   # track how far a skipped setup runs after
-
             if not bars or price <= 0:
                 status_parts.append(f"{t}:no data")
                 continue
@@ -2708,15 +2705,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         if price < vwap:
                             status_parts.append(f"{t}:${price:.2f} BREAK but below VWAP{vwap_tag}")
                             continue
-                        vwap_ext = (price - vwap) / vwap
-                        if vwap_ext > MAX_VWAP_EXTENSION:
-                            # DATA-ONLY: a real flat-top breakout skipped just for extension. If it's in
-                            # the (4%, 8%] band, log it + track how far it runs after (4%-cap study).
-                            if vwap_ext <= VWAP_EXT_STUDY_HI:
-                                _log_vwap_skip(t, price, vwap, "flat_top")
-                            status_parts.append(f"{t}:${price:.2f} BREAK but {vwap_ext*100:.1f}% above VWAP — too extended")
-                            continue
-                        # ── Kev's ROOM gate: ≥2:1 room to the next overhead supply ──
+                        # ── Kev's ROOM gate is the anti-chase filter (replaced the untested 4% VWAP-
+                        # extension cap — Kev uses ROOM to the next supply, NOT a fixed % above VWAP. A
+                        # clean breakout to new highs is fine "extended" (open room); an into-supply
+                        # breakout isn't (no room). The cap would have rejected Kev's COODX +4.5% winner). ──
                         _stop = round(price * (1 - STOP_LOSS_PCT), 4)
                         room = compute_room(price, _stop, cache[t].get("full_bars") or bars)
                         rr = room["rr_to_supply"]

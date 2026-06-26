@@ -1043,33 +1043,6 @@ def scan_morning_gappers():
     return results
 
 
-def _mark_traded_today():
-    """Tell screener_app a trade was completed today. Blocks second trade (GFV guard)."""
-    screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
-    if not screener_url:
-        return
-    try:
-        requests.post(f"{screener_url}/api/traded_today",
-                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
-        print("🔒 Marked traded_today — no second trade allowed (GFV guard)")
-    except Exception as e:
-        print(f"⚠️  Could not mark traded_today: {e}")
-
-
-def _already_traded_today() -> bool:
-    """Check if a trade was already completed today. Returns True = block new entry."""
-    screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
-    if not screener_url:
-        return False
-    try:
-        r = requests.get(f"{screener_url}/api/traded_today", timeout=5)
-        if r.status_code == 200:
-            return r.json().get("traded_today", False)
-    except Exception:
-        pass
-    return False
-
-
 def _post_watching_to_screener(tickers: list, status: str = "watching"):
     """Push the live watch list to screener_app so the dashboard shows what the bot is monitoring."""
     screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
@@ -4425,7 +4398,6 @@ def main():
 
             with trade_lock:
                 _open_trade["active"] = False
-                _mark_traded_today()
                 pnl         = trade_result.get("profit_loss", 0)
                 pnl_pct     = trade_result.get("profit_loss_pct", 0)
                 exit_reason = trade_result.get("exit_reason", "N/A")

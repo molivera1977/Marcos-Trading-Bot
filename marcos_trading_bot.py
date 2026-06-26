@@ -280,6 +280,12 @@ EMA_BOUNCE_TOUCH   = 0.015  # prev bar within 1.5% above EMA9 = "touched"
 EMA_BOUNCE_LOOKBACK = 20    # bars to look back for prior high
 EMA_BOUNCE_VOL_MULT = 1.2   # bounce bar volume > 1.2× prior 3-bar avg
 EMA_STOP_BUFFER    = 0.025  # initial stop = EMA9 × (1 − 2.5%)
+# 90-EMA-as-a-signal — Kev enters off WHICHEVER rising MA the pullback holds (9 = the EMA-bounce above)
+MA_PULLBACK_LEVELS      = [20, 50, 90]  # deeper pullback levels checked shallowest-first
+MA_PULLBACK_TOUCH_TOL   = 0.005   # low within 0.5% of the MA = "pulled back to it"
+BOTTOM_TAIL_RATIO       = 0.40    # lower wick ≥40% of range = wicked off the low (a buyer stepped in)
+MA_PULLBACK_STOP_BUFFER = 0.01    # stop just below the MA the pullback held
+MA_RISING_LOOKBACK      = 5       # the MA must be rising over this many bars (uptrend)
 MIN_RR             = 2.0    # minimum reward:risk ratio for EMA bounce
 ENTRY_CUTOFF_HOUR  = 11     # Kev's full 9:00-11:00 window
 ENTRY_CUTOFF_MIN   = 0
@@ -2102,6 +2108,55 @@ def compute_room(entry_price, stop_loss, bars, premarket_high=None, prior_day_hi
         return {"next_supply": None, "supply_src": "unknown", "room_pct": None, "rr_to_supply": None, "risk": 0}
 
 
+def _bar_vol(b): return float(b.get("volume") or b.get("v") or 0)
+
+def detect_ma_pullback(completed, price):
+    """Kev's pullback entry off WHICHEVER rising MA the pullback holds (20/50/90, shallowest-first;
+    the 9 is covered by the EMA-bounce). Faithful to the bible: uptrend → price dips to a rising MA →
+    a candle WICKS OFF THE LOW and CLOSES BACK ABOVE that MA ("a buyer stepped in") → on a weak pullback
+    where buyers then return. Returns {ma_name, ma, stop} of the level held, or None.
+    Any error returns None (no entry) — a detector bug must never crash the scan loop."""
+    try:
+        return _detect_ma_pullback(completed, price)
+    except Exception as e:
+        print(f"⚠️  detect_ma_pullback error ({e}) — no entry this pass")
+        return None
+
+def _detect_ma_pullback(completed, price):
+    closes = _extract_closes(completed)
+    if len(closes) < 25:
+        return None
+    ema9 = _calc_ema(closes, EMA_PERIOD)
+    ema20 = _calc_ema(closes, EMA20_PERIOD)
+    if not (ema9 > ema20 > 0 and price > ema20):          # stacked uptrend, price above the shallow MA
+        return None
+    conf = completed[-1]
+    chi, clo, cop, ccl = _bar_high(conf), _bar_low(conf), _bar_open(conf), _bar_close(conf)
+    rng = chi - clo
+    if rng <= 0:
+        return None
+    if (min(cop, ccl) - clo) / rng < BOTTOM_TAIL_RATIO:   # no wick-off-low = no buyer confirmation
+        return None
+    if price <= ccl:                                      # must be continuing UP off the confirmation candle
+        return None
+    vol_conf = _bar_vol(conf)
+    vol_prior = sum(_bar_vol(b) for b in completed[-4:-1]) / 3 if len(completed) >= 4 else 0
+    if vol_prior > 0 and vol_conf < vol_prior * EMA_BOUNCE_VOL_MULT:   # buyers must return > the weak pullback
+        return None
+    for period in MA_PULLBACK_LEVELS:                     # 20 → 50 → 90: fire off the level it CLOSED back above
+        ma = _calc_ema(closes, period)
+        if ma <= 0:
+            continue
+        if not (clo <= ma * (1 + MA_PULLBACK_TOUCH_TOL) and ccl > ma):  # dipped to it, closed back above
+            continue
+        ma_prev = _calc_ema(closes[:-MA_RISING_LOOKBACK], period) if len(closes) > period + MA_RISING_LOOKBACK else 0
+        if ma_prev > 0 and ma <= ma_prev:                 # MA must be rising (uptrend)
+            continue
+        return {"ma_name": f"ema{period}", "ma": round(ma, 4),
+                "stop": round(ma * (1 - MA_PULLBACK_STOP_BUFFER), 4)}
+    return None
+
+
 def calculate_ema9(bars) -> float:
     return _calc_ema(_extract_closes(bars), EMA_PERIOD)
 
@@ -2708,6 +2763,28 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     "ema90": round(ema90, 4), "room": room,
                                 }))
                                 found_entry = True
+
+            # ── Entry type 3: deep MA pullback (Kev — 20/50/90, whichever the pullback HOLDS) ──
+            if not found_entry and vwap > 0 and price > vwap:   # above VWAP (don't fight below it)
+                ma_pb = detect_ma_pullback(completed, price)
+                if ma_pb:
+                    ma_stop = ma_pb["stop"]
+                    room = compute_room(price, ma_stop, cache[t].get("full_bars") or bars)
+                    rr_room = room["rr_to_supply"]
+                    if rr_room is not None and rr_room < MIN_ROOM_RR:
+                        print(f"🚫 {t} {ma_pb['ma_name']} pullback but NO ROOM — supply ${room['next_supply']} "
+                              f"({room['supply_src']}) = {rr_room}:1 < {MIN_ROOM_RR}:1 — skip")
+                        _log_room_skip(t, price, "ma_pullback", room)
+                    else:
+                        target = room.get("next_supply") or round(price * (1 + TARGET_PCT), 4)
+                        print(f"\n✅ {t} {ma_pb['ma_name'].upper()} PULLBACK! ${price:.2f} held ${ma_pb['ma']:.2f} "
+                              f"(wick-off-low, stop ${ma_stop:.2f}) | room {rr_room}:1 to ${target} "
+                              f"({room['supply_src']}) VWAP:${vwap:.2f}")
+                        breakouts.append((t, price, vwap, "ma_pullback", {
+                            "ema_stop": ma_stop, "prior_high": target,
+                            "ema90": round(ema90, 4), "room": room, "ma_held": ma_pb["ma_name"],
+                        }))
+                        found_entry = True
 
             if not found_entry and t not in [s.split(":")[0] for s in status_parts]:
                 status_parts.append(f"{t}:${price:.2f} EMA9:${ema9:.2f}{vwap_tag}")
@@ -4299,7 +4376,7 @@ def main():
                     return
                 settled_remaining -= MAX_TRADE_DOLLARS
 
-            if entry_type == "ema_bounce" and "ema_stop" in extra:
+            if "ema_stop" in extra:
                 stop_loss = round(extra["ema_stop"], 4)
                 target_price = round(extra.get("prior_high", entry_price * (1 + TARGET_PCT)), 4)
             else:
@@ -4313,7 +4390,7 @@ def main():
                     settled_remaining += MAX_TRADE_DOLLARS
                 return
 
-            tag = "EMA BOUNCE" if entry_type == "ema_bounce" else "FLAT TOP"
+            tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK"}.get(entry_type, "FLAT TOP")
             print(f"\n{'='*60}")
             print(f"🎯 ENTERING [{tag}]: {ticker}  entry=${entry_price:.2f}  "
                   f"target=${target_price:.2f}  stop=${stop_loss:.2f}  shares={shares}")
@@ -4351,7 +4428,7 @@ def main():
 
             if actual_fill and actual_fill != entry_price:
                 entry_price = actual_fill
-                if entry_type == "ema_bounce" and "ema_stop" in extra:
+                if "ema_stop" in extra:
                     stop_loss = round(extra["ema_stop"], 4)
                 else:
                     stop_loss = round(entry_price * (1 - STOP_LOSS_PCT), 4)
@@ -4449,7 +4526,7 @@ def main():
                                    csv_log_line=csv_row, traded_ticker=ticker)
             _clear_open_trade(ticker)   # recorded exit reached — drop durable recovery state
 
-            tag = "EMA BOUNCE" if entry_type == "ema_bounce" else "FLAT TOP"
+            tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK"}.get(entry_type, "FLAT TOP")
             print(f"\n{'='*60}")
             print(f"✅ COMPLETE [{tag}] — {ticker}  ${pnl:+.2f} ({pnl_pct:+.1f}%)  [{exit_reason}]")
             print(f"   Session P&L: ${session_pnl:+.2f}  |  Balance: ${current_balance:.2f}")

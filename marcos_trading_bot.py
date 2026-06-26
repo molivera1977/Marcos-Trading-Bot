@@ -267,6 +267,12 @@ EXIT_TIERS_PM = [          # Afternoon (after 11am): scale out in 2 tiers
 ]
 TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
 
+# ── Selection-weighting parameters (Kev's pick criteria — [[project_kev_lessons]]) ──
+# Base rank = gap% / float_m (big gap on a small float). These tilt it toward Kev's other
+# selection signals that the scan already fetches but used to discard:
+HTB_SQUEEZE_MULT   = 1.5    # Hard-to-borrow = heavy short interest = squeeze fuel (Kev, FCHL "97% short → squeeze")
+RVOL_BOOST_CAP     = 5.0    # cap the relative-volume tilt (×1.5 max) so volume can't drown out gap/float
+
 # ── v10 Entry detection parameters ────────────────────────────
 FLAT_TOP_WINDOW    = 4      # 4-bar consolidation window
 FLAT_TOP_MAX_RANGE = 0.080  # <8% range tolerance
@@ -1014,6 +1020,9 @@ def scan_morning_gappers():
                     pass
 
             g["float_shares"] = float_shares
+            # Borrow status for the squeeze tilt: False = hard-to-borrow = high short interest (Kev's squeeze fuel).
+            # None = unknown (no tilt). Webull already returned this in wb_fund — was being discarded.
+            g["easy_to_borrow"] = wb_fund.get("easy_to_borrow")
             float_m = float_shares / 1_000_000 if float_shares else 0
             if not float_shares:
                 g["float_label"] = "float N/A"
@@ -1030,16 +1039,28 @@ def scan_morning_gappers():
             float_checked.append(g)
             print(f"   ⚠️  {sym}: float check failed ({e}) — keeping candidate")
 
-    # Score: reward big gap % on tiny float
-    # score = change_pct / float_in_millions  (higher = better)
+    # Kev-weighted selection score (rank only — the room gate + setup detectors still decide entries):
+    #   base   = gap% / float_m            → big gap on a small float          (Kev: the core gapper setup)
+    #   × HTB  = short-squeeze fuel         → hard-to-borrow = heavy short int   (Kev, FCHL "97% short → squeeze")
+    #   × RVOL = the move is real           → heavy relative volume confirms it  (Kev: unusual volume = genuine interest)
     def _gapper_score(g):
         f = g.get("float_shares") or 0
         float_m = f / 1_000_000 if f > 0 else 25   # assume 25M if unknown
-        return g["change_pct"] / max(float_m, 0.1)
+        base = g["change_pct"] / max(float_m, 0.1)
+        htb_mult = HTB_SQUEEZE_MULT if g.get("easy_to_borrow") is False else 1.0
+        rvol = g.get("relative_volume") or 1.0
+        rvol_mult = 1.0 + min(max(rvol - 1.0, 0.0), RVOL_BOOST_CAP) / 10.0
+        g["select_score"] = round(base * htb_mult * rvol_mult, 2)
+        return g["select_score"]
 
     results = sorted(float_checked, key=_gapper_score, reverse=True)[:15]
-    print(f"✅ Morning gapper scan complete — {len(results)} small-float candidates: "
-          f"{[r['symbol'] for r in results]}")
+    print(f"✅ Morning gapper scan — top {len(results)} by Kev-weighted score:")
+    for r in results:
+        tags = []
+        if r.get("easy_to_borrow") is False:                 tags.append("HTB🔥")
+        if (r.get("relative_volume") or 1.0) >= 2.0:          tags.append(f"{r['relative_volume']:.0f}×vol")
+        print(f"   {r['select_score']:>7.1f}  {r['symbol']:<6} +{r['change_pct']:.0f}% | "
+              f"{r.get('float_label','float N/A')}{'  ' + ' '.join(tags) if tags else ''}")
     return results
 
 

@@ -126,10 +126,17 @@ with room" candidate. Also gospel (Kev selects on room) — implement once the p
 
 ## Build order
 
-1. ✅ **DONE** — `find_next_supply()` + `compute_room()` + `_pivot_highs`/`_topping_tail_highs`/HOD,
-   chart-validated (marcos_trading_bot.py). Tests: IQST → no room (rr 0.04, REJECT) ✓; new HOD → open
-   (rr ∞) ✓; far wall → caught via HOD (rr 20) ✓; no bars → fail-open ✓; MASK breakout → cap = pm_high
-   3.30 (rr 5.4) ✓. Pure/dormant — wired into nothing yet, changes no behavior.
+1. ✅ **DONE (Step A)** — `find_next_supply()` + `compute_room()` + `_pivot_highs`/`_topping_tail_highs`/HOD,
+   chart-validated. Tests: IQST → no room (rr 0.04, REJECT) ✓; new HOD → open (rr 999) ✓; far wall → HOD
+   (rr 20) ✓; no bars → fail-open ✓; MASK breakout → cap = pm_high 3.30 (rr 5.4) ✓.
+2. ✅ **DONE (Step B)** — gate wired into BOTH live paths in `wait_for_flat_top_entry` (flat-top + EMA-bounce):
+   `rr<2 → skip`, open/unknown → enter (fail-open). `cache["full_bars"]` stored; `compute_room` try/except →
+   fail-open on any error. Taken trades stamp `entry_room_*`; rejections POST `/api/room_skip`; `GET /api/room_stats`.
+3. ✅ **DONE — independent audit: PASS.** No fail-open holes, stop/risk parity EXACT (gate measures the placed
+   trade), nearest-supply correct, JSON-safe (999 sentinel), no regression. LOW follow-ups (non-blocking, deferred):
+   (a) pass `premarket_high`/`prior_day_high` into the two `compute_room` calls so PM/PD caps are *labeled* (the
+   premarket high is already captured implicitly via HOD/pivots); (b) first-30s window degrades to the 50-bar set
+   if the 390-fetch misses — graceful, never crashes.
 2. Phase 1 instrumentation (bot + screener + `/api/room_stats`). Ship — blocks nothing.
 3. Reframe the EMA-bounce skip-study around `rr_to_supply`.
 4. Independent audit.

@@ -712,6 +712,11 @@ def record_trade():
         "entry_ask_size":     data.get("entry_ask_size"),
         "entry_bid_size":     data.get("entry_bid_size"),
         "entry_l1_spread":    data.get("entry_l1_spread"),
+        # Room to next supply at entry (Kev's master filter)
+        "entry_room_rr":      data.get("entry_room_rr"),
+        "entry_room_pct":     data.get("entry_room_pct"),
+        "entry_next_supply":  data.get("entry_next_supply"),
+        "entry_supply_src":   data.get("entry_supply_src"),
         "recorded_at":   datetime.now(EASTERN).isoformat(),
     }
     _trades.append(trade)
@@ -908,6 +913,42 @@ def get_vwap_skips():
     ran5 = sum(1 for r in rows if r.get("ran_pct", 0) >= 5)
     return jsonify({"count": n, "avg_ran_pct": avg_ran, "ran_5pct_plus": ran5,
                     "skips": sorted(rows, key=lambda r: r.get("ran_pct", 0), reverse=True)})
+
+
+# ── Room gate: rejections (entries blocked for <2:1 room) — to AUDIT the supply detection ──
+ROOM_SKIPS_FILE = pathlib.Path("/data/room_skips.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/room_skips.json")
+_room_skips: list = []
+if ROOM_SKIPS_FILE.exists():
+    try:    _room_skips = json.loads(ROOM_SKIPS_FILE.read_text())
+    except Exception: _room_skips = []
+
+@app.route("/api/room_skip", methods=["POST"])
+def add_room_skip():
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    d["recorded_at"] = datetime.now(EASTERN).isoformat()
+    _room_skips.append(d)
+    try:    ROOM_SKIPS_FILE.write_text(json.dumps(_room_skips[-500:], indent=2))
+    except Exception as e: print(f"⚠️  Could not save room_skips: {e}")
+    return jsonify({"status": "ok", "total": len(_room_skips)})
+
+@app.route("/api/room_stats", methods=["GET"])
+def get_room_stats():
+    """Audit view: trades taken (with their room) vs entries the gate rejected, by supply source."""
+    taken = [t for t in _trades if t.get("entry_room_rr") is not None]
+    by_src = {}
+    for r in _room_skips:
+        by_src[r.get("supply_src", "?")] = by_src.get(r.get("supply_src", "?"), 0) + 1
+    return jsonify({
+        "trades_taken_with_room": len(taken),
+        "rejections_total": len(_room_skips),
+        "rejections_by_supply_src": by_src,
+        "recent_rejections": _room_skips[-25:],
+        "taken": [{"ticker": t.get("ticker"), "rr": t.get("entry_room_rr"),
+                   "supply": t.get("entry_next_supply"), "src": t.get("entry_supply_src"),
+                   "pnl": t.get("pnl")} for t in taken[-25:]],
+    })
 
 
 # ── Day-Two Observation endpoints (observe-only) ──

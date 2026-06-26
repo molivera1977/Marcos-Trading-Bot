@@ -1190,6 +1190,30 @@ def _post_vwap_skip(rec: dict):
     except Exception:
         pass
 
+
+def _log_room_skip(ticker, price, entry_type, room):
+    """Record an entry the ROOM gate rejected (no ≥2:1 room to next supply). Logged so we can AUDIT
+    that the supply detection is reading live charts correctly (per feedback_kev_is_the_bible:
+    verify our implementation, not Kev's rule)."""
+    rec = {"ticker": ticker, "date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+           "time": datetime.now(EASTERN).strftime("%I:%M:%S %p"), "entry_type": entry_type,
+           "price": round(price, 4), "next_supply": room.get("next_supply"),
+           "supply_src": room.get("supply_src"), "room_pct": room.get("room_pct"),
+           "rr_to_supply": room.get("rr_to_supply")}
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url:
+        return
+    def _send():
+        try:
+            requests.post(f"{url}/api/room_skip", json=rec,
+                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=4)
+        except Exception:
+            pass
+    try:
+        _aux_executor.submit(_send)
+    except Exception:
+        pass
+
 def _vwap_skip_update_high(ticker: str, price: float):
     """Refresh the post-skip high-water (catches a runner even after it blows past 8% above VWAP)."""
     rec = _vwap_skips.get(ticker)
@@ -2055,19 +2079,24 @@ def find_next_supply(bars, current_price, premarket_high=None, prior_day_high=No
     return round(levels[0][0], 4), levels[0][1]   # nearest overhead = the cap on the trade
 
 def compute_room(entry_price, stop_loss, bars, premarket_high=None, prior_day_high=None):
-    """Kev's gate: room to the next supply ÷ risk to support. Open room (new HOD) = pass (rr=inf).
-    Detection failure = rr=None (caller fails OPEN — a code glitch must never halt trading)."""
-    risk = entry_price - stop_loss
-    supply, src = find_next_supply(bars, entry_price, premarket_high, prior_day_high)
-    if src == "unknown":
-        return {"next_supply": None, "supply_src": "unknown", "room_pct": None, "rr_to_supply": None, "risk": round(risk, 4)}
-    if supply is None:                                  # new high of day → open room
-        return {"next_supply": None, "supply_src": "open", "room_pct": None, "rr_to_supply": float("inf"), "risk": round(risk, 4)}
-    room = supply - entry_price
-    rr = (room / risk) if risk > 0 else 0.0
-    return {"next_supply": supply, "supply_src": src,
-            "room_pct": round(room / entry_price * 100, 2),
-            "rr_to_supply": round(rr, 2), "risk": round(risk, 4)}
+    """Kev's gate: room to the next supply ÷ risk to support. Open room (new HOD) = pass (rr=999).
+    ANY failure (bad bars, etc.) returns rr=None so the caller FAILS OPEN — a code glitch in the
+    detector must never halt trading (per feedback_kev_is_the_bible: verify our code, never block on a bug)."""
+    try:
+        risk = entry_price - stop_loss
+        supply, src = find_next_supply(bars, entry_price, premarket_high, prior_day_high)
+        if src == "unknown":
+            return {"next_supply": None, "supply_src": "unknown", "room_pct": None, "rr_to_supply": None, "risk": round(risk, 4)}
+        if supply is None:                              # new high of day → open room (JSON-safe sentinel)
+            return {"next_supply": None, "supply_src": "open", "room_pct": None, "rr_to_supply": 999.0, "risk": round(risk, 4)}
+        room = supply - entry_price
+        rr = (room / risk) if risk > 0 else 0.0
+        return {"next_supply": supply, "supply_src": src,
+                "room_pct": round(room / entry_price * 100, 2),
+                "rr_to_supply": round(rr, 2), "risk": round(risk, 4)}
+    except Exception as e:
+        print(f"⚠️  compute_room error ({e}) — failing OPEN (room unknown)")
+        return {"next_supply": None, "supply_src": "unknown", "room_pct": None, "rr_to_supply": None, "risk": 0}
 
 
 def calculate_ema9(bars) -> float:
@@ -2549,6 +2578,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     cache[t]["bars"] = fresh
                 full_bars = get_intraday_bars(t, count=390)
                 if full_bars:
+                    cache[t]["full_bars"] = full_bars   # full day = supply/room detection (HOD, pivots)
                     calc_vwap = calculate_vwap(full_bars)
                     if calc_vwap > 0:
                         cache[t]["vwap"] = calc_vwap
@@ -2612,10 +2642,21 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 _log_vwap_skip(t, price, vwap, "flat_top")
                             status_parts.append(f"{t}:${price:.2f} BREAK but {vwap_ext*100:.1f}% above VWAP — too extended")
                             continue
+                        # ── Kev's ROOM gate: ≥2:1 room to the next overhead supply ──
+                        _stop = round(price * (1 - STOP_LOSS_PCT), 4)
+                        room = compute_room(price, _stop, cache[t].get("full_bars") or bars)
+                        rr = room["rr_to_supply"]
+                        if rr is not None and rr < MIN_ROOM_RR:   # None = detection failed → fail OPEN
+                            print(f"🚫 {t}: NO ROOM — next supply ${room['next_supply']} "
+                                  f"({room['supply_src']}), room {room['room_pct']}% = {rr}:1 "
+                                  f"< {MIN_ROOM_RR}:1 — skip (Kev: no room = no trade)")
+                            _log_room_skip(t, price, "flat_top", room)
+                            continue
                         print(f"\n✅ {t} FLAT TOP BREAKOUT! ${price:.2f} > window high ${w_high:.2f} "
-                              f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window)"
+                              f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window) | "
+                              f"room {room['rr_to_supply']}:1 to ${room['next_supply']} ({room['supply_src']})"
                               + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
-                        breakouts.append((t, price, vwap, "flat_top", {"ema90": round(ema90, 4)}))
+                        breakouts.append((t, price, vwap, "flat_top", {"ema90": round(ema90, 4), "room": room}))
                         found_entry = True
                     elif is_flat:
                         gap_to_break = (w_high - price) / price * 100
@@ -2646,13 +2687,22 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             vol_ok = vol_prior <= 0 or vol_now >= vol_prior * EMA_BOUNCE_VOL_MULT
 
                             if vol_ok:
+                                # ── Kev's ROOM gate (risk off the EMA stop; supply from full detection) ──
+                                room = compute_room(price, ema_stop, cache[t].get("full_bars") or bars)
+                                rr_room = room["rr_to_supply"]
+                                if rr_room is not None and rr_room < MIN_ROOM_RR:
+                                    print(f"🚫 {t} EMA BOUNCE but NO ROOM — next supply ${room['next_supply']} "
+                                          f"({room['supply_src']}) = {rr_room}:1 < {MIN_ROOM_RR}:1 — skip")
+                                    _log_room_skip(t, price, "ema_bounce", room)
+                                    continue
                                 print(f"\n✅ {t} EMA BOUNCE! ${price:.2f} bounced off EMA9 ${ema9:.2f} "
-                                      f"(R:R {reward/risk:.1f}:1, target ${prior_high:.2f}, stop ${ema_stop:.2f})"
+                                      f"(R:R {reward/risk:.1f}:1, target ${prior_high:.2f}, stop ${ema_stop:.2f}) | "
+                                      f"room {rr_room}:1 to ${room['next_supply']} ({room['supply_src']})"
                                       + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
                                 breakouts.append((t, price, vwap, "ema_bounce", {
                                     "ema_stop": round(ema_stop, 4),
                                     "prior_high": round(prior_high, 4),
-                                    "ema90": round(ema90, 4),
+                                    "ema90": round(ema90, 4), "room": room,
                                 }))
                                 found_entry = True
 
@@ -4369,6 +4419,11 @@ def main():
                 "entry_ask_size":     l2_details.get("ask_size"),
                 "entry_bid_size":     l2_details.get("bid_size"),
                 "entry_l1_spread":    l2_details.get("spread"),
+                # Room to next supply at entry (Kev's master filter — taken trades should be ≥2:1)
+                "entry_room_rr":      (extra.get("room") or {}).get("rr_to_supply"),
+                "entry_room_pct":     (extra.get("room") or {}).get("room_pct"),
+                "entry_next_supply":  (extra.get("room") or {}).get("next_supply"),
+                "entry_supply_src":   (extra.get("room") or {}).get("supply_src"),
             })
             if exit_reason != "WATCHDOG_ABORT":   # watchdog already recorded it (trade_id dedups)
                 send_summary_email(analysis, trade_result, display_balance,

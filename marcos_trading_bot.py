@@ -1216,6 +1216,78 @@ def _log_vwap_skip(ticker: str, price: float, vwap: float, entry_type: str):
     _post_vwap_skip(dict(_vwap_skips[ticker]))
 
 
+# ── STALE-TRADE WATCHDOG ─────────────────────────────────────────────────────────────
+# Recovery is startup-only; a monitor that FREEZES while the process stays alive (IQST, 6/25)
+# is invisible to it. This watchdog watches a LOCAL in-memory heartbeat each monitor writes
+# every loop — independent of any network/persist — so a failing persist keeps the heartbeat
+# fresh and CANNOT trip it; only a genuinely frozen loop does. Conservative thresholds.
+WATCHDOG_CHECK_SECS   = 30
+WATCHDOG_ALERT_SECS   = 90     # heartbeat stale this long → alert (a human can look)
+WATCHDOG_RECOVER_SECS = 300    # stale this long → force-record + abort (generous; no false trips)
+_active_monitors: dict = {}    # ticker -> {"heartbeat": ts, "ctx": {full record}, "alerted": bool}
+_monitor_abort: set = set()    # tickers the watchdog force-closed; a thawing monitor checks + bails
+
+def _watchdog_force_record(ctx: dict):
+    """Record a frozen-monitor trade at the current price (intraday) — same record-on-recovery
+    semantics as startup recovery, but triggered live by the watchdog. trade_id dedups."""
+    ticker = (ctx.get("ticker") or "").upper()
+    if not ticker:
+        return
+    entry     = float(ctx.get("entry_price") or 0)
+    remaining = int(ctx.get("remaining_shares") or 0)
+    initial   = int(ctx.get("initial_shares") or remaining or 1)
+    partials  = ctx.get("partial_fills") or []
+    q  = _get_webull_quote(ticker)
+    px = float(q.get("last_price") or 0) or float(ctx.get("last_price") or entry)
+    pnl = sum((float(p[1]) - entry) * float(p[0])
+              for p in partials if isinstance(p, (list, tuple)) and len(p) >= 2)
+    pnl += (px - entry) * remaining
+    pnl_pct = ((px - entry) / entry * 100) if entry > 0 else 0
+    print(f"🛟 WATCHDOG recording {ticker}: entry ${entry:.2f} → ${px:.2f} ({pnl_pct:+.1f}%, ${pnl:+.2f})")
+    post_to_dashboard({
+        "date": ctx.get("entry_date") or datetime.now(EASTERN).strftime("%Y-%m-%d"),
+        "ticker": ticker, "entry_type": ctx.get("entry_type", ""),
+        "entry": entry, "exit": round(px, 4), "shares": initial,
+        "pnl": round(pnl, 2), "pnl_pct": round(pnl_pct, 2),
+        "exit_reason": "RECOVERED — monitor froze (watchdog)",
+        "confidence": ctx.get("confidence", ""), "float_shares": "",
+        "position_size": ctx.get("position_size", 0),
+        "account_balance": get_account_balance(), "trade_id": ctx.get("trade_id"),
+    })
+    send_alert_email(f"🛟 Watchdog recovered: {ticker} {pnl_pct:+.1f}%",
+                     f"{ticker}'s monitor froze (heartbeat stalled). Force-recorded at ${px:.2f} "
+                     f"(entry ${entry:.2f}) — P&L ${pnl:+.2f} ({pnl_pct:+.1f}%).")
+    _clear_open_trade(ticker)
+
+def _monitor_watchdog_loop():
+    """Daemon: every WATCHDOG_CHECK_SECS, flag any active monitor whose heartbeat has stalled."""
+    while True:
+        try:
+            now = time.time()
+            for ticker, m in list(_active_monitors.items()):
+                stale = now - m.get("heartbeat", now)
+                if stale >= WATCHDOG_RECOVER_SECS:
+                    print(f"🛟 WATCHDOG: {ticker} heartbeat stale {stale:.0f}s — force-recording + aborting")
+                    _monitor_abort.add(ticker)
+                    _active_monitors.pop(ticker, None)
+                    try:
+                        _watchdog_force_record(m.get("ctx", {"ticker": ticker}))
+                    except Exception as e:
+                        print(f"⚠️  watchdog record error for {ticker}: {e}")
+                elif stale >= WATCHDOG_ALERT_SECS and not m.get("alerted"):
+                    m["alerted"] = True
+                    print(f"⚠️  WATCHDOG: {ticker} heartbeat stale {stale:.0f}s — alerting (force-record at {WATCHDOG_RECOVER_SECS}s)")
+                    try:
+                        send_alert_email(f"⚠️ Monitor stalled: {ticker}",
+                                         f"{ticker}'s monitor heartbeat hasn't advanced in {stale:.0f}s. "
+                                         f"Watchdog force-records at {WATCHDOG_RECOVER_SECS}s if it stays frozen.")
+                    except Exception:
+                        pass
+        except Exception as e:
+            print(f"⚠️  watchdog loop error: {e}")
+        time.sleep(WATCHDOG_CHECK_SECS)
+
+
 def _recover_orphaned_trades():
     """THE safety net: on startup, close + RECORD any position a crashed prior run left open,
     so every entered trade reaches a recorded exit regardless of what killed the process.
@@ -1233,8 +1305,13 @@ def _recover_orphaned_trades():
             remaining = int(o.get("remaining_shares") or 0)
             initial   = int(o.get("initial_shares") or remaining or 1)
             partials  = o.get("partial_fills") or []   # [[qty, price], ...]
-            q  = _get_webull_quote(ticker)
-            px = float(q.get("last_price") or 0) or float(o.get("last_price") or entry)
+            # For an OVERNIGHT/stale orphan, the persisted last-known price reflects the trade far
+            # better than a fresh next-morning quote (which can gap). Fresh quote only for same-day.
+            if o.get("entry_date") == datetime.now(EASTERN).strftime("%Y-%m-%d"):
+                q  = _get_webull_quote(ticker)
+                px = float(q.get("last_price") or 0) or float(o.get("last_price") or entry)
+            else:
+                px = float(o.get("last_price") or entry)
             pnl = sum((float(p[1]) - entry) * float(p[0])
                       for p in partials if isinstance(p, (list, tuple)) and len(p) >= 2)
             pnl += (px - entry) * remaining
@@ -3003,6 +3080,20 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     while True:
         now = datetime.now(EASTERN)
 
+        # ── Watchdog took over (this monitor had stalled, then thawed) — bail without re-recording.
+        if ticker in _monitor_abort:
+            _monitor_abort.discard(ticker)
+            print(f"🛟 {ticker}: watchdog already recorded this trade — monitor exiting")
+            result["exit_reason"] = "WATCHDOG_ABORT"
+            return result
+
+        # WATCHDOG heartbeat — set UNCONDITIONALLY at the top of every iteration so it means
+        # "this loop is alive", independent of feed/price/persist. (If placed lower it would be
+        # skipped during a dead-feed `continue`, falsely looking frozen — audit catch.)
+        _hb = _active_monitors.get(ticker)
+        if _hb is not None:
+            _hb["heartbeat"] = time.time()
+
         # ── Hard close at 3:45pm ───────────────────────
         past_end = (now.hour > TRADE_WINDOW_END_HOUR or
                     (now.hour == TRADE_WINDOW_END_HOUR and now.minute >= TRADE_WINDOW_END_MIN))
@@ -3082,6 +3173,12 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             "tier_idx": tier_idx, "partial_fills": partial_fills, "vwap": round(vwap, 4) if vwap else 0,
             "last_price": round(current_price, 4),
         })
+        # Refresh the watchdog's recordable context (heartbeat itself is set at the loop top).
+        _m = _active_monitors.get(ticker)
+        if _m is not None:
+            _m["ctx"].update({"remaining_shares": remaining_shares, "partial_fills": partial_fills,
+                              "tier_idx": tier_idx, "highest": round(highest_price, 4),
+                              "stop": round(current_stop, 4), "last_price": round(current_price, 4)})
 
         # ── Tiered exits (AM: 25%@+8%, 50%@+12%, 25%@+20% | PM: 50%@+4%, 50%@+6%) ──
         if tier_idx < len(exit_tiers) and remaining_shares > 0:
@@ -4138,11 +4235,19 @@ def main():
                 "position_size": pos_size, "vwap": round(vwap, 4) if vwap else 0,
                 "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
             })
+            # Register with the stale-trade watchdog (full ctx so it can record if the monitor freezes).
+            _active_monitors[ticker] = {"heartbeat": time.time(), "alerted": False, "ctx": {
+                "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
+                "stop": round(stop_loss, 4), "initial_shares": shares, "remaining_shares": shares,
+                "tier_idx": 0, "partial_fills": [], "entry_type": entry_type, "confidence": confidence,
+                "position_size": pos_size, "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+                "last_price": round(entry_price, 4)}}
 
             trade_result = monitor_trade(
                 ticker, shares, entry_price, target_price, stop_loss,
                 stream, stop_order_id, vwap=vwap
             )
+            _active_monitors.pop(ticker, None)   # monitor returned — deregister from watchdog
 
             with trade_lock:
                 _open_trade["active"] = False
@@ -4194,8 +4299,9 @@ def main():
                 "entry_bid_size":     l2_details.get("bid_size"),
                 "entry_l1_spread":    l2_details.get("spread"),
             })
-            send_summary_email(analysis, trade_result, display_balance,
-                               csv_log_line=csv_row, traded_ticker=ticker)
+            if exit_reason != "WATCHDOG_ABORT":   # watchdog already recorded it (trade_id dedups)
+                send_summary_email(analysis, trade_result, display_balance,
+                                   csv_log_line=csv_row, traded_ticker=ticker)
             _clear_open_trade(ticker)   # recorded exit reached — drop durable recovery state
 
             tag = "EMA BOUNCE" if entry_type == "ema_bounce" else "FLAT TOP"
@@ -4274,6 +4380,10 @@ if __name__ == "__main__":
         _recover_orphaned_trades()
     except Exception as e:
         print(f"⚠️  Orphan recovery failed: {e}")
+
+    # Stale-trade watchdog — catches a monitor that freezes while the process stays alive.
+    threading.Thread(target=_monitor_watchdog_loop, daemon=True, name="watchdog").start()
+    print("🛟 Stale-trade watchdog thread started")
 
     # Day-2 observation runs on its own isolated daemon thread (never touches trading).
     threading.Thread(target=_day2_observer_loop, daemon=True, name="day2_observer").start()

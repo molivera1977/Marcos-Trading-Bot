@@ -255,17 +255,9 @@ MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade (HIGH confid
 POSITION_SIZE_MEDIUM  = 0.50   # 50% for MEDIUM confidence
 POSITION_SIZE_LOW     = 0.30   # 30% for LOW confidence
 STOP_LOSS_PCT         = 0.07   # 7% emergency exchange stop (EMA9 fires first)
-TARGET_PCT            = 0.20   # 20% full profit target
-EXIT_TIERS_AM = [          # Morning (9-11am): scale out in 3 tiers
-    (0.08, 0.25),          #   +8%  → sell 25%
-    (0.12, 0.50),          #   +12% → sell 50%
-    (0.20, 1.00),          #   +20% → sell remaining 25%
-]
-EXIT_TIERS_PM = [          # Afternoon (after 11am): scale out in 2 tiers
-    (0.04, 0.50),          #   +4%  → sell 50%
-    (0.06, 1.00),          #   +6%  → sell remaining 50%
-]
-TRAIL_PCT             = 0.05   # Trail 5% below highest after partial exit
+TARGET_PCT            = 0.20   # 20% full profit target (fallback target only)
+# Exit sizing/tiers/trail are now Kev R-based inside monitor_trade (SUPPLY_EXIT_DESIGN.md), NOT fixed
+# percentages — the old EXIT_TIERS_AM/PM (+8/12/20%, +4/6%) and TRAIL_PCT (5%) were made-up and are removed.
 
 # ── Selection-weighting parameters (Kev's pick criteria — [[project_kev_lessons]]) ──
 # Base rank = gap% / float_m (big gap on a small float). These tilt it toward Kev's other
@@ -2942,7 +2934,7 @@ def update_stop_order(ticker, shares, new_price, old_client_order_id):
 STOP_UPDATE_MIN_MOVE = 0.10   # Only replace exchange stop order if it moves >= $0.10
 
 def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
-                  stream: WebullStream, stop_order_id, vwap=0):
+                  stream: WebullStream, stop_order_id, vwap=0, next_supply=None):
     """
     Monitors the trade using the real-time stream.
     All stop levels are kept as live orders on Webull — not just in memory.
@@ -2970,13 +2962,18 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     last_good_price    = entry_price   # last valid price seen (for stale-feed safety exit)
     last_good_price_t  = time.time()   # epoch of last valid price
 
-    entry_hour = datetime.now(EASTERN).hour
-    exit_tiers = EXIT_TIERS_AM if entry_hour < 11 else EXIT_TIERS_PM
-    tier_idx = 0
     initial_shares = total_shares
-    mode = "AM" if entry_hour < 11 else "PM"
-    tier_desc = ", ".join(f"+{t[0]*100:.0f}%→{t[1]*100:.0f}%" for t in exit_tiers)
-    print(f"   Exit tiers ({mode}): {tier_desc} | Floor at entry after first sell")
+    tier_idx = 0
+    # ── Kev's R-based exits (SUPPLY_EXIT_DESIGN.md): R = entry − initial stop. Sell HALF at +1R
+    # (risk-free → stop to break-even), trim to a ~1/4 runner at the next supply (or +2R if open room),
+    # then the 1/4 runner trails the PREVIOUS-BAR LOW. Replaces the made-up +8/12/20% tiers + TRAIL_PCT. ──
+    R = max(entry_price - stop_loss, 0.01)
+    _scale2 = next_supply if (next_supply and next_supply > entry_price + R) else entry_price + 2 * R
+    kev_tiers = [(round(entry_price + R, 4), 0.50),    # +1R  → sell 50%, stop to break-even (risk-free)
+                 (round(_scale2, 4), 0.75)]             # supply/+2R → sell 25% (down to a 1/4 runner)
+    last_bar_low  = stop_loss   # most recent completed-bar low → drives the prev-bar-low trail (seeded at stop)
+    print(f"   Kev exits: R=${R:.2f} | 50%@+1R(${kev_tiers[0][0]:.2f}) → 25%@${kev_tiers[1][0]:.2f}"
+          f"({'supply' if (next_supply and _scale2 == next_supply) else '+2R'}) → 1/4 runner trails prev-bar low")
     last_ema_check     = 0.0           # epoch of last EMA9 bar fetch
 
     result = {"exit_price": entry_price, "exit_reason": "Unknown",
@@ -3066,12 +3063,14 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if current_price > highest_price:
             highest_price = current_price
 
-        # ── Trailing stop: ratchet up after partial exit (floor = entry price) ─
+        # ── Trailing stop: after the first partial, trail the PREVIOUS-BAR LOW (Kev's stated trail —
+        # "risk off the previous bar low"), floored at break-even. Replaces the made-up 5% trail.
+        # (last_bar_low refreshes each completed-bar fetch in the EMA section below.) ─
         if partial_taken:
-            trail = max(highest_price * (1 - TRAIL_PCT), entry_price)
+            trail = max(last_bar_low, entry_price)
             if trail > current_stop:
                 current_stop = trail
-                print(f"📈 Trailing stop → ${current_stop:.2f}")
+                print(f"📈 Trailing stop → ${current_stop:.2f} (prev-bar low)")
                 # Only replace exchange order if stop moved >= $0.10
                 if current_stop - placed_stop_price >= STOP_UPDATE_MIN_MOVE:
                     placed_stop_id    = update_stop_order(ticker, placed_stop_qty,
@@ -3101,10 +3100,10 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                               "tier_idx": tier_idx, "highest": round(highest_price, 4),
                               "stop": round(current_stop, 4), "last_price": round(current_price, 4)})
 
-        # ── Tiered exits (AM: 25%@+8%, 50%@+12%, 25%@+20% | PM: 50%@+4%, 50%@+6%) ──
-        if tier_idx < len(exit_tiers) and remaining_shares > 0:
-            tier_pct, tier_cumulative = exit_tiers[tier_idx]
-            if profit_pct >= tier_pct * 100:
+        # ── Kev R-based scale-outs: 50% @ +1R (→ risk-free), 25% @ supply/+2R (→ a 1/4 runner) ──
+        if tier_idx < len(kev_tiers) and remaining_shares > 0:
+            tier_price, tier_cumulative = kev_tiers[tier_idx]
+            if current_price >= tier_price:
                 if tier_cumulative >= 1.0:
                     sell_qty = remaining_shares
                 else:
@@ -3113,9 +3112,9 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     sell_qty = max(1, target_sold - sold_so_far)
                     sell_qty = min(sell_qty, remaining_shares)
 
-                tier_label = f"Tier {tier_idx+1}/{len(exit_tiers)}"
+                tier_label = f"Scale {tier_idx+1}/{len(kev_tiers)}"
                 print(f"💰 {tier_label}: selling {sell_qty} of {remaining_shares} shares "
-                      f"at ${current_price:.2f} (+{profit_pct:.1f}%)")
+                      f"at ${current_price:.2f} (+{profit_pct:.1f}%) — {'+1R risk-free' if tier_idx == 0 else 'trim to runner'}")
                 cancel_order(placed_stop_id)
                 close_position(ticker, sell_qty)
                 partial_price    = current_price
@@ -3129,8 +3128,9 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     result["exit_reason"] = f"Full exit ({tier_label}) ✅"
                     break
 
-                trail_stop = highest_price * (1 - TRAIL_PCT)
-                current_stop     = max(trail_stop, entry_price)
+                # After the first scale, stop goes to break-even (risk-free); thereafter the prev-bar-low
+                # trail (above) ratchets it up. Never below entry.
+                current_stop     = max(last_bar_low, entry_price)
                 placed_stop_id    = place_stop_order(ticker, remaining_shares, current_stop)
                 placed_stop_price = current_stop
                 placed_stop_qty   = remaining_shares
@@ -3145,7 +3145,26 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             if bars and len(bars) >= EMA_PERIOD + 2:
                 ema9 = calculate_ema9(bars)
                 completed = bars[:-1]   # exclude in-progress bar
-                if len(completed) >= 2 and ema9 > 0:
+                if completed:
+                    last_bar_low = float(completed[-1].get("low") or completed[-1].get("l") or last_bar_low)
+
+                # ── Kev's INSTANT EXIT (his #1, emphatic "every single time"): a candle makes a NEW
+                # high (above the prior bar's high) then CLOSES back below that prior bar's high = a
+                # major reversal → full exit immediately, regardless of P&L. ──
+                if remaining_shares > 0 and len(completed) >= 2:
+                    _lh  = float(completed[-1].get("high")  or completed[-1].get("h") or 0)
+                    _lcl = float(completed[-1].get("close") or completed[-1].get("c") or 0)
+                    _ph  = float(completed[-2].get("high")  or completed[-2].get("h") or 0)
+                    if _lh > _ph > 0 and 0 < _lcl < _ph:
+                        print(f"🚫 {ticker}: new high ${_lh:.2f} rejected back below prior-bar high ${_ph:.2f} "
+                              f"(close ${_lcl:.2f}) — Kev INSTANT EXIT.")
+                        cancel_order(placed_stop_id)
+                        close_position(ticker, remaining_shares)
+                        result["exit_price"]  = current_price
+                        result["exit_reason"] = "INSTANT EXIT (failed new high)"
+                        remaining_shares = 0
+
+                if remaining_shares > 0 and len(completed) >= 2 and ema9 > 0:
                     lc = float(completed[-1].get("close") or completed[-1].get("c") or 0)
                     pc = float(completed[-2].get("close") or completed[-2].get("c") or 0)
                     if lc > 0 and pc > 0 and lc < ema9 and pc < ema9:
@@ -3511,18 +3530,15 @@ def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap,
             + _row("Position",   f"${position_size:.2f}")
             + _row("VWAP",       f"${vwap:.2f} ✅")
         ), color="#00c851")
-        + _section(f"EXIT PLAN — {('AM' if datetime.now(EASTERN).hour < 11 else 'PM')} tiers", (
-            "".join(
-                _row(f"{'🎯 ' if frac >= 1.0 else '💰 '}Tier {i}: +{pct*100:.0f}% (${entry_price*(1+pct):.2f})",
-                     ("Sell ALL — full exit" if frac >= 1.0 else f"Sell {frac*100:.0f}%"),
-                     big=(frac >= 1.0))
-                for i, (pct, frac) in enumerate(
-                    (EXIT_TIERS_AM if datetime.now(EASTERN).hour < 11 else EXIT_TIERS_PM), 1)
-            )
-            + _row("🛟 After 1st partial", "Stop floor → entry (breakeven)")
-            + _row("📈 Trailing stop",     "Ratchets up under the high")
-            + _row("🛑 Hard Stop",          f"${stop_loss:.2f}")
-            + _row("⏰ Hard Close",          "3:45pm ET")
+        + _section("EXIT PLAN — Kev R-based (SUPPLY_EXIT_DESIGN.md)", (
+            _row("R (risk)",                    f"${entry_price - stop_loss:.2f} = entry − stop")
+            + _row("💰 +1R → sell 50%",          f"${entry_price + (entry_price - stop_loss):.2f} (risk-free)")
+            + _row("💰 supply / +2R → sell 25%", f"~${entry_price + 2*(entry_price - stop_loss):.2f} (to a 1/4 runner)")
+            + _row("📈 1/4 runner trails",        "the previous-bar low")
+            + _row("🚫 Instant exit",             "new high closes below prior-bar high")
+            + _row("🛟 After 1st scale",          "stop → break-even")
+            + _row("🛑 Hard Stop",                f"${stop_loss:.2f}")
+            + _row("⏰ Hard Close",                "3:45pm ET")
         ), color="#ffbb33")
     )
     send_alert_email(subject, plain, html=html)
@@ -4171,7 +4187,8 @@ def main():
 
             trade_result = monitor_trade(
                 ticker, shares, entry_price, target_price, stop_loss,
-                stream, stop_order_id, vwap=vwap
+                stream, stop_order_id, vwap=vwap,
+                next_supply=(extra or {}).get("room", {}).get("next_supply"),
             )
             _active_monitors.pop(ticker, None)   # monitor returned — deregister from watchdog
 

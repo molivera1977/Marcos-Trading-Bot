@@ -877,6 +877,7 @@ def add_room_skip():
 # broke_not_flat (the SDOT/IVF detection gap), broke_below_vwap, broke_no_room, entered_*, spread_reject, etc.
 DECISIONS_FILE = pathlib.Path("/data/decisions.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/decisions.json")
 DECISIONS_DIR  = DECISIONS_FILE.parent   # per-day append-only JSONL archive lives here = the DURABLE record
+_decisions_snapshot_last = 0.0           # last time the recent-N snapshot json was rewritten (throttled to ~60s)
 _decisions: list = []
 if DECISIONS_FILE.exists():
     try:    _decisions = json.loads(DECISIONS_FILE.read_text())
@@ -901,8 +902,15 @@ def _persist_decisions(records):
                     f.write(json.dumps(d) + "\n")
         except Exception as e:
             print(f"⚠️  decisions JSONL append failed: {e}")
-    try:    DECISIONS_FILE.write_text(json.dumps(_decisions[-8000:], indent=2))   # recent-N snapshot
-    except Exception as e: print(f"⚠️  Could not save decisions snapshot: {e}")
+    # recent-N snapshot for GET-cache recovery — THROTTLED to ~60s (the per-day JSONL above is the durable
+    # record; no need to rewrite the whole 8k-record snapshot on every 5s batch — wasteful I/O).
+    global _decisions_snapshot_last
+    if time.time() - _decisions_snapshot_last >= 60:
+        try:
+            DECISIONS_FILE.write_text(json.dumps(_decisions[-8000:], indent=2))
+            _decisions_snapshot_last = time.time()
+        except Exception as e:
+            print(f"⚠️  Could not save decisions snapshot: {e}")
     if len(_decisions) > 8000:
         del _decisions[:len(_decisions) - 8000]
 

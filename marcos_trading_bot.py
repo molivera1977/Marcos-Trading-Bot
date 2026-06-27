@@ -1196,22 +1196,27 @@ _decision_queue_lock = threading.Lock()
 _decision_flusher_started = False
 
 def _log_decision(ticker, status, **fields):
-    prev = _decision_last.get(ticker)
-    now = time.time()
-    if prev and prev[0] == status and (now - prev[1]) < DECISION_HEARTBEAT_SECS:
-        return   # same status, within heartbeat window — skip to bound volume
-    _decision_last[ticker] = (status, now)
-    if not os.environ.get("SCREENER_URL", "").rstrip("/"):
-        return
-    rec = {"ticker": ticker, "status": status,
-           "date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
-           "time": datetime.now(EASTERN).strftime("%I:%M:%S %p")}
-    rec.update({k: (round(v, 4) if isinstance(v, float) else v) for k, v in fields.items()})
-    with _decision_queue_lock:
-        _decision_queue.append(rec)
-        if len(_decision_queue) > DECISION_QUEUE_MAX:   # drop OLDEST only on extreme overrun (screener long-down)
-            del _decision_queue[:len(_decision_queue) - DECISION_QUEUE_MAX]
-    _ensure_decision_flusher()
+    # Wrapped so observability can NEVER throw into the trading hot path (this is called for every
+    # candidate every cycle). A logging bug must not be able to stop the bot from trading.
+    try:
+        prev = _decision_last.get(ticker)
+        now = time.time()
+        if prev and prev[0] == status and (now - prev[1]) < DECISION_HEARTBEAT_SECS:
+            return   # same status, within heartbeat window — skip to bound volume
+        _decision_last[ticker] = (status, now)
+        if not os.environ.get("SCREENER_URL", "").rstrip("/"):
+            return
+        rec = {"ticker": ticker, "status": status,
+               "date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+               "time": datetime.now(EASTERN).strftime("%I:%M:%S %p")}
+        rec.update({k: (round(v, 4) if isinstance(v, float) else v) for k, v in fields.items()})
+        with _decision_queue_lock:
+            _decision_queue.append(rec)
+            if len(_decision_queue) > DECISION_QUEUE_MAX:   # drop OLDEST only on extreme overrun (screener long-down)
+                del _decision_queue[:len(_decision_queue) - DECISION_QUEUE_MAX]
+        _ensure_decision_flusher()
+    except Exception:
+        pass
 
 def _ensure_decision_flusher():
     global _decision_flusher_started

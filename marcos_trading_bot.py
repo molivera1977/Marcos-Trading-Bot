@@ -2971,7 +2971,6 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     _scale2 = next_supply if (next_supply and next_supply > entry_price + R) else entry_price + 2 * R
     kev_tiers = [(round(entry_price + R, 4), 0.50),    # +1R  → sell 50%, stop to break-even (risk-free)
                  (round(_scale2, 4), 0.75)]             # supply/+2R → sell 25% (down to a 1/4 runner)
-    last_bar_low  = stop_loss   # most recent completed-bar low → drives the prev-bar-low trail (seeded at stop)
     print(f"   Kev exits: R=${R:.2f} | 50%@+1R(${kev_tiers[0][0]:.2f}) → 25%@${kev_tiers[1][0]:.2f}"
           f"({'supply' if (next_supply and _scale2 == next_supply) else '+2R'}) → 1/4 runner trails prev-bar low")
     last_ema_check     = 0.0           # epoch of last EMA9 bar fetch
@@ -3063,19 +3062,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if current_price > highest_price:
             highest_price = current_price
 
-        # ── Trailing stop: after the first partial, trail the PREVIOUS-BAR LOW (Kev's stated trail —
-        # "risk off the previous bar low"), floored at break-even. Replaces the made-up 5% trail.
-        # (last_bar_low refreshes each completed-bar fetch in the EMA section below.) ─
-        if partial_taken:
-            trail = max(last_bar_low, entry_price)
-            if trail > current_stop:
-                current_stop = trail
-                print(f"📈 Trailing stop → ${current_stop:.2f} (prev-bar low)")
-                # Only replace exchange order if stop moved >= $0.10
-                if current_stop - placed_stop_price >= STOP_UPDATE_MIN_MOVE:
-                    placed_stop_id    = update_stop_order(ticker, placed_stop_qty,
-                                                          current_stop, placed_stop_id)
-                    placed_stop_price = current_stop
+        # ── Runner protection after the first partial: the intrabar hard stop stays at BREAK-EVEN
+        # (set when the partial fired). Kev's "risk off the previous bar low" is a CLOSE-based
+        # structure rule (a 1-min bar low is far too tight as an intrabar stop — it would snipe the
+        # runner on every normal pullback / can sit above live price), so the prev-bar-low TRAIL is
+        # enforced as a bar-close exit in the EMA section below, NOT through current_stop. (audit fix) ─
 
         print(f"💰 {ticker}: ${current_price:.2f} ({profit_pct:+.1f}%) | Stop: ${current_stop:.2f} | Shares: {remaining_shares}")
         _post_trade_state({
@@ -3128,9 +3119,9 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     result["exit_reason"] = f"Full exit ({tier_label}) ✅"
                     break
 
-                # After the first scale, stop goes to break-even (risk-free); thereafter the prev-bar-low
-                # trail (above) ratchets it up. Never below entry.
-                current_stop     = max(last_bar_low, entry_price)
+                # After the first scale, the intrabar hard stop = BREAK-EVEN (risk-free). The prev-bar-low
+                # trail then ratchets the runner up on a CLOSE basis (bar-close exit in the EMA section).
+                current_stop     = entry_price
                 placed_stop_id    = place_stop_order(ticker, remaining_shares, current_stop)
                 placed_stop_price = current_stop
                 placed_stop_qty   = remaining_shares
@@ -3145,8 +3136,6 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             if bars and len(bars) >= EMA_PERIOD + 2:
                 ema9 = calculate_ema9(bars)
                 completed = bars[:-1]   # exclude in-progress bar
-                if completed:
-                    last_bar_low = float(completed[-1].get("low") or completed[-1].get("l") or last_bar_low)
 
                 # ── Kev's INSTANT EXIT (his #1, emphatic "every single time"): a candle makes a NEW
                 # high (above the prior bar's high) then CLOSES back below that prior bar's high = a
@@ -3162,6 +3151,21 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                         close_position(ticker, remaining_shares)
                         result["exit_price"]  = current_price
                         result["exit_reason"] = "INSTANT EXIT (failed new high)"
+                        remaining_shares = 0
+
+                # ── Kev's prev-bar-low TRAIL (close-based — the runner's structural trail after we've
+                # scaled). A completed bar CLOSING below the PRIOR bar's low = the up-structure broke →
+                # exit the runner. Close-based (not intrabar) so normal pullbacks don't snipe it. ──
+                if remaining_shares > 0 and partial_taken and len(completed) >= 2:
+                    _pl   = float(completed[-2].get("low")   or completed[-2].get("l") or 0)
+                    _lcl2 = float(completed[-1].get("close") or completed[-1].get("c") or 0)
+                    if _pl > 0 and 0 < _lcl2 < _pl:
+                        print(f"📉 {ticker}: bar closed ${_lcl2:.2f} below prior-bar low ${_pl:.2f} "
+                              f"— prev-bar-low trail exit (runner).")
+                        cancel_order(placed_stop_id)
+                        close_position(ticker, remaining_shares)
+                        result["exit_price"]  = current_price
+                        result["exit_reason"] = "PREV-BAR-LOW TRAIL"
                         remaining_shares = 0
 
                 if remaining_shares > 0 and len(completed) >= 2 and ema9 > 0:
@@ -4188,7 +4192,7 @@ def main():
             trade_result = monitor_trade(
                 ticker, shares, entry_price, target_price, stop_loss,
                 stream, stop_order_id, vwap=vwap,
-                next_supply=(extra or {}).get("room", {}).get("next_supply"),
+                next_supply=((extra or {}).get("room") or {}).get("next_supply"),
             )
             _active_monitors.pop(ticker, None)   # monitor returned — deregister from watchdog
 

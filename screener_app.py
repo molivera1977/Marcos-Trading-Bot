@@ -876,24 +876,52 @@ def add_room_skip():
 # Every watched candidate's disposition each evaluation (throttled bot-side): below_vwap, consolidating,
 # broke_not_flat (the SDOT/IVF detection gap), broke_below_vwap, broke_no_room, entered_*, spread_reject, etc.
 DECISIONS_FILE = pathlib.Path("/data/decisions.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/decisions.json")
+DECISIONS_DIR  = DECISIONS_FILE.parent   # per-day append-only JSONL archive lives here = the DURABLE record
 _decisions: list = []
 if DECISIONS_FILE.exists():
     try:    _decisions = json.loads(DECISIONS_FILE.read_text())
     except Exception: _decisions = []
 
+def _persist_decisions(records):
+    """Durably store decision records: (1) append-only per-day JSONL on /data (never trimmed = the real
+    archive), (2) the in-memory rolling cache + a recent-N json snapshot for fast /api/decisions queries."""
+    now = datetime.now(EASTERN); by_day = {}
+    for d in records:
+        if not isinstance(d, dict):
+            continue
+        d.setdefault("recorded_at", now.isoformat())
+        d.setdefault("date", now.strftime("%Y-%m-%d"))
+        d.setdefault("time", now.strftime("%I:%M:%S %p"))
+        _decisions.append(d)
+        by_day.setdefault(d["date"], []).append(d)
+    for day, recs in by_day.items():                      # the DURABLE archive — append-only, per day
+        try:
+            with open(DECISIONS_DIR / f"decisions-{day}.jsonl", "a") as f:
+                for d in recs:
+                    f.write(json.dumps(d) + "\n")
+        except Exception as e:
+            print(f"⚠️  decisions JSONL append failed: {e}")
+    try:    DECISIONS_FILE.write_text(json.dumps(_decisions[-8000:], indent=2))   # recent-N snapshot
+    except Exception as e: print(f"⚠️  Could not save decisions snapshot: {e}")
+    if len(_decisions) > 8000:
+        del _decisions[:len(_decisions) - 8000]
+
 @app.route("/api/decision", methods=["POST"])
 def add_decision():
     if request.headers.get("X-Dashboard-Secret") != API_SECRET:
         return jsonify({"error": "unauthorized"}), 401
-    d = request.get_json(silent=True) or {}
-    now = datetime.now(EASTERN)
-    d["recorded_at"] = now.isoformat()
-    d.setdefault("date", now.strftime("%Y-%m-%d"))
-    d.setdefault("time", now.strftime("%I:%M:%S %p"))
-    _decisions.append(d)
-    try:    DECISIONS_FILE.write_text(json.dumps(_decisions[-8000:], indent=2))
-    except Exception as e: print(f"⚠️  Could not save decisions: {e}")
+    _persist_decisions([request.get_json(silent=True) or {}])
     return jsonify({"status": "ok", "total": len(_decisions)})
+
+@app.route("/api/decisions/batch", methods=["POST"])
+def add_decisions_batch():
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    recs = (request.get_json(silent=True) or {}).get("records", [])
+    if not isinstance(recs, list):
+        return jsonify({"error": "records must be a list"}), 400
+    _persist_decisions(recs)
+    return jsonify({"status": "ok", "received": len(recs), "total": len(_decisions)})
 
 @app.route("/api/decisions", methods=["GET"])
 def get_decisions():

@@ -49,6 +49,7 @@ import base64
 import socket
 import pathlib
 import threading
+import atexit
 import concurrent.futures
 import logging
 import requests
@@ -1183,29 +1184,75 @@ def _log_room_skip(ticker, price, entry_type, room):
 DECISION_HEARTBEAT_SECS = 120
 _decision_last: dict = {}   # ticker -> (status, last_post_ts)
 
+# ── Durable write path (so we NEVER lose a decision message — the 6/26 blackout was Railway dropping
+# logs). Records are QUEUED, then a background flusher BATCHES them to the screener every few seconds
+# and RETRIES failed batches (put back on the queue) so a screener blip can't drop them. The screener
+# appends each batch to a per-day JSONL on its /data volume = the durable archive. ──
+DECISION_FLUSH_SECS  = 5      # flush cadence
+DECISION_BATCH_MAX   = 200    # records per POST
+DECISION_QUEUE_MAX   = 8000   # bound the in-memory queue (hours of backlog headroom; only fills if screener is down)
+_decision_queue: list = []
+_decision_queue_lock = threading.Lock()
+_decision_flusher_started = False
+
 def _log_decision(ticker, status, **fields):
     prev = _decision_last.get(ticker)
     now = time.time()
     if prev and prev[0] == status and (now - prev[1]) < DECISION_HEARTBEAT_SECS:
         return   # same status, within heartbeat window — skip to bound volume
     _decision_last[ticker] = (status, now)
-    url = os.environ.get("SCREENER_URL", "").rstrip("/")
-    if not url:
+    if not os.environ.get("SCREENER_URL", "").rstrip("/"):
         return
     rec = {"ticker": ticker, "status": status,
            "date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
            "time": datetime.now(EASTERN).strftime("%I:%M:%S %p")}
     rec.update({k: (round(v, 4) if isinstance(v, float) else v) for k, v in fields.items()})
-    def _send():
+    with _decision_queue_lock:
+        _decision_queue.append(rec)
+        if len(_decision_queue) > DECISION_QUEUE_MAX:   # drop OLDEST only on extreme overrun (screener long-down)
+            del _decision_queue[:len(_decision_queue) - DECISION_QUEUE_MAX]
+    _ensure_decision_flusher()
+
+def _ensure_decision_flusher():
+    global _decision_flusher_started
+    if _decision_flusher_started:
+        return
+    _decision_flusher_started = True
+    threading.Thread(target=_decision_flush_loop, daemon=True).start()
+    atexit.register(_flush_decisions_now)   # drain whatever's left when the cron session exits
+
+def _post_decisions_batch(batch) -> bool:
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url or not batch:
+        return True
+    try:
+        r = requests.post(f"{url}/api/decisions/batch", json={"records": batch},
+                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=8)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+def _flush_decisions_now():
+    # Drain the queue in batches. If a batch POST FAILS, put it back at the FRONT (order preserved) and
+    # stop this pass — the next cycle retries. Bounded passes so a huge backlog can't block forever.
+    for _ in range(64):
+        with _decision_queue_lock:
+            if not _decision_queue:
+                return
+            batch = _decision_queue[:DECISION_BATCH_MAX]
+            del _decision_queue[:len(batch)]
+        if not _post_decisions_batch(batch):
+            with _decision_queue_lock:
+                _decision_queue[:0] = batch   # requeue at front for retry (records NOT lost)
+            return
+
+def _decision_flush_loop():
+    while True:
+        time.sleep(DECISION_FLUSH_SECS)
         try:
-            requests.post(f"{url}/api/decision", json=rec,
-                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=4)
+            _flush_decisions_now()
         except Exception:
             pass
-    try:
-        _aux_executor.submit(_send)
-    except Exception:
-        pass
 
 
 # ── STALE-TRADE WATCHDOG ─────────────────────────────────────────────────────────────

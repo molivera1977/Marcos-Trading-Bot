@@ -1184,6 +1184,38 @@ def _log_room_skip(ticker, price, entry_type, room):
     except Exception:
         pass
 
+
+# ── Per-candidate DECISION log (observability) — persist WHY we did/didn't trade each name, to the
+# screener /data (survives; logs don't). Throttled: POST only when a ticker's status CHANGES or every
+# DECISION_HEARTBEAT_SECS, so the timeline is reconstructable without flooding (the 6/26 blackout). ──
+DECISION_HEARTBEAT_SECS = 120
+_decision_last: dict = {}   # ticker -> (status, last_post_ts)
+
+def _log_decision(ticker, status, **fields):
+    prev = _decision_last.get(ticker)
+    now = time.time()
+    if prev and prev[0] == status and (now - prev[1]) < DECISION_HEARTBEAT_SECS:
+        return   # same status, within heartbeat window — skip to bound volume
+    _decision_last[ticker] = (status, now)
+    url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not url:
+        return
+    rec = {"ticker": ticker, "status": status,
+           "date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+           "time": datetime.now(EASTERN).strftime("%I:%M:%S %p")}
+    rec.update({k: (round(v, 4) if isinstance(v, float) else v) for k, v in fields.items()})
+    def _send():
+        try:
+            requests.post(f"{url}/api/decision", json=rec,
+                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=4)
+        except Exception:
+            pass
+    try:
+        _aux_executor.submit(_send)
+    except Exception:
+        pass
+
+
 # ── STALE-TRADE WATCHDOG ─────────────────────────────────────────────────────────────
 # Recovery is startup-only; a monitor that FREEZES while the process stays alive (IQST, 6/25)
 # is invisible to it. This watchdog watches a LOCAL in-memory heartbeat each monitor writes
@@ -1556,12 +1588,12 @@ def _get_webull_quote(ticker, executor=None) -> dict:
         if abs(pre_r) < 1 and pre_r != 0:
             pre_r = pre_r * 100
 
+        # NOTE: the Webull snapshot does NOT carry a VWAP field — VWAP is computed from intraday bars
+        # (get_intraday_bars_full → cache[t]["vwap"]). So this is expected to be 0 here; do NOT warn (it
+        # fired per-ticker per-cycle = thousands of dropped log messages, the 6/26 observability blackout).
         vwap_raw = (d.get("vwap") or d.get("vwap_price") or d.get("average_price") or
                     d.get("avgPrice") or d.get("dayAvgPrice") or d.get("avgVol") or 0)
         vwap = float(vwap_raw)
-        if vwap <= 0:
-            all_keys = [k for k in d.keys() if "avg" in k.lower() or "vwap" in k.lower() or "wap" in k.lower()]
-            print(f"⚠️  VWAP=0 for {ticker} | candidate keys: {all_keys} | all keys: {list(d.keys())[:20]}")
 
         return {
             "last_price":            last,
@@ -2571,8 +2603,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     cache[t]["full_bars"] = full_bars   # full day = supply/room detection (HOD, pivots)
                     calc_vwap = calculate_vwap(full_bars)
                     if calc_vwap > 0:
-                        cache[t]["vwap"] = calc_vwap
-                        print(f"📊 {t} VWAP from Webull bars: ${calc_vwap:.2f}")
+                        cache[t]["vwap"] = calc_vwap   # (VWAP is shown per-ticker in the status line below — no separate print)
                     else:
                         print(f"⚠️  {t} VWAP=0 — Webull bars had no volume data")
                 else:
@@ -2620,9 +2651,11 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     if is_flat and price > w_high:
                         if vwap <= 0:
                             status_parts.append(f"{t}:${price:.2f} BREAK but no VWAP — skipped")
+                            _log_decision(t, "broke_no_vwap", price=price, w_high=w_high)
                             continue
                         if price < vwap:
                             status_parts.append(f"{t}:${price:.2f} BREAK but below VWAP{vwap_tag}")
+                            _log_decision(t, "broke_below_vwap", price=price, vwap=vwap, w_high=w_high)
                             continue
                         # ── Kev's ROOM gate is the anti-chase filter (replaced the untested 4% VWAP-
                         # extension cap — Kev uses ROOM to the next supply, NOT a fixed % above VWAP. A
@@ -2636,16 +2669,26 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                   f"({room['supply_src']}), room {room['room_pct']}% = {rr}:1 "
                                   f"< {MIN_ROOM_RR}:1 — skip (Kev: no room = no trade)")
                             _log_room_skip(t, price, "flat_top", room)
+                            _log_decision(t, "broke_no_room", price=price, room_rr=rr,
+                                          next_supply=room.get("next_supply"), supply_src=room.get("supply_src"))
                             continue
                         print(f"\n✅ {t} FLAT TOP BREAKOUT! ${price:.2f} > window high ${w_high:.2f} "
                               f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window) | "
                               f"room {room['rr_to_supply']}:1 to ${room['next_supply']} ({room['supply_src']})"
                               + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
                         breakouts.append((t, price, vwap, "flat_top", {"ema90": round(ema90, 4), "room": room}))
+                        _log_decision(t, "triggered_flat_top", price=price, room_rr=rr, w_high=w_high)
                         found_entry = True
                     elif is_flat:
                         gap_to_break = (w_high - price) / price * 100
                         status_parts.append(f"{t}:${price:.2f} flat({rng*100:.1f}%) hi:${w_high:.2f} -{gap_to_break:.1f}%{vwap_tag}")
+                        _log_decision(t, "consolidating", price=price, vwap=vwap, w_high=w_high, rng_pct=round(rng*100, 1))
+                    elif price > w_high:
+                        # NEW HIGH but the base wasn't "flat" (range > FLAT_TOP_MAX_RANGE) — THE detection gap:
+                        # SDOT/IVF/ILLR/ZDAI were clean base-breaks the 4-bar/8% flat-top never classifies. This
+                        # record is what lets us SEE that (and size the rally-base-rally build).
+                        status_parts.append(f"{t}:${price:.2f} NEW HIGH but base not flat (rng {rng*100:.0f}%) hi:${w_high:.2f}{vwap_tag}")
+                        _log_decision(t, "broke_not_flat", price=price, w_high=w_high, rng_pct=round(rng*100, 1), vwap=vwap)
 
             # ── Entry type 2: MA pullback (Kev — 9/20/50/90, whichever rising MA the pullback HOLDS) ──
             # Unified pullback entry (replaced the old narrower EMA9-bounce): one wick-off-low + room logic
@@ -2660,6 +2703,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         print(f"🚫 {t} {ma_pb['ma_name']} pullback but NO ROOM — supply ${room['next_supply']} "
                               f"({room['supply_src']}) = {rr_room}:1 < {MIN_ROOM_RR}:1 — skip")
                         _log_room_skip(t, price, "ma_pullback", room)
+                        _log_decision(t, "ma_no_room", price=price, room_rr=rr_room)
                     else:
                         target = room.get("next_supply") or round(price * (1 + TARGET_PCT), 4)
                         print(f"\n✅ {t} {ma_pb['ma_name'].upper()} PULLBACK! ${price:.2f} held ${ma_pb['ma']:.2f} "
@@ -2669,10 +2713,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             "ema_stop": ma_stop, "prior_high": target,
                             "ema90": round(ema90, 4), "room": room, "ma_held": ma_pb["ma_name"],
                         }))
+                        _log_decision(t, "triggered_ma_pullback", price=price, ma=ma_pb["ma_name"])
                         found_entry = True
 
             if not found_entry and t not in [s.split(":")[0] for s in status_parts]:
                 status_parts.append(f"{t}:${price:.2f} EMA9:${ema9:.2f}{vwap_tag}")
+                _log_decision(t, "watching", price=price, vwap=vwap)
 
         if breakouts:
             return breakouts
@@ -4057,6 +4103,7 @@ def main():
             spread_ok, spread_pct = check_bid_ask_spread(ticker)
             if not spread_ok:
                 print(f"⚠️ {ticker} spread {spread_pct*100:.2f}% too wide — skipping")
+                _log_decision(ticker, "spread_reject", price=entry_price, spread_pct=round(spread_pct*100, 2))
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
                 return
@@ -4064,6 +4111,7 @@ def main():
             l2_ok, l2_details = check_level2(ticker, entry_price)
             if not l2_ok:
                 print(f"⚠️ {ticker} L2 rejected: {l2_details.get('reason','')} — skipping")
+                _log_decision(ticker, "l2_reject", price=entry_price, reason=str(l2_details.get('reason', ''))[:80])
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
                 return
@@ -4071,6 +4119,7 @@ def main():
             mom_ok, mom_details = check_momentum(ticker)
             if not mom_ok:
                 print(f"⚠️ {ticker} momentum rejected: {mom_details.get('reason','')} — skipping")
+                _log_decision(ticker, "momentum_reject", price=entry_price, reason=str(mom_details.get('reason', ''))[:80])
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
                 return
@@ -4080,9 +4129,11 @@ def main():
             )
             if not order_id:
                 print(f"⚠️ Order failed for {ticker}")
+                _log_decision(ticker, "order_failed", price=entry_price)
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
                 return
+            _log_decision(ticker, "filled", price=actual_fill or entry_price, entry_type=entry_type)
 
             if actual_fill and actual_fill != entry_price:
                 entry_price = actual_fill

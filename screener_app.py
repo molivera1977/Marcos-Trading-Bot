@@ -872,6 +872,46 @@ def add_room_skip():
     except Exception as e: print(f"⚠️  Could not save room_skips: {e}")
     return jsonify({"status": "ok", "total": len(_room_skips)})
 
+# ── Per-candidate DECISION log — the full "why did/didn't we trade X" timeline (observability) ──
+# Every watched candidate's disposition each evaluation (throttled bot-side): below_vwap, consolidating,
+# broke_not_flat (the SDOT/IVF detection gap), broke_below_vwap, broke_no_room, entered_*, spread_reject, etc.
+DECISIONS_FILE = pathlib.Path("/data/decisions.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/decisions.json")
+_decisions: list = []
+if DECISIONS_FILE.exists():
+    try:    _decisions = json.loads(DECISIONS_FILE.read_text())
+    except Exception: _decisions = []
+
+@app.route("/api/decision", methods=["POST"])
+def add_decision():
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    now = datetime.now(EASTERN)
+    d["recorded_at"] = now.isoformat()
+    d.setdefault("date", now.strftime("%Y-%m-%d"))
+    d.setdefault("time", now.strftime("%I:%M:%S %p"))
+    _decisions.append(d)
+    try:    DECISIONS_FILE.write_text(json.dumps(_decisions[-8000:], indent=2))
+    except Exception as e: print(f"⚠️  Could not save decisions: {e}")
+    return jsonify({"status": "ok", "total": len(_decisions)})
+
+@app.route("/api/decisions", methods=["GET"])
+def get_decisions():
+    """Query the decision timeline. ?ticker=SDOT &date=2026-06-26 &status=broke_not_flat &limit=200"""
+    tk     = (request.args.get("ticker") or "").upper()
+    date   = request.args.get("date")
+    status = request.args.get("status")
+    limit  = int(request.args.get("limit", 300))
+    rows = _decisions
+    if tk:     rows = [r for r in rows if (r.get("ticker") or "").upper() == tk]
+    if date:   rows = [r for r in rows if r.get("date") == date]
+    if status: rows = [r for r in rows if r.get("status") == status]
+    by_status = {}
+    for r in rows:
+        by_status[r.get("status", "?")] = by_status.get(r.get("status", "?"), 0) + 1
+    return jsonify({"total_all": len(_decisions), "matched": len(rows),
+                    "by_status": by_status, "rows": rows[-limit:]})
+
 @app.route("/api/room_stats", methods=["GET"])
 def get_room_stats():
     """Audit view: trades taken (with their room) vs entries the gate rejected, by supply source."""

@@ -3189,10 +3189,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 ema9 = calculate_ema9(bars)
                 completed = bars[:-1]   # exclude in-progress bar
 
-                # ── Kev's INSTANT EXIT (his #1, emphatic "every single time"): a candle makes a NEW
-                # high (above the prior bar's high) then CLOSES back below that prior bar's high = a
-                # major reversal → full exit immediately, regardless of P&L. ──
-                if remaining_shares > 0 and len(completed) >= 2:
+                # ── Kev's INSTANT EXIT: a candle makes a NEW high then CLOSES back below the prior bar's
+                # high = a major reversal → full exit. ONLY armed AFTER the first scale (partial_taken):
+                # real-bar backtest (6/26 Webull bars) showed firing it pre-scale on 1-min noise cut runners
+                # for tiny gains (SDOT +1.1% vs the +60% move). Post-scale ~tripled SDOT/BDRX. ──
+                if remaining_shares > 0 and partial_taken and len(completed) >= 2:
                     _lh  = float(completed[-1].get("high")  or completed[-1].get("h") or 0)
                     _lcl = float(completed[-1].get("close") or completed[-1].get("c") or 0)
                     _ph  = float(completed[-2].get("high")  or completed[-2].get("h") or 0)

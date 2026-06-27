@@ -293,8 +293,6 @@ BOTTOM_TAIL_RATIO       = 0.40    # lower wick ≥40% of range = wicked off the 
 MA_PULLBACK_STOP_BUFFER = 0.01    # stop just below the MA the pullback held
 MA_RISING_LOOKBACK      = 5       # the MA must be rising over this many bars (uptrend)
 MIN_RR             = 2.0    # minimum reward:risk ratio for EMA bounce
-ENTRY_CUTOFF_HOUR  = 11     # Kev's full 9:00-11:00 window
-ENTRY_CUTOFF_MIN   = 0
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
 FIRST_TICKER_CUTOFF_MIN = 20  # Switch to backup ticker if #1 hasn't set up by 9:50am ET
@@ -2550,13 +2548,11 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
     while True:
         now = datetime.now(EASTERN)
 
-        # Entry cutoff — skipped in DRY_RUN for maximum practice data
-        if not DRY_RUN:
-            past_entry_cutoff = (now.hour > ENTRY_CUTOFF_HOUR or
-                                 (now.hour == ENTRY_CUTOFF_HOUR and now.minute >= ENTRY_CUTOFF_MIN))
-            if past_entry_cutoff:
-                print(f"⏰ 11:00am entry cutoff — no entry detected. Holding cash.")
-                return []
+        # No time-of-day entry wall: a bot doesn't fatigue, so it trades the SETUP, not the clock.
+        # (The old 11:00am cutoff was a human-discipline guard + a DRY_RUN/live parity gap — removed.
+        # The setup itself is gated by room/spread/momentum; new entries still stop at the 3:30pm
+        # boundary in main() ahead of the 3:45pm forced flat. Kev's setups trigger all day, e.g. the
+        # 2pm base-breakouts on SDOT/IVF that this used to block live.)
 
         if now.hour < 9 or (now.hour == 9 and now.minute < 30):
             mins = (9 * 60 + 30) - (now.hour * 60 + now.minute)

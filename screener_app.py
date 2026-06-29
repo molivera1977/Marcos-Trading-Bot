@@ -948,6 +948,40 @@ def get_decisions():
     return jsonify({"total_all": len(_decisions), "matched": len(rows),
                     "by_status": by_status, "rows": rows[-limit:]})
 
+# ── DATA WAREHOUSE: per-day/per-ticker 1-min bar archive on /data — the permanent dataset the harness
+# backtests against (so we're not re-fetching from a 7-day API). POST to save, GET to retrieve/list. ──
+BARS_DIR = (pathlib.Path("/data") if pathlib.Path("/data").exists() else pathlib.Path("/tmp")) / "bars"
+
+@app.route("/api/bars", methods=["POST"])
+def save_bars():
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    date = d.get("date"); ticker = (d.get("ticker") or "").upper(); bars = d.get("bars")
+    if not (date and ticker and isinstance(bars, list)):
+        return jsonify({"error": "need date, ticker, bars[]"}), 400
+    try:
+        daydir = BARS_DIR / date; daydir.mkdir(parents=True, exist_ok=True)
+        (daydir / f"{ticker}.json").write_text(json.dumps(bars))
+        return jsonify({"status": "ok", "ticker": ticker, "bars": len(bars)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/bars", methods=["GET"])
+def get_bars():
+    date = request.args.get("date"); ticker = (request.args.get("ticker") or "").upper()
+    if date and ticker:
+        f = BARS_DIR / date / f"{ticker}.json"
+        if f.exists():
+            return jsonify({"date": date, "ticker": ticker, "bars": json.loads(f.read_text())})
+        return jsonify({"error": "not found"}), 404
+    out = {}                              # no args → list what's archived
+    if BARS_DIR.exists():
+        for dd in sorted(BARS_DIR.iterdir()):
+            if dd.is_dir():
+                out[dd.name] = sorted(f.stem for f in dd.glob("*.json"))
+    return jsonify({"days": len(out), "archived": out})
+
 @app.route("/api/room_stats", methods=["GET"])
 def get_room_stats():
     """Audit view: trades taken (with their room) vs entries the gate rejected, by supply source."""

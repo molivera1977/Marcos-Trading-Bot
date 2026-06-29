@@ -1260,6 +1260,34 @@ def _decision_flush_loop():
             pass
 
 
+# ── DATA WAREHOUSE: at END OF SESSION, archive the day's full 1-min bars for every watched ticker to
+# the screener /data volume — a PERMANENT, growing dataset for future backtests + learning (bars age
+# out of every API). Runs ONCE after trading is done; fully fail-safe so it can NEVER affect a trade. ──
+def _archive_watchlist_bars(tickers):
+    try:
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        tickers = list(dict.fromkeys(t for t in (tickers or []) if t))
+        if not url or not tickers:
+            return
+        date = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        saved = 0
+        for t in tickers:
+            try:
+                bars = get_intraday_bars(t, count=960, executor=_aux_executor)   # full extended day
+                if not bars:
+                    continue
+                r = requests.post(f"{url}/api/bars", json={"date": date, "ticker": t, "bars": bars},
+                                  headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=20)
+                if r.status_code == 200:
+                    saved += 1
+            except Exception:
+                pass
+            time.sleep(0.3)
+        print(f"🗄️  Data warehouse: archived bars for {saved}/{len(tickers)} watched tickers ({date}).")
+    except Exception as e:
+        print(f"⚠️  Bar archival failed (non-fatal): {e}")
+
+
 # ── STALE-TRADE WATCHDOG ─────────────────────────────────────────────────────────────
 # Recovery is startup-only; a monitor that FREEZES while the process stays alive (IQST, 6/25)
 # is invisible to it. This watchdog watches a LOCAL in-memory heartbeat each monitor writes
@@ -4350,6 +4378,9 @@ def main():
     print(f"   Session P&L: ${session_pnl:+.2f}")
     print(f"   Balance:     ${end_balance:.2f}")
     print(f"{'='*60}\n")
+
+    # Archive the day's watched-ticker bars to the data warehouse (after all trading; fail-safe).
+    _archive_watchlist_bars(stream_tickers)
 
 
 def next_trading_open(now_et):

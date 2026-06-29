@@ -255,7 +255,8 @@ MAX_TRADE_DOLLARS     = 100.00 # Hard cap per trade until system proves reliable
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade (HIGH confidence)
 POSITION_SIZE_MEDIUM  = 0.50   # 50% for MEDIUM confidence
 POSITION_SIZE_LOW     = 0.30   # 30% for LOW confidence
-STOP_LOSS_PCT         = 0.07   # 7% emergency exchange stop (EMA9 fires first)
+STOP_LOSS_PCT         = 0.07   # -7% CATASTROPHE backstop ONLY (caps risk); the real stop is structural
+ZONE_STOP_BUFFER      = 0.003  # Kev "<5c below the level": stop sits just below the demand-zone (base) low
 TARGET_PCT            = 0.20   # 20% full profit target (fallback target only)
 # Exit sizing/tiers/trail are now Kev R-based inside monitor_trade (SUPPLY_EXIT_DESIGN.md), NOT fixed
 # percentages — the old EXIT_TIERS_AM/PM (+8/12/20%, +4/6%) and TRAIL_PCT (5%) were made-up and are removed.
@@ -2021,7 +2022,7 @@ def _to_chronological(bars):
 def get_intraday_bars(ticker, count=30, executor=None):
     """Fetch 1-minute intraday bars for VWAP calculation. Uses SDK.
 
-    The SDK call has no timeout — used inside monitor_trade (EMA9 stop + topping-tail exit),
+    The SDK call has no timeout — used inside monitor_trade (structure-based exits: prev-bar-low trail + topping-tail),
     so a hung call could freeze the loop (same class as the BOXL freeze). Run it on the shared
     worker with a hard QUOTE_TIMEOUT_SECS cap so it can never block the monitor loop.
     Pass executor=_aux_executor (e.g. the day-2 observer) to keep load OFF the trade pool."""
@@ -2798,7 +2799,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # extension cap — Kev uses ROOM to the next supply, NOT a fixed % above VWAP. A
                         # clean breakout to new highs is fine "extended" (open room); an into-supply
                         # breakout isn't (no room). The cap would have rejected Kev's COODX +4.5% winner). ──
-                        _stop = round(price * (1 - STOP_LOSS_PCT), 4)
+                        # Kev (SUPPLY_EXIT_DESIGN step 1): stop = bottom of the demand zone = the
+                        # flat-top base low, a few cents below it. R is measured off THIS — never the
+                        # made-up -7%, which is now only a catastrophe cap (max risk). One structural
+                        # stop, used consistently for the room gate, R, and the broker stop.
+                        _zone = round(w_low * (1 - ZONE_STOP_BUFFER), 4)
+                        _stop = max(_zone, round(price * (1 - STOP_LOSS_PCT), 4))
                         room = compute_room(price, _stop, cache[t].get("full_bars") or bars)
                         rr = room["rr_to_supply"]
                         if rr is not None and rr < MIN_ROOM_RR:   # None = detection failed → fail OPEN
@@ -2813,7 +2819,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                               f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window) | "
                               f"room {room['rr_to_supply']}:1 to ${room['next_supply']} ({room['supply_src']})"
                               + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
-                        breakouts.append((t, price, vwap, "flat_top", {"ema90": round(ema90, 4), "room": room}))
+                        breakouts.append((t, price, vwap, "flat_top", {"ema90": round(ema90, 4), "room": room, "zone_stop": _stop}))
                         _log_decision(t, "triggered_flat_top", price=price, room_rr=rr, w_high=w_high)
                         found_entry = True
                     elif is_flat:
@@ -3275,12 +3281,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 send_partial_exit_alert(ticker, sell_qty, partial_price, entry_price,
                                         remaining_shares, current_stop, profit_pct)
 
-        # ── EMA9 2-bar confirm stop (v8 primary exit) ─────────────
+        # ── Structure-based exits: fetch recent bars for the Kev close-based exits below ──────
         if remaining_shares > 0 and time.time() - last_ema_check >= EMA_CHECK_INTERVAL:
             bars = get_intraday_bars(ticker, count=EMA_PERIOD + 5)
             if bars and len(bars) >= EMA_PERIOD + 2:
-                ema9 = calculate_ema9(bars)
-                completed = bars[:-1]   # exclude in-progress bar
+                completed = bars[:-1]   # exclude in-progress bar (bars are chronological after the order fix)
 
                 # ── Kev's INSTANT EXIT: a candle makes a NEW high then CLOSES back below the prior bar's
                 # high = a major reversal → full exit. ONLY armed AFTER the first scale (partial_taken):
@@ -3314,17 +3319,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                         result["exit_reason"] = "PREV-BAR-LOW TRAIL"
                         remaining_shares = 0
 
-                if remaining_shares > 0 and len(completed) >= 2 and ema9 > 0:
-                    lc = float(completed[-1].get("close") or completed[-1].get("c") or 0)
-                    pc = float(completed[-2].get("close") or completed[-2].get("c") or 0)
-                    if lc > 0 and pc > 0 and lc < ema9 and pc < ema9:
-                        print(f"📉 EMA9 2-bar stop: {ticker} last 2 bars below EMA9 ${ema9:.2f} "
-                              f"(${pc:.2f}, ${lc:.2f}) — exiting at market.")
-                        cancel_order(placed_stop_id)
-                        close_position(ticker, remaining_shares)
-                        result["exit_price"]  = stream.get_price(ticker)
-                        result["exit_reason"] = "EMA STOP 2BAR"
-                        remaining_shares = 0
+                # (REMOVED 6/29) The EMA9 2-bar stop was the tight moving-average stop Kev explicitly
+                # warns against ("stop BELOW the demand zone, not a tight MA/wick — or you get sniped
+                # every trade"). On real 6/29 bars it whipsawed the day to break-even. Pre-scale risk is
+                # now the STRUCTURAL zone stop (current_stop = zone-low, intrabar); post-scale is
+                # break-even + prev-bar-low trail + instant-exit + topping-tail. See [[feedback_fix_root_first]].
 
                 # Kev "topping tail off the high" — his #1 exit. If the last completed bar
                 # made a fresh high then got rejected (long upper wick) AND we're in profit,
@@ -3949,11 +3948,28 @@ def resume_monitoring_if_open():
     print(f"\n⚡ OPEN POSITION DETECTED: {ticker} × {shares} shares @ ${avg_cost:.2f}")
     print(f"   Resuming monitoring — skipping scan and analysis.\n")
 
-    stop_loss    = round(avg_cost * (1 - STOP_LOSS_PCT), 2)
-    target_price = round(avg_cost * (1 + TARGET_PCT), 2)
-
-    print(f"   Stop:   ${stop_loss:.2f} (-{STOP_LOSS_PCT*100:.0f}%)")
-    print(f"   Target: ${target_price:.2f} (+{TARGET_PCT*100:.0f}%)")
+    # Recover the STRUCTURAL stop + target from durable state — NOT a made-up -7%. On a redeploy the
+    # in-memory zone_stop is gone, but monitor_trade persisted the real stop ("stop") to the screener.
+    # Recomputing -7% here would silently reintroduce the made-up-R bug on every restart (and redeploys
+    # are routine for this bot). Fall back to the -7% catastrophe stop ONLY if no saved record exists.
+    # [[feedback_fix_root_first]]
+    _saved = None
+    try:
+        for _t in _load_open_trades_from_screener():
+            if (_t.get("ticker") or "").upper() == (ticker or "").upper():
+                _saved = _t
+                break
+    except Exception:
+        _saved = None
+    if _saved and _saved.get("stop"):
+        stop_loss    = round(float(_saved["stop"]), 4)
+        target_price = round(float(_saved.get("target") or avg_cost * (1 + TARGET_PCT)), 4)
+        print(f"   Stop:   ${stop_loss:.4f} (recovered structural stop from saved state)")
+        print(f"   Target: ${target_price:.4f}")
+    else:
+        stop_loss    = round(avg_cost * (1 - STOP_LOSS_PCT), 4)
+        target_price = round(avg_cost * (1 + TARGET_PCT), 4)
+        print(f"   ⚠️  No saved stop in durable state — using -7% catastrophe fallback: ${stop_loss:.4f}")
 
     try:
         resend.api_key = RESEND_API_KEY
@@ -4269,7 +4285,8 @@ def main():
                 stop_loss = round(extra["ema_stop"], 4)
                 target_price = round(extra.get("prior_high", entry_price * (1 + TARGET_PCT)), 4)
             else:
-                stop_loss = round(entry_price * (1 - STOP_LOSS_PCT), 4)
+                # Flat-top: structural zone stop (Kev), -7% only as fallback if zone is missing
+                stop_loss = round((extra.get("zone_stop") or entry_price * (1 - STOP_LOSS_PCT)), 4)
                 target_price = round(entry_price * (1 + TARGET_PCT), 4)
             shares = max(1, int(pos_size / entry_price))
 
@@ -4325,7 +4342,7 @@ def main():
                 if "ema_stop" in extra:
                     stop_loss = round(extra["ema_stop"], 4)
                 else:
-                    stop_loss = round(entry_price * (1 - STOP_LOSS_PCT), 4)
+                    stop_loss = round((extra.get("zone_stop") or entry_price * (1 - STOP_LOSS_PCT)), 4)
                     target_price = round(entry_price * (1 + TARGET_PCT), 4)
                 shares = max(1, int(pos_size / entry_price))
 

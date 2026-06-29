@@ -1781,6 +1781,7 @@ def get_premarket_volume_trend(ticker) -> dict:
         if not isinstance(bars, list) or len(bars) < 3:
             return {"trend": "N/A", "ratio": None}
 
+        bars = _to_chronological(bars)   # SDK is newest-first; we need oldest→newest for early vs late
         vols = [float(b.get("volume") or b.get("v") or 0) for b in bars]
         early_avg = sum(vols[:len(vols)//2]) / max(len(vols)//2, 1)
         late_avg  = sum(vols[len(vols)//2:]) / max(len(vols) - len(vols)//2, 1)
@@ -1999,6 +2000,24 @@ def check_momentum(ticker) -> tuple[bool, dict]:
         return True, details
 
 
+def _to_chronological(bars):
+    """Return bars OLDEST-FIRST (chronological). The Webull SDK's get_history_bar delivers bars
+    NEWEST-FIRST, but ALL downstream logic assumes oldest-first — i.e. bars[-1] is the most recent
+    / in-progress bar (flat-top window = completed[-FLAT_TOP_WINDOW:], monitor_trade prev-bar exits
+    = completed[-1]/[-2], EMA series, compute_room). That mismatch made the flat-top window read the
+    OLDEST bars and the exits compare the open's bars (the 6/29 'open artifact' was the visible tip).
+    Normalizing here fixes every caller at once and matches the backtest harness (which sorts ascending).
+    Sort by the ISO-UTC 'time' string (lexically chronological); fall back to reversing the SDK order."""
+    if not bars or not isinstance(bars, list):
+        return bars
+    try:
+        if all(isinstance(b, dict) and b.get("time") for b in bars):
+            return sorted(bars, key=lambda b: str(b.get("time")))
+    except Exception:
+        pass
+    return list(reversed(bars))
+
+
 def get_intraday_bars(ticker, count=30, executor=None):
     """Fetch 1-minute intraday bars for VWAP calculation. Uses SDK.
 
@@ -2027,12 +2046,16 @@ def get_intraday_bars(ticker, count=30, executor=None):
             return []
         raw = resp.json()
         if isinstance(raw, list):
-            return raw
-        data = raw.get("data", {}) if isinstance(raw, dict) else {}
-        if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            return data.get("items", [])
+            bars = raw
+        else:
+            data = raw.get("data", {}) if isinstance(raw, dict) else {}
+            if isinstance(data, list):
+                bars = data
+            elif isinstance(data, dict):
+                bars = data.get("items", [])
+            else:
+                bars = []
+        return _to_chronological(bars)
     except Exception as e:
         print(f"⚠️  Intraday bars error for {ticker}: {e}")
     return []

@@ -1428,6 +1428,27 @@ def _recover_orphaned_trades():
 # loop, positions, or orders. Pure read + POST. See [[project_market_observations]].
 # ============================================================
 
+def _fetch_kev_watchlist():
+    """Kev's explicitly-flagged tickers for today (from the screener /api/kev_watchlist).
+    These are FORCE-watched regardless of the morning-scan top-15 score cut — the selection
+    score can't be trusted to surface even names that should rank high (6/29: ILLR & AZI, both
+    Kev picks, fell out of the scan entirely; ILLR backtested a real +7.3% missed win). "Kev is
+    the bible" at the watch layer. The entry gates (VWAP reclaim / flat-top / room / spread /
+    momentum) still apply, so this only widens *what we watch*, never *what we'll buy blindly*.
+    Fail-safe: returns [] on any error so a screener hiccup can't break the morning."""
+    try:
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        if not url:
+            return []
+        date = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        r = requests.get(f"{url}/api/kev_watchlist", params={"date": date}, timeout=10)
+        if r.status_code == 200:
+            return [str(t).upper().strip() for t in (r.json().get("tickers") or []) if str(t).strip()]
+    except Exception as e:
+        print(f"⚠️  Kev watchlist fetch failed (non-fatal): {e}")
+    return []
+
+
 def _seed_day2_from_gappers(gappers: list):
     """After the morning scan, carry today's hard gappers into tomorrow's day-2 watch list."""
     url = os.environ.get("SCREENER_URL", "").rstrip("/")
@@ -4103,6 +4124,13 @@ def main():
 
     # ── Step 5: Build candidate list + open stream ─────────
     gapper_syms = [g["symbol"] for g in gappers if g.get("symbol")]
+    # ★ Force-include Kev's flagged tickers, bypassing the top-15 score cut. Selection alone
+    #   can't be trusted to surface even qualifiers (6/29: ILLR & AZI both fell out; ILLR was a
+    #   real +7.3% miss). If Kev names it, we watch it — entry gates still decide the buy.
+    kev_forced = [t for t in _fetch_kev_watchlist() if t not in gapper_syms]
+    if kev_forced:
+        gapper_syms = gapper_syms + kev_forced
+        print(f"⭐ Force-added {len(kev_forced)} of Kev's flagged ticker(s) (bypass top-15): {' | '.join(kev_forced)}")
     print(f"📋 Watching {len(gapper_syms)} candidates: {' | '.join(gapper_syms)}")
     _post_watching_to_screener(gapper_syms)
     _seed_day2_from_gappers(gappers)   # carry today's hard gappers into tomorrow's day-2 observation

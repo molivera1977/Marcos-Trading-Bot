@@ -1267,9 +1267,21 @@ def _archive_watchlist_bars(tickers):
     try:
         url = os.environ.get("SCREENER_URL", "").rstrip("/")
         tickers = list(dict.fromkeys(t for t in (tickers or []) if t))
+        date = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        # Also archive KEV's flagged tickers for today — benchmark our selection vs his, even names our
+        # bot never watched. Fail-safe: if the fetch fails, just archive our own list.
+        try:
+            if url:
+                r = requests.get(f"{url}/api/kev_watchlist", params={"date": date}, timeout=10)
+                if r.status_code == 200:
+                    kev = [str(t).upper().strip() for t in (r.json().get("tickers") or []) if str(t).strip()]
+                    if kev:
+                        tickers = list(dict.fromkeys(tickers + kev))
+                        print(f"🗄️  Including {len(kev)} of Kev's flagged tickers in today's archive.")
+        except Exception:
+            pass
         if not url or not tickers:
             return
-        date = datetime.now(EASTERN).strftime("%Y-%m-%d")
         saved = 0
         for t in tickers:
             try:

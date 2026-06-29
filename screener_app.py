@@ -982,6 +982,34 @@ def get_bars():
                 out[dd.name] = sorted(f.stem for f in dd.glob("*.json"))
     return jsonify({"days": len(out), "archived": out})
 
+# ── KEV'S DAILY FLAGGED TICKERS — the names Kev calls out to watch each day. Recorded here so the
+# end-of-day bar archiver also banks bars for HIS picks (even ones our bot never watched), letting us
+# benchmark our selection/processes against his. POST {date, tickers}; GET ?date= (or all). ──
+KEV_WL_FILE = pathlib.Path("/data/kev_watchlist.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/kev_watchlist.json")
+_kev_wl = {}
+if KEV_WL_FILE.exists():
+    try:    _kev_wl = json.loads(KEV_WL_FILE.read_text())
+    except Exception: _kev_wl = {}
+
+@app.route("/api/kev_watchlist", methods=["POST"])
+def set_kev_watchlist():
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    date = d.get("date") or datetime.now(EASTERN).strftime("%Y-%m-%d")
+    tickers = sorted({str(t).upper().strip() for t in (d.get("tickers") or []) if str(t).strip()})
+    _kev_wl[date] = tickers
+    try:    KEV_WL_FILE.write_text(json.dumps(_kev_wl, indent=2))
+    except Exception as e: print(f"⚠️  Could not save kev_watchlist: {e}")
+    return jsonify({"status": "ok", "date": date, "tickers": tickers})
+
+@app.route("/api/kev_watchlist", methods=["GET"])
+def get_kev_watchlist():
+    date = request.args.get("date")
+    if date:
+        return jsonify({"date": date, "tickers": _kev_wl.get(date, [])})
+    return jsonify(_kev_wl)
+
 @app.route("/api/room_stats", methods=["GET"])
 def get_room_stats():
     """Audit view: trades taken (with their room) vs entries the gate rejected, by supply source."""

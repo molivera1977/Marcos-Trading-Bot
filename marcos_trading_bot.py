@@ -2697,6 +2697,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             time.sleep(30)
             continue
 
+        # Session entry cutoff (ALL modes) — after 3:30pm ET, hand control back to main() so the
+        # session can END and run end-of-day archival. Without this the loop spins forever on a
+        # no-late-breakout day (DRY_RUN never had a non-breakout exit), and the bar-archival —
+        # which runs after the loop — never fires (the 6/29 warehouse-empty bug). main() still does
+        # the 3:45 forced-flat; this just stops NEW entries + guarantees the loop returns.
+        if now.hour > VWAP_ENTRY_TIMEOUT or (now.hour == VWAP_ENTRY_TIMEOUT and now.minute >= VWAP_ENTRY_TIMEOUT_MIN):
+            print(f"⏰ 3:30pm ET — watch-loop entry cutoff; returning to end the session.")
+            return []
+
         # Refresh bars for each ticker every 30s
         for t in candidates:
             if time.time() - cache[t]["fetched"] >= VWAP_BAR_CACHE_SECS:
@@ -4139,6 +4148,18 @@ def main():
     stream         = WebullStream(stream_tickers)
     analysis       = None
 
+    # End-of-day bar archival must ALWAYS run — even if the trade loop exits abnormally or the
+    # process winds down before reaching SESSION COMPLETE (the 6/29 warehouse-empty bug). Register
+    # it via atexit as a belt-and-suspenders to the layer-(a) 3:30 watch-loop return. Guarded so it
+    # runs exactly once (whichever fires first — the explicit end-of-session call or atexit).
+    _archived = {"done": False}
+    def _do_archive_once():
+        if _archived["done"]:
+            return
+        _archived["done"] = True
+        _archive_watchlist_bars(stream_tickers)
+    atexit.register(_do_archive_once)
+
     # ── Steps 8-10: Trade loop ─────────────────────────────────────────────────
     remaining_candidates  = list(gapper_syms)
     traded_tickers        = set()
@@ -4420,7 +4441,8 @@ def main():
     print(f"{'='*60}\n")
 
     # Archive the day's watched-ticker bars to the data warehouse (after all trading; fail-safe).
-    _archive_watchlist_bars(stream_tickers)
+    # Routed through the guarded once-only helper so it can't double-run with the atexit fallback.
+    _do_archive_once()
 
 
 def next_trading_open(now_et):

@@ -2798,6 +2798,26 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
     cache = {t: {"bars": [], "vwap": 0.0, "fetched": 0.0} for t in candidates}
     last_rescan = time.time()
 
+    # ── DAILY-LEVEL HOMEWORK, done UP FRONT (follow-up #1). Kev sets his daily levels BEFORE the
+    #    open, not reactively mid-breakout. Daily data is static intraday, so one spaced pass here
+    #    (a) avoids a rate-limit BURST when several names trigger entries in the same minute, and
+    #    (b) LOGS daily-gate coverage per name, so a 429 fail-open is VISIBLE — never silent (the
+    #    exact trap that hid a degraded run). The lazy fetch at each entry site stays as a fallback
+    #    for names the rescan adds mid-session. ──
+    _daily_ok, _daily_miss = [], []
+    for t in candidates:
+        cache[t]["daily"] = get_daily_levels(t)
+        if cache[t]["daily"]:
+            _daily_ok.append(t)
+            _log_decision(t, "daily_loaded")
+        else:
+            _daily_miss.append(t)
+            _log_decision(t, "daily_missing")   # gate FAILS OPEN for this name — record it so we can SEE it
+        time.sleep(0.5)   # de-burst the daily endpoint — gentle, pre-open, no rush
+    print(f"📅 Daily levels pre-loaded: {len(_daily_ok)}/{len(candidates)} OK"
+          + (f" | ⚠️  FAILED → daily gate fails OPEN for: {', '.join(_daily_miss)}"
+             if _daily_miss else " (full daily-gate coverage)"))
+
     while True:
         now = datetime.now(EASTERN)
 

@@ -1309,20 +1309,19 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="panel-card">
     <div class="panel-title">v10 Strategy Parameters</div>
     <div class="param-grid">
-      <div class="param-pill"><span>Qualify</span><strong>RVOL &gt;1.5× + 10% range</strong></div>
+      <div class="param-pill"><span>Qualify</span><strong>price &lt;$20 · float &lt;20M · gap+RVOL</strong></div>
       <div class="param-pill"><span>Flat Top</span><strong>4 bars &lt;8% range</strong></div>
-      <div class="param-pill"><span>Entry Cutoff</span><strong>11:00am ET</strong></div>
-      <div class="param-pill"><span>Trail Stop</span><strong>5%</strong></div>
-      <div class="param-pill"><span>Partial AM</span><strong>25%@+8%, 50%@+12%, 25%@+20%</strong></div>
-      <div class="param-pill"><span>Partial PM</span><strong>50%@+4%, 50%@+6%</strong></div>
-      <div class="param-pill"><span>VWAP Max Ext</span><strong>8%</strong></div>
+      <div class="param-pill"><span>Entry Cutoff</span><strong>3:30pm ET</strong></div>
+      <div class="param-pill"><span>Stop</span><strong>structural: base low (−7% cap)</strong></div>
+      <div class="param-pill"><span>Exits (R-based)</span><strong>50%@+1R → 25%@+2R/supply → ¼ runner trails prev-bar low</strong></div>
+      <div class="param-pill"><span>Room gate</span><strong>≥2:1 to next supply (no room = no trade)</strong></div>
       <div class="param-pill"><span>Min R:R</span><strong>2:1</strong></div>
-      <div class="param-pill"><span>VWAP</span><strong>required</strong></div>
-      <div class="param-pill"><span>Level 2</span><strong>required</strong></div>
-      <div class="param-pill"><span>Momentum</span><strong>10k vol, 2/3 green</strong></div>
+      <div class="param-pill"><span>VWAP</span><strong>reclaim required</strong></div>
+      <div class="param-pill"><span>L1 book</span><strong>logged (study)</strong></div>
+      <div class="param-pill"><span>Momentum</span><strong>10k vol · 1.2× accel · 2/3 green</strong></div>
       <div class="param-pill"><span>Topping Tail</span><strong>skip + exit (Kev)</strong></div>
       <div class="param-pill"><span>90 EMA</span><strong>recording (data-only)</strong></div>
-      <div class="param-pill"><span>Floor</span><strong>entry price after partial</strong></div>
+      <div class="param-pill"><span>Floor</span><strong>break-even after +1R partial</strong></div>
     </div>
   </div>
   <div class="panel-card">

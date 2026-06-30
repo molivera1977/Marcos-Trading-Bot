@@ -900,7 +900,10 @@ def scan_morning_gappers():
 
     # ── Gainers: pre-market screener before open, live market screener after ──
     # After 9:30am PRE_MARKET rankings go stale — switch to real-time movers.
-    rank_type  = "CHANGE_RATIO" if market_open else "PRE_MARKET"
+    # rank_type for get_gainers_losers is a TIME PERIOD (DAY_1/PRE_MARKET/AFTER_MARKET/...), NOT a metric.
+    # We were passing "CHANGE_RATIO" (a sort_by value) → API returns 200 with EMPTY data → the gainers
+    # feed was silently dead, leaving the scan on the RVOL feed alone. DAY_1 = today's gainers (proven).
+    rank_type  = "DAY_1" if market_open else "PRE_MARKET"
     min_chg    = 5 if market_open else 8   # lower bar intraday — moves develop slower
     scan_label = "Live market gainers" if market_open else "Pre-market gainers"
     try:

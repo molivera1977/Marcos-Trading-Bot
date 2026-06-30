@@ -178,12 +178,14 @@ def run_scan():
     5. Score by change% / float_millions, return top 15 (20 evening)
     """
     now_et, market_open, premarket, after_hours, _ = _market_state()
-    rank_type   = "CHANGE_RATIO" if market_open else "PRE_MARKET"
+    # rank_type for get_gainers_losers is a TIME PERIOD, not a metric. "CHANGE_RATIO" is a sort_by
+    # value → it returned 200+EMPTY, silently killing the gainers feed. DAY_1 = today's gainers.
+    rank_type   = "DAY_1" if market_open else "PRE_MARKET"
     min_chg     = 5 if market_open else 8
     max_float   = 50_000_000
     top_n       = 15
     if after_hours:
-        rank_type = "CHANGE_RATIO"
+        rank_type = "DAY_1"   # evening "tomorrow's watchlist" = today's full-day gainers
         min_chg   = 10
         max_float = 100_000_000
         top_n     = 20

@@ -2163,35 +2163,120 @@ def _topping_tail_highs(bars):
             out.append(_bar_high(b))
     return out
 
-def find_next_supply(bars, current_price, premarket_high=None, prior_day_high=None):
-    """Nearest OVERHEAD supply above current_price, from the intraday bars + key reference levels.
-    Returns (level, source) — or (None, 'open') when nothing is overhead = NEW HIGH OF DAY = open room.
-    Sources, strongest first: premarket high, prior-day high, swing-high pivots, topping-tail highs."""
-    if not bars or current_price <= 0:
+def _round_levels_above(price, n=8):
+    """Whole + half-dollar levels above price — Kev treats round numbers ($1, $1.50, $3...) as resistance."""
+    out = []
+    x = int(price * 2) / 2 + 0.5          # next half-dollar (int() = floor for positive prices)
+    for _ in range(n):
+        if x > price:
+            out.append(round(x, 2))
+        x += 0.5
+    return out
+
+def get_daily_levels(ticker):
+    """Kev's room/daily-first reference levels come from the DAILY chart, not intraday minute bars
+    ("all you do to find range is use these past highs on the daily chart" #057). Fetch ~200 daily bars
+    (timespan='D') ONCE per ticker per session (daily data is static intraday) → daily 20/50/200 SMA,
+    daily swing-(reaction)-highs, prior-day high. Returns None on any failure → caller FAILS OPEN
+    (a data hiccup must never block a trade — [[feedback_kev_is_the_bible]] verify code, never halt on a bug)."""
+    try:
+        dc = _get_data_client()
+        if not dc:
+            return None
+        resp = None
+        for _attempt in range(3):          # retry on 429 — daily is fetched for ~15 names; bursts rate-limit
+            resp = dc.market_data.get_history_bar(symbol=ticker, category="US_STOCK", timespan="D", count="200")
+            if resp.status_code == 200:
+                break
+            if resp.status_code == 429:
+                time.sleep(0.6 * (_attempt + 1))
+                continue
+            return None
+        if not resp or resp.status_code != 200:
+            return None
+        raw = resp.json()
+        # Webull get_history_bar returns {"data": {"items": [...]}} OR {"data": [...]} OR a top-level
+        # list — match the two existing parsers in this file (M15 ~1787, M1 ~2059) so the daily feed
+        # can't silently parse to [] and disable the gate.
+        if isinstance(raw, list):
+            items = raw
+        else:
+            data = raw.get("data", {}) if isinstance(raw, dict) else {}
+            items = data.get("items", data) if isinstance(data, dict) else data
+        bars = []
+        for b in (items or []):
+            try:
+                bars.append({"h": float(b.get("high")), "c": float(b.get("close")),
+                             "t": str(b.get("time") or b.get("tradeTime") or "")[:10]})
+            except (TypeError, ValueError):
+                continue
+        if len(bars) < 20:
+            return None
+        bars.sort(key=lambda z: z["t"])
+        closes = [b["c"] for b in bars]
+        def _sma(n):
+            return (sum(closes[-n:]) / n) if len(closes) >= n else None
+        hs = [b["h"] for b in bars]
+        reaction = [hs[i] for i in range(3, len(hs) - 3)
+                    if hs[i] == max(hs[i - 3:i + 4]) and hs[i] > hs[i - 1] and hs[i] > hs[i + 1]]
+        return {"m20": _sma(20), "m50": _sma(50), "m200": _sma(200),
+                "reaction_highs": reaction,
+                "prior_day_high": bars[-2]["h"] if len(bars) >= 2 else None}
+    except Exception as e:
+        print(f"⚠️  daily-levels error {ticker}: {e} — failing open (room gate degraded for this name)")
+        return None
+
+def daily_first_ok(price, daily):
+    """Kev's daily-first veto (#067, verbatim): 'If the daily is bad, I will not take the trade... You're
+    right here beneath the 20 and 50 moving average. Don't play this.' → price must be ABOVE the daily 20
+    AND 50 MA. None/insufficient daily data → True (fail open — never block on a data error)."""
+    if not daily:
+        return True
+    m20, m50 = daily.get("m20"), daily.get("m50")
+    if m20 and m50:
+        return price > m20 and price > m50
+    return True
+
+def find_next_supply(bars, current_price, daily=None, premarket_high=None, prior_day_high=None):
+    """Kev's 'next supply' = the nearest SIGNIFICANT level on the DAILY chart: prior daily reaction highs,
+    the daily 20/50/200 MA, whole/half-dollar levels, the premarket high, the prior-day high — NOT the
+    intraday HOD or 1-minute swing pivots. (The old intraday-pivot version WAS the bug: it called the level
+    price was *breaking* the "supply" and rejected every continuation into new highs — 84% false on CUPR
+    6/30. Grounded to Kev #057/#068/#027/#021; see [[project_kev_grounding]].) Returns (level, source), or
+    NOTE: a round-number level is almost always present above (Kev steps through whole/half dollars as
+    resistance — #023 'I don't buy beneath the whole dollar, I wait for the break'), so (None,'open') =
+    rr-999 open room is RARE and only fires when literally nothing is overhead."""
+    if current_price <= 0:
         return None, "unknown"
     floor = current_price * (1 + SUPPLY_MIN_DIST_PCT)   # ignore levels basically AT price
     levels = []
     if premarket_high and premarket_high >= floor: levels.append((float(premarket_high), "pm_high"))
     if prior_day_high and prior_day_high >= floor: levels.append((float(prior_day_high), "pd_high"))
-    hod = max((_bar_high(b) for b in bars), default=0)   # day's high = the ceiling (pivot windows miss edges)
-    if hod >= floor: levels.append((hod, "hod"))
-    levels += [(h, "pivot") for h in _pivot_highs(bars) if h >= floor]
-    levels += [(h, "tail")  for h in _topping_tail_highs(bars) if h >= floor]
+    if daily:
+        for h in daily.get("reaction_highs", []):
+            if h >= floor: levels.append((float(h), "daily_high"))
+        for key, src in (("m20", "d20MA"), ("m50", "d50MA"), ("m200", "d200MA")):
+            v = daily.get(key)
+            if v and v >= floor: levels.append((float(v), src))
+        pdh = daily.get("prior_day_high")
+        if pdh and pdh >= floor: levels.append((float(pdh), "pd_high"))
+    for lvl in _round_levels_above(current_price):
+        if lvl >= floor: levels.append((lvl, "level"))
     if not levels:
-        return None, "open"
+        return None, "open"                              # nothing overhead at all (rare) = open room
     levels.sort(key=lambda x: x[0])
-    return round(levels[0][0], 4), levels[0][1]   # nearest overhead = the cap on the trade
+    return round(levels[0][0], 4), levels[0][1]          # nearest SIGNIFICANT level overhead   # nearest overhead = the cap on the trade
 
-def compute_room(entry_price, stop_loss, bars, premarket_high=None, prior_day_high=None):
-    """Kev's gate: room to the next supply ÷ risk to support. Open room (new HOD) = pass (rr=999).
-    ANY failure (bad bars, etc.) returns rr=None so the caller FAILS OPEN — a code glitch in the
-    detector must never halt trading (per feedback_kev_is_the_bible: verify our code, never block on a bug)."""
+def compute_room(entry_price, stop_loss, bars, daily=None, premarket_high=None, prior_day_high=None):
+    """Kev's gate: room to the next SIGNIFICANT supply (daily levels / round numbers) ÷ risk to support.
+    rr=999 (open room) only when nothing at all is overhead — rare. ANY failure returns rr=None so the caller FAILS OPEN — a code glitch
+    in the detector must never halt trading (per feedback_kev_is_the_bible: verify our code, never block on a bug)."""
     try:
         risk = entry_price - stop_loss
-        supply, src = find_next_supply(bars, entry_price, premarket_high, prior_day_high)
+        supply, src = find_next_supply(bars, entry_price, daily, premarket_high, prior_day_high)
         if src == "unknown":
             return {"next_supply": None, "supply_src": "unknown", "room_pct": None, "rr_to_supply": None, "risk": round(risk, 4)}
-        if supply is None:                              # new high of day → open room (JSON-safe sentinel)
+        if supply is None:                              # nothing overhead (rare) → open room (JSON-safe sentinel)
             return {"next_supply": None, "supply_src": "open", "room_pct": None, "rr_to_supply": 999.0, "risk": round(risk, 4)}
         room = supply - entry_price
         rr = (room / risk) if risk > 0 else 0.0
@@ -2812,7 +2897,19 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # stop, used consistently for the room gate, R, and the broker stop.
                         _zone = round(w_low * (1 - ZONE_STOP_BUFFER), 4)
                         _stop = max(_zone, round(price * (1 - STOP_LOSS_PCT), 4))
-                        room = compute_room(price, _stop, cache[t].get("full_bars") or bars)
+                        # ── Kev DAILY-FIRST veto (#067 "if the daily is bad I will not take the trade")
+                        #    + room to the next SIGNIFICANT level on the DAILY chart (#057). Daily levels
+                        #    fetched once per ticker per session and cached. ──
+                        if "daily" not in cache[t]:
+                            cache[t]["daily"] = get_daily_levels(t)
+                        _daily = cache[t]["daily"]
+                        if _daily and not daily_first_ok(price, _daily):
+                            print(f"🚫 {t}: DAILY BAD — ${price:.2f} below daily 20/50 MA "
+                                  f"({_daily.get('m20')}/{_daily.get('m50')}) — skip (Kev: bad daily = no trade)")
+                            _log_decision(t, "broke_daily_bad", price=price)
+                            continue
+                        room = compute_room(price, _stop, cache[t].get("full_bars") or bars,
+                                            daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
                         rr = room["rr_to_supply"]
                         if rr is not None and rr < MIN_ROOM_RR:   # None = detection failed → fail OPEN
                             print(f"🚫 {t}: NO ROOM — next supply ${room['next_supply']} "
@@ -2847,13 +2944,19 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 ma_pb = detect_ma_pullback(completed, price)
                 if ma_pb:
                     ma_stop = ma_pb["stop"]
-                    room = compute_room(price, ma_stop, cache[t].get("full_bars") or bars)
+                    if "daily" not in cache[t]:
+                        cache[t]["daily"] = get_daily_levels(t)
+                    _daily = cache[t]["daily"]
+                    room = compute_room(price, ma_stop, cache[t].get("full_bars") or bars,
+                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
                     rr_room = room["rr_to_supply"]
-                    if rr_room is not None and rr_room < MIN_ROOM_RR:
-                        print(f"🚫 {t} {ma_pb['ma_name']} pullback but NO ROOM — supply ${room['next_supply']} "
-                              f"({room['supply_src']}) = {rr_room}:1 < {MIN_ROOM_RR}:1 — skip")
+                    _daily_bad = bool(_daily) and not daily_first_ok(price, _daily)
+                    if _daily_bad or (rr_room is not None and rr_room < MIN_ROOM_RR):
+                        _why = ("DAILY BAD (below daily 20/50 MA)" if _daily_bad
+                                else f"NO ROOM — supply ${room['next_supply']} ({room['supply_src']}) = {rr_room}:1 < {MIN_ROOM_RR}:1")
+                        print(f"🚫 {t} {ma_pb['ma_name']} pullback — {_why} — skip")
                         _log_room_skip(t, price, "ma_pullback", room)
-                        _log_decision(t, "ma_no_room", price=price, room_rr=rr_room)
+                        _log_decision(t, ("ma_daily_bad" if _daily_bad else "ma_no_room"), price=price, room_rr=rr_room)
                     else:
                         target = room.get("next_supply") or round(price * (1 + TARGET_PCT), 4)
                         print(f"\n✅ {t} {ma_pb['ma_name'].upper()} PULLBACK! ${price:.2f} held ${ma_pb['ma']:.2f} "

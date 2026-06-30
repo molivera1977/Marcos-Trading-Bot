@@ -918,7 +918,7 @@ def scan_morning_gappers():
                 vol    = float(item.get("volume") or 0)
                 if not sym or price <= 0:
                     continue
-                if price < 0.50 or price > 30:
+                if price < 0.50 or price > 20:   # Kev gospel: price < $20 (was $30)
                     continue
                 if chg < min_chg:
                     continue
@@ -956,7 +956,7 @@ def scan_morning_gappers():
                 vol     = float(item.get("volume") or 0)
                 if not sym or price <= 0:
                     continue
-                if price < 0.50 or price > 30:
+                if price < 0.50 or price > 20:   # Kev gospel: price < $20 (was $30)
                     continue
                 if rel_vol < 2.0:   # at least 2× 10-day average volume
                     continue
@@ -978,7 +978,7 @@ def scan_morning_gappers():
         print(f"⚠️  Volume screener exception: {e}")
 
     # ── Float check: Webull instrument primary, yfinance fallback ────────────
-    # Small float (<50M) + big gap + volume = the real momentum setup.
+    # Small float (<20M, Kev gospel) + big gap + volume = the real momentum setup.
     print(f"   Checking float for {len(gappers)} candidates...")
     float_checked = []
     for sym, g in gappers.items():
@@ -1007,7 +1007,7 @@ def scan_morning_gappers():
             if not float_shares:
                 g["float_label"] = "float N/A"
                 float_checked.append(g)
-            elif float_shares <= 50_000_000:
+            elif float_shares <= 20_000_000:   # Kev gospel: float < 20M (was 50M)
                 g["float_label"] = f"{float_m:.1f}M float"
                 float_checked.append(g)
                 print(f"   ✅ {sym}: +{g['change_pct']}% | {g['float_label']} ← SMALL FLOAT")

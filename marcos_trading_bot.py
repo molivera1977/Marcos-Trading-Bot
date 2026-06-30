@@ -4398,10 +4398,11 @@ def main():
                 current_balance = _bal
                 display_balance = balance + session_pnl
 
-            float_shares = next(
-                (d.get("float_shares", "N/A") for d in market_data if d.get("ticker") == ticker),
-                "N/A"
-            )
+            # float is for the trade log only (cosmetic); source it from the in-scope extra dict.
+            # The old code referenced an undefined `market_data`, which raised NameError AFTER the
+            # exit was recorded but BEFORE post_to_dashboard / _clear_open_trade — breaking the
+            # "every entered trade reaches a recorded exit" invariant. Never let a log field crash this.
+            float_shares = (extra or {}).get("float_shares", "N/A")
             csv_row = log_trade_result(
                 date         = datetime.now(EASTERN).strftime("%Y-%m-%d"),
                 ticker       = ticker,

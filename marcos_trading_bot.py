@@ -314,6 +314,15 @@ STALE_FEED_EXIT_SECS = 90     # If no valid price for this long mid-trade, force
 # have taken it, we had a tail off the high") AND his #1 exit ("topping tail off the high,
 # I'm done with it"). Confirmed across all 6 daily recaps. See [[project_kev_lessons]].
 TOPPING_TAIL_RATIO   = 0.55   # Upper wick ≥55% of the candle's range = rejection at the high
+# ── RE-ENTRY (#2). Kev re-enters the SAME name on each fresh reclaim/pullback as long as it keeps
+#    working (3–6 wins/name documented — 021/009/027), each reclaim an INDEPENDENT entry (a losing one
+#    doesn't block the next — 027). He gives up STRUCTURALLY: topping tail off the high = "that's when
+#    I'm done with it" (011/027). The corpus states NO numeric retry cap — so the consec-loss cap below
+#    is a HOMEGROWN death-by-cuts rail for DRY_RUN learning, NOT a Kev number; calibrate from live data. ──
+REENTRY_ENABLED         = True
+REENTRY_GIVEUP_REASONS  = {"TOPPING TAIL"}   # Kev's exact "done with it" — front-side rejection at the high
+REENTRY_MAX_CONSEC_LOSS = 3      # HOMEGROWN rail: after N CONSECUTIVE losing (re)entries on a name, leave it
+                                 # alone. A win resets it (his 6-win trend days keep going). #022 "third try".
 # ── Room-to-next-supply (Kev: enter only with ≥2:1 room to the next overhead supply) ──
 PIVOT_WINDOW         = 3      # a swing high = bar whose high tops the 3 bars on each side
 SUPPLY_CLUSTER_PCT   = 0.01   # merge supply levels within 1% into one zone
@@ -2781,7 +2790,8 @@ INTRADAY_RESCAN_INTERVAL = 5 * 60   # Rescan live market every 5 minutes while w
 
 
 def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
-                             rescan_callback=None, traded_tickers: set = None):
+                             rescan_callback=None, traded_tickers: set = None,
+                             reentry: dict = None):
     """
     v10 entry detection: watches candidates for TWO entry types:
     1. Flat top breakout — 4-bar consolidation <8% range, price breaks window high
@@ -2842,6 +2852,22 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             print(f"⏰ 3:30pm ET — watch-loop entry cutoff; returning to end the session.")
             return []
 
+        # ── RE-ENTRY (#2): re-admit names that EXITED and re-qualified, EVERY cycle (~30s) so we catch
+        #    the prompt reclaim (Kev re-enters the NEXT pullback after the stop). The full gate
+        #    (room≥2:1 + daily-first + above-VWAP + fresh pullback) re-evaluates them; 'givenup' names
+        #    (topping-tail / over-cap) never come back. ──
+        if REENTRY_ENABLED and reentry is not None:
+            with reentry["lock"]:
+                _back = [t for t in reentry["eligible"]
+                         if t not in reentry["held"] and t not in reentry["givenup"]]
+                reentry["eligible"].clear()
+            for t in _back:
+                if t not in candidates:
+                    candidates.append(t)
+                    cache.setdefault(t, {"bars": [], "vwap": 0.0, "fetched": 0.0})
+                    print(f"   🔁 Re-admitted {t} for re-entry (Kev: fresh reclaim/pullback) "
+                          f"— attempt #{reentry['count'].get(t, 0) + 1}")
+
         # Refresh bars for each ticker every 30s
         for t in candidates:
             if time.time() - cache[t]["fetched"] >= VWAP_BAR_CACHE_SECS:
@@ -2864,6 +2890,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         status_parts = []
         breakouts = []
         for t in candidates:
+            if reentry is not None and (t in reentry["held"] or t in reentry["givenup"]):
+                continue   # held = don't double-enter; givenup = topping-tail/over-cap, leave it alone (#2)
             bars = cache[t]["bars"]
             vwap = cache[t]["vwap"]
             price = stream.get_price(t)
@@ -4339,6 +4367,12 @@ def main():
     trade_lock            = threading.Lock()   # ONE session lock — guards session_pnl/trade_count/
                                                # settled_remaining/current_balance/_open_trade across ALL concurrent workers
     open_threads          = []                 # background trade monitors; joined ONCE at session end (no in-loop join)
+    # ── RE-ENTRY (#2) shared state (guarded by trade_lock). Kev re-enters the SAME name on each fresh
+    #    reclaim/pullback while it keeps working; gives up STRUCTURALLY (topping tail = "done with it").
+    #    held=in a position now (don't double-enter); eligible=exited, may re-qualify through the SAME
+    #    gate; givenup=topping-tail/over-cap, leave alone; count/consec_loss for the rail + observability. ──
+    reentry = {"held": set(), "eligible": set(), "givenup": set(),
+               "count": {}, "consec_loss": {}, "lock": trade_lock}
 
     while True:
         now = datetime.now(EASTERN)
@@ -4377,7 +4411,8 @@ def main():
         breakouts = wait_for_flat_top_entry(
             remaining_candidates, stream,
             rescan_callback=_intraday_rescan,
-            traded_tickers=traded_tickers
+            traded_tickers=traded_tickers,
+            reentry=reentry,
         )
 
         if not breakouts:
@@ -4388,6 +4423,10 @@ def main():
         for entry in breakouts:
             _t = entry[0]
             traded_tickers.add(_t)
+            with trade_lock:                       # mark held + count this (re-)entry (#2)
+                reentry["held"].add(_t)
+                reentry["count"][_t] = reentry["count"].get(_t, 0) + 1
+                reentry["eligible"].discard(_t)
             if _t in remaining_candidates:
                 remaining_candidates.remove(_t)
 
@@ -4411,6 +4450,7 @@ def main():
                 pos_size = min(current_balance * MAX_POSITION_SIZE, MAX_TRADE_DOLLARS)
                 if not DRY_RUN and settled_remaining < MAX_TRADE_DOLLARS:
                     print(f"⛔ {ticker}: insufficient settled capital — skipping")
+                    reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                     return
                 settled_remaining -= MAX_TRADE_DOLLARS
 
@@ -4427,6 +4467,7 @@ def main():
                 print(f"⚠️ {ticker} @ ${entry_price:.2f} exceeds balance — skipping")
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
+                    reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
             tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK"}.get(entry_type, "FLAT TOP")
@@ -4441,6 +4482,7 @@ def main():
                 _log_decision(ticker, "spread_reject", price=entry_price, spread_pct=round(spread_pct*100, 2))
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
+                    reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
             l2_ok, l2_details = check_level2(ticker, entry_price)
@@ -4449,6 +4491,7 @@ def main():
                 _log_decision(ticker, "l2_reject", price=entry_price, reason=str(l2_details.get('reason', ''))[:80])
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
+                    reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
             mom_ok, mom_details = check_momentum(ticker)
@@ -4457,6 +4500,7 @@ def main():
                 _log_decision(ticker, "momentum_reject", price=entry_price, reason=str(mom_details.get('reason', ''))[:80])
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
+                    reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
             order_id, stop_order_id, actual_fill = execute_trade(
@@ -4467,6 +4511,7 @@ def main():
                 _log_decision(ticker, "order_failed", price=entry_price)
                 with trade_lock:
                     settled_remaining += MAX_TRADE_DOLLARS
+                    reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
             _log_decision(ticker, "filled", price=actual_fill or entry_price, entry_type=entry_type)
 
@@ -4523,6 +4568,27 @@ def main():
                 trade_count    += 1
                 current_balance = _bal
                 display_balance = balance + session_pnl
+                # ── RE-ENTRY (#2): release the name for a fresh GATED re-entry UNLESS it gave a
+                #    structural "done" signal. Topping tail = Kev's "that's when I'm done with it" →
+                #    leave it alone. Consec losing (re)entries ≥ cap = HOMEGROWN death-by-cuts rail. ──
+                reentry["held"].discard(ticker)
+                reentry["consec_loss"][ticker] = (
+                    0 if pnl > 0 else reentry["consec_loss"].get(ticker, 0) + 1)
+                _reentry_giveup = (exit_reason in REENTRY_GIVEUP_REASONS) or \
+                                  (reentry["consec_loss"][ticker] >= REENTRY_MAX_CONSEC_LOSS)
+                if _reentry_giveup:
+                    reentry["givenup"].add(ticker); reentry["eligible"].discard(ticker)
+                else:
+                    reentry["eligible"].add(ticker)
+
+            # ── RE-ENTRY (#2) observability — make the decision VISIBLE in the decision log so we can
+            #    grade death-by-cuts vs Kev-style continuation in DRY_RUN. ──
+            _att = reentry["count"].get(ticker, 0); _cl = reentry["consec_loss"].get(ticker, 0)
+            print(f"🔁 {ticker} re-entry: "
+                  f"{'GIVEN UP — ' + exit_reason if _reentry_giveup else 'ELIGIBLE for a fresh gated re-entry'} "
+                  f"| attempts={_att} consec_loss={_cl}")
+            _log_decision(ticker, "reentry_givenup" if _reentry_giveup else "reentry_eligible",
+                          exit_reason=str(exit_reason), attempts=_att, consec_loss=_cl, pnl=round(pnl, 2))
 
             # float is for the trade log only (cosmetic); source it from the in-scope extra dict.
             # The old code referenced an undefined `market_data`, which raised NameError AFTER the

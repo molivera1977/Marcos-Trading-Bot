@@ -212,7 +212,7 @@ def run_scan():
                     price = float(item.get("price") or item.get("close") or 0)
                     mktcap = float(item.get("market_value") or 0)
                     vol   = float(item.get("volume") or 0)
-                    if not sym or price < 0.50 or price > 30 or chg < min_chg:
+                    if not sym or price < 0.50 or price > 20 or chg < min_chg:
                         continue
                     candidates[sym] = {
                         "symbol": sym, "change_pct": round(chg, 2),
@@ -246,7 +246,7 @@ def run_scan():
                     vol     = float(item.get("volume") or 0)
                     rvol_min = 3 if after_hours else 2
                     chg_min  = 5 if after_hours else 3
-                    if not sym or price < 0.50 or price > 30 or rel_vol < rvol_min:
+                    if not sym or price < 0.50 or price > 20 or rel_vol < rvol_min:
                         continue
                     if sym in candidates:
                         candidates[sym]["relative_volume"] = round(rel_vol, 1)
@@ -510,7 +510,7 @@ function renderRows(rows){
   });
   var tbody=document.getElementById('tbody');
   tbody.innerHTML=sorted.map(function(r){
-    var isBot=(r.relative_volume&&r.relative_volume>=1.5)||r.change_pct>=5;
+    var isBot=(r.price<=20)&&(r.float_shares>0)&&(r.float_shares<20000000);  // mirrors the BOT: price<$20 + known float<20M
     var gapClass=r.change_pct>=10?'gap-hot':'gap-warm';
     var floatClass=r.float_tier==='small'?'float-small':r.float_tier==='medium'?'float-med':'float-na';
     var relVol=r.relative_volume?r.relative_volume.toFixed(1)+'×':'—';
@@ -618,7 +618,7 @@ function renderResults(d){
     tbody.innerHTML='<tr><td colspan="'+colSpan+'" class="empty">No candidates found. Markets may be closed or pre-market data unavailable.</td></tr>';
     return;
   }
-  var botCount=rows.filter(function(r){return (r.relative_volume&&r.relative_volume>=1.5)||r.change_pct>=5;}).length;
+  var botCount=rows.filter(function(r){return (r.price<=20)&&(r.float_shares>0)&&(r.float_shares<20000000);}).length;
   document.getElementById('s-bot-count').textContent=botCount?botCount+' bot candidates':'';
   renderRows(rows);
 

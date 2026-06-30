@@ -342,7 +342,8 @@ SECTOR_ETFS = {
     "Communication Services":  "XLC",
 }
 
-# Global — populated when a trade is entered so SIGTERM handler can alert
+# Global — KEYED BY TICKER (multi-position): {ticker: {active, entry_price, shares, stop_loss, target}}
+# so the SIGTERM handler can alert about every open position when killed mid-trade.
 _open_trade: dict = {}
 
 
@@ -352,26 +353,29 @@ def _sigterm_handler(signum, frame):
     If a trade is open at the time, sends an emergency alert before exiting
     so the user knows to log into Webull and manage the position manually.
     """
-    if _open_trade.get("active"):
+    # _open_trade is keyed by ticker (multi-position). Alert about EVERY open position.
+    # Snapshot with list(...) (one GIL-atomic op) so a worker popping/inserting can't trip
+    # "dict changed size during iteration" and silently swallow the kill alert.
+    open_positions = [ot for ot in list(_open_trade.values()) if ot.get("active")]
+    if open_positions:
         try:
-            ticker = _open_trade.get("ticker", "UNKNOWN")
-            subj   = f"🚨 BOT KILLED MID-TRADE — CHECK {ticker} POSITION NOW"
-            body   = (
-                f"Railway killed the trading bot while a position was open!\n\n"
-                f"Ticker:  {ticker}\n"
-                f"Entry:   ${_open_trade.get('entry_price', 0):.2f}\n"
-                f"Shares:  {_open_trade.get('shares', 0)}\n"
-                f"Stop:    ${_open_trade.get('stop_loss', 0):.2f}\n"
-                f"Target:  ${_open_trade.get('target', 0):.2f}\n\n"
-                f"A stop order was placed on Webull before the bot was killed.\n"
-                f"Log into Webull immediately and verify it is still active."
-            )
+            tickers = ", ".join(ot.get("ticker", "?") for ot in open_positions)
+            subj    = f"🚨 BOT KILLED MID-TRADE — CHECK {tickers} POSITION(S) NOW"
+            lines   = [f"Railway killed the trading bot while {len(open_positions)} position(s) were open!\n"]
+            for ot in open_positions:
+                lines.append(
+                    f"Ticker {ot.get('ticker','?')}:  Entry ${ot.get('entry_price',0):.2f}  "
+                    f"Shares {ot.get('shares',0)}  Stop ${ot.get('stop_loss',0):.2f}  "
+                    f"Target ${ot.get('target',0):.2f}"
+                )
+            lines.append("\nStop orders were placed on Webull before the bot was killed.\n"
+                         "Log into Webull immediately and verify they are still active.")
             resend.api_key = RESEND_API_KEY
             resend.Emails.send({
                 "from":    "Marcos Trading Bot <onboarding@resend.dev>",
                 "to":      [SUMMARY_EMAIL],
                 "subject": subj,
-                "text":    body,
+                "text":    "\n".join(lines),
             })
         except Exception:
             pass
@@ -3994,7 +3998,7 @@ def resume_monitoring_if_open():
         stream, stop_order_id=None
     )
 
-    _open_trade["active"] = False
+    _open_trade.pop(ticker, None)
     stream.stop()
     new_balance = get_account_balance()
     pnl = trade_result.get("profit_loss", 0)
@@ -4206,6 +4210,9 @@ def main():
     session_pnl           = 0.0
     current_balance       = balance
     settled_remaining     = balance
+    trade_lock            = threading.Lock()   # ONE session lock — guards session_pnl/trade_count/
+                                               # settled_remaining/current_balance/_open_trade across ALL concurrent workers
+    open_threads          = []                 # background trade monitors; joined ONCE at session end (no in-loop join)
 
     while True:
         now = datetime.now(EASTERN)
@@ -4258,8 +4265,8 @@ def main():
             if _t in remaining_candidates:
                 remaining_candidates.remove(_t)
 
-        # ── Steps 8-10: Execute + monitor all breakouts in parallel ────────────
-        trade_lock = threading.Lock()
+        # ── Steps 8-10: Execute + monitor all breakouts as BACKGROUND threads ──────
+        # (trade_lock + open_threads are session-scoped — defined once before the loop)
 
         def _trade_worker(ticker, entry_price, vwap, entry_type="flat_top", extra=None):
             nonlocal session_pnl, trade_count, settled_remaining, current_balance
@@ -4346,9 +4353,10 @@ def main():
                     target_price = round(entry_price * (1 + TARGET_PCT), 4)
                 shares = max(1, int(pos_size / entry_price))
 
-            _open_trade.update({"active": True, "ticker": ticker,
-                                "entry_price": entry_price, "shares": shares,
-                                "stop_loss": stop_loss, "target": target_price})
+            with trade_lock:   # guard the _open_trade write (the SIGTERM handler reads it from the main thread)
+                _open_trade[ticker] = {"active": True, "ticker": ticker,
+                                       "entry_price": entry_price, "shares": shares,
+                                       "stop_loss": stop_loss, "target": target_price}
             _post_watching_to_screener([ticker], status="trading")
             send_entry_alert(ticker, shares, entry_price,
                              stop_loss, target_price, vwap, pos_size)
@@ -4378,14 +4386,16 @@ def main():
             )
             _active_monitors.pop(ticker, None)   # monitor returned — deregister from watchdog
 
+            _bal = get_account_balance()   # blocking Webull HTTP — fetch BEFORE the lock so we don't
+                                           # serialize every other worker on the network call (audit HIGH-3)
             with trade_lock:
-                _open_trade["active"] = False
+                _open_trade.pop(ticker, None)
                 pnl         = trade_result.get("profit_loss", 0)
                 pnl_pct     = trade_result.get("profit_loss_pct", 0)
                 exit_reason = trade_result.get("exit_reason", "N/A")
                 session_pnl    += pnl
                 trade_count    += 1
-                current_balance = get_account_balance()
+                current_balance = _bal
                 display_balance = balance + session_pnl
 
             float_shares = next(
@@ -4443,12 +4453,23 @@ def main():
             print(f"   Session P&L: ${session_pnl:+.2f}  |  Balance: ${current_balance:.2f}")
             print(f"{'='*60}\n")
 
-        threads = [threading.Thread(target=_trade_worker, args=entry, daemon=True)
-                   for entry in breakouts]
-        for th in threads:
+        # Launch each breakout as a BACKGROUND daemon and KEEP GOING — do NOT join here.
+        # This kills the blindspot: the scan loop keeps watching the rest of the market (and lets
+        # multiple positions run at once) while each trade monitors itself in its own thread.
+        for entry in breakouts:
+            th = threading.Thread(target=_trade_worker, args=entry, daemon=True)
             th.start()
-        for th in threads:
-            th.join()
+            open_threads.append(th)
+
+    # ── Entry phase over (3:30 / budget / no candidates). Wait for ALL background trades to finish
+    #    (each self-exits by the 3:45 force-flat) before wrapping up + archiving the day. ──
+    _alive = sum(1 for th in open_threads if th.is_alive())
+    if _alive:
+        print(f"⏳ Entry phase over — waiting on {_alive} open trade(s) to close before wrap-up...")
+    for th in open_threads:
+        th.join(timeout=600)   # bounded — the watchdog self-terminates a wedged monitor; never hang wrap-up
+        if th.is_alive():
+            print("⚠️  A trade monitor did not finish within 600s — proceeding to wrap-up (watchdog owns it).")
 
     # ── Session wrap-up ────────────────────────────────────
     if trade_count == 0:

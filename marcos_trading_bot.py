@@ -2170,6 +2170,38 @@ def aggregate_bars(bars, minutes=SETUP_TF_MIN):
     return out
 
 
+def _bar_et_min(bar):
+    """ET minute-of-day (0–1439) for a bar's ISO-UTC 'time'; None on parse failure. Anchors the
+    opening-range window (9:30–9:35 ET = 570–575) correctly regardless of the UTC offset / DST."""
+    t = str(bar.get("time") or "")
+    try:
+        iso = t.replace("Z", "+00:00")
+        if len(iso) >= 6 and iso[-5] in "+-" and iso[-3] != ":":   # '+0000' → '+00:00' (fromisoformat <3.11)
+            iso = iso[:-2] + ":" + iso[-2:]
+        et = datetime.fromisoformat(iso).astimezone(EASTERN)
+        return et.hour * 60 + et.minute
+    except Exception:
+        return None
+
+
+def opening_range(session_bars):
+    """Kev's OPENING RANGE = the high/low of the first 5 min of RTH (9:30–9:35 ET), the base for his
+    5-min opening-range-breakout (#275/#064). Returns (hi, lo) or None if that window isn't present yet.
+    Anchored to 9:30 ET so premarket bars (if any) never leak into the range."""
+    ors = []
+    for b in session_bars or []:
+        m = _bar_et_min(b)
+        if m is not None and 570 <= m < 575:   # 9:30:00 – 9:34:59 ET
+            ors.append(b)
+    if not ors:
+        return None
+    hi = max(float(b.get("high") or b.get("h") or 0) for b in ors)
+    los = [float(b.get("low") or b.get("l") or 0) for b in ors]
+    los = [x for x in los if x > 0]
+    lo = min(los) if los else 0
+    return (hi, lo) if hi > 0 and lo > 0 else None
+
+
 def calculate_90ma(bars) -> float:
     """90-period simple moving average of close prices (Kev's second entry filter alongside VWAP)."""
     if not bars:
@@ -3058,6 +3090,44 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # record is what lets us SEE that (and size the rally-base-rally build).
                         status_parts.append(f"{t}:${price:.2f} NEW HIGH but base not flat (rng {rng*100:.0f}%) hi:${w_high:.2f}{vwap_tag}")
                         _log_decision(t, "broke_not_flat", price=price, w_high=w_high, rng_pct=round(rng*100, 1), vwap=vwap)
+
+            # ── Entry type 3: OPENING-RANGE BREAKOUT (Kev's 5-min ORB, #275/#064). The OR (9:30–9:35
+            #    high) is a base the rigid flat-top can miss when a gapper opens wide. After the OR window
+            #    closes (9:35 ET), the FIRST break above the OR high with room = entry — same gates as the
+            #    other setups (above VWAP + room≥2:1 + daily-first + front-side observed). Fires ONCE per
+            #    ticker; later re-breaks of the same level are continuations handled by flat-top/re-entry.
+            #    [widen within Kev's realm — feedback_widen_within_kev_realm] ──
+            if (not found_entry and vwap > 0 and price > vwap
+                    and (now.hour * 60 + now.minute) >= 575 and not cache[t].get("orb_fired")):
+                if "orb" not in cache[t]:
+                    cache[t]["orb"] = opening_range(_latest_session(cache[t].get("full_bars") or bars))
+                _orb = cache[t]["orb"]
+                if _orb and price > _orb[0]:
+                    orb_hi, orb_lo = _orb
+                    _ostop = max(round(orb_lo * (1 - ZONE_STOP_BUFFER), 4), round(price * (1 - STOP_LOSS_PCT), 4))
+                    if "daily" not in cache[t]:
+                        cache[t]["daily"] = get_daily_levels(t)
+                    _daily = cache[t]["daily"]
+                    room = compute_room(price, _ostop, cache[t].get("full_bars") or bars,
+                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                    rr = room["rr_to_supply"]
+                    _daily_bad = bool(_daily) and not daily_first_ok(price, _daily)
+                    if _daily_bad or (rr is not None and rr < MIN_ROOM_RR):
+                        _log_decision(t, ("orb_daily_bad" if _daily_bad else "orb_no_room"),
+                                      price=price, room_rr=rr, orb_high=orb_hi)
+                        cache[t]["orb_fired"] = True   # OR broke but gated out — don't chase later re-breaks
+                    else:
+                        _front = ema9 > ema20 > 0
+                        print(f"\n✅ {t} ORB BREAKOUT! ${price:.2f} > opening-range high ${orb_hi:.2f} "
+                              f"(OR {orb_lo:.2f}–{orb_hi:.2f}) | room {rr}:1 to ${room['next_supply']} "
+                              f"({room['supply_src']}) VWAP:${vwap:.2f}")
+                        breakouts.append((t, price, vwap, "orb",
+                                          {"ema90": round(ema90, 4), "room": room, "zone_stop": _ostop,
+                                           "front_side": _front, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
+                                           "orb_high": orb_hi}))
+                        _log_decision(t, "triggered_orb", price=price, room_rr=rr, orb_high=orb_hi, front_side=_front)
+                        cache[t]["orb_fired"] = True
+                        found_entry = True
 
             # ── Entry type 2: MA pullback (Kev — 9/20/50/90, whichever rising MA the pullback HOLDS) ──
             # Unified pullback entry (replaced the old narrower EMA9-bounce): one wick-off-low + room logic
@@ -4545,7 +4615,7 @@ def main():
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
-            tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK"}.get(entry_type, "FLAT TOP")
+            tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK", "orb": "OPENING RANGE"}.get(entry_type, "FLAT TOP")
             print(f"\n{'='*60}")
             print(f"🎯 ENTERING [{tag}]: {ticker}  entry=${entry_price:.2f}  "
                   f"target=${target_price:.2f}  stop=${stop_loss:.2f}  shares={shares}")
@@ -4720,7 +4790,7 @@ def main():
                                    csv_log_line=csv_row, traded_ticker=ticker)
             _clear_open_trade(ticker)   # recorded exit reached — drop durable recovery state
 
-            tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK"}.get(entry_type, "FLAT TOP")
+            tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK", "orb": "OPENING RANGE"}.get(entry_type, "FLAT TOP")
             print(f"\n{'='*60}")
             print(f"✅ COMPLETE [{tag}] — {ticker}  ${pnl:+.2f} ({pnl_pct:+.1f}%)  [{exit_reason}]")
             print(f"   Session P&L: ${session_pnl:+.2f}  |  Balance: ${current_balance:.2f}")

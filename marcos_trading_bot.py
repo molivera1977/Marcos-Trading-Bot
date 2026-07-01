@@ -3039,8 +3039,14 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                               f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window) | "
                               f"room {room['rr_to_supply']}:1 to ${room['next_supply']} ({room['supply_src']})"
                               + (f" VWAP:${vwap:.2f}" if vwap > 0 else ""))
-                        breakouts.append((t, price, vwap, "flat_top", {"ema90": round(ema90, 4), "room": room, "zone_stop": _stop}))
-                        _log_decision(t, "triggered_flat_top", price=price, room_rr=rr, w_high=w_high)
+                        # front-side = 9>20 EMA (Kev #006). OBSERVE-not-gate on the flat-top breakout: log it +
+                        # carry it to the exit record so we can learn from DATA whether back-side (9<20) breakouts
+                        # underperform, THEN decide whether to hard-gate. [revisit — feedback_widen_within_kev_realm]
+                        _front = ema9 > ema20 > 0
+                        breakouts.append((t, price, vwap, "flat_top",
+                                          {"ema90": round(ema90, 4), "room": room, "zone_stop": _stop,
+                                           "front_side": _front, "ema9": round(ema9, 4), "ema20": round(ema20, 4)}))
+                        _log_decision(t, "triggered_flat_top", price=price, room_rr=rr, w_high=w_high, front_side=_front)
                         found_entry = True
                     elif is_flat:
                         gap_to_break = (w_high - price) / price * 100
@@ -3081,6 +3087,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         breakouts.append((t, price, vwap, "ma_pullback", {
                             "ema_stop": ma_stop, "prior_high": target,
                             "ema90": round(ema90, 4), "room": room, "ma_held": ma_pb["ma_name"],
+                            "front_side": True, "ema9": round(ema9, 4), "ema20": round(ema20, 4),   # pullback is 9>20-gated
                         }))
                         _log_decision(t, "triggered_ma_pullback", price=price, ma=ma_pb["ma_name"])
                         found_entry = True
@@ -4702,6 +4709,11 @@ def main():
                 "entry_room_pct":     (extra.get("room") or {}).get("room_pct"),
                 "entry_next_supply":  (extra.get("room") or {}).get("next_supply"),
                 "entry_supply_src":   (extra.get("room") or {}).get("supply_src"),
+                # Front-side (9>20 on the 3-min) recorded at entry — OBSERVE whether back-side breakouts
+                # underperform before gating (Kev #006). [revisit — feedback_widen_within_kev_realm]
+                "entry_front_side":   extra.get("front_side"),
+                "entry_ema9":         extra.get("ema9"),
+                "entry_ema20":        extra.get("ema20"),
             })
             if exit_reason != "WATCHDOG_ABORT":   # watchdog already recorded it (trade_id dedups)
                 send_summary_email(analysis, trade_result, display_balance,

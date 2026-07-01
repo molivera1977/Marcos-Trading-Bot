@@ -271,8 +271,14 @@ RVOL_BOOST_CAP     = 5.0    # cap the relative-volume tilt (×1.5 max) so volume
 SETUP_TF_MIN       = 3      # Kev's SETUPS come from the 3-MIN chart ("it all has to start with the
                             # three minute... no ifs ands or buts" #215); 1-min = entry timing + risk only.
                             # (5-min is his accepted substitute; Webull has no M3 so we roll it from M1.)
-FLAT_TOP_WINDOW    = 4      # 4-bar consolidation window
-FLAT_TOP_MAX_RANGE = 0.080  # <8% range tolerance
+FLAT_TOP_WINDOW    = 4      # consolidation window (in 3-min bars now → ~12 min base). Kev gives NO bar
+                            # count; this is a homegrown translation of "a base that held". [revisit w/ data]
+FLAT_TOP_MAX_RANGE = 0.12   # base-width chase-GUARD, not a Kev number. Kev quantifies no % range ("tighter
+                            # is better" = tighter stop = better R:R). The ROOM GATE already filters width via
+                            # R:R = (supply−entry)/(entry−base_low); a wide base = far stop = poor R:R = rejected
+                            # for the RIGHT reason. So this is a loose guard against vertical 20%+ chases only;
+                            # widened 8%→12% to catch the non-flat/rally-base bases (median ~10%) the rigid cap
+                            # missed (they were only logged as broke_not_flat). [translation — revisit w/ data]
 EMA_PERIOD         = 9      # EMA9 for stops + bounce detection
 EMA20_PERIOD       = 20     # EMA20 for bullish stack confirmation
 EMA90_PERIOD       = 90     # EMA90 — Kev's key pullback/liquidity level. DATA-ONLY for now:
@@ -1944,11 +1950,12 @@ def check_level2(ticker, entry_price) -> tuple[bool, dict]:
 
 def check_momentum(ticker) -> tuple[bool, dict]:
     """
-    Fetch recent 1-min bars and verify Kev-style momentum:
-    1. Average volume over last MOMENTUM_BARS bars ≥ MOMENTUM_MIN_AVG_VOL
-    2. Current bar volume ≥ MOMENTUM_VOL_ACCEL × avg of prior bars (accelerating)
-    3. At least MOMENTUM_GREEN_BARS of last 3 bars are green (close > open)
-    Returns (ok, details_dict).
+    Fetch recent 1-min bars and read momentum at execution time. Kev's concept = "volume on the break".
+    The volume-floor / acceleration / green-count thresholds are HOMEGROWN numbers → now OBSERVED, not
+    hard-rejected (recorded in details['soft_momentum'] + logged as 'momentum_soft'), so we can learn from
+    data whether low-momentum breaks underperform before gating. The ONLY hard reject is the TOPPING TAIL
+    on the last completed bar — a real Kev rule ("don't enter into a candle rejected at the high").
+    Returns (ok, details_dict); ok is False only on the topping-tail reject.
     """
     details = {"passed": False, "reason": ""}
     try:
@@ -1968,22 +1975,22 @@ def check_momentum(ticker) -> tuple[bool, dict]:
         avg_vol = sum(volumes) / len(volumes) if volumes else 0
         details["avg_vol"] = int(avg_vol)
 
+        # ── The volume-floor / accel / green-count thresholds are HOMEGROWN numbers (Kev's concept is
+        #    "volume on the break", not these specific values). Per DRY_RUN learning [[feedback_dry_run_learning]]
+        #    + observe-then-gate [[feedback_widen_within_kev_realm]]: OBSERVE them, don't hard-reject —
+        #    collect data on whether low-momentum breaks underperform BEFORE gating. Topping tail stays a
+        #    HARD reject (Kev-real: "don't enter into a candle rejected at the high"). [revisit w/ data] ──
+        soft = []
         if avg_vol < MOMENTUM_MIN_AVG_VOL:
-            details["reason"] = f"avg vol {int(avg_vol):,} < {MOMENTUM_MIN_AVG_VOL:,} min"
-            print(f"❌ {ticker} momentum FAIL: {details['reason']}")
-            return False, details
+            soft.append(f"low avg vol {int(avg_vol):,}<{MOMENTUM_MIN_AVG_VOL:,}")
 
         prior_vols = [float(b.get("volume") or b.get("v") or 0) for b in prior]
         prior_avg = sum(prior_vols) / len(prior_vols) if prior_vols else 0
         current_vol = volumes[-1] if volumes else 0
         details["current_vol"] = int(current_vol)
         details["prior_avg_vol"] = int(prior_avg)
-
         if prior_avg > 0 and current_vol < prior_avg * MOMENTUM_VOL_ACCEL:
-            details["reason"] = (f"vol fading: current {int(current_vol):,} < "
-                                 f"{MOMENTUM_VOL_ACCEL}× prior avg {int(prior_avg):,}")
-            print(f"❌ {ticker} momentum FAIL: {details['reason']}")
-            return False, details
+            soft.append(f"vol not accel {int(current_vol):,}<{MOMENTUM_VOL_ACCEL}×{int(prior_avg):,}")
 
         green_count = 0
         check_bars = recent[-3:] if len(recent) >= 3 else recent
@@ -1996,22 +2003,24 @@ def check_momentum(ticker) -> tuple[bool, dict]:
             if c > o and bar_range > 0 and (c - l) / bar_range >= 0.5:
                 green_count += 1
         details["green_bars"] = green_count
-
         if green_count < MOMENTUM_GREEN_BARS:
-            details["reason"] = f"only {green_count}/{len(check_bars)} green bars (need {MOMENTUM_GREEN_BARS})"
-            print(f"❌ {ticker} momentum FAIL: {details['reason']}")
-            return False, details
+            soft.append(f"{green_count}/{len(check_bars)} green")
 
-        # Kev "tail off the high" — don't enter into a candle that just got rejected at the
-        # highs. Check the most recent COMPLETED bar (bars[-1] is the in-progress bar).
+        # Kev "tail off the high" — do NOT enter into a candle that just got rejected at the highs. This is
+        # a real Kev entry-avoidance rule (40+ videos) → the ONLY hard reject. (bars[-1] = in-progress.)
         if len(bars) >= 2 and is_topping_tail(bars[-2]):
             details["reason"] = "topping tail on last bar — rejection at the high, skip entry"
             print(f"❌ {ticker} momentum FAIL: {details['reason']}")
             return False, details
 
         details["passed"] = True
-        print(f"✅ {ticker} momentum OK: avg vol {int(avg_vol):,}, "
-              f"current {int(current_vol):,}, {green_count} green bars")
+        details["soft_momentum"] = "; ".join(soft) or None
+        if soft:
+            print(f"⚠️  {ticker} soft momentum (OBSERVING, not blocking): {'; '.join(soft)}")
+            _log_decision(ticker, "momentum_soft", note="; ".join(soft)[:120])
+        else:
+            print(f"✅ {ticker} momentum OK: avg vol {int(avg_vol):,}, "
+                  f"current {int(current_vol):,}, {green_count} green bars")
         return True, details
 
     except Exception as e:

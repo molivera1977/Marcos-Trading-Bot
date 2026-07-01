@@ -268,6 +268,9 @@ HTB_SQUEEZE_MULT   = 1.5    # Hard-to-borrow = heavy short interest = squeeze fu
 RVOL_BOOST_CAP     = 5.0    # cap the relative-volume tilt (×1.5 max) so volume can't drown out gap/float
 
 # ── v10 Entry detection parameters ────────────────────────────
+SETUP_TF_MIN       = 3      # Kev's SETUPS come from the 3-MIN chart ("it all has to start with the
+                            # three minute... no ifs ands or buts" #215); 1-min = entry timing + risk only.
+                            # (5-min is his accepted substitute; Webull has no M3 so we roll it from M1.)
 FLAT_TOP_WINDOW    = 4      # 4-bar consolidation window
 FLAT_TOP_MAX_RANGE = 0.080  # <8% range tolerance
 EMA_PERIOD         = 9      # EMA9 for stops + bounce detection
@@ -2110,6 +2113,63 @@ def get_intraday_bars_full(ticker):
         return []
 
 
+def _latest_session(bars):
+    """Keep only the LATEST trading day's bars (by the ISO-UTC 'time' date). The SDK's count-based M1
+    fetch BACKFILLS prior days once the current session is incomplete (verified: count=390 spans ~2 days
+    for most of the session, count=800 spans 3), so session stats like VWAP must NOT run across the day
+    boundary — otherwise the 'above VWAP' entry gate is computed on a multi-day average (a real bug)."""
+    if not bars:
+        return bars
+    last_day = str(bars[-1].get("time") or "")[:10]
+    if not last_day:
+        return bars
+    same = [b for b in bars if str(b.get("time") or "").startswith(last_day)]
+    return same or bars
+
+
+def aggregate_bars(bars, minutes=SETUP_TF_MIN):
+    """Roll 1-min bars (oldest-first, each with an ISO-UTC 'time') into N-minute OHLCV bars, clock-aligned
+    to the N-min grid. Kev's SETUPS come from the 3-min chart (#215); the 1-min is only entry timing + risk.
+    Webull has no M3 timespan, so we roll our own from the M1 we already fetch (no extra API call). Output
+    bars carry full-name OHLCV keys + 'time' so every existing reader (b.get('high') or b.get('h')) works.
+    Buckets are keyed by DATE + grid-slot, so the overnight gap never merges two days into one bar."""
+    def _f(b, *keys):
+        for k in keys:
+            v = b.get(k)
+            if v is not None:
+                try:
+                    return float(v)
+                except (TypeError, ValueError):
+                    pass
+        return 0.0
+    def _bucket(b):
+        t = str(b.get("time") or "")
+        try:
+            total = int(t[11:13]) * 60 + int(t[14:16])   # minute-of-day from ISO 'YYYY-MM-DDTHH:MM...'
+            return t[:10] + "#" + str(total // minutes)
+        except (ValueError, IndexError):
+            return None
+    out, key, cur = [], None, None
+    for b in bars or []:
+        k = _bucket(b)
+        if k is None:
+            continue
+        o, h, l, c, v = _f(b, "open", "o"), _f(b, "high", "h"), _f(b, "low", "l"), _f(b, "close", "c"), _f(b, "volume", "v")
+        if k != key:
+            if cur:
+                out.append(cur)
+            key, cur = k, {"time": b.get("time"), "open": o, "high": h, "low": l, "close": c, "volume": v}
+        else:
+            cur["high"] = max(cur["high"], h)
+            if l > 0:
+                cur["low"] = min(cur["low"], l) if cur["low"] > 0 else l
+            cur["close"] = c
+            cur["volume"] += v
+    if cur:
+        out.append(cur)
+    return out
+
+
 def calculate_90ma(bars) -> float:
     """90-period simple moving average of close prices (Kev's second entry filter alongside VWAP)."""
     if not bars:
@@ -2876,8 +2936,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     cache[t]["bars"] = fresh
                 full_bars = get_intraday_bars(t, count=390)
                 if full_bars:
-                    cache[t]["full_bars"] = full_bars   # full day = supply/room detection (HOD, pivots)
-                    calc_vwap = calculate_vwap(full_bars)
+                    cache[t]["full_bars"] = full_bars   # multi-day 1-min (count backfills prior days) — room + 3-min agg
+                    calc_vwap = calculate_vwap(_latest_session(full_bars))   # SESSION VWAP — never across the day boundary
                     if calc_vwap > 0:
                         cache[t]["vwap"] = calc_vwap   # (VWAP is shown per-ticker in the status line below — no separate print)
                     else:
@@ -2900,9 +2960,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 status_parts.append(f"{t}:no data")
                 continue
 
-            completed = bars[:-1]
+            # ── Kev's SETUPS come from the 3-MIN chart (#215); the 1-min is only entry timing + risk.
+            #    Aggregate the multi-day 1-min series → 3-min so the flat-top base, the 9/20/90 EMAs
+            #    (front-side / MA-pullback levels) all read the timeframe Kev actually trades. VWAP,
+            #    the live price, room, and the stop/trail/instant-exit stay on the 1-min. ──
+            completed = aggregate_bars(cache[t].get("full_bars") or bars, SETUP_TF_MIN)[:-1]
             if len(completed) < EMA20_PERIOD + 2:
-                status_parts.append(f"{t}:${price:.2f} (need more bars)")
+                status_parts.append(f"{t}:${price:.2f} (need more 3-min bars)")
                 continue
 
             vwap_tag = f" VWAP:${vwap:.2f}" if vwap > 0 else ""
@@ -2915,8 +2979,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # bars — see is_topping_tail() in check_momentum. No scan-time duplicate needed.)
 
             # ── Entry type 1: Flat top breakout ──────────────────────
-            if len(completed) >= FLAT_TOP_WINDOW:
-                window = completed[-FLAT_TOP_WINDOW:]
+            # The intraday BASE must be TODAY's 3-min bars — `completed` spans prior days (for the EMAs),
+            # so slice to the current session or the first ~12 min of RTH would read a base across the
+            # overnight gap (prior-day consolidation) and fire a spurious open-gap "breakout".
+            _sess3 = _latest_session(completed)
+            if len(_sess3) >= FLAT_TOP_WINDOW:
+                window = _sess3[-FLAT_TOP_WINDOW:]
                 highs = [float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in window]
                 lows  = [float(b.get("low")  or b.get("l") or b.get("close") or b.get("c") or 0) for b in window]
                 w_high = max(h for h in highs if h > 0)

@@ -308,7 +308,11 @@ FAILED_BREAKOUT_SECS    = 75     # window for the breakout to resolve before the
 FAILED_BREAKOUT_CONFIRM = 0.015  # +1.5% = "it resolved" (rule disarms); else a fade to ≤entry = instant cut
 # Small-cap momentum plays are largely uncorrelated to SPY on catalyst days.
 # -1% is a normal red morning — Kev trades ICCM day-2 regardless of SPY.
-MAX_SPREAD_PCT        = 0.03   # Skip entry if bid-ask spread > 3% of ask price
+MAX_SPREAD_PCT        = 0.06   # Skip entry if bid-ask spread > this % of ask. HOMEGROWN (Kev only says
+                              # ">$10 gets spready", no hard cap). Widened 3%→6% on LIVE 7/1 data: RNAZ
+                              # (3.89%) + WSHP (3.88%) both broke out with good room but got spread-rejected
+                              # at 3% — small-float HTB gappers naturally run 3-4% spreads and Kev trades
+                              # them. 6% catches that class, still blocks untradeable. [revisit w/ data]
 MOMENTUM_BARS        = 3      # Check last N bars for momentum
 MOMENTUM_MIN_AVG_VOL = 10_000 # Avg volume over last N bars must exceed this
 MOMENTUM_VOL_ACCEL   = 1.2    # Current bar vol must be ≥1.2× avg of prior bars

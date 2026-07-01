@@ -1309,19 +1309,20 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="panel-card">
     <div class="panel-title">v10 Strategy Parameters</div>
     <div class="param-grid">
-      <div class="param-pill"><span>Qualify</span><strong>price &lt;$20 · float &lt;20M · gap+RVOL</strong></div>
-      <div class="param-pill"><span>Flat Top</span><strong>4 bars &lt;8% range</strong></div>
+      <div class="param-pill"><span>Qualify</span><strong>price &lt;$20 · float &lt;20M · gap÷float rank</strong></div>
+      <div class="param-pill"><span>Setup TF</span><strong>3-min chart (1-min = timing + risk)</strong></div>
+      <div class="param-pill"><span>Entries</span><strong>flat-top base · Opening-Range Breakout · MA-pullback 9/20/50/90</strong></div>
+      <div class="param-pill"><span>Base</span><strong>≤12% chase-guard (room:risk is the real filter)</strong></div>
+      <div class="param-pill"><span>Daily-first</span><strong>above daily 20/50 MA + has room, else no trade</strong></div>
+      <div class="param-pill"><span>Room gate</span><strong>≥2:1 to next DAILY significant level</strong></div>
+      <div class="param-pill"><span>VWAP</span><strong>above session VWAP required</strong></div>
+      <div class="param-pill"><span>Front-side</span><strong>9&gt;20 EMA — gated on pullback, observed on breakout</strong></div>
+      <div class="param-pill"><span>Momentum</span><strong>OBSERVED (soft, logged) · topping-tail = hard skip</strong></div>
+      <div class="param-pill"><span>Stop</span><strong>structural at the level (base/OR/MA low), −7% backstop</strong></div>
+      <div class="param-pill"><span>Exits</span><strong>50%@+1R→BE · 25%@supply/+2R · ¼ runner trails prev-bar low · topping-tail full exit</strong></div>
+      <div class="param-pill"><span>Re-entry</span><strong>after exit → re-gated · topping-tail / consec-loss give-up</strong></div>
       <div class="param-pill"><span>Entry Cutoff</span><strong>3:30pm ET</strong></div>
-      <div class="param-pill"><span>Stop</span><strong>structural: base low (−7% cap)</strong></div>
-      <div class="param-pill"><span>Exits (R-based)</span><strong>50%@+1R → 25%@+2R/supply → ¼ runner trails prev-bar low</strong></div>
-      <div class="param-pill"><span>Room gate</span><strong>≥2:1 to next supply (no room = no trade)</strong></div>
-      <div class="param-pill"><span>Min R:R</span><strong>2:1</strong></div>
-      <div class="param-pill"><span>VWAP</span><strong>reclaim required</strong></div>
-      <div class="param-pill"><span>L1 book</span><strong>logged (study)</strong></div>
-      <div class="param-pill"><span>Momentum</span><strong>10k vol · 1.2× accel · 2/3 green</strong></div>
-      <div class="param-pill"><span>Topping Tail</span><strong>skip + exit (Kev)</strong></div>
-      <div class="param-pill"><span>90 EMA</span><strong>recording (data-only)</strong></div>
-      <div class="param-pill"><span>Floor</span><strong>break-even after +1R partial</strong></div>
+      <div class="param-pill"><span>L1 book · 90 EMA</span><strong>logged (study)</strong></div>
     </div>
   </div>
   <div class="panel-card">
@@ -1543,7 +1544,7 @@ function loadWatching(){
       }
       const st = d.status || 'watching';
       const cls = st === 'trading' ? 'trading' : 'watching';
-      const label = st === 'trading' ? 'In trade' : 'Watching for flat top breakout';
+      const label = st === 'trading' ? 'In trade' : 'Watching for setup (flat-top · ORB · pullback)';
       const since = d.started_at ? new Date(d.started_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
       statusEl.innerHTML = `<span class="status-dot ${cls}"></span>${label}${since?' since '+since:''}`;
       tickersEl.innerHTML = d.tickers.map(t=>

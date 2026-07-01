@@ -1096,7 +1096,14 @@ def get_day2():
 
 @app.route("/dashboard")
 def dashboard():
-    return render_template_string(DASHBOARD_HTML)
+    # no-cache: the page's static HTML (strategy card etc.) changes when the bot changes; without this
+    # the browser serves a stale cached copy and the dashboard's AJAX "Refresh" only updates the data,
+    # not the template — so the strategy params looked stale even after a deploy. Force fresh HTML.
+    return render_template_string(DASHBOARD_HTML), 200, {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
 
 
 DAY2_HTML = """<!doctype html><html><head><meta charset="utf-8"><title>Day-Two Tracker</title>

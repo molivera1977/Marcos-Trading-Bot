@@ -2329,9 +2329,15 @@ def get_daily_levels(ticker):
         hs = [b["h"] for b in bars]
         reaction = [hs[i] for i in range(3, len(hs) - 3)
                     if hs[i] == max(hs[i - 3:i + 4]) and hs[i] > hs[i - 1] and hs[i] > hs[i + 1]]
+        # Prior-day high = last COMPLETED trading day (date strictly < today). bars[-2] is only "yesterday"
+        # when the fetch INCLUDES today's forming daily bar; if the SDK returns completed days only, bars[-2]
+        # is the day-BEFORE-yesterday = off by one. Picking the last bar dated < today gives yesterday either way.
+        _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        _prior = [b for b in bars if b["t"] and b["t"] < _today]
+        _pdh = _prior[-1]["h"] if _prior else (bars[-2]["h"] if len(bars) >= 2 else None)
         return {"m20": _sma(20), "m50": _sma(50), "m200": _sma(200),
                 "reaction_highs": reaction,
-                "prior_day_high": bars[-2]["h"] if len(bars) >= 2 else None}
+                "prior_day_high": _pdh}
     except Exception as e:
         print(f"⚠️  daily-levels error {ticker}: {e} — failing open (room gate degraded for this name)")
         return None

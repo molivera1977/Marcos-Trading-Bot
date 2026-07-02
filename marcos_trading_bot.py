@@ -325,6 +325,9 @@ MAX_SPREAD_PCT        = 0.06   # Skip entry if bid-ask spread > this % of ask. H
                               # them. 6% catches that class, still blocks untradeable. [revisit w/ data]
 MOMENTUM_BARS        = 3      # Check last N bars for momentum
 MOMENTUM_MIN_AVG_VOL = 10_000 # Avg volume over last N bars must exceed this
+EXPANSION_MIN        = 1.5    # HARD GATE (7/2 momentum-BUILDING): break-bar vol ÷ base avg = contraction→
+                              # expansion (Kev "volume expands on the break"). Measured on 80 breaks: <1.5×
+                              # base won 32% vs 1.5–3× won 62%, 3–6× won 53%. Homegrown-calibrated → REVISIT.
 PEAK_REL_MIN         = 0.30   # HARD GATE (7/2 dead-duck fix): break-bar vol must be ≥30% of the session's
                               # peak-so-far 1-min vol. Measured on 83 breaks: <30% of peak won ~8%, ≥30% won
                               # ~27–36%. Homegrown-CALIBRATED (not a Kev number) → REVISIT as data accrues.
@@ -2029,15 +2032,26 @@ def check_momentum(ticker) -> tuple[bool, dict]:
             brk_vol = float(comp[-1].get("volume") or comp[-1].get("v") or 0)
             pvs = [float(b.get("volume") or b.get("v") or 0) for b in comp[-(MOMENTUM_BARS + 1):-1]]
             pav = sum(pvs) / len(pvs) if pvs else 0
-            accel = (brk_vol / pav) if pav > 0 else 999.0
-            building = (brk_vol >= max(pvs)) if pvs else True
-            peak_rel = (brk_vol / session_peak_vol) if session_peak_vol > 0 else 1.0
-            details["break_accel"] = round(accel, 2)
-            details["building_vol"] = building
+            expansion = (brk_vol / pav) if pav > 0 else 999.0        # contraction→EXPANSION (pop ÷ base)
+            peak_rel  = (brk_vol / session_peak_vol) if session_peak_vol > 0 else 1.0
+            # ── momentum as a TRAJECTORY, not a point (7/2). The break bar being big is a snapshot; Kev keys
+            #    on momentum BUILDING. Measured (80 breaks): the pop-vs-base EXPANSION band is the real signal
+            #    (<1.5× won 32% vs 1.5–3× 62%); "all building" (rising vol + higher-lows + ≥2× expansion) hit
+            #    67% / +10.5% median run. HARD gate = expansion≥EXPANSION_MIN + peak-relative floor (both
+            #    data-backed); the finer trajectory flags are OBSERVED (thin n=9) for conviction/sizing later. ──
+            _vl = [float(b.get("volume") or b.get("v") or 0) for b in comp[-3:]]
+            vol_rising  = len(_vl) >= 3 and _vl[-1] >= _vl[-2] >= _vl[-3]
+            _lows = [float(b.get("low") or b.get("l") or 0) for b in comp[-(MOMENTUM_BARS + 1):]]
+            higher_lows = len(_lows) >= 3 and _lows[-1] >= _lows[0]
+            all_building = vol_rising and higher_lows and expansion >= 2.0
+            details["break_accel"]  = round(expansion, 2)
             details["peak_rel_vol"] = round(peak_rel, 3)
-            if pvs and not (building and peak_rel >= PEAK_REL_MIN):
-                details["reason"] = (f"weak break volume — building={building}, {peak_rel*100:.0f}% of session "
-                                     f"peak (<{PEAK_REL_MIN*100:.0f}%), {accel:.1f}× prior avg — no real buyers, skip")
+            details["vol_rising"]   = vol_rising
+            details["higher_lows"]  = higher_lows
+            details["all_building"] = all_building
+            if pvs and not (expansion >= EXPANSION_MIN and peak_rel >= PEAK_REL_MIN):
+                details["reason"] = (f"no momentum build — {expansion:.1f}× base (<{EXPANSION_MIN}×) / "
+                                     f"{peak_rel*100:.0f}% of peak (<{PEAK_REL_MIN*100:.0f}%) — volume not expanding, skip")
                 print(f"❌ {ticker} momentum FAIL: {details['reason']}")
                 return False, details
 

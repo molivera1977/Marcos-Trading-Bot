@@ -325,7 +325,10 @@ MAX_SPREAD_PCT        = 0.06   # Skip entry if bid-ask spread > this % of ask. H
                               # them. 6% catches that class, still blocks untradeable. [revisit w/ data]
 MOMENTUM_BARS        = 3      # Check last N bars for momentum
 MOMENTUM_MIN_AVG_VOL = 10_000 # Avg volume over last N bars must exceed this
-MOMENTUM_VOL_ACCEL   = 2.0    # HARD GATE (7/2): the break bar's vol must be ≥2× the prior-bars avg = a real
+PEAK_REL_MIN         = 0.30   # HARD GATE (7/2 dead-duck fix): break-bar vol must be ≥30% of the session's
+                              # peak-so-far 1-min vol. Measured on 83 breaks: <30% of peak won ~8%, ≥30% won
+                              # ~27–36%. Homegrown-CALIBRATED (not a Kev number) → REVISIT as data accrues.
+MOMENTUM_VOL_ACCEL   = 2.0    # (recorded as break_accel; the hard gate is now building+peak-relative, not this)
                               # volume surge. Was 1.2 & OBSERVE-only; 3-day backtest showed instant-cut trades
                               # had 1.9× accel vs 6.1× for winners → hard-gating at 2× (+ de-inverting room)
                               # flipped avg-R −0.20 → +0.26. Momentum is now the PRIMARY entry filter.
@@ -1976,11 +1979,17 @@ def check_momentum(ticker) -> tuple[bool, dict]:
     """
     details = {"passed": False, "reason": ""}
     try:
-        bars = get_intraday_bars(ticker, count=MOMENTUM_BARS + 2)
-        if len(bars) < MOMENTUM_BARS:
-            details["reason"] = f"only {len(bars)} bars available (need {MOMENTUM_BARS})"
+        full = get_intraday_bars(ticker, count=390)
+        sess = _latest_session(full) if full else []
+        if len(sess) < MOMENTUM_BARS:
+            details["reason"] = f"only {len(sess)} session bars available (need {MOMENTUM_BARS})"
             print(f"⚠️  {ticker} momentum: {details['reason']} — passing by default")
             return True, details
+        bars = sess[-(MOMENTUM_BARS + 2):]
+        # session peak 1-min volume SO FAR (completed bars) — denominator for the peak-relative gate
+        _sess_comp = sess[:-1] if len(sess) > 1 else sess
+        session_peak_vol = max((float(b.get("volume") or b.get("v") or 0) for b in _sess_comp), default=0)
+        details["session_peak_vol"] = int(session_peak_vol)
 
         recent = bars[-(MOMENTUM_BARS):]
         prior = bars[-(MOMENTUM_BARS + 1):-1] if len(bars) > MOMENTUM_BARS else recent[:-1]
@@ -2006,22 +2015,29 @@ def check_momentum(ticker) -> tuple[bool, dict]:
         current_vol = volumes[-1] if volumes else 0
         details["current_vol"] = int(current_vol)
         details["prior_avg_vol"] = int(prior_avg)
-        # ── HARD volume-surge gate (7/2): a break with no real volume behind it is NOT a move — skip it.
-        #    Computed on COMPLETED bars only (never the in-progress bars[-1], whose volume is partial — that
-        #    partial-volume trap would fail real breaks). break bar = last completed bar; require its volume
-        #    ≥ MOMENTUM_VOL_ACCEL× the prior completed bars' avg. Proven: instant-cut trades averaged 1.9×
-        #    vs 6.1× for winners; this + room-de-invert flipped a 3-day backtest −0.20 → +0.26 avg-R.
-        #    [[feedback_grade_gates_vs_outcomes]] — momentum replaces room as the primary entry filter. ──
+        # ── HARD volume gate (7/2 Kev-faithful REBUILD): the break must carry REAL, BUILDING volume — not
+        #    "2× a fading local average" (which passed dead ducks: entries fired at a median 4% of the day's
+        #    peak volume). Two parts, both on COMPLETED bars (never the partial in-progress bar[-1]):
+        #      (a) BUILDING — break bar is a new local volume high vs the prior bars (Kev "successive candles
+        #          closing strong on BUILDING volume", #024) = buyers stepping in.
+        #      (b) PEAK-RELATIVE — break-bar vol ≥ PEAK_REL_MIN of the session's peak-so-far. A break on a
+        #          fraction of the stock's OWN volume is the tired late continuation. Measured (83 breaks):
+        #          <30% of peak won ~8%, ≥30% won ~27–36%; building won 27% vs 10%. Threshold homegrown-
+        #          calibrated → tag revisit. [[feedback_grade_gates_vs_outcomes]] [[feedback_dry_run_learning]]
         comp = bars[:-1] if len(bars) > MOMENTUM_BARS + 1 else bars
         if len(comp) >= 2:
             brk_vol = float(comp[-1].get("volume") or comp[-1].get("v") or 0)
             pvs = [float(b.get("volume") or b.get("v") or 0) for b in comp[-(MOMENTUM_BARS + 1):-1]]
             pav = sum(pvs) / len(pvs) if pvs else 0
             accel = (brk_vol / pav) if pav > 0 else 999.0
+            building = (brk_vol >= max(pvs)) if pvs else True
+            peak_rel = (brk_vol / session_peak_vol) if session_peak_vol > 0 else 1.0
             details["break_accel"] = round(accel, 2)
-            if pav > 0 and accel < MOMENTUM_VOL_ACCEL:
-                details["reason"] = (f"no volume surge on the break ({accel:.1f}× < {MOMENTUM_VOL_ACCEL}× "
-                                     f"prior-bar avg) — not a real move, skip")
+            details["building_vol"] = building
+            details["peak_rel_vol"] = round(peak_rel, 3)
+            if pvs and not (building and peak_rel >= PEAK_REL_MIN):
+                details["reason"] = (f"weak break volume — building={building}, {peak_rel*100:.0f}% of session "
+                                     f"peak (<{PEAK_REL_MIN*100:.0f}%), {accel:.1f}× prior avg — no real buyers, skip")
                 print(f"❌ {ticker} momentum FAIL: {details['reason']}")
                 return False, details
 
@@ -2526,6 +2542,33 @@ def is_topping_tail(bar) -> bool:
         return False
     upper_wick = h - max(o, c)
     return (upper_wick / rng) >= TOPPING_TAIL_RATIO
+
+
+def _confirm_reclaim(bars, level) -> bool:
+    """Kev's pullback CONFIRMATION (#024/#025/#027): don't take the bare tick reclaim of a broken level —
+    wait for the bought-back confirmation CANDLE. The most recent COMPLETED 1-min bar must CLOSE back above
+    the level AND show buyers stepping in = a green close OR a bottoming-tail wick off the low. Permissive
+    (green OR wick, either confirms) so it filters the fake pokes without over-restricting.
+    NOTE: our 3-day refine test suggested a green-close filter HURT (small sample, n≈24) — this is built to
+    the corpus per [[feedback_kev_is_the_bible]] and needs live-data grading; that tension is logged."""
+    try:
+        sess = _latest_session(bars)
+        comp = sess[:-1] if len(sess) >= 2 else sess     # drop the in-progress bar
+        if not comp:
+            return False
+        b = comp[-1]
+        o = float(b.get("open")  or b.get("o") or 0)
+        c = float(b.get("close") or b.get("c") or 0)
+        h = float(b.get("high")  or b.get("h") or c)
+        l = float(b.get("low")   or b.get("l") or c)
+        if c <= level:                                   # must CLOSE back above the reclaimed level
+            return False
+        rng = h - l
+        green = c > o
+        wick_off_low = rng > 0 and (min(o, c) - l) / rng >= BOTTOM_TAIL_RATIO
+        return bool(green or wick_off_low)
+    except (TypeError, ValueError):
+        return False
 
 
 def calculate_vwap(bars) -> float:
@@ -3092,11 +3135,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         else:
                             if price <= _pb["level"] * (1 + PULLBACK_TOL):
                                 _pb["dipped"] = True                    # pulled back to the level
-                            if _pb["dipped"] and price > _pb["level"]:
-                                _pb_enter = True                        # reclaimed after the dip = Kev's entry
+                            if (_pb["dipped"] and price > _pb["level"]
+                                    and _confirm_reclaim(cache[t].get("full_bars") or bars, _pb["level"])):
+                                _pb_enter = True                        # reclaimed + CONFIRMED = Kev's entry
                                 w_high, w_low = _pb["level"], _pb["zone"]  # stop/logging off the broken level
                             else:
-                                status_parts.append(f"{t}:${price:.2f} armed → pullback to ${_pb['level']:.2f} (dipped={_pb['dipped']})")
+                                _rc = "reclaimed, awaiting confirm candle" if (_pb["dipped"] and price > _pb["level"]) else f"pullback to ${_pb['level']:.2f}"
+                                status_parts.append(f"{t}:${price:.2f} armed → {_rc} (dipped={_pb['dipped']})")
                                 continue
 
                     if _pb_enter:
@@ -3178,33 +3223,58 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 if "orb" not in cache[t]:
                     cache[t]["orb"] = opening_range(_latest_session(cache[t].get("full_bars") or bars))
                 _orb = cache[t]["orb"]
-                if _orb and price > _orb[0]:
+                if _orb:
                     orb_hi, orb_lo = _orb
-                    _ostop = max(round(orb_lo * (1 - ZONE_STOP_BUFFER), 4), round(price * (1 - STOP_LOSS_PCT), 4))
-                    if "daily" not in cache[t]:
-                        cache[t]["daily"] = get_daily_levels(t)
-                    _daily = cache[t]["daily"]
-                    room = compute_room(price, _ostop, cache[t].get("full_bars") or bars,
-                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
-                    rr = room["rr_to_supply"]
-                    _daily_bad = bool(_daily) and not daily_first_ok(price, _daily)
-                    if _daily_bad:
-                        _log_decision(t, "orb_daily_bad", price=price, room_rr=rr, orb_high=orb_hi)
-                        cache[t]["orb_fired"] = True   # daily bad — don't chase later re-breaks
-                    else:
-                        if rr is not None and rr < MIN_ROOM_RR:   # room DE-INVERTED — observe only (momentum gates)
-                            _log_decision(t, "orb_low_room_soft", price=price, room_rr=rr, orb_high=orb_hi)
-                        _front = ema9 > ema20 > 0
-                        print(f"\n✅ {t} ORB BREAKOUT! ${price:.2f} > opening-range high ${orb_hi:.2f} "
-                              f"(OR {orb_lo:.2f}–{orb_hi:.2f}) | room {rr}:1 to ${room['next_supply']} "
-                              f"({room['supply_src']}) VWAP:${vwap:.2f}")
-                        breakouts.append((t, price, vwap, "orb",
-                                          {"ema90": round(ema90, 4), "room": room, "zone_stop": _ostop,
-                                           "front_side": _front, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
-                                           "orb_high": orb_hi}))
-                        _log_decision(t, "triggered_orb", price=price, room_rr=rr, orb_high=orb_hi, front_side=_front)
-                        cache[t]["orb_fired"] = True
-                        found_entry = True
+                    # ── PULLBACK-ENTRY for the ORB (7/2): arm on the OR-high break, ENTER only on the
+                    #    retest+reclaim+CONFIRMATION — same discipline as the flat-top (don't buy the raw tick;
+                    #    the CMMB-style ORB chase is the exact mistake). Distinct cache key "pb_orb". ──
+                    _po = cache[t].get("pb_orb")
+                    if price > orb_hi and not _po:
+                        cache[t]["pb_orb"] = {"level": orb_hi, "zone": orb_lo, "ts": time.time(), "dipped": False}
+                        _log_decision(t, "orb_break_armed", price=price, orb_high=orb_hi)
+                        status_parts.append(f"{t}:${price:.2f} broke OR-high ${orb_hi:.2f} → waiting for pullback")
+                    elif _po:
+                        _oenter = False
+                        if time.time() - _po["ts"] > PULLBACK_TIMEOUT_SECS:
+                            cache[t]["pb_orb"] = None
+                            _log_decision(t, "orb_pullback_timeout", price=price, level=_po["level"])
+                        else:
+                            if price <= _po["level"] * (1 + PULLBACK_TOL):
+                                _po["dipped"] = True
+                            if (_po["dipped"] and price > _po["level"]
+                                    and _confirm_reclaim(cache[t].get("full_bars") or bars, _po["level"])):
+                                _oenter = True
+                            else:
+                                _orc = "reclaimed, awaiting confirm candle" if (_po["dipped"] and price > _po["level"]) else f"pullback to ${_po['level']:.2f}"
+                                status_parts.append(f"{t}:${price:.2f} ORB armed → {_orc} (dipped={_po['dipped']})")
+                        if _oenter:
+                            _ostop = max(round(orb_lo * (1 - ZONE_STOP_BUFFER), 4), round(price * (1 - STOP_LOSS_PCT), 4))
+                            if "daily" not in cache[t]:
+                                cache[t]["daily"] = get_daily_levels(t)
+                            _daily = cache[t]["daily"]
+                            room = compute_room(price, _ostop, cache[t].get("full_bars") or bars,
+                                                daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                            rr = room["rr_to_supply"]
+                            _daily_bad = bool(_daily) and not daily_first_ok(price, _daily)
+                            if _daily_bad:
+                                _log_decision(t, "orb_daily_bad", price=price, room_rr=rr, orb_high=orb_hi)
+                                cache[t]["orb_fired"] = True   # daily bad — don't chase later re-breaks
+                                cache[t]["pb_orb"] = None
+                            else:
+                                if rr is not None and rr < MIN_ROOM_RR:   # room DE-INVERTED — observe only (momentum gates)
+                                    _log_decision(t, "orb_low_room_soft", price=price, room_rr=rr, orb_high=orb_hi)
+                                _front = ema9 > ema20 > 0
+                                print(f"\n✅ {t} ORB BREAKOUT (confirmed retest)! ${price:.2f} > OR-high ${orb_hi:.2f} "
+                                      f"(OR {orb_lo:.2f}–{orb_hi:.2f}) | room {rr}:1 to ${room['next_supply']} "
+                                      f"({room['supply_src']}) VWAP:${vwap:.2f}")
+                                breakouts.append((t, price, vwap, "orb",
+                                                  {"ema90": round(ema90, 4), "room": room, "zone_stop": _ostop,
+                                                   "front_side": _front, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
+                                                   "orb_high": orb_hi}))
+                                _log_decision(t, "triggered_orb", price=price, room_rr=rr, orb_high=orb_hi, front_side=_front)
+                                cache[t]["orb_fired"] = True
+                                cache[t]["pb_orb"] = None
+                                found_entry = True
 
             # ── Entry type 2: MA pullback (Kev — 9/20/50/90, whichever rising MA the pullback HOLDS) ──
             # Unified pullback entry (replaced the old narrower EMA9-bounce): one wick-off-low + room logic

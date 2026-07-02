@@ -1361,6 +1361,7 @@ a.watch-chip:hover{filter:brightness(1.25)}
       <thead>
         <tr>
           <th>Date</th>
+          <th>Time</th>
           <th>Ticker</th>
           <th>Entry</th>
           <th>Exit</th>
@@ -1385,6 +1386,7 @@ let chart = null;
 function fmt$(n){ return n===null||n===undefined?'—':'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtPct(n){ return n===null||n===undefined?'—':(n>=0?'+':'')+n.toFixed(1)+'%'; }
 function fmtPnl$(n){ return (n>=0?'+':'')+fmt$(n); }
+function fmtTime(iso){ if(!iso) return '—'; const m=String(iso).match(/T(\d{2}):(\d{2})/); if(!m) return '—'; let h=+m[1]; const ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+m[2]+' '+ap; }
 
 function loadData(){
   document.getElementById('lastUpdate').textContent = 'Refreshing...';
@@ -1436,7 +1438,7 @@ function renderStats(s, acct){
 function renderTable(trades){
   const tbody = document.getElementById('tradeTable');
   if(!trades || trades.length===0){
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state">
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">
       <div class="icon">📊</div>
       <p>No trades recorded yet</p>
       <small>The bot will log results here automatically after each session</small>
@@ -1451,6 +1453,7 @@ function renderTable(trades){
     const sz = t.position_size ? fmt$(t.position_size) : '—';
     return `<tr>
       <td style="color:#8b949e">${t.date||'—'}</td>
+      <td style="color:#8b949e">${fmtTime(t.recorded_at)}</td>
       <td><a class="ticker-badge" href="https://www.tradingview.com/chart/?symbol=${t.ticker||''}" target="_blank" rel="noopener" title="Open chart">${t.ticker||'—'} ↗</a></td>
       <td>${t.entry?'$'+t.entry.toFixed(2):'—'}</td>
       <td>${t.exit?'$'+t.exit.toFixed(2):'—'}</td>

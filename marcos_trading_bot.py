@@ -306,6 +306,12 @@ EARLY_FADE_SECS       = 120    # If price drops below VWAP within 2 min of entry
 # Kev "instant resolution or cut": if a breakout never confirms and fades back to entry, cut at break-even
 FAILED_BREAKOUT_SECS    = 75     # window for the breakout to resolve before the cut disarms
 FAILED_BREAKOUT_CONFIRM = 0.015  # +1.5% = "it resolved" (rule disarms); else a fade to ≤entry = instant cut
+FAILED_BREAKOUT_MIN_SECS = 30    # ⚠️ THE 0s-CUT FIX (7/2): a fill marks at the BID (a tick below the ask we
+                                 # entered at), so at t=0 "current_price <= entry_price" is trivially true and
+                                 # the failed-breakout cut fired INSTANTLY on EVERY trade — turning every entry
+                                 # into a 0s breakeven and hiding all real behavior (a full week of it). The cut
+                                 # cannot arm until the break has had ~30s to confirm. The −7% structural stop
+                                 # still protects a genuine crater in that window. [[feedback_test_push_parity]]
 # Small-cap momentum plays are largely uncorrelated to SPY on catalyst days.
 # -1% is a normal red morning — Kev trades ICCM day-2 regardless of SPY.
 MAX_SPREAD_PCT        = 0.06   # Skip entry if bid-ask spread > this % of ask. HOMEGROWN (Kev only says
@@ -3528,7 +3534,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         # instead of riding to the −7% stop. Tighter/faster than the VWAP early-fade below. Disarms once
         # it confirms (+1.5%) or after the window — then tiers/trail/stop manage it. ──
         elapsed = time.time() - entry_time
-        if (elapsed <= FAILED_BREAKOUT_SECS
+        if (FAILED_BREAKOUT_MIN_SECS <= elapsed <= FAILED_BREAKOUT_SECS
                 and highest_price < entry_price * (1 + FAILED_BREAKOUT_CONFIRM)
                 and current_price <= entry_price):
             print(f"✂️  Failed breakout — {ticker} faded to ${current_price:.2f} (≤ entry ${entry_price:.2f}) "

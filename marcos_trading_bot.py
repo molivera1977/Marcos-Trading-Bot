@@ -312,6 +312,10 @@ FAILED_BREAKOUT_MIN_SECS = 30    # ⚠️ THE 0s-CUT FIX (7/2): a fill marks at 
                                  # into a 0s breakeven and hiding all real behavior (a full week of it). The cut
                                  # cannot arm until the break has had ~30s to confirm. The −7% structural stop
                                  # still protects a genuine crater in that window. [[feedback_test_push_parity]]
+PULLBACK_TIMEOUT_SECS   = 240    # after a flat-top break, wait up to this long for the RETEST; else disarm.
+PULLBACK_TOL            = 0.01   # price within 1% of the broken level = "pulled back to it". Enter the
+                                 # RECLAIM after the dip (Kev buys the pullback, not the break spike) — faithful-
+                                 # harness validated +0.26R vs −0.17R break-tick on identical setups (7/2).
 # Small-cap momentum plays are largely uncorrelated to SPY on catalyst days.
 # -1% is a normal red morning — Kev trades ICCM day-2 regardless of SPY.
 MAX_SPREAD_PCT        = 0.06   # Skip entry if bid-ask spread > this % of ask. HOMEGROWN (Kev only says
@@ -3070,7 +3074,32 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     rng = (w_high - w_low) / w_low
                     is_flat = rng <= FLAT_TOP_MAX_RANGE
 
-                    if is_flat and price > w_high:
+                    # ── PULLBACK-ENTRY STATE MACHINE (7/2): arm on the break, ENTER only on the retest+reclaim
+                    #    of the level (Kev buys the pullback, not the spike). P0-crude was the winner — every
+                    #    added filter (green-close, front-side, wick) HURT it. Dead-duck data: break bars carry
+                    #    a median 4% of the day's peak volume, so chasing the tick buys the exhaustion top. ──
+                    _pb = cache[t].get("pb")
+                    if is_flat and price > w_high and not _pb:
+                        cache[t]["pb"] = {"level": w_high, "zone": w_low, "ts": time.time(), "dipped": False}
+                        _log_decision(t, "break_armed", price=price, w_high=w_high)
+                        status_parts.append(f"{t}:${price:.2f} broke ${w_high:.2f} → waiting for pullback")
+                        continue
+                    _pb_enter = False
+                    if _pb:
+                        if time.time() - _pb["ts"] > PULLBACK_TIMEOUT_SECS:
+                            cache[t]["pb"] = None                       # stale — let a fresh break re-arm
+                            _log_decision(t, "pullback_timeout", price=price, level=_pb["level"])
+                        else:
+                            if price <= _pb["level"] * (1 + PULLBACK_TOL):
+                                _pb["dipped"] = True                    # pulled back to the level
+                            if _pb["dipped"] and price > _pb["level"]:
+                                _pb_enter = True                        # reclaimed after the dip = Kev's entry
+                                w_high, w_low = _pb["level"], _pb["zone"]  # stop/logging off the broken level
+                            else:
+                                status_parts.append(f"{t}:${price:.2f} armed → pullback to ${_pb['level']:.2f} (dipped={_pb['dipped']})")
+                                continue
+
+                    if _pb_enter:
                         if vwap <= 0:
                             status_parts.append(f"{t}:${price:.2f} BREAK but no VWAP — skipped")
                             _log_decision(t, "broke_no_vwap", price=price, w_high=w_high)
@@ -3125,6 +3154,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                           {"ema90": round(ema90, 4), "room": room, "zone_stop": _stop,
                                            "front_side": _front, "ema9": round(ema9, 4), "ema20": round(ema20, 4)}))
                         _log_decision(t, "triggered_flat_top", price=price, room_rr=rr, w_high=w_high, front_side=_front)
+                        cache[t]["pb"] = None          # armed pullback consumed by the entry
                         found_entry = True
                     elif is_flat:
                         gap_to_break = (w_high - price) / price * 100

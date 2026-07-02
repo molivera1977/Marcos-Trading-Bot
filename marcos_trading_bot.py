@@ -315,7 +315,10 @@ MAX_SPREAD_PCT        = 0.06   # Skip entry if bid-ask spread > this % of ask. H
                               # them. 6% catches that class, still blocks untradeable. [revisit w/ data]
 MOMENTUM_BARS        = 3      # Check last N bars for momentum
 MOMENTUM_MIN_AVG_VOL = 10_000 # Avg volume over last N bars must exceed this
-MOMENTUM_VOL_ACCEL   = 1.2    # Current bar vol must be ≥1.2× avg of prior bars
+MOMENTUM_VOL_ACCEL   = 2.0    # HARD GATE (7/2): the break bar's vol must be ≥2× the prior-bars avg = a real
+                              # volume surge. Was 1.2 & OBSERVE-only; 3-day backtest showed instant-cut trades
+                              # had 1.9× accel vs 6.1× for winners → hard-gating at 2× (+ de-inverting room)
+                              # flipped avg-R −0.20 → +0.26. Momentum is now the PRIMARY entry filter.
 MOMENTUM_GREEN_BARS  = 2      # At least N of last 3 bars must close green (close > open)
 # Watchdog: a price-quote SDK call has NO built-in timeout, so one hung call can freeze the
 # monitor loop forever and leave a position stuck open (the BOXL incident, June 24). Hard-cap
@@ -1955,15 +1958,15 @@ def check_level2(ticker, entry_price) -> tuple[bool, dict]:
 def check_momentum(ticker) -> tuple[bool, dict]:
     """
     Fetch recent 1-min bars and read momentum at execution time. Kev's concept = "volume on the break".
-    The volume-floor / acceleration / green-count thresholds are HOMEGROWN numbers → now OBSERVED, not
-    hard-rejected (recorded in details['soft_momentum'] + logged as 'momentum_soft'), so we can learn from
-    data whether low-momentum breaks underperform before gating. The ONLY hard reject is the TOPPING TAIL
-    on the last completed bar — a real Kev rule ("don't enter into a candle rejected at the high").
-    Returns (ok, details_dict); ok is False only on the topping-tail reject.
+    HARD rejects (ok=False): (1) VOLUME SURGE — the break bar's volume must be ≥ MOMENTUM_VOL_ACCEL× the
+    prior completed bars' avg; a break with no volume behind it isn't a real move (7/2 — this is now the
+    PRIMARY entry filter, replacing the de-inverted room gate; see MOMENTUM_VOL_ACCEL note); (2) TOPPING
+    TAIL on the last completed bar (Kev "don't enter into a candle rejected at the high"). The volume-FLOOR
+    and green-count thresholds stay OBSERVE-only (soft, logged 'momentum_soft'). Returns (ok, details).
     """
     details = {"passed": False, "reason": ""}
     try:
-        bars = get_intraday_bars(ticker, count=MOMENTUM_BARS + 1)
+        bars = get_intraday_bars(ticker, count=MOMENTUM_BARS + 2)
         if len(bars) < MOMENTUM_BARS:
             details["reason"] = f"only {len(bars)} bars available (need {MOMENTUM_BARS})"
             print(f"⚠️  {ticker} momentum: {details['reason']} — passing by default")
@@ -1993,8 +1996,24 @@ def check_momentum(ticker) -> tuple[bool, dict]:
         current_vol = volumes[-1] if volumes else 0
         details["current_vol"] = int(current_vol)
         details["prior_avg_vol"] = int(prior_avg)
-        if prior_avg > 0 and current_vol < prior_avg * MOMENTUM_VOL_ACCEL:
-            soft.append(f"vol not accel {int(current_vol):,}<{MOMENTUM_VOL_ACCEL}×{int(prior_avg):,}")
+        # ── HARD volume-surge gate (7/2): a break with no real volume behind it is NOT a move — skip it.
+        #    Computed on COMPLETED bars only (never the in-progress bars[-1], whose volume is partial — that
+        #    partial-volume trap would fail real breaks). break bar = last completed bar; require its volume
+        #    ≥ MOMENTUM_VOL_ACCEL× the prior completed bars' avg. Proven: instant-cut trades averaged 1.9×
+        #    vs 6.1× for winners; this + room-de-invert flipped a 3-day backtest −0.20 → +0.26 avg-R.
+        #    [[feedback_grade_gates_vs_outcomes]] — momentum replaces room as the primary entry filter. ──
+        comp = bars[:-1] if len(bars) > MOMENTUM_BARS + 1 else bars
+        if len(comp) >= 2:
+            brk_vol = float(comp[-1].get("volume") or comp[-1].get("v") or 0)
+            pvs = [float(b.get("volume") or b.get("v") or 0) for b in comp[-(MOMENTUM_BARS + 1):-1]]
+            pav = sum(pvs) / len(pvs) if pvs else 0
+            accel = (brk_vol / pav) if pav > 0 else 999.0
+            details["break_accel"] = round(accel, 2)
+            if pav > 0 and accel < MOMENTUM_VOL_ACCEL:
+                details["reason"] = (f"no volume surge on the break ({accel:.1f}× < {MOMENTUM_VOL_ACCEL}× "
+                                     f"prior-bar avg) — not a real move, skip")
+                print(f"❌ {ticker} momentum FAIL: {details['reason']}")
+                return False, details
 
         green_count = 0
         check_bars = recent[-3:] if len(recent) >= 3 else recent
@@ -3078,14 +3097,16 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         room = compute_room(price, _stop, cache[t].get("full_bars") or bars,
                                             daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
                         rr = room["rr_to_supply"]
-                        if rr is not None and rr < MIN_ROOM_RR:   # None = detection failed → fail OPEN
-                            print(f"🚫 {t}: NO ROOM — next supply ${room['next_supply']} "
-                                  f"({room['supply_src']}), room {room['room_pct']}% = {rr}:1 "
-                                  f"< {MIN_ROOM_RR}:1 — skip (Kev: no room = no trade)")
-                            _log_room_skip(t, price, "flat_top", room)
-                            _log_decision(t, "broke_no_room", price=price, room_rr=rr,
+                        # ROOM DE-INVERTED (7/2): the hard room≥2:1 reject was INVERTED — it rejected the
+                        # MOVERS (a stock breaking THROUGH its nearest level has tiny "room") and passed the
+                        # QUIET names (far from the next level = lots of "room"). Proven on 3 days: names it
+                        # passed averaged +13% first-hour move vs +15% for the ones it rejected; corr(room,
+                        # move) = −0.12; every +40–180% mover FAILED it. Volume-surge momentum (check_momentum)
+                        # is now the primary entry filter; room is kept only as data + the exit target/tier2.
+                        # 3-day backtest: −0.20 → +0.26 avg-R. [[feedback_grade_gates_vs_outcomes]]
+                        if rr is not None and rr < MIN_ROOM_RR:
+                            _log_decision(t, "low_room_soft", price=price, room_rr=rr,
                                           next_supply=room.get("next_supply"), supply_src=room.get("supply_src"))
-                            continue
                         print(f"\n✅ {t} FLAT TOP BREAKOUT! ${price:.2f} > window high ${w_high:.2f} "
                               f"(range {rng*100:.1f}%, {FLAT_TOP_WINDOW}-bar window) | "
                               f"room {room['rr_to_supply']}:1 to ${room['next_supply']} ({room['supply_src']})"
@@ -3131,11 +3152,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                         daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
                     rr = room["rr_to_supply"]
                     _daily_bad = bool(_daily) and not daily_first_ok(price, _daily)
-                    if _daily_bad or (rr is not None and rr < MIN_ROOM_RR):
-                        _log_decision(t, ("orb_daily_bad" if _daily_bad else "orb_no_room"),
-                                      price=price, room_rr=rr, orb_high=orb_hi)
-                        cache[t]["orb_fired"] = True   # OR broke but gated out — don't chase later re-breaks
+                    if _daily_bad:
+                        _log_decision(t, "orb_daily_bad", price=price, room_rr=rr, orb_high=orb_hi)
+                        cache[t]["orb_fired"] = True   # daily bad — don't chase later re-breaks
                     else:
+                        if rr is not None and rr < MIN_ROOM_RR:   # room DE-INVERTED — observe only (momentum gates)
+                            _log_decision(t, "orb_low_room_soft", price=price, room_rr=rr, orb_high=orb_hi)
                         _front = ema9 > ema20 > 0
                         print(f"\n✅ {t} ORB BREAKOUT! ${price:.2f} > opening-range high ${orb_hi:.2f} "
                               f"(OR {orb_lo:.2f}–{orb_hi:.2f}) | room {rr}:1 to ${room['next_supply']} "
@@ -3162,13 +3184,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                         daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
                     rr_room = room["rr_to_supply"]
                     _daily_bad = bool(_daily) and not daily_first_ok(price, _daily)
-                    if _daily_bad or (rr_room is not None and rr_room < MIN_ROOM_RR):
-                        _why = ("DAILY BAD (below daily 20/50 MA)" if _daily_bad
-                                else f"NO ROOM — supply ${room['next_supply']} ({room['supply_src']}) = {rr_room}:1 < {MIN_ROOM_RR}:1")
-                        print(f"🚫 {t} {ma_pb['ma_name']} pullback — {_why} — skip")
-                        _log_room_skip(t, price, "ma_pullback", room)
-                        _log_decision(t, ("ma_daily_bad" if _daily_bad else "ma_no_room"), price=price, room_rr=rr_room)
+                    if _daily_bad:
+                        print(f"🚫 {t} {ma_pb['ma_name']} pullback — DAILY BAD (below daily 20/50 MA) — skip")
+                        _log_decision(t, "ma_daily_bad", price=price, room_rr=rr_room)
                     else:
+                        if rr_room is not None and rr_room < MIN_ROOM_RR:   # room DE-INVERTED — observe only (momentum gates)
+                            _log_decision(t, "ma_low_room_soft", price=price, room_rr=rr_room)
                         target = room.get("next_supply") or round(price * (1 + TARGET_PCT), 4)
                         print(f"\n✅ {t} {ma_pb['ma_name'].upper()} PULLBACK! ${price:.2f} held ${ma_pb['ma']:.2f} "
                               f"(wick-off-low, stop ${ma_stop:.2f}) | room {rr_room}:1 to ${target} "

@@ -169,6 +169,19 @@ def _market_state():
 
 # ── Core scan logic ────────────────────────────────────────────────────────────
 
+def _chart_url(symbol, exchange):
+    """Webull chart URL (webull.com/quote/<exchange>-<ticker>) — the user's platform. Falls back to TradingView
+    when the exchange is unknown so a link always opens something."""
+    slug_map = {"NSDQ": "nasdaq", "NAS": "nasdaq", "NASDAQ": "nasdaq", "NYSE": "nyse", "NYS": "nyse",
+                "AMEX": "amex", "ASE": "amex", "ARCA": "nyse", "BATS": "nasdaq", "PACIFIC": "nyse"}
+    ex = (exchange or "").upper().strip()
+    slug = slug_map.get(ex) or (ex.lower() if ex.isalpha() else "")
+    sym = (symbol or "").lower()
+    if slug and sym:
+        return f"https://www.webull.com/quote/{slug}-{sym}"
+    return f"https://www.tradingview.com/chart/?symbol={symbol}"
+
+
 def _webull_ah_price(dc, symbol):
     """Extended-hours price (post-market now / pre-market early AM) via the Webull snapshot — the SAME feed
     the bot trades on, and more reliable than yfinance for thin small-caps. extend_hour_required=True pulls the
@@ -249,6 +262,7 @@ def run_scan():
                         "price": round(price, 2), "market_cap": mktcap,
                         "premarket_volume": int(vol), "relative_volume": None,
                         "float_shares": 0, "float_label": "—", "source": source_label,
+                        "exchange": item.get("disExchangeCode") or item.get("exchangeCode") or item.get("exchange") or "",
                     }
             else:
                 errors.append(f"Gainers: HTTP {res.status_code}")
@@ -287,6 +301,7 @@ def run_scan():
                             "price": round(price, 2), "market_cap": mktcap,
                             "premarket_volume": int(vol), "relative_volume": round(rel_vol, 1),
                             "float_shares": 0, "float_label": "—", "source": "Unusual volume",
+                            "exchange": item.get("disExchangeCode") or item.get("exchangeCode") or item.get("exchange") or "",
                         }
             else:
                 errors.append(f"Volume: HTTP {res.status_code}")
@@ -298,6 +313,7 @@ def run_scan():
     # Float check + enrichment via yfinance
     results = []
     for sym, g in candidates.items():
+        g["chart_url"] = _chart_url(sym, g.get("exchange", ""))
         try:
             info = yf.Ticker(sym).info or {}
             float_sh = info.get("floatShares") or info.get("sharesOutstanding") or 0
@@ -561,7 +577,7 @@ function renderRows(rows){
     var eveningStyle = _afterHours ? '' : 'display:none';
     var ahP = (r.ah_price && Math.abs(r.ah_price - r.price) > 0.005) ? ' <span class="ah '+(r.ah_price>r.price?'ah-up':'ah-dn')+'">AH $'+r.ah_price.toFixed(2)+'</span>' : '';
     return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
-      +'<td class="ticker-cell"><a class="tk-link" href="https://www.tradingview.com/chart/?symbol='+r.symbol+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+botBadge+'</td>'
+      +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+ahP+'</td>'
       +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
       +'<td class="'+floatClass+'">'+r.float_label+'</td>'

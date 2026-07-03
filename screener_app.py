@@ -183,7 +183,7 @@ def run_scan():
     rank_type   = "DAY_1" if market_open else "PRE_MARKET"
     min_chg     = 5 if market_open else 8
     max_float   = 50_000_000
-    top_n       = 15
+    top_n       = 20   # 7/3: 15→20 (wider net — parity with the bot scanner)
     if after_hours:
         rank_type = "DAY_1"   # evening "tomorrow's watchlist" = today's full-day gainers
         min_chg   = 10
@@ -247,7 +247,8 @@ def run_scan():
                     rel_vol = float(item.get("relative_volume_10d") or 0)
                     vol     = float(item.get("volume") or 0)
                     rvol_min = 3 if after_hours else 2
-                    chg_min  = 5 if after_hours else 3
+                    chg_min  = 5 if after_hours else 0   # 7/3 ANTICIPATORY: intraday, add a 2× RVOL name even
+                                                         # while price is still FLAT (volume precedes price — Kev).
                     if not sym or price < 0.50 or price > 20 or rel_vol < rvol_min:
                         continue
                     if sym in candidates:
@@ -1316,20 +1317,20 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="panel-card">
     <div class="panel-title">v10 Strategy Parameters</div>
     <div class="param-grid">
-      <div class="param-pill"><span>Qualify</span><strong>price &lt;$20 · float &lt;20M · gap÷float rank</strong></div>
-      <div class="param-pill"><span>Setup TF</span><strong>3-min chart (1-min = timing + risk)</strong></div>
-      <div class="param-pill"><span>Entries</span><strong>flat-top base · Opening-Range Breakout · MA-pullback 9/20/50/90</strong></div>
+      <div class="param-pill"><span>Qualify</span><strong>price &lt;$20 · float &lt;20M · gap÷float rank · volume-ignition (2× RVOL, flat OK)</strong></div>
+      <div class="param-pill"><span>Setup TF</span><strong>3-min chart — setups AND trade management</strong></div>
+      <div class="param-pill"><span>Entries</span><strong>MA-pullback 9/20/50/90 (core) · flat-top · ORB · VWAP-reclaim · bounce (observe)</strong></div>
       <div class="param-pill"><span>Base</span><strong>≤12% chase-guard (room:risk is the real filter)</strong></div>
       <div class="param-pill"><span>Daily-first</span><strong>above daily 20/50 MA + has room, else no trade</strong></div>
       <div class="param-pill"><span>Room gate</span><strong>≥2:1 to next DAILY significant level</strong></div>
-      <div class="param-pill"><span>VWAP</span><strong>above session VWAP required</strong></div>
+      <div class="param-pill"><span>VWAP</span><strong>above VWAP (front-side); reversal setups reclaim it from below</strong></div>
       <div class="param-pill"><span>Front-side</span><strong>9&gt;20 EMA — gated on pullback, observed on breakout</strong></div>
-      <div class="param-pill"><span>Momentum</span><strong>OBSERVED (soft, logged) · topping-tail = hard skip</strong></div>
-      <div class="param-pill"><span>Stop</span><strong>structural at the level (base/OR/MA low), −7% backstop</strong></div>
-      <div class="param-pill"><span>Exits</span><strong>50%@+1R→BE · 25%@supply/+2R · ¼ runner trails prev-bar low · topping-tail full exit</strong></div>
+      <div class="param-pill"><span>Momentum</span><strong>HARD gate — building vol + ≥30% of peak · reversal setups exempt · topping-tail = hard skip</strong></div>
+      <div class="param-pill"><span>Stop</span><strong>structural at the level (base/OR/MA low) · NO −7% · managed on the 3-min close</strong></div>
+      <div class="param-pill"><span>Exits</span><strong>on the 3-MIN CLOSE — 50%@1R→BE · trail prev-3-min-bar low · topping-tail full exit · sub-min cuts OFF</strong></div>
       <div class="param-pill"><span>Re-entry</span><strong>after exit → re-gated · topping-tail / consec-loss give-up</strong></div>
       <div class="param-pill"><span>Entry Cutoff</span><strong>3:30pm ET</strong></div>
-      <div class="param-pill"><span>L1 book · 90 EMA</span><strong>logged (study)</strong></div>
+      <div class="param-pill"><span>L1 book · 90 EMA · vol-trajectory</span><strong>logged (study)</strong></div>
     </div>
   </div>
   <div class="panel-card">

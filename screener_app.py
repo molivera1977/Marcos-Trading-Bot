@@ -576,7 +576,8 @@ function renderRows(rows){
     var dayRange = r.day_range_pct ? r.day_range_pct.toFixed(1)+'%' : '—';
     var shortClass = r.short_interest >= 20 ? 'gap-hot' : r.short_interest >= 10 ? 'gap-warm' : '';
     var eveningStyle = _afterHours ? '' : 'display:none';
-    var ahP = (r.ah_price && Math.abs(r.ah_price - r.price) > 0.005) ? ' <span class="ah '+(r.ah_price>r.price?'ah-up':'ah-dn')+'">AH $'+r.ah_price.toFixed(2)+'</span>' : '';
+    var ahPct = (r.ah_price && r.price) ? ((r.ah_price - r.price) / r.price * 100) : 0;
+    var ahP = (r.ah_price && Math.abs(r.ah_price - r.price) > 0.005) ? ' <span class="ah '+(r.ah_price>r.price?'ah-up':'ah-dn')+'">AH $'+r.ah_price.toFixed(2)+' ('+(ahPct>=0?'+':'')+ahPct.toFixed(1)+'%)</span>' : '';
     return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
       +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+ahP+'</td>'

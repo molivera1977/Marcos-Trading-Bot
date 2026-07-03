@@ -296,6 +296,8 @@ def run_scan():
                 if g["day_open"] and g["day_high"] and g["day_low"]:
                     day_range = round((g["day_high"] - g["day_low"]) / g["day_open"] * 100, 1)
                 g["day_range_pct"] = day_range
+                # after-hours / extended price (postMarket now; preMarket early AM) — where it ended AH shapes tomorrow's open
+                g["ah_price"] = round(float(info.get("postMarketPrice") or info.get("preMarketPrice") or 0), 2)
             results.append(g)
             time.sleep(0.3)
         except Exception:
@@ -371,6 +373,8 @@ HTML = """<!DOCTYPE html>
 
   .ticker-cell{font-weight:600;font-size:14px;color:#58a6ff}
   .price-cell{font-variant-numeric:tabular-nums}
+  .ah{font-size:11px;font-weight:600;margin-left:6px;opacity:.9}
+  .ah-up{color:#3ddc84}.ah-dn{color:#ff6b6b}
   .gap-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
   .gap-hot{background:#1a3a2a;color:#3fb950}
   .gap-warm{background:#2d2a14;color:#d29922}
@@ -523,9 +527,10 @@ function renderRows(rows){
     var dayRange = r.day_range_pct ? r.day_range_pct.toFixed(1)+'%' : '—';
     var shortClass = r.short_interest >= 20 ? 'gap-hot' : r.short_interest >= 10 ? 'gap-warm' : '';
     var eveningStyle = _afterHours ? '' : 'display:none';
+    var ahP = (r.ah_price && Math.abs(r.ah_price - r.price) > 0.005) ? ' <span class="ah '+(r.ah_price>r.price?'ah-up':'ah-dn')+'">AH $'+r.ah_price.toFixed(2)+'</span>' : '';
     return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
       +'<td class="ticker-cell">'+r.symbol+botBadge+'</td>'
-      +'<td class="price-cell">$'+r.price.toFixed(2)+'</td>'
+      +'<td class="price-cell">$'+r.price.toFixed(2)+ahP+'</td>'
       +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
       +'<td class="'+floatClass+'">'+r.float_label+'</td>'
       +'<td>'+relVol+'</td>'

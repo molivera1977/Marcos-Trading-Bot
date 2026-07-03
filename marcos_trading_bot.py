@@ -1023,7 +1023,10 @@ def scan_morning_gappers():
                 if sym in gappers:
                     gappers[sym]["relative_volume"] = rel_vol
                 else:
-                    if chg >= 3:    # catch early movers — MARCO judges the rest
+                    if chg >= 0:    # ANTICIPATORY (7/3, volume precedes price — Kev): a name with a 2× volume
+                                    # surge while price is still FLAT is the ignition FORMING, before the gap
+                                    # shows. Was chg≥3 = only AFTER it moved = reactive (36/36 winners seen
+                                    # late). Now we watch the volume surge itself. [[feedback_reverse_engineer_winners]]
                         gappers[sym] = {
                             "symbol": sym, "change_pct": round(chg, 2),
                             "price": price, "market_cap": mktcap,
@@ -1093,7 +1096,7 @@ def scan_morning_gappers():
         g["select_score"] = round(base * htb_mult * rvol_mult, 2)
         return g["select_score"]
 
-    results = sorted(float_checked, key=_gapper_score, reverse=True)[:15]
+    results = sorted(float_checked, key=_gapper_score, reverse=True)[:20]   # 7/3: 15→20 (wider net — fewer missed movers)
     print(f"✅ Morning gapper scan — top {len(results)} by Kev-weighted score:")
     for r in results:
         tags = []
@@ -3137,7 +3140,7 @@ Respond in this EXACT JSON format:
 
 VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't change faster
 
-INTRADAY_RESCAN_INTERVAL = 5 * 60   # Rescan live market every 5 minutes while watching
+INTRADAY_RESCAN_INTERVAL = 3 * 60   # 7/3: 5→3 min — catch intraday runners sooner (they were seen too late)
 
 
 def wait_for_flat_top_entry(candidates: list, stream: WebullStream,

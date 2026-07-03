@@ -733,6 +733,23 @@ def health():
     return jsonify({"status": "ok", "time": datetime.now(EASTERN).isoformat()})
 
 
+@app.route("/api/screener_debug")
+def screener_debug():
+    """DEBUG: dump the first raw gainers item so we can find the real exchange field name."""
+    dc = _make_data_client()
+    if not dc:
+        return jsonify({"error": "no data client"})
+    try:
+        res = dc.screener.get_gainers_losers(rank_type="DAY_1", category="US_STOCK",
+                                             sort_by="CHANGE_RATIO", direction="DESC", page_size=5)
+        raw = res.json()
+        items = raw if isinstance(raw, list) else raw.get("data", raw.get("items", []))
+        first = (items or [{}])[0]
+        return jsonify({"status": res.status_code, "keys": sorted(first.keys()), "first_item": first})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
 # ── Trades Dashboard API ───────────────────────────────────────────────────────
 
 @app.route("/api/record_trade", methods=["POST"])

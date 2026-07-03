@@ -202,9 +202,10 @@ def _webull_ah_price(dc, symbol):
                 d = items[0] if items else data
             else:
                 d = {}
-        ah = (d.get("post_market_price") or d.get("postMarketPrice") or
-              d.get("pre_market_price")  or d.get("preMarketPrice")  or
-              d.get("close") or d.get("last_price") or d.get("lastPrice") or d.get("c") or 0)
+        # Webull's actual extended-hours field is 'extend_hour_last_price' (confirmed via /api/quote_debug).
+        # No close fallback: if there's no extended-hours print, return 0 so the row shows just the close.
+        ah = (d.get("extend_hour_last_price") or d.get("extendHourLastPrice") or
+              d.get("pre_market_price") or d.get("preMarketPrice") or 0)
         return round(float(ah or 0), 2)
     except Exception:
         return 0

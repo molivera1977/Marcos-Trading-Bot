@@ -271,6 +271,16 @@ RVOL_BOOST_CAP     = 5.0    # cap the relative-volume tilt (×1.5 max) so volume
 SETUP_TF_MIN       = 3      # Kev's SETUPS come from the 3-MIN chart ("it all has to start with the
                             # three minute... no ifs ands or buts" #215); 1-min = entry timing + risk only.
                             # (5-min is his accepted substitute; Webull has no M3 so we roll it from M1.)
+EXITS_ON_3MIN      = True   # ⚠️ 7/2 THE TIMEFRAME FIX: manage the TRADE on the 3-min chart too (not just the
+                            # setup). Stop/trail/topping-tail exit on a 3-MIN CLOSE, not 1-min/sub-minute noise.
+                            # Winner test: 1-min mgmt −0.4R vs 3-min mgmt +4.4R on the 35 winners (they hold &
+                            # capture instead of getting wick-sniped). Only the −7% catastrophe cap stays intrabar.
+                            # Disables the sub-minute failed-breakout + early-VWAP-fade cuts. [[project_kev_grounding]]
+BREAKOUT_ENTRIES   = True   # 7/2: KEV'S FULL BAG. The 4-day backtest is too noisy to reliably rank entries
+                            # (same pullback scored +0.30 and −0.08 across two valid harnesses) → build Kev's
+                            # real setups to spec, instrument them, and let LIVE data rank them (not a fragile
+                            # backtest). True = flat-top/ORB breakouts ON alongside pullback + VWAP-reclaim (all
+                            # 3-min managed). Bounce stays observe-only (its one backtest read was clearly −0.40).
 FLAT_TOP_WINDOW    = 4      # consolidation window (in 3-min bars now → ~12 min base). Kev gives NO bar
                             # count; this is a homegrown translation of "a base that held". [revisit w/ data]
 FLAT_TOP_MAX_RANGE = 0.12   # base-width chase-GUARD, not a Kev number. Kev quantifies no % range ("tighter
@@ -294,6 +304,8 @@ MA_PULLBACK_LEVELS      = [9, 20, 50, 90]  # all of Kev's pullback MAs — fire 
 MA_PULLBACK_TOUCH_TOL   = 0.005   # low within 0.5% of the MA = "pulled back to it"
 BOTTOM_TAIL_RATIO       = 0.40    # lower wick ≥40% of range = wicked off the low (a buyer stepped in)
 MA_PULLBACK_STOP_BUFFER = 0.01    # stop just below the MA the pullback held
+BOUNCE_MIN_RUN          = 0.15    # Kev #28 mean-reversion bounce: name must have RUN ≥15% earlier (a former
+BOUNCE_MIN_DD           = 0.10    # runner) then ROUND-TRIPPED ≥10% off the high before the reclaim. Homegrown → revisit.
 MA_RISING_LOOKBACK      = 5       # the MA must be rising over this many bars (uptrend)
 MIN_RR             = 2.0    # minimum reward:risk ratio for EMA bounce
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
@@ -2494,7 +2506,12 @@ def _detect_ma_pullback(completed, price):
     rng = chi - clo
     if rng <= 0:
         return None
-    if (min(cop, ccl) - clo) / rng < BOTTOM_TAIL_RATIO:   # no wick-off-low = no buyer confirmation
+    # BROADENED (7/2): confirmation = a bottoming WICK ≥ ratio (a buyer stepped in) OR a GREEN reclaim (close >
+    # open = buyers back). Was wick-ONLY (fired ~3×/4 days — too strict); the winners' pullbacks reclaim support
+    # green without always printing a 40% wick. The held-MA check below still requires closing back above a RISING MA.
+    _wick_ok = (min(cop, ccl) - clo) / rng >= BOTTOM_TAIL_RATIO
+    _green   = ccl > cop
+    if not (_wick_ok or _green):
         return None
     if price <= ccl:                                      # must be continuing UP off the confirmation candle
         return None
@@ -2521,6 +2538,75 @@ def _detect_ma_pullback(completed, price):
     # so the stop is never inside the wick (Kev risks off the candle low / the level held).
     return {"ma_name": f"ema{period}", "ma": round(ma, 4),
             "stop": round(min(ma, clo) * (1 - MA_PULLBACK_STOP_BUFFER), 4)}
+
+
+def detect_bounce(completed, price):
+    """Kev #28 MEAN-REVERSION BOUNCE: an overextended-to-the-DOWNSIDE former runner (ran big, round-tripped)
+    reclaims a demand level — a double-bottom / the 20 EMA — on a bottoming-wick + green + returning volume →
+    buyers stepped back in → enter, RISK THE LOW, target the prior HOD. Distinct from the front-side pullback:
+    this is a REVERSAL off a dump (NOT gated on above-VWAP). Any error → None (never crash the scan)."""
+    try:
+        closes = _extract_closes(completed)
+        if len(closes) < 25:
+            return None
+        highs = [_bar_high(b) for b in completed]
+        lows  = [_bar_low(b)  for b in completed]
+        hod = max(highs) if highs else 0
+        base0 = _bar_close(completed[0]) or (closes[0] if closes else 0)
+        if hod <= 0 or base0 <= 0:
+            return None
+        ran = (hod - base0) / base0                          # ran big earlier (a former runner)
+        cur = _bar_close(completed[-1])
+        drawdown = (hod - cur) / hod if hod > 0 else 0        # round-tripped off the high
+        if ran < BOUNCE_MIN_RUN or drawdown < BOUNCE_MIN_DD:
+            return None
+        conf = completed[-1]
+        chi, clo, cop, ccl = _bar_high(conf), _bar_low(conf), _bar_open(conf), _bar_close(conf)
+        rng = chi - clo
+        if rng <= 0:
+            return None
+        if (min(cop, ccl) - clo) / rng < BOTTOM_TAIL_RATIO or ccl <= cop:   # bottoming wick + green reclaim
+            return None
+        if price <= ccl:                                     # continuing up off the bounce candle
+            return None
+        vol_conf  = _bar_vol(conf)
+        vol_prior = sum(_bar_vol(b) for b in completed[-4:-1]) / 3 if len(completed) >= 4 else 0
+        if vol_prior > 0 and vol_conf < vol_prior * EMA_BOUNCE_VOL_MULT:     # volume must RETURN on the bounce
+            return None
+        # demand level: a DOUBLE-BOTTOM (bounce low near a RECENT swing low — NOT the day's absolute low) OR the 20 EMA
+        recent_lows = [l for l in lows[-10:-2] if l > 0]     # the recent bottom the dump made, for the double-bottom
+        dbl = any(abs(clo - pl) / pl < 0.03 for pl in recent_lows)
+        ema20 = _calc_ema(closes, EMA20_PERIOD)
+        near20 = ema20 > 0 and abs(clo - ema20) / ema20 < 0.03
+        if not (dbl or near20):
+            return None
+        return {"stop": round(clo * 0.99, 4), "target": round(hod, 4),   # risk the low, target prior HOD
+                "kind": "double_bottom" if dbl else "ema20"}
+    except Exception:
+        return None
+
+
+def detect_vwap_reclaim(completed, price, vwap):
+    """Kev's VWAP RECLAIM: price LOST VWAP (traded below), then a candle CLOSES back above VWAP green on
+    returning volume = buyers reclaimed the line → enter, risk below the reclaim low / VWAP. A distinct
+    long trigger from the front-side pullback (this reclaims FROM BELOW) — carries its own volume
+    confirmation, so it bypasses the front-side momentum gate. Any error → None."""
+    try:
+        if vwap <= 0 or len(completed) < 5:
+            return None
+        conf = completed[-1]
+        chi, clo, cop, ccl = _bar_high(conf), _bar_low(conf), _bar_open(conf), _bar_close(conf)
+        prior_below = any(_bar_close(b) < vwap for b in completed[-4:-1])   # was under VWAP (lost it)
+        reclaim = ccl > vwap and ccl > cop and clo <= vwap * 1.005          # closed back above, green, dipped to it
+        if not (prior_below and reclaim) or price <= ccl:
+            return None
+        vc = _bar_vol(conf)
+        vp = sum(_bar_vol(b) for b in completed[-4:-1]) / 3 if len(completed) >= 4 else 0
+        if vp > 0 and vc < vp * EMA_BOUNCE_VOL_MULT:                        # volume must return on the reclaim
+            return None
+        return {"stop": round(min(clo, vwap) * 0.99, 4)}                    # risk below the reclaim low / VWAP
+    except Exception:
+        return None
 
 
 def calculate_ema9(bars) -> float:
@@ -3322,10 +3408,57 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         _log_decision(t, "triggered_ma_pullback", price=price, ma=ma_pb["ma_name"])
                         found_entry = True
 
+            # ── Entry type 4: MEAN-REVERSION BOUNCE (Kev #28) — a dumped former runner reclaims a demand
+            #    level (double-bottom / 20 EMA). NOT gated on above-VWAP (it reclaims from below). Managed on
+            #    the 3-min chart like the pullback; risk the low, target the prior HOD. ──
+            if not found_entry:
+                bnc = detect_bounce(completed, price)
+                if bnc:
+                    b_stop = bnc["stop"]
+                    if "daily" not in cache[t]:
+                        cache[t]["daily"] = get_daily_levels(t)
+                    _daily = cache[t]["daily"]
+                    room = compute_room(price, b_stop, cache[t].get("full_bars") or bars,
+                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                    _bfront = ema9 > ema20 > 0
+                    print(f"\n🔄 {t} BOUNCE ({bnc['kind']})! ${price:.2f} reclaim — stop ${b_stop:.2f}, "
+                          f"target prior HOD ${bnc['target']:.2f}{vwap_tag}")
+                    breakouts.append((t, price, vwap, "bounce", {
+                        "zone_stop": b_stop, "room": room, "prior_high": bnc["target"],
+                        "ema90": round(ema90, 4), "front_side": _bfront,
+                        "ema9": round(ema9, 4), "ema20": round(ema20, 4),
+                    }))
+                    _log_decision(t, "triggered_bounce", price=price, kind=bnc["kind"])
+                    found_entry = True
+
+            # ── Entry type 5: VWAP RECLAIM (Kev) — price lost VWAP then reclaimed it green on volume. A
+            #    distinct long trigger (reclaim from below); managed on 3-min, risk below the reclaim/VWAP. ──
+            if not found_entry and vwap > 0:
+                vr = detect_vwap_reclaim(completed, price, vwap)
+                if vr:
+                    vr_stop = vr["stop"]
+                    if "daily" not in cache[t]:
+                        cache[t]["daily"] = get_daily_levels(t)
+                    _daily = cache[t]["daily"]
+                    room = compute_room(price, vr_stop, cache[t].get("full_bars") or bars,
+                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                    _vfront = ema9 > ema20 > 0
+                    print(f"\n🔵 {t} VWAP RECLAIM! ${price:.2f} back above VWAP ${vwap:.2f} — stop ${vr_stop:.2f}")
+                    breakouts.append((t, price, vwap, "vwap_reclaim", {
+                        "zone_stop": vr_stop, "room": room, "ema90": round(ema90, 4),
+                        "front_side": _vfront, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
+                    }))
+                    _log_decision(t, "triggered_vwap_reclaim", price=price, vwap=vwap)
+                    found_entry = True
+
             if not found_entry and t not in [s.split(":")[0] for s in status_parts]:
                 status_parts.append(f"{t}:${price:.2f} EMA9:${ema9:.2f}{vwap_tag}")
                 _log_decision(t, "watching", price=price, vwap=vwap)
 
+        # bounce = observe-only (dropped; its backtest read was clearly −0.40, needs reversal-regime data).
+        # Others active per BREAKOUT_ENTRIES: True → full bag; False → pullback + VWAP-reclaim only.
+        breakouts = [b for b in breakouts
+                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim"))]
         if breakouts:
             return breakouts
 
@@ -3648,7 +3781,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         # instead of riding to the −7% stop. Tighter/faster than the VWAP early-fade below. Disarms once
         # it confirms (+1.5%) or after the window — then tiers/trail/stop manage it. ──
         elapsed = time.time() - entry_time
-        if (FAILED_BREAKOUT_MIN_SECS <= elapsed <= FAILED_BREAKOUT_SECS
+        if (not EXITS_ON_3MIN                                   # 3-min mgmt replaces the sub-minute cut
+                and FAILED_BREAKOUT_MIN_SECS <= elapsed <= FAILED_BREAKOUT_SECS
                 and highest_price < entry_price * (1 + FAILED_BREAKOUT_CONFIRM)
                 and current_price <= entry_price):
             print(f"✂️  Failed breakout — {ticker} faded to ${current_price:.2f} (≤ entry ${entry_price:.2f}) "
@@ -3661,7 +3795,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             break
 
         # ── Early fade: if price drops back below VWAP within 2 min, cut immediately ──
-        if vwap > 0 and elapsed <= EARLY_FADE_SECS and current_price < vwap:
+        if vwap > 0 and not EXITS_ON_3MIN and elapsed <= EARLY_FADE_SECS and current_price < vwap:
             print(f"⚡ Early fade — {ticker} dropped below VWAP (${vwap:.2f}) "
                   f"within {elapsed:.0f}s of entry. Cutting loss now.")
             cancel_order(placed_stop_id)
@@ -3746,9 +3880,24 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
         # ── Structure-based exits: fetch recent bars for the Kev close-based exits below ──────
         if remaining_shares > 0 and time.time() - last_ema_check >= EMA_CHECK_INTERVAL:
-            bars = get_intraday_bars(ticker, count=EMA_PERIOD + 5)
-            if bars and len(bars) >= EMA_PERIOD + 2:
-                completed = bars[:-1]   # exclude in-progress bar (bars are chronological after the order fix)
+            bars = get_intraday_bars(ticker, count=(EMA_PERIOD + 6) * SETUP_TF_MIN if EXITS_ON_3MIN else EMA_PERIOD + 5)
+            _cbars = aggregate_bars(bars, SETUP_TF_MIN) if (EXITS_ON_3MIN and bars) else bars
+            if _cbars and len(_cbars) >= (3 if EXITS_ON_3MIN else EMA_PERIOD + 2):
+                completed = _cbars[:-1]   # 3-MIN completed bars = manage on Kev's chart (EXITS_ON_3MIN), else 1-min
+
+                # ── 3-MIN close-based STOP: exit only when a completed 3-min bar CLOSES at/below the stop. A
+                #    wick through it that closes back above is normal volatility, not a failure — this is what
+                #    holds the winners. The intrabar −7% catastrophe cap (below) is the only sub-minute stop. ──
+                if EXITS_ON_3MIN and remaining_shares > 0:
+                    _c3 = float(completed[-1].get("close") or completed[-1].get("c") or 0)
+                    if 0 < _c3 <= current_stop:
+                        _lbl = "Trailing stop 📉" if partial_taken else "Stop loss 🛑"
+                        print(f"🛑 {_lbl} — 3-min close ${_c3:.2f} ≤ stop ${current_stop:.2f}")
+                        cancel_order(placed_stop_id)
+                        close_position(ticker, remaining_shares)
+                        result["exit_price"]  = current_price
+                        result["exit_reason"] = _lbl
+                        remaining_shares = 0
 
                 # ── Kev's INSTANT EXIT: a candle makes a NEW high then CLOSES back below the prior bar's
                 # high = a major reversal → full exit. ONLY armed AFTER the first scale (partial_taken):
@@ -3806,8 +3955,10 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if remaining_shares == 0:
             break
 
-        # ── Software stop detection (backup to exchange stop) ──
-        if current_price <= current_stop and remaining_shares > 0:
+        # ── Software stop detection. When EXITS_ON_3MIN there is NO intrabar %-stop — the exit is the 3-min
+        #    CLOSE below the structural stop (above); a fixed −7% is non-Kev and just snipes the trade before
+        #    the candle closes. Live crater protection is the resting broker stop at the structural level. ──
+        if (not EXITS_ON_3MIN) and current_price <= current_stop and remaining_shares > 0:
             label = "Trailing stop 📉" if partial_taken else "Stop loss 🛑"
             print(f"🛑 {label} hit! Selling {remaining_shares} shares at ${current_price:.2f}")
             cancel_order(placed_stop_id)
@@ -4799,7 +4950,12 @@ def main():
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
-            mom_ok, mom_details = check_momentum(ticker)
+            # Reversal setups (VWAP reclaim / bounce) reclaim from BELOW → low peak-relative volume by nature;
+            # they carry their OWN volume confirmation in the detector, so they bypass the front-side momentum gate.
+            if entry_type in ("vwap_reclaim", "bounce"):
+                mom_ok, mom_details = True, {"exempt": entry_type}
+            else:
+                mom_ok, mom_details = check_momentum(ticker)
             if not mom_ok:
                 print(f"⚠️ {ticker} momentum rejected: {mom_details.get('reason','')} — skipping")
                 _log_decision(ticker, "momentum_reject", price=entry_price, reason=str(mom_details.get('reason', ''))[:80])

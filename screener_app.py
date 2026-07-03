@@ -203,12 +203,20 @@ def _webull_ah_price(dc, symbol):
             else:
                 d = {}
         # Webull's actual extended-hours field is 'extend_hour_last_price' (confirmed via /api/quote_debug).
-        # No close fallback: if there's no extended-hours print, return 0 so the row shows just the close.
+        # This field holds whichever extended session is live — post-market in the evening, PRE-MARKET in the
+        # early AM. No close fallback: if there's no extended print, return 0 so the row shows just the close.
         ah = (d.get("extend_hour_last_price") or d.get("extendHourLastPrice") or
               d.get("pre_market_price") or d.get("preMarketPrice") or 0)
-        return round(float(ah or 0), 2)
+        ah = round(float(ah or 0), 2)
+        # Webull's own extended-session % change (vs the prior regular close) — correct for BOTH AH and PM.
+        pct = d.get("extend_hour_change_ratio")
+        if pct in (None, 0):
+            base = float(d.get("close") or 0)
+            pct = ((ah - base) / base) if (base > 0 and ah > 0) else 0
+        pct = round(float(pct or 0) * 100, 1)
+        return ah, pct
     except Exception:
-        return 0
+        return 0, 0
 
 
 def run_scan():
@@ -332,6 +340,12 @@ def run_scan():
             else:
                 time.sleep(0.3)
                 continue
+            if after_hours or premarket:
+                # Extended price via WEBULL (same feed the bot trades on): post-market in the evening,
+                # PRE-MARKET in the early AM — the field auto-switches. Label follows the live session.
+                g["ah_price"], g["ah_pct"] = _webull_ah_price(data_client, sym) if data_client else (0, 0)
+                g["ah_label"] = "PM" if premarket else "AH"
+                time.sleep(0.15)   # gentle on the token
             if after_hours:
                 g["short_interest"] = round((info.get("shortPercentOfFloat") or 0) * 100, 1)
                 g["day_high"] = info.get("dayHigh") or 0
@@ -341,9 +355,6 @@ def run_scan():
                 if g["day_open"] and g["day_high"] and g["day_low"]:
                     day_range = round((g["day_high"] - g["day_low"]) / g["day_open"] * 100, 1)
                 g["day_range_pct"] = day_range
-                # after-hours / extended price via WEBULL (same feed the bot trades on) — shapes tomorrow's open
-                g["ah_price"] = _webull_ah_price(data_client, sym) if data_client else 0
-                time.sleep(0.15)   # gentle on the token
             results.append(g)
             time.sleep(0.3)
         except Exception:
@@ -576,8 +587,10 @@ function renderRows(rows){
     var dayRange = r.day_range_pct ? r.day_range_pct.toFixed(1)+'%' : '—';
     var shortClass = r.short_interest >= 20 ? 'gap-hot' : r.short_interest >= 10 ? 'gap-warm' : '';
     var eveningStyle = _afterHours ? '' : 'display:none';
-    var ahPct = (r.ah_price && r.price) ? ((r.ah_price - r.price) / r.price * 100) : 0;
-    var ahP = (r.ah_price && Math.abs(r.ah_price - r.price) > 0.005) ? ' <span class="ah '+(r.ah_price>r.price?'ah-up':'ah-dn')+'">AH $'+r.ah_price.toFixed(2)+' ('+(ahPct>=0?'+':'')+ahPct.toFixed(1)+'%)</span>' : '';
+    var ahLbl = r.ah_label || 'AH';
+    var ahPct = (typeof r.ah_pct === 'number') ? r.ah_pct : ((r.ah_price && r.price) ? ((r.ah_price - r.price) / r.price * 100) : 0);
+    var ahShow = r.ah_price > 0 && (Math.abs(ahPct) >= 0.05 || Math.abs(r.ah_price - r.price) > 0.005);
+    var ahP = ahShow ? ' <span class="ah '+(ahPct>=0?'ah-up':'ah-dn')+'">'+ahLbl+' $'+r.ah_price.toFixed(2)+' ('+(ahPct>=0?'+':'')+ahPct.toFixed(1)+'%)</span>' : '';
     return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
       +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+ahP+'</td>'

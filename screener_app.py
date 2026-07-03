@@ -733,27 +733,6 @@ def health():
     return jsonify({"status": "ok", "time": datetime.now(EASTERN).isoformat()})
 
 
-@app.route("/api/quote_debug")
-def quote_debug():
-    """DEBUG: dump Webull's raw snapshot for a ticker so we can confirm the exact after-hours field name.
-    Usage: /api/quote_debug?ticker=CLRO  — shows the raw fields + what _webull_ah_price extracts + _chart_url."""
-    tk = (request.args.get("ticker") or "CLRO").upper().strip()
-    dc = _make_data_client()
-    if not dc:
-        return jsonify({"error": "no data client (check Webull env vars)"})
-    try:
-        resp = dc.market_data.get_snapshot(symbols=tk, category="US_STOCK", extend_hour_required=True)
-        raw = resp.json()
-        return jsonify({
-            "ticker": tk,
-            "status": getattr(resp, "status_code", None),
-            "ah_price_extracted": _webull_ah_price(dc, tk),
-            "raw_snapshot": raw,
-        })
-    except Exception as e:
-        return jsonify({"ticker": tk, "error": str(e)})
-
-
 # ── Trades Dashboard API ───────────────────────────────────────────────────────
 
 @app.route("/api/record_trade", methods=["POST"])

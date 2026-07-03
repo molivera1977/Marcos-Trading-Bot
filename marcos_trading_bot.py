@@ -1361,6 +1361,74 @@ def _archive_watchlist_bars(tickers):
         print(f"⚠️  Bar archival failed (non-fatal): {e}")
 
 
+# ── EOD MARKET-WIDE WINNER SWEEP ─────────────────────────────────────────────────────
+# Closes the reverse-engineering BLIND SPOT (user 7/3): /api/bars only held names the bot WATCHED (~18/day),
+# so we could only ever study winners we already caught. This archives the day's TOP MOVERS market-wide (the
+# ones our top-15/float filter dropped or never saw), so the archive holds the COMPLETE winner set for the
+# SEE/CATCH/RIDE analysis. Read-only Webull data (the same get_gainers_losers the scanner uses) + the existing
+# bar-archive POST; throttled + back-off; a crash here can NEVER touch trading. [[feedback_reverse_engineer_winners]]
+def winner_sweep():
+    try:
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        if not url:
+            return
+        _, dc = _make_data_client()
+        if not dc:
+            print("⚠️  winner_sweep: no data client"); return
+        date = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        movers = {}
+        try:
+            res = dc.screener.get_gainers_losers(rank_type="DAY_1", category="US_STOCK",
+                                                 sort_by="CHANGE_RATIO", direction="DESC", page_size=100)
+            if res.status_code == 200:
+                raw = res.json()
+                items = raw if isinstance(raw, list) else raw.get("data", raw.get("items", []))
+                for it in items:
+                    sym = it.get("symbol", ""); chg = float(it.get("change_ratio") or 0) * 100
+                    price = float(it.get("price") or it.get("close") or 0)
+                    if sym and 0.50 <= price <= 20 and chg >= 8:   # the day's small-cap movers, market-wide
+                        movers[sym] = round(chg, 1)
+            else:
+                print(f"⚠️  winner_sweep gainers error: {res.status_code}")
+        except Exception as e:
+            print(f"⚠️  winner_sweep gainers exception: {e}")
+        if not movers:
+            print("🏁 winner_sweep: no movers found"); return
+        saved = errs = 0
+        for sym in list(movers)[:80]:                    # bound the batch
+            try:
+                bars = get_intraday_bars(sym, count=960, executor=_aux_executor)
+                if bars:
+                    r = requests.post(f"{url}/api/bars", json={"date": date, "ticker": sym, "bars": bars},
+                                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=20)
+                    if r.status_code == 200:
+                        saved += 1
+            except Exception:
+                errs += 1
+                if errs >= 5:                            # back off — never hammer the token
+                    print("⚠️  winner_sweep: 5 fetch errors — backing off, stopping."); break
+            time.sleep(0.5)                              # gentle, read-only, off-market
+        print(f"🏁 winner_sweep {date}: archived {saved}/{len(movers)} market-wide movers (≥8%, <$20). "
+              f"The reverse-engineering dataset now sees the winners we DIDN'T catch.")
+    except Exception as e:
+        print(f"⚠️  winner_sweep failed (non-fatal): {e}")
+
+
+def _winner_sweep_loop():
+    """Daemon: run winner_sweep ONCE per trading day, ~16:10 ET (after close). Isolated — cannot touch trading."""
+    last = None
+    while True:
+        try:
+            now = datetime.now(EASTERN)
+            today = now.strftime("%Y-%m-%d")
+            if now.weekday() < 5 and now.hour == 16 and now.minute >= 10 and last != today:
+                print("🏁 Running EOD winner sweep (market-wide winner capture)...")
+                winner_sweep(); last = today
+        except Exception as e:
+            print(f"⚠️  winner_sweep loop error: {e}")
+        time.sleep(120)
+
+
 # ── STALE-TRADE WATCHDOG ─────────────────────────────────────────────────────────────
 # Recovery is startup-only; a monitor that FREEZES while the process stays alive (IQST, 6/25)
 # is invisible to it. This watchdog watches a LOCAL in-memory heartbeat each monitor writes
@@ -5205,6 +5273,8 @@ if __name__ == "__main__":
     # Day-2 observation runs on its own isolated daemon thread (never touches trading).
     threading.Thread(target=_day2_observer_loop, daemon=True, name="day2_observer").start()
     print("🔭 Day-2 observer thread started (observe-only)")
+    threading.Thread(target=_winner_sweep_loop, daemon=True, name="winner_sweep").start()
+    print("🏁 EOD winner-sweep thread started (market-wide winner capture, ~16:10 ET)")
 
     while True:
         now_et = datetime.now(EASTERN)

@@ -401,6 +401,9 @@ HTML = """<!DOCTYPE html>
   tbody td{padding:12px 16px;color:#e6edf3}
 
   .ticker-cell{font-weight:600;font-size:14px;color:#58a6ff}
+  .tk-link{color:inherit;text-decoration:none;cursor:pointer}
+  .tk-link:hover{text-decoration:underline}
+  .tk-arrow{font-size:10px;opacity:.45;margin-left:3px}
   .price-cell{font-variant-numeric:tabular-nums}
   .ah{font-size:11px;font-weight:600;margin-left:6px;opacity:.9}
   .ah-up{color:#3ddc84}.ah-dn{color:#ff6b6b}
@@ -558,7 +561,7 @@ function renderRows(rows){
     var eveningStyle = _afterHours ? '' : 'display:none';
     var ahP = (r.ah_price && Math.abs(r.ah_price - r.price) > 0.005) ? ' <span class="ah '+(r.ah_price>r.price?'ah-up':'ah-dn')+'">AH $'+r.ah_price.toFixed(2)+'</span>' : '';
     return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
-      +'<td class="ticker-cell">'+r.symbol+botBadge+'</td>'
+      +'<td class="ticker-cell"><a class="tk-link" href="https://www.tradingview.com/chart/?symbol='+r.symbol+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+ahP+'</td>'
       +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
       +'<td class="'+floatClass+'">'+r.float_label+'</td>'

@@ -588,8 +588,13 @@ function renderRows(rows){
     var shortClass = r.short_interest >= 20 ? 'gap-hot' : r.short_interest >= 10 ? 'gap-warm' : '';
     var eveningStyle = _afterHours ? '' : 'display:none';
     var ahLbl = r.ah_label || 'AH';
-    var ahPct = (typeof r.ah_pct === 'number') ? r.ah_pct : ((r.ah_price && r.price) ? ((r.ah_price - r.price) / r.price * 100) : 0);
-    var ahShow = r.ah_price > 0 && (Math.abs(ahPct) >= 0.05 || Math.abs(r.ah_price - r.price) > 0.005);
+    // Prefer the move vs the close shown in this row (always visually consistent: down price => negative).
+    // Fall back to Webull's own extended % only when the row's price already equals the extended price
+    // (pre-market, where the price column IS the extended print) — otherwise Webull's different close
+    // baseline can show e.g. +0.7% next to a visibly lower AH price.
+    var closePct = (r.ah_price && r.price) ? ((r.ah_price - r.price) / r.price * 100) : 0;
+    var ahPct = (Math.abs(closePct) >= 0.05) ? closePct : ((typeof r.ah_pct === 'number') ? r.ah_pct : 0);
+    var ahShow = r.ah_price > 0 && Math.abs(ahPct) >= 0.05;
     var ahP = ahShow ? ' <span class="ah '+(ahPct>=0?'ah-up':'ah-dn')+'">'+ahLbl+' $'+r.ah_price.toFixed(2)+' ('+(ahPct>=0?'+':'')+ahPct.toFixed(1)+'%)</span>' : '';
     return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
       +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+botBadge+'</td>'

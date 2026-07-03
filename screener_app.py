@@ -1024,6 +1024,43 @@ def get_decisions():
     return jsonify({"total_all": len(_decisions), "matched": len(rows),
                     "by_status": by_status, "rows": rows[-limit:]})
 
+@app.route("/api/decisions_archive", methods=["GET"])
+def get_decisions_archive():
+    """Read the DURABLE per-day JSONL archive on /data (survives dashboard redeploys, unlike the in-memory
+    cache /api/decisions reads). ?date=YYYY-MM-DD [&status=triggered_flat_top] [&limit=5000]. Returns the
+    day's records + a status histogram + a time-of-day histogram of 'triggered_*' entries (the prime-window check)."""
+    date   = request.args.get("date")
+    status = request.args.get("status")
+    limit  = int(request.args.get("limit", 5000))
+    if not date:
+        return jsonify({"error": "need ?date=YYYY-MM-DD"}), 400
+    fp = DECISIONS_DIR / f"decisions-{date}.jsonl"
+    if not fp.exists():
+        try: avail = sorted(p.name for p in DECISIONS_DIR.glob("decisions-*.jsonl"))
+        except Exception: avail = []
+        return jsonify({"error": f"no archive for {date}", "available": avail})
+    rows = []
+    try:
+        with open(fp) as f:
+            for line in f:
+                line = line.strip()
+                if not line: continue
+                try: rows.append(json.loads(line))
+                except Exception: pass
+    except Exception as e:
+        return jsonify({"error": str(e)})
+    if status:
+        rows = [r for r in rows if r.get("status") == status]
+    by_status, trig_hour = {}, {}
+    for r in rows:
+        by_status[r.get("status", "?")] = by_status.get(r.get("status", "?"), 0) + 1
+        if str(r.get("status", "")).startswith("triggered"):
+            hm = str(r.get("time", ""))            # "%I:%M:%S %p" e.g. "09:47:12 AM"
+            key = hm[:2] + hm[-3:] if len(hm) >= 5 else hm  # coarse hour+AM/PM bucket
+            trig_hour[key] = trig_hour.get(key, 0) + 1
+    return jsonify({"date": date, "total": len(rows), "by_status": by_status,
+                    "triggered_by_hour": trig_hour, "rows": rows[-limit:]})
+
 # ── DATA WAREHOUSE: per-day/per-ticker 1-min bar archive on /data — the permanent dataset the harness
 # backtests against (so we're not re-fetching from a 7-day API). POST to save, GET to retrieve/list. ──
 BARS_DIR = (pathlib.Path("/data") if pathlib.Path("/data").exists() else pathlib.Path("/tmp")) / "bars"

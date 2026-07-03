@@ -169,6 +169,34 @@ def _market_state():
 
 # ── Core scan logic ────────────────────────────────────────────────────────────
 
+def _webull_ah_price(dc, symbol):
+    """Extended-hours price (post-market now / pre-market early AM) via the Webull snapshot — the SAME feed
+    the bot trades on, and more reliable than yfinance for thin small-caps. extend_hour_required=True pulls the
+    extended session. Returns 0 if unavailable → caller falls back to showing just the regular close."""
+    try:
+        resp = dc.market_data.get_snapshot(symbols=symbol, category="US_STOCK", extend_hour_required=True)
+        if getattr(resp, "status_code", 0) != 200:
+            return 0
+        raw = resp.json()
+        if isinstance(raw, list):
+            d = raw[0] if raw else {}
+        else:
+            data = raw.get("data", {}) if isinstance(raw, dict) else {}
+            if isinstance(data, list):
+                d = data[0] if data else {}
+            elif isinstance(data, dict):
+                items = data.get("items", [])
+                d = items[0] if items else data
+            else:
+                d = {}
+        ah = (d.get("post_market_price") or d.get("postMarketPrice") or
+              d.get("pre_market_price")  or d.get("preMarketPrice")  or
+              d.get("close") or d.get("last_price") or d.get("lastPrice") or d.get("c") or 0)
+        return round(float(ah or 0), 2)
+    except Exception:
+        return 0
+
+
 def run_scan():
     """
     1. Webull screener → live gainers / pre-market / after-hours movers
@@ -296,8 +324,9 @@ def run_scan():
                 if g["day_open"] and g["day_high"] and g["day_low"]:
                     day_range = round((g["day_high"] - g["day_low"]) / g["day_open"] * 100, 1)
                 g["day_range_pct"] = day_range
-                # after-hours / extended price (postMarket now; preMarket early AM) — where it ended AH shapes tomorrow's open
-                g["ah_price"] = round(float(info.get("postMarketPrice") or info.get("preMarketPrice") or 0), 2)
+                # after-hours / extended price via WEBULL (same feed the bot trades on) — shapes tomorrow's open
+                g["ah_price"] = _webull_ah_price(data_client, sym) if data_client else 0
+                time.sleep(0.15)   # gentle on the token
             results.append(g)
             time.sleep(0.3)
         except Exception:

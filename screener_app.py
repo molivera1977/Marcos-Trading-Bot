@@ -799,9 +799,12 @@ def bars_debug():
     methods = [m for m in dir(dc.market_data) if not m.startswith("_") and ("bar" in m.lower() or "history" in m.lower() or "extend" in m.lower() or "quote" in m.lower())]
     variants = [
         ("baseline", {}),
-        ("extend_hour_required=True", {"extend_hour_required": True}),
-        ("extendTrading=1", {"extendTrading": 1}),
-        ("extend=1", {"extend": 1}),
+        ('ts=[pre,regular,post]', {"trading_sessions": ["pre", "regular", "post"]}),
+        ('ts=[PRE,REGULAR,POST]', {"trading_sessions": ["PRE", "REGULAR", "POST"]}),
+        ('ts="pre,regular,post"', {"trading_sessions": "pre,regular,post"}),
+        ('ts=[ALL]', {"trading_sessions": ["ALL"]}),
+        ('ts=ALL', {"trading_sessions": "ALL"}),
+        ('rt_required=True', {"real_time_required": True}),
     ]
     out = {"ticker": tk, "get_history_bar_signature": sig, "candidate_methods": methods}
     for label, extra in variants:

@@ -797,11 +797,32 @@ def bars_debug():
     except Exception as e:
         sig = f"(sig err: {e})"
     methods = [m for m in dir(dc.market_data) if not m.startswith("_") and ("bar" in m.lower() or "history" in m.lower() or "extend" in m.lower() or "quote" in m.lower())]
+    # Pull the valid trading-session values straight from the SDK's enums
+    import sys as _sys, enum as _enum
+    session_enums = {}
+    for _mn, _mod in list(_sys.modules.items()):
+        if not _mod or "webull" not in _mn.lower():
+            continue
+        for _an in dir(_mod):
+            if "session" not in _an.lower():
+                continue
+            try:
+                _o = getattr(_mod, _an)
+            except Exception:
+                continue
+            try:
+                if isinstance(_o, type) and issubclass(_o, _enum.Enum):
+                    session_enums[f"{_mn}.{_an}"] = {m.name: m.value for m in _o}
+                elif isinstance(_o, type):
+                    session_enums[f"{_mn}.{_an}"] = [a for a in dir(_o) if not a.startswith("_")][:20]
+            except Exception:
+                pass
     variants = [("baseline", {})]
-    for v in ["regular", "pre_market", "after_market", "pre", "post", "PreMarket", "AfterMarket",
-              "N", "P", "A", "overnight", "extended", "pre-market", "postmarket", "premarket"]:
+    for v in ["PRE_TRADING", "POST_TRADING", "REGULAR_TRADING", "PRE_MARKET", "REGULAR_MARKET",
+              "POST_MARKET", "RTH", "ETH", 1, 2, 3, 4]:
         variants.append((f"ts=[{v}]", {"trading_sessions": [v]}))
-    out = {"ticker": tk, "get_history_bar_signature": sig, "candidate_methods": methods}
+    out = {"ticker": tk, "get_history_bar_signature": sig, "candidate_methods": methods,
+           "session_enums": session_enums}
     for label, extra in variants:
         try:
             resp = dc.market_data.get_history_bar(symbol=tk, category="US_STOCK", timespan="M1", count="500", **extra)

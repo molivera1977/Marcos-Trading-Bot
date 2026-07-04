@@ -1152,8 +1152,9 @@ def bars_backfill():
 @app.route("/api/bars", methods=["GET"])
 def get_bars():
     date = request.args.get("date"); ticker = (request.args.get("ticker") or "").upper()
+    _sfx = "__ext" if request.args.get("ext") else ""   # ext=1 → the extended-hours backfill file
     if date and ticker:
-        f = BARS_DIR / date / f"{ticker}.json"
+        f = BARS_DIR / date / f"{ticker}{_sfx}.json"
         if f.exists():
             return jsonify({"date": date, "ticker": ticker, "bars": json.loads(f.read_text())})
         return jsonify({"error": "not found"}), 404

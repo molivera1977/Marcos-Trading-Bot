@@ -1137,9 +1137,9 @@ def bars_backfill():
                 elif d.time() <= dtm.time(16, 0): rth += 1
                 else: ath += 1
             info = {"tk": tk, "day_bars": len(dayitems), "pre": pre, "rth": rth, "ath": ath}
-            if commit and dayitems and pre > 0:          # only overwrite if we actually GAINED premarket
-                daydir.mkdir(parents=True, exist_ok=True)
-                (daydir / f"{tk}.json").write_text(json.dumps(dayitems))
+            if commit and dayitems:                      # store the FULL extended window in a SEPARATE _ext file
+                daydir.mkdir(parents=True, exist_ok=True)  # (leaves the RTH archive the backtests use untouched)
+                (daydir / f"{tk}__ext.json").write_text(json.dumps(items))
                 enriched += 1; info["written"] = True
             results.append(info)
             time.sleep(0.12)                              # gentle on the token

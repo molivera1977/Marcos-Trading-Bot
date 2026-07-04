@@ -797,32 +797,31 @@ def bars_debug():
     except Exception as e:
         sig = f"(sig err: {e})"
     methods = [m for m in dir(dc.market_data) if not m.startswith("_") and ("bar" in m.lower() or "history" in m.lower() or "extend" in m.lower() or "quote" in m.lower())]
-    # Pull the valid trading-session values straight from the SDK's enums
-    import sys as _sys, enum as _enum
-    session_enums = {}
-    for _mn, _mod in list(_sys.modules.items()):
-        if not _mod or "webull" not in _mn.lower():
-            continue
-        for _an in dir(_mod):
-            if "session" not in _an.lower():
-                continue
-            try:
-                _o = getattr(_mod, _an)
-            except Exception:
-                continue
-            try:
-                if isinstance(_o, type) and issubclass(_o, _enum.Enum):
-                    session_enums[f"{_mn}.{_an}"] = {m.name: m.value for m in _o}
-                elif isinstance(_o, type):
-                    session_enums[f"{_mn}.{_an}"] = [a for a in dir(_o) if not a.startswith("_")][:20]
-            except Exception:
-                pass
+    # Grep the webull SDK source for lines mentioning RTH (the confirmed-valid code) → find its siblings
+    import os as _os
+    src_hits = []
+    try:
+        import webull as _wb
+        _pkg = _os.path.dirname(_wb.__file__)
+        for _root, _, _files in _os.walk(_pkg):
+            for _f in _files:
+                if not _f.endswith(".py"):
+                    continue
+                try:
+                    _txt = open(_os.path.join(_root, _f), encoding="utf-8", errors="replace").read()
+                except Exception:
+                    continue
+                if "RTH" in _txt:
+                    for _ln in _txt.splitlines():
+                        if "RTH" in _ln:
+                            src_hits.append(f"{_f}: {_ln.strip()[:140]}")
+    except Exception as e:
+        src_hits = [f"grep err: {e}"]
     variants = [("baseline", {})]
-    for v in ["PRE_TRADING", "POST_TRADING", "REGULAR_TRADING", "PRE_MARKET", "REGULAR_MARKET",
-              "POST_MARKET", "RTH", "ETH", 1, 2, 3, 4]:
-        variants.append((f"ts=[{v}]", {"trading_sessions": [v]}))
+    for v in ["ETH", "OTH", "AH", "PM", "PRE", "POST", "OVERNIGHT", "EXTENDED", "PREPOST"]:
+        variants.append((f"ts=[RTH,{v}]", {"trading_sessions": ["RTH", v]}))
     out = {"ticker": tk, "get_history_bar_signature": sig, "candidate_methods": methods,
-           "session_enums": session_enums}
+           "RTH_source_hits": src_hits[:25]}
     for label, extra in variants:
         try:
             resp = dc.market_data.get_history_bar(symbol=tk, category="US_STOCK", timespan="M1", count="500", **extra)

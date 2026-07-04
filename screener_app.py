@@ -791,13 +791,19 @@ def bars_debug():
         except Exception as e:
             return {"error": str(e)}
 
+    import inspect
+    try:
+        sig = str(inspect.signature(dc.market_data.get_history_bar))
+    except Exception as e:
+        sig = f"(sig err: {e})"
+    methods = [m for m in dir(dc.market_data) if not m.startswith("_") and ("bar" in m.lower() or "history" in m.lower() or "extend" in m.lower() or "quote" in m.lower())]
     variants = [
         ("baseline", {}),
         ("extend_hour_required=True", {"extend_hour_required": True}),
         ("extendTrading=1", {"extendTrading": 1}),
         ("extend=1", {"extend": 1}),
     ]
-    out = {"ticker": tk}
+    out = {"ticker": tk, "get_history_bar_signature": sig, "candidate_methods": methods}
     for label, extra in variants:
         try:
             resp = dc.market_data.get_history_bar(symbol=tk, category="US_STOCK", timespan="M1", count="500", **extra)

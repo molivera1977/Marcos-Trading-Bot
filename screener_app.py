@@ -1091,13 +1091,19 @@ def bars_backfill():
     date = request.args.get("date")
     only = (request.args.get("ticker") or "").upper().strip()
     commit = request.args.get("commit", "0") == "1"
-    count = request.args.get("count", "7000")
+    count = min(int(request.args.get("count", "1650")), 1650)   # API caps count at 1650
+    et_fmt = request.args.get("et_fmt", "ms")                    # end_time format probe: ms | s | iso
     if not date:
         return jsonify({"error": "need ?date=YYYY-MM-DD"})
     dc = _make_data_client()
     if not dc:
         return jsonify({"error": "no data client"})
     ET = dtm.timezone(dtm.timedelta(hours=-4))
+    # anchor the 1650-bar window to END just after the target date (so 6/29 sits inside the window, not off the back)
+    _end_dt = dtm.datetime.strptime(date, "%Y-%m-%d").replace(hour=20, minute=1, tzinfo=ET) + dtm.timedelta(days=0)
+    end_time = (int(_end_dt.timestamp() * 1000) if et_fmt == "ms"
+                else int(_end_dt.timestamp()) if et_fmt == "s"
+                else _end_dt.strftime("%Y-%m-%dT%H:%M:%S%z"))
     daydir = BARS_DIR / date
     if only:
         tickers = [only]
@@ -1109,7 +1115,8 @@ def bars_backfill():
     for tk in tickers:
         try:
             resp = dc.market_data.get_history_bar(symbol=tk, category="US_STOCK", timespan="M1",
-                                                  count=str(count), trading_sessions=["RTH", "PRE", "ATH"])
+                                                  count=str(count), trading_sessions=["RTH", "PRE", "ATH"],
+                                                  end_time=end_time)
             if getattr(resp, "status_code", 0) != 200:
                 results.append({"tk": tk, "err": f"HTTP {getattr(resp,'status_code',None)}"}); continue
             raw = resp.json()

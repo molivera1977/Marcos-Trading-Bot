@@ -1082,6 +1082,66 @@ def save_bars():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/bars_backfill")
+def bars_backfill():
+    """Re-fetch archived names WITH extended hours (trading_sessions=RTH,PRE,ATH) and overwrite the RTH-only
+    files, so the past week's archive gains premarket/after-hours bars (within the ~7-day API window).
+    ?date=YYYY-MM-DD [&ticker=X] [&commit=1] [&count=7000]. Dry-run (report coverage) unless commit=1."""
+    import datetime as dtm
+    date = request.args.get("date")
+    only = (request.args.get("ticker") or "").upper().strip()
+    commit = request.args.get("commit", "0") == "1"
+    count = request.args.get("count", "7000")
+    if not date:
+        return jsonify({"error": "need ?date=YYYY-MM-DD"})
+    dc = _make_data_client()
+    if not dc:
+        return jsonify({"error": "no data client"})
+    ET = dtm.timezone(dtm.timedelta(hours=-4))
+    daydir = BARS_DIR / date
+    if only:
+        tickers = [only]
+    elif daydir.exists():
+        tickers = sorted(p.stem for p in daydir.glob("*.json"))
+    else:
+        return jsonify({"error": f"no archive dir for {date}"})
+    results = []; enriched = 0
+    for tk in tickers:
+        try:
+            resp = dc.market_data.get_history_bar(symbol=tk, category="US_STOCK", timespan="M1",
+                                                  count=str(count), trading_sessions=["RTH", "PRE", "ATH"])
+            if getattr(resp, "status_code", 0) != 200:
+                results.append({"tk": tk, "err": f"HTTP {getattr(resp,'status_code',None)}"}); continue
+            raw = resp.json()
+            items = raw if isinstance(raw, list) else (raw.get("data", {}) if isinstance(raw, dict) else {})
+            if isinstance(items, dict):
+                items = items.get("items", items)
+            dayitems = []; pre = rth = ath = 0
+            for b in (items or []):
+                t = b.get("time") or b.get("timeStamp") or ""
+                try:
+                    d = dtm.datetime.strptime(str(t)[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=dtm.timezone.utc).astimezone(ET)
+                except Exception:
+                    continue
+                if str(d.date()) != date:
+                    continue
+                dayitems.append(b)
+                if d.time() < dtm.time(9, 30): pre += 1
+                elif d.time() <= dtm.time(16, 0): rth += 1
+                else: ath += 1
+            info = {"tk": tk, "day_bars": len(dayitems), "pre": pre, "rth": rth, "ath": ath}
+            if commit and dayitems and pre > 0:          # only overwrite if we actually GAINED premarket
+                daydir.mkdir(parents=True, exist_ok=True)
+                (daydir / f"{tk}.json").write_text(json.dumps(dayitems))
+                enriched += 1; info["written"] = True
+            results.append(info)
+            time.sleep(0.12)                              # gentle on the token
+        except Exception as e:
+            results.append({"tk": tk, "err": str(e)})
+    got_pre = [r for r in results if r.get("pre", 0) > 0]
+    return jsonify({"date": date, "commit": commit, "tickers": len(tickers),
+                    "with_premarket": len(got_pre), "enriched": enriched, "results": results})
+
 @app.route("/api/bars", methods=["GET"])
 def get_bars():
     date = request.args.get("date"); ticker = (request.args.get("ticker") or "").upper()

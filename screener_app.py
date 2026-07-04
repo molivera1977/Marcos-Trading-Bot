@@ -752,6 +752,61 @@ def health():
     return jsonify({"status": "ok", "time": datetime.now(EASTERN).isoformat()})
 
 
+@app.route("/api/bars_debug")
+def bars_debug():
+    """DEBUG: can get_history_bar return EXTENDED-HOURS bars (premarket <9:30 / after-hours >16:00)?
+    Tries the current call vs candidate extend-hours params; reports each variant's most-recent-day time span."""
+    import datetime as dtm
+    tk = (request.args.get("ticker") or "AAPL").upper().strip()
+    dc = _make_data_client()
+    if not dc:
+        return jsonify({"error": "no data client (check Webull env vars)"})
+    ET = dtm.timezone(dtm.timedelta(hours=-4))
+
+    def analyze(resp):
+        try:
+            if getattr(resp, "status_code", 0) != 200:
+                return {"status_code": getattr(resp, "status_code", None), "body": str(resp.json())[:200]}
+            raw = resp.json()
+            items = raw if isinstance(raw, list) else (raw.get("data", {}) if isinstance(raw, dict) else {})
+            if isinstance(items, dict):
+                items = items.get("items", items)
+            times = []
+            for b in (items or []):
+                t = b.get("time") or b.get("tradeTime") or b.get("timeStamp") or ""
+                try:
+                    d = dtm.datetime.strptime(str(t)[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=dtm.timezone.utc).astimezone(ET)
+                    times.append(d)
+                except Exception:
+                    pass
+            if not times:
+                return {"total": len(items or []), "parsed": 0, "sample_raw_time": str((items or [{}])[0].get("time", "?"))}
+            times.sort()
+            lastd = times[-1].date()
+            day = [d for d in times if d.date() == lastd]
+            return {"total_bars": len(times), "recent_date": str(lastd), "recent_day_bars": len(day),
+                    "premarket_<9:30": sum(1 for d in day if d.time() < dtm.time(9, 30)),
+                    "afterhours_>16:00": sum(1 for d in day if d.time() > dtm.time(16, 0)),
+                    "first": day[0].strftime("%H:%M"), "last": day[-1].strftime("%H:%M")}
+        except Exception as e:
+            return {"error": str(e)}
+
+    variants = [
+        ("baseline", {}),
+        ("extend_hour_required=True", {"extend_hour_required": True}),
+        ("extendTrading=1", {"extendTrading": 1}),
+        ("extend=1", {"extend": 1}),
+    ]
+    out = {"ticker": tk}
+    for label, extra in variants:
+        try:
+            resp = dc.market_data.get_history_bar(symbol=tk, category="US_STOCK", timespan="M1", count="500", **extra)
+            out[label] = analyze(resp)
+        except Exception as e:
+            out[label] = {"error": str(e)}
+    return jsonify(out)
+
+
 # ── Trades Dashboard API ───────────────────────────────────────────────────────
 
 @app.route("/api/record_trade", methods=["POST"])

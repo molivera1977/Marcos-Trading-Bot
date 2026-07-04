@@ -797,15 +797,10 @@ def bars_debug():
     except Exception as e:
         sig = f"(sig err: {e})"
     methods = [m for m in dir(dc.market_data) if not m.startswith("_") and ("bar" in m.lower() or "history" in m.lower() or "extend" in m.lower() or "quote" in m.lower())]
-    variants = [
-        ("baseline", {}),
-        ('ts=[pre,regular,post]', {"trading_sessions": ["pre", "regular", "post"]}),
-        ('ts=[PRE,REGULAR,POST]', {"trading_sessions": ["PRE", "REGULAR", "POST"]}),
-        ('ts="pre,regular,post"', {"trading_sessions": "pre,regular,post"}),
-        ('ts=[ALL]', {"trading_sessions": ["ALL"]}),
-        ('ts=ALL', {"trading_sessions": "ALL"}),
-        ('rt_required=True', {"real_time_required": True}),
-    ]
+    variants = [("baseline", {})]
+    for v in ["regular", "pre_market", "after_market", "pre", "post", "PreMarket", "AfterMarket",
+              "N", "P", "A", "overnight", "extended", "pre-market", "postmarket", "premarket"]:
+        variants.append((f"ts=[{v}]", {"trading_sessions": [v]}))
     out = {"ticker": tk, "get_history_bar_signature": sig, "candidate_methods": methods}
     for label, extra in variants:
         try:

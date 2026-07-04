@@ -276,6 +276,13 @@ EXITS_ON_3MIN      = True   # ⚠️ 7/2 THE TIMEFRAME FIX: manage the TRADE on 
                             # Winner test: 1-min mgmt −0.4R vs 3-min mgmt +4.4R on the 35 winners (they hold &
                             # capture instead of getting wick-sniped). Only the −7% catastrophe cap stays intrabar.
                             # Disables the sub-minute failed-breakout + early-VWAP-fade cuts. [[project_kev_grounding]]
+RUNNER_HEALTH_EXIT = True   # 7/3 PULLBACK HEALTH-TRAIL (the day's find — [[persona_trade_manager]]). Replaces the
+                            # twitchy soft exits (instant-exit / prev-bar-low / topping-tail) with a STRUCTURE read:
+                            # HOLD the runner while price is above VWAP OR the 9-EMA (healthy pullback), FOLD only
+                            # when a 3-min bar CLOSES below BOTH (structure gone). Breakeven stop = the hard floor.
+                            # Data: healthy pullbacks hold VWAP 84%/EMA 67% vs dying 30%/26% (vol-on-pullback = noise).
+                            # Backtest (4 days, n=52): baseline −4.3R → +1.7R, beats baseline ALL 4 days. DRY_RUN,
+                            # validating forward. Backtests: scratchpad/health_robust.py + trade_cracks.py.
 BREAKOUT_ENTRIES   = True   # 7/2: KEV'S FULL BAG. The 4-day backtest is too noisy to reliably rank entries
                             # (same pullback scored +0.30 and −0.08 across two valid harnesses) → build Kev's
                             # real setups to spec, instrument them, and let LIVE data rank them (not a fragile
@@ -3974,7 +3981,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 # high = a major reversal → full exit. ONLY armed AFTER the first scale (partial_taken):
                 # real-bar backtest (6/26 Webull bars) showed firing it pre-scale on 1-min noise cut runners
                 # for tiny gains (SDOT +1.1% vs the +60% move). Post-scale ~tripled SDOT/BDRX. ──
-                if remaining_shares > 0 and partial_taken and len(completed) >= 2:
+                if (not RUNNER_HEALTH_EXIT) and remaining_shares > 0 and partial_taken and len(completed) >= 2:
                     _lh  = float(completed[-1].get("high")  or completed[-1].get("h") or 0)
                     _lcl = float(completed[-1].get("close") or completed[-1].get("c") or 0)
                     _ph  = float(completed[-2].get("high")  or completed[-2].get("h") or 0)
@@ -3990,7 +3997,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 # ── Kev's prev-bar-low TRAIL (close-based — the runner's structural trail after we've
                 # scaled). A completed bar CLOSING below the PRIOR bar's low = the up-structure broke →
                 # exit the runner. Close-based (not intrabar) so normal pullbacks don't snipe it. ──
-                if remaining_shares > 0 and partial_taken and len(completed) >= 2:
+                if (not RUNNER_HEALTH_EXIT) and remaining_shares > 0 and partial_taken and len(completed) >= 2:
                     _pl   = float(completed[-2].get("low")   or completed[-2].get("l") or 0)
                     _lcl2 = float(completed[-1].get("close") or completed[-1].get("c") or 0)
                     if _pl > 0 and 0 < _lcl2 < _pl:
@@ -4011,7 +4018,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 # Kev "topping tail off the high" — his #1 exit. If the last completed bar
                 # made a fresh high then got rejected (long upper wick) AND we're in profit,
                 # take the money. Only protects a winner — never exits a loser on a wick.
-                if remaining_shares > 0 and current_price > entry_price:
+                if (not RUNNER_HEALTH_EXIT) and remaining_shares > 0 and current_price > entry_price:
                     last_high = float(completed[-1].get("high") or completed[-1].get("h") or 0)
                     if last_high >= highest_price * 0.99 and is_topping_tail(completed[-1]):
                         print(f"🔻 Topping tail off the high: {ticker} rejected at ${last_high:.2f} "
@@ -4020,6 +4027,24 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                         close_position(ticker, remaining_shares)
                         result["exit_price"]  = current_price
                         result["exit_reason"] = "TOPPING TAIL"
+                        remaining_shares = 0
+
+                # ── HEALTH TRAIL (7/3 [[persona_trade_manager]]) — replaces the twitchy soft exits above. HOLD the
+                # runner through a pullback while it stays above VWAP OR the 9-EMA (healthy structure); FOLD only when
+                # a 3-min bar CLOSES below BOTH (structure gone). Breakeven stop (above) is the hard floor. Data-derived
+                # (healthy pullbacks hold VWAP 84%/EMA 67% vs dying 30%/26%); +6R over baseline across 4 days. ──
+                if RUNNER_HEALTH_EXIT and remaining_shares > 0 and partial_taken and len(completed) >= 2:
+                    _hc = float(completed[-1].get("close") or completed[-1].get("c") or 0)
+                    _e9 = calculate_ema9(completed)
+                    try:    _vw = calculate_vwap(_latest_session(bars))
+                    except Exception: _vw = 0.0
+                    if _hc > 0 and _e9 > 0 and _vw > 0 and _hc < _e9 and _hc < _vw:
+                        print(f"🩺 {ticker}: 3-min close ${_hc:.2f} below EMA9 ${_e9:.2f} AND VWAP ${_vw:.2f} "
+                              f"— pullback structure gone, fold the runner.")
+                        cancel_order(placed_stop_id)
+                        close_position(ticker, remaining_shares)
+                        result["exit_price"]  = current_price
+                        result["exit_reason"] = "HEALTH FOLD (lost VWAP+EMA)"
                         remaining_shares = 0
             last_ema_check = time.time()
 

@@ -1359,7 +1359,8 @@ def _archive_watchlist_bars(tickers):
         saved = 0
         for t in tickers:
             try:
-                bars = get_intraday_bars(t, count=960, executor=_aux_executor)   # full extended day
+                bars = get_intraday_bars(t, count=960, executor=_aux_executor,
+                                         sessions=["RTH", "PRE", "ATH"])   # full extended day incl pre/after-market
                 if not bars:
                     continue
                 r = requests.post(f"{url}/api/bars", json={"date": date, "ticker": t, "bars": bars},
@@ -1410,7 +1411,8 @@ def winner_sweep():
         saved = errs = 0
         for sym in list(movers)[:80]:                    # bound the batch
             try:
-                bars = get_intraday_bars(sym, count=960, executor=_aux_executor)
+                bars = get_intraday_bars(sym, count=960, executor=_aux_executor,
+                                         sessions=["RTH", "PRE", "ATH"])   # full extended day incl pre/after-market
                 if bars:
                     r = requests.post(f"{url}/api/bars", json={"date": date, "ticker": sym, "bars": bars},
                                       headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=20)
@@ -2203,7 +2205,7 @@ def _to_chronological(bars):
     return list(reversed(bars))
 
 
-def get_intraday_bars(ticker, count=30, executor=None):
+def get_intraday_bars(ticker, count=30, executor=None, sessions=None):
     """Fetch 1-minute intraday bars for VWAP calculation. Uses SDK.
 
     The SDK call has no timeout — used inside monitor_trade (structure-based exits: prev-bar-low trail + topping-tail),
@@ -2214,13 +2216,12 @@ def get_intraday_bars(ticker, count=30, executor=None):
         dc = _get_data_client()
         if not dc:
             return []
-        future = (executor or _quote_executor).submit(
-            dc.market_data.get_history_bar,
-            symbol=ticker,
-            category="US_STOCK",
-            timespan="M1",
-            count=str(count),
-        )
+        # sessions=None → RTH only (default, unchanged live behavior). Pass ["RTH","PRE","ATH"] to include
+        # extended hours (pre/after-market) — used ONLY for the bar ARCHIVE (analysis), never the live VWAP/EMA path.
+        _kw = {"symbol": ticker, "category": "US_STOCK", "timespan": "M1", "count": str(count)}
+        if sessions:
+            _kw["trading_sessions"] = sessions
+        future = (executor or _quote_executor).submit(dc.market_data.get_history_bar, **_kw)
         try:
             resp = future.result(timeout=QUOTE_TIMEOUT_SECS)
         except concurrent.futures.TimeoutError:

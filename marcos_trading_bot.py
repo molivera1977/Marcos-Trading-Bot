@@ -314,6 +314,9 @@ MA_PULLBACK_STOP_BUFFER = 0.01    # stop just below the MA the pullback held
 BOUNCE_MIN_RUN          = 0.15    # Kev #28 mean-reversion bounce: name must have RUN ≥15% earlier (a former
 BOUNCE_MIN_DD           = 0.10    # runner) then ROUND-TRIPPED ≥10% off the high before the reclaim. Homegrown → revisit.
 MA_RISING_LOOKBACK      = 5       # the MA must be rising over this many bars (uptrend)
+EXTENSION_MAX_PCT       = 0.25    # 7/3 EXTENSION GUARD: skip an entry whose price is >25% above the 90-EMA (chasing
+                                  # extended = Kev "don't chase"; L2 R11). Data (52 trades): losers +42% ext vs winners
+                                  # +13%; gated in the bot → avgR +0.03→+0.25, totalR +1.7→+9.6/4d. Fail-open (no 90-EMA).
 MIN_RR             = 2.0    # minimum reward:risk ratio for EMA bounce
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
@@ -3537,6 +3540,16 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         # Others active per BREAKOUT_ENTRIES: True → full bag; False → pullback + VWAP-reclaim only.
         breakouts = [b for b in breakouts
                      if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim"))]
+        # EXTENSION GUARD — don't chase a name too far above its 90-EMA (7/3 data; Kev "don't chase extended").
+        if EXTENSION_MAX_PCT and EXTENSION_MAX_PCT < 9:
+            _kept = []
+            for b in breakouts:
+                _e90 = (b[4].get("ema90") or 0)
+                if _e90 > 0 and (b[1] - _e90) / _e90 > EXTENSION_MAX_PCT:
+                    _log_decision(b[0], "extension_reject", price=b[1], ext_pct=round((b[1] - _e90) / _e90 * 100, 1))
+                else:
+                    _kept.append(b)   # fail-open when there's no 90-EMA to measure
+            breakouts = _kept
         if breakouts:
             return breakouts
 

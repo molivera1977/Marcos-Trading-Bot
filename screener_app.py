@@ -1197,6 +1197,52 @@ def api_daily():
     except Exception as e:
         return jsonify({"error": str(e), "ticker": ticker}), 500
 
+@app.route("/api/stream_check", methods=["GET"])
+def api_stream_check():
+    """DIAGNOSTIC (7/5): confirm the OpenAPI real-time STREAMING actually works with our creds + the free
+    Nasdaq Basic entitlement. Connects the official DataStreamingClient, subscribes to a symbol, reports:
+    connected? subscribe accepted? messages received? Read-only (no orders). Market-closed → connect+subscribe
+    still confirm the entitlement is wired; live ticks only flow during market hours. ?ticker=AAPL&secs=6."""
+    ticker = (request.args.get("ticker") or "AAPL").upper().strip()
+    try:
+        secs = min(int(request.args.get("secs", "6")), 20)
+    except ValueError:
+        secs = 6
+    res = {"ticker": ticker, "connected": None, "subscribed": None, "messages": 0,
+           "sample": None, "error": None}
+    client = None
+    try:
+        from webull.data.data_streaming_client import DataStreamingClient
+        from webull.data.quotes.subscribe.payload_type import PAYLOAD_TYPE_QUOTE
+        from webull.core.utils.common import get_uuid
+        client = DataStreamingClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us", get_uuid())
+        _msgs = {"n": 0, "last": None}
+        def _on_msg(_c, topic, payload):
+            _msgs["n"] += 1
+            if _msgs["last"] is None:
+                _msgs["last"] = {"topic": str(topic)[:40], "payload": str(payload)[:200]}
+        client.on_quotes_message = _on_msg
+        client.connect_and_loop_async(timeout=1, thread_daemon=True)
+        time.sleep(3)                                        # let the MQTT connect settle
+        res["connected"] = bool(client.get_connect_success())
+        client.subscribe([ticker], "US_STOCK", [PAYLOAD_TYPE_QUOTE])
+        time.sleep(max(2, secs))                             # collect any pushes
+        res["subscribed"] = bool(client.get_subscribe_success())
+        res["messages"] = _msgs["n"]
+        res["sample"] = _msgs["last"]
+    except Exception as e:
+        res["error"] = f"{type(e).__name__}: {e}"
+    finally:
+        try:
+            if client:
+                client.disconnect(); client.loop_stop()
+        except Exception:
+            pass
+    res["read"] = ("entitlement WIRED (connect+subscribe OK)" if (res["connected"] and res["subscribed"])
+                   else "NOT confirmed — see error / flags")
+    res["note"] = "live ticks (messages>0) only flow during market hours; connect+subscribe confirm the entitlement anytime"
+    return jsonify(res)
+
 # ── KEV'S DAILY FLAGGED TICKERS — the names Kev calls out to watch each day. Recorded here so the
 # end-of-day bar archiver also banks bars for HIS picks (even ones our bot never watched), letting us
 # benchmark our selection/processes against his. POST {date, tickers}; GET ?date= (or all). ──

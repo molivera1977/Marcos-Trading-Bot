@@ -1218,18 +1218,21 @@ def api_stream_check():
         # 1) Use the EXISTING stored token DIRECTLY — do NOT refresh/verify (that re-triggers 2FA, which
         #    is what failed last time). This is the same token the data API uses successfully.
         import pathlib as _pl
-        _pre_populate_token()
-        _token = os.environ.get("WEBULL_ACCESS_TOKEN", "")
+        # Prefer the FRESH minted token in token.txt (?token= overrides); do NOT _pre_populate (that clobbers it).
+        _token = (request.args.get("token") or "").strip()
         if not _token:
             try:
                 _token = (_pl.Path(WEBULL_TOKEN_DIR) / "token.txt").read_text().splitlines()[0].strip()
             except Exception:
                 pass
+        if not _token:
+            _token = os.environ.get("WEBULL_ACCESS_TOKEN", "")
         res["token_ok"] = bool(_token)
-        # Streaming client — inject the stored token. (Diagnostic proved streaming needs a freshly
-        # 2FA-verified token; the stored data token is rejected. No global SDK patching — keep the live bot safe.)
+        # Streaming client — point it at the token dir (so connect-time init loads the FRESH NORMAL token +
+        # verifies it, which now SUCCEEDS without 2FA) and also set it directly.
         client = DataStreamingClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us", get_uuid())
         try:
+            client._api_client.set_token_dir(WEBULL_TOKEN_DIR)
             if _token:
                 client._api_client.set_token(_token)
         except Exception as ie:

@@ -499,6 +499,13 @@ WEBULL_MQTT_HOST  = "stream.webull.com"
 WEBULL_MQTT_PORT  = 443          # WebSocket over TLS
 MQTT_LOOP_SLEEP   = 0.5          # When streaming: check every 0.5s
 POLL_LOOP_SLEEP   = 3            # REST polling interval: check every 3s
+# ── REAL-TIME STREAMING (7/5) — the official Webull OpenAPI SNAPSHOT stream, now working with the fresh
+#    2FA-verified token. Moves price reads OFF the 300/min REST cap onto the unlimited push stream (the
+#    capacity fix for the ~2× ignition volume). SAFE-BY-DESIGN: a streamed price is used ONLY when it's
+#    fresh (≤STREAM_FRESH_SECS) + sane; otherwise get_price transparently falls back to REST. Worst case =
+#    today's polling behavior. Kill-switch: STREAMING_ENABLED=False → pure polling. ──
+STREAMING_ENABLED = True
+STREAM_FRESH_SECS = 20           # a streamed price is trusted only if it arrived within this many seconds; else REST
 
 # ============================================================
 # WEBULL OPENAPI v2 — SIGNATURE & HEADERS
@@ -628,42 +635,108 @@ _price_lock = threading.Lock()
 
 class WebullStream:
     """
-    Connects to Webull's MQTT stream for real-time price pushes.
-    Webull pushes up to 3 price updates per second per ticker.
-    Falls back to REST polling automatically if MQTT is unavailable.
+    Real-time price feed via the official Webull OpenAPI SNAPSHOT stream (7/5 — working with the fresh
+    2FA-verified token). Prices are PUSHED to _price_registry; get_price reads the registry when the value
+    is FRESH + sane, else falls back to a REST quote. Any connect/subscribe failure → connected=False →
+    pure REST polling. Streaming can only reduce API load; it never feeds a stale/bad price (fallback).
     """
 
     def __init__(self, tickers: list):
-        self.tickers   = tickers if isinstance(tickers, list) else [tickers]
-        self.client    = None
-        self.connected = False
+        self.tickers    = tickers if isinstance(tickers, list) else [tickers]
+        self.client     = None
+        self.connected  = False
+        self.subscribed = set()
+        self._attempted = set()      # symbols we've tried to subscribe (avoids a retry storm on a failing sub)
+        self._last_tick_ts = 0.0     # wall-clock of the last VALID tick — gates the fast loop cadence
+        self._sub_lock  = threading.Lock()
         self._connect()
 
     def _connect(self):
-        """Streaming disabled — Webull streaming token stays PENDING (not enabled for this key).
-        Using fast REST polling instead."""
-        self.connected = False
-        print(f"📊 Using {POLL_LOOP_SLEEP}s REST polling for price updates")
+        if not STREAMING_ENABLED:
+            self.connected = False
+            print(f"📊 Streaming off (kill-switch) — {POLL_LOOP_SLEEP}s REST polling")
+            return
+        try:
+            from webull.core.utils.common import get_uuid
+            _pre_populate_webull_token()
+            _tok = WEBULL_ACCESS_TOKEN
+            if not _tok:
+                try:
+                    _tok = (pathlib.Path(WEBULL_TOKEN_DIR) / "token.txt").read_text().splitlines()[0].strip()
+                except Exception:
+                    _tok = ""
+            if not (WebullStreamingClient and _tok):
+                raise RuntimeError("streaming client or token unavailable")
+            client = WebullStreamingClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us", get_uuid())
+            client._api_client.set_token_dir(WEBULL_TOKEN_DIR)   # connect-time init verifies the FRESH token
+            client._api_client.set_token(_tok)
+            client.on_quotes_message = self._on_msg
+            client.connect_and_loop_async(timeout=1, thread_daemon=True)
+            time.sleep(3)                                        # let the MQTT connect settle
+            self.client = client
+            self._subscribe(self.tickers)
+            self.connected = True
+            print(f"📡 Real-time STREAMING connected (SNAPSHOT) — {len(self.subscribed)} tickers subscribed")
+        except Exception as e:
+            self.connected = False
+            self.client = None
+            print(f"⚠️  Streaming connect failed ({e}) — falling back to {POLL_LOOP_SLEEP}s REST polling")
+
+    def _subscribe(self, tickers):
+        """Subscribe SNAPSHOT for any not-yet-subscribed tickers (idempotent). Errors are non-fatal (REST covers)."""
+        if not self.client:
+            return
+        new = [t.upper() for t in tickers if t and t.upper() not in self._attempted]
+        if not new:
+            return
+        with self._sub_lock:
+            self._attempted.update(new)                          # mark attempted BEFORE the call → tried once, no storm
+        try:
+            self.client.subscribe(new, "US_STOCK", ["SNAPSHOT"])
+            with self._sub_lock:
+                self.subscribed.update(new)
+        except Exception as e:
+            print(f"⚠️  Stream subscribe error {new}: {e}")
+
+    def _on_msg(self, _client, topic, payload):
+        """SNAPSHOT push → update the price registry with the last-trade price (+ ext/overnight if RTH is None)."""
+        try:
+            basic = getattr(payload, "basic", None)
+            sym = getattr(basic, "symbol", None)
+            px = getattr(payload, "price", None) or getattr(payload, "ext_price", None) or getattr(payload, "ovn_price", None)
+            if sym and px:
+                p = float(px)
+                if 0 < p < 1e6:                                 # basic sanity band
+                    now = time.time()
+                    self._last_tick_ts = now                     # proof ticks are flowing → allows fast loop cadence
+                    with _price_lock:
+                        _price_registry[str(sym).upper()] = {"p": p, "t": now}
+        except Exception:
+            pass                                                # a bad message never breaks the feed
 
     def get_price(self, ticker: str) -> float:
-        """
-        Returns the latest price for ticker.
-        If MQTT is live, reads from the in-memory registry (sub-second fresh).
-        If MQTT failed, falls back to a REST call.
-        """
+        """Fresh streamed price if we have one, else a REST quote. Never returns a stale streamed value."""
+        t = ticker.upper()
         if self.connected:
+            self._subscribe([t])                                # lazily subscribe names added mid-session
             with _price_lock:
-                return _price_registry.get(ticker.upper(), 0)
-        return _get_price_rest(ticker)
+                rec = _price_registry.get(t)
+            if isinstance(rec, dict) and rec["p"] > 0 and (time.time() - rec["t"]) <= STREAM_FRESH_SECS:
+                return rec["p"]
+        return _get_price_rest(ticker)                          # not connected / no fresh tick → REST
 
     def loop_sleep(self) -> float:
-        """How long to sleep between price checks in the monitoring loop."""
-        return MQTT_LOOP_SLEEP if self.connected else POLL_LOOP_SLEEP
+        # Fast 0.5s cadence ONLY when ticks are actually arriving; if the stream is connected but silent
+        # (wrong entitlement / off-hours / parse mismatch) get_price falls back to REST, so use the slower
+        # cadence — this guarantees streaming can never poll REST harder than plain 3s polling would.
+        if self.connected and (time.time() - self._last_tick_ts) <= STREAM_FRESH_SECS:
+            return MQTT_LOOP_SLEEP
+        return POLL_LOOP_SLEEP
 
     def stop(self):
         if self.client:
             try:
-                self.client.disconnect()
+                self.client.disconnect(); self.client.loop_stop()
             except Exception:
                 pass
 

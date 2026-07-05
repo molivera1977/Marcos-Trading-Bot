@@ -1246,7 +1246,7 @@ def api_stream_check():
         client.connect_and_loop_async(timeout=1, thread_daemon=True)
         time.sleep(3)                                        # let the MQTT connect settle
         res["connected"] = bool(client.get_connect_success())
-        client.subscribe([ticker], "US_STOCK", [PAYLOAD_TYPE_QUOTE])
+        client.subscribe([ticker], "US_STOCK", ["QUOTE"])
         time.sleep(max(2, secs))                             # collect any pushes
         res["subscribed"] = bool(client.get_subscribe_success())
         res["messages"] = _msgs["n"]

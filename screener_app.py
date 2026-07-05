@@ -1226,16 +1226,8 @@ def api_stream_check():
             except Exception:
                 pass
         res["token_ok"] = bool(_token)
-        # 2) BYPASS the SDK's connect-time token RE-verification (init_token → 2FA). It only touches the
-        #    token, so no-op'ing it makes the streaming client reuse our EXISTING valid token directly.
-        #    If Webull's streaming accepts that token → no 2FA ever needed.
-        try:
-            from webull.core.http.initializer.client_initializer import ClientInitializer
-            ClientInitializer.init_token = staticmethod(lambda _api: None)
-            res["bypass"] = "init_token no-op"
-        except Exception as pe:
-            res["bypass"] = f"patch-failed: {pe}"
-        # 3) Streaming client — inject the token so the HTTP subscribe + MQTT connect carry x-access-token.
+        # Streaming client — inject the stored token. (Diagnostic proved streaming needs a freshly
+        # 2FA-verified token; the stored data token is rejected. No global SDK patching — keep the live bot safe.)
         client = DataStreamingClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us", get_uuid())
         try:
             if _token:

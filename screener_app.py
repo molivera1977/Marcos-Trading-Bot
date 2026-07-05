@@ -1208,14 +1208,39 @@ def api_stream_check():
         secs = min(int(request.args.get("secs", "6")), 20)
     except ValueError:
         secs = 6
-    res = {"ticker": ticker, "connected": None, "subscribed": None, "messages": 0,
-           "sample": None, "error": None}
+    res = {"ticker": ticker, "token_ok": None, "token_err": None, "connected": None,
+           "subscribed": None, "messages": 0, "sample": None, "error": None}
     client = None
     try:
         from webull.data.data_streaming_client import DataStreamingClient
         from webull.data.quotes.subscribe.payload_type import PAYLOAD_TYPE_QUOTE
         from webull.core.utils.common import get_uuid
+        # 1) Acquire the WORKING access token via the proven data path (same one the data API uses).
+        #    A trivial data call forces the SDK's TokenManager to fetch/verify the token (raises if not NORMAL).
+        _pre_populate_token()
+        _ac = ApiClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us",
+                        token_check_duration_seconds=60, token_check_interval_seconds=5)
+        _ac.set_token_dir(WEBULL_TOKEN_DIR)
+        _ac.add_endpoint("us", TRADING_HOST)
+        try:
+            WebullDataClient(_ac).market_data.get_history_bar(symbol="AAPL", category="US_STOCK",
+                                                              timespan="D", count="1")
+        except Exception as te:
+            res["token_err"] = f"{type(te).__name__}: {te}"[:200]
+        _token = None
+        try:
+            _token = _ac.get_token()
+        except Exception:
+            pass
+        res["token_ok"] = bool(_token)
+        # 2) Streaming client — inject that token so the HTTP subscribe carries x-access-token.
         client = DataStreamingClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us", get_uuid())
+        try:
+            client._api_client.set_token_dir(WEBULL_TOKEN_DIR)
+            if _token:
+                client._api_client.set_token(_token)
+        except Exception as ie:
+            res["error"] = f"token-inject: {ie}"
         _msgs = {"n": 0, "last": None}
         def _on_msg(_c, topic, payload):
             _msgs["n"] += 1

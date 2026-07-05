@@ -337,6 +337,15 @@ IGNITION_DAILY_VETO    = False   # ignition is EXEMPT from Kev's daily-first vet
                                  # the veto (a proxy for "dead name, no range") misfires on this archetype and
                                  # rejects the winners. Exempt = +29.8R vs +16.1R w/ veto over 4 days, catches
                                  # ZCMD+CCTG the veto killed. Other entries KEEP the veto. Revisit w/ DRY_RUN data.
+# ── SCALE-OUT GRID (7/5 exit study) — progressive scale-out as R-multiples of the entry risk. ⚠️ NOT Kev's
+#    exact numbers: Kev sells "quarters into levels" (supply / round-$ / halt-band) but QUANTIFIES NONE of it,
+#    so this is a REIMAGINED translation of his "sell into strength" shape into concrete, testable levels.
+#    Reverse-engineered from the exit forensics + backtested on real bars: 50%@+1R / 25%@+2R / 15%@+3.5R /
+#    10% health-trailed runner BEATS the old "25%@supply-or-+2R" (supply fires too low — room calc is de-inverted).
+#    Full-population 4-day faithful backtest: +25.8R → +32.2R (helps ignition +5.8R + ma_pullback +0.5R, neutral
+#    on flat_top/vwap_reclaim, hurts none; median R +0.65→+1.16). Over-scaling (a 4th tranche) was WORSE — rejected.
+#    Homegrown levels → calibrate w/ DRY_RUN data; the real fix is better supply levels (round-$), a later build.
+SCALE_TIERS        = [(1, 0.50), (2, 0.75), (3.5, 0.90)]   # (R-multiple, cumulative fraction sold); None = old supply grid
 MIN_RR             = 2.0    # minimum reward:risk ratio for EMA bounce
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
@@ -3913,11 +3922,14 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     # (risk-free → stop to break-even), trim to a ~1/4 runner at the next supply (or +2R if open room),
     # then the 1/4 runner trails the PREVIOUS-BAR LOW. Replaces the made-up +8/12/20% tiers + TRAIL_PCT. ──
     R = max(entry_price - stop_loss, 0.01)
-    _scale2 = next_supply if (next_supply and next_supply > entry_price + R) else entry_price + 2 * R
-    kev_tiers = [(round(entry_price + R, 4), 0.50),    # +1R  → sell 50%, stop to break-even (risk-free)
-                 (round(_scale2, 4), 0.75)]             # supply/+2R → sell 25% (down to a 1/4 runner)
-    print(f"   Kev exits: R=${R:.2f} | 50%@+1R(${kev_tiers[0][0]:.2f}) → 25%@${kev_tiers[1][0]:.2f}"
-          f"({'supply' if (next_supply and _scale2 == next_supply) else '+2R'}) → 1/4 runner trails prev-bar low")
+    if SCALE_TIERS:                                    # reimagined R-grid scale-out (7/5 exit study — beats supply grid)
+        kev_tiers = [(round(entry_price + rm * R, 4), cum) for rm, cum in SCALE_TIERS]
+    else:
+        _scale2 = next_supply if (next_supply and next_supply > entry_price + R) else entry_price + 2 * R
+        kev_tiers = [(round(entry_price + R, 4), 0.50),    # +1R  → sell 50%, stop to break-even (risk-free)
+                     (round(_scale2, 4), 0.75)]             # supply/+2R → sell 25% (down to a 1/4 runner)
+    print(f"   Kev exits: R=${R:.2f} | tiers " + " → ".join(f"{int(c*100)}%@${p:.2f}" for p, c in kev_tiers)
+          + " → runner trails (health-trail)")
     last_ema_check     = 0.0           # epoch of last EMA9 bar fetch
 
     result = {"exit_price": entry_price, "exit_reason": "Unknown",

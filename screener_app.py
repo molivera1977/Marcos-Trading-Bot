@@ -1261,6 +1261,65 @@ def api_stream_check():
     res["note"] = "live ticks (messages>0) only flow during market hours; connect+subscribe confirm the entitlement anytime"
     return jsonify(res)
 
+@app.route("/api/mint_token", methods=["GET"])
+def api_mint_token():
+    """Mint a FRESH 2FA-verified Webull token server-side (the webull_setup.py flow). Uses only the app
+    key/secret (already in env) — NO password. Creates a pending token → the USER approves the login
+    notification in the Webull APP → we poll until NORMAL → write it to the token file so the running app
+    uses it immediately. ⚠️ Also set it as WEBULL_ACCESS_TOKEN in Railway to survive redeploys."""
+    import hmac, hashlib, base64, uuid, socket, requests, pathlib as _pl
+    from urllib.parse import quote
+    from datetime import datetime as _dt
+    HOST = "api.webull.com"; BASE = f"https://{HOST}"
+    def _hdrs(path, body_dict=None):
+        ts = _dt.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        nonce = str(uuid.uuid5(uuid.NAMESPACE_URL, socket.gethostname() + str(uuid.uuid1())))
+        h = {"Content-Type": "application/json", "x-app-key": WEBULL_APP_KEY, "x-timestamp": ts,
+             "x-signature-version": "1.0", "x-signature-algorithm": "HMAC-SHA1",
+             "x-signature-nonce": nonce, "x-version": "v2"}
+        sp = {"x-app-key": WEBULL_APP_KEY, "x-timestamp": ts, "x-signature-version": "1.0",
+              "x-signature-algorithm": "HMAC-SHA1", "x-signature-nonce": nonce, "host": HOST}
+        bs = None
+        if body_dict is not None:
+            bs = hashlib.md5(json.dumps(body_dict, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest().upper()
+        s2s = f"{path}&" + "&".join(f"{k}={v}" for k, v in sorted(sp.items())) + (f"&{bs}" if bs else "")
+        s2s = quote(s2s, safe='')
+        h["x-signature"] = base64.b64encode(hmac.new((WEBULL_APP_SECRET + "&").encode(), s2s.encode(), hashlib.sha1).digest()).decode()
+        return h
+    res = {}
+    if not (WEBULL_APP_KEY and WEBULL_APP_SECRET):
+        return jsonify({"error": "app key/secret not set in env"}), 503
+    try:
+        # 1) create pending token → this triggers the login notification in the user's Webull app
+        p = "/openapi/auth/token/create"; body = {}
+        r = requests.post(f"{BASE}{p}", headers=_hdrs(p, body),
+                          data=json.dumps(body, ensure_ascii=False, separators=(',', ':')), timeout=15)
+        d = r.json()
+        tok = (d.get("data") or {}).get("token") if isinstance(d.get("data"), dict) else \
+              (d.get("data") if isinstance(d.get("data"), str) else d.get("token"))
+        res["create_http"] = r.status_code; res["token"] = tok
+        if not tok:
+            res["error"] = "no token from create"; res["raw"] = d; return jsonify(res)
+        res["action"] = "APPROVE the login notification in your Webull APP now (polling ~80s)"
+        # 2) poll check until NORMAL (user approves in-app during this window)
+        pc = "/openapi/auth/token/check"; bc = {"token": tok}; status = None
+        for _ in range(16):
+            rr = requests.post(f"{BASE}{pc}", headers=_hdrs(pc, bc),
+                               data=json.dumps(bc, ensure_ascii=False, separators=(',', ':')), timeout=15)
+            dd = rr.json(); status = dd.get("status") or (dd.get("data") or {}).get("status")
+            if status in ("NORMAL", "INVALID", "EXPIRED"):
+                break
+            time.sleep(5)
+        res["status"] = status
+        if status == "NORMAL":
+            d2 = _pl.Path(WEBULL_TOKEN_DIR); d2.mkdir(parents=True, exist_ok=True)
+            exp = int(time.time() * 1000) + 14 * 24 * 3600 * 1000
+            (d2 / "token.txt").write_text(f"{tok}\n{exp}\nNORMAL\n")
+            res["stored"] = "token.txt updated (live now). ALSO set WEBULL_ACCESS_TOKEN in Railway to persist across redeploys."
+    except Exception as e:
+        res["error"] = f"{type(e).__name__}: {e}"
+    return jsonify(res)
+
 # ── KEV'S DAILY FLAGGED TICKERS — the names Kev calls out to watch each day. Recorded here so the
 # end-of-day bar archiver also banks bars for HIS picks (even ones our bot never watched), letting us
 # benchmark our selection/processes against his. POST {date, tickers}; GET ?date= (or all). ──

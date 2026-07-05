@@ -1237,18 +1237,20 @@ def api_stream_check():
                 client._api_client.set_token(_token)
         except Exception as ie:
             res["error"] = f"token-inject: {ie}"
+        _flags = {"sub": False}
         _msgs = {"n": 0, "last": None}
         def _on_msg(_c, topic, payload):
             _msgs["n"] += 1
             if _msgs["last"] is None:
                 _msgs["last"] = {"topic": str(topic)[:40], "payload": str(payload)[:200]}
         client.on_quotes_message = _on_msg
+        client.on_subscribe_success = lambda *a: _flags.__setitem__("sub", True)   # fires only on subscribe HTTP 200
         client.connect_and_loop_async(timeout=1, thread_daemon=True)
-        time.sleep(3)                                        # let the MQTT connect settle
+        time.sleep(5)                                        # let the MQTT connect settle
         res["connected"] = bool(client.get_connect_success())
         client.subscribe([ticker], "US_STOCK", ["QUOTE"])
-        time.sleep(max(2, secs))                             # collect any pushes
-        res["subscribed"] = bool(client.get_subscribe_success())
+        time.sleep(max(3, secs))                             # collect any pushes
+        res["subscribed"] = _flags["sub"] or bool(client.get_subscribe_success())
         res["messages"] = _msgs["n"]
         res["sample"] = _msgs["last"]
     except Exception as e:

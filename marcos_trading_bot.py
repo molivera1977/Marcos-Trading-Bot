@@ -321,15 +321,21 @@ EXTENSION_MAX_PCT       = 0.25    # 7/3 EXTENSION GUARD: skip an entry whose pri
 #    QUIET early base → a VOLUME-ACCEL bar breaks it while NOT-yet-extended (+3–15%) → vertical. 1-min bars,
 #    NOT gated on above-VWAP (quiet base sits below VWAP); the surge IS the trigger. Tight stop = base low.
 IGNITION_ENABLED       = True
-IGNITION_WINDOW_MIN    = 45      # only fire in the first 45 min (9:30–10:15) — the ignition happens early
+# ⚡ LOOSENED 7/5 (aggressive combined config) — the robustness sweep + decomposition showed the shipped
+#    values were CONSERVATIVE-by-default: looser scored higher on 4 days AND the added trades were BROADLY
+#    positive (marginal 20 trades, +27.4R, 18/20 won — NOT one fat trade; concentration DROPPED). Nearly 2× the
+#    trades (28→48) + 2× R (+36→+70), catches 5/8 fast verticals. Serves the DRY_RUN goal (more trades to learn,
+#    don't add limiters). MAX_EXT kept tight (the one mechanism gate). Watch EXEC HEALTH (429s/peak positions) —
+#    this is untested at ~2× volume; the backtest assumes flawless execution the live bot may not deliver.
+IGNITION_WINDOW_MIN    = 90      # fire through the first 90 min (was 45). Sweep: +35.9→+46R; spreads trades (gentler concurrency)
 IGNITION_BASE_MIN      = 1       # min base bars before a break (1 catches immediate igniters)
-IGNITION_BASE_LOOKBACK = 6       # base = the last N 1-min bars before the break
-IGNITION_VOL_MULT      = 2.5     # ignition bar volume ≥ 2.5× the base avg volume (the acceleration tell)
-IGNITION_MIN_ABS_VOL   = 10000   # abs-volume floor on the ignition bar (liquidity)
-IGNITION_MAX_EXT       = 0.15    # ignition close ≤ +15% from the session open (NOT-yet-extended = not a chase)
-IGNITION_MIN_EXT       = -0.03   # ignition close ≥ −3% from open — the thesis is a break UP from a base near the
-                                 # open; a name down >3% at the surge is a bounce off a dump, not an ignition
-                                 # (cut BTCT −14.9%, CWD −11.4% junk fires). Homegrown → revisit w/ live data.
+IGNITION_BASE_LOOKBACK = 4       # base = the last N 1-min bars before the break (was 6; sweep +35.9→+43R, 4/4 marginal won)
+IGNITION_VOL_MULT      = 2.0     # ignition bar vol ≥ 2.0× base avg (was 2.5; looser surge bar, sweep-favored)
+IGNITION_MIN_ABS_VOL   = 5000    # abs-volume floor (was 10k; sweep +35.9→+47R, 7/9 marginal won; $100 pos = negligible slippage)
+IGNITION_MAX_EXT       = 0.15    # ignition close ≤ +15% from open (NOT-yet-extended). KEPT TIGHT — the one mechanism gate
+                                 # (loosening = chasing extended, contradicts the entry thesis; do NOT widen).
+IGNITION_MIN_EXT       = -0.05   # ignition close ≥ −5% from open (was −0.03; the sweep's mild cliff — softened for margin).
+                                 # Still cuts the deep dump-bounces (BTCT −14.9%, CWD −11.4%); break UP from near the open.
 IGNITION_STRONG        = 0.5     # ignition bar closes in the top ≥50% of its range (buyers won the bar)
 IGNITION_DAILY_VETO    = False   # ignition is EXEMPT from Kev's daily-first veto — DATA-DECIDED (7/5, real
                                  # split-adjusted daily-veto backtest): the fast verticals are beaten-down
@@ -1484,6 +1490,21 @@ WATCHDOG_RECOVER_SECS = 300    # stale this long → force-record + abort (gener
 _active_monitors: dict = {}    # ticker -> {"heartbeat": ts, "ctx": {full record}, "alerted": bool}
 _monitor_abort: set = set()    # tickers the watchdog force-closed; a thawing monitor checks + bails
 
+# ── EXECUTION-HEALTH INSTRUMENTATION (7/5) — the looser ignition config fires ~2× the trades (many
+#    concurrent in hour 1); the backtest assumes flawless execution the live bot may not deliver at that
+#    volume. Count the two signals that show whether it CHOKED: Webull 429 rate-limits + peak concurrent
+#    positions. Behavior-neutral (counters only). Emitted in the scan-loop status + logged each cycle. ──
+_exec_health = {"api_429": 0, "api_err": 0, "timeouts": 0, "peak_positions": 0, "cur_positions": 0}
+_exec_health_lock = threading.Lock()
+def _bump(key, n=1):
+    with _exec_health_lock:
+        _exec_health[key] = _exec_health.get(key, 0) + n
+def _note_positions(cur):
+    with _exec_health_lock:
+        _exec_health["cur_positions"] = cur
+        if cur > _exec_health["peak_positions"]:
+            _exec_health["peak_positions"] = cur
+
 def _watchdog_force_record(ctx: dict):
     """Record a frozen-monitor trade at the current price (intraday) — same record-on-recovery
     semantics as startup recovery, but triggered live by the watchdog. trade_id dedups."""
@@ -2255,9 +2276,11 @@ def get_intraday_bars(ticker, count=30, executor=None, sessions=None):
             resp = future.result(timeout=QUOTE_TIMEOUT_SECS)
         except concurrent.futures.TimeoutError:
             print(f"⚠️  Intraday bars TIMEOUT for {ticker} (>{QUOTE_TIMEOUT_SECS}s) — returning none")
+            _bump("timeouts")
             return []
         if resp.status_code != 200:
             print(f"⚠️  Intraday bars {resp.status_code} for {ticker}")
+            _bump("api_429" if resp.status_code == 429 else "api_err")
             return []
         raw = resp.json()
         if isinstance(raw, list):
@@ -2485,6 +2508,7 @@ def get_daily_levels(ticker):
             if resp.status_code == 200:
                 break
             if resp.status_code == 429:
+                _bump("api_429")
                 time.sleep(0.6 * (_attempt + 1))
                 continue
             return None
@@ -3671,6 +3695,14 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
 
         if status_parts:
             print(f"📊 {' | '.join(status_parts)}")
+
+        # ── EXEC HEALTH — the loosened config's capacity read: did we choke on 429s / how many positions at once? ──
+        with _exec_health_lock:
+            _eh = dict(_exec_health)
+        print(f"⚙️  EXEC HEALTH: 429={_eh['api_429']} api_err={_eh['api_err']} timeouts={_eh['timeouts']} "
+              f"| positions now {len(_active_monitors)} (peak {_eh['peak_positions']})")
+        _log_decision("_exec_health", api_429=_eh["api_429"], api_err=_eh["api_err"],
+                      timeouts=_eh["timeouts"], peak_positions=_eh["peak_positions"])
 
         # 5-min live rescan
         if rescan_callback and time.time() - last_rescan >= INTRADAY_RESCAN_INTERVAL:
@@ -5238,6 +5270,7 @@ def main():
                 "tier_idx": 0, "partial_fills": [], "entry_type": entry_type, "confidence": confidence,
                 "position_size": pos_size, "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
                 "last_price": round(entry_price, 4)}}
+            _note_positions(len(_active_monitors))   # track peak concurrent positions (capacity signal)
 
             trade_result = monitor_trade(
                 ticker, shares, entry_price, target_price, stop_loss,

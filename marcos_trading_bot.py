@@ -317,6 +317,26 @@ MA_RISING_LOOKBACK      = 5       # the MA must be rising over this many bars (u
 EXTENSION_MAX_PCT       = 0.25    # 7/3 EXTENSION GUARD: skip an entry whose price is >25% above the 90-EMA (chasing
                                   # extended = Kev "don't chase"; L2 R11). Data (52 trades): losers +42% ext vs winners
                                   # +13%; gated in the bot → avgR +0.03→+0.25, totalR +1.7→+9.6/4d. Fail-open (no 90-EMA).
+# ── IGNITION ENTRY (7/4) — the fast-vertical catch. Reverse-engineered from the 8 fast verticals (6/29–7/2).
+#    QUIET early base → a VOLUME-ACCEL bar breaks it while NOT-yet-extended (+3–15%) → vertical. 1-min bars,
+#    NOT gated on above-VWAP (quiet base sits below VWAP); the surge IS the trigger. Tight stop = base low.
+IGNITION_ENABLED       = True
+IGNITION_WINDOW_MIN    = 45      # only fire in the first 45 min (9:30–10:15) — the ignition happens early
+IGNITION_BASE_MIN      = 1       # min base bars before a break (1 catches immediate igniters)
+IGNITION_BASE_LOOKBACK = 6       # base = the last N 1-min bars before the break
+IGNITION_VOL_MULT      = 2.5     # ignition bar volume ≥ 2.5× the base avg volume (the acceleration tell)
+IGNITION_MIN_ABS_VOL   = 10000   # abs-volume floor on the ignition bar (liquidity)
+IGNITION_MAX_EXT       = 0.15    # ignition close ≤ +15% from the session open (NOT-yet-extended = not a chase)
+IGNITION_MIN_EXT       = -0.03   # ignition close ≥ −3% from open — the thesis is a break UP from a base near the
+                                 # open; a name down >3% at the surge is a bounce off a dump, not an ignition
+                                 # (cut BTCT −14.9%, CWD −11.4% junk fires). Homegrown → revisit w/ live data.
+IGNITION_STRONG        = 0.5     # ignition bar closes in the top ≥50% of its range (buyers won the bar)
+IGNITION_DAILY_VETO    = False   # ignition is EXEMPT from Kev's daily-first veto — DATA-DECIDED (7/5, real
+                                 # split-adjusted daily-veto backtest): the fast verticals are beaten-down
+                                 # low-float squeezers BELOW their daily MAs (ZCMD/CCTG ignited under their d20);
+                                 # the veto (a proxy for "dead name, no range") misfires on this archetype and
+                                 # rejects the winners. Exempt = +29.8R vs +16.1R w/ veto over 4 days, catches
+                                 # ZCMD+CCTG the veto killed. Other entries KEEP the veto. Revisit w/ DRY_RUN data.
 MIN_RR             = 2.0    # minimum reward:risk ratio for EMA bounce
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
@@ -2691,6 +2711,52 @@ def detect_vwap_reclaim(completed, price, vwap):
         return None
 
 
+def detect_ignition(session_bars, price):
+    """IGNITION entry (7/4) — the fast-vertical catch. Reverse-engineered from the 8 fast verticals
+    (ZCMD/JEM/AZI/CCTG, 6/29–7/2). Shape = QUIET early base (low vol, choppy, often BELOW VWAP) → a
+    VOLUME-ACCELERATION bar breaks the base while NOT-yet-extended (+3–15%) → vertical. Operates on
+    1-MIN SESSION bars and is the ONE entry NOT gated on above-VWAP. The just-closed bar is the ignition
+    candidate; base = the prior N 1-min bars; base_hi = their max CLOSE (wick-robust). Re-checks the LIVE
+    price is still not-extended (no chase). Tight stop = base low. Returns {stop, base_hi, base_lo, volx,
+    ext_pct} or None. Any error → None (never crash the scan)."""
+    try:
+        if not IGNITION_ENABLED or not session_bars or len(session_bars) < IGNITION_BASE_MIN + 1:
+            return None
+        openp = _bar_open(session_bars[0]) or _bar_close(session_bars[0])
+        if openp <= 0 or price <= 0:
+            return None
+        ig = session_bars[-1]                                  # the just-closed bar = ignition candidate
+        m = _bar_et_min(ig)
+        if m is None or m < 570 or m > 570 + IGNITION_WINDOW_MIN:
+            return None                                        # early-session only (9:30 → +window)
+        base = session_bars[-1 - IGNITION_BASE_LOOKBACK:-1]
+        if len(base) < IGNITION_BASE_MIN:
+            return None
+        base_hi_c = max(_bar_close(b) for b in base)           # max CLOSE = wick-robust breakout reference
+        base_lo   = min(_bar_low(b) for b in base if _bar_low(b) > 0)
+        base_vol  = (sum(_bar_vol(b) for b in base) / len(base)) or 1
+        v, o, c, h, l = _bar_vol(ig), _bar_open(ig), _bar_close(ig), _bar_high(ig), _bar_low(ig)
+        rng = (h - l) or 1e-9
+        strong = (c - l) / rng                                 # close position in the bar's range
+        ext_bar = (c - openp) / openp
+        ext_live = (price - openp) / openp                     # don't enter if it already ran past the cap live
+        if (v >= IGNITION_VOL_MULT * base_vol                  # volume ACCELERATION — the tell
+                and v >= IGNITION_MIN_ABS_VOL                  # liquidity floor
+                and c > o                                      # green ignition bar
+                and strong >= IGNITION_STRONG                  # strong close (buyers won the bar)
+                and c >= base_hi_c                             # breaks the quiet base (by close)
+                and ext_bar >= IGNITION_MIN_EXT               # breaking UP from near the open (not a dump-bounce)
+                and ext_bar <= IGNITION_MAX_EXT               # bar close not-yet-extended
+                and ext_live <= IGNITION_MAX_EXT):            # live price still not extended (no chase)
+            return {"stop": round(base_lo * (1 - ZONE_STOP_BUFFER), 4),
+                    "base_hi": round(base_hi_c, 4), "base_lo": round(base_lo, 4),
+                    "volx": round(v / base_vol, 1), "ext_pct": round(ext_bar * 100, 1)}
+        return None
+    except Exception as e:
+        print(f"⚠️  detect_ignition error ({e}) — no entry this pass")
+        return None
+
+
 def calculate_ema9(bars) -> float:
     return _calc_ema(_extract_closes(bars), EMA_PERIOD)
 
@@ -3265,6 +3331,46 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 status_parts.append(f"{t}:no data")
                 continue
 
+            # ── Entry type: IGNITION (7/4) — runs FIRST, BEFORE the 3-min-EMA warmup guard below, because it
+            #    reads 1-MIN SESSION bars + the volume-acceleration surge and does NOT need the 3-min EMAs
+            #    (not warm in the ignition window). The ONE entry NOT gated on above-VWAP (quiet base sits below
+            #    VWAP). Surge breaking the quiet base = the trigger; tight stop at base low. Fires ONCE per ticker. ──
+            if IGNITION_ENABLED and not cache[t].get("ignition_fired"):
+                _sess1 = _latest_session(cache[t].get("full_bars") or bars)
+                ign = detect_ignition(_sess1, price)
+                if ign:
+                    _istop = ign["stop"]
+                    if "daily" not in cache[t]:
+                        cache[t]["daily"] = get_daily_levels(t)
+                    _daily = cache[t]["daily"]
+                    room = compute_room(price, _istop, cache[t].get("full_bars") or bars,
+                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                    rr = room["rr_to_supply"]
+                    if IGNITION_DAILY_VETO and bool(_daily) and not daily_first_ok(price, _daily):
+                        _log_decision(t, "ignition_daily_bad", price=price, room_rr=rr)
+                        cache[t]["ignition_fired"] = True     # bad daily = no trade (Kev)
+                    else:
+                        if rr is not None and rr < MIN_ROOM_RR:   # room DE-INVERTED — observe (base+volume is the filter)
+                            _log_decision(t, "ignition_low_room_soft", price=price, room_rr=rr)
+                        _ig_comp = aggregate_bars(cache[t].get("full_bars") or bars, SETUP_TF_MIN)[:-1]
+                        if len(_ig_comp) >= EMA20_PERIOD + 2:
+                            _e9, _e20, _e90 = calculate_ema9(_ig_comp), calculate_ema20(_ig_comp), calculate_ema90(_ig_comp)
+                        else:
+                            _e9 = _e20 = _e90 = 0.0
+                        _front = _e9 > _e20 > 0
+                        print(f"\n🚀 {t} IGNITION! ${price:.2f} vol-surge {ign['volx']}× broke base "
+                              f"${ign['base_hi']:.2f} (+{ign['ext_pct']}% from open, NOT extended) — "
+                              f"stop ${_istop:.2f} | room {rr}:1 to ${room['next_supply']} ({room['supply_src']})")
+                        breakouts.append((t, price, vwap, "ignition",
+                                          {"zone_stop": _istop, "room": room, "base_hi": ign["base_hi"],
+                                           "base_lo": ign["base_lo"], "volx": ign["volx"], "ext_pct": ign["ext_pct"],
+                                           "ema90": round(_e90, 4), "front_side": _front,
+                                           "ema9": round(_e9, 4), "ema20": round(_e20, 4)}))
+                        _log_decision(t, "triggered_ignition", price=price, room_rr=rr,
+                                      volx=ign["volx"], base_hi=ign["base_hi"], ext_pct=ign["ext_pct"], front_side=_front)
+                        cache[t]["ignition_fired"] = True
+                        continue                              # ignition captured (in `breakouts`) — skip other detectors for t
+
             # ── Kev's SETUPS come from the 3-MIN chart (#215); the 1-min is only entry timing + risk.
             #    Aggregate the multi-day 1-min series → 3-min so the flat-top base, the 9/20/90 EMAs
             #    (front-side / MA-pullback levels) all read the timeframe Kev actually trades. VWAP,
@@ -3540,7 +3646,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         # bounce = observe-only (dropped; its backtest read was clearly −0.40, needs reversal-regime data).
         # Others active per BREAKOUT_ENTRIES: True → full bag; False → pullback + VWAP-reclaim only.
         breakouts = [b for b in breakouts
-                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim"))]
+                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition"))]
         # EXTENSION GUARD — don't chase a name too far above its 90-EMA (7/3 data; Kev "don't chase extended").
         if EXTENSION_MAX_PCT and EXTENSION_MAX_PCT < 9:
             _kept = []
@@ -5036,7 +5142,7 @@ def main():
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
-            tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK", "orb": "OPENING RANGE"}.get(entry_type, "FLAT TOP")
+            tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK", "orb": "OPENING RANGE", "ignition": "IGNITION"}.get(entry_type, "FLAT TOP")
             print(f"\n{'='*60}")
             print(f"🎯 ENTERING [{tag}]: {ticker}  entry=${entry_price:.2f}  "
                   f"target=${target_price:.2f}  stop=${stop_loss:.2f}  shares={shares}")
@@ -5062,7 +5168,7 @@ def main():
 
             # Reversal setups (VWAP reclaim / bounce) reclaim from BELOW → low peak-relative volume by nature;
             # they carry their OWN volume confirmation in the detector, so they bypass the front-side momentum gate.
-            if entry_type in ("vwap_reclaim", "bounce"):
+            if entry_type in ("vwap_reclaim", "bounce", "ignition"):
                 mom_ok, mom_details = True, {"exempt": entry_type}
             else:
                 mom_ok, mom_details = check_momentum(ticker)
@@ -5216,7 +5322,7 @@ def main():
                                    csv_log_line=csv_row, traded_ticker=ticker)
             _clear_open_trade(ticker)   # recorded exit reached — drop durable recovery state
 
-            tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK", "orb": "OPENING RANGE"}.get(entry_type, "FLAT TOP")
+            tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK", "orb": "OPENING RANGE", "ignition": "IGNITION"}.get(entry_type, "FLAT TOP")
             print(f"\n{'='*60}")
             print(f"✅ COMPLETE [{tag}] — {ticker}  ${pnl:+.2f} ({pnl_pct:+.1f}%)  [{exit_reason}]")
             print(f"   Session P&L: ${session_pnl:+.2f}  |  Balance: ${current_balance:.2f}")

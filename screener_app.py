@@ -1165,6 +1165,38 @@ def get_bars():
                 out[dd.name] = sorted(f.stem for f in dd.glob("*.json"))
     return jsonify({"days": len(out), "archived": out})
 
+@app.route("/api/daily", methods=["GET"])
+def api_daily():
+    """Webull DAILY bars for an ARBITRARY ticker — covers the small-caps free yfinance drops (delisted/absent).
+    Read-only market data (no archive; hits the Webull SDK live). ?ticker=X [&count=250]. Used to grade Kev's
+    picks (did they run?) with real coverage. Gentle: one ticker per call — the client paces itself."""
+    ticker = (request.args.get("ticker") or "").upper().strip()
+    if not ticker:
+        return jsonify({"error": "need ?ticker="}), 400
+    try:
+        count = min(int(request.args.get("count", "250")), 800)
+    except ValueError:
+        count = 250
+    dc = _make_data_client()
+    if not dc:
+        return jsonify({"error": "no data client"}), 503
+    try:
+        resp = dc.market_data.get_history_bar(symbol=ticker, category="US_STOCK", timespan="D", count=str(count))
+        if getattr(resp, "status_code", 0) != 200:
+            return jsonify({"error": f"HTTP {getattr(resp, 'status_code', None)}", "ticker": ticker}), 502
+        raw = resp.json()
+        items = raw if isinstance(raw, list) else (raw.get("data", {}) if isinstance(raw, dict) else {})
+        if isinstance(items, dict):
+            items = items.get("items", items)
+        bars = []
+        for b in (items or []):
+            t = b.get("time") or b.get("timeStamp") or b.get("tradeTime") or ""
+            bars.append({"date": str(t)[:10], "open": b.get("open"), "high": b.get("high"),
+                         "low": b.get("low"), "close": b.get("close"), "volume": b.get("volume")})
+        return jsonify({"ticker": ticker, "count": len(bars), "bars": bars})
+    except Exception as e:
+        return jsonify({"error": str(e), "ticker": ticker}), 500
+
 # ── KEV'S DAILY FLAGGED TICKERS — the names Kev calls out to watch each day. Recorded here so the
 # end-of-day bar archiver also banks bars for HIS picks (even ones our bot never watched), letting us
 # benchmark our selection/processes against his. POST {date, tickers}; GET ?date= (or all). ──

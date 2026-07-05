@@ -1215,23 +1215,16 @@ def api_stream_check():
         from webull.data.data_streaming_client import DataStreamingClient
         from webull.data.quotes.subscribe.payload_type import PAYLOAD_TYPE_QUOTE
         from webull.core.utils.common import get_uuid
-        # 1) Acquire the WORKING access token via the proven data path (same one the data API uses).
-        #    A trivial data call forces the SDK's TokenManager to fetch/verify the token (raises if not NORMAL).
+        # 1) Use the EXISTING stored token DIRECTLY — do NOT refresh/verify (that re-triggers 2FA, which
+        #    is what failed last time). This is the same token the data API uses successfully.
+        import pathlib as _pl
         _pre_populate_token()
-        _ac = ApiClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us",
-                        token_check_duration_seconds=60, token_check_interval_seconds=5)
-        _ac.set_token_dir(WEBULL_TOKEN_DIR)
-        _ac.add_endpoint("us", TRADING_HOST)
-        try:
-            WebullDataClient(_ac).market_data.get_history_bar(symbol="AAPL", category="US_STOCK",
-                                                              timespan="D", count="1")
-        except Exception as te:
-            res["token_err"] = f"{type(te).__name__}: {te}"[:200]
-        _token = None
-        try:
-            _token = _ac.get_token()
-        except Exception:
-            pass
+        _token = os.environ.get("WEBULL_ACCESS_TOKEN", "")
+        if not _token:
+            try:
+                _token = (_pl.Path(WEBULL_TOKEN_DIR) / "token.txt").read_text().splitlines()[0].strip()
+            except Exception:
+                pass
         res["token_ok"] = bool(_token)
         # 2) Streaming client — inject that token so the HTTP subscribe carries x-access-token.
         client = DataStreamingClient(WEBULL_APP_KEY, WEBULL_APP_SECRET, "us", get_uuid())

@@ -4107,6 +4107,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     entry_time         = time.time()   # for early fade window
     last_good_price    = entry_price   # last valid price seen (for stale-feed safety exit)
     last_good_price_t  = time.time()   # epoch of last valid price
+    _status_px         = 0.0           # throttle the 💰 status print (streaming's 0.5s loop floods it otherwise)
+    _status_t          = 0.0           # print only on a ≥0.3% move OR every ≥STATUS_PRINT_SECS — keeps real events visible
 
     initial_shares = total_shares
     tier_idx = 0
@@ -4218,7 +4220,12 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         # runner on every normal pullback / can sit above live price), so the prev-bar-low TRAIL is
         # enforced as a bar-close exit in the EMA section below, NOT through current_stop. (audit fix) ─
 
-        print(f"💰 {ticker}: ${current_price:.2f} ({profit_pct:+.1f}%) | Stop: ${current_stop:.2f} | Shares: {remaining_shares}")
+        # Throttled status print — only on a ≥0.3% move or every ≥6s (streaming's 0.5s loop otherwise floods the
+        # logs with identical lines, risking Railway's rate cap + burying real events). Dashboard still gets every tick.
+        if (_status_px <= 0 or abs(current_price - _status_px) / _status_px >= 0.003
+                or time.time() - _status_t >= 6):
+            print(f"💰 {ticker}: ${current_price:.2f} ({profit_pct:+.1f}%) | Stop: ${current_stop:.2f} | Shares: {remaining_shares}")
+            _status_px = current_price; _status_t = time.time()
         _post_trade_state({
             "ticker": ticker, "entry": round(entry_price, 4), "price": round(current_price, 4),
             "pnl_pct": round(profit_pct, 2), "stop": round(current_stop, 4),

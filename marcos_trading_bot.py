@@ -514,7 +514,8 @@ POLL_LOOP_SLEEP   = 3            # REST polling interval: check every 3s
 #    capacity fix for the ~2× ignition volume). SAFE-BY-DESIGN: a streamed price is used ONLY when it's
 #    fresh (≤STREAM_FRESH_SECS) + sane; otherwise get_price transparently falls back to REST. Worst case =
 #    today's polling behavior. Kill-switch: STREAMING_ENABLED=False → pure polling. ──
-STREAMING_ENABLED = True
+STREAMING_ENABLED = False   # 7/6: temporarily OFF for a clean recovery — SNAPSHOT+on_quotes_subscribe path is
+                            # unverified live; re-enable after confirming via /api/stream_check. Bot runs on REST (proven).
 STREAM_FRESH_SECS = 20           # a streamed price is trusted only if it arrived within this many seconds; else REST
 
 # ============================================================
@@ -681,6 +682,7 @@ class WebullStream:
             client._api_client.set_token_dir(WEBULL_TOKEN_DIR)   # connect-time init verifies the FRESH token
             client._api_client.set_token(_tok)
             client.on_quotes_message = self._on_msg
+            client.on_quotes_subscribe = lambda *a, **k: None    # SDK REQUIRES this be set (7/6 thread crash) — no-op ok
             client.connect_and_loop_async(timeout=1, thread_daemon=True)
             time.sleep(3)                                        # let the MQTT connect settle
             self.client = client
@@ -3780,12 +3782,18 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             print(f"📊 {' | '.join(status_parts)}")
 
         # ── EXEC HEALTH — the loosened config's capacity read: did we choke on 429s / how many positions at once? ──
-        with _exec_health_lock:
-            _eh = dict(_exec_health)
-        print(f"⚙️  EXEC HEALTH: 429={_eh['api_429']} api_err={_eh['api_err']} timeouts={_eh['timeouts']} "
-              f"| positions now {len(_active_monitors)} (peak {_eh['peak_positions']})")
-        _log_decision("_exec_health", api_429=_eh["api_429"], api_err=_eh["api_err"],
-                      timeouts=_eh["timeouts"], peak_positions=_eh["peak_positions"])
+        # WRAPPED (7/6 crash fix): instrumentation must NEVER crash the trading loop. The live crash was a bad
+        # _log_decision arg-binding here (missing the required `status` positional) — a TypeError raised at CALL
+        # BINDING, before _log_decision's own try/except could catch it. Correct the call + belt-and-suspenders wrap.
+        try:
+            with _exec_health_lock:
+                _eh = dict(_exec_health)
+            print(f"⚙️  EXEC HEALTH: 429={_eh['api_429']} api_err={_eh['api_err']} timeouts={_eh['timeouts']} "
+                  f"| positions now {len(_active_monitors)} (peak {_eh['peak_positions']})")
+            _log_decision("_exec_health", "ok", api_429=_eh["api_429"], api_err=_eh["api_err"],
+                          timeouts=_eh["timeouts"], peak_positions=_eh["peak_positions"])
+        except Exception as _eh_err:
+            print(f"⚠️  exec-health log skipped (non-fatal): {_eh_err}")
 
         # 5-min live rescan
         if rescan_callback and time.time() - last_rescan >= INTRADAY_RESCAN_INTERVAL:

@@ -1337,6 +1337,62 @@ def api_mint_token():
         res["error"] = f"{type(e).__name__}: {e}"
     return jsonify(res)
 
+@app.route("/api/refresh_token", methods=["GET"])
+def api_refresh_token():
+    """Refresh the Webull token PROGRAMMATICALLY (NO 2FA) via /openapi/auth/token/refresh. The 2FA create flow
+    is ONE-TIME; this renews the session forever on a schedule. INVALID_SESSION on streaming = a stale session
+    nobody refreshed — this is the fix. Returns + persists the new token. ?token= overrides the current one."""
+    import hmac, hashlib, base64, uuid, socket, requests, pathlib as _pl
+    from urllib.parse import quote
+    from datetime import datetime as _dt
+    HOST = "api.webull.com"; BASE = f"https://{HOST}"
+    def _hdrs(path, body_dict=None):
+        ts = _dt.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        nonce = str(uuid.uuid5(uuid.NAMESPACE_URL, socket.gethostname() + str(uuid.uuid1())))
+        h = {"Content-Type": "application/json", "x-app-key": WEBULL_APP_KEY, "x-timestamp": ts,
+             "x-signature-version": "1.0", "x-signature-algorithm": "HMAC-SHA1",
+             "x-signature-nonce": nonce, "x-version": "v2"}
+        sp = {"x-app-key": WEBULL_APP_KEY, "x-timestamp": ts, "x-signature-version": "1.0",
+              "x-signature-algorithm": "HMAC-SHA1", "x-signature-nonce": nonce, "host": HOST}
+        bs = None
+        if body_dict is not None:
+            bs = hashlib.md5(json.dumps(body_dict, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest().upper()
+        s2s = f"{path}&" + "&".join(f"{k}={v}" for k, v in sorted(sp.items())) + (f"&{bs}" if bs else "")
+        s2s = quote(s2s, safe='')
+        h["x-signature"] = base64.b64encode(hmac.new((WEBULL_APP_SECRET + "&").encode(), s2s.encode(), hashlib.sha1).digest()).decode()
+        return h
+    res = {}
+    if not (WEBULL_APP_KEY and WEBULL_APP_SECRET):
+        return jsonify({"error": "app key/secret not set in env"}), 503
+    cur = (request.args.get("token") or "").strip()
+    if not cur:
+        try: cur = (_pl.Path(WEBULL_TOKEN_DIR) / "token.txt").read_text().splitlines()[0].strip()
+        except Exception: pass
+    if not cur:
+        cur = os.environ.get("WEBULL_ACCESS_TOKEN", "")
+    res["had_token"] = bool(cur)
+    if not cur:
+        return jsonify({"error": "no current token to refresh"}), 400
+    try:
+        p = "/openapi/auth/token/refresh"; body = {"token": cur}
+        r = requests.post(f"{BASE}{p}", headers=_hdrs(p, body),
+                          data=json.dumps(body, ensure_ascii=False, separators=(',', ':')), timeout=15)
+        res["http"] = r.status_code
+        d = r.json()
+        newtok = (d.get("data") or {}).get("token") if isinstance(d.get("data"), dict) else \
+                 (d.get("data") if isinstance(d.get("data"), str) else d.get("token"))
+        if newtok:
+            d2 = _pl.Path(WEBULL_TOKEN_DIR); d2.mkdir(parents=True, exist_ok=True)
+            exp = int(time.time() * 1000) + 14 * 24 * 3600 * 1000
+            (d2 / "token.txt").write_text(f"{newtok}\n{exp}\nNORMAL\n")
+            res["new_token"] = newtok
+            res["stored"] = "token.txt updated. Set WEBULL_ACCESS_TOKEN in Railway to persist across redeploys."
+        else:
+            res["error"] = "no token from refresh"; res["raw"] = d
+    except Exception as e:
+        res["error"] = f"{type(e).__name__}: {e}"
+    return jsonify(res)
+
 # ── KEV'S DAILY FLAGGED TICKERS — the names Kev calls out to watch each day. Recorded here so the
 # end-of-day bar archiver also banks bars for HIS picks (even ones our bot never watched), letting us
 # benchmark our selection/processes against his. POST {date, tickers}; GET ?date= (or all). ──

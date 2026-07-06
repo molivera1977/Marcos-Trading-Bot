@@ -514,8 +514,8 @@ POLL_LOOP_SLEEP   = 3            # REST polling interval: check every 3s
 #    capacity fix for the ~2× ignition volume). SAFE-BY-DESIGN: a streamed price is used ONLY when it's
 #    fresh (≤STREAM_FRESH_SECS) + sane; otherwise get_price transparently falls back to REST. Worst case =
 #    today's polling behavior. Kill-switch: STREAMING_ENABLED=False → pure polling. ──
-STREAMING_ENABLED = False   # 7/6: temporarily OFF for a clean recovery — SNAPSHOT+on_quotes_subscribe path is
-                            # unverified live; re-enable after confirming via /api/stream_check. Bot runs on REST (proven).
+STREAMING_ENABLED = True    # 7/6: RE-ENABLED — streaming PROVEN live once the token session is refreshed
+                            # (_refresh_webull_token in _connect). SNAPSHOT delivered 17 ticks/12s, parsed OK.
 STREAM_FRESH_SECS = 20           # a streamed price is trusted only if it arrived within this many seconds; else REST
 
 # ============================================================
@@ -635,6 +635,36 @@ def _get(path, query_params=None, host=None):
     return requests.get(url, headers=headers, params=query_params, timeout=10)
 
 
+def _refresh_webull_token():
+    """Refresh the Webull token PROGRAMMATICALLY (NO 2FA) via POST /openapi/auth/token/refresh. This
+    RE-ACTIVATES the session so STREAMING works — INVALID_SESSION means a stale session nobody refreshed
+    (the token VALUE can stay the same; refresh resets the session server-side). Proven live 7/6: after one
+    refresh, SNAPSHOT streaming went from INVALID_SESSION → live ticks. Call before connecting the stream.
+    Returns the refreshed token (persisted to token.txt), or None on failure (caller falls back to REST)."""
+    try:
+        cur = WEBULL_ACCESS_TOKEN
+        if not cur:
+            try: cur = (pathlib.Path(WEBULL_TOKEN_DIR) / "token.txt").read_text().splitlines()[0].strip()
+            except Exception: cur = ""
+        if not cur:
+            return None
+        resp = _post("/openapi/auth/token/refresh", {"token": cur})
+        d = resp.json()
+        newtok = ((d.get("data") or {}).get("token") if isinstance(d.get("data"), dict)
+                  else (d.get("data") if isinstance(d.get("data"), str) else d.get("token"))) or cur
+        try:
+            td = pathlib.Path(WEBULL_TOKEN_DIR); td.mkdir(parents=True, exist_ok=True)
+            exp = int(time.time() * 1000) + 14 * 24 * 3600 * 1000
+            (td / "token.txt").write_text(f"{newtok}\n{exp}\nNORMAL\n")
+        except Exception:
+            pass
+        print(f"🔄 Webull token refreshed (session re-activated) — HTTP {resp.status_code}")
+        return newtok
+    except Exception as e:
+        print(f"⚠️  token refresh failed ({e}) — streaming will fall back to REST")
+        return None
+
+
 # ============================================================
 # REAL-TIME PRICE STREAM (MQTT)
 # ============================================================
@@ -670,7 +700,7 @@ class WebullStream:
         try:
             from webull.core.utils.common import get_uuid
             _pre_populate_webull_token()
-            _tok = WEBULL_ACCESS_TOKEN
+            _tok = _refresh_webull_token() or WEBULL_ACCESS_TOKEN   # RE-ACTIVATE the session (fixes INVALID_SESSION)
             if not _tok:
                 try:
                     _tok = (pathlib.Path(WEBULL_TOKEN_DIR) / "token.txt").read_text().splitlines()[0].strip()

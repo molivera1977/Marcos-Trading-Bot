@@ -1241,14 +1241,26 @@ def api_stream_check():
         _msgs = {"n": 0, "last": None}
         def _on_msg(_c, topic, payload):
             _msgs["n"] += 1
-            if _msgs["last"] is None:
-                _msgs["last"] = {"topic": str(topic)[:40], "payload": str(payload)[:200]}
+            # MIRROR THE BOT's WebullStream._on_msg parse EXACTLY: SnapshotResult.basic.symbol + .price
+            try:
+                basic = getattr(payload, "basic", None)
+                sym = getattr(basic, "symbol", None)
+                px = getattr(payload, "price", None) or getattr(payload, "ext_price", None) or getattr(payload, "ovn_price", None)
+                if _msgs["last"] is None:
+                    _msgs["last"] = {"topic": str(topic)[:40], "symbol": str(sym), "price": str(px),
+                                     "parsed_ok": bool(sym and px), "raw": str(payload)[:160]}
+            except Exception as pe:
+                if _msgs["last"] is None:
+                    _msgs["last"] = {"parse_err": str(pe), "raw": str(payload)[:160]}
         client.on_quotes_message = _on_msg
+        client.on_quotes_subscribe = lambda *a, **k: None    # THE bot's 7/6 crash fix — SDK REQUIRES this be set
         client.on_subscribe_success = lambda *a: _flags.__setitem__("sub", True)   # fires only on subscribe HTTP 200
         client.connect_and_loop_async(timeout=1, thread_daemon=True)
         time.sleep(5)                                        # let the MQTT connect settle
         res["connected"] = bool(client.get_connect_success())
-        client.subscribe([ticker], "US_STOCK", ["QUOTE"])
+        _sub = (request.args.get("sub") or "SNAPSHOT").upper()   # bot uses SNAPSHOT (.price); ?sub=QUOTE to compare
+        res["sub_type"] = _sub
+        client.subscribe([ticker], "US_STOCK", [_sub])
         time.sleep(max(3, secs))                             # collect any pushes
         res["subscribed"] = _flags["sub"] or bool(client.get_subscribe_success())
         res["messages"] = _msgs["n"]

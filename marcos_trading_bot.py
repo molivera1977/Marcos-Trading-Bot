@@ -648,18 +648,37 @@ def _refresh_webull_token():
             except Exception: cur = ""
         if not cur:
             return None
-        resp = _post("/openapi/auth/token/refresh", {"token": cur})
-        d = resp.json()
+        # Sign WITHOUT x-access-token — the refresh endpoint is authed by the app-key signature + the body
+        # token; including the STALE x-access-token = HTTP 401 (why _post/_webull_headers failed live 7/6).
+        # This mirrors the dashboard /api/refresh_token signing, which returns 200 + re-activates streaming.
+        host = "api.webull.com"; path = "/openapi/auth/token/refresh"
+        body_str = json.dumps({"token": cur}, ensure_ascii=False, separators=(',', ':'))
+        ts    = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        nonce = str(uuid.uuid5(uuid.NAMESPACE_URL, socket.gethostname() + str(uuid.uuid1())))
+        hdrs = {"Content-Type": "application/json", "x-app-key": WEBULL_APP_KEY, "x-timestamp": ts,
+                "x-signature-version": "1.0", "x-signature-algorithm": "HMAC-SHA1",
+                "x-signature-nonce": nonce, "x-version": "v2"}
+        sp = {"x-app-key": WEBULL_APP_KEY, "x-timestamp": ts, "x-signature-version": "1.0",
+              "x-signature-algorithm": "HMAC-SHA1", "x-signature-nonce": nonce, "host": host}
+        bs  = hashlib.md5(body_str.encode()).hexdigest().upper()
+        s2s = quote(f"{path}&" + "&".join(f"{k}={v}" for k, v in sorted(sp.items())) + f"&{bs}", safe='')
+        hdrs["x-signature"] = base64.b64encode(
+            hmac.new((WEBULL_APP_SECRET + "&").encode(), s2s.encode(), hashlib.sha1).digest()).decode()
+        resp = requests.post(f"https://{host}{path}", headers=hdrs, data=body_str, timeout=10)
+        d = resp.json() if resp.content else {}
         newtok = ((d.get("data") or {}).get("token") if isinstance(d.get("data"), dict)
                   else (d.get("data") if isinstance(d.get("data"), str) else d.get("token"))) or cur
-        try:
-            td = pathlib.Path(WEBULL_TOKEN_DIR); td.mkdir(parents=True, exist_ok=True)
-            exp = int(time.time() * 1000) + 14 * 24 * 3600 * 1000
-            (td / "token.txt").write_text(f"{newtok}\n{exp}\nNORMAL\n")
-        except Exception:
-            pass
-        print(f"🔄 Webull token refreshed (session re-activated) — HTTP {resp.status_code}")
-        return newtok
+        if resp.status_code == 200:
+            try:
+                td = pathlib.Path(WEBULL_TOKEN_DIR); td.mkdir(parents=True, exist_ok=True)
+                exp = int(time.time() * 1000) + 14 * 24 * 3600 * 1000
+                (td / "token.txt").write_text(f"{newtok}\n{exp}\nNORMAL\n")
+            except Exception:
+                pass
+            print(f"🔄 Webull token refreshed (session re-activated) — HTTP {resp.status_code}")
+            return newtok
+        print(f"⚠️  token refresh HTTP {resp.status_code}: {str(d)[:120]} — streaming falls back to REST")
+        return None
     except Exception as e:
         print(f"⚠️  token refresh failed ({e}) — streaming will fall back to REST")
         return None

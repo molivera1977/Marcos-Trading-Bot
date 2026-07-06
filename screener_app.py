@@ -839,6 +839,14 @@ def clear_trades():
 
 
 
+# Dated watchlist history — persist each day's watched tickers so the daily scorecard can reliably look up
+# "what did the bot watch on date X" (the live _watching snapshot below is overwritten + cleared at session end).
+WATCH_HIST_FILE = pathlib.Path("/data/watch_history.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/watch_history.json")
+_watch_hist = {}
+if WATCH_HIST_FILE.exists():
+    try:    _watch_hist = json.loads(WATCH_HIST_FILE.read_text())
+    except Exception: _watch_hist = {}
+
 @app.route("/api/watching", methods=["POST"])
 def save_watching():
     global _watching
@@ -851,11 +859,23 @@ def save_watching():
         "started_at": data.get("started_at", datetime.now(EASTERN).isoformat()),
         "updated":    datetime.now(EASTERN).isoformat(),
     }
+    # persist the day's watched tickers as a UNION across the session (the list grows via 5-min rescans)
+    try:
+        _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        prev = set(_watch_hist.get(_today, []))
+        _watch_hist[_today] = sorted(prev | {str(t).upper().strip() for t in (_watching["tickers"] or []) if str(t).strip()})
+        WATCH_HIST_FILE.write_text(json.dumps(_watch_hist, indent=2))
+    except Exception as e:
+        print(f"⚠️  watch-history persist skipped: {e}")
     print(f"👀 Watch list updated: {_watching['tickers']} [{_watching['status']}]")
     return jsonify({"ok": True})
 
 @app.route("/api/watching", methods=["GET"])
 def get_watching():
+    # ?date=YYYY-MM-DD → that day's persisted watchlist (for the daily scorecard); else the live snapshot.
+    date = (request.args.get("date") or "").strip()
+    if date:
+        return jsonify({"date": date, "tickers": _watch_hist.get(date, [])})
     # include live trade state, but only if fresh (bot stops posting when the trade ends)
     ts = _trade_state
     fresh = bool(ts) and (time.time() - ts.get("_recv", 0) <= 90)

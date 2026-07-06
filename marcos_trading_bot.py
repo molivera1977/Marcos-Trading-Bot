@@ -352,6 +352,16 @@ IGNITION_DAILY_VETO    = False   # ignition is EXEMPT from Kev's daily-first vet
 #    on flat_top/vwap_reclaim, hurts none; median R +0.65→+1.16). Over-scaling (a 4th tranche) was WORSE — rejected.
 #    Homegrown levels → calibrate w/ DRY_RUN data; the real fix is better supply levels (round-$), a later build.
 SCALE_TIERS        = [(1, 0.50), (2, 0.75), (3.5, 0.90)]   # (R-multiple, cumulative fraction sold); None = old supply grid
+# ── VELOCITY-AWARE RIDE (7/5) — don't sell into strength. At each scale tier, if the move is STILL accelerating
+#    hard (gained >=VELO_RIDE_PCT over the last VELO_BARS 1-min bars — the "ff3" 3-bar-follow-through signature
+#    that separated verticals from chop in the feature study), DEFER the scale and let the full position ride;
+#    resume banking when it stalls. Chop never trips the gate → scales per the normal grid (exact baseline).
+#    Backtest (33 ignition fires, 4 days): +11.1R→+19.4R, fast-vertical capture 22%→47%, WR held 67%. Every
+#    param cell beat baseline (robust mechanism), BUT ~68% of the gain is one trade (ZCMD) + the reverse-after-
+#    defer downside is under-sampled — shipped to DRY_RUN to validate live. Kill-switch: VELOCITY_RIDE=False. ──
+VELOCITY_RIDE   = True     # DRY_RUN experiment (7/5) — defer scaling while accelerating; flip False to revert
+VELO_RIDE_PCT   = 0.12    # defer the scale if price gained >= this over the last VELO_BARS 1-min bars
+VELO_BARS       = 3       # rolling velocity window (1-min bars) — matches the ff3 finding (3-bar follow-through)
 MIN_RR             = 2.0    # minimum reward:risk ratio for EMA bounce
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
@@ -3992,6 +4002,26 @@ def update_stop_order(ticker, shares, new_price, old_client_order_id):
 
 STOP_UPDATE_MIN_MOVE = 0.10   # Only replace exchange stop order if it moves >= $0.10
 
+def _vride_defer(ticker, tier_idx):
+    """VELOCITY-AWARE RIDE: True if the move is still accelerating hard → defer this scale (ride the vertical).
+    Fail-CLOSED — any error or VELOCITY_RIDE off → False → normal scaling (exact baseline). Streaming makes
+    this velocity read fast/clean live; it uses the same 1-min bars monitor_trade already fetches."""
+    if not VELOCITY_RIDE:
+        return False
+    try:
+        rb = get_intraday_bars(ticker, count=VELO_BARS + 2)
+        if not rb or len(rb) <= VELO_BARS:
+            return False
+        c_now = float(rb[-1].get("close") or rb[-1].get("c") or 0)
+        c_ago = float(rb[-1 - VELO_BARS].get("close") or rb[-1 - VELO_BARS].get("c") or 0)
+        if c_ago > 0 and (c_now - c_ago) / c_ago >= VELO_RIDE_PCT:
+            print(f"🚀 {ticker}: still accelerating (+{(c_now - c_ago) / c_ago * 100:.0f}% over {VELO_BARS} "
+                  f"bars) — deferring scale {tier_idx + 1}, riding the vertical.")
+            return True
+    except Exception:
+        return False
+    return False
+
 def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                   stream: WebullStream, stop_order_id, vwap=0, next_supply=None):
     """
@@ -4157,7 +4187,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         # ── Kev R-based scale-outs: 50% @ +1R (→ risk-free), 25% @ supply/+2R (→ a 1/4 runner) ──
         if tier_idx < len(kev_tiers) and remaining_shares > 0:
             tier_price, tier_cumulative = kev_tiers[tier_idx]
-            if current_price >= tier_price:
+            if current_price >= tier_price and not _vride_defer(ticker, tier_idx):
                 if tier_cumulative >= 1.0:
                     sell_qty = remaining_shares
                 else:

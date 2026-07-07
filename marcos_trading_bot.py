@@ -2283,14 +2283,18 @@ def check_momentum(ticker) -> tuple[bool, dict]:
         avg_vol = sum(volumes) / len(volumes) if volumes else 0
         details["avg_vol"] = int(avg_vol)
 
-        # ── The volume-floor / accel / green-count thresholds are HOMEGROWN numbers (Kev's concept is
-        #    "volume on the break", not these specific values). Per DRY_RUN learning [[feedback_dry_run_learning]]
-        #    + observe-then-gate [[feedback_widen_within_kev_realm]]: OBSERVE them, don't hard-reject —
-        #    collect data on whether low-momentum breaks underperform BEFORE gating. Topping tail stays a
-        #    HARD reject (Kev-real: "don't enter into a candle rejected at the high"). [revisit w/ data] ──
+        # ── HOMEGROWN thresholds (Kev's concept is "volume on the break", not these exact values). The accel /
+        #    green-count flags stay OBSERVE-only (soft) per [[feedback_dry_run_learning]]. The LIQUIDITY FLOOR,
+        #    however, GRADUATED to a HARD reject (7/7, observe-then-gate [[feedback_widen_within_kev_realm]]):
+        #    the soft experiment ran and today's ONLY two low-avg-vol entries (INTS 2,015/bar, NXPL 1,811/bar)
+        #    were BOTH dead-money losers (−$2.40 / −$1.17, time-stopped scratches) while ZERO of the 7 winners
+        #    were low-vol-flagged. A thin stock isn't tradeable — Kev trades VOLUME, never sub-liquidity.
+        #    [[feedback_grade_gates_vs_outcomes]] Tunable: lower MOMENTUM_MIN_AVG_VOL if it ever blocks a mover. ──
         soft = []
-        if avg_vol < MOMENTUM_MIN_AVG_VOL:
-            soft.append(f"low avg vol {int(avg_vol):,}<{MOMENTUM_MIN_AVG_VOL:,}")
+        if avg_vol < MOMENTUM_MIN_AVG_VOL:                          # LIQUIDITY FLOOR — HARD (thin stock = skip)
+            details["reason"] = f"illiquid — avg vol {int(avg_vol):,}/bar < {MOMENTUM_MIN_AVG_VOL:,} floor, skip"
+            print(f"❌ {ticker} momentum FAIL: {details['reason']}")
+            return False, details
 
         prior_vols = [float(b.get("volume") or b.get("v") or 0) for b in prior]
         prior_avg = sum(prior_vols) / len(prior_vols) if prior_vols else 0

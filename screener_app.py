@@ -1969,13 +1969,56 @@ function renderTradePanel(ts){
   </div>`;
 }
 
+// Render ONE open-position card. Normalizes /api/open_trades fields (entry_price/last_price)
+// so ALL concurrent positions show — the single-slot trade_state card only ever showed one.
+function tradeCardHTML(t){
+  const entry = Number(t.entry_price ?? t.entry ?? 0);
+  const price = Number(t.last_price ?? t.price ?? 0);
+  const pnl   = entry>0 ? (price-entry)/entry*100 : Number(t.pnl_pct||0);
+  const pnlCls= pnl>=0?'green':'red';
+  const lo=Number(t.stop||0), hi=Number(t.target||0);
+  let prog=(hi>lo)?((price-lo)/(hi-lo))*100:0; prog=Math.max(0,Math.min(100,prog));
+  const sold=(t.initial_shares&&t.remaining_shares!=null)
+    ? `${t.initial_shares-t.remaining_shares}/${t.initial_shares} sold` : '';
+  const et = t.entry_type ? String(t.entry_type) : '';
+  let upd = t.updated || '';
+  if(upd && String(upd).length>12){ try{ upd=new Date(upd).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'})+' ET'; }catch(e){} }
+  return `<div class="trade-panel" style="margin-bottom:12px">
+    <div class="hdr">
+      <a class="tk" href="https://www.tradingview.com/chart/?symbol=${t.ticker}" target="_blank" rel="noopener">${t.ticker} ↗</a>
+      <div class="pnl ${pnlCls}">${pnl>=0?'+':''}${pnl.toFixed(1)}%</div>
+    </div>
+    <div class="trade-grid">
+      <div class="cell"><div class="lbl">Entry</div><div class="val">$${entry.toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl">Now</div><div class="val">$${price.toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl">Stop</div><div class="val" style="color:#f85149">$${Number(t.stop||0).toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl">Target</div><div class="val" style="color:#3fb950">$${Number(t.target||0).toFixed(2)}</div></div>
+    </div>
+    <div class="tbar"><div class="fill" style="width:${prog.toFixed(0)}%"></div></div>
+    <div class="tbar-lbls"><span>🛑 stop</span><span>${sold}${(sold&&(t.vwap||et))?' · ':''}${t.vwap?'VWAP $'+Number(t.vwap).toFixed(2):''}${et?(t.vwap?' · ':'')+et:''}</span><span>🎯 target</span></div>
+    <div class="tbar-lbls" style="margin-top:6px"><span>High $${Number(t.highest||price).toFixed(2)}</span><span>updated ${upd}</span></div>
+  </div>`;
+}
+
+function renderAllTrades(list){
+  const el=document.getElementById('tradePanel');
+  if(!list||!list.length){ el.innerHTML=''; return; }
+  el.innerHTML = `<div style="font-size:12px;color:#8b949e;margin-bottom:8px">${list.length} open position${list.length>1?'s':''}</div>`
+    + list.map(tradeCardHTML).join('');
+}
+
 function loadWatching(){
+  // ALL open positions (the fix) — /api/open_trades holds every concurrent trade, not the single slot
+  fetch('/api/open_trades')
+    .then(r=>r.json())
+    .then(d=>renderAllTrades((d&&d.open_trades)||[]))
+    .catch(()=>{});
+  // status line + watch-list chips still come from /api/watching
   fetch('/api/watching')
     .then(r=>r.json())
     .then(d=>{
       const statusEl  = document.getElementById('watchStatus');
       const tickersEl = document.getElementById('watchTickers');
-      renderTradePanel(d && d.trade_state);
       if(!d || !d.tickers || d.tickers.length===0){
         statusEl.innerHTML = '<span class="status-dot idle"></span>Idle — outside market hours or no setup';
         tickersEl.innerHTML = '';

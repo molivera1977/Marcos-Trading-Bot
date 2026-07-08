@@ -1599,15 +1599,22 @@ def winner_sweep():
 
 
 def _winner_sweep_loop():
-    """Daemon: run winner_sweep ONCE per trading day, ~16:10 ET (after close). Isolated — cannot touch trading."""
-    last = None
+    """Daemon: capture market-wide movers' bars SERVER-SIDE (runs on Railway regardless of any app being open).
+    TWO passes per trading day: (1) ~16:10 ET = RTH snapshot for the 4:30pm scorecard; (2) ~20:05 ET = full
+    pre+RTH+AFTER-HOURS capture once the 4-8pm session has closed (the 16:10 pass only catches ~10 min of AH).
+    Replaces the fragile app-dependent 8:18pm Claude backfill task with a server-side pass. Isolated — cannot touch trading."""
+    last_rth = last_ah = None
     while True:
         try:
             now = datetime.now(EASTERN)
             today = now.strftime("%Y-%m-%d")
-            if now.weekday() < 5 and now.hour == 16 and now.minute >= 10 and last != today:
-                print("🏁 Running EOD winner sweep (market-wide winner capture)...")
-                winner_sweep(); last = today
+            if now.weekday() < 5:
+                if now.hour == 16 and now.minute >= 10 and last_rth != today:
+                    print("🏁 EOD winner sweep (RTH snapshot for the scorecard)...")
+                    winner_sweep(); last_rth = today
+                if now.hour == 20 and now.minute >= 5 and last_ah != today:
+                    print("🌙 After-hours backfill sweep (full pre+RTH+ATH now that AH has closed)...")
+                    winner_sweep(); last_ah = today
         except Exception as e:
             print(f"⚠️  winner_sweep loop error: {e}")
         time.sleep(120)

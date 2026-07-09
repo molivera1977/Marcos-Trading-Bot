@@ -1114,6 +1114,21 @@ def get_premarket_data(ticker):
     }
 
 
+# ── RE-ENGAGEMENT (NEW-A) — instrumented DRY_RUN experiment ────────────────────────────────────────────────
+# Validated 7/8: ~2 addressable dropped-then-ran second legs/day; second-leg replay showed a re-engaged bot would
+# capture 6/10 for +5.8R/5d (gates still filter the weak ones). Mechanism: a faded-then-reset name (e.g. TVRD +38%
+# afternoon) re-ranks at a MODERATE score and gets crowded out of the fresh top-20, so the post-trade rebuild discards
+# it and it's never re-hunted. Fix at the single source (scan_morning_gappers): re-admit up to N previously-surfaced
+# ("engaged") names that are STILL valid gappers ranked just below the cut, so the normal entry gates get a second look.
+# Re-SELECTION, not re-entry — the gates still decide. TARGETED at RESET names: re-admit a below-cut name only if its score
+# is RECOVERING vs the prior scan (a reset/second-leg build), NOT merely "was seen" (that fills slots with dying names).
+# Instrumented with the 🔁 log so tomorrow we can SEE it fire. v1 for DRY_RUN observation; tune thresholds from live data.
+_REENGAGE_LAST: dict = {}     # symbol -> its score last scan (session-scoped; empty on restart) — to detect a RECOVERING score
+REENGAGE_MAX = 5              # cap on re-admitted names per scan
+REENGAGE_BAND = 40            # only consider ranks 21..BAND (still-live gappers crowded out, not deep-dead names)
+REENGAGE_RECOVER = 1.15       # re-admit only if current score >= 1.15× last scan's (score climbing back = a reset leg)
+
+
 def scan_morning_gappers():
     """
     Use Webull's screener to find pre-market top gainers and unusual-volume stocks.
@@ -1275,7 +1290,22 @@ def scan_morning_gappers():
         g["select_score"] = round(base * htb_mult * rvol_mult, 2)
         return g["select_score"]
 
-    results = sorted(float_checked, key=_gapper_score, reverse=True)[:20]   # 7/3: 15→20 (wider net — fewer missed movers)
+    scored  = sorted(float_checked, key=_gapper_score, reverse=True)
+    results = scored[:20]   # 7/3: 15→20 (wider net — fewer missed movers)
+    # RE-ENGAGEMENT (NEW-A): a faded-then-RESET mover re-ranks below the top-20 and gets discarded by the post-trade rebuild,
+    # so its second leg is never re-hunted (TVRD 7/8 +44% unwatched). Re-admit up to N below-cut names (ranks 21..BAND) whose
+    # score is RECOVERING vs the last scan (>= REENGAGE_RECOVER×) — that's a reset building, not a name still dying. Gates decide.
+    _top = {r["symbol"] for r in results}
+    _readmit = [r for r in scored[20:REENGAGE_BAND]
+                if r["symbol"] not in _top
+                and r["symbol"] in _REENGAGE_LAST
+                and r.get("select_score", 0) >= _REENGAGE_LAST[r["symbol"]] * REENGAGE_RECOVER][:REENGAGE_MAX]
+    if _readmit:
+        print(f"   🔁 Re-engagement: re-admitting {len(_readmit)} reset name(s) crowded below top-20 (score recovering): "
+              f"{', '.join(r['symbol'] for r in _readmit)}")
+        results = results + _readmit
+    for r in scored:      # remember every scored name's score so we can detect recovery next scan
+        _REENGAGE_LAST[r["symbol"]] = r.get("select_score", 0)
     print(f"✅ Morning gapper scan — top {len(results)} by Kev-weighted score:")
     for r in results:
         tags = []

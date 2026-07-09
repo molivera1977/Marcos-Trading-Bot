@@ -40,6 +40,7 @@ app = Flask(__name__)
 
 _trades: list = []
 _account: dict = {"balance": 0.0, "updated": ""}
+_market: dict = {"indices": [], "news": [], "updated": ""}   # market strip (S&P/Dow/Nasdaq) — pushed by the bot via Webull
 _watching: dict = {}                   # Live watch list posted by bot each session
 _trade_state: dict = {}                # Live state of the active trade (entry/price/pnl/stop/target)
 
@@ -817,6 +818,24 @@ def update_account():
     _account["updated"] = datetime.now(EASTERN).strftime("%I:%M %p ET")
     _save_trades()
     return jsonify({"status": "ok", "balance": _account["balance"]})
+
+
+@app.route("/api/market", methods=["GET", "POST"])
+def market_data_api():
+    """GET → serve the cached market snapshot for the dashboard strip. POST (bot, Webull-sourced) → update it.
+    indices = [{"label":"S&P 500","chg":0.42,"price":6050.1}, ...]; news = [{"title":..,"src":..}] (future)."""
+    global _market
+    if request.method == "POST":
+        if request.headers.get("X-Dashboard-Secret", "") != API_SECRET:
+            return jsonify({"error": "unauthorized"}), 401
+        data = request.get_json(silent=True) or {}
+        if isinstance(data.get("indices"), list):
+            _market["indices"] = data["indices"]
+        if isinstance(data.get("news"), list):
+            _market["news"] = data["news"]
+        _market["updated"] = datetime.now(EASTERN).strftime("%I:%M %p ET")
+        return jsonify({"status": "ok"})
+    return jsonify(_market)
 
 
 @app.route("/api/account_balance", methods=["GET"])
@@ -1613,6 +1632,15 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0d1117;color:#e6edf3;m
 .refresh-btn:hover{background:#21262d}
 
 /* ── Balance Banner ── */
+.market-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  padding:9px 28px;background:#0d1117;border-bottom:1px solid #21262d}
+.market-inner{display:flex;gap:26px;flex-wrap:wrap;align-items:center}
+.mkt-idx{display:flex;flex-direction:column;gap:1px;line-height:1.15}
+.mkt-idx .mkt-name{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.6px}
+.mkt-idx .mkt-chg{font-size:15px;font-weight:700}
+.mkt-idx .mkt-px{font-size:10.5px;color:#8b949e}
+.market-loading{font-size:12px;color:#8b949e}
+.market-updated{font-size:11px;color:#6e7681}
 .balance-banner{background:linear-gradient(135deg,#0e2a1a 0%,#161b22 100%);
                 border-bottom:1px solid #21262d;padding:24px 28px}
 .balance-row{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap}
@@ -1671,6 +1699,18 @@ a.watch-chip:hover{filter:brightness(1.25)}
 /* ── Strategy + Watch panel ── */
 .strategy-panel{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 28px}
 @media(max-width:700px){.strategy-panel{grid-template-columns:1fr}}
+@media(max-width:640px){
+  /* Phone layout: the ENTRY/NOW/STOP/TARGET row was 4 cramped columns — reflow to a readable 2×2 */
+  .trade-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .trade-grid .val{font-size:16px}
+  /* claw back the wide 28px side padding that squeezes content on a narrow screen */
+  .stats-grid,.strategy-panel,.balance-banner{padding-left:14px;padding-right:14px}
+  .trade-panel{padding:14px}
+  .tally-tiles{gap:14px 22px}
+  .tally-tiles>div:nth-child(4){border-left:none;padding-left:0}   /* drop the Today divider once tiles wrap */
+  .balance-value{font-size:34px}
+  .trade-panel .tk{font-size:18px} .trade-panel .pnl{font-size:20px}
+}
 .panel-card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:16px 18px}
 .panel-title{font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
 .param-grid{display:flex;flex-wrap:wrap;gap:8px}
@@ -1717,6 +1757,11 @@ a.watch-chip:hover{filter:brightness(1.25)}
   </div>
 </div>
 
+<div class="market-strip" id="marketStrip">
+  <div class="market-inner" id="marketInner"><span class="market-loading">Loading market…</span></div>
+  <div class="market-updated" id="marketUpdated"></div>
+</div>
+
 <div class="balance-banner" id="balanceBanner">
   <div class="balance-row">
     <div class="balance-main">
@@ -1724,7 +1769,7 @@ a.watch-chip:hover{filter:brightness(1.25)}
       <div class="balance-value" id="balanceVal">—</div>
       <div id="balanceChange"></div>
     </div>
-    <div style="display:flex;gap:32px;align-items:flex-end;padding-bottom:4px">
+    <div class="tally-tiles" style="display:flex;flex-wrap:wrap;gap:18px 28px;align-items:flex-end;padding-bottom:4px">
       <div>
         <div class="balance-label">Total P&amp;L</div>
         <div style="font-size:24px;font-weight:700" id="totalPnl">—</div>
@@ -1736,6 +1781,14 @@ a.watch-chip:hover{filter:brightness(1.25)}
       <div>
         <div class="balance-label">Total Trades</div>
         <div style="font-size:24px;font-weight:700;color:#e6edf3" id="totalTrades">—</div>
+      </div>
+      <div style="border-left:1px solid #30363d;padding-left:28px">
+        <div class="balance-label">Today P&amp;L</div>
+        <div style="font-size:24px;font-weight:700" id="todayPnl">—</div>
+      </div>
+      <div>
+        <div class="balance-label">Today WR</div>
+        <div style="font-size:24px;font-weight:700" id="todayWr">—</div>
       </div>
     </div>
   </div>
@@ -1823,12 +1876,26 @@ function loadData(){
     .then(r=>r.json())
     .then(data=>{
       renderStats(data.stats, data.account);
+      renderTodayStats(data.trades);
       renderTable(data.trades);
       renderChart(data.stats.equity_curve);
       document.getElementById('lastUpdate').textContent =
         'Updated ' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
     })
     .catch(()=>{ document.getElementById('lastUpdate').textContent = 'Error loading data'; });
+}
+
+function renderTodayStats(trades){
+  // Today's P&L + win rate, computed client-side from the trade log (ET calendar day).
+  const todayET = new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});  // YYYY-MM-DD
+  const today = (trades||[]).filter(t=>String(t.date||'').slice(0,10)===todayET);
+  const pEl = document.getElementById('todayPnl'), wEl = document.getElementById('todayWr');
+  if(!today.length){ pEl.textContent='—'; pEl.className='white'; wEl.textContent='—'; wEl.className='gray'; return; }
+  const p = today.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
+  const w = today.filter(t=>(parseFloat(t.pnl)||0)>0).length;
+  const wr = Math.round(w/today.length*100);
+  pEl.textContent = (p>=0?'+':'')+fmt$(p); pEl.className = p>0?'green':p<0?'red':'white';
+  wEl.textContent = wr+'% ('+w+'/'+today.length+')'; wEl.className = wr>=50?'green':wr>0?'yellow':'gray';
 }
 
 function renderStats(s, acct){
@@ -2041,10 +2108,29 @@ function loadWatching(){
 }
 
 // Auto-refresh every 60 seconds
+function loadMarket(){
+  fetch('/api/market').then(function(r){return r.json();}).then(function(m){
+    var el=document.getElementById('marketInner');
+    var idx=(m&&m.indices)||[];
+    if(!idx.length){ el.innerHTML='<span class="market-loading">Market data unavailable</span>'; }
+    else {
+      el.innerHTML = idx.map(function(i){
+        var chg=parseFloat(i.chg)||0, cls=chg>0?'green':chg<0?'red':'white', arrow=chg>0?'▲':chg<0?'▼':'';
+        var px=(i.price!=null&&i.price!=='')?'<span class="mkt-px">'+Number(i.price).toLocaleString(undefined,{maximumFractionDigits:2})+'</span>':'';
+        return '<div class="mkt-idx"><span class="mkt-name">'+i.label+'</span>'+
+               '<span class="mkt-chg '+cls+'">'+arrow+' '+(chg>=0?'+':'')+chg.toFixed(2)+'%</span>'+px+'</div>';
+      }).join('');
+    }
+    document.getElementById('marketUpdated').textContent=(m&&m.updated)?('as of '+m.updated):'';
+  }).catch(function(){ document.getElementById('marketInner').innerHTML='<span class="market-loading">Market data unavailable</span>'; });
+}
+
 loadData();
 loadWatching();
+loadMarket();
 setInterval(loadData, 60000);
 setInterval(loadWatching, 30000);
+setInterval(loadMarket, 60000);
 </script>
 </body>
 </html>"""

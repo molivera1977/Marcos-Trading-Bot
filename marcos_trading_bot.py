@@ -1347,6 +1347,33 @@ def _push_balance_to_screener(balance: float):
         print(f"⚠️  Could not sync balance to screener_app: {e}")
 
 
+# S&P 500 / Dow / Nasdaq via Webull ETF proxies (SPY/DIA/QQQ track the indices to ~1bp — the % change is what
+# "how's the market" needs; no yfinance). Pushed to the dashboard market strip.
+_MARKET_PROXIES = [("SPY", "S&P 500"), ("DIA", "Dow Jones"), ("QQQ", "Nasdaq")]
+
+def _push_market_context():
+    """Fetch the index proxies + push to the dashboard /api/market strip. Fully non-fatal (never blocks the loop)."""
+    screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
+    if not screener_url:
+        return
+    try:
+        indices = []
+        for sym, label in _MARKET_PROXIES:
+            q = _get_webull_quote(sym) or {}
+            chg = q.get("change_ratio")
+            if chg is None:
+                continue
+            indices.append({"label": label, "chg": round(float(chg), 2)})
+        if not indices:
+            return
+        requests.post(f"{screener_url}/api/market",
+                      json={"indices": indices},
+                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET},
+                      timeout=5)
+    except Exception as e:
+        print(f"⚠️  Could not push market context (non-fatal): {e}")
+
+
 def _post_trade_state(state: dict):
     """FIRE-AND-FORGET live trade state to the dashboard. Submitted to the thread pool so the
     monitor loop NEVER waits on it — it cannot delay, block, or hang an exit check."""
@@ -3888,6 +3915,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         # 5-min live rescan
         if rescan_callback and time.time() - last_rescan >= INTRADAY_RESCAN_INTERVAL:
             print(f"🔄 5-min rescan — checking live market for new setups...")
+            _push_market_context()   # refresh the dashboard's S&P/Dow/Nasdaq strip each cycle
             new_candidates = rescan_callback(exclude=traded_tickers | set(candidates))
             if new_candidates:
                 for t in new_candidates:
@@ -5263,6 +5291,7 @@ def main():
         print(f"⭐ Force-added {len(kev_forced)} of Kev's flagged ticker(s) (bypass top-15): {' | '.join(kev_forced)}")
     print(f"📋 Watching {len(gapper_syms)} candidates: {' | '.join(gapper_syms)}")
     _post_watching_to_screener(gapper_syms)
+    _push_market_context()   # populate the dashboard market strip at startup
     _seed_day2_from_gappers(gappers)   # carry today's hard gappers into tomorrow's day-2 observation
 
     stream_tickers = list(dict.fromkeys(gapper_syms))

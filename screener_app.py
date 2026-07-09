@@ -2008,30 +2008,34 @@ function renderAllTrades(list){
 }
 
 function loadWatching(){
-  // ALL open positions (the fix) — /api/open_trades holds every concurrent trade, not the single slot
+  // Open positions are the SOURCE OF TRUTH. /api/watching's "tickers" field goes STALE during trades — the bot
+  // overwrites it with the single last-entered ticker, which lingers after that ticker closes while OTHER positions
+  // live on (the "ghost KIDZ chip" bug). So: during trades show the position CARDS + an "In N trades" status and
+  // suppress the chips; only show watchlist chips when FLAT, where the tickers field is reliable.
   fetch('/api/open_trades')
     .then(r=>r.json())
-    .then(d=>renderAllTrades((d&&d.open_trades)||[]))
-    .catch(()=>{});
-  // status line + watch-list chips still come from /api/watching
-  fetch('/api/watching')
-    .then(r=>r.json())
-    .then(d=>{
+    .then(od=>{
+      const open = (od && od.open_trades) || [];
+      renderAllTrades(open);
       const statusEl  = document.getElementById('watchStatus');
       const tickersEl = document.getElementById('watchTickers');
-      if(!d || !d.tickers || d.tickers.length===0){
-        statusEl.innerHTML = '<span class="status-dot idle"></span>Idle — outside market hours or no setup';
-        tickersEl.innerHTML = '';
-        return;
-      }
-      const st = d.status || 'watching';
-      const cls = st === 'trading' ? 'trading' : 'watching';
-      const label = st === 'trading' ? 'In trade' : 'Watching for setup (flat-top · ORB · pullback)';
-      const since = d.started_at ? new Date(d.started_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
-      statusEl.innerHTML = `<span class="status-dot ${cls}"></span>${label}${since?' since '+since:''}`;
-      tickersEl.innerHTML = d.tickers.map(t=>
-        `<a class="watch-chip ${cls}" href="https://www.tradingview.com/chart/?symbol=${t}" target="_blank" rel="noopener" title="Open ${t} chart">${t} ↗</a>`
-      ).join('');
+      return fetch('/api/watching').then(r=>r.json()).then(d=>{
+        if(open.length){                                   // IN A TRADE — cards are the truth, chips suppressed
+          const since = (d && d.started_at) ? new Date(d.started_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
+          statusEl.innerHTML = `<span class="status-dot trading"></span>In ${open.length} trade${open.length>1?'s':''}${since?' since '+since:''}`;
+          tickersEl.innerHTML = '';
+          return;
+        }
+        const tk = (d && d.tickers) || [];                 // FLAT — the tickers field IS the reliable watchlist
+        if(!tk.length){
+          statusEl.innerHTML = '<span class="status-dot idle"></span>Idle — outside market hours or no setup';
+          tickersEl.innerHTML = ''; return;
+        }
+        statusEl.innerHTML = '<span class="status-dot watching"></span>Watching for setup (flat-top · ORB · pullback)';
+        tickersEl.innerHTML = tk.map(t=>
+          `<a class="watch-chip watching" href="https://www.tradingview.com/chart/?symbol=${t}" target="_blank" rel="noopener" title="Open ${t} chart">${t} ↗</a>`
+        ).join('');
+      });
     })
     .catch(()=>{});
 }

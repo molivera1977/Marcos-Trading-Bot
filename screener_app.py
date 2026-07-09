@@ -416,7 +416,7 @@ HTML = """<!DOCTYPE html>
             background:#1a3a2a;color:#3fb950;padding:3px 10px;border-radius:20px}
   .live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:#3fb950}
 
-  .table-wrap{border-radius:10px;border:1px solid #21262d;overflow:hidden}
+  .table-wrap{border-radius:10px;border:1px solid #21262d;overflow-x:auto;-webkit-overflow-scrolling:touch}
   table{width:100%;border-collapse:collapse;font-size:13px}
   thead th{padding:10px 16px;text-align:left;font-size:11px;font-weight:500;color:#8b949e;
            text-transform:uppercase;letter-spacing:.4px;background:#161b22;
@@ -427,7 +427,7 @@ HTML = """<!DOCTYPE html>
   tbody tr{border-bottom:1px solid #161b22;transition:background .1s}
   tbody tr:last-child{border-bottom:none}
   tbody tr:hover{background:#161b22}
-  tbody td{padding:12px 16px;color:#e6edf3}
+  tbody td{padding:12px 16px;color:#e6edf3;white-space:nowrap}
 
   .ticker-cell{font-weight:600;font-size:14px;color:#58a6ff}
   .tk-link{color:inherit;text-decoration:none;cursor:pointer}
@@ -1670,7 +1670,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0d1117;color:#e6edf3;m
 .chart-wrap{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:20px;margin-bottom:20px;height:220px}
 
 /* ── Trade Table ── */
-.table-wrap{background:#161b22;border:1px solid #21262d;border-radius:12px;overflow:hidden}
+.table-wrap{background:#161b22;border:1px solid #21262d;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{padding:11px 14px;text-align:left;font-size:11px;font-weight:600;
          color:#8b949e;text-transform:uppercase;letter-spacing:.5px;

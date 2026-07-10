@@ -63,13 +63,14 @@ def _save_trades():
 def _compute_stats():
     if not _trades:
         return {
-            "total_trades": 0, "wins": 0, "losses": 0, "win_rate": 0,
+            "total_trades": 0, "wins": 0, "losses": 0, "breakeven": 0, "win_rate": 0,
             "total_pnl": 0, "avg_gain": 0, "avg_loss": 0,
             "best_pnl": 0, "best_ticker": "—", "worst_pnl": 0, "worst_ticker": "—",
             "equity_curve": [],
         }
-    wins   = [t for t in _trades if t.get("pnl", 0) > 0]
-    losses = [t for t in _trades if t.get("pnl", 0) <= 0]
+    wins      = [t for t in _trades if t.get("pnl", 0) > 0]
+    losses    = [t for t in _trades if t.get("pnl", 0) < 0]
+    breakeven = [t for t in _trades if t.get("pnl", 0) == 0]   # $0 scratches are their OWN bucket, not losses
     total_pnl = sum(t.get("pnl", 0) for t in _trades)
     best  = max(_trades, key=lambda t: t.get("pnl", 0))
     worst = min(_trades, key=lambda t: t.get("pnl", 0))
@@ -81,7 +82,8 @@ def _compute_stats():
         "total_trades": len(_trades),
         "wins":         len(wins),
         "losses":       len(losses),
-        "win_rate":     round(len(wins) / len(_trades) * 100, 1),
+        "breakeven":    len(breakeven),
+        "win_rate":     round(len(wins) / max(len(wins) + len(losses), 1) * 100, 1),   # BE excluded — scratches don't count against WR
         "total_pnl":    round(total_pnl, 2),
         "avg_gain":     round(sum(t.get("pnl_pct", 0) for t in wins)  / max(len(wins), 1), 1),
         "avg_loss":     round(sum(t.get("pnl_pct", 0) for t in losses) / max(len(losses), 1), 1),
@@ -1853,7 +1855,8 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="stat-card"><div class="stat-label">Best Trade</div><div class="stat-value green" id="bestPnl">—</div><div class="stat-sub" id="bestTicker">—</div></div>
   <div class="stat-card"><div class="stat-label">Worst Trade</div><div class="stat-value red" id="worstPnl">—</div><div class="stat-sub" id="worstTicker">—</div></div>
   <div class="stat-card"><div class="stat-label">Wins</div><div class="stat-value green" id="wins">—</div><div class="stat-sub">profitable sessions</div></div>
-  <div class="stat-card"><div class="stat-label">Losses</div><div class="stat-value red" id="losses">—</div><div class="stat-sub">stopped out sessions</div></div>
+  <div class="stat-card"><div class="stat-label">Losses</div><div class="stat-value red" id="losses">—</div><div class="stat-sub">closed in the red</div></div>
+  <div class="stat-card"><div class="stat-label">Break Even</div><div class="stat-value" id="breakeven" style="color:#8b949e">—</div><div class="stat-sub">scratched at $0</div></div>
 </div>
 
 <div class="content">
@@ -1922,9 +1925,11 @@ function renderTodayStats(trades){
   if(!today.length){ pEl.textContent='—'; pEl.className='white'; wEl.textContent='—'; wEl.className='gray'; return; }
   const p = today.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
   const w = today.filter(t=>(parseFloat(t.pnl)||0)>0).length;
-  const wr = Math.round(w/today.length*100);
+  const l = today.filter(t=>(parseFloat(t.pnl)||0)<0).length;
+  const dec = w + l;   // decided trades — $0 scratches excluded from the win rate
+  const wr = dec ? Math.round(w/dec*100) : 0;
   pEl.textContent = (p>=0?'+':'')+fmt$(p); pEl.className = p>0?'green':p<0?'red':'white';
-  wEl.textContent = wr+'% ('+w+'/'+today.length+')'; wEl.className = wr>=50?'green':wr>0?'yellow':'gray';
+  wEl.textContent = dec ? (wr+'% ('+w+'/'+dec+')') : '—'; wEl.className = dec ? (wr>=50?'green':wr>0?'yellow':'gray') : 'gray';
 }
 
 let calYear=null, calMonth=null;
@@ -1999,6 +2004,7 @@ function renderStats(s, acct){
   document.getElementById('worstTicker').textContent = s.worst_ticker || '—';
   document.getElementById('wins').textContent    = s.wins   ?? '—';
   document.getElementById('losses').textContent  = s.losses ?? '—';
+  document.getElementById('breakeven').textContent = s.breakeven ?? '—';
 
   if(bal>0 && pnl!==0){
     const startBal = bal - pnl;

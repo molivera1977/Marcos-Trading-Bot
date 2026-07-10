@@ -3452,6 +3452,16 @@ Respond in this EXACT JSON format:
 
 VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't change faster
 
+# VWAP must be SESSION-ANCHORED (from the open) and INCLUDE pre-market, to match Webull's chart. Two bugs it fixes:
+#   (1) entry/dashboard VWAP fetched RTH-only (no pre-market) → ~2-4% low on gappers;
+#   (2) the health-fold EXIT computed VWAP over only the last ~45 M1 bars (the EMA window) = a ROLLING window that
+#       runs 10-22% HIGH on a runner → folds winners early. Fetch a full pre+RTH session set for VWAP everywhere.
+VWAP_SESSION_COUNT      = 600   # bars = full pre-market + RTH session (+ margin); _latest_session() trims prior days
+VWAP_SESSION_CACHE_SECS = 90    # session VWAP moves slowly — refresh less often than the 30s bar cache to limit API load
+# Feature flags — DEFAULT OFF so the deployed default == current live/validated behavior. Flip only after re-validation.
+HEALTH_VWAP_SESSION     = True  # exit health-fold: session VWAP (Webull-matching) — validated +19.2R/0-worse across 8 archived days (7/10)
+ENTRY_VWAP_PREMARKET    = False # entry/dashboard VWAP: True → pre+RTH session VWAP instead of RTH-only
+
 INTRADAY_RESCAN_INTERVAL = 3 * 60   # 7/3: 5→3 min — catch intraday runners sooner (they were seen too late)
 
 
@@ -3542,12 +3552,30 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     cache[t]["bars"] = fresh
                 full_bars = get_intraday_bars(t, count=390)
                 if full_bars:
-                    cache[t]["full_bars"] = full_bars   # multi-day 1-min (count backfills prior days) — room + 3-min agg
-                    calc_vwap = calculate_vwap(_latest_session(full_bars))   # SESSION VWAP — never across the day boundary
-                    if calc_vwap > 0:
-                        cache[t]["vwap"] = calc_vwap   # (VWAP is shown per-ticker in the status line below — no separate print)
-                    else:
-                        print(f"⚠️  {t} VWAP=0 — Webull bars had no volume data")
+                    cache[t]["full_bars"] = full_bars   # RTH 1-min (count backfills prior days) — room + 3-min agg (UNCHANGED)
+                    if not ENTRY_VWAP_PREMARKET:
+                        # LIVE DEFAULT (validated): RTH session VWAP from full_bars.
+                        calc_vwap = calculate_vwap(_latest_session(full_bars))   # SESSION VWAP — never across the day boundary
+                        if calc_vwap > 0:
+                            cache[t]["vwap"] = calc_vwap
+                        else:
+                            print(f"⚠️  {t} VWAP=0 — Webull bars had no volume data")
+                    elif time.time() - cache[t].get("vwap_fetched", 0) >= VWAP_SESSION_CACHE_SECS:
+                        # Chart-matching = session-anchored INCLUDING pre-market. Dedicated pre+RTH fetch (slower TTL to
+                        # limit API load); keep full_bars RTH-only so room/3-min setups don't move.
+                        _vwb  = get_intraday_bars(t, count=VWAP_SESSION_COUNT, sessions=["PRE", "RTH"])
+                        _sess = _latest_session(_vwb) if _vwb else _latest_session(full_bars)
+                        _fullvw = calculate_vwap(_sess)
+                        _rthvw  = calculate_vwap([b for b in _sess if b.get("trading_session") == "RTH"]) or _fullvw
+                        if _fullvw > 0:
+                            cache[t]["vwap"]     = _fullvw   # pre+RTH session VWAP (chart-matching) — shown in status line
+                            cache[t]["vwap_rth"] = _rthvw    # RTH-only (old) — dual-log to see the pre-market gap
+                            cache[t]["vwap_fetched"] = time.time()
+                            if _rthvw > 0 and abs(_fullvw - _rthvw) / _rthvw >= 0.03:
+                                print(f"   🔍 {t} VWAP pre+RTH ${_fullvw:.3f} vs RTH-only ${_rthvw:.3f} "
+                                      f"({(_fullvw - _rthvw) / _rthvw * 100:+.0f}% pre-market gap)")
+                        else:
+                            print(f"⚠️  {t} VWAP=0 — Webull bars had no volume data")
                 else:
                     print(f"⚠️  {t} VWAP unavailable — no Webull bars returned")
                 cache[t]["fetched"] = time.time()
@@ -3916,12 +3944,22 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         if rescan_callback and time.time() - last_rescan >= INTRADAY_RESCAN_INTERVAL:
             print(f"🔄 5-min rescan — checking live market for new setups...")
             _push_market_context()   # refresh the dashboard's S&P/Dow/Nasdaq strip each cycle
-            new_candidates = rescan_callback(exclude=traded_tickers | set(candidates))
+            # RE-ENTRY FIX (7/9, JLHL): re-watch is gated on HELD∪GIVENUP, NOT all traded_tickers. A traded-but-
+            # ELIGIBLE name (JLHL: caught the ignition, scratched, then ran +112% UNWATCHED) must stay watchable so
+            # the normal gates can re-enter it. `traded_tickers` was a PERMANENT lock-out — the root of the JLHL miss.
+            if reentry is not None:
+                with reentry["lock"]:
+                    _reexcl = reentry["held"] | reentry["givenup"]
+            else:
+                _reexcl = traded_tickers
+            new_candidates = rescan_callback(exclude=_reexcl | set(candidates))
             if new_candidates:
                 for t in new_candidates:
                     if t not in candidates:
                         candidates.append(t)
                         cache[t] = {"bars": [], "vwap": 0.0, "fetched": 0.0}
+                        if t in traded_tickers:   # a previously-traded, now-eligible name coming back for re-entry
+                            print(f"   ♻️  Re-watching traded-but-eligible {t} for re-entry (was locked out pre-fix)")
                         print(f"   ➕ Added {t} to flat top watch list")
             last_rescan = time.time()
 
@@ -4436,11 +4474,26 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 if RUNNER_HEALTH_EXIT and remaining_shares > 0 and partial_taken and len(completed) >= 2:
                     _hc = float(completed[-1].get("close") or completed[-1].get("c") or 0)
                     _e9 = calculate_ema9(completed)
-                    try:    _vw = calculate_vwap(_latest_session(bars))
-                    except Exception: _vw = 0.0
+                    # VWAP for the health read. LIVE DEFAULT (HEALTH_VWAP_SESSION=False) = the shipped/validated
+                    # behavior: calculate_vwap over `bars` (the last ~45 M1 EMA window) = a ROLLING VWAP. When the flag
+                    # is on, use a full pre+RTH SESSION VWAP (matches Webull's chart). Flag default OFF so nothing changes
+                    # until the re-validation clears the switch. _vw_roll always computed for the dual-log comparison.
+                    _vw_roll = 0.0
+                    try:
+                        _vw_roll = calculate_vwap(_latest_session(bars))   # rolling-45 (shipped/validated)
+                        if HEALTH_VWAP_SESSION:
+                            _svb = get_intraday_bars(ticker, count=VWAP_SESSION_COUNT, sessions=["PRE", "RTH"])
+                            _vw  = calculate_vwap(_latest_session(_svb)) if _svb else _vw_roll
+                        else:
+                            _vw  = _vw_roll
+                    except Exception:
+                        _vw = 0.0
+                    if HEALTH_VWAP_SESSION and _vw > 0 and _vw_roll > 0 and abs(_vw_roll - _vw) / _vw >= 0.03:
+                        print(f"   🔍 {ticker} VWAP session ${_vw:.3f} vs old rolling-45 ${_vw_roll:.3f} "
+                              f"({(_vw_roll - _vw) / _vw * 100:+.0f}%) — health read now uses SESSION VWAP")
                     if _hc > 0 and _e9 > 0 and _vw > 0 and _hc < _e9 and _hc < _vw:
-                        print(f"🩺 {ticker}: 3-min close ${_hc:.2f} below EMA9 ${_e9:.2f} AND VWAP ${_vw:.2f} "
-                              f"— pullback structure gone, fold the runner.")
+                        print(f"🩺 {ticker}: 3-min close ${_hc:.2f} below EMA9 ${_e9:.2f} AND session-VWAP ${_vw:.2f} "
+                              f"(rolling-45 was ${_vw_roll:.2f}) — pullback structure gone, fold the runner.")
                         cancel_order(placed_stop_id)
                         close_position(ticker, remaining_shares)
                         result["exit_price"]  = current_price
@@ -5343,8 +5396,10 @@ def main():
         if trade_count > 0:
             print(f"\n🔄 Trade #{trade_count} done — rescanning live market for next setup...")
             fresh_gappers = scan_morning_gappers()
+            with reentry["lock"]:                       # RE-ENTRY FIX (7/9): exclude only held+givenup, not all traded
+                _reexcl = reentry["held"] | reentry["givenup"]
             remaining_candidates = [g["symbol"] for g in fresh_gappers
-                                    if g.get("symbol") and g["symbol"] not in traded_tickers]
+                                    if g.get("symbol") and g["symbol"] not in _reexcl]
             for t in remaining_candidates:
                 if t not in stream_tickers:
                     stream_tickers.append(t)

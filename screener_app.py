@@ -1689,6 +1689,7 @@ a.watch-chip{text-decoration:none;cursor:pointer}
 a.watch-chip:hover{filter:brightness(1.25)}
 .pnl-pos{color:#3fb950;font-weight:600}
 .pnl-neg{color:#f85149;font-weight:600}
+.pnl-flat{color:#8b949e;font-weight:600}
 .exit-tag{font-size:11px;color:#8b949e;max-width:160px;overflow:hidden;text-overflow:ellipsis}
 .empty-state{text-align:center;padding:48px 24px;color:#8b949e}
 .empty-state .icon{font-size:36px;margin-bottom:12px}
@@ -2026,9 +2027,9 @@ function renderTable(trades){
     return;
   }
   const rows = [...trades].reverse().map(t=>{
-    const pnlCls  = t.pnl>=0?'pnl-pos':'pnl-neg';
-    const pnlSign = t.pnl>=0?'+':'';
-    const pctSign = t.pnl_pct>=0?'+':'';
+    const pnlCls  = t.pnl>0?'pnl-pos':t.pnl<0?'pnl-neg':'pnl-flat';   // $0 scratch = neutral, not green
+    const pnlSign = t.pnl>0?'+':'';
+    const pctSign = t.pnl_pct>0?'+':'';
     const fl = t.float_shares ? String(t.float_shares).replace(/(\d)(?=(\d{3})+$)/g,'$1,') : '—';
     const sz = t.position_size ? fmt$(t.position_size) : '—';
     return `<tr>

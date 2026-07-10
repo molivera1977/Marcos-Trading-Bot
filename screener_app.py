@@ -1712,6 +1712,31 @@ a.watch-chip:hover{filter:brightness(1.25)}
   .trade-panel .tk{font-size:18px} .trade-panel .pnl{font-size:20px}
 }
 .panel-card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:16px 18px}
+.cal-wrap{max-width:660px;margin:0 auto 8px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-nav{background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:2px 12px;cursor:pointer;font-size:20px;line-height:1.2}
+.cal-nav:hover{background:#30363d}
+.cal-titlewrap{text-align:center;display:flex;flex-direction:column;gap:2px}
+.cal-title{font-size:15px;font-weight:700}
+.cal-month-pnl{font-size:15px;font-weight:800}
+.cal-month-sub{font-size:11px;color:#8b949e}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+.cal-dow>div{text-align:center;font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-cell{min-height:58px;border-radius:8px;border:1px solid #21262d;background:#0d1117;padding:5px 7px;display:flex;flex-direction:column;justify-content:space-between}
+.cal-cell.empty{background:transparent;border-color:transparent}
+.cal-cell.win{background:rgba(63,185,80,.13);border-color:rgba(63,185,80,.38)}
+.cal-cell.loss{background:rgba(248,81,73,.13);border-color:rgba(248,81,73,.38)}
+.cal-cell.flat{background:rgba(139,148,158,.10)}
+.cal-cell.today{outline:2px solid #58a6ff;outline-offset:-2px}
+.cal-daynum{font-size:11px;color:#8b949e;font-weight:600}
+.cal-pnl{font-size:13px;font-weight:800;line-height:1.1}
+.cal-ct{font-size:9px;color:#8b949e}
+@media(max-width:640px){
+  .cal-cell{min-height:46px;padding:3px 4px}
+  .cal-pnl{font-size:10px} .cal-daynum{font-size:9px} .cal-ct{display:none}
+  .cal-dow>div{font-size:8px} .cal-grid{gap:4px} .cal-dow{gap:4px}
+}
 .panel-title{font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
 .param-grid{display:flex;flex-wrap:wrap;gap:8px}
 .param-pill{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:5px 10px;font-size:12px}
@@ -1837,6 +1862,9 @@ a.watch-chip:hover{filter:brightness(1.25)}
     <canvas id="equityChart"></canvas>
   </div>
 
+  <div class="section-title">P&amp;L Calendar</div>
+  <div id="pnlCalendar" class="cal-wrap"></div>
+
   <div class="section-title">Trade History</div>
   <div class="table-wrap">
     <table>
@@ -1878,6 +1906,7 @@ function loadData(){
       renderStats(data.stats, data.account);
       renderTodayStats(data.trades);
       renderTable(data.trades);
+      renderCalendar(data.trades);
       renderChart(data.stats.equity_curve);
       document.getElementById('lastUpdate').textContent =
         'Updated ' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -1898,6 +1927,55 @@ function renderTodayStats(trades){
   wEl.textContent = wr+'% ('+w+'/'+today.length+')'; wEl.className = wr>=50?'green':wr>0?'yellow':'gray';
 }
 
+let calYear=null, calMonth=null;
+function renderCalendar(trades){
+  // P&L per ET calendar day, laid out as a month grid. Navigate months with the ‹ › buttons.
+  window._calTrades = trades || [];
+  const byDay={};
+  (trades||[]).forEach(function(t){
+    const d=String(t.date||'').slice(0,10); if(d.length!==10) return;
+    const o=byDay[d]||(byDay[d]={pnl:0,ct:0,w:0});
+    const p=parseFloat(t.pnl)||0; o.pnl+=p; o.ct++; if(p>0)o.w++;
+  });
+  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  if(calYear===null){ calYear=nowET.getFullYear(); calMonth=nowET.getMonth(); }
+  const pad=function(n){return String(n).padStart(2,'0');};
+  const key=function(d){return calYear+'-'+pad(calMonth+1)+'-'+pad(d);};
+  const dim=new Date(calYear,calMonth+1,0).getDate();
+  const startDow=new Date(calYear,calMonth,1).getDay();
+  const todayStr=nowET.toLocaleDateString('en-CA');
+  const cell=function(v){return (v>=0?'+':'-')+'$'+Math.abs(Math.round(v)).toLocaleString('en-US');};
+  const money2=function(v){return (v>=0?'+':'-')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
+  let mp=0,mc=0,mw=0;
+  for(let d=1;d<=dim;d++){ const o=byDay[key(d)]; if(o){mp+=o.pnl;mc+=o.ct;mw+=o.w;} }
+  const mName=new Date(calYear,calMonth,1).toLocaleString('en-US',{month:'long'});
+  let h='<div class="cal-head">'
+    +'<button class="cal-nav" onclick="calNav(-1)">&lsaquo;</button>'
+    +'<div class="cal-titlewrap"><span class="cal-title">'+mName+' '+calYear+'</span>'
+    +(mc?'<span class="cal-month-pnl '+(mp>0?'green':mp<0?'red':'white')+'">'+money2(mp)+'</span><span class="cal-month-sub">'+mc+' trade'+(mc!==1?'s':'')+' · '+Math.round(mw/mc*100)+'% WR</span>':'<span class="cal-month-sub">no trades</span>')
+    +'</div>'
+    +'<button class="cal-nav" onclick="calNav(1)">&rsaquo;</button></div>';
+  h+='<div class="cal-dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>';
+  h+='<div class="cal-grid">';
+  for(let i=0;i<startDow;i++) h+='<div class="cal-cell empty"></div>';
+  for(let d=1;d<=dim;d++){
+    const o=byDay[key(d)];
+    let cls='cal-cell', inner='';
+    if(o){ cls+=(o.pnl>0?' win':o.pnl<0?' loss':' flat');
+      inner='<div class="cal-pnl '+(o.pnl>0?'green':o.pnl<0?'red':'white')+'">'+cell(o.pnl)+'</div><div class="cal-ct">'+o.ct+' trade'+(o.ct!==1?'s':'')+'</div>';
+    }
+    if(key(d)===todayStr) cls+=' today';
+    h+='<div class="'+cls+'"><div class="cal-daynum">'+d+'</div>'+inner+'</div>';
+  }
+  h+='</div>';
+  const el=document.getElementById('pnlCalendar'); if(el) el.innerHTML=h;
+}
+function calNav(delta){
+  calMonth+=delta;
+  if(calMonth<0){calMonth=11;calYear--;}
+  else if(calMonth>11){calMonth=0;calYear++;}
+  renderCalendar(window._calTrades||[]);
+}
 function renderStats(s, acct){
   const bal = acct && acct.balance ? acct.balance : 0;
   document.getElementById('balanceVal').textContent = bal ? fmt$(bal) : '—';

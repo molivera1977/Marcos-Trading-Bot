@@ -251,7 +251,7 @@ def _get_webull_fundamentals(ticker: str) -> dict:
 
 
 # Trading rules
-MAX_TRADE_DOLLARS     = 100.00 # Hard cap per trade until system proves reliable
+MAX_TRADE_DOLLARS     = 1000.00 # Notional cap per trade (~33% of the $3k sim account; tight Kev setups bump it — 7/11)
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade (HIGH confidence)
 POSITION_SIZE_MEDIUM  = 0.50   # 50% for MEDIUM confidence
 POSITION_SIZE_LOW     = 0.30   # 30% for LOW confidence
@@ -3462,6 +3462,24 @@ VWAP_SESSION_CACHE_SECS = 90    # session VWAP moves slowly — refresh less oft
 HEALTH_VWAP_SESSION     = True  # exit health-fold: session VWAP (Webull-matching) — validated +19.2R/0-worse across 8 archived days (7/10)
 ENTRY_VWAP_PREMARKET    = False # entry/dashboard VWAP: True → pre+RTH session VWAP instead of RTH-only
 
+# ── 7/10 ENTRY-GATE + WIDE-STOP FIX STACK (all DEFAULT OFF until the 9-day completion grade ranks them) ──
+# check_momentum BUNDLES three gates; the reversal exemption (vwap_reclaim/ignition/bounce) was meant only for the
+# momentum gate but silently skipped the UNIVERSAL rules too (the 7/10 audit: flagged fills −$14.95 vs clean +$19.65).
+ENTRY_GATE_TOPPING_TAIL = False  # un-bundled Kev rule: NO entry into a candle rejected at the high — ALL entry types
+ENTRY_GATE_LIQUIDITY    = False  # un-bundled liquidity floor (MOMENTUM_MIN_AVG_VOL) — ALL entry types (⚠️ KUST won 7/10; grade first)
+# Wide-stop fixes — THREE contenders, ranked head-to-head in the harness (the −7% was a MADE-UP number; do not inherit it):
+STOP_MAX_PCT            = 0.0    # A: clamp the structural stop to entry×(1−X) for ALL types. 0=off; calibrate from data, don't assume 7%
+MAX_STOP_DIST_PCT       = 0.0    # C: Kev tight-setup gate — SKIP entries whose structural stop is >X% away (wide base ≠ Kev setup). 0=off
+
+# ── REALISTIC-SIZING DRY_RUN (7/11, user-directed): trade the INTENDED live amounts on paper so every number is
+# real-scale. Kev short-003 sizing: max loss ≤1% of account; shares = max_loss ÷ risk-per-share; size down = smaller
+# risk. Changes SIZE only — never WHICH trades fire (gates/exits untouched) → the learning stream continues unimpeded.
+RISK_BASED_SIZING       = True   # shares = RISK_PER_TRADE ÷ (entry−stop), capped by notional + volume guards
+RISK_PER_TRADE          = 30.0   # 1% of the intended $3,000 account — every trade risks exactly this
+SIM_ACCOUNT_BALANCE     = 3000.0 # DRY_RUN virtual account (the intended go-live funding of the margin acct …9AGA)
+MAX_POS_VOL_PCT         = 0.05   # share cap = 5% of the avg recent 1-min volume (KUST lesson: the formula wanted
+                                 # 750 shares of a 3k-shares/min tape = unfillable; size must fit the market)
+
 INTRADAY_RESCAN_INTERVAL = 3 * 60   # 7/3: 5→3 min — catch intraday runners sooner (they were seen too late)
 
 
@@ -5307,7 +5325,13 @@ def main():
 
     # ── Step 3: Account balance ────────────────────────────
     balance = get_account_balance()
-    print(f"💰 Balance: ${balance:.2f}")
+    if DRY_RUN:
+        # REALISTIC-SIZING SIM (7/11): size and ledger against the INTENDED go-live funding, not the real
+        # cash-account balance — so paper P&L, risk, and capital collisions are all true-scale.
+        print(f"💰 Real balance ${balance:.2f} → DRY_RUN sizing frame: ${SIM_ACCOUNT_BALANCE:.2f} sim account")
+        balance = SIM_ACCOUNT_BALANCE
+    else:
+        print(f"💰 Balance: ${balance:.2f}")
     post_balance_to_dashboard(balance)
 
     # ── Morning watchlist email ───────────────────────────
@@ -5379,6 +5403,8 @@ def main():
     #    gate; givenup=topping-tail/over-cap, leave alone; count/consec_loss for the rail + observability. ──
     reentry = {"held": set(), "eligible": set(), "givenup": set(),
                "count": {}, "consec_loss": {}, "lock": trade_lock}
+    _reservations = {}   # ticker → reserved notional (guard: trade_lock). pop() = exactly-once release; the
+                         # worker safety-wrapper repairs any leak if a worker thread dies mid-trade (7/11 review).
 
     while True:
         now = datetime.now(EASTERN)
@@ -5456,11 +5482,6 @@ def main():
 
             with trade_lock:
                 pos_size = min(current_balance * MAX_POSITION_SIZE, MAX_TRADE_DOLLARS)
-                if not DRY_RUN and settled_remaining < MAX_TRADE_DOLLARS:
-                    print(f"⛔ {ticker}: insufficient settled capital — skipping")
-                    reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
-                    return
-                settled_remaining -= MAX_TRADE_DOLLARS
 
             if "ema_stop" in extra:
                 stop_loss = round(extra["ema_stop"], 4)
@@ -5469,12 +5490,72 @@ def main():
                 # Flat-top: structural zone stop (Kev), -7% only as fallback if zone is missing
                 stop_loss = round((extra.get("zone_stop") or entry_price * (1 - STOP_LOSS_PCT)), 4)
                 target_price = round(entry_price * (1 + TARGET_PCT), 4)
-            shares = max(1, int(pos_size / entry_price))
+
+            # ── WIDE-STOP FIX STACK (7/10, all default-off; ranked in the 9-day harness before any flip) ──
+            _stop_dist = (entry_price - stop_loss) / entry_price if entry_price > 0 else 0
+            # C: Kev tight-setup gate — a structural stop >X% away means the base is sloppy, not a Kev setup. Skip.
+            if MAX_STOP_DIST_PCT and _stop_dist > MAX_STOP_DIST_PCT:
+                print(f"⚠️ {ticker} stop {_stop_dist*100:.1f}% away > {MAX_STOP_DIST_PCT*100:.0f}% tight-setup gate — skipping")
+                _log_decision(ticker, "wide_stop_reject", price=entry_price, stop_dist_pct=round(_stop_dist * 100, 1))
+                with trade_lock:
+                    reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
+                return
+            # A: stop clamp — cap the structural stop at entry×(1−X). Number must come from the grade, not the old -7% guess.
+            if STOP_MAX_PCT and _stop_dist > STOP_MAX_PCT:
+                stop_loss = round(entry_price * (1 - STOP_MAX_PCT), 4)
+                print(f"   🔧 {ticker} stop clamped {_stop_dist*100:.1f}% → {STOP_MAX_PCT*100:.0f}% (${stop_loss:.2f})")
+            # Degenerate stop (stale EMA / bad tick puts the stop AT/ABOVE entry): unsizeable, skip + log —
+            # never fall through to full-notional sizing with a meaningless stop (7/11 review finding 4).
+            if RISK_BASED_SIZING and stop_loss >= entry_price:
+                print(f"⚠️ {ticker} stop ${stop_loss:.2f} ≥ entry ${entry_price:.2f} — unsizeable, skipping")
+                _log_decision(ticker, "bad_stop_skip", price=entry_price, stop=round(stop_loss, 4))
+                with trade_lock:
+                    reentry["held"].discard(ticker)   # pre-reservation: nothing to refund
+                return
+            # B: Kev short-003 sizing (LIVE 7/11) — shares = max-loss ÷ risk-per-share; notional-capped. Wide stop →
+            # fewer shares, tight stop → more; every full stop-out costs the same RISK_PER_TRADE.
+            if RISK_BASED_SIZING and entry_price > stop_loss:
+                shares = max(1, min(int(RISK_PER_TRADE / (entry_price - stop_loss)), int(pos_size / entry_price)))
+            else:
+                shares = max(1, int(pos_size / entry_price))
+
+            # ── VOLUME GUARD (7/11, the KUST lesson): size must fit the tape. Cap shares at MAX_POS_VOL_PCT of the
+            # avg recent 1-min volume — the risk formula on a tight-stop illiquid name demands size the market
+            # can't fill without becoming the market. ──
+            _vol_cap = None
+            if MAX_POS_VOL_PCT:
+                try:
+                    _vgb = _latest_session(get_intraday_bars(ticker, count=6))
+                    _vcomp = _vgb[:-1] if len(_vgb) >= 2 else _vgb
+                    _vav = (sum(float(b.get("volume") or b.get("v") or 0) for b in _vcomp[-3:]) / min(3, len(_vcomp))) if _vcomp else 0
+                    if _vav > 0:
+                        _vol_cap = max(1, int(_vav * MAX_POS_VOL_PCT))
+                        if shares > _vol_cap:
+                            print(f"   💧 {ticker} volume guard: {shares} → {_vol_cap} shares "
+                                  f"({MAX_POS_VOL_PCT*100:.0f}% of {int(_vav):,}/min avg tape)")
+                            shares = _vol_cap
+                except Exception:
+                    pass   # guard is best-effort; never blocks an entry on a data hiccup
+
+            # ── DOLLAR-TRACKED CAPITAL (7/11): reserve the ACTUAL notional against the sim account (margin
+            # semantics — released on exit). Replaces the old flat-$100 reservation. When free capital can't
+            # fund the position, SKIP and LOG it — the no_capital_skip stream calibrates whether capital
+            # collisions are a real tax (the 3-slot replay showed FCFS would have skipped SUNE on 7/10). ──
+            _reserved = round(shares * entry_price, 2)
+            with trade_lock:
+                if settled_remaining < _reserved:
+                    print(f"⛔ {ticker}: needs ${_reserved:.2f}, only ${settled_remaining:.2f} free — capital skip")
+                    _log_decision(ticker, "no_capital_skip", price=entry_price,
+                                  needed=_reserved, free=round(settled_remaining, 2), entry_type=entry_type)
+                    reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
+                    return
+                settled_remaining -= _reserved
+                _reservations[ticker] = _reserved   # registry: pop() releases exactly once (leak-proof, 7/11)
 
             if entry_price > current_balance:
                 print(f"⚠️ {ticker} @ ${entry_price:.2f} exceeds balance — skipping")
                 with trade_lock:
-                    settled_remaining += MAX_TRADE_DOLLARS
+                    settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
@@ -5489,7 +5570,7 @@ def main():
                 print(f"⚠️ {ticker} spread {spread_pct*100:.2f}% too wide — skipping")
                 _log_decision(ticker, "spread_reject", price=entry_price, spread_pct=round(spread_pct*100, 2))
                 with trade_lock:
-                    settled_remaining += MAX_TRADE_DOLLARS
+                    settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
@@ -5498,7 +5579,7 @@ def main():
                 print(f"⚠️ {ticker} L2 rejected: {l2_details.get('reason','')} — skipping")
                 _log_decision(ticker, "l2_reject", price=entry_price, reason=str(l2_details.get('reason', ''))[:80])
                 with trade_lock:
-                    settled_remaining += MAX_TRADE_DOLLARS
+                    settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
@@ -5506,13 +5587,25 @@ def main():
             # they carry their OWN volume confirmation in the detector, so they bypass the front-side momentum gate.
             if entry_type in ("vwap_reclaim", "bounce", "ignition"):
                 mom_ok, mom_details = True, {"exempt": entry_type}
+                # ── UNIVERSAL GATES (7/10 un-bundle): topping-tail + liquidity are NOT momentum rules — they were
+                # only skipped here because they live inside check_momentum (a bundling accident; KUST/ZCMD). When
+                # flagged on, exempt types get the SAME universal checks the other entries get via check_momentum. ──
+                if ENTRY_GATE_TOPPING_TAIL or ENTRY_GATE_LIQUIDITY:
+                    _gb = _latest_session(get_intraday_bars(ticker, count=30))
+                    if ENTRY_GATE_TOPPING_TAIL and len(_gb) >= 2 and is_topping_tail(_gb[-2]):
+                        mom_ok, mom_details = False, {"reason": "topping tail on last bar (universal gate) — rejection at the high, skip"}
+                    elif ENTRY_GATE_LIQUIDITY and len(_gb) >= 3:
+                        _g3 = _gb[-4:-1]
+                        _gav = sum(float(b.get("volume") or b.get("v") or 0) for b in _g3) / max(len(_g3), 1)
+                        if _gav < MOMENTUM_MIN_AVG_VOL:
+                            mom_ok, mom_details = False, {"reason": f"illiquid — avg vol {int(_gav):,}/bar < {MOMENTUM_MIN_AVG_VOL:,} floor (universal gate)"}
             else:
                 mom_ok, mom_details = check_momentum(ticker)
             if not mom_ok:
                 print(f"⚠️ {ticker} momentum rejected: {mom_details.get('reason','')} — skipping")
                 _log_decision(ticker, "momentum_reject", price=entry_price, reason=str(mom_details.get('reason', ''))[:80])
                 with trade_lock:
-                    settled_remaining += MAX_TRADE_DOLLARS
+                    settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
@@ -5523,7 +5616,7 @@ def main():
                 print(f"⚠️ Order failed for {ticker}")
                 _log_decision(ticker, "order_failed", price=entry_price)
                 with trade_lock:
-                    settled_remaining += MAX_TRADE_DOLLARS
+                    settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
             _log_decision(ticker, "filled", price=actual_fill or entry_price, entry_type=entry_type)
@@ -5535,7 +5628,14 @@ def main():
                 else:
                     stop_loss = round((extra.get("zone_stop") or entry_price * (1 - STOP_LOSS_PCT)), 4)
                     target_price = round(entry_price * (1 + TARGET_PCT), 4)
-                shares = max(1, int(pos_size / entry_price))
+                # Re-size on the real fill with the SAME risk formula (7/11) — not the old notional formula.
+                if RISK_BASED_SIZING and entry_price > stop_loss:
+                    shares = max(1, min(int(RISK_PER_TRADE / (entry_price - stop_loss)), int(pos_size / entry_price)))
+                else:
+                    shares = max(1, int(pos_size / entry_price))
+                if _vol_cap:
+                    shares = min(shares, _vol_cap)
+                # ledger note: reservation stays at the pre-fill notional (fill deltas are pennies; released as reserved)
 
             with trade_lock:   # guard the _open_trade write (the SIGTERM handler reads it from the main thread)
                 _open_trade[ticker] = {"active": True, "ticker": ticker,
@@ -5543,7 +5643,7 @@ def main():
                                        "stop_loss": stop_loss, "target": target_price}
             _post_watching_to_screener([ticker], status="trading")
             send_entry_alert(ticker, shares, entry_price,
-                             stop_loss, target_price, vwap, pos_size)
+                             stop_loss, target_price, vwap, _reserved)
             # Persist the static context SYNCHRONOUSLY (confirmed) BEFORE monitoring, so a
             # crash anywhere after this still records a proper exit. trade_id = idempotency key.
             trade_id = uuid.uuid4().hex
@@ -5552,7 +5652,7 @@ def main():
                 "target": round(target_price, 4), "stop": round(stop_loss, 4),
                 "initial_shares": shares, "remaining_shares": shares, "tier_idx": 0,
                 "partial_fills": [], "entry_type": entry_type, "confidence": confidence,
-                "position_size": pos_size, "vwap": round(vwap, 4) if vwap else 0,
+                "position_size": _reserved, "vwap": round(vwap, 4) if vwap else 0,
                 "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
             })
             # Register with the stale-trade watchdog (full ctx so it can record if the monitor freezes).
@@ -5560,7 +5660,7 @@ def main():
                 "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
                 "stop": round(stop_loss, 4), "initial_shares": shares, "remaining_shares": shares,
                 "tier_idx": 0, "partial_fills": [], "entry_type": entry_type, "confidence": confidence,
-                "position_size": pos_size, "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+                "position_size": _reserved, "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
                 "last_price": round(entry_price, 4)}}
             _note_positions(len(_active_monitors))   # track peak concurrent positions (capacity signal)
 
@@ -5571,8 +5671,10 @@ def main():
             )
             _active_monitors.pop(ticker, None)   # monitor returned — deregister from watchdog
 
-            _bal = get_account_balance()   # blocking Webull HTTP — fetch BEFORE the lock so we don't
-                                           # serialize every other worker on the network call (audit HIGH-3)
+            # DRY_RUN: skip the real-balance fetch entirely — the sim frame tracks its own balance, and the
+            # fetch's side-post was flip-flopping the dashboard between $3,000(sim) and the real cash figure.
+            _bal = 0.0 if DRY_RUN else get_account_balance()   # blocking Webull HTTP — fetch BEFORE the lock so we
+                                           # don't serialize every other worker on the network call (audit HIGH-3)
             with trade_lock:
                 _open_trade.pop(ticker, None)
                 pnl         = trade_result.get("profit_loss", 0)
@@ -5580,8 +5682,16 @@ def main():
                 exit_reason = trade_result.get("exit_reason", "N/A")
                 session_pnl    += pnl
                 trade_count    += 1
-                current_balance = _bal
+                # DRY_RUN: current_balance tracks the SIM account (else the real $578 cash balance would
+                # silently shrink the sizing frame after the first trade). Live keeps the broker's number.
+                current_balance = (SIM_ACCOUNT_BALANCE + session_pnl) if DRY_RUN else _bal
                 display_balance = balance + session_pnl
+                # MARGIN-SIM capital release (7/11): the exited position's notional recycles same-day —
+                # matching the post-PDT margin account we'll actually trade. Live cash-mode: pop WITHOUT
+                # refunding (proceeds unsettled same-day) until go-live points at the margin account.
+                _amt = _reservations.pop(ticker, 0)   # exactly-once
+                if DRY_RUN:
+                    settled_remaining += _amt
                 # ── RE-ENTRY (#2): release the name for a fresh GATED re-entry UNLESS it gave a
                 #    structural "done" signal. Topping tail = Kev's "that's when I'm done with it" →
                 #    leave it alone. Consec losing (re)entries ≥ cap = HOMEGROWN death-by-cuts rail. ──
@@ -5633,8 +5743,13 @@ def main():
                 "exit_reason":     exit_reason,
                 "confidence":      confidence,
                 "float_shares":    str(float_shares),
-                "position_size":   pos_size,
+                "position_size":   _reserved,   # ACTUAL notional (7/11) — not the cap
                 "account_balance": current_balance,
+                # ── REALISTIC-SIZING calibration fields (7/11) ──
+                "stop_loss":       round(stop_loss, 4),                              # initial structural stop
+                "risk_per_share":  round(entry_price - stop_loss, 4),
+                "planned_risk":    round(shares * (entry_price - stop_loss), 2),     # ≈ RISK_PER_TRADE unless capped
+                "est_slippage":    round(shares * float(l2_details.get("spread") or 0), 2),  # shares × L1 spread @ entry
                 "entry_ema90":        round(entry_ema90, 4) if entry_ema90 > 0 else None,
                 "entry_vs_ema90_pct": entry_vs_ema90_pct,
                 "trade_id":           trade_id,
@@ -5665,11 +5780,35 @@ def main():
             print(f"   Session P&L: ${session_pnl:+.2f}  |  Balance: ${current_balance:.2f}")
             print(f"{'='*60}\n")
 
+        def _trade_worker_safe(*wargs):
+            """Leak-proof wrapper (7/11 review BLOCKER): if a worker thread dies on an uncaught exception,
+            repair the capital ledger (refund any un-released reservation in DRY_RUN), release the re-entry
+            held-lock, and drop the phantom _open_trade entry — else one crash starves the $3k sim pool and
+            locks the ticker out for the day. Normal completions already released; pop() makes this a no-op."""
+            nonlocal settled_remaining
+            _tkr = wargs[0]
+            try:
+                _trade_worker(*wargs)
+            except Exception as e:
+                import traceback
+                print(f"💥 worker {_tkr} died: {e}\n{traceback.format_exc()}")
+            finally:
+                with trade_lock:
+                    _amt = _reservations.pop(_tkr, 0)
+                    if _amt:
+                        if DRY_RUN:
+                            settled_remaining += _amt
+                            print(f"🧯 {_tkr}: repaired ${_amt:.2f} orphaned reservation (worker died mid-trade)")
+                        else:
+                            print(f"🧯 {_tkr}: ${_amt:.2f} reservation orphaned by worker death (live: NOT refunded)")
+                    reentry["held"].discard(_tkr)
+                    _open_trade.pop(_tkr, None)
+
         # Launch each breakout as a BACKGROUND daemon and KEEP GOING — do NOT join here.
         # This kills the blindspot: the scan loop keeps watching the rest of the market (and lets
         # multiple positions run at once) while each trade monitors itself in its own thread.
         for entry in breakouts:
-            th = threading.Thread(target=_trade_worker, args=entry, daemon=True)
+            th = threading.Thread(target=_trade_worker_safe, args=entry, daemon=True)
             th.start()
             open_threads.append(th)
 

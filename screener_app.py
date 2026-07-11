@@ -784,6 +784,11 @@ def record_trade():
         "confidence":    data.get("confidence", ""),
         "float_shares":  data.get("float_shares", ""),
         "position_size": round(float(data.get("position_size", 0)), 2),
+        # Realistic-sizing calibration fields (7/11): initial stop, per-trade risk, and spread-based slippage estimate
+        "stop_loss":      data.get("stop_loss"),
+        "risk_per_share": data.get("risk_per_share"),
+        "planned_risk":   data.get("planned_risk"),
+        "est_slippage":   data.get("est_slippage"),
         # DATA-ONLY: 90 EMA study — where entry sat vs the 90 EMA. Not used for anything yet.
         "entry_ema90":        data.get("entry_ema90"),
         "entry_vs_ema90_pct": data.get("entry_vs_ema90_pct"),

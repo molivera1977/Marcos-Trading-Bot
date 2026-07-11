@@ -1692,7 +1692,7 @@ _monitor_abort: set = set()    # tickers the watchdog force-closed; a thawing mo
 #    concurrent in hour 1); the backtest assumes flawless execution the live bot may not deliver at that
 #    volume. Count the two signals that show whether it CHOKED: Webull 429 rate-limits + peak concurrent
 #    positions. Behavior-neutral (counters only). Emitted in the scan-loop status + logged each cycle. ──
-_exec_health = {"api_429": 0, "api_err": 0, "timeouts": 0, "peak_positions": 0, "cur_positions": 0}
+_exec_health = {"api_429": 0, "api_err": 0, "timeouts": 0, "fail_open": 0, "peak_positions": 0, "cur_positions": 0}
 _exec_health_lock = threading.Lock()
 def _bump(key, n=1):
     with _exec_health_lock:
@@ -1718,9 +1718,10 @@ def _watchdog_force_record(ctx: dict):
     pnl = sum((float(p[1]) - entry) * float(p[0])
               for p in partials if isinstance(p, (list, tuple)) and len(p) >= 2)
     pnl += (px - entry) * remaining
-    pnl_pct = ((px - entry) / entry * 100) if entry > 0 else 0
+    _cost = entry * initial
+    pnl_pct = (pnl / _cost * 100) if _cost > 0 else 0   # blended (7/11 A6)
     print(f"🛟 WATCHDOG recording {ticker}: entry ${entry:.2f} → ${px:.2f} ({pnl_pct:+.1f}%, ${pnl:+.2f})")
-    post_to_dashboard({
+    _rec_ok = post_trade_record_reliably({
         "date": ctx.get("entry_date") or datetime.now(EASTERN).strftime("%Y-%m-%d"),
         "ticker": ticker, "entry_type": ctx.get("entry_type", ""),
         "entry": entry, "exit": round(px, 4), "shares": initial,
@@ -1733,7 +1734,10 @@ def _watchdog_force_record(ctx: dict):
     send_alert_email(f"🛟 Watchdog recovered: {ticker} {pnl_pct:+.1f}%",
                      f"{ticker}'s monitor froze (heartbeat stalled). Force-recorded at ${px:.2f} "
                      f"(entry ${entry:.2f}) — P&L ${pnl:+.2f} ({pnl_pct:+.1f}%).")
-    _clear_open_trade(ticker)
+    if _rec_ok:
+        _clear_open_trade(ticker)
+    else:
+        print(f"🛟 {ticker}: record not persisted — keeping durable state for restart re-post (trade_id dedups)")
 
 def _monitor_watchdog_loop():
     """Daemon: every WATCHDOG_CHECK_SECS, flag any active monitor whose heartbeat has stalled."""
@@ -1791,10 +1795,12 @@ def _recover_orphaned_trades():
             pnl = sum((float(p[1]) - entry) * float(p[0])
                       for p in partials if isinstance(p, (list, tuple)) and len(p) >= 2)
             pnl += (px - entry) * remaining
-            pnl_pct = ((px - entry) / entry * 100) if entry > 0 else 0
+            _init = int(o.get("initial_shares") or remaining or 1)
+            _cost = entry * _init
+            pnl_pct = (pnl / _cost * 100) if _cost > 0 else 0   # blended (7/11 A6)
             print(f"♻️  {ticker}: recording recovered exit — entry ${entry:.2f} → ${px:.2f} "
                   f"({pnl_pct:+.1f}%, ${pnl:+.2f})")
-            post_to_dashboard({
+            _rec_ok = post_trade_record_reliably({
                 "date":            o.get("entry_date") or datetime.now(EASTERN).strftime("%Y-%m-%d"),
                 "ticker":          ticker, "entry_type": o.get("entry_type", ""),
                 "entry":           entry, "exit": round(px, 4), "shares": initial,
@@ -1808,7 +1814,8 @@ def _recover_orphaned_trades():
             send_alert_email(f"♻️ Recovered trade: {ticker} {pnl_pct:+.1f}%",
                              f"{ticker} was still open when the bot restarted. Closed and recorded "
                              f"at ${px:.2f} (entry ${entry:.2f}) — P&L ${pnl:+.2f} ({pnl_pct:+.1f}%).")
-            _clear_open_trade(ticker)
+            if _rec_ok:
+                _clear_open_trade(ticker)
         except Exception as e:
             print(f"⚠️  Recovery error for {ticker or o}: {e}")
             _clear_open_trade(ticker)   # don't let a bad record loop forever
@@ -2054,9 +2061,11 @@ def _get_webull_quote(ticker, executor=None) -> dict:
             resp = future.result(timeout=QUOTE_TIMEOUT_SECS)
         except concurrent.futures.TimeoutError:
             print(f"⚠️  Webull quote TIMEOUT for {ticker} (>{QUOTE_TIMEOUT_SECS}s) — treating as no price")
+            _bump("timeouts")
             return {}
         if resp.status_code != 200:
             print(f"⚠️  Webull snapshot {resp.status_code} for {ticker}")
+            _bump("api_429" if resp.status_code == 429 else "api_err")
             return {}
 
         raw = resp.json()
@@ -2082,14 +2091,17 @@ def _get_webull_quote(ticker, executor=None) -> dict:
         pre_p  = float(d.get("pre_market_price")        or d.get("preMarketPrice")        or last or 0)
         pre_r  = float(d.get("pre_market_change_ratio") or d.get("preMarketChangeRatio")  or chg_r or 0)
 
-        if abs(pre_r) < 1 and pre_r != 0:
-            pre_r = pre_r * 100
+        # 7/11 audit A10: the SDK ratio fields are FRACTIONS (proven — every scanner path multiplies
+        # unconditionally). The old `×100 only if |x|<1` heuristic reported a +150% mover as "+1.5%" —
+        # exactly our target regime mis-read. Always ×100.
+        pre_r = pre_r * 100
 
-        # NOTE: the Webull snapshot does NOT carry a VWAP field — VWAP is computed from intraday bars
-        # (get_intraday_bars_full → cache[t]["vwap"]). So this is expected to be 0 here; do NOT warn (it
-        # fired per-ticker per-cycle = thousands of dropped log messages, the 6/26 observability blackout).
+        # NOTE: the Webull snapshot does NOT carry a VWAP field — VWAP is computed from intraday bars.
+        # So this is expected to be 0 here; do NOT warn (it fired per-ticker per-cycle = thousands of
+        # dropped log messages, the 6/26 observability blackout). avgVol REMOVED from the chain (7/11
+        # audit A11): it is a VOLUME — one payload change away from a 2,000,000 "vwap".
         vwap_raw = (d.get("vwap") or d.get("vwap_price") or d.get("average_price") or
-                    d.get("avgPrice") or d.get("dayAvgPrice") or d.get("avgVol") or 0)
+                    d.get("avgPrice") or d.get("dayAvgPrice") or 0)
         vwap = float(vwap_raw)
 
         return {
@@ -2098,13 +2110,14 @@ def _get_webull_quote(ticker, executor=None) -> dict:
             "ask":                   ask,
             "volume":                vol,
             "prev_close":            pclose,
-            "change_ratio":          round(chg_r * 100 if abs(chg_r) < 1 else chg_r, 2),
+            "change_ratio":          round(chg_r * 100, 2),   # fraction → percent, unconditional (7/11 A10)
             "pre_market_price":      pre_p,
             "pre_market_change_pct": round(pre_r, 2),
             "vwap":                  vwap,
         }
     except Exception as e:
         print(f"⚠️  Webull quote error for {ticker}: {e}")
+        _bump("api_err")
         return {}
 
 
@@ -2232,6 +2245,7 @@ def check_bid_ask_spread(ticker) -> tuple[bool, float]:
     ask = q.get("ask", 0)
     if bid <= 0 or ask <= 0:
         print(f"⚠️  {ticker}: could not get bid/ask — assuming spread OK")
+        _bump("fail_open")
         return True, 0.0
     spread_pct = (ask - bid) / ask
     ok = spread_pct <= MAX_SPREAD_PCT
@@ -2263,6 +2277,7 @@ def check_level2(ticker, entry_price) -> tuple[bool, dict]:
         dc = _get_data_client()
         if not dc:
             details["reason"] = "no data client"
+            _bump("fail_open")
             return True, details                      # infra error → don't block (but recorded)
         try:
             resp = _quote_executor.submit(
@@ -2270,9 +2285,11 @@ def check_level2(ticker, entry_price) -> tuple[bool, dict]:
             ).result(timeout=QUOTE_TIMEOUT_SECS)
         except Exception as e:
             details["reason"] = f"L1 fetch error: {str(e)[:60]}"
+            _bump("api_err"); _bump("fail_open")
             return True, details
         if getattr(resp, "status_code", 200) != 200:
             details["reason"] = f"L1 status {resp.status_code}"
+            _bump("api_429" if getattr(resp, "status_code", 0) == 429 else "api_err"); _bump("fail_open")
             return True, details
 
         raw = resp.json()
@@ -2330,6 +2347,7 @@ def check_momentum(ticker) -> tuple[bool, dict]:
         if len(sess) < MOMENTUM_BARS:
             details["reason"] = f"only {len(sess)} session bars available (need {MOMENTUM_BARS})"
             print(f"⚠️  {ticker} momentum: {details['reason']} — passing by default")
+            _bump("fail_open")
             return True, details
         bars = sess[-(MOMENTUM_BARS + 2):]
         # session peak 1-min volume SO FAR (completed bars) — denominator for the peak-relative gate
@@ -2344,7 +2362,13 @@ def check_momentum(ticker) -> tuple[bool, dict]:
         for b in recent:
             v = float(b.get("volume") or b.get("v") or 0)
             volumes.append(v)
-        avg_vol = sum(volumes) / len(volumes) if volumes else 0
+        # 7/11 audit A9: the HARD liquidity floor must average COMPLETED bars only — bars[-1] is in-progress
+        # (this function's own topping-tail check says so), and its partial volume right after a minute roll
+        # deflated the avg up to ~33% → nondeterministic false illiquid-rejects on liquid names. Unifies with
+        # the universal-gate twin (already completed-only).
+        _comp_vols = [float(b.get("volume") or b.get("v") or 0)
+                      for b in (bars[:-1] if len(bars) > MOMENTUM_BARS else bars)][-MOMENTUM_BARS:]
+        avg_vol = sum(_comp_vols) / len(_comp_vols) if _comp_vols else 0
         details["avg_vol"] = int(avg_vol)
 
         # ── HOMEGROWN thresholds (Kev's concept is "volume on the break", not these exact values). The accel /
@@ -2435,6 +2459,7 @@ def check_momentum(ticker) -> tuple[bool, dict]:
 
     except Exception as e:
         print(f"⚠️  {ticker}: momentum check error: {e} — passing by default")
+        _bump("fail_open")
         details["reason"] = str(e)
         return True, details
 
@@ -3456,7 +3481,8 @@ VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't ch
 #   (1) entry/dashboard VWAP fetched RTH-only (no pre-market) → ~2-4% low on gappers;
 #   (2) the health-fold EXIT computed VWAP over only the last ~45 M1 bars (the EMA window) = a ROLLING window that
 #       runs 10-22% HIGH on a runner → folds winners early. Fetch a full pre+RTH session set for VWAP everywhere.
-VWAP_SESSION_COUNT      = 600   # bars = full pre-market + RTH session (+ margin); _latest_session() trims prior days
+VWAP_SESSION_COUNT      = 800   # bars ≥ full pre-market(330) + RTH(390) + margin — 600 lost the pre-market anchor
+                                # late-day on heavy-premarket names (7/11 audit A7); _latest_session() trims prior days
 VWAP_SESSION_CACHE_SECS = 90    # session VWAP moves slowly — refresh less often than the 30s bar cache to limit API load
 # Feature flags — DEFAULT OFF so the deployed default == current live/validated behavior. Flip only after re-validation.
 HEALTH_VWAP_SESSION     = True  # exit health-fold: session VWAP (Webull-matching) — validated +19.2R/0-worse across 8 archived days (7/10)
@@ -3952,6 +3978,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             with _exec_health_lock:
                 _eh = dict(_exec_health)
             print(f"⚙️  EXEC HEALTH: 429={_eh['api_429']} api_err={_eh['api_err']} timeouts={_eh['timeouts']} "
+                  f"fail_open={_eh.get('fail_open', 0)} "
                   f"| positions now {len(_active_monitors)} (peak {_eh['peak_positions']})")
             _log_decision("_exec_health", "ok", api_429=_eh["api_429"], api_err=_eh["api_err"],
                           timeouts=_eh["timeouts"], peak_positions=_eh["peak_positions"])
@@ -4545,7 +4572,10 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     else:
         result["profit_loss"] = (result["exit_price"] - entry_price) * total_shares
 
-    result["profit_loss_pct"] = ((result["exit_price"] - entry_price) / entry_price) * 100
+    # 7/11 audit A6: pct must be BLENDED (pnl ÷ initial cost), not the runner's last print — the old
+    # formula showed ~0% on a trade that banked +1R on half and runner-exited at breakeven.
+    _cost = entry_price * total_shares
+    result["profit_loss_pct"] = (result["profit_loss"] / _cost * 100) if _cost > 0 else 0.0
     return result
 
 # ============================================================
@@ -4587,6 +4617,26 @@ If you don't renew before {expires_dt.strftime('%B %d')}, the bot will silently 
     except Exception as e:
         print(f"⚠️  Token expiry check error: {e}")
 
+    # ── 7/11 audit A4: the TTL above is unreliable (pre-populate fabricates it; the SDK re-rolls it on every
+    # init), so the ≤7-day warning can never fire ahead of a real expiry. The only trustworthy check is a LIVE
+    # probe: one real market-data call. If it fails, the token/entitlement is dead RIGHT NOW — alert loudly. ──
+    try:
+        _probe = get_intraday_bars("SPY", count=2)
+        if _probe:
+            print("🔑 Token LIVE-PROBE: OK (SPY bars returned)")
+        elif datetime.now(EASTERN).weekday() >= 5:
+            print("⚠️ Token LIVE-PROBE empty — weekend (no alert; data may legitimately be unavailable)")
+        else:
+            print("🚨 Token LIVE-PROBE FAILED — Webull returned no data for SPY")
+            send_alert_email("🚨 Webull token/API FAILING — bot cannot see the market",
+                             "The live token probe (1-bar SPY fetch) returned nothing. The bot will silently "
+                             "fail to scan/trade until this is fixed.\n\n"
+                             "Fix: re-mint the token (webull_setup.py or /api/mint_token with the dashboard "
+                             "secret), update WEBULL_ACCESS_TOKEN on Railway, redeploy.")
+    except Exception as e:
+        print(f"🚨 Token LIVE-PROBE error: {e}")
+        send_alert_email("🚨 Webull token/API probe ERROR", f"Live probe raised: {e}")
+
 
 # ============================================================
 # TRADE RESULT LOGGING
@@ -4619,13 +4669,14 @@ def log_trade_result(date, ticker, entry, exit_price, shares, pnl, pnl_pct,
     return ",".join(row)
 
 
-def post_to_dashboard(trade_payload: dict):
+def post_to_dashboard(trade_payload: dict) -> bool:
     """
     POST a completed trade record to the screener app's dashboard endpoint.
-    Non-blocking — failure here never interrupts the main flow.
+    Returns True on confirmed 200 — callers guarding the durable-state clear MUST check it (7/11 audit A1:
+    a silently-lost exit record violates the every-trade-reaches-a-recorded-exit invariant).
     """
     if not SCREENER_URL:
-        return
+        return False
     try:
         resp = requests.post(
             f"{SCREENER_URL}/api/record_trade",
@@ -4635,10 +4686,22 @@ def post_to_dashboard(trade_payload: dict):
         )
         if resp.status_code == 200:
             print(f"📊 Trade posted to dashboard ({SCREENER_URL}/dashboard)")
-        else:
-            print(f"⚠️  Dashboard post failed: {resp.status_code}")
+            return True
+        print(f"⚠️  Dashboard post failed: {resp.status_code}")
     except Exception as e:
         print(f"⚠️  Dashboard post error: {e}")
+    return False
+
+
+def post_trade_record_reliably(trade_payload: dict, attempts: int = 3, wait_secs: float = 5.0) -> bool:
+    """A1: the trade record is the system of record — retry before giving up. Returns True on success."""
+    for i in range(attempts):
+        if post_to_dashboard(trade_payload):
+            return True
+        if i < attempts - 1:
+            time.sleep(wait_secs)
+    print("🚨 trade record NOT persisted after retries — durable recovery state kept for restart re-post")
+    return False
 
 
 def post_balance_to_dashboard(balance: float):
@@ -5656,6 +5719,8 @@ def main():
                 "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
             })
             # Register with the stale-trade watchdog (full ctx so it can record if the monitor freezes).
+            _monitor_abort.discard(ticker)   # 7/11 audit A8: a stale abort flag from a never-thawed prior
+                                             # monitor would insta-kill THIS trade's monitor on iteration 1
             _active_monitors[ticker] = {"heartbeat": time.time(), "alerted": False, "ctx": {
                 "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
                 "stop": round(stop_loss, 4), "initial_shares": shares, "remaining_shares": shares,
@@ -5731,7 +5796,7 @@ def main():
                 confidence   = confidence,
                 float_shares = float_shares,
             )
-            post_to_dashboard({
+            _rec_ok = post_trade_record_reliably({
                 "date":            datetime.now(EASTERN).strftime("%Y-%m-%d"),
                 "ticker":          ticker,
                 "entry_type":      entry_type,
@@ -5772,7 +5837,10 @@ def main():
             if exit_reason != "WATCHDOG_ABORT":   # watchdog already recorded it (trade_id dedups)
                 send_summary_email(analysis, trade_result, display_balance,
                                    csv_log_line=csv_row, traded_ticker=ticker)
-            _clear_open_trade(ticker)   # recorded exit reached — drop durable recovery state
+            if _rec_ok:
+                _clear_open_trade(ticker)   # recorded exit reached — drop durable recovery state
+            else:
+                print(f"🚨 {ticker}: exit record unconfirmed — durable state KEPT (restart will re-post; trade_id dedups)")
 
             tag = {"ema_bounce": "EMA BOUNCE", "ma_pullback": "MA PULLBACK", "orb": "OPENING RANGE", "ignition": "IGNITION"}.get(entry_type, "FLAT TOP")
             print(f"\n{'='*60}")

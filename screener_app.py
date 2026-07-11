@@ -34,6 +34,13 @@ EASTERN             = pytz.timezone("America/New_York")
 TRADES_FILE         = pathlib.Path("/data/marcos_trades.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/marcos_trades.json")
 API_SECRET          = os.environ.get("DASHBOARD_SECRET", "marcos2026")
 
+def _endpoint_authed():
+    """7/11 audit A3: these token/compute endpoints were PUBLIC on a public URL. Accept the secret via
+    header (scripts) or ?key= (browser)."""
+    return (request.headers.get("X-Dashboard-Secret", "") == API_SECRET
+            or request.args.get("key", "") == API_SECRET)
+
+
 app = Flask(__name__)
 
 # ── Trade storage (in-memory + JSON file) ─────────────────────────────────────
@@ -43,6 +50,20 @@ _account: dict = {"balance": 0.0, "updated": ""}
 _market: dict = {"indices": [], "news": [], "updated": ""}   # market strip (S&P/Dow/Nasdaq) — pushed by the bot via Webull
 _watching: dict = {}                   # Live watch list posted by bot each session
 _trade_state: dict = {}                # Live state of the active trade (entry/price/pnl/stop/target)
+
+# ── 7/11 audit A2: durability. One store lock (Flask threads mutate these concurrently) + atomic writes
+# (tmp + os.replace) so a mid-write kill can never truncate a store; the old bare write_text could corrupt
+# trades.json and the swallowing loader would then overwrite the history with empty state.
+import threading as _threading, os as _os, tempfile as _tempfile
+_store_lock = _threading.RLock()
+
+def _atomic_write_text(path, text):
+    tmp = f"{path}.{_os.getpid()}.{_threading.get_ident()}.tmp"   # unique per thread — no tmp-fd interleave
+    with open(tmp, "w") as _f:
+        _f.write(text)
+        _f.flush()
+        _os.fsync(_f.fileno())
+    _os.replace(tmp, str(path))
 
 def _load_trades():
     global _trades, _account
@@ -55,10 +76,11 @@ def _load_trades():
             pass
 
 def _save_trades():
-    try:
-        TRADES_FILE.write_text(json.dumps({"trades": _trades, "account": _account}, indent=2))
-    except Exception as e:
-        print(f"⚠️  Could not save trades: {e}")
+    with _store_lock:
+        try:
+            _atomic_write_text(TRADES_FILE, json.dumps({"trades": _trades, "account": _account}, indent=2))
+        except Exception as e:
+            print(f"⚠️  Could not save trades: {e}")
 
 def _compute_stats():
     if not _trades:
@@ -113,7 +135,7 @@ def _load_obs():
 def _save_obs():
     try:
         _obs["observations"] = _obs.get("observations", [])[-5000:]   # keep file bounded
-        OBS_FILE.write_text(json.dumps(_obs, indent=2))
+        with _store_lock: _atomic_write_text(OBS_FILE, json.dumps(_obs, indent=2))
     except Exception as e:
         print(f"⚠️  Could not save observations: {e}")
 
@@ -769,9 +791,11 @@ def record_trade():
     # Idempotency: if this trade_id was already recorded (e.g. normal exit logged, then a
     # failed clear caused recovery to re-post it), skip the duplicate.
     tid = data.get("trade_id")
-    if tid and any(t.get("trade_id") == tid for t in _trades):
-        return jsonify({"status": "ok", "deduped": True, "total_trades": len(_trades)})
-    trade = {
+    _store_lock.acquire()   # 7/11 A2: dedup-check→append→save is atomic (concurrent watchdog+worker posts raced)
+    try:
+        if tid and any(t.get("trade_id") == tid for t in _trades):
+            return jsonify({"status": "ok", "deduped": True, "total_trades": len(_trades)})
+        trade = {
         "date":          data.get("date", datetime.now(EASTERN).strftime("%Y-%m-%d")),
         "ticker":        data.get("ticker", "UNKNOWN"),
         "trade_id":      tid,
@@ -804,14 +828,16 @@ def record_trade():
         "entry_next_supply":  data.get("entry_next_supply"),
         "entry_supply_src":   data.get("entry_supply_src"),
         "recorded_at":   datetime.now(EASTERN).isoformat(),
-    }
-    _trades.append(trade)
-    if data.get("account_balance"):
-        _account["balance"] = round(float(data["account_balance"]), 2)
-        _account["updated"] = datetime.now(EASTERN).strftime("%I:%M %p ET")
-    _save_trades()
-    print(f"📋 Trade recorded: {trade['ticker']} {trade['pnl']:+.2f}")
-    return jsonify({"status": "ok", "total_trades": len(_trades)})
+        }
+        _trades.append(trade)
+        if data.get("account_balance"):
+            _account["balance"] = round(float(data["account_balance"]), 2)
+            _account["updated"] = datetime.now(EASTERN).strftime("%I:%M %p ET")
+        _save_trades()
+        print(f"📋 Trade recorded: {trade['ticker']} {trade['pnl']:+.2f}")
+        return jsonify({"status": "ok", "total_trades": len(_trades)})
+    finally:
+        _store_lock.release()
 
 
 @app.route("/api/update_account", methods=["POST"])
@@ -856,10 +882,12 @@ def api_trades():
 
 @app.route("/api/trades/clear", methods=["POST"])
 def clear_trades():
+    # 7/11 F3: mutate under the store lock (an in-flight record_trade raced the rebind)
     global _trades
     if request.headers.get("X-Dashboard-Secret") != API_SECRET:
         return jsonify({"error": "unauthorized"}), 401
-    _trades = []
+    with _store_lock:
+        _trades = []
     _save_trades()
     return jsonify({"status": "ok", "total_trades": 0})
 
@@ -890,7 +918,7 @@ def save_watching():
         _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
         prev = set(_watch_hist.get(_today, []))
         _watch_hist[_today] = sorted(prev | {str(t).upper().strip() for t in (_watching["tickers"] or []) if str(t).strip()})
-        WATCH_HIST_FILE.write_text(json.dumps(_watch_hist, indent=2))
+        with _store_lock: _atomic_write_text(WATCH_HIST_FILE, json.dumps(_watch_hist, indent=2))
     except Exception as e:
         print(f"⚠️  watch-history persist skipped: {e}")
     print(f"👀 Watch list updated: {_watching['tickers']} [{_watching['status']}]")
@@ -936,9 +964,10 @@ def _load_open_trades():
             _open_trades = {}
 
 def _save_open_trades_file():
-    try:
-        OPEN_TRADES_FILE.write_text(json.dumps(_open_trades, indent=2))
-    except Exception as e:
+    with _store_lock:
+      try:
+        _atomic_write_text(OPEN_TRADES_FILE, json.dumps(_open_trades, indent=2))
+      except Exception as e:
         print(f"⚠️  Could not save open trades: {e}")
 
 _load_open_trades()
@@ -992,7 +1021,9 @@ def add_room_skip():
     d = request.get_json(silent=True) or {}
     d["recorded_at"] = datetime.now(EASTERN).isoformat()
     _room_skips.append(d)
-    try:    ROOM_SKIPS_FILE.write_text(json.dumps(_room_skips[-500:], indent=2))
+    try:
+        with _store_lock:
+            _atomic_write_text(ROOM_SKIPS_FILE, json.dumps(_room_skips[-500:], indent=2))
     except Exception as e: print(f"⚠️  Could not save room_skips: {e}")
     return jsonify({"status": "ok", "total": len(_room_skips)})
 
@@ -1031,7 +1062,7 @@ def _persist_decisions(records):
     global _decisions_snapshot_last
     if time.time() - _decisions_snapshot_last >= 60:
         try:
-            DECISIONS_FILE.write_text(json.dumps(_decisions[-8000:], indent=2))
+            with _store_lock: _atomic_write_text(DECISIONS_FILE, json.dumps(_decisions[-8000:], indent=2))
             _decisions_snapshot_last = time.time()
         except Exception as e:
             print(f"⚠️  Could not save decisions snapshot: {e}")
@@ -1130,6 +1161,8 @@ def save_bars():
 
 @app.route("/api/bars_backfill")
 def bars_backfill():
+    if not _endpoint_authed():
+        return jsonify({"error": "unauthorized — pass X-Dashboard-Secret header or ?key="}), 401
     """Re-fetch archived names WITH extended hours (trading_sessions=RTH,PRE,ATH) and overwrite the RTH-only
     files, so the past week's archive gains premarket/after-hours bars (within the ~7-day API window).
     ?date=YYYY-MM-DD [&ticker=X] [&commit=1] [&count=7000]. Dry-run (report coverage) unless commit=1."""
@@ -1245,6 +1278,8 @@ def api_daily():
 
 @app.route("/api/stream_check", methods=["GET"])
 def api_stream_check():
+    if not _endpoint_authed():
+        return jsonify({"error": "unauthorized — pass X-Dashboard-Secret header or ?key="}), 401
     """DIAGNOSTIC (7/5): confirm the OpenAPI real-time STREAMING actually works with our creds + the free
     Nasdaq Basic entitlement. Connects the official DataStreamingClient, subscribes to a symbol, reports:
     connected? subscribe accepted? messages received? Read-only (no orders). Market-closed → connect+subscribe
@@ -1326,6 +1361,8 @@ def api_stream_check():
 
 @app.route("/api/mint_token", methods=["GET"])
 def api_mint_token():
+    if not _endpoint_authed():
+        return jsonify({"error": "unauthorized — pass X-Dashboard-Secret header or ?key="}), 401
     """Mint a FRESH 2FA-verified Webull token server-side (the webull_setup.py flow). Uses only the app
     key/secret (already in env) — NO password. Creates a pending token → the USER approves the login
     notification in the Webull APP → we poll until NORMAL → write it to the token file so the running app
@@ -1385,6 +1422,8 @@ def api_mint_token():
 
 @app.route("/api/refresh_token", methods=["GET"])
 def api_refresh_token():
+    if not _endpoint_authed():
+        return jsonify({"error": "unauthorized — pass X-Dashboard-Secret header or ?key="}), 401
     """Refresh the Webull token PROGRAMMATICALLY (NO 2FA) via /openapi/auth/token/refresh. The 2FA create flow
     is ONE-TIME; this renews the session forever on a schedule. INVALID_SESSION on streaming = a stale session
     nobody refreshed — this is the fix. Returns + persists the new token. ?token= overrides the current one."""

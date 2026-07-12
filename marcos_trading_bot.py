@@ -1729,7 +1729,7 @@ def _watchdog_force_record(ctx: dict):
         "exit_reason": "RECOVERED — monitor froze (watchdog)",
         "confidence": ctx.get("confidence", ""), "float_shares": "",
         "position_size": ctx.get("position_size", 0),
-        "account_balance": get_account_balance(), "trade_id": ctx.get("trade_id"),
+        "account_balance": (SIM_ACCOUNT_BALANCE if DRY_RUN else get_account_balance()), "trade_id": ctx.get("trade_id"),   # F3
     })
     send_alert_email(f"🛟 Watchdog recovered: {ticker} {pnl_pct:+.1f}%",
                      f"{ticker}'s monitor froze (heartbeat stalled). Force-recorded at ${px:.2f} "
@@ -1808,7 +1808,7 @@ def _recover_orphaned_trades():
                 "exit_reason":     "RECOVERED after restart",
                 "confidence":      o.get("confidence", ""), "float_shares": "",
                 "position_size":   o.get("position_size", 0),
-                "account_balance": get_account_balance(),
+                "account_balance": (SIM_ACCOUNT_BALANCE if DRY_RUN else get_account_balance()),   # F3
                 "trade_id":        o.get("trade_id"),
             })
             send_alert_email(f"♻️ Recovered trade: {ticker} {pnl_pct:+.1f}%",
@@ -2328,6 +2328,7 @@ def check_level2(ticker, entry_price) -> tuple[bool, dict]:
 
     except Exception as e:
         details["reason"] = f"L1 error: {str(e)[:60]}"
+        _bump("api_err"); _bump("fail_open")   # F2 (7/11): the 4th fail-open path, now counted
         return True, details
 
 
@@ -5691,6 +5692,13 @@ def main():
                 else:
                     stop_loss = round((extra.get("zone_stop") or entry_price * (1 - STOP_LOSS_PCT)), 4)
                     target_price = round(entry_price * (1 + TARGET_PCT), 4)
+                # F1 (7/11 verification audit): the position is OWNED at this point — a fill at/below the
+                # structural stop can't be "skipped", but it must not proceed with a stop AT/ABOVE entry
+                # (the bad-stop hazard resurfacing post-fill). Floor the stop below the fill, loudly.
+                if stop_loss >= entry_price:
+                    stop_loss = round(entry_price * (1 - STOP_LOSS_PCT), 4)
+                    print(f"🚨 {ticker}: fill ${entry_price:.2f} at/below the structural stop — "
+                          f"stop floored to ${stop_loss:.2f} ({STOP_LOSS_PCT*100:.0f}% below fill)")
                 # Re-size on the real fill with the SAME risk formula (7/11) — not the old notional formula.
                 if RISK_BASED_SIZING and entry_price > stop_loss:
                     shares = max(1, min(int(RISK_PER_TRADE / (entry_price - stop_loss)), int(pos_size / entry_price)))

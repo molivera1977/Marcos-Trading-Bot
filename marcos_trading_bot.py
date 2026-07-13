@@ -1666,7 +1666,7 @@ def _winner_sweep_loop():
             now = datetime.now(EASTERN)
             today = now.strftime("%Y-%m-%d")
             if now.weekday() < 5:
-                if now.hour == 16 and now.minute >= 10 and last_rth != today:
+                if now.hour == 16 and now.minute >= 2 and last_rth != today:   # 16:02 (was :10) — RTH bars are final at 16:00; earlier sweep = earlier scorecard on days Marcos is watching
                     print("🏁 EOD winner sweep (RTH snapshot for the scorecard)...")
                     winner_sweep(); last_rth = today
                 if now.hour == 20 and now.minute >= 5 and last_ah != today:

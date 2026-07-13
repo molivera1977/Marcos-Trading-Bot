@@ -827,6 +827,13 @@ def record_trade():
         "entry_room_pct":     data.get("entry_room_pct"),
         "entry_next_supply":  data.get("entry_next_supply"),
         "entry_supply_src":   data.get("entry_supply_src"),
+        # Story fields (7/13) — entry signal, scale-outs, and peak for the plain-English trade story
+        "entry_type":         data.get("entry_type", ""),
+        "partial_fills":      data.get("partial_fills") or [],
+        "highest":            data.get("highest"),
+        "entry_front_side":   data.get("entry_front_side"),
+        "entry_ema9":         data.get("entry_ema9"),
+        "entry_ema20":        data.get("entry_ema20"),
         "recorded_at":   datetime.now(EASTERN).isoformat(),
         }
         _trades.append(trade)
@@ -1801,6 +1808,22 @@ a.watch-chip:hover{filter:brightness(1.25)}
 .tbar{height:8px;background:#161b22;border-radius:4px;margin-top:12px;overflow:hidden;position:relative}
 .tbar .fill{height:100%;background:linear-gradient(90deg,#f85149,#d29922,#3fb950)}
 .tbar-lbls{display:flex;justify-content:space-between;color:#8b949e;font-size:11px;margin-top:4px}
+.tape-btn{margin-top:10px;width:100%;background:#161b22;border:1px solid #21262d;border-radius:8px;
+          color:#8b949e;font-size:12px;font-weight:600;padding:7px 10px;cursor:pointer;text-align:center}
+.tape-btn:hover{border-color:#58a6ff;color:#c9d1d9}
+.tape{display:none;margin-top:10px;background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 14px}
+.tape.show{display:block}
+.tape .verdict{font-size:14px;font-weight:800;margin-bottom:8px}
+.tape .verdict.locked{color:#3fb950}
+.tape .verdict.risk{color:#d29922}
+.tape ul{margin:0;padding-left:18px;color:#c9d1d9;font-size:13px;line-height:1.65}
+.tape li b{color:#e6edf3}
+.tape .nums{color:#8b949e;font-size:11px;margin-top:8px}
+.cap-strip{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.cap-lbl{font-size:12px;color:#8b949e}
+.cap-lbl b{color:#e6edf3}
+.cap-bar{height:8px;background:#161b22;border-radius:4px;margin-top:8px;overflow:hidden}
+.cap-fill{height:100%;background:linear-gradient(90deg,#3fb950,#d29922);border-radius:4px}
 .watch-chip{background:#1a3a2a;border:1px solid #2d5a3d;color:#3fb950;
             border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600}
 .watch-chip.trading{background:#2a1a3a;border-color:#5a3d8a;color:#c084fc}
@@ -2028,6 +2051,7 @@ function calNav(delta){
 }
 function renderStats(s, acct){
   const bal = acct && acct.balance ? acct.balance : 0;
+  window._acctBal = bal;   // capital meter uses this as the working budget
   document.getElementById('balanceVal').textContent = bal ? fmt$(bal) : '—';
 
   const pnl = s.total_pnl;
@@ -2070,13 +2094,17 @@ function renderTable(trades){
     </div></td></tr>`;
     return;
   }
-  const rows = [...trades].reverse().map(t=>{
+  window._allTrades = trades;
+  const rows = trades.map((t,i)=>({t,i})).reverse().map(o=>{
+    const t=o.t;
+    const key = t.trade_id || (t.ticker+'|'+t.date+'|'+o.i);
+    const isOpen = window._storyOpen.has(key);
     const pnlCls  = t.pnl>0?'pnl-pos':t.pnl<0?'pnl-neg':'pnl-flat';   // $0 scratch = neutral, not green
     const pnlSign = t.pnl>0?'+':'';
     const pctSign = t.pnl_pct>0?'+':'';
     const fl = t.float_shares ? String(t.float_shares).replace(/(\d)(?=(\d{3})+$)/g,'$1,') : '—';
     const sz = t.position_size ? fmt$(t.position_size) : '—';
-    return `<tr>
+    return `<tr onclick="toggleStory('${key}', event)" style="cursor:pointer" title="Click for the story of this trade">
       <td style="color:#8b949e">${t.date||'—'}</td>
       <td style="color:#8b949e">${fmtTime(t.recorded_at)}</td>
       <td><a class="ticker-badge" href="https://www.tradingview.com/chart/?symbol=${t.ticker||''}" target="_blank" rel="noopener" title="Open chart">${t.ticker||'—'} ↗</a></td>
@@ -2088,7 +2116,8 @@ function renderTable(trades){
       <td class="${pnlCls}">${pctSign}${t.pnl_pct.toFixed(1)}%</td>
       <td class="exit-tag" title="${t.exit_reason||''}">${t.exit_reason||'—'}</td>
       <td style="color:#8b949e;font-size:12px">${fl}</td>
-    </tr>`;
+    </tr>`
+    + (isOpen?`<tr class="story-tr"><td colspan="11"><div class="tape show">${storyClosedHTML(t)}</div></td></tr>`:'');
   }).join('');
   tbody.innerHTML = rows;
 }
@@ -2165,6 +2194,116 @@ function renderTradePanel(ts){
   </div>`;
 }
 
+// ── Tale of the Tape: plain-English trade stories (live + booked) ──
+function bankedFromFills(entry, pf){
+  let banked=0, sold=0; const lines=[];
+  (pf||[]).forEach(f=>{ const q=Number(f[0])||0, p=Number(f[1])||0, amt=(p-entry)*q;
+    banked+=amt; sold+=q;
+    lines.push(`Sold <b>${q}</b> shares at <b>$${p.toFixed(2)}</b> → banked <b>${amt>=0?'+':'−'}$${Math.abs(amt).toFixed(2)}</b>.`); });
+  return {banked, sold, lines};
+}
+
+const EXIT_STORIES=[
+ [/trailing stop/i,'Rode the move up, then sold when price slipped back off its high — a trailing stop protecting profit.'],
+ [/stop loss/i,'The safety net did its job — price broke the stop, so the bot took the planned small loss and moved on. No hoping, no averaging down.'],
+ [/health fold/i,'The move lost its pulse — price fell below VWAP and the trend line at the same time, so the bot folded early instead of riding it back down.'],
+ [/vwap fade/i,'It faded below VWAP right after entry — the bot cut it fast, before a small loss could grow into a real one.'],
+ [/topping tail/i,'Rejected hard at the high (a topping tail) — the "this one is done" signal. Sold, and the ticker is benched for the day.'],
+ [/target/i,'Hit the full profit target. 🎯'],
+ [/recovered|watchdog/i,'Bookkeeping exit — the bot restarted (or a monitor froze), so the trade was closed at the last known price to keep the books honest.'],
+ [/eod|close|time/i,'Closed at end of day — the bot never holds positions overnight.'],
+];
+function exitStory(r){ for(const [re,s] of EXIT_STORIES){ if(re.test(r||'')) return s; } return r||'—'; }
+
+// Live position story: what we're in for, what's banked, the sell-half point, what to look for.
+function taleLiveHTML(t){
+  const entry=Number(t.entry_price??t.entry??0), price=Number(t.last_price??t.price??entry);
+  const stop=Number(t.stop||0), init=Number(t.initial_shares||0), rem=Number(t.remaining_shares||0);
+  const b=bankedFromFills(entry, t.partial_fills);
+  const dollarsIn=Number(t.position_size||entry*init);
+  const tiers=t.tiers||[], tierIdx=Number(t.tier_idx||0);
+  const openPnl=(price-entry)*rem;
+  const worst=b.banked+(stop-entry)*rem;      // if the stop hits from here (≈ — stop is close-based)
+  const high=Math.max(Number(t.highest||0), price);
+  let vCls='risk', vTxt;
+  if(worst>0.5)      { vCls='locked'; vTxt=`🔒 GUARANTEED WINNER — even if the stop hits now, we walk away with ≈ +$${worst.toFixed(2)}.`; }
+  else if(worst>=-0.5 && (b.banked>0.5 || stop>=entry-0.004))
+                     { vCls='locked'; vTxt=`🛡️ CAN'T LOSE ANYMORE — the stop is at breakeven${b.banked>0.5?` and +$${b.banked.toFixed(2)} is already banked`:''}.`; }
+  else               { vTxt=`🎯 WORKING — risking ≈ $${Math.abs(worst).toFixed(2)} to find out if this one runs.`; }
+  const li=[];
+  li.push(`We're in for <b>$${dollarsIn.toFixed(0)}</b> — ${init} shares at <b>$${entry.toFixed(2)}</b>${t.entry_time?` (${t.entry_time})`:''}${t.entry_type?`, entry signal: <b>${t.entry_type}</b>`:''}.`);
+  if(b.lines.length) b.lines.forEach(x=>li.push(x));
+  else li.push(`Nothing sold yet — the full position is still working.`);
+  if(tierIdx===0 && tiers.length)
+    li.push(`<b>Sell-half point: $${Number(tiers[0][0]).toFixed(2)}</b> — there the bot banks half (+1R, ≈ +$${(Number(t.risk_ps||0)*init*0.5).toFixed(0)}) and moves the stop to breakeven, making the trade free.`);
+  else if(tierIdx===1 && tiers.length>1)
+    li.push(`Half is banked. <b>Next sell: $${Number(tiers[1][0]).toFixed(2)}</b> — a quarter comes off there; the rest becomes a runner.`);
+  else if(tiers.length && tierIdx>=tiers.length)
+    li.push(`<b>Runner mode</b> — profit-taking is done; the last ${rem} shares ride until the trend breaks.`);
+  if(stop>entry+0.004)           li.push(`The stop has climbed to <b>$${stop.toFixed(2)}</b> — locking in gains as it goes.`);
+  else if(Math.abs(stop-entry)<=0.004) li.push(`The stop sits at <b>breakeven</b> ($${stop.toFixed(2)}) — the remaining ${rem} shares can't lose money.`);
+  else                           li.push(`Safety net: a close below <b>$${stop.toFixed(2)}</b> ends it for ≈ −$${Math.abs((stop-entry)*rem).toFixed(2)} — the planned ~1%-of-account risk.`);
+  li.push(`<b>What to look for:</b> higher lows, holding above VWAP${t.vwap?` ($${Number(t.vwap).toFixed(2)})`:''}. High so far $${high.toFixed(2)}${entry>0?` (+${((high-entry)/entry*100).toFixed(1)}%)`:''}. Right now: ${openPnl>=0?'+':'−'}$${Math.abs(openPnl).toFixed(2)} open${b.banked>0.5?` on top of the $${b.banked.toFixed(2)} banked`:''}.`);
+  return `<div class="verdict ${vCls}">${vTxt}</div><ul>${li.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+}
+
+// Booked trade story: same tale, told in retrospect.
+function storyClosedHTML(t){
+  const entry=Number(t.entry||0), exit=Number(t.exit||0), shares=Number(t.shares||0);
+  const pnl=Number(t.pnl||0), pct=Number(t.pnl_pct||0);
+  const risk=Number(t.planned_risk||0) || (t.stop_loss?shares*(entry-Number(t.stop_loss)):0);
+  const rMult=risk>0.5?pnl/risk:null;
+  const b=bankedFromFills(entry, t.partial_fills);
+  const high=Number(t.highest||0);
+  const inFor=Number(t.position_size||entry*shares);
+  let vCls='', vTxt;
+  if(pnl>0.005){ vCls='locked'; vTxt=`✅ WINNER: +$${pnl.toFixed(2)} (+${pct.toFixed(1)}%)${rMult!==null?` — <b>+${rMult.toFixed(1)}R</b> on the ≈$${risk.toFixed(0)} we risked`:''}.`; }
+  else if(pnl<-0.005){ vCls='risk'; vTxt=`❌ LOSER: −$${Math.abs(pnl).toFixed(2)} (${pct.toFixed(1)}%)${rMult!==null?` — <b>${rMult.toFixed(1)}R</b>. ${rMult>=-1.2?'Right around the planned risk — exactly what a loss is supposed to look like.':'Bigger than the planned risk — worth a closer look.'}`:''}`; }
+  else vTxt=`➖ SCRATCH — in and out around breakeven. No harm done.`;
+  const li=[];
+  li.push(`Was in for <b>$${inFor.toFixed(0)}</b> — ${shares} shares at <b>$${entry.toFixed(2)}</b>${t.entry_type?`, entry signal: <b>${t.entry_type}</b>`:''}${t.stop_loss?`, safety net at $${Number(t.stop_loss).toFixed(2)} (≈$${risk.toFixed(0)} at risk)`:''}.`);
+  if(b.lines.length){ b.lines.forEach(x=>li.push(x)); li.push(`The last ${Math.max(0,shares-b.sold)} shares went out at <b>$${exit.toFixed(2)}</b>.`); }
+  else li.push(`Sold everything at <b>$${exit.toFixed(2)}</b> in one piece.`);
+  li.push(`<b>Why it ended:</b> ${exitStory(t.exit_reason)}`);
+  if(high>entry){
+    const peakPct=((high-entry)/entry*100).toFixed(1);
+    if(exit>entry){ const cap=Math.max(0,Math.min(100,(exit-entry)/(high-entry)*100));
+      li.push(`It peaked at <b>$${high.toFixed(2)}</b> (+${peakPct}%) — we captured ${cap.toFixed(0)}% of that run.`); }
+    else li.push(`It DID go our way first — peaked at $${high.toFixed(2)} (+${peakPct}%) before turning.`);
+  }
+  if(t.est_slippage) li.push(`Real-world toll if this were live money: ≈ $${Number(t.est_slippage).toFixed(2)} lost to the bid/ask spread.`);
+  // Same-day context: swings on this name + is another entry brewing?
+  const todayET=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  if(String(t.date||'').slice(0,10)===todayET){
+    const sib=(window._allTrades||[]).filter(x=>x.ticker===t.ticker&&String(x.date||'').slice(0,10)===todayET);
+    const k=sib.indexOf(t)+1;
+    if(sib.length>1&&k>0) li.push(`This was swing <b>#${k} of ${sib.length}</b> in ${t.ticker} today.`);
+    let consec=0; for(let i=sib.length-1;i>=0;i--){ if(Number(sib[i].pnl)<0)consec++; else break; }
+    const isLast=sib.length&&sib[sib.length-1]===t;
+    if((window._openTickersNow||[]).includes(t.ticker))
+      li.push(`🔴 <b>LIVE right now:</b> the bot is back IN ${t.ticker} as we speak — see the live card at the top of the page.`);
+    else if(isLast&&/topping tail/i.test(t.exit_reason||''))
+      li.push(`🚫 <b>Benched:</b> a topping-tail exit means "done with this one today" — no re-entry.`);
+    else if(isLast&&consec>=3)
+      li.push(`🚫 <b>Benched:</b> ${consec} straight losses on ${t.ticker} — the bot leaves it alone for the rest of the day.`);
+    else if(isLast)
+      li.push(`👀 <b>Heads up:</b> ${t.ticker} is back on the re-entry list — if it sets up cleanly again (a fresh pullback that holds), the bot can take another swing.`);
+  }
+  return `<div class="verdict ${vCls}">${vTxt}</div><ul>${li.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+}
+
+window._tapeOpen=window._tapeOpen||new Set();
+function toggleTape(tk){
+  if(window._tapeOpen.has(tk)) window._tapeOpen.delete(tk); else window._tapeOpen.add(tk);
+  renderAllTrades(window._openTradesList||[]);
+}
+window._storyOpen=window._storyOpen||new Set();
+function toggleStory(key, ev){
+  if(ev&&ev.target&&ev.target.closest('a')) return;   // let the chart link work normally
+  if(window._storyOpen.has(key)) window._storyOpen.delete(key); else window._storyOpen.add(key);
+  renderTable(window._allTrades||[]);
+}
+
 // Render ONE open-position card. Normalizes /api/open_trades fields (entry_price/last_price)
 // so ALL concurrent positions show — the single-slot trade_state card only ever showed one.
 function tradeCardHTML(t){
@@ -2193,13 +2332,26 @@ function tradeCardHTML(t){
     <div class="tbar"><div class="fill" style="width:${prog.toFixed(0)}%"></div></div>
     <div class="tbar-lbls"><span>🛑 stop</span><span>${sold}${(sold&&(t.vwap||et))?' · ':''}${t.vwap?'VWAP $'+Number(t.vwap).toFixed(2):''}${et?(t.vwap?' · ':'')+et:''}</span><span>🎯 target</span></div>
     <div class="tbar-lbls" style="margin-top:6px"><span>High $${Number(t.highest||price).toFixed(2)}</span><span>updated ${upd}</span></div>
+    <button class="tape-btn" onclick="toggleTape('${t.ticker}')">${window._tapeOpen.has(t.ticker)?'▲ Hide the tale':'📖 Tale of the tape — what\\'s the plan here?'}</button>
+    <div class="tape ${window._tapeOpen.has(t.ticker)?'show':''}">${window._tapeOpen.has(t.ticker)?taleLiveHTML(t):''}</div>
   </div>`;
 }
 
 function renderAllTrades(list){
+  window._openTradesList=list||[];
+  window._openTickersNow=(list||[]).map(t=>t.ticker);
   const el=document.getElementById('tradePanel');
   if(!list||!list.length){ el.innerHTML=''; return; }
-  el.innerHTML = `<div style="font-size:12px;color:#8b949e;margin-bottom:8px">${list.length} open position${list.length>1?'s':''}</div>`
+  const used=list.reduce((a,t)=>a+Number(t.position_size||(Number(t.entry_price||0)*Number(t.initial_shares||0))),0);
+  const budget=Number(window._acctBal)||3000;
+  const free=Math.max(0,budget-used);
+  const pct=Math.max(0,Math.min(100,budget>0?used/budget*100:0));
+  const money=v=>'$'+Math.round(v).toLocaleString('en-US');
+  el.innerHTML = `<div class="cap-strip">
+      <div class="cap-lbl">💵 In trades: <b>${money(used)}</b> of ${money(budget)} (${pct.toFixed(0)}%) · <b>${money(free)}</b> free for the next setup</div>
+      <div class="cap-bar"><div class="cap-fill" style="width:${pct.toFixed(0)}%"></div></div>
+    </div>`
+    + `<div style="font-size:12px;color:#8b949e;margin-bottom:8px">${list.length} open position${list.length>1?'s':''}</div>`
     + list.map(tradeCardHTML).join('');
 }
 

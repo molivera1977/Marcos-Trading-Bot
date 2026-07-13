@@ -1730,6 +1730,7 @@ def _watchdog_force_record(ctx: dict):
         "confidence": ctx.get("confidence", ""), "float_shares": "",
         "position_size": ctx.get("position_size", 0),
         "account_balance": (SIM_ACCOUNT_BALANCE if DRY_RUN else get_account_balance()), "trade_id": ctx.get("trade_id"),   # F3
+        "partial_fills": partials, "highest": ctx.get("highest"),
     })
     send_alert_email(f"🛟 Watchdog recovered: {ticker} {pnl_pct:+.1f}%",
                      f"{ticker}'s monitor froze (heartbeat stalled). Force-recorded at ${px:.2f} "
@@ -1810,6 +1811,7 @@ def _recover_orphaned_trades():
                 "position_size":   o.get("position_size", 0),
                 "account_balance": (SIM_ACCOUNT_BALANCE if DRY_RUN else get_account_balance()),   # F3
                 "trade_id":        o.get("trade_id"),
+                "partial_fills":   partials, "highest": o.get("highest"),
             })
             send_alert_email(f"♻️ Recovered trade: {ticker} {pnl_pct:+.1f}%",
                              f"{ticker} was still open when the bot restarted. Closed and recorded "
@@ -4393,6 +4395,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             "initial_shares": initial_shares, "highest": round(highest_price, 4),
             "tier_idx": tier_idx, "partial_fills": partial_fills, "vwap": round(vwap, 4) if vwap else 0,
             "last_price": round(current_price, 4),
+            # Static plan fields for the dashboard's tale-of-the-tape (constant per trade)
+            "tiers": [[p, c] for p, c in kev_tiers], "risk_ps": round(R, 4),
         })
         # Refresh the watchdog's recordable context (heartbeat itself is set at the loop top).
         _m = _active_monitors.get(ticker)
@@ -4577,6 +4581,9 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     # formula showed ~0% on a trade that banked +1R on half and runner-exited at breakeven.
     _cost = entry_price * total_shares
     result["profit_loss_pct"] = (result["profit_loss"] / _cost * 100) if _cost > 0 else 0.0
+    # Story fields for the dashboard's tale-of-the-tape (banked scale-outs + peak)
+    result["partial_fills"] = [[int(q), round(float(p), 4)] for q, p in partial_fills]
+    result["highest"] = round(highest_price, 4)
     return result
 
 # ============================================================
@@ -5725,6 +5732,9 @@ def main():
                 "partial_fills": [], "entry_type": entry_type, "confidence": confidence,
                 "position_size": _reserved, "vwap": round(vwap, 4) if vwap else 0,
                 "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+                "entry_time": datetime.now(EASTERN).strftime("%I:%M %p"),
+                "risk_per_share": round(entry_price - stop_loss, 4),
+                "planned_risk": round(shares * (entry_price - stop_loss), 2),
             })
             # Register with the stale-trade watchdog (full ctx so it can record if the monitor freezes).
             _monitor_abort.discard(ticker)   # 7/11 audit A8: a stale abort flag from a never-thawed prior
@@ -5841,6 +5851,9 @@ def main():
                 "entry_front_side":   extra.get("front_side"),
                 "entry_ema9":         extra.get("ema9"),
                 "entry_ema20":        extra.get("ema20"),
+                # Story fields (7/13) — power the dashboard's plain-English trade story
+                "partial_fills":      trade_result.get("partial_fills") or [],
+                "highest":            trade_result.get("highest"),
             })
             if exit_reason != "WATCHDOG_ABORT":   # watchdog already recorded it (trade_id dedups)
                 send_summary_email(analysis, trade_result, display_balance,

@@ -1957,12 +1957,13 @@ a.watch-chip:hover{filter:brightness(1.25)}
           <th>Size</th>
           <th>P&amp;L $</th>
           <th>P&amp;L %</th>
+          <th title="R-multiple: P&amp;L ÷ planned risk ($30 = 1R). Winners: target avg ≥ +0.85R. Losers: planned −1R; deeper = stop overshoot.">R</th>
           <th>Exit Reason</th>
           <th>Float</th>
         </tr>
       </thead>
       <tbody id="tradeTable">
-        <tr><td colspan="11"><div class="empty-state"><div class="icon">📊</div><p>Loading trade history...</p></div></td></tr>
+        <tr><td colspan="12"><div class="empty-state"><div class="icon">📊</div><p>Loading trade history...</p></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -2109,7 +2110,7 @@ function renderStats(s, acct){
 function renderTable(trades){
   const tbody = document.getElementById('tradeTable');
   if(!trades || trades.length===0){
-    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state">
       <div class="icon">📊</div>
       <p>No trades recorded yet</p>
       <small>The bot will log results here automatically after each session</small>
@@ -2125,6 +2126,11 @@ function renderTable(trades){
     const pnlSign = t.pnl>0?'+':'';
     const pctSign = t.pnl_pct>0?'+':'';
     const fl = t.float_shares ? String(t.float_shares).replace(/(\d)(?=(\d{3})+$)/g,'$1,') : '—';
+    const pr = parseFloat(t.planned_risk);
+    const rMul = (pr>0.5) ? (t.pnl/pr) : null;
+    const rTxt = rMul===null ? '<span style="color:#484f58">—</span>'
+               : (rMul>=0?'+':'−')+Math.abs(rMul).toFixed(2)+'R'
+                 + (rMul>=2?' 🚀':(rMul<=-1.15?' ⚠️':''));
     const sz = t.position_size ? fmt$(t.position_size) : '—';
     return `<tr onclick="toggleStory('${key}', event)" style="cursor:pointer" title="Click for the story of this trade">
       <td style="color:#8b949e">${t.date||'—'}</td>
@@ -2136,10 +2142,11 @@ function renderTable(trades){
       <td style="color:#8b949e">${sz}</td>
       <td class="${pnlCls}">${pnlSign}$${Math.abs(t.pnl).toFixed(2)}</td>
       <td class="${pnlCls}">${pctSign}${t.pnl_pct.toFixed(1)}%</td>
+      <td class="${pnlCls}" style="font-weight:700">${rTxt}</td>
       <td class="exit-tag" title="${t.exit_reason||''}">${t.exit_reason||'—'}</td>
       <td style="color:#8b949e;font-size:12px">${fl}</td>
     </tr>`
-    + (isOpen?`<tr class="story-tr"><td colspan="11"><div class="tape show">${storyClosedHTML(t)}</div></td></tr>`:'');
+    + (isOpen?`<tr class="story-tr"><td colspan="12"><div class="tape show">${storyClosedHTML(t)}</div></td></tr>`:'');
   }).join('');
   tbody.innerHTML = rows;
 }

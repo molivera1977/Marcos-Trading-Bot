@@ -1635,6 +1635,8 @@ def winner_sweep():
         if not movers:
             print("🏁 winner_sweep: no movers found"); return
         saved = errs = 0
+        failed = []                                      # 7/13: AGEN+SRXH archive posts died silently in a
+                                                         # deploy-window collision — track + retry + REPORT
         for sym in list(movers)[:80]:                    # bound the batch
             try:
                 bars = get_intraday_bars(sym, count=960, executor=_aux_executor,
@@ -1644,10 +1646,31 @@ def winner_sweep():
                                       headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=20)
                     if r.status_code == 200:
                         saved += 1
+                    else:
+                        failed.append(sym)
+                else:
+                    failed.append(sym)
             except Exception:
-                errs += 1
+                errs += 1; failed.append(sym)
                 if errs >= 5:                            # back off — never hammer the token
                     print("⚠️  winner_sweep: 5 fetch errors — backing off, stopping."); break
+        if failed:                                       # one retry pass after a settle pause (dashboard may
+            time.sleep(20)                               # have been mid-restart on the first attempt)
+            still = []
+            for sym in failed:
+                try:
+                    bars = get_intraday_bars(sym, count=960, executor=_aux_executor,
+                                             sessions=["RTH", "PRE", "ATH"])
+                    r = requests.post(f"{url}/api/bars", json={"date": date, "ticker": sym, "bars": bars},
+                                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=20) if bars else None
+                    if r is not None and r.status_code == 200:
+                        saved += 1
+                    else:
+                        still.append(sym)
+                except Exception:
+                    still.append(sym)
+            if still:
+                print(f"🚨 winner_sweep: {len(still)} name(s) FAILED both passes — archive incomplete: {' '.join(still)}")
             time.sleep(0.5)                              # gentle, read-only, off-market
         print(f"🏁 winner_sweep {date}: archived {saved}/{len(movers)} market-wide movers (≥8%, <$20). "
               f"The reverse-engineering dataset now sees the winners we DIDN'T catch.")
@@ -3941,12 +3964,28 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     room = compute_room(price, vr_stop, cache[t].get("full_bars") or bars,
                                         daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
                     _vfront = ema9 > ema20 > 0
-                    print(f"\n🔵 {t} VWAP RECLAIM! ${price:.2f} back above VWAP ${vwap:.2f} — stop ${vr_stop:.2f}")
+                    # 7/13 label split (Gate-2 prereq): this trigger's `vwap` is the ROLLING-45 line, which
+                    # hugs price on a runner — an ordinary pullback can "reclaim" it while sitting far above
+                    # the true SESSION VWAP (VMAR 7/13 entered +11.5% above session VWAP tagged "reclaim").
+                    # Record the session-anchored truth so the study can split true reclaims from momentum
+                    # continuation. INSTRUMENTATION ONLY — no gating, per feedback_dry_run_learning.
+                    _sess_vwap = 0.0
+                    try:
+                        _svb = get_intraday_bars(t, count=VWAP_SESSION_COUNT, sessions=["PRE", "RTH"])
+                        _sess_vwap = calculate_vwap(_latest_session(_svb)) if _svb else 0.0
+                    except Exception:
+                        pass
+                    _vs_sess = round((price - _sess_vwap) / _sess_vwap * 100, 2) if _sess_vwap > 0 else None
+                    _subtype = ("reclaim_true" if _vs_sess is not None and _vs_sess <= 2.0
+                                else "continuation" if _vs_sess is not None else "unknown")
+                    print(f"\n🔵 {t} VWAP RECLAIM! ${price:.2f} back above VWAP ${vwap:.2f} — stop ${vr_stop:.2f}"
+                          f" | session-VWAP ${_sess_vwap:.2f} ({_vs_sess if _vs_sess is not None else '?'}% above) → {_subtype}")
                     breakouts.append((t, price, vwap, "vwap_reclaim", {
                         "zone_stop": vr_stop, "room": room, "ema90": round(ema90, 4),
                         "front_side": _vfront, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
+                        "reclaim_subtype": _subtype, "entry_vs_session_vwap_pct": _vs_sess,
                     }))
-                    _log_decision(t, "triggered_vwap_reclaim", price=price, vwap=vwap)
+                    _log_decision(t, f"triggered_vwap_reclaim_{_subtype}", price=price, vwap=vwap)
                     found_entry = True
 
             if not found_entry and t not in [s.split(":")[0] for s in status_parts]:
@@ -5497,6 +5536,15 @@ def main():
                 _reexcl = reentry["held"] | reentry["givenup"]
             remaining_candidates = [g["symbol"] for g in fresh_gappers
                                     if g.get("symbol") and g["symbol"] not in _reexcl]
+            # 7/13 B10: the rescan rebuilt the pool from RANK ONLY, silently evicting Kev's
+            # force-watched names after the first completed trade (GMM 7/13: decisions stopped
+            # 9:56am, then it made a new HOD at 3:15pm unwatched). Re-apply the force-add every
+            # rescan — the session-start guarantee "if Kev names it, we watch it" must hold all day.
+            _kev_re = [t for t in _fetch_kev_watchlist()
+                       if t not in remaining_candidates and t not in _reexcl]
+            if _kev_re:
+                remaining_candidates += _kev_re
+                print(f"⭐ Re-added Kev's flagged (rescan eviction guard): {' | '.join(_kev_re)}")
             for t in remaining_candidates:
                 if t not in stream_tickers:
                     stream_tickers.append(t)
@@ -5854,6 +5902,9 @@ def main():
                 # Story fields (7/13) — power the dashboard's plain-English trade story
                 "partial_fills":      trade_result.get("partial_fills") or [],
                 "highest":            trade_result.get("highest"),
+                # Reclaim label split (7/13) — true from-below reclaim vs momentum continuation
+                "reclaim_subtype":            extra.get("reclaim_subtype"),
+                "entry_vs_session_vwap_pct":  extra.get("entry_vs_session_vwap_pct"),
             })
             if exit_reason != "WATCHDOG_ABORT":   # watchdog already recorded it (trade_id dedups)
                 send_summary_email(analysis, trade_result, display_balance,

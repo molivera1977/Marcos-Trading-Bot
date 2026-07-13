@@ -829,6 +829,8 @@ def record_trade():
         "entry_supply_src":   data.get("entry_supply_src"),
         # Story fields (7/13) — entry signal, scale-outs, and peak for the plain-English trade story
         "entry_type":         data.get("entry_type", ""),
+        "reclaim_subtype":            data.get("reclaim_subtype"),
+        "entry_vs_session_vwap_pct":  data.get("entry_vs_session_vwap_pct"),
         "partial_fills":      data.get("partial_fills") or [],
         "highest":            data.get("highest"),
         "entry_front_side":   data.get("entry_front_side"),

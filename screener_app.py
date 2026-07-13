@@ -1887,6 +1887,11 @@ a.watch-chip:hover{filter:brightness(1.25)}
         <div class="balance-label">Today WR</div>
         <div style="font-size:24px;font-weight:700" id="todayWr">—</div>
       </div>
+      <div>
+        <div class="balance-label" title="Average R per WINNING trade today (pnl ÷ planned risk). THE capture target: ≥ +0.85R makes a ~60% win rate profitable. Small number = ex-best (without the day's biggest winner — the fragility check).">Avg Win 🎯0.85R</div>
+        <div style="font-size:24px;font-weight:700" id="avgWinR">—</div>
+        <div style="font-size:11px;color:#8b949e" id="avgWinRx"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -2000,6 +2005,21 @@ function renderTodayStats(trades){
   const wr = dec ? Math.round(w/dec*100) : 0;
   pEl.textContent = (p>=0?'+':'')+fmt$(p); pEl.className = p>0?'green':p<0?'red':'white';
   wEl.textContent = dec ? (wr+'% ('+w+'/'+dec+')') : '—'; wEl.className = dec ? (wr>=50?'green':wr>0?'yellow':'gray') : 'gray';
+  // THE capture target (7/13): average R per winning trade, vs the 0.85R goal. Ex-best = without
+  // the day's biggest winner (a mean carried by one monster is fragile — show both).
+  const rEl=document.getElementById('avgWinR'), rxEl=document.getElementById('avgWinRx');
+  if(rEl){
+    const winRs=today.filter(t=>(parseFloat(t.pnl)||0)>0 && parseFloat(t.planned_risk)>0.5)
+                      .map(t=>parseFloat(t.pnl)/parseFloat(t.planned_risk));
+    if(!winRs.length){ rEl.textContent='—'; rEl.className='gray'; rxEl.textContent=''; }
+    else{
+      const mean=winRs.reduce((a,b)=>a+b,0)/winRs.length;
+      const exb=winRs.length>1?(winRs.reduce((a,b)=>a+b,0)-Math.max(...winRs))/(winRs.length-1):mean;
+      rEl.textContent='+'+mean.toFixed(2)+'R';
+      rEl.className=mean>=0.85?'green':mean>=0.65?'yellow':'red';
+      rxEl.textContent='ex-best +'+exb.toFixed(2)+'R';
+    }
+  }
 }
 
 let calYear=null, calMonth=null;

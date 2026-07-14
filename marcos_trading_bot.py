@@ -2551,6 +2551,8 @@ def get_intraday_bars(ticker, count=30, executor=None, sessions=None):
     worker with a hard QUOTE_TIMEOUT_SECS cap so it can never block the monitor loop.
     Pass executor=_aux_executor (e.g. the day-2 observer) to keep load OFF the trade pool."""
     try:
+        if executor is _aux_executor and time.time() < _rest_cool[0]:
+            return []   # 429 cooldown: optional consumers (day-2/sweep/session-vwap refresh) yield to monitors
         dc = _get_data_client()
         if not dc:
             return []
@@ -2569,6 +2571,8 @@ def get_intraday_bars(ticker, count=30, executor=None, sessions=None):
         if resp.status_code != 200:
             print(f"⚠️  Intraday bars {resp.status_code} for {ticker}")
             _bump("api_429" if resp.status_code == 429 else "api_err")
+            if resp.status_code == 429:   # 7/14: back off instead of hammering — shed AUX load first
+                _rest_cool[0] = min(max(_rest_cool[0], time.time()) + 30, time.time() + 120)
             return []
         raw = resp.json()
         if isinstance(raw, list):
@@ -3543,6 +3547,9 @@ VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't ch
 #   (1) entry/dashboard VWAP fetched RTH-only (no pre-market) → ~2-4% low on gappers;
 #   (2) the health-fold EXIT computed VWAP over only the last ~45 M1 bars (the EMA window) = a ROLLING window that
 #       runs 10-22% HIGH on a runner → folds winners early. Fetch a full pre+RTH session set for VWAP everywhere.
+B11_BLIND_SECS  = 60     # bars unfetchable this long → the monitor is BLIND (7/14: NVVE sat 6 min below stop)
+B11_BELOW_SECS  = 20     # stream must print below the stop SUSTAINED this long (one bad tick must not fire it)
+_rest_cool = [0.0]       # 7/14: global 429 cooldown epoch — AUX fetchers shed load first, monitors keep cadence
 VWAP_SESSION_COUNT      = 800   # bars ≥ full pre-market(330) + RTH(390) + margin — 600 lost the pre-market anchor
 _svwap_cache: dict = {}          # 7/14: {ticker: (3min-bucket, session_vwap)} — kills the per-minute 800-bar refetch
                                 # late-day on heavy-premarket names (7/11 audit A7); _latest_session() trims prior days
@@ -4341,6 +4348,9 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     _status_px         = 0.0           # throttle the 💰 status print (streaming's 0.5s loop floods it otherwise)
     _status_t          = 0.0           # print only on a ≥0.3% move OR every ≥STATUS_PRINT_SECS — keeps real events visible
 
+    _last_bars_ok  = time.time()   # B11: when the stop logic last actually SAW a completed bar
+    _below_since   = None          # B11: first moment the stream printed below the current stop
+
     initial_shares = total_shares
     tier_idx = 0
     # ── Kev's R-based exits (SUPPLY_EXIT_DESIGN.md): R = entry − initial stop. Sell HALF at +1R
@@ -4528,6 +4538,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             bars = get_intraday_bars(ticker, count=(EMA_PERIOD + 6) * SETUP_TF_MIN if EXITS_ON_3MIN else EMA_PERIOD + 5)
             _cbars = aggregate_bars(bars, SETUP_TF_MIN) if (EXITS_ON_3MIN and bars) else bars
             if _cbars and len(_cbars) >= (3 if EXITS_ON_3MIN else EMA_PERIOD + 2):
+                _last_bars_ok = time.time()   # B11: the stop logic has sight
                 completed = _cbars[:-1]   # 3-MIN completed bars = manage on Kev's chart (EXITS_ON_3MIN), else 1-min
 
                 # ── 3-MIN close-based STOP: exit only when a completed 3-min bar CLOSES at/below the stop. A
@@ -4643,6 +4654,30 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
         if remaining_shares == 0:
             break
+
+        # ── B11 DATA-OUTAGE FAILSAFE (7/14, shipped after NVVE went 6 min blind below its stop in a
+        #    429 storm and ELWT leaked under its simulated BE floor). Alive-but-blind must not free-fall:
+        #    if bars have been unfetchable > B11_BLIND_SECS AND the stream has printed below the CURRENT
+        #    stop (initial, BE, or ratcheted) sustained > B11_BELOW_SECS, exit on the stream price.
+        #    Fires ONLY when sightless — a healthy flush through the stop with bars flowing is untouched
+        #    (the breach-mode replay on real trades showed hair-trigger stops kill the YYGH-class winners). ──
+        if remaining_shares > 0 and current_price > 0:
+            if current_price < current_stop:
+                if _below_since is None:
+                    _below_since = time.time()
+            else:
+                _below_since = None
+            if (_below_since is not None
+                    and time.time() - _last_bars_ok >= B11_BLIND_SECS
+                    and time.time() - _below_since >= B11_BELOW_SECS):
+                print(f"🛟 {ticker} BLIND-STOP FAILSAFE: no bars for {time.time()-_last_bars_ok:.0f}s and "
+                      f"stream ${current_price:.2f} < stop ${current_stop:.2f} for {time.time()-_below_since:.0f}s — exiting on stream.")
+                cancel_order(placed_stop_id)
+                close_position(ticker, remaining_shares)
+                result["exit_price"]  = current_price
+                result["exit_reason"] = "BLIND-STOP FAILSAFE 🛟"
+                remaining_shares = 0
+                break
 
         # ── Software stop detection. When EXITS_ON_3MIN there is NO intrabar %-stop — the exit is the 3-min
         #    CLOSE below the structural stop (above); a fixed −7% is non-Kev and just snipes the trade before

@@ -2005,7 +2005,7 @@ function loadData(){
   fetch('/api/trades')
     .then(r=>r.json())
     .then(data=>{
-      renderStats(data.stats, data.account);
+      renderStats(data.stats, data.account, data.trades);
       renderTodayStats(data.trades);
       renderTable(data.trades);
       renderCalendar(data.trades);
@@ -2105,7 +2105,22 @@ function calNav(delta){
   else if(calMonth>11){calMonth=0;calYear++;}
   renderCalendar(window._calTrades||[]);
 }
-function renderStats(s, acct){
+const ERA_START='2026-07-13';   // realistic-sizing era ($3k frame, $30 R) — headline stats scope
+function renderStats(s, acct, trades){
+  // Era-true overrides: the server stats span ALL history (mixed $100-buy + $30-R eras) and the
+  // balance is a DAILY frame ($3,000 + today) — mixing them made a fictional "return since inception".
+  if(trades && trades.length){
+    const era=trades.filter(t=>String(t.date||'')>=ERA_START);
+    if(era.length){
+      const pnl=era.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
+      const w=era.filter(t=>(parseFloat(t.pnl)||0)>0).length, l=era.filter(t=>(parseFloat(t.pnl)||0)<0).length;
+      s=Object.assign({},s,{total_pnl:Math.round(pnl*100)/100, total_trades:era.length,
+                            win_rate:(w+l)?Math.round(w/(w+l)*100):0});
+      const back=document.getElementById('balanceChange');
+      if(back) back.innerHTML='era since '+ERA_START+' · start $3,000/day frame · era P&L '+(pnl>=0?'+':'−')+'$'+Math.abs(pnl).toFixed(2)+' ('+(pnl>=0?'+':'−')+Math.abs(pnl/3000*100).toFixed(1)+'% of frame)';
+      window._eraStatsApplied=true;
+    }
+  }
   const bal = acct && acct.balance ? acct.balance : 0;
   window._acctBal = bal;   // capital meter uses this as the working budget
   document.getElementById('balanceVal').textContent = bal ? fmt$(bal) : '—';
@@ -2131,7 +2146,7 @@ function renderStats(s, acct){
   document.getElementById('losses').textContent  = s.losses ?? '—';
   document.getElementById('breakeven').textContent = s.breakeven ?? '—';
 
-  if(bal>0 && pnl!==0){
+  if(bal>0 && pnl!==0 && !window._eraStatsApplied){
     const startBal = bal - pnl;
     const retPct = (pnl/startBal*100).toFixed(1);
     const cls = pnl>=0?'up':'down';
@@ -2457,7 +2472,12 @@ function loadMarket(){
     var idx=(m&&m.indices)||[];
     if(!idx.length){ el.innerHTML='<span class="market-loading">Market data unavailable</span>'; }
     else {
+      var want=['S&P 500','Dow Jones','Nasdaq'];
+      var have=idx.map(function(i){return i.label;});
+      want.forEach(function(w){ if(have.indexOf(w)<0) idx.push({label:w,chg:null,price:null}); });
+      idx.sort(function(a,b){return want.indexOf(a.label)-want.indexOf(b.label);});
       el.innerHTML = idx.map(function(i){
+        if(i.chg===null||i.chg===undefined) return '<div class="mkt-idx"><span class="mkt-name">'+i.label+'</span><span class="mkt-chg white">—</span></div>';
         var chg=parseFloat(i.chg)||0, cls=chg>0?'green':chg<0?'red':'white', arrow=chg>0?'▲':chg<0?'▼':'';
         var px=(i.price!=null&&i.price!=='')?'<span class="mkt-px">'+Number(i.price).toLocaleString(undefined,{maximumFractionDigits:2})+'</span>':'';
         return '<div class="mkt-idx"><span class="mkt-name">'+i.label+'</span>'+

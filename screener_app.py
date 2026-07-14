@@ -1948,8 +1948,8 @@ a.watch-chip:hover{filter:brightness(1.25)}
 </div>
 
 <div class="stats-grid" id="statsGrid">
-  <div class="stat-card"><div class="stat-label">Avg Gain</div><div class="stat-value green" id="avgGain">—</div><div class="stat-sub">per winning trade</div></div>
-  <div class="stat-card"><div class="stat-label">Avg Loss</div><div class="stat-value red" id="avgLoss">—</div><div class="stat-sub">per losing trade</div></div>
+  <div class="stat-card"><div class="stat-label">Expectancy /trade 🎯+0.10R</div><div class="stat-value green" id="avgGain">—</div><div class="stat-sub">per winning trade</div></div>
+  <div class="stat-card"><div class="stat-label">Avg Loss (R) plan −1.0</div><div class="stat-value red" id="avgLoss">—</div><div class="stat-sub">per losing trade</div></div>
   <div class="stat-card"><div class="stat-label">Best Trade</div><div class="stat-value green" id="bestPnl">—</div><div class="stat-sub" id="bestTicker">—</div></div>
   <div class="stat-card"><div class="stat-label">Worst Trade</div><div class="stat-value red" id="worstPnl">—</div><div class="stat-sub" id="worstTicker">—</div></div>
   <div class="stat-card"><div class="stat-label">Wins</div><div class="stat-value green" id="wins">—</div><div class="stat-sub">profitable sessions</div></div>
@@ -2112,12 +2112,28 @@ function renderStats(s, acct, trades){
   if(trades && trades.length){
     const era=trades.filter(t=>String(t.date||'')>=ERA_START);
     if(era.length){
-      const pnl=era.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
-      const w=era.filter(t=>(parseFloat(t.pnl)||0)>0).length, l=era.filter(t=>(parseFloat(t.pnl)||0)<0).length;
-      s=Object.assign({},s,{total_pnl:Math.round(pnl*100)/100, total_trades:era.length,
+      const isBook=t=>/RECOVER/i.test(String(t.exit_reason||''));   // bookkeeping prints ≠ strategy trades
+      const graded=era.filter(t=>!isBook(t));
+      const pnl=era.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);      // money is money — ALL prints
+      const w=graded.filter(t=>(parseFloat(t.pnl)||0)>0).length, l=graded.filter(t=>(parseFloat(t.pnl)||0)<0).length;
+      s=Object.assign({},s,{total_pnl:Math.round(pnl*100)/100, total_trades:graded.length,
                             win_rate:(w+l)?Math.round(w/(w+l)*100):0});
+      const frict=era.reduce((a,t)=>a+(parseFloat(t.est_slippage)||0),0);
+      const net=pnl-frict;
       const back=document.getElementById('balanceChange');
-      if(back) back.innerHTML='era since '+ERA_START+' · start $3,000/day frame · era P&L '+(pnl>=0?'+':'−')+'$'+Math.abs(pnl).toFixed(2)+' ('+(pnl>=0?'+':'−')+Math.abs(pnl/3000*100).toFixed(1)+'% of frame)';
+      if(back) back.innerHTML='era since '+ERA_START+' · $3,000/day frame · gross '+(pnl>=0?'+':'−')+'$'+Math.abs(pnl).toFixed(0)
+        +' · friction est −$'+frict.toFixed(0)+' → <b>net ≈ '+(net>=0?'+':'−')+'$'+Math.abs(net).toFixed(0)+'</b>'
+        +(era.length>graded.length?' · '+(era.length-graded.length)+' bookkeeping print(s) excluded from WR':'');
+      // honest R pair: expectancy + avg loss (graded, planned_risk era only)
+      const rs=graded.filter(t=>parseFloat(t.planned_risk)>0.5).map(t=>(parseFloat(t.pnl)||0)/parseFloat(t.planned_risk));
+      const lrs=rs.filter(r=>r<0);
+      const expEl=document.getElementById('avgGain'), alEl=document.getElementById('avgLoss');
+      if(expEl&&rs.length){ const ex=rs.reduce((a,b)=>a+b,0)/rs.length;
+        expEl.textContent=(ex>=0?'+':'−')+Math.abs(ex).toFixed(2)+'R';
+        expEl.className=ex>=0.10?'green':ex>=0?'yellow':'red'; }
+      if(alEl&&lrs.length){ const al=lrs.reduce((a,b)=>a+b,0)/lrs.length;
+        alEl.textContent=al.toFixed(2)+'R'+(al<-1.15?' ⚠️':'');
+        alEl.className=al<-1.15?'red':'white'; }
       window._eraStatsApplied=true;
     }
   }
@@ -2170,7 +2186,8 @@ function renderTable(trades){
     const t=o.t;
     const key = t.trade_id || (t.ticker+'|'+t.date+'|'+o.i);
     const isOpen = window._storyOpen.has(key);
-    const pnlCls  = t.pnl>0?'pnl-pos':t.pnl<0?'pnl-neg':'pnl-flat';   // $0 scratch = neutral, not green
+    const isBookRow=/RECOVER/i.test(String(t.exit_reason||''));
+    const pnlCls  = isBookRow?'pnl-flat':(t.pnl>0?'pnl-pos':t.pnl<0?'pnl-neg':'pnl-flat');   // bookkeeping = muted
     const pnlSign = t.pnl>0?'+':'';
     const pctSign = t.pnl_pct>0?'+':'';
     const fl = t.float_shares ? String(t.float_shares).replace(/(\d)(?=(\d{3})+$)/g,'$1,') : '—';
@@ -2191,7 +2208,7 @@ function renderTable(trades){
       <td class="${pnlCls}">${pnlSign}$${Math.abs(t.pnl).toFixed(2)}</td>
       <td class="${pnlCls}">${pctSign}${t.pnl_pct.toFixed(1)}%</td>
       <td class="${pnlCls}" style="font-weight:700">${rTxt}</td>
-      <td class="exit-tag" title="${t.exit_reason||''}">${t.exit_reason||'—'}</td>
+      <td class="exit-tag" title="${t.exit_reason||''}">${isBookRow?'📋 ':''}${t.exit_reason||'—'}</td>
       <td style="color:#8b949e;font-size:12px">${fl}</td>
     </tr>`
     + (isOpen?`<tr class="story-tr"><td colspan="12"><div class="tape show">${storyClosedHTML(t)}</div></td></tr>`:'');
@@ -2303,9 +2320,9 @@ function taleLiveHTML(t){
   const worst=b.banked+(stop-entry)*rem;      // if the stop hits from here (≈ — stop is close-based)
   const high=Math.max(Number(t.highest||0), price);
   let vCls='risk', vTxt;
-  if(worst>0.5)      { vCls='locked'; vTxt=`🔒 GUARANTEED WINNER — even if the stop hits now, we walk away with ≈ +$${worst.toFixed(2)}.`; }
+  if(worst>0.5)      { vCls='locked'; vTxt=`🔒 LOCKED WINNER — if the stop fills at its level, we walk away with ≈ +$${worst.toFixed(2)}. (DRY-RUN floor is simulated — a fast gap can slip it.)`; }
   else if(worst>=-0.5 && (b.banked>0.5 || stop>=entry-0.004))
-                     { vCls='locked'; vTxt=`🛡️ CAN'T LOSE ANYMORE — the stop is at breakeven${b.banked>0.5?` and +$${b.banked.toFixed(2)} is already banked`:''}.`; }
+                     { vCls='locked'; vTxt=`🛡️ BREAKEVEN-PROTECTED — stop at breakeven${b.banked>0.5?` and +$${b.banked.toFixed(2)} is already banked`:''}.`; }
   else               { vTxt=`🎯 WORKING — risking ≈ $${Math.abs(worst).toFixed(2)} to find out if this one runs.`; }
   const li=[];
   li.push(`We're in for <b>$${dollarsIn.toFixed(0)}</b> — ${init} shares at <b>$${entry.toFixed(2)}</b>${t.entry_time?` (${t.entry_time})`:''}${t.entry_type?`, entry signal: <b>${t.entry_type}</b>`:''}.`);

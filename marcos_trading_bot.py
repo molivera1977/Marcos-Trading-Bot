@@ -113,6 +113,12 @@ MARKET_HOST  = "api.webull.com"   # Server-to-Server market data also on api.web
 # SDK token file lives here — pre-populated from WEBULL_ACCESS_TOKEN env var each run
 WEBULL_TOKEN_DIR = "/tmp/webull_token"
 
+# 7/14 MID-DAY LOAD RELIEF: the SDK's ERROR logs dump full request objects (~30 lines each); during a
+# 429/reset storm that blows Railway's 500 logs/sec cap and DROPS our own prints (45K lost 7/14).
+# One line per error is plenty — our except-paths already print concise warnings.
+import logging as _logging
+_logging.getLogger("webull").setLevel(_logging.CRITICAL)
+
 def _pre_populate_webull_token():
     """
     Write WEBULL_ACCESS_TOKEN from env into the SDK's token file BEFORE initializing
@@ -2578,6 +2584,7 @@ def get_intraday_bars(ticker, count=30, executor=None, sessions=None):
         return _to_chronological(bars)
     except Exception as e:
         print(f"⚠️  Intraday bars error for {ticker}: {e}")
+        _bump("api_err"); _bump("fail_open")   # 7/14: connection-resets landed here UNCOUNTED during an active fail-open
     return []
 
 
@@ -3537,6 +3544,7 @@ VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't ch
 #   (2) the health-fold EXIT computed VWAP over only the last ~45 M1 bars (the EMA window) = a ROLLING window that
 #       runs 10-22% HIGH on a runner → folds winners early. Fetch a full pre+RTH session set for VWAP everywhere.
 VWAP_SESSION_COUNT      = 800   # bars ≥ full pre-market(330) + RTH(390) + margin — 600 lost the pre-market anchor
+_svwap_cache: dict = {}          # 7/14: {ticker: (3min-bucket, session_vwap)} — kills the per-minute 800-bar refetch
                                 # late-day on heavy-premarket names (7/11 audit A7); _latest_session() trims prior days
 VWAP_SESSION_CACHE_SECS = 90    # session VWAP moves slowly — refresh less often than the 30s bar cache to limit API load
 # Feature flags — DEFAULT OFF so the deployed default == current live/validated behavior. Flip only after re-validation.
@@ -4513,7 +4521,10 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                                         remaining_shares, current_stop, profit_pct)
 
         # ── Structure-based exits: fetch recent bars for the Kev close-based exits below ──────
-        if remaining_shares > 0 and time.time() - last_ema_check >= EMA_CHECK_INTERVAL:
+        # 7/14: jitter the cadence per ticker (±12s) — 7+ monitors born minutes apart tick in sync
+        # otherwise, and the synchronized REST burst is what trips Webull's limiter.
+        _ema_iv = EMA_CHECK_INTERVAL + (hash(ticker) % 25) - 12
+        if remaining_shares > 0 and time.time() - last_ema_check >= _ema_iv:
             bars = get_intraday_bars(ticker, count=(EMA_PERIOD + 6) * SETUP_TF_MIN if EXITS_ON_3MIN else EMA_PERIOD + 5)
             _cbars = aggregate_bars(bars, SETUP_TF_MIN) if (EXITS_ON_3MIN and bars) else bars
             if _cbars and len(_cbars) >= (3 if EXITS_ON_3MIN else EMA_PERIOD + 2):
@@ -4600,8 +4611,19 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     try:
                         _vw_roll = calculate_vwap(_latest_session(bars))   # rolling-45 (shipped/validated)
                         if HEALTH_VWAP_SESSION:
-                            _svb = get_intraday_bars(ticker, count=VWAP_SESSION_COUNT, sessions=["PRE", "RTH"])
-                            _vw  = calculate_vwap(_latest_session(_svb)) if _svb else _vw_roll
+                            # 7/14 LOAD RELIEF: the health fold reads session VWAP at 3-MIN closes, but this
+                            # 800-bar fetch ran EVERY minute PER POSITION (7 positions = the 429 storm's main
+                            # driver). Cache per ticker per 3-min bucket — same value at every decision point.
+                            _now3 = datetime.now(EASTERN)
+                            _bk = (_now3.date(), _now3.hour, _now3.minute - _now3.minute % 3)
+                            _hit = _svwap_cache.get(ticker)
+                            if _hit and _hit[0] == _bk and _hit[1] > 0:
+                                _vw = _hit[1]
+                            else:
+                                _svb = get_intraday_bars(ticker, count=VWAP_SESSION_COUNT, sessions=["PRE", "RTH"])
+                                _vw  = calculate_vwap(_latest_session(_svb)) if _svb else _vw_roll
+                                if _svb:
+                                    _svwap_cache[ticker] = (_bk, _vw)
                         else:
                             _vw  = _vw_roll
                     except Exception:

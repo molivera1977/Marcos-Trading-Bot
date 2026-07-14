@@ -1684,10 +1684,16 @@ def _winner_sweep_loop():
     pre+RTH+AFTER-HOURS capture once the 4-8pm session has closed (the 16:10 pass only catches ~10 min of AH).
     Replaces the fragile app-dependent 8:18pm Claude backfill task with a server-side pass. Isolated — cannot touch trading."""
     last_rth = last_ah = None
+    _last_mkt = 0.0
     while True:
         try:
             now = datetime.now(EASTERN)
             today = now.strftime("%Y-%m-%d")
+            # 7/14: keep the dashboard market strip fresh all day from this always-on loop — the
+            # startup-only push raced the co-deploying dashboard on 7/13 and the strip sat empty.
+            if now.weekday() < 5 and 7 <= now.hour < 20 and time.time() - _last_mkt >= 900:
+                _last_mkt = time.time()
+                _push_market_context()
             if now.weekday() < 5:
                 if now.hour == 16 and now.minute >= 2 and last_rth != today:   # 16:02 (was :10) — RTH bars are final at 16:00; earlier sweep = earlier scorecard on days Marcos is watching
                     print("🏁 EOD winner sweep (RTH snapshot for the scorecard)...")

@@ -47,7 +47,13 @@ app = Flask(__name__)
 
 _trades: list = []
 _account: dict = {"balance": 0.0, "updated": ""}
+_MARKET_FILE = pathlib.Path("/data/market_strip.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/market_strip.json")
 _market: dict = {"indices": [], "news": [], "updated": ""}   # market strip (S&P/Dow/Nasdaq) — pushed by the bot via Webull
+try:                                                          # 7/14: persist across deploys — 5 deploys on 7/13
+    if _MARKET_FILE.exists():                                 # left the strip empty all day (memory-only store)
+        _market.update(json.loads(_MARKET_FILE.read_text()))
+except Exception:
+    pass
 _watching: dict = {}                   # Live watch list posted by bot each session
 _trade_state: dict = {}                # Live state of the active trade (entry/price/pnl/stop/target)
 
@@ -879,6 +885,8 @@ def market_data_api():
         if isinstance(data.get("news"), list):
             _market["news"] = data["news"]
         _market["updated"] = datetime.now(EASTERN).strftime("%I:%M %p ET")
+        try:    _MARKET_FILE.write_text(json.dumps(_market))
+        except Exception: pass
         return jsonify({"status": "ok"})
     return jsonify(_market)
 

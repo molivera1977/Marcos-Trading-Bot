@@ -1797,6 +1797,7 @@ a.watch-chip:hover{filter:brightness(1.25)}
 .cal-cell.today{outline:2px solid #58a6ff;outline-offset:-2px}
 .cal-daynum{font-size:11px;color:#8b949e;font-weight:600}
 .cal-pnl{font-size:13px;font-weight:800;line-height:1.1}
+.cal-r{font-size:10px;font-weight:800;margin-top:1px}
 .cal-ct{font-size:9px;color:#8b949e}
 @media(max-width:640px){
   .cal-cell{min-height:46px;padding:3px 4px}
@@ -1896,6 +1897,10 @@ a.watch-chip:hover{filter:brightness(1.25)}
       <div>
         <div class="balance-label">Today WR</div>
         <div style="font-size:24px;font-weight:700" id="todayWr">—</div>
+      </div>
+      <div>
+        <div class="balance-label" title="Cumulative R today (all trades, P&amp;L ÷ planned risk). Daily goal: +1.67R–+2.0R = $50–$60 on the $3k frame.">Today R 🎯1.67+</div>
+        <div style="font-size:24px;font-weight:700" id="todayR">—</div>
       </div>
       <div>
         <div class="balance-label" title="Average R per WINNING trade today (pnl ÷ planned risk). THE capture target: ≥ +0.85R makes a ~60% win rate profitable. Small number = ex-best (without the day's biggest winner — the fragility check).">Avg Win 🎯0.85R</div>
@@ -2018,6 +2023,14 @@ function renderTodayStats(trades){
   wEl.textContent = dec ? (wr+'% ('+w+'/'+dec+')') : '—'; wEl.className = dec ? (wr>=50?'green':wr>0?'yellow':'gray') : 'gray';
   // THE capture target (7/13): average R per winning trade, vs the 0.85R goal. Ex-best = without
   // the day's biggest winner (a mean carried by one monster is fragile — show both).
+  const tR=document.getElementById('todayR');
+  if(tR){
+    const rs=today.filter(t=>parseFloat(t.planned_risk)>0.5).map(t=>(parseFloat(t.pnl)||0)/parseFloat(t.planned_risk));
+    if(!rs.length){ tR.textContent='—'; tR.className='gray'; }
+    else{ const sum=rs.reduce((a,b)=>a+b,0);
+      tR.textContent=(sum>=0?'+':'−')+Math.abs(sum).toFixed(1)+'R';
+      tR.className=sum>=1.67?'green':sum>=0?'yellow':'red'; }
+  }
   const rEl=document.getElementById('avgWinR'), rxEl=document.getElementById('avgWinRx');
   if(rEl){
     const winRs=today.filter(t=>(parseFloat(t.pnl)||0)>0 && parseFloat(t.planned_risk)>0.5)
@@ -2040,8 +2053,9 @@ function renderCalendar(trades){
   const byDay={};
   (trades||[]).forEach(function(t){
     const d=String(t.date||'').slice(0,10); if(d.length!==10) return;
-    const o=byDay[d]||(byDay[d]={pnl:0,ct:0,w:0});
+    const o=byDay[d]||(byDay[d]={pnl:0,ct:0,w:0,r:0,rn:0});
     const p=parseFloat(t.pnl)||0; o.pnl+=p; o.ct++; if(p>0)o.w++;
+    const pr=parseFloat(t.planned_risk); if(pr>0.5){ o.r+=p/pr; o.rn++; }
   });
   const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
   if(calYear===null){ calYear=nowET.getFullYear(); calMonth=nowET.getMonth(); }
@@ -2052,13 +2066,13 @@ function renderCalendar(trades){
   const todayStr=nowET.toLocaleDateString('en-CA');
   const cell=function(v){return (v>=0?'+':'-')+'$'+Math.abs(Math.round(v)).toLocaleString('en-US');};
   const money2=function(v){return (v>=0?'+':'-')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
-  let mp=0,mc=0,mw=0;
-  for(let d=1;d<=dim;d++){ const o=byDay[key(d)]; if(o){mp+=o.pnl;mc+=o.ct;mw+=o.w;} }
+  let mp=0,mc=0,mw=0,mr=0,mrn=0;
+  for(let d=1;d<=dim;d++){ const o=byDay[key(d)]; if(o){mp+=o.pnl;mc+=o.ct;mw+=o.w;mr+=o.r;mrn+=o.rn;} }
   const mName=new Date(calYear,calMonth,1).toLocaleString('en-US',{month:'long'});
   let h='<div class="cal-head">'
     +'<button class="cal-nav" onclick="calNav(-1)">&lsaquo;</button>'
     +'<div class="cal-titlewrap"><span class="cal-title">'+mName+' '+calYear+'</span>'
-    +(mc?'<span class="cal-month-pnl '+(mp>0?'green':mp<0?'red':'white')+'">'+money2(mp)+'</span><span class="cal-month-sub">'+mc+' trade'+(mc!==1?'s':'')+' · '+Math.round(mw/mc*100)+'% WR</span>':'<span class="cal-month-sub">no trades</span>')
+    +(mc?'<span class="cal-month-pnl '+(mp>0?'green':mp<0?'red':'white')+'">'+money2(mp)+'</span><span class="cal-month-sub">'+mc+' trade'+(mc!==1?'s':'')+' · '+Math.round(mw/mc*100)+'% WR'+(mrn?(' · '+(mr>=0?'+':'−')+Math.abs(mr).toFixed(1)+'R'):'')+'</span>':'<span class="cal-month-sub">no trades</span>')
     +'</div>'
     +'<button class="cal-nav" onclick="calNav(1)">&rsaquo;</button></div>';
   h+='<div class="cal-dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>';
@@ -2068,7 +2082,8 @@ function renderCalendar(trades){
     const o=byDay[key(d)];
     let cls='cal-cell', inner='';
     if(o){ cls+=(o.pnl>0?' win':o.pnl<0?' loss':' flat');
-      inner='<div class="cal-pnl '+(o.pnl>0?'green':o.pnl<0?'red':'white')+'">'+cell(o.pnl)+'</div><div class="cal-ct">'+o.ct+' trade'+(o.ct!==1?'s':'')+'</div>';
+      const rLine=o.rn?'<div class="cal-r '+(o.r>=1.67?'green':o.r>=0?'yellow':'red')+'">'+(o.r>=0?'+':'−')+Math.abs(o.r).toFixed(1)+'R</div>':'';
+      inner='<div class="cal-pnl '+(o.pnl>0?'green':o.pnl<0?'red':'white')+'">'+cell(o.pnl)+'</div><div class="cal-ct">'+o.ct+' trade'+(o.ct!==1?'s':'')+'</div>'+rLine;
     }
     if(key(d)===todayStr) cls+=' today';
     h+='<div class="'+cls+'"><div class="cal-daynum">'+d+'</div>'+inner+'</div>';

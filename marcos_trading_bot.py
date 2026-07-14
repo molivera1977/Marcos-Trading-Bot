@@ -699,6 +699,60 @@ _price_registry: dict = {}
 _price_lock = threading.Lock()
 
 
+# ── B12 PHASE 1 (7/14, SHADOW-ONLY): build 10-second + 1-minute bars from the tick stream.
+# WHY: the REST bar API is the bot's only chart today (429-throttleable, M1 floor); Kev's LGHL entry
+# (hidden-entries short) lives on the 10-SECOND chart our data can't see. Phase 1 is OBSERVATION only — no consumer
+# reads these for decisions. Divergence vs REST bars is logged; 10s bars for active names dump to the
+# dashboard at EOD (the design dataset for the 10s-pullback entry). Everything fail-silent.
+_shadow_lock = threading.Lock()
+_shadow_bars = {10: {}, 60: {}}          # span → ticker → {bucket_epoch: {o,h,l,c,v0,v1}}
+def _shadow_ingest(sym, price, cumvol, ts):
+    try:
+        for span in (10, 60):
+            k = int(ts) // span * span
+            with _shadow_lock:
+                d = _shadow_bars[span].setdefault(sym, {})
+                b = d.get(k)
+                if b is None:
+                    d[k] = {"o": price, "h": price, "l": price, "c": price,
+                            "v0": cumvol, "v1": cumvol}
+                else:
+                    if price > b["h"]: b["h"] = price
+                    if price < b["l"]: b["l"] = price
+                    b["c"] = price
+                    if cumvol is not None: b["v1"] = cumvol
+    except Exception:
+        pass
+
+def _shadow_dump_eod():
+    """EOD: post 10s bars for the most-active shadow names to the dashboard (namespaced ~10s so the
+    1-min archive is untouched). The accumulating library = the 10s entry-grammar design dataset."""
+    try:
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        if not url: return
+        with _shadow_lock:
+            counts = sorted(((t, len(bk)) for t, bk in _shadow_bars[10].items()),
+                            key=lambda x: -x[1])[:15]
+        date = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        sent = 0
+        for t, n in counts:
+            if n < 200: continue                    # skip barely-streamed names
+            with _shadow_lock:
+                items = sorted(_shadow_bars[10][t].items())
+            bars = [{"time": datetime.fromtimestamp(k, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
+                     "open": str(b["o"]), "high": str(b["h"]), "low": str(b["l"]), "close": str(b["c"]),
+                     "volume": str(max(0, (b["v1"] or 0) - (b["v0"] or 0)))}
+                    for k, b in items]
+            try:
+                r = requests.post(f"{url}/api/bars", json={"date": date, "ticker": f"{t}~10s", "bars": bars},
+                                  headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=25)
+                if r.status_code == 200: sent += 1
+            except Exception:
+                pass
+        print(f"🔬 B12 shadow: dumped 10s bars for {sent} name(s)")
+    except Exception as e:
+        print(f"⚠️  B12 shadow dump error (non-fatal): {e}")
+
 class WebullStream:
     """
     Real-time price feed via the official Webull OpenAPI SNAPSHOT stream (7/5 — working with the fresh
@@ -778,6 +832,12 @@ class WebullStream:
                     self._last_tick_ts = now                     # proof ticks are flowing → allows fast loop cadence
                     with _price_lock:
                         _price_registry[str(sym).upper()] = {"p": p, "t": now}
+                    _cv = getattr(payload, "volume", None) or getattr(basic, "volume", None)
+                    try:
+                        _cv = float(_cv) if _cv is not None else None
+                    except Exception:
+                        _cv = None
+                    _shadow_ingest(str(sym).upper(), p, _cv, now)   # B12 shadow — cannot raise
         except Exception:
             pass                                                # a bad message never breaks the feed
 
@@ -1691,6 +1751,9 @@ def _winner_sweep_loop():
     Replaces the fragile app-dependent 8:18pm Claude backfill task with a server-side pass. Isolated — cannot touch trading."""
     last_rth = last_ah = None
     _last_mkt = 0.0
+    _last_shadow_cmp = 0.0
+    _shadow_dumped = None
+    _shadow_day = None
     while True:
         try:
             now = datetime.now(EASTERN)
@@ -1700,10 +1763,45 @@ def _winner_sweep_loop():
             if now.weekday() < 5 and 7 <= now.hour < 20 and time.time() - _last_mkt >= 900:
                 _last_mkt = time.time()
                 _push_market_context()
+            # B12 shadow: reset the in-memory bar store at day change (bounded memory)
+            if _shadow_day != today:
+                _shadow_day = today
+                with _shadow_lock:
+                    _shadow_bars[10].clear(); _shadow_bars[60].clear()
+            # B12 shadow: hourly divergence sample during RTH (stream-bar vs REST-bar, top name by ticks)
+            if now.weekday() < 5 and 10 <= now.hour < 16 and time.time() - _last_shadow_cmp >= 3600:
+                _last_shadow_cmp = time.time()
+                try:
+                    with _shadow_lock:
+                        _cand = sorted(((t, len(bk)) for t, bk in _shadow_bars[60].items()), key=lambda x: -x[1])[:1]
+                    if _cand:
+                        _t = _cand[0][0]
+                        _rb = get_intraday_bars(_t, count=4, executor=_aux_executor)
+                        with _shadow_lock:
+                            _sb = sorted(_shadow_bars[60].get(_t, {}).items())
+                        if _rb and len(_rb) >= 2 and _sb:
+                            _rc = float(_rb[-2].get("close") or 0)
+                            _rk = None
+                            try:
+                                _rt = datetime.strptime(str(_rb[-2].get("time"))[:19], "%Y-%m-%dT%H:%M:%S")
+                                _rk = int(_rt.replace(tzinfo=timezone.utc).timestamp())
+                            except Exception:
+                                pass
+                            _match = dict(_sb).get(_rk) if _rk else None
+                            if _match and _rc > 0:
+                                _dv = (_match["c"] - _rc) / _rc * 100
+                                print(f"🔬 B12 shadow vs REST [{_t}]: 1m close {_match['c']:.4g} vs {_rc:.4g} ({_dv:+.2f}%)")
+                            else:
+                                print(f"🔬 B12 shadow: no matching bucket for {_t} (rk={_rk}) — check bucket alignment")
+                except Exception:
+                    pass
             if now.weekday() < 5:
                 if now.hour == 16 and now.minute >= 2 and last_rth != today:   # 16:02 (was :10) — RTH bars are final at 16:00; earlier sweep = earlier scorecard on days Marcos is watching
                     print("🏁 EOD winner sweep (RTH snapshot for the scorecard)...")
                     winner_sweep(); last_rth = today
+                    if _shadow_dumped != today:
+                        _shadow_dumped = today
+                        _shadow_dump_eod()
                 if now.hour == 20 and now.minute >= 5 and last_ah != today:
                     print("🌙 After-hours backfill sweep (full pre+RTH+ATH now that AH has closed)...")
                     winner_sweep(); last_ah = today

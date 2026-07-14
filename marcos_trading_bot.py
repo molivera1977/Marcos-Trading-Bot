@@ -4547,6 +4547,16 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 if EXITS_ON_3MIN and remaining_shares > 0:
                     _c3 = float(completed[-1].get("close") or completed[-1].get("c") or 0)
                     if 0 < _c3 <= current_stop:
+                        # 7/14 STUDY (observe-only): breach volume ratio — live 13-event sample separated
+                        # quiet(shakeout)/loud(death) 12/13, but the harness population did NOT replicate.
+                        # Log every real breach; n≥30 live events decides. NO behavior change here.
+                        try:
+                            _bvols = [_bar_vol(b) for b in completed[-6:-1]]
+                            _bbase = (sum(_bvols) / len(_bvols)) if _bvols else 0
+                            _bvolx = (_bar_vol(completed[-1]) / _bbase) if _bbase > 0 else -1
+                            print(f"🔬 {ticker} breach-volx: {_bvolx:.2f}x (close ${_c3:.2f} vs stop ${current_stop:.2f})")
+                        except Exception:
+                            pass
                         _lbl = "Trailing stop 📉" if partial_taken else "Stop loss 🛑"
                         print(f"🛑 {_lbl} — 3-min close ${_c3:.2f} ≤ stop ${current_stop:.2f}")
                         cancel_order(placed_stop_id)

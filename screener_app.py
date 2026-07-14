@@ -831,6 +831,9 @@ def record_trade():
         "entry_type":         data.get("entry_type", ""),
         "reclaim_subtype":            data.get("reclaim_subtype"),
         "entry_vs_session_vwap_pct":  data.get("entry_vs_session_vwap_pct"),
+        # Kev-level anchoring study (7/13): his stated level + our entry's distance from it
+        "kev_level":                  data.get("kev_level"),
+        "entry_vs_kev_level_pct":     data.get("entry_vs_kev_level_pct"),
         "partial_fills":      data.get("partial_fills") or [],
         "highest":            data.get("highest"),
         "entry_front_side":   data.get("entry_front_side"),
@@ -1504,15 +1507,22 @@ def set_kev_watchlist():
     date = d.get("date") or datetime.now(EASTERN).strftime("%Y-%m-%d")
     tickers = sorted({str(t).upper().strip() for t in (d.get("tickers") or []) if str(t).strip()})
     _kev_wl[date] = tickers
+    # 7/13 Kev-level anchoring: optionally carry his STATED levels per ticker ({T: {break, confirm,
+    # targets}}) so the bot can record each pick-trade's entry distance from his level (study: 3/3
+    # days so far, closest-to-level = best outcome). Stored under a reserved "_levels" key.
+    if isinstance(d.get("levels"), dict):
+        _kev_wl.setdefault("_levels", {})[date] = d["levels"]
     try:    KEV_WL_FILE.write_text(json.dumps(_kev_wl, indent=2))
     except Exception as e: print(f"⚠️  Could not save kev_watchlist: {e}")
-    return jsonify({"status": "ok", "date": date, "tickers": tickers})
+    return jsonify({"status": "ok", "date": date, "tickers": tickers,
+                    "levels": (_kev_wl.get("_levels", {}).get(date) or None)})
 
 @app.route("/api/kev_watchlist", methods=["GET"])
 def get_kev_watchlist():
     date = request.args.get("date")
     if date:
-        return jsonify({"date": date, "tickers": _kev_wl.get(date, [])})
+        return jsonify({"date": date, "tickers": _kev_wl.get(date, []),
+                        "levels": _kev_wl.get("_levels", {}).get(date, {})})
     return jsonify(_kev_wl)
 
 @app.route("/api/room_stats", methods=["GET"])

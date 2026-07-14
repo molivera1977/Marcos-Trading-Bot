@@ -1873,6 +1873,29 @@ def _fetch_kev_watchlist():
     return []
 
 
+_kev_levels_cache = {"date": None, "levels": {}}
+
+def _fetch_kev_levels():
+    """Kev's STATED levels for today's picks ({TICKER: {"break": x, ...}}), cached per day.
+    Feeds the level-anchoring study (7/13: 3-for-3, closest-to-level = best outcome) — the
+    record gets entry_vs_kev_level_pct so the correlation accrues automatically. Fail-safe {}."""
+    try:
+        date = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        if _kev_levels_cache["date"] == date:
+            return _kev_levels_cache["levels"]
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        if not url:
+            return {}
+        r = requests.get(f"{url}/api/kev_watchlist", params={"date": date}, timeout=10)
+        if r.status_code == 200:
+            lv = r.json().get("levels") or {}
+            _kev_levels_cache.update({"date": date, "levels": lv})
+            return lv
+    except Exception:
+        pass
+    return {}
+
+
 def _seed_day2_from_gappers(gappers: list):
     """After the morning scan, carry today's hard gappers into tomorrow's day-2 watch list."""
     url = os.environ.get("SCREENER_URL", "").rstrip("/")
@@ -5862,6 +5885,12 @@ def main():
                 confidence   = confidence,
                 float_shares = float_shares,
             )
+            _kev_lv = None
+            try:
+                _lvd = (_fetch_kev_levels() or {}).get(ticker) or {}
+                _kev_lv = float(_lvd.get("break") or 0) or None
+            except Exception:
+                _kev_lv = None
             _rec_ok = post_trade_record_reliably({
                 "date":            datetime.now(EASTERN).strftime("%Y-%m-%d"),
                 "ticker":          ticker,
@@ -5905,6 +5934,10 @@ def main():
                 # Reclaim label split (7/13) — true from-below reclaim vs momentum continuation
                 "reclaim_subtype":            extra.get("reclaim_subtype"),
                 "entry_vs_session_vwap_pct":  extra.get("entry_vs_session_vwap_pct"),
+                # Kev-level anchoring (7/13): distance from his stated break level (study: closest = best)
+                "kev_level":                  _kev_lv,
+                "entry_vs_kev_level_pct":     (round((entry_price - _kev_lv) / _kev_lv * 100, 2)
+                                               if _kev_lv else None),
             })
             if exit_reason != "WATCHDOG_ABORT":   # watchdog already recorded it (trade_id dedups)
                 send_summary_email(analysis, trade_result, display_balance,

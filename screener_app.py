@@ -2019,10 +2019,12 @@ function loadData(){
 function renderTodayStats(trades){
   // Today's P&L + win rate, computed client-side from the trade log (ET calendar day).
   const todayET = new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});  // YYYY-MM-DD
-  const today = (trades||[]).filter(t=>String(t.date||'').slice(0,10)===todayET);
+  const todayAll = (trades||[]).filter(t=>String(t.date||'').slice(0,10)===todayET);
+  // Same rule as the era stats: bookkeeping prints (forced recovery closes) count in MONEY, never in QUALITY.
+  const today = todayAll.filter(t=>!/RECOVER/i.test(String(t.exit_reason||'')));
   const pEl = document.getElementById('todayPnl'), wEl = document.getElementById('todayWr');
-  if(!today.length){ pEl.textContent='—'; pEl.className='white'; wEl.textContent='—'; wEl.className='gray'; return; }
-  const p = today.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
+  if(!todayAll.length){ pEl.textContent='—'; pEl.className='white'; wEl.textContent='—'; wEl.className='gray'; return; }
+  const p = todayAll.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);   // money ledger: ALL prints
   const w = today.filter(t=>(parseFloat(t.pnl)||0)>0).length;
   const l = today.filter(t=>(parseFloat(t.pnl)||0)<0).length;
   const dec = w + l;   // decided trades — $0 scratches excluded from the win rate

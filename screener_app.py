@@ -2139,7 +2139,17 @@ function renderStats(s, acct, trades){
       window._eraStatsApplied=true;
     }
   }
-  const bal = acct && acct.balance ? acct.balance : 0;
+  // DRY-RUN balance is LEDGER-DERIVED (7/14): the bot's posted balance is $3,000 + its own process's
+  // session P&L — it forgets everything before the last restart (today it missed the whole morning).
+  // Trust the trade store instead: $3,000 frame + today's complete prints. Go-live replaces this with
+  // real Webull equity posted by the bot.
+  let bal = acct && acct.balance ? acct.balance : 0;
+  if(trades && trades.length){
+    const todayET=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+    const tp=trades.filter(t=>String(t.date||'').slice(0,10)===todayET)
+                   .reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
+    bal = 3000 + tp;
+  }
   window._acctBal = bal;   // capital meter uses this as the working budget
   document.getElementById('balanceVal').textContent = bal ? fmt$(bal) : '—';
 

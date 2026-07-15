@@ -4149,7 +4149,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             for b in breakouts:
                 _e90 = (b[4].get("ema90") or 0)
                 if _e90 > 0 and (b[1] - _e90) / _e90 > EXTENSION_MAX_PCT:
-                    _log_decision(b[0], "extension_reject", price=b[1], ext_pct=round((b[1] - _e90) / _e90 * 100, 1))
+                    _shadow_keep.add(b[0]); _log_decision(b[0], "extension_reject", price=b[1], ext_pct=round((b[1] - _e90) / _e90 * 100, 1))
                 else:
                     _kept.append(b)   # fail-open when there's no 90-EMA to measure
             breakouts = _kept

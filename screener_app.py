@@ -2121,10 +2121,13 @@ function renderStats(s, acct, trades){
       s=Object.assign({},s,{total_pnl:Math.round(pnl*100)/100, total_trades:graded.length,
                             win_rate:(w+l)?Math.round(w/(w+l)*100):0});
       const frict=era.reduce((a,t)=>a+(parseFloat(t.est_slippage)||0),0);
-      const net=pnl-frict;
+      const fmid=frict*0.6;                       // MIDDLE estimate: taker entries (~half spread) + mixed
+      const net=pnl-frict, netMid=pnl-fmid;       // exits (tier sells are makers ≈ free, stops cross) ≈ 60%
+      const money=(v)=>(v>=0?'+':'−')+'$'+Math.abs(v).toFixed(0);
       const back=document.getElementById('balanceChange');
-      if(back) back.innerHTML='era account value (compounded) · sizing frame resets to $3,000/day (R=$30 constant) · gross '+(pnl>=0?'+':'−')+'$'+Math.abs(pnl).toFixed(0)
-        +' · friction est −$'+frict.toFixed(0)+' → <b>net ≈ '+(net>=0?'+':'−')+'$'+Math.abs(net).toFixed(0)+'</b>'
+      if(back) back.innerHTML='era account value (compounded) · sizing frame resets to $3,000/day (R=$30 constant) · gross '+money(pnl)
+        +' · friction −$'+frict.toFixed(0)+' <span title="Conservative model: full quoted spread per trade. Middle: ~60% (taker entries, maker tier-exits, stops cross). True slippage gets measured at go-live.">(mid −$'+fmid.toFixed(0)+')</span>'
+        +' → <b>net '+money(net)+' <span style="color:#d29922">(mid ≈ '+money(netMid)+')</span></b>'
         +(era.length>graded.length?' · '+(era.length-graded.length)+' bookkeeping print(s) excluded from WR':'');
       // honest R pair: expectancy + avg loss (graded, planned_risk era only)
       const rs=graded.filter(t=>parseFloat(t.planned_risk)>0.5).map(t=>(parseFloat(t.pnl)||0)/parseFloat(t.planned_risk));

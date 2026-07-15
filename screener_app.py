@@ -2123,7 +2123,7 @@ function renderStats(s, acct, trades){
       const frict=era.reduce((a,t)=>a+(parseFloat(t.est_slippage)||0),0);
       const net=pnl-frict;
       const back=document.getElementById('balanceChange');
-      if(back) back.innerHTML='era since '+ERA_START+' · $3,000/day frame · gross '+(pnl>=0?'+':'−')+'$'+Math.abs(pnl).toFixed(0)
+      if(back) back.innerHTML='era account value (compounded) · sizing frame resets to $3,000/day (R=$30 constant) · gross '+(pnl>=0?'+':'−')+'$'+Math.abs(pnl).toFixed(0)
         +' · friction est −$'+frict.toFixed(0)+' → <b>net ≈ '+(net>=0?'+':'−')+'$'+Math.abs(net).toFixed(0)+'</b>'
         +(era.length>graded.length?' · '+(era.length-graded.length)+' bookkeeping print(s) excluded from WR':'');
       // honest R pair: expectancy + avg loss (graded, planned_risk era only)
@@ -2145,12 +2145,19 @@ function renderStats(s, acct, trades){
   // real Webull equity posted by the bot.
   let bal = acct && acct.balance ? acct.balance : 0;
   if(trades && trades.length){
+    // HEADLINE = the ERA ACCOUNT VALUE: what a real $3,000 account funded at era start would hold now
+    // (every print, compounded). The SIZING frame still resets to $3,000 daily by design (R constant at
+    // $30 for clean calibration stats) — that lives in the subline, and the capital meter uses the frame.
+    const eraPnl=trades.filter(t=>String(t.date||'')>=ERA_START)
+                       .reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
+    bal = 3000 + eraPnl;
     const todayET=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
     const tp=trades.filter(t=>String(t.date||'').slice(0,10)===todayET)
                    .reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
-    bal = 3000 + tp;
+    window._acctBal = 3000 + tp;   // capital meter budget = the daily sizing frame
+  } else {
+    window._acctBal = bal;
   }
-  window._acctBal = bal;   // capital meter uses this as the working budget
   document.getElementById('balanceVal').textContent = bal ? fmt$(bal) : '—';
 
   const pnl = s.total_pnl;

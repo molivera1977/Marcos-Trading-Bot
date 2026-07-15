@@ -705,6 +705,8 @@ _price_lock = threading.Lock()
 # reads these for decisions. Divergence vs REST bars is logged; 10s bars for active names dump to the
 # dashboard at EOD (the design dataset for the 10s-pullback entry). Everything fail-silent.
 _shadow_lock = threading.Lock()
+_shadow_keep: set = set()     # tickers whose 10s bars MUST persist at EOD: everything traded (Phase-3b
+                              # stop anatomies) + extension-rejected verticals (Phase-3 specimens)
 _shadow_bars = {10: {}, 60: {}}          # span → ticker → {bucket_epoch: {o,h,l,c,v0,v1}}
 def _shadow_ingest(sym, price, cumvol, ts):
     try:
@@ -731,8 +733,10 @@ def _shadow_dump_eod():
         url = os.environ.get("SCREENER_URL", "").rstrip("/")
         if not url: return
         with _shadow_lock:
-            counts = sorted(((t, len(bk)) for t, bk in _shadow_bars[10].items()),
-                            key=lambda x: -x[1])[:15]
+            _all = sorted(((t, len(bk)) for t, bk in _shadow_bars[10].items()), key=lambda x: -x[1])
+        _kept = [(t, n) for t, n in _all if t in _shadow_keep]
+        _rest = [(t, n) for t, n in _all if t not in _shadow_keep]
+        counts = (_kept + _rest)[:25]        # guaranteed: traded + extension-rejected; filler: most active
         date = datetime.now(EASTERN).strftime("%Y-%m-%d")
         sent = 0
         for t, n in counts:
@@ -1768,6 +1772,7 @@ def _winner_sweep_loop():
                 _shadow_day = today
                 with _shadow_lock:
                     _shadow_bars[10].clear(); _shadow_bars[60].clear()
+                _shadow_keep.clear()
             # B12 shadow: hourly divergence sample during RTH (stream-bar vs REST-bar, top name by ticks)
             if now.weekday() < 5 and 10 <= now.hour < 16 and time.time() - _last_shadow_cmp >= 3600:
                 _last_shadow_cmp = time.time()
@@ -5967,6 +5972,7 @@ def main():
             # Persist the static context SYNCHRONOUSLY (confirmed) BEFORE monitoring, so a
             # crash anywhere after this still records a proper exit. trade_id = idempotency key.
             trade_id = uuid.uuid4().hex
+            _shadow_keep.add(ticker)   # B12: this trade's 10s anatomy persists tonight no matter its tick rank
             _save_open_trade_sync({
                 "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
                 "target": round(target_price, 4), "stop": round(stop_loss, 4),

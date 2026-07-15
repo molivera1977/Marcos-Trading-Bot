@@ -738,7 +738,10 @@ def _shadow_dump_eod(keep_only=False):
             _all = sorted(((t, len(bk)) for t, bk in _shadow_bars[10].items()), key=lambda x: -x[1])
         _kept = [(t, n) for t, n in _all if t in _shadow_keep]
         _rest = [(t, n) for t, n in _all if t not in _shadow_keep]
-        counts = _kept if keep_only else (_kept + _rest)[:25]   # hourly: guaranteed only; EOD: +activity fillers
+        # EOD saves EVERYTHING watched (≥200 buckets filters dead subscriptions only). Filtering is
+        # reversible at analysis time, irreversible at collection time — the entry-design dataset needs
+        # the FAILED setups on quiet names as much as the winners (collection-layer survivorship trap).
+        counts = _kept if keep_only else (_kept + _rest)
         date = datetime.now(EASTERN).strftime("%Y-%m-%d")
         sent = 0
         for t, n in counts:

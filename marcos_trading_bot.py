@@ -726,6 +726,58 @@ def _shadow_ingest(sym, price, cumvol, ts):
     except Exception:
         pass
 
+def _shadow_flush_payload(min_buckets=50):
+    """Build the SIGTERM bulk-flush payload from the in-memory 10s store (pure; rig-tested).
+    Lower bucket floor than EOD (50 vs 200): a mid-day flush should keep almost everything —
+    filtering is for analysis time, not collection time."""
+    with _shadow_lock:
+        snap = {t: sorted(bk.items()) for t, bk in _shadow_bars[10].items() if len(bk) >= min_buckets}
+    series = {}
+    for t, items in snap.items():
+        series[f"{t}~10s"] = [
+            {"time": datetime.fromtimestamp(k, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
+             "open": str(b["o"]), "high": str(b["h"]), "low": str(b["l"]), "close": str(b["c"]),
+             "volume": str(max(0, (b["v1"] or 0) - (b["v0"] or 0)))}
+            for k, b in items]
+    return {"date": datetime.now(EASTERN).strftime("%Y-%m-%d"), "series": series}
+
+
+def _shadow_flush_all(reason="sigterm"):
+    """7/15: deploys/restarts must never vaporize the day's 10s collection (Marcos: 'this nonsense of
+    losing data with redeploys is ridiculous'). ONE gzipped POST inside Railway's SIGTERM grace window
+    (~1-3s for a full day of 30-50 names) to the dashboard's volume-backed /api/bars_bulk. The hourly
+    keep-set crash-guard still covers hard kills where no signal arrives."""
+    try:
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        if not url:
+            return False
+        payload = _shadow_flush_payload()
+        if not payload["series"]:
+            return False
+        payload["reason"] = reason
+        import gzip as _gz
+        body = _gz.compress(json.dumps(payload).encode(), compresslevel=1)
+        r = requests.post(f"{url}/api/bars_bulk", data=body, timeout=8,
+                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET,
+                                   "Content-Encoding": "gzip",
+                                   "Content-Type": "application/json"})
+        print(f"🛟 SIGTERM flush: {len(payload['series'])} series → {r.status_code}")
+        return r.status_code == 200
+    except Exception as e:
+        print(f"🛟 SIGTERM flush failed: {e}")
+        return False
+
+
+_prev_sigterm = None
+def _on_sigterm(signum, frame):
+    _shadow_flush_all("sigterm")
+    if callable(_prev_sigterm):
+        _prev_sigterm(signum, frame)
+    else:
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        os.kill(os.getpid(), signal.SIGTERM)
+
+
 def _shadow_dump_eod(keep_only=False):
     """Post 10s bars to the dashboard (namespaced ~10s; POST overwrites → idempotent). keep_only=True is
     the HOURLY incremental crash-guard for the guaranteed names (traded + extension-rejected) — a mid-day
@@ -1772,8 +1824,17 @@ def _winner_sweep_loop():
             if now.weekday() < 5 and 7 <= now.hour < 20 and time.time() - _last_mkt >= 900:
                 _last_mkt = time.time()
                 _push_market_context()
-            # B12 shadow: reset the in-memory bar store at day change (bounded memory)
+            # B12 shadow: reset the in-memory bar store at day change (bounded memory).
+            # 7/15 (Marcos: "wouldn't we also lose the after hours bars?"): FLUSH BEFORE EVERY CLEAR —
+            # the 16:02 dump can't cover bars collected after it (e.g. a post-deploy restart's AH
+            # session, whose daily dump already fired before the process existed). Banking to the
+            # dashboard before wiping means no bar can ever die in memory at a day boundary.
             if _shadow_day != today:
+                if _shadow_day is not None:
+                    try:
+                        _shadow_flush_all("day-change")
+                    except Exception:
+                        pass
                 _shadow_day = today
                 with _shadow_lock:
                     _shadow_bars[10].clear(); _shadow_bars[60].clear()
@@ -1790,7 +1851,7 @@ def _winner_sweep_loop():
                         _cand = sorted(((t, len(bk)) for t, bk in _shadow_bars[60].items()), key=lambda x: -x[1])[:1]
                     if _cand:
                         _t = _cand[0][0]
-                        _rb = get_intraday_bars(_t, count=4, executor=_aux_executor)
+                        _rb = _fresh_session(get_intraday_bars(_t, count=4, executor=_aux_executor))   # B16
                         with _shadow_lock:
                             _sb = sorted(_shadow_bars[60].get(_t, {}).items())
                         if _rb and len(_rb) >= 2 and _sb:
@@ -2065,7 +2126,7 @@ def _record_day2_observations():
             gap  = round((price - prev) / prev * 100, 2) if prev > 0 else None
             vwap = float(q.get("vwap") or 0)
             if vwap <= 0:
-                bars = get_intraday_bars(t, count=390, executor=_aux_executor)
+                bars = _fresh_session(get_intraday_bars(t, count=390, executor=_aux_executor))   # B16
                 vwap = calculate_vwap(bars) if bars else 0
                 hi   = max((float(b.get("high") or b.get("h") or 0) for b in bars), default=price) if bars else price
             else:
@@ -2516,7 +2577,7 @@ def check_momentum(ticker) -> tuple[bool, dict]:
     details = {"passed": False, "reason": ""}
     try:
         full = get_intraday_bars(ticker, count=390)
-        sess = _latest_session(full) if full else []
+        sess = _fresh_session(full) if full else []   # B16: decision gate — today-only
         if len(sess) < MOMENTUM_BARS:
             details["reason"] = f"only {len(sess)} session bars available (need {MOMENTUM_BARS})"
             print(f"⚠️  {ticker} momentum: {details['reason']} — passing by default")
@@ -2748,6 +2809,83 @@ def _latest_session(bars):
         return bars
     same = [b for b in bars if str(b.get("time") or "").startswith(last_day)]
     return same or bars
+
+
+def _today_utc_date() -> str:
+    """Today's date (YYYY-MM-DD) in UTC — bar 'time' fields are ISO-UTC, so the day key must be too.
+    (An ET session always lives inside one UTC date: 9:30am–8pm ET = 13:30–24:00 UTC.)"""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def _fresh_session(bars, today=None, max_stale_secs=900):
+    """B14/B16 choke point (7/15): _latest_session is DATE-BLIND — in the first minutes of RTH a
+    count-based fetch can return ONLY prior-day bars (verified live: XCUR 9:33), and 'latest session'
+    silently becomes YESTERDAY. Yesterday's closes then hit fresh stops (B14 false instant stop ×2)
+    and yesterday's VWAP gates today's entries (B16 phantom VWAP). This wrapper requires the latest
+    session to BE TODAY and the newest bar to be recent; otherwise it returns [] — and every caller
+    must treat no-data as NO DECISION, never as a decision on stale data."""
+    sess = _latest_session(bars)
+    if not sess:
+        return []
+    if str(sess[-1].get("time") or "")[:10] != (today or _today_utc_date()):
+        return []
+    if max_stale_secs is not None:
+        try:
+            # SDK time formats vary ('...Z', '...+0000', '....000+0000') — the first 19 chars
+            # are always 'YYYY-MM-DDTHH:MM:SS' in UTC, so parse exactly that and attach UTC.
+            newest = datetime.strptime(str(sess[-1].get("time") or "")[:19],
+                                       "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+            if (datetime.now(timezone.utc) - newest).total_seconds() > max_stale_secs:
+                return []
+        except (ValueError, TypeError):
+            return []
+    return sess
+
+
+def _stop_close_qualifies(bar, entry_ts, today=None) -> bool:
+    """B14 contract: a completed-bar close may only trigger the stop if the bar is from TODAY and
+    closed AFTER the entry existed. A close that predates the entry is pre-breakout history — on any
+    fresh breakout it sits below the new stop BY CONSTRUCTION (the base is below the stop)."""
+    t = str(bar.get("time") or "")
+    if t[:10] != (today or _today_utc_date()):
+        return False
+    return t[:19] > str(entry_ts)[:19]
+
+
+def _blind_stop_should_fire(now, last_bars_ok, below_since, fetch_failures,
+                            blind_secs=None, below_secs=None) -> bool:
+    """B11 predicate, fixed for B15 (7/15): 'blind' must mean fetches are FAILING, not 'a fetch isn't
+    due yet'. The healthy jittered cadence is 48–72s, so a pure-time threshold of 60s made the tail of
+    every healthy cycle 'blind' and B11 fired intrabar on any 20s-sustained breach (accidental
+    breach-mode — refuted 7/14, −2.08R net). Requires BOTH ≥2 consecutive fetch failures AND ≥150s
+    since bars were last seen (NVVE's real blindness was ~360s — still caught 2.4× sooner)."""
+    _blind = B11_BLIND_SECS if blind_secs is None else blind_secs
+    _below = B11_BELOW_SECS if below_secs is None else below_secs
+    return (fetch_failures >= 2
+            and now - last_bars_ok >= _blind
+            and below_since > 0
+            and now - below_since >= _below)
+
+
+_held_claim_lock = threading.Lock()
+_held_claims: set = set()
+
+def _claim_ticker(ticker) -> bool:
+    """B3 utility — NOT YET WIRED (7/15). The XCUR 9:33 "double entry" was NOT a lock race:
+    reading the actual flow, trade #1 was instant-killed by B14 (yesterday's close ≤ fresh stop),
+    completed, and released held per the by-design re-entry rules; #2 was a legitimate re-trigger
+    20s later. Sequential, never concurrent — the single-threaded scan loop marks held under
+    trade_lock before workers spawn, so no claim race exists today. Kept (tested, rig T4) for
+    B3-proper: per-trade keying when same-day re-entries share the (date,ticker) open-trade key."""
+    with _held_claim_lock:
+        if ticker in _held_claims:
+            return False
+        _held_claims.add(ticker)
+        return True
+
+def _release_ticker(ticker):
+    with _held_claim_lock:
+        _held_claims.discard(ticker)
 
 
 def aggregate_bars(bars, minutes=SETUP_TF_MIN):
@@ -3238,7 +3376,7 @@ def _confirm_reclaim(bars, level) -> bool:
     NOTE: our 3-day refine test suggested a green-close filter HURT (small sample, n≈24) — this is built to
     the corpus per [[feedback_kev_is_the_bible]] and needs live-data grading; that tension is logged."""
     try:
-        sess = _latest_session(bars)
+        sess = _fresh_session(bars)   # B16: today-only — a prior-day 'confirm candle' must never fire
         comp = sess[:-1] if len(sess) >= 2 else sess     # drop the in-progress bar
         if not comp:
             return False
@@ -3659,7 +3797,9 @@ VWAP_BAR_CACHE_SECS = 30   # Refresh intraday bars every 30s — VWAP doesn't ch
 #   (1) entry/dashboard VWAP fetched RTH-only (no pre-market) → ~2-4% low on gappers;
 #   (2) the health-fold EXIT computed VWAP over only the last ~45 M1 bars (the EMA window) = a ROLLING window that
 #       runs 10-22% HIGH on a runner → folds winners early. Fetch a full pre+RTH session set for VWAP everywhere.
-B11_BLIND_SECS  = 60     # bars unfetchable this long → the monitor is BLIND (7/14: NVVE sat 6 min below stop)
+B11_BLIND_SECS  = 150    # B15 fix (7/15): must EXCEED the healthy 48–72s jittered fetch cadence by 2+ cycles.
+                         # 60s was INSIDE the cadence → "blind" every healthy cycle tail → intrabar misfires
+                         # (UBXG/VMAR). NVVE's real outage was ~360s — 150s still catches it 2.4× sooner.
 B11_BELOW_SECS  = 20     # stream must print below the stop SUSTAINED this long (one bad tick must not fire it)
 _rest_cool = [0.0]       # 7/14: global 429 cooldown epoch — AUX fetchers shed load first, monitors keep cadence
 VWAP_SESSION_COUNT      = 800   # bars ≥ full pre-market(330) + RTH(390) + margin — 600 lost the pre-market anchor
@@ -3668,7 +3808,12 @@ _svwap_cache: dict = {}          # 7/14: {ticker: (3min-bucket, session_vwap)} �
 VWAP_SESSION_CACHE_SECS = 90    # session VWAP moves slowly — refresh less often than the 30s bar cache to limit API load
 # Feature flags — DEFAULT OFF so the deployed default == current live/validated behavior. Flip only after re-validation.
 HEALTH_VWAP_SESSION     = True  # exit health-fold: session VWAP (Webull-matching) — validated +19.2R/0-worse across 8 archived days (7/10)
-ENTRY_VWAP_PREMARKET    = False # entry/dashboard VWAP: True → pre+RTH session VWAP instead of RTH-only
+ENTRY_VWAP_PREMARKET    = True  # 7/15 VALIDATED (Marcos called it: "Kev trades the Webull VWAP, PM included").
+                                # Replay of 45 era entries vs the ext mirror: RTH-only vs pre+RTH VWAP gap ≥3%
+                                # on 14/45, ABOVE/BELOW VERDICT FLIPPED on 12/45 (27%) — incl. BJDX 7/14 (bot
+                                # said front-side at 1.49 vs its 1.426; chart VWAP was 1.592 → back-side, −$36).
+                                # RTH-only reads LOW on gappers (PM volume anchors higher) → systematically
+                                # passed back-side entries. Entry VWAP must be the line on Kev's screen.
 
 # ── 7/10 ENTRY-GATE + WIDE-STOP FIX STACK (all DEFAULT OFF until the 9-day completion grade ranks them) ──
 # check_momentum BUNDLES three gates; the reversal exemption (vwap_reclaim/ignition/bounce) was meant only for the
@@ -3773,15 +3918,19 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         # Refresh bars for each ticker every 30s
         for t in candidates:
             if time.time() - cache[t]["fetched"] >= VWAP_BAR_CACHE_SECS:
-                fresh = get_intraday_bars(t, count=max(EMA_BOUNCE_LOOKBACK + EMA20_PERIOD + 5, 50))
+                # B16 (7/15): filter BOTH acquisitions at the source — every downstream entry
+                # detector (EMA9/20/90, base, ignition, room, triggers, VWAP) then sees only
+                # TODAY's fresh bars. Prior-day/stale fetches (first minutes of RTH, thin names)
+                # leave the cache un-refreshed → detectors skip → NO entry decisions on stale data.
+                fresh = _fresh_session(get_intraday_bars(t, count=max(EMA_BOUNCE_LOOKBACK + EMA20_PERIOD + 5, 50)))
                 if fresh:
                     cache[t]["bars"] = fresh
-                full_bars = get_intraday_bars(t, count=390)
+                full_bars = _fresh_session(get_intraday_bars(t, count=390))
                 if full_bars:
-                    cache[t]["full_bars"] = full_bars   # RTH 1-min (count backfills prior days) — room + 3-min agg (UNCHANGED)
+                    cache[t]["full_bars"] = full_bars   # RTH 1-min, TODAY-only — room + 3-min agg
                     if not ENTRY_VWAP_PREMARKET:
-                        # LIVE DEFAULT (validated): RTH session VWAP from full_bars.
-                        calc_vwap = calculate_vwap(_latest_session(full_bars))   # SESSION VWAP — never across the day boundary
+                        # LIVE DEFAULT (validated): RTH session VWAP from full_bars (already fresh-filtered).
+                        calc_vwap = calculate_vwap(full_bars)   # SESSION VWAP — never across the day boundary
                         if calc_vwap > 0:
                             cache[t]["vwap"] = calc_vwap
                         else:
@@ -3790,7 +3939,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # Chart-matching = session-anchored INCLUDING pre-market. Dedicated pre+RTH fetch (slower TTL to
                         # limit API load); keep full_bars RTH-only so room/3-min setups don't move.
                         _vwb  = get_intraday_bars(t, count=VWAP_SESSION_COUNT, sessions=["PRE", "RTH"])
-                        _sess = _latest_session(_vwb) if _vwb else _latest_session(full_bars)
+                        _sess = _fresh_session(_vwb) if _vwb else full_bars   # B16: today-only, both branches
                         _fullvw = calculate_vwap(_sess)
                         _rthvw  = calculate_vwap([b for b in _sess if b.get("trading_session") == "RTH"]) or _fullvw
                         if _fullvw > 0:
@@ -4128,7 +4277,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     _sess_vwap = 0.0
                     try:
                         _svb = get_intraday_bars(t, count=VWAP_SESSION_COUNT, sessions=["PRE", "RTH"])
-                        _sess_vwap = calculate_vwap(_latest_session(_svb)) if _svb else 0.0
+                        _sess_vwap = calculate_vwap(_fresh_session(_svb)) if _svb else 0.0
                     except Exception:
                         pass
                     _vs_sess = round((price - _sess_vwap) / _sess_vwap * 100, 2) if _sess_vwap > 0 else None
@@ -4416,7 +4565,7 @@ def _vride_defer(ticker, tier_idx):
     if not VELOCITY_RIDE:
         return False
     try:
-        rb = get_intraday_bars(ticker, count=VELO_BARS + 2)
+        rb = _fresh_session(get_intraday_bars(ticker, count=VELO_BARS + 2))   # B16
         if not rb or len(rb) <= VELO_BARS:
             return False
         c_now = float(rb[-1].get("close") or rb[-1].get("c") or 0)
@@ -4462,6 +4611,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
     _last_bars_ok  = time.time()   # B11: when the stop logic last actually SAW a completed bar
     _below_since   = None          # B11: first moment the stream printed below the current stop
+    _fetch_fail_n  = 0             # B15: consecutive bar-fetch failures — blindness requires FAILURES, not idle time
+    _entry_ts_utc  = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")  # B14: stop closes must post-date entry
 
     initial_shares = total_shares
     tier_idx = 0
@@ -4648,17 +4799,27 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         _ema_iv = EMA_CHECK_INTERVAL + (hash(ticker) % 25) - 12
         if remaining_shares > 0 and time.time() - last_ema_check >= _ema_iv:
             bars = get_intraday_bars(ticker, count=(EMA_PERIOD + 6) * SETUP_TF_MIN if EXITS_ON_3MIN else EMA_PERIOD + 5)
+            # B14/B16 (7/15): route EVERYTHING through the fresh-session choke point. In the first
+            # minutes of RTH a fetch can return ONLY prior-day bars (XCUR 9:33 — yesterday's close
+            # instantly "hit" a fresh stop ×2). Stale/prior-day data → NO exit decision this cycle,
+            # and it counts as a SIGHT FAILURE for the B11 blindness ledger.
+            bars = _fresh_session(bars)
+            if not bars:
+                _fetch_fail_n += 1
             _cbars = aggregate_bars(bars, SETUP_TF_MIN) if (EXITS_ON_3MIN and bars) else bars
             if _cbars and len(_cbars) >= (3 if EXITS_ON_3MIN else EMA_PERIOD + 2):
                 _last_bars_ok = time.time()   # B11: the stop logic has sight
+                _fetch_fail_n = 0
                 completed = _cbars[:-1]   # 3-MIN completed bars = manage on Kev's chart (EXITS_ON_3MIN), else 1-min
 
                 # ── 3-MIN close-based STOP: exit only when a completed 3-min bar CLOSES at/below the stop. A
                 #    wick through it that closes back above is normal volatility, not a failure — this is what
-                #    holds the winners. The intrabar −7% catastrophe cap (below) is the only sub-minute stop. ──
+                #    holds the winners. The intrabar −7% catastrophe cap (below) is the only sub-minute stop.
+                #    B14: the qualifying close must be from TODAY and must POST-DATE the entry — a close that
+                #    predates the entry is pre-breakout history and sits below the stop by construction. ──
                 if EXITS_ON_3MIN and remaining_shares > 0:
                     _c3 = float(completed[-1].get("close") or completed[-1].get("c") or 0)
-                    if 0 < _c3 <= current_stop:
+                    if 0 < _c3 <= current_stop and _stop_close_qualifies(completed[-1], _entry_ts_utc):
                         # 7/14 STUDY (observe-only): breach volume ratio — live 13-event sample separated
                         # quiet(shakeout)/loud(death) 12/13, but the harness population did NOT replicate.
                         # Log every real breach; n≥30 live events decides. NO behavior change here.
@@ -4754,7 +4915,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                                 _vw = _hit[1]
                             else:
                                 _svb = get_intraday_bars(ticker, count=VWAP_SESSION_COUNT, sessions=["PRE", "RTH"])
-                                _vw  = calculate_vwap(_latest_session(_svb)) if _svb else _vw_roll
+                                _vw  = calculate_vwap(_fresh_session(_svb)) if _svb else _vw_roll
                                 if _svb:
                                     _svwap_cache[ticker] = (_bk, _vw)
                         else:
@@ -4789,11 +4950,16 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     _below_since = time.time()
             else:
                 _below_since = None
-            if (_below_since is not None
-                    and time.time() - _last_bars_ok >= B11_BLIND_SECS
-                    and time.time() - _below_since >= B11_BELOW_SECS):
-                print(f"🛟 {ticker} BLIND-STOP FAILSAFE: no bars for {time.time()-_last_bars_ok:.0f}s and "
-                      f"stream ${current_price:.2f} < stop ${current_stop:.2f} for {time.time()-_below_since:.0f}s — exiting on stream.")
+            # B15 (7/15): blindness = consecutive FETCH FAILURES + elapsed time, via the tested
+            # predicate. The old pure-time check (60s) was inside the healthy 48–72s jittered
+            # cadence → fired intrabar on healthy tape (UBXG flushed at 4.64, printed 5.00+ a
+            # minute later = the refuted breach-mode, accidentally live).
+            if _blind_stop_should_fire(now=time.time(), last_bars_ok=_last_bars_ok,
+                                       below_since=(_below_since or 0),
+                                       fetch_failures=_fetch_fail_n):
+                print(f"🛟 {ticker} BLIND-STOP FAILSAFE: no bars for {time.time()-_last_bars_ok:.0f}s "
+                      f"({_fetch_fail_n} consecutive fetch failures) and stream ${current_price:.2f} < "
+                      f"stop ${current_stop:.2f} for {time.time()-_below_since:.0f}s — exiting on stream.")
                 cancel_order(placed_stop_id)
                 close_position(ticker, remaining_shares)
                 result["exit_price"]  = current_price
@@ -5852,7 +6018,7 @@ def main():
             _vol_cap = None
             if MAX_POS_VOL_PCT:
                 try:
-                    _vgb = _latest_session(get_intraday_bars(ticker, count=6))
+                    _vgb = _fresh_session(get_intraday_bars(ticker, count=6))   # B16
                     _vcomp = _vgb[:-1] if len(_vgb) >= 2 else _vgb
                     _vav = (sum(float(b.get("volume") or b.get("v") or 0) for b in _vcomp[-3:]) / min(3, len(_vcomp))) if _vcomp else 0
                     if _vav > 0:
@@ -5918,7 +6084,7 @@ def main():
                 # only skipped here because they live inside check_momentum (a bundling accident; KUST/ZCMD). When
                 # flagged on, exempt types get the SAME universal checks the other entries get via check_momentum. ──
                 if ENTRY_GATE_TOPPING_TAIL or ENTRY_GATE_LIQUIDITY:
-                    _gb = _latest_session(get_intraday_bars(ticker, count=30))
+                    _gb = _fresh_session(get_intraday_bars(ticker, count=30))   # B16
                     if ENTRY_GATE_TOPPING_TAIL and len(_gb) >= 2 and is_topping_tail(_gb[-2]):
                         mom_ok, mom_details = False, {"reason": "topping tail on last bar (universal gate) — rejection at the high, skip"}
                     elif ENTRY_GATE_LIQUIDITY and len(_gb) >= 3:
@@ -6119,7 +6285,14 @@ def main():
                 "highest":            trade_result.get("highest"),
                 # Reclaim label split (7/13) — true from-below reclaim vs momentum continuation
                 "reclaim_subtype":            extra.get("reclaim_subtype"),
-                "entry_vs_session_vwap_pct":  extra.get("entry_vs_session_vwap_pct"),
+                # 7/15: ALL entry types now record distance vs the session VWAP the bot acted on
+                # (pre-registered below-VWAP gate study + ongoing chart-vs-bot VWAP verification:
+                # Marcos can spot-check any trade's recorded VWAP against the Webull chart line).
+                "entry_vs_session_vwap_pct":  (extra.get("entry_vs_session_vwap_pct")
+                                               if extra.get("entry_vs_session_vwap_pct") is not None
+                                               else (round((entry_price - vwap) / vwap * 100, 2)
+                                                     if vwap and vwap > 0 else None)),
+                "entry_session_vwap":         round(vwap, 4) if vwap and vwap > 0 else None,
                 # Kev-level anchoring (7/13): distance from his stated break level (study: closest = best)
                 "kev_level":                  _kev_lv,
                 "entry_vs_kev_level_pct":     (round((entry_price - _kev_lv) / _kev_lv * 100, 2)
@@ -6241,6 +6414,14 @@ if __name__ == "__main__":
     RESCAN_INTERVAL_MINUTES = 30
 
     print("🤖 Marcos Trading Bot — always-on worker mode")
+
+    # 7/15: SIGTERM → bulk-flush the in-memory 10s collection before Railway swaps the container.
+    # Deploys must never be data events. (Main thread only — signal module requirement.)
+    try:
+        _prev_sigterm = signal.signal(signal.SIGTERM, _on_sigterm)
+        print("🛟 SIGTERM flush handler armed (10s collection survives redeploys)")
+    except Exception as e:
+        print(f"⚠️  SIGTERM handler not armed: {e}")
 
     # SAFETY NET: recover + record any trade a crashed prior run left open (the invariant —
     # every entered trade reaches a recorded exit, regardless of what killed the process).

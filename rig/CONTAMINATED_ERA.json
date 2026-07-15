@@ -1,0 +1,49 @@
+{
+ "swept": "2026-07-15T11:20-04:00",
+ "method": "fills-to-completion join, all 64 era trades (7/13-7/15) + mechanism labels",
+ "void": [
+  {
+   "date": "2026-07-15",
+   "ticker": "XCUR",
+   "fill": "09:33:28",
+   "bug": "B14 false instant stop (yesterday's close <= fresh stop), dur=1s"
+  },
+  {
+   "date": "2026-07-15",
+   "ticker": "XCUR",
+   "fill": "09:33:48",
+   "bug": "B14 false instant stop, dur=1s (re-trigger after instant release)"
+  },
+  {
+   "date": "2026-07-15",
+   "ticker": "UBXG",
+   "fill": "~09:40",
+   "bug": "B15 blind misfire flushed remainder at 4.64 (printed 5.00+ within 1 min); partial was legit - exclude from EXIT studies, entry-side fields usable"
+  },
+  {
+   "date": "2026-07-15",
+   "ticker": "VTAK",
+   "fill": "~10:1x",
+   "bug": "B15 blind misfire: remainder flushed at 0.67 (below 0.68 stop) intrabar, -1.13R"
+  }
+ ],
+ "degraded": [
+  {
+   "date": "2026-07-15",
+   "ticker": "VMAR",
+   "bug": "B15 mechanism (blind label) but exit ~= stop; 3-min close would likely have exited similarly - keep with asterisk"
+  },
+  {
+   "date": "2026-07-14",
+   "ticker": "NVVE",
+   "bug": "B11-era blindness delayed exit ~6 min; stop decision correct, R overshoot partly execution (-1.16R)"
+  },
+  {
+   "date": "2026-07-15",
+   "ticker": "ZSTK",
+   "bug": "B15 mechanism on remainder (36 sh flushed at 2.00); partials were legit (+2.26R blended) - exit-study asterisk"
+  }
+ ],
+ "clean_note": "7/13 and 7/14 carry NO B14 signature (join verified: no sub-120s Stop-loss completions). B14's window = first ~6 min of RTH on gap-ups; era entries before 7/15 all fell outside it. B16 stale-VWAP window today (~9:30-9:36) covers only the XCUR entries already voided.",
+ "rule": "Strategy studies (capture tracker, subtype tallies, level-anchoring, breach-volx, era stats) EXCLUDE void trades entirely and footnote degraded ones."
+}

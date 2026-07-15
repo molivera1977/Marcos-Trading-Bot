@@ -1179,6 +1179,35 @@ def save_bars():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/bars_bulk", methods=["POST"])
+def save_bars_bulk():
+    """7/15 SIGTERM-flush receiver: ONE gzipped POST carrying every in-memory 10s series from a dying
+    bot process (deploys/restarts must never vaporize collection — the bot container has no volume).
+    Body (gzip JSON): {date, reason, series: {ticker: [bars...]}}. Writes each ticker via the same
+    per-file layout as /api/bars; idempotent (POST overwrites)."""
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    try:
+        raw = request.get_data()
+        if request.headers.get("Content-Encoding") == "gzip" or (raw[:2] == b"\x1f\x8b"):
+            import gzip as _gz
+            raw = _gz.decompress(raw)
+        d = json.loads(raw)
+        date = d.get("date"); series = d.get("series") or {}
+        if not (date and isinstance(series, dict)):
+            return jsonify({"error": "need date, series{}"}), 400
+        daydir = BARS_DIR / date; daydir.mkdir(parents=True, exist_ok=True)
+        saved = 0
+        for ticker, bars in series.items():
+            if not (ticker and isinstance(bars, list) and bars):
+                continue
+            (daydir / f"{ticker.upper()}.json").write_text(json.dumps(bars))
+            saved += 1
+        print(f"🛟 bars_bulk: {saved} series saved for {date} (reason={d.get('reason')})")
+        return jsonify({"status": "ok", "saved": saved})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/bars_backfill")
 def bars_backfill():
     if not _endpoint_authed():

@@ -726,9 +726,11 @@ def _shadow_ingest(sym, price, cumvol, ts):
     except Exception:
         pass
 
-def _shadow_dump_eod():
-    """EOD: post 10s bars for the most-active shadow names to the dashboard (namespaced ~10s so the
-    1-min archive is untouched). The accumulating library = the 10s entry-grammar design dataset."""
+def _shadow_dump_eod(keep_only=False):
+    """Post 10s bars to the dashboard (namespaced ~10s; POST overwrites → idempotent). keep_only=True is
+    the HOURLY incremental crash-guard for the guaranteed names (traded + extension-rejected) — a mid-day
+    process death must never vaporize the day's 10s history (unrecoverable: REST floor is M1). Full dump
+    (top-25 incl. activity fillers) runs at 16:02."""
     try:
         url = os.environ.get("SCREENER_URL", "").rstrip("/")
         if not url: return
@@ -736,7 +738,7 @@ def _shadow_dump_eod():
             _all = sorted(((t, len(bk)) for t, bk in _shadow_bars[10].items()), key=lambda x: -x[1])
         _kept = [(t, n) for t, n in _all if t in _shadow_keep]
         _rest = [(t, n) for t, n in _all if t not in _shadow_keep]
-        counts = (_kept + _rest)[:25]        # guaranteed: traded + extension-rejected; filler: most active
+        counts = _kept if keep_only else (_kept + _rest)[:25]   # hourly: guaranteed only; EOD: +activity fillers
         date = datetime.now(EASTERN).strftime("%Y-%m-%d")
         sent = 0
         for t, n in counts:
@@ -753,7 +755,7 @@ def _shadow_dump_eod():
                 if r.status_code == 200: sent += 1
             except Exception:
                 pass
-        print(f"🔬 B12 shadow: dumped 10s bars for {sent} name(s)")
+        print(f"🔬 B12 shadow: dumped 10s bars for {sent} name(s){' (hourly crash-guard)' if keep_only else ''}")
     except Exception as e:
         print(f"⚠️  B12 shadow dump error (non-fatal): {e}")
 
@@ -1776,6 +1778,10 @@ def _winner_sweep_loop():
             # B12 shadow: hourly divergence sample during RTH (stream-bar vs REST-bar, top name by ticks)
             if now.weekday() < 5 and 10 <= now.hour < 16 and time.time() - _last_shadow_cmp >= 3600:
                 _last_shadow_cmp = time.time()
+                try:
+                    _shadow_dump_eod(keep_only=True)   # crash-guard: persist traded/rejected names' 10s so far
+                except Exception:
+                    pass
                 try:
                     with _shadow_lock:
                         _cand = sorted(((t, len(bk)) for t, bk in _shadow_bars[60].items()), key=lambda x: -x[1])[:1]

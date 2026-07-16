@@ -400,6 +400,49 @@ def run_scan():
         return g["change_pct"] / max(float_m, 0.1)
 
     results = sorted(results, key=score, reverse=True)[:top_n]
+
+    # ── KEV PIN (7/16, Marcos: "regardless if they are in the top 20 I want his tickers on the list").
+    #    Same invariant as the bot's force-add and the recorder's tier-1 seed, applied to the scanner:
+    #    Kev's picks ALWAYS render. In-rank rows get kev=True; missing picks get a snapshot-backed row. ──
+    try:
+        _dates = [k for k in _kev_wl.keys() if isinstance(k, str) and k.startswith("20")]
+        _kev_syms = [str(t).upper() for t in (_kev_wl.get(max(_dates)) or [])] if _dates else []
+        _have = {r.get("symbol") for r in results}
+        for r in results:
+            r["kev"] = r.get("symbol") in _kev_syms
+        for _sym in _kev_syms:
+            if _sym in _have:
+                continue
+            _row = {"symbol": _sym, "change_pct": 0.0, "price": 0.0, "market_cap": 0,
+                    "premarket_volume": 0, "relative_volume": None, "float_shares": 0,
+                    "float_label": "—", "float_tier": "na", "source": "KEV pick",
+                    "exchange": "", "kev": True}
+            try:
+                if data_client:
+                    _resp = data_client.market_data.get_snapshot(
+                        symbols=_sym, category="US_STOCK", extend_hour_required=True)
+                    if getattr(_resp, "status_code", 0) == 200:
+                        _raw = _resp.json()
+                        if isinstance(_raw, list):
+                            _d = _raw[0] if _raw else {}
+                        else:
+                            _dd = _raw.get("data", {}) if isinstance(_raw, dict) else {}
+                            _d = (_dd[0] if _dd else {}) if isinstance(_dd, list) else                                  ((_dd.get("items") or [{}])[0] if isinstance(_dd, dict) and _dd.get("items") else _dd)
+                        _cl = float(_d.get("close") or 0)
+                        _pc = float(_d.get("pre_close") or _d.get("preClose") or 0)
+                        _row["price"] = round(_cl, 2)
+                        if _pc > 0 and _cl > 0:
+                            _row["change_pct"] = round((_cl - _pc) / _pc * 100, 2)
+                        _row["market_cap"] = float(_d.get("market_value") or _d.get("marketValue") or 0)
+                    _ah = _webull_ah_price(data_client, _sym)
+                    if isinstance(_ah, tuple) and _ah[0]:
+                        _row["ah_price"], _row["ah_pct"] = _ah
+                        _row["ah_label"] = "AH"
+            except Exception:
+                pass
+            results.append(_row)
+    except Exception as _e:
+        errors.append(f"Kev pin: {_e}")
     return results, errors
 
 # ── HTML template ──────────────────────────────────────────────────────────────
@@ -591,7 +634,7 @@ var _filterOn = false;
 function applyFilter(on){
   var rows = document.querySelectorAll('#tbody tr');
   rows.forEach(function(row){
-    if(on && row.dataset.bot==='0') row.style.display='none';
+    if(on && row.dataset.bot==='0' && row.dataset.kev!=='1') row.style.display='none';
     else row.style.display='';
   });
 }
@@ -610,6 +653,8 @@ function renderRows(rows){
     if(typeof av==='string') return _sortAsc?av.localeCompare(bv):bv.localeCompare(av);
     return _sortAsc?av-bv:bv-av;
   });
+  sorted.sort(function(a,b){var ka=(a.kev===true||_kevSet.has((a.symbol||'').toUpperCase()))?1:0,
+    kb=(b.kev===true||_kevSet.has((b.symbol||'').toUpperCase()))?1:0; return kb-ka});   // stable: Kev pins top
   var tbody=document.getElementById('tbody');
   tbody.innerHTML=sorted.map(function(r){
     var isBot=(r.price<=20)&&(r.float_shares>0)&&(r.float_shares<20000000);  // mirrors the BOT: price<$20 + known float<20M
@@ -619,7 +664,7 @@ function renderRows(rows){
     var mktcap=r.market_cap?'$'+fmtM(r.market_cap):'—';
     var botBadge=isBot?'<span class="bot-pill">BOT</span>':'';
     var _sym=(r.symbol||'').toUpperCase();
-    var isKev=_kevSet.has(_sym);
+    var isKev=_kevSet.has(_sym)||r.kev===true;
     var kevBadge=isKev?'<span class="kev-pill" title="'+(_kevLevels[_sym]||'Kev pick')+'">\u2605 KEV</span>':'';
     var shortPct = r.short_interest ? r.short_interest.toFixed(1)+'%' : '—';
     var dayRange = r.day_range_pct ? r.day_range_pct.toFixed(1)+'%' : '—';
@@ -634,7 +679,7 @@ function renderRows(rows){
     var ahPct = (Math.abs(closePct) >= 0.05) ? closePct : ((typeof r.ah_pct === 'number') ? r.ah_pct : 0);
     var ahShow = r.ah_price > 0 && Math.abs(ahPct) >= 0.05;
     var ahP = ahShow ? ' <span class="ah '+(ahPct>=0?'ah-up':'ah-dn')+'">'+ahLbl+' $'+r.ah_price.toFixed(2)+' ('+(ahPct>=0?'+':'')+ahPct.toFixed(1)+'%)</span>' : '';
-    return '<tr class="'+(isBot?'bot-candidate ':'')+(isKev?'kev-row':'')+'" data-bot="'+(isBot?'1':'0')+'">'
+    return '<tr class="'+(isBot?'bot-candidate ':'')+(isKev?'kev-row':'')+'" data-bot="'+(isBot?'1':'0')+'" data-kev="'+(isKev?'1':'0')+'">'
       +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+kevBadge+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+ahP+'</td>'
       +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
@@ -726,6 +771,8 @@ function renderResults(d){
   // Cache and render table
   _scanData = rows;
   _sortCol = 'change_pct'; _sortAsc = false;
+  sorted.sort(function(a,b){var ka=(a.kev===true||_kevSet.has((a.symbol||'').toUpperCase()))?1:0,
+    kb=(b.kev===true||_kevSet.has((b.symbol||'').toUpperCase()))?1:0; return kb-ka});   // stable: Kev pins top
   var tbody=document.getElementById('tbody');
   var colSpan = _afterHours ? 9 : 7;
   if(!rows.length){

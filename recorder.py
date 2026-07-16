@@ -53,6 +53,12 @@ def et_now(): return datetime.now(EASTERN)
 def log(m):   print(f"[{et_now().strftime('%H:%M:%S')} REC] {m}", flush=True)
 
 # ── shared state ─────────────────────────────────────────────────────────────
+_PROC_T0 = time.time()          # process boot stamp — never-ticked dead-man arm (review F2)
+
+class InvalidSessionError(RuntimeError):
+    """Webull rejected our streaming session (417 INVALID_SESSION) — cycle the session NOW
+    instead of burning 90s waiting for the tick-silence watchdog (review F3)."""
+
 _lock = threading.Lock()
 _bars = {10: {}, 60: {}}                  # span -> sym -> {bucket_epoch: {o,h,l,c,v0,v1}}
 _vwap = {}                                # sym -> {"num":Σpx*Δvol, "den":Σvol, "last_cumvol":x, "series":[(ts,vwap)]}
@@ -194,6 +200,22 @@ def carryover_seed():
 
 # ── stream (standalone; mirrors WebullStream._connect, proven in stream_dual_test) ──
 _stream = None
+def _teardown_stream():
+    """Disconnect + stop the old client so its daemon thread AND its server-side Webull session
+    die. Ghost sessions pile up on the account and every NEW session gets INVALID_SESSION until
+    a process restart (7/16 root cause). Called from ALL paths that abandon a client: reconnect
+    (connect_stream), day roll (_reset_day — review F1: it nulled without disconnecting, leaking
+    a ghost overnight into the 3:25am boot), and SIGTERM (graceful server-side disconnect so a
+    redeploy doesn't leave a ghost that 417s the next boot's first subscribe)."""
+    global _stream
+    s = _stream
+    _stream = None
+    if s is not None:
+        try: s.disconnect()
+        except Exception: pass
+        try: s.loop_stop()
+        except Exception: pass
+
 def connect_stream():
     global _stream
     try:
@@ -203,12 +225,7 @@ def connect_stream():
         # thread + Webull streaming session stay alive if not closed; ghosts pile up on the account
         # and Webull rejects new sessions with INVALID_SESSION until a full process restart kills
         # them — the ~40-min recurring stall. Tear the old client down first (mirrors bot l.927).
-        if _stream is not None:
-            try: _stream.disconnect()
-            except Exception: pass
-            try: _stream.loop_stop()
-            except Exception: pass
-            _stream = None
+        _teardown_stream()
         td = pathlib.Path(TOKEN_DIR); td.mkdir(parents=True, exist_ok=True)
         if TOKEN:
             (td / "token.txt").write_text(TOKEN + "\n" + str(int(time.time()*1000)+14*24*3600*1000) + "\nNORMAL\n")
@@ -279,6 +296,11 @@ def subscribe(syms):
             _stream.subscribe(chunk, "US_STOCK", ["SNAPSHOT"])
             _subscribed.update(chunk); added += len(chunk)
         except Exception as e:
+            if "INVALID_SESSION" in str(e):
+                # F3: auth failure, NOT capacity — don't latch the cap and wait 90s for the
+                # watchdog; cycle the session immediately (supervisor tears down + reconnects).
+                log(f"subscribe INVALID_SESSION at {len(_subscribed)} subs — cycling session now")
+                raise InvalidSessionError(str(e))
             log(f"subscribe cap/err at {len(_subscribed)} subs: {e} — holding here")
             _sub_cap_hit = True
             break
@@ -427,6 +449,8 @@ def _on_sigterm(signum, frame):
     log("SIGTERM — final flush")
     try: snapshot_vwap(); persist("sigterm")
     except Exception: pass
+    try: _teardown_stream()     # graceful server-side disconnect — no ghost for the next boot
+    except Exception: pass
     _stop.set()
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
     os.kill(os.getpid(), signal.SIGTERM)
@@ -468,6 +492,7 @@ def run_session():
             raise RuntimeError("tick silence >90s")
         if t - last_scan >= RESCAN_SECS:
             try: subscribe(scan_movers())
+            except InvalidSessionError: raise          # F3: must escape to the supervisor
             except Exception as e: log(f"rescan err: {e}")
             last_scan = t
         if t - last_persist >= PERSIST_SECS:
@@ -480,7 +505,7 @@ def _reset_day():
         _shipped.clear(); _vw_shipped.clear()
     _subscribed.clear()
     globals()["_sub_cap_hit"] = False
-    globals()["_stream"] = None
+    _teardown_stream()          # F1: day roll must KILL the session, not orphan it overnight
 
 def main():
     # HARD-FAIL: capture-without-persistence is silent worthlessness; no creds = no purpose.
@@ -517,16 +542,24 @@ def main():
             except Exception as e:
                 log(f"session error: {e} — reconnect in {backoff}s")
                 snapshot_vwap(); persist("error_flush")
-                # 7/16 DEAD-MAN'S SWITCH: if REAL ticks have been dead >5min during RTH despite
-                # in-process reconnects, the account's session state is wedged — only a fresh PROCESS
-                # clears it (what the manual redeploys did). Exit; Railway restartPolicy=always brings
-                # up a clean one. Armed only AFTER the day's first tick and only in RTH (premarket can
-                # be legitimately quiet). Turns a human-caught pager alarm into automatic self-heal.
+                # 7/16 DEAD-MAN'S SWITCH (rev 2, review F2): a wedge that in-process reconnects
+                # can't clear needs a fresh PROCESS (Railway restartPolicy=ALWAYS, verified applied).
+                # rev 1 armed RTH-only — which disarmed it during the 4am premarket, the very hours
+                # the recorder exists for. Now: RTH fuse 5min; premarket/AH fuse 15min (thin tape
+                # tolerated); never-ticked arm covers a boot wedged from tick zero (e.g. an overnight
+                # ghost, F1): zero ticks EVER + ≥20min past gate-open + ≥15min uptime → exit.
                 _n = et_now()
                 _rth = _n.weekday() < 5 and (9, 30) <= (_n.hour, _n.minute) < (16, 0)
+                _fuse = 300 if _rth else 900
                 _dead = time.time() - _last_real_ingest[0] if _last_real_ingest[0] else 0
-                if _rth and _last_real_ingest[0] and _dead > 300:
-                    log(f"capture dead {_dead:.0f}s despite reconnects — exit for clean Railway restart")
+                _gate_open = _n.replace(hour=SESSION_START_ET[0], minute=SESSION_START_ET[1],
+                                        second=0, microsecond=0)
+                _never = (_last_real_ingest[0] == 0
+                          and (_n - _gate_open).total_seconds() > 1200
+                          and time.time() - _PROC_T0 > 900)
+                if in_session() and ((_last_real_ingest[0] and _dead > _fuse) or _never):
+                    log(f"capture dead ({'never ticked' if _never else f'{_dead:.0f}s'}) despite "
+                        f"reconnects — exit for clean Railway restart")
                     try: _ckpt_save()
                     except Exception: pass
                     sys.exit(1)

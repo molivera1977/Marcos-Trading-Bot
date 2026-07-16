@@ -365,6 +365,19 @@ def main():
         sys.exit(1)
     try: signal.signal(signal.SIGTERM, _on_sigterm)
     except Exception: pass
+    # BOOT ANNOUNCE: prove the full chain (process→env→dashboard persistence) over HTTP,
+    # independent of Railway's log pipeline (7/15: new-service logs showed nothing for 10+ min).
+    try:
+        _ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000+0000")
+        _pl = {"date": "1999-01-01", "reason": "recorder-boot",
+               "series": {"ZZRECBOOT~10s": [{"time": _ts, "open": "1", "high": "1",
+                                             "low": "1", "close": "1", "volume": "0"}]}}
+        requests.post(f"{DASH_URL}/api/bars_bulk", data=gzip.compress(json.dumps(_pl).encode(), 1),
+                      headers={"X-Dashboard-Secret": DASH_SECRET, "Content-Encoding": "gzip",
+                               "Content-Type": "application/json"}, timeout=10)
+        log("boot announce posted")
+    except Exception as e:
+        log(f"boot announce failed: {e}")
     log(f"recorder up — gate {SESSION_START_ET[0]:02d}:{SESSION_START_ET[1]:02d}–"
         f"{SESSION_END_ET[0]:02d}:{SESSION_END_ET[1]:02d} ET weekdays (always-on, self-cycling)")
     backoff = 30

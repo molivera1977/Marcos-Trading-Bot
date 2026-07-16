@@ -771,8 +771,6 @@ function renderResults(d){
   // Cache and render table
   _scanData = rows;
   _sortCol = 'change_pct'; _sortAsc = false;
-  sorted.sort(function(a,b){var ka=(a.kev===true||_kevSet.has((a.symbol||'').toUpperCase()))?1:0,
-    kb=(b.kev===true||_kevSet.has((b.symbol||'').toUpperCase()))?1:0; return kb-ka});   // stable: Kev pins top
   var tbody=document.getElementById('tbody');
   var colSpan = _afterHours ? 9 : 7;
   if(!rows.length){

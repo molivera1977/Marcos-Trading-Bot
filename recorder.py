@@ -262,8 +262,80 @@ def subscribe(syms):
             _sub_cap_hit = True
             break
     if added: log(f"subscribed +{added} (total {len(_subscribed)})")
+    if added:
+        _new = [x for x in new if x in _subscribed and x not in _seeded]
+        def _seed_bg(names, boot_ts):
+            for _n in names:
+                if _stop.is_set(): return
+                _seed_vwap_from_bars(_n, boot_ts)
+                time.sleep(0.25)
+        threading.Thread(target=_seed_bg, args=(_new, time.time()), daemon=True).start()
 
 # ── persistence (bars + vwap series → dashboard durable store, gzipped) ──────
+_seeded = set()        # symbols whose pre-boot VWAP history has been seeded from bar history
+_CKPT = pathlib.Path("/tmp/recorder_vwap_ckpt.json")   # ephemeral FS: survives in-place restarts of the
+                                                        # same container only; cross-deploy recovery = bar-seed
+
+def _seed_vwap_from_bars(sym, upto_ts):
+    """7/16 (Marcos: 'why can't it be engineered today'): a restart must not cost the day's anchor.
+    Seed the accumulator's missing pre-boot window from PRE+RTH 1-min bar history — the same inputs
+    that measured −0.12% vs the chart this morning. Ticks carry it from boot onward (disjoint windows:
+    bars strictly BEFORE the boot minute; ticks after)."""
+    if sym in _seeded: return
+    _seeded.add(sym)
+    dc = data_client()
+    if not dc: return
+    try:
+        r = dc.market_data.get_history_bar(symbol=sym, category="US_STOCK", timespan="M1",
+                                           count="800", trading_sessions="PRE,RTH")
+        raw = r.json(); bars = raw if isinstance(raw, list) else raw.get("data", {}).get("items", raw.get("data", []))
+        today = et_now().strftime("%Y-%m-%d")
+        cutoff_min = int(upto_ts) // 60 * 60
+        pv = v = 0.0
+        for b in bars or []:
+            t = str(b.get("time", ""))
+            if t[:10] != today: continue
+            try:
+                bts = datetime.strptime(t[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc).timestamp()
+            except Exception:
+                continue
+            if bts >= cutoff_min: continue
+            h = float(b.get("high") or 0); l = float(b.get("low") or 0)
+            c = float(b.get("close") or 0); vol = float(b.get("volume") or 0)
+            pv += (h + l + c) / 3 * vol; v += vol
+        if v > 0:
+            with _lock:
+                acc = _vwap.setdefault(sym, {"num": 0.0, "den": 0.0, "last_cumvol": None, "series": []})
+                acc["num"] += pv; acc["den"] += v
+            log(f"vwap-seeded {sym}: +{v:,.0f} sh of pre-boot history")
+    except Exception as e:
+        log(f"seed {sym} failed: {e}")
+
+def _ckpt_save():
+    try:
+        with _lock:
+            d = {sym: {"num": v["num"], "den": v["den"], "last_cumvol": v["last_cumvol"]}
+                 for sym, v in _vwap.items()}
+        _CKPT.write_text(json.dumps({"date": et_now().strftime("%Y-%m-%d"), "acc": d}))
+    except Exception:
+        pass
+
+def _ckpt_load():
+    try:
+        if not _CKPT.exists(): return 0
+        d = json.loads(_CKPT.read_text())
+        if d.get("date") != et_now().strftime("%Y-%m-%d"): return 0
+        n = 0
+        with _lock:
+            for sym, a in (d.get("acc") or {}).items():
+                acc = _vwap.setdefault(sym, {"num": 0.0, "den": 0.0, "last_cumvol": None, "series": []})
+                if acc["den"] == 0:
+                    acc["num"], acc["den"], acc["last_cumvol"] = a["num"], a["den"], a.get("last_cumvol")
+                    _seeded.add(sym); n += 1
+        return n
+    except Exception:
+        return 0
+
 _shipped = {}          # sym -> last bucket epoch already persisted (incremental persists;
                        # dashboard merge-on-write makes increments safe + idempotent)
 _vw_shipped = {}       # sym -> last vwap-series ts already persisted
@@ -351,6 +423,8 @@ def run_session():
     global _stream, _sub_cap_hit
     if not connect_stream():
         raise RuntimeError("stream connect failed")
+    _ck = _ckpt_load()
+    if _ck: log(f"vwap checkpoint restored for {_ck} symbol(s)")
     subscribe(carryover_seed())        # known names captured from premarket tick-1
     last_scan = last_persist = 0.0
     while not _stop.is_set():
@@ -364,7 +438,7 @@ def run_session():
             except Exception as e: log(f"rescan err: {e}")
             last_scan = t
         if t - last_persist >= PERSIST_SECS:
-            snapshot_vwap(); persist("periodic"); last_persist = t
+            snapshot_vwap(); persist("periodic"); _ckpt_save(); last_persist = t
         _stop.wait(5)
 
 def _reset_day():

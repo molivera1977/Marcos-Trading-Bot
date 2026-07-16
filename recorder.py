@@ -61,9 +61,11 @@ _stop = threading.Event()
 
 # ── ingestion (mirrors the bot's proven _shadow_ingest + adds snapshot-VWAP) ──
 _last_ingest = [0.0]    # tick-liveness stamp (7/16: stream died silently at 9:31 open — zombie 45 min)
+_last_real_ingest = [0.0]  # 7/16: REAL-tick-only stamp — NOT reset on connect (unlike _last_ingest); powers the dead-man's switch
 def ingest(sym, price, cumvol, ts):
     try:
         _last_ingest[0] = ts
+        _last_real_ingest[0] = ts
         # 10s / 60s OHLC bars (identical bucketing to the bot's B12)
         for span in (10, 60):
             k = int(ts) // span * span
@@ -197,6 +199,16 @@ def connect_stream():
     try:
         from webull.core.utils.common import get_uuid
         from webull.data.data_streaming_client import DataStreamingClient
+        # 7/16 ROOT-CAUSE FIX: connect_stream() runs on EVERY reconnect. The old client's daemon
+        # thread + Webull streaming session stay alive if not closed; ghosts pile up on the account
+        # and Webull rejects new sessions with INVALID_SESSION until a full process restart kills
+        # them — the ~40-min recurring stall. Tear the old client down first (mirrors bot l.927).
+        if _stream is not None:
+            try: _stream.disconnect()
+            except Exception: pass
+            try: _stream.loop_stop()
+            except Exception: pass
+            _stream = None
         td = pathlib.Path(TOKEN_DIR); td.mkdir(parents=True, exist_ok=True)
         if TOKEN:
             (td / "token.txt").write_text(TOKEN + "\n" + str(int(time.time()*1000)+14*24*3600*1000) + "\nNORMAL\n")
@@ -503,9 +515,21 @@ def main():
                 _reset_day()
                 log("day complete — store reset, sleeping until next gate")
             except Exception as e:
-                _lived = time.time() - _last_ingest[0] if _last_ingest[0] else 0
                 log(f"session error: {e} — reconnect in {backoff}s")
                 snapshot_vwap(); persist("error_flush")
+                # 7/16 DEAD-MAN'S SWITCH: if REAL ticks have been dead >5min during RTH despite
+                # in-process reconnects, the account's session state is wedged — only a fresh PROCESS
+                # clears it (what the manual redeploys did). Exit; Railway restartPolicy=always brings
+                # up a clean one. Armed only AFTER the day's first tick and only in RTH (premarket can
+                # be legitimately quiet). Turns a human-caught pager alarm into automatic self-heal.
+                _n = et_now()
+                _rth = _n.weekday() < 5 and (9, 30) <= (_n.hour, _n.minute) < (16, 0)
+                _dead = time.time() - _last_real_ingest[0] if _last_real_ingest[0] else 0
+                if _rth and _last_real_ingest[0] and _dead > 300:
+                    log(f"capture dead {_dead:.0f}s despite reconnects — exit for clean Railway restart")
+                    try: _ckpt_save()
+                    except Exception: pass
+                    sys.exit(1)
                 _stop.wait(backoff)
                 # 7/16: kicks are EXTERNAL (Webull), not retry storms — escalating backoff just
                 # donates capture time. Cap at 60s; a fresh kick after a stable run resets to 30.

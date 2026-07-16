@@ -395,6 +395,11 @@ def build_payload(min_buckets=BUCKET_FLOOR, final=False):
     including the still-open bucket."""
     cutoff = time.time() if final else (int(time.time()) // 10 * 10)   # open-bucket boundary
     series = {}
+    # 7/16 (overnight audit): watermarks used to advance HERE, at build time — so one failed POST
+    # (dashboard blip) permanently skipped that window's points from every future increment. Now
+    # the would-be marks are RETURNED and persist() commits them only on HTTP 200. Merge-on-write
+    # unions by time key, so re-shipping the same points after a failure is idempotent.
+    marks10, marksvw = {}, {}
     with _lock:
         snap10 = {}
         for t, bk in _bars[10].items():
@@ -404,14 +409,14 @@ def build_payload(min_buckets=BUCKET_FLOOR, final=False):
             items = sorted((k, b) for k, b in bk.items() if k > lo and (final or k + 10 <= cutoff))
             if items:
                 snap10[t] = items
-                _shipped[t] = items[-1][0]
+                marks10[t] = items[-1][0]
         vwseries = {}
         for t, v in _vwap.items():
             lo = _vw_shipped.get(t, -1.0)
             pts = [(ts, vw) for ts, vw in v["series"] if ts > lo]
             if pts:
                 vwseries[t] = pts
-                _vw_shipped[t] = pts[-1][0]
+                marksvw[t] = pts[-1][0]
     for t, items in snap10.items():
         series[f"{t}~10s"] = [
             {"time": datetime.fromtimestamp(k, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
@@ -424,20 +429,25 @@ def build_payload(min_buckets=BUCKET_FLOOR, final=False):
              "close": str(round(vw, 6)), "open": str(round(vw, 6)), "high": str(round(vw, 6)),
              "low": str(round(vw, 6)), "volume": "0"}
             for ts, vw in ser]
-    return {"date": et_now().strftime("%Y-%m-%d"), "series": series, "source": "recorder"}
+    return {"date": et_now().strftime("%Y-%m-%d"), "series": series, "source": "recorder"}, (marks10, marksvw)
 
 def persist(reason="periodic"):
     try:
         if not DASH_URL: return False
-        pl = build_payload()
+        pl, marks = build_payload()
         if not pl["series"]: return False
         pl["reason"] = reason
         body = gzip.compress(json.dumps(pl).encode(), compresslevel=1)
         r = requests.post(f"{DASH_URL}/api/bars_bulk", data=body, timeout=15,
                           headers={"X-Dashboard-Secret": DASH_SECRET, "Content-Encoding": "gzip",
                                    "Content-Type": "application/json"})
+        ok = r.status_code == 200
+        if ok:
+            with _lock:                    # commit shipped watermarks only on confirmed store write
+                _shipped.update(marks[0])
+                _vw_shipped.update(marks[1])
         log(f"persist({reason}): {len(pl['series'])} series → {r.status_code}")
-        return r.status_code == 200
+        return ok
     except Exception as e:
         log(f"persist failed: {e}")
         return False

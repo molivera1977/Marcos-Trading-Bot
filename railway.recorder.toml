@@ -1,9 +1,11 @@
-# Recorder service config (set this file as the service's Config File Path).
-# ALWAYS-ON by design: the process self-gates to 3:25am–8:00pm ET weekdays internally
-# (zoneinfo — DST-proof) and never exits, so it needs NO cron and NO manual Run click.
-# Restart ALWAYS = crash insurance; the in-process supervisor handles reconnects.
+# Recorder service config. Point the recorder's "Railway Config File" (Settings →
+# Config-as-code) at THIS file so it stops inheriting the bot's railway.toml.
+# Gives the recorder its own: start command, restart=ALWAYS (crash recovery — the
+# internal supervisor handles soft errors; this covers hard process death), and its
+# own watch path (recorder pushes rebuild only the recorder; bot/dashboard untouched).
 [build]
 builder = "nixpacks"
+watchPatterns = ["recorder.py"]
 
 [deploy]
 startCommand = "python recorder.py"

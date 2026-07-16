@@ -138,28 +138,48 @@ def scan_movers():
     return syms
 
 def carryover_seed():
-    """Names to watch from premarket tick-1: Kev's latest watchlist (dated dict, take newest date)
-    + yesterday's collected movers (the ~10s names in the bars archive = what actually moved)."""
-    seed = set()
-    try:   # kev_watchlist: {"YYYY-MM-DD": [tickers], ...} → newest date's list
+    """PRIORITY-ORDERED seed for premarket tick-1 (order matters: chunked subscribes under a cap
+    mean earlier = guaranteed). 7/16 design discussion with Marcos:
+      1. Kev's overnight watchlist  — highest hit-rate, the names we owe complete tape on
+      2. AFTER-HOURS gappers        — last evening's 4-8pm movers = the likeliest 4am movers
+      3. yesterday's collected movers (~10s archive) — day-2 continuation candidates (Kev's core lane)
+    Everything unknowable overnight is caught by the 3-min PRE_MARKET rescan from 4am.
+    Self-feeding: the recorder's own 4-8pm capture lands in the ~10s archive, so from day 2 onward
+    tier 3 automatically includes true AH movers measured by real volume, not screener rank."""
+    seed, seen = [], set()
+    def add(names):
+        for n in names:
+            u = str(n).upper()
+            if u and u not in seen:
+                seen.add(u); seed.append(u)
+    try:   # tier 1 — kev_watchlist: {"YYYY-MM-DD": [tickers]} → newest date's list
         r = requests.get(f"{DASH_URL}/api/kev_watchlist", timeout=8)
         if r.status_code == 200:
             d = r.json()
             if isinstance(d, dict) and d:
                 latest = max(k for k in d.keys() if isinstance(k, str))
-                v = d.get(latest)
-                if isinstance(v, list):
-                    seed.update(str(x).upper() for x in v if isinstance(x, str))
+                if isinstance(d.get(latest), list): add(d[latest])
     except Exception:
         pass
-    try:   # yesterday's movers = ~10s names archived for the most recent prior day
+    try:   # tier 2 — last evening's after-hours gainers (screener AFTER_MARKET rank)
+        dc = data_client()
+        if dc:
+            res = dc.screener.get_gainers_losers(rank_type="AFTER_MARKET", category="US_STOCK",
+                                                 sort_by="CHANGE_RATIO", direction="DESC", page_size=50)
+            if res.status_code == 200:
+                raw = res.json(); items = raw if isinstance(raw, list) else raw.get("data", raw.get("items", []))
+                add(it.get("symbol") for it in items
+                    if it.get("symbol") and PRICE_MIN <= float(it.get("price") or it.get("close") or 0) <= PRICE_MAX)
+    except Exception:
+        pass
+    try:   # tier 3 — yesterday's collected movers (~10s names in the archive)
         r = requests.get(f"{DASH_URL}/api/bars?list=1", timeout=10)
         if r.status_code == 200:
             arch = (r.json() or {}).get("archived", {})
             if arch:
                 prev = max(arch.keys())
-                seed.update(n[:-4].upper() for n in arch.get(prev, [])
-                            if isinstance(n, str) and n.upper().endswith("~10S"))
+                add(n[:-4] for n in arch.get(prev, [])
+                    if isinstance(n, str) and n.upper().endswith("~10S"))
     except Exception:
         pass
     return seed
@@ -210,7 +230,7 @@ def subscribe(syms):
     MEASURES Webull's real per-session cap instead of guessing it."""
     global _sub_cap_hit
     if not _stream or _sub_cap_hit: return
-    new = [s for s in syms if s and s not in _subscribed]
+    new = [s for s in syms if s and s not in _subscribed]   # preserves caller's priority order
     new = new[:max(0, MAX_SUBSCRIBE - len(_subscribed))]
     added = 0
     for i in range(0, len(new), 20):

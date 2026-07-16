@@ -209,6 +209,7 @@ def connect_stream():
         _stream = None
         return False
 
+_fields_logged = [False]
 def _on_msg(_client, topic, payload):
     try:
         basic = getattr(payload, "basic", None)
@@ -217,9 +218,27 @@ def _on_msg(_client, topic, payload):
         if sym and px:
             p = float(px)
             if 0 < p < 1e6:
-                cv = getattr(payload, "volume", None) or getattr(basic, "volume", None)
-                try: cv = float(cv) if cv is not None else None
-                except Exception: cv = None
+                # 7/16 premarket discovery: extended-session snapshots carry volume in DIFFERENT
+                # fields than RTH (all RTH-era code only ever saw `volume`). Try the ext family too.
+                cv = None
+                for _obj in (payload, basic):
+                    if _obj is None: continue
+                    for _f in ("volume", "ext_volume", "extVolume", "total_volume", "totalVolume",
+                               "accumulate_volume", "ovn_volume"):
+                        _v = getattr(_obj, _f, None)
+                        if _v not in (None, 0, "0", ""):
+                            try:
+                                cv = float(_v); break
+                            except Exception: pass
+                    if cv is not None: break
+                if not _fields_logged[0]:
+                    _fields_logged[0] = True
+                    try:
+                        _pf = [a for a in dir(payload) if not a.startswith("_")]
+                        _bf = [a for a in dir(basic) if not a.startswith("_")] if basic else []
+                        log(f"FIELD-DUMP payload={_pf}")
+                        log(f"FIELD-DUMP basic={_bf} | first cv={cv}")
+                    except Exception: pass
                 ingest(str(sym).upper(), p, cv, time.time())
     except Exception:
         pass

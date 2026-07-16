@@ -39,7 +39,11 @@ TOKEN_DIR = os.environ.get("RECORDER_TOKEN_DIR", "/tmp/recorder_webull_token")
 
 # universe / timing
 PRICE_MIN, PRICE_MAX = 0.30, 20.0        # Kev realm (a touch wider than the bot to over-capture)
-MAX_SUBSCRIBE   = 120                     # broad but within stream capacity ("more data is better")
+MAX_SUBSCRIBE   = 98                      # Webull hard cap measured 7/16: 100/session
+RTH_SUB_CAP     = 40                      # 7/16: Webull kicks session-2 repeatedly at RTH message rates with
+                                          # ~98 subs (3 kicks: 9:31/10:31/10:46). Premarket (the irreplaceable
+                                          # mission) runs full-width; RTH runs top-priority only — the bot's own
+                                          # shadow covers its watched names during RTH anyway (merge unions).
 RESCAN_SECS     = 180                     # add fresh movers every 3 min
 PERSIST_SECS    = 300                     # ship to durable store every 5 min
 SESSION_END_ET  = (20, 0)                 # 8:00pm ET → exit
@@ -251,8 +255,11 @@ def subscribe(syms):
     MEASURES Webull's real per-session cap instead of guessing it."""
     global _sub_cap_hit
     if not _stream or _sub_cap_hit: return
+    _now = et_now()
+    _rth = _now.weekday() < 5 and ((_now.hour, _now.minute) >= (9, 30)) and _now.hour < 16
+    _cap = RTH_SUB_CAP if _rth else MAX_SUBSCRIBE
     new = [s for s in syms if s and s not in _subscribed]   # preserves caller's priority order
-    new = new[:max(0, MAX_SUBSCRIBE - len(_subscribed))]
+    new = new[:max(0, _cap - len(_subscribed))]
     added = 0
     for i in range(0, len(new), 20):
         chunk = new[i:i+20]
@@ -496,10 +503,13 @@ def main():
                 _reset_day()
                 log("day complete — store reset, sleeping until next gate")
             except Exception as e:
+                _lived = time.time() - _last_ingest[0] if _last_ingest[0] else 0
                 log(f"session error: {e} — reconnect in {backoff}s")
                 snapshot_vwap(); persist("error_flush")
                 _stop.wait(backoff)
-                backoff = min(backoff * 2, 600)
+                # 7/16: kicks are EXTERNAL (Webull), not retry storms — escalating backoff just
+                # donates capture time. Cap at 60s; a fresh kick after a stable run resets to 30.
+                backoff = min(backoff * 2, 60)
         else:
             _stop.wait(60)                  # outside the gate: idle cheaply, never exit
     log("recorder stopped")

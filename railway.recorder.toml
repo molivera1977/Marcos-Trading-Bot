@@ -1,0 +1,10 @@
+# Recorder service config (set this file as the service's Config File Path).
+# ALWAYS-ON by design: the process self-gates to 3:25am–8:00pm ET weekdays internally
+# (zoneinfo — DST-proof) and never exits, so it needs NO cron and NO manual Run click.
+# Restart ALWAYS = crash insurance; the in-process supervisor handles reconnects.
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "python recorder.py"
+restartPolicyType = "always"

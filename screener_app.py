@@ -1164,6 +1164,29 @@ def get_decisions_archive():
 # backtests against (so we're not re-fetching from a 7-day API). POST to save, GET to retrieve/list. ──
 BARS_DIR = (pathlib.Path("/data") if pathlib.Path("/data").exists() else pathlib.Path("/tmp")) / "bars"
 
+def _merge_series(existing, incoming):
+    """7/15 recorder audit (Fable): suffixed series ('~10s', '~vwap') have TWO writers — the bot's
+    B12 dumps (RTH-only subset) and the recorder (premarket-inclusive). File overwrite = last writer
+    wins = the bot's dump can ERASE recorder premarket data. Union by bar 'time' instead: incoming
+    wins on the same timestamp, everything else is kept. Order-independent, idempotent, and enables
+    the recorder's incremental persists (tiny payloads instead of whole-day re-sends)."""
+    by_t = {str(b.get("time")): b for b in existing if isinstance(b, dict) and b.get("time")}
+    for b in incoming:
+        if isinstance(b, dict) and b.get("time"):
+            by_t[str(b["time"])] = b
+    return [by_t[k] for k in sorted(by_t)]
+
+def _save_bars_file(daydir, ticker, bars):
+    """Shared save with merge semantics for multi-writer suffixed series; plain overwrite otherwise."""
+    path = daydir / f"{ticker}.json"
+    if "~" in ticker and path.exists():
+        try:
+            bars = _merge_series(json.loads(path.read_text()), bars)
+        except Exception:
+            pass   # unreadable existing file → fall through to plain write
+    path.write_text(json.dumps(bars))
+    return len(bars)
+
 @app.route("/api/bars", methods=["POST"])
 def save_bars():
     if request.headers.get("X-Dashboard-Secret") != API_SECRET:
@@ -1174,8 +1197,8 @@ def save_bars():
         return jsonify({"error": "need date, ticker, bars[]"}), 400
     try:
         daydir = BARS_DIR / date; daydir.mkdir(parents=True, exist_ok=True)
-        (daydir / f"{ticker}.json").write_text(json.dumps(bars))
-        return jsonify({"status": "ok", "ticker": ticker, "bars": len(bars)})
+        n = _save_bars_file(daydir, ticker, bars)
+        return jsonify({"status": "ok", "ticker": ticker, "bars": n})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1201,7 +1224,7 @@ def save_bars_bulk():
         for ticker, bars in series.items():
             if not (ticker and isinstance(bars, list) and bars):
                 continue
-            (daydir / f"{ticker.upper()}.json").write_text(json.dumps(bars))
+            _save_bars_file(daydir, ticker.upper(), bars)   # merge for suffixed multi-writer series
             saved += 1
         print(f"🛟 bars_bulk: {saved} series saved for {date} (reason={d.get('reason')})")
         return jsonify({"status": "ok", "saved": saved})

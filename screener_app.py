@@ -492,6 +492,10 @@ HTML = """<!DOCTYPE html>
   .bot-pill{display:inline-block;background:#1a3a2a;border:1px solid #2d5a3d;
             color:#3fb950;font-size:10px;font-weight:600;padding:1px 6px;
             border-radius:4px;margin-left:6px;vertical-align:middle}
+  .kev-pill{display:inline-block;background:#3a2f14;border:1px solid #6b5518;
+            color:#e3b341;font-size:10px;font-weight:700;padding:1px 6px;
+            border-radius:4px;margin-left:6px;vertical-align:middle}
+  tr.kev-row td{background:rgba(227,179,65,0.06)}
   .filter-btn{font-size:12px;font-family:inherit;padding:5px 12px;border-radius:8px;
               border:1px solid #2d5a3d;background:#1a3a2a;color:#3fb950;cursor:pointer;white-space:nowrap}
   .filter-btn.off{background:transparent;border-color:#30363d;color:#8b949e}
@@ -614,6 +618,9 @@ function renderRows(rows){
     var relVol=r.relative_volume?r.relative_volume.toFixed(1)+'×':'—';
     var mktcap=r.market_cap?'$'+fmtM(r.market_cap):'—';
     var botBadge=isBot?'<span class="bot-pill">BOT</span>':'';
+    var _sym=(r.symbol||'').toUpperCase();
+    var isKev=_kevSet.has(_sym);
+    var kevBadge=isKev?'<span class="kev-pill" title="'+(_kevLevels[_sym]||'Kev pick')+'">\u2605 KEV</span>':'';
     var shortPct = r.short_interest ? r.short_interest.toFixed(1)+'%' : '—';
     var dayRange = r.day_range_pct ? r.day_range_pct.toFixed(1)+'%' : '—';
     var shortClass = r.short_interest >= 20 ? 'gap-hot' : r.short_interest >= 10 ? 'gap-warm' : '';
@@ -627,8 +634,8 @@ function renderRows(rows){
     var ahPct = (Math.abs(closePct) >= 0.05) ? closePct : ((typeof r.ah_pct === 'number') ? r.ah_pct : 0);
     var ahShow = r.ah_price > 0 && Math.abs(ahPct) >= 0.05;
     var ahP = ahShow ? ' <span class="ah '+(ahPct>=0?'ah-up':'ah-dn')+'">'+ahLbl+' $'+r.ah_price.toFixed(2)+' ('+(ahPct>=0?'+':'')+ahPct.toFixed(1)+'%)</span>' : '';
-    return '<tr class="'+(isBot?'bot-candidate':'')+'" data-bot="'+(isBot?'1':'0')+'">'
-      +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+botBadge+'</td>'
+    return '<tr class="'+(isBot?'bot-candidate ':'')+(isKev?'kev-row':'')+'" data-bot="'+(isBot?'1':'0')+'">'
+      +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+kevBadge+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+ahP+'</td>'
       +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
       +'<td class="'+floatClass+'">'+r.float_label+'</td>'
@@ -736,8 +743,28 @@ function renderResults(d){
   }
 }
 
-// Auto-scan on load
-runScan();
+// Kev's picks — highest-signal names, marked distinctly (backed by his stored levels)
+var _kevSet=new Set(), _kevLevels={};
+function loadKev(){
+  return fetch('/api/kev_watchlist').then(function(r){return r.json()}).then(function(d){
+    if(!d||typeof d!=='object') return;
+    var dates=Object.keys(d).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k)});
+    if(!dates.length) return;
+    var latest=dates.sort()[dates.length-1];
+    (d[latest]||[]).forEach(function(t){_kevSet.add(String(t).toUpperCase())});
+    var lv=(d._levels&&d._levels[latest])||{};
+    Object.keys(lv).forEach(function(t){
+      var x=lv[t]||{}, parts=[];
+      if(x.break) parts.push('break '+x.break);
+      if(x.confirm) parts.push('confirm '+x.confirm);
+      if(x.targets&&x.targets.length) parts.push('targets '+x.targets.join(', '));
+      _kevLevels[String(t).toUpperCase()]='KEV — '+(parts.join(' / ')||'watchlist pick');
+    });
+  }).catch(function(){});
+}
+
+// Auto-scan on load (load Kev's list first so his picks render marked)
+loadKev().then(runScan);
 
 // Auto-refresh: 5 min during market hours, 15 min after hours
 setInterval(function(){

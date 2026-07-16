@@ -2147,7 +2147,15 @@ function renderTodayStats(trades){
   // Same rule as the era stats: bookkeeping prints (forced recovery closes) count in MONEY, never in QUALITY.
   const today = todayAll.filter(t=>!/RECOVER/i.test(String(t.exit_reason||'')));
   const pEl = document.getElementById('todayPnl'), wEl = document.getElementById('todayWr');
-  if(!todayAll.length){ pEl.textContent='—'; pEl.className='white'; wEl.textContent='—'; wEl.className='gray'; return; }
+  if(!todayAll.length){
+    pEl.textContent='—'; pEl.className='white'; wEl.textContent='—'; wEl.className='gray';
+    // 7/16 fix: a long-lived tab crosses midnight — reset ALL today-tiles, not just two, or
+    // yesterday's R/avg-win linger as ghosts (Marcos caught −2.7R at 9:31 with zero trades today).
+    const g=id=>document.getElementById(id);
+    if(g('todayR')){ g('todayR').textContent='—'; g('todayR').className='gray'; }
+    if(g('avgWinR')){ g('avgWinR').textContent='—'; g('avgWinR').className='gray'; }
+    if(g('avgWinRx')){ g('avgWinRx').textContent=''; }
+    return; }
   const p = todayAll.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);   // money ledger: ALL prints
   const w = today.filter(t=>(parseFloat(t.pnl)||0)>0).length;
   const l = today.filter(t=>(parseFloat(t.pnl)||0)<0).length;

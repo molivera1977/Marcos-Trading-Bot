@@ -285,7 +285,10 @@ def subscribe(syms):
     global _sub_cap_hit
     if not _stream or _sub_cap_hit: return
     _now = et_now()
-    _rth = _now.weekday() < 5 and ((_now.hour, _now.minute) >= (9, 30)) and _now.hour < 16
+    # 9:15 shoulder (audit S2): any subscribe within 15 min of the open must already respect the
+    # RTH cap — otherwise the 9:30 flip inherits ~98 premarket subs (the cap only gates NEW adds)
+    # and Webull kicks at 9:31 message rates, exactly the open we exist to capture.
+    _rth = _now.weekday() < 5 and ((_now.hour, _now.minute) >= (9, 15)) and _now.hour < 16
     _cap = RTH_SUB_CAP if _rth else MAX_SUBSCRIBE
     new = [s for s in syms if s and s not in _subscribed]   # preserves caller's priority order
     new = new[:max(0, _cap - len(_subscribed))]
@@ -436,6 +439,30 @@ def persist(reason="periodic"):
         log(f"persist failed: {e}")
         return False
 
+def _first_light_report():
+    """4:00–9:30 canary (audit S1; 7/16: prices flowed 4.5h while volumes read zero — the VWAP
+    accumulated NOTHING and nobody knew until 8:15). Logs the count of symbols actually
+    accumulating tick-VWAP and ships a ZZRECVOL~10s sentinel row (close/volume = that count,
+    open = symbols ticking) so the failure is visible from the dashboard store anywhere, not
+    just Railway logs. No exit: a restart can't fix a field-regime change — visibility is the fix."""
+    with _lock:
+        nvol = sum(1 for v in _vwap.values() if v["den"] > 0)
+        ntick = len(_bars[10])
+    if ntick > 0 and nvol == 0:
+        log("🚨 FIRST-LIGHT FAILURE: ticks flowing but ZERO volume accumulating — tick-VWAP NOT BUILDING (volume field regime?)")
+    else:
+        log(f"first-light: {ntick} symbols ticking, {nvol} accumulating tick-VWAP")
+    try:
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000+0000")
+        pl = {"date": et_now().strftime("%Y-%m-%d"), "reason": "first-light",
+              "series": {"ZZRECVOL~10s": [{"time": ts, "open": str(ntick), "high": str(ntick),
+                                           "low": str(nvol), "close": str(nvol), "volume": str(nvol)}]}}
+        requests.post(f"{DASH_URL}/api/bars_bulk", data=gzip.compress(json.dumps(pl).encode(), 1),
+                      headers={"X-Dashboard-Secret": DASH_SECRET, "Content-Encoding": "gzip",
+                               "Content-Type": "application/json"}, timeout=10)
+    except Exception:
+        pass
+
 # snapshot the running VWAP into each symbol's series periodically (for the ~vwap time series)
 def snapshot_vwap():
     ts = time.time()
@@ -479,7 +506,7 @@ def run_session():
     _ck = _ckpt_load()
     if _ck: log(f"vwap checkpoint restored for {_ck} symbol(s)")
     subscribe(carryover_seed())        # known names captured from premarket tick-1
-    last_scan = last_persist = 0.0
+    last_scan = last_persist = last_snap = last_flight = 0.0
     while not _stop.is_set():
         if not in_session():
             log("session end — final flush")
@@ -490,6 +517,23 @@ def run_session():
             log(f"TICK SILENCE {t - _last_ingest[0]:.0f}s — stream presumed dead, forcing reconnect")
             snapshot_vwap(); persist("silence_flush")
             raise RuntimeError("tick silence >90s")
+        # audit S2: controlled downshift — shed premarket-width subs BEFORE the open's message
+        # rates arrive. One deliberate cycle at ~9:15 (reconnect resubscribes priority-first under
+        # the 9:15-shoulder cap) beats an uncontrolled Webull kick at 9:31.
+        _dn = et_now()
+        if (_dn.weekday() < 5 and (9, 15) <= (_dn.hour, _dn.minute) < (16, 0)
+                and len(_subscribed) > RTH_SUB_CAP):
+            log(f"RTH downshift: {len(_subscribed)} subs > cap {RTH_SUB_CAP} — controlled cycle before the open")
+            snapshot_vwap(); persist("downshift_flush")
+            raise RuntimeError("controlled RTH downshift")
+        # audit S1: first-light canary every 10 min through premarket
+        if t - last_flight >= 600:
+            if _dn.weekday() < 5 and (4, 0) <= (_dn.hour, _dn.minute) < (9, 30):
+                _first_light_report()
+            last_flight = t
+        # audit S3: 60s tick-VWAP snapshots (5-min points were too coarse to certify vs the chart)
+        if t - last_snap >= 60:
+            snapshot_vwap(); last_snap = t
         if t - last_scan >= RESCAN_SECS:
             try: subscribe(scan_movers())
             except InvalidSessionError: raise          # F3: must escape to the supervisor

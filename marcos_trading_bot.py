@@ -3815,6 +3815,58 @@ ENTRY_VWAP_PREMARKET    = True  # 7/15 VALIDATED (Marcos called it: "Kev trades 
                                 # RTH-only reads LOW on gappers (PM volume anchors higher) → systematically
                                 # passed back-side entries. Entry VWAP must be the line on Kev's screen.
 
+# ── RECORDER TICK-VWAP (7/16, Marcos: "the data is already contaminated — no reason to wait") ──
+# The bar-rebuilt VWAP carries a measured +0.2–1% high bias that SCALES with volatility (4-ticker
+# ground truth vs live charts). The recorder's tick-VWAP (price×Δcumvol, premarket-anchored) is the
+# structural fix. Default ON; env RECORDER_VWAP=0 is the kill switch. Guards make worst-case = the
+# bar-line status quo: freshness ≤180s, price catastrophe band, ≤5% divergence clamp vs bar line.
+RECORDER_VWAP            = os.environ.get("RECORDER_VWAP", "1") == "1"
+RECORDER_VWAP_STALE_SECS = 240   # recorder snapshots 60s + persists 90s → typical point age ≤150s;
+                                 # 240 tolerates one missed persist. Older = recorder gap → bar line
+                                 # holds (B17 doctrine). Live-tested 7/16: 196s-old point at 300s
+                                 # persist cadence was correctly rejected — hence the cadence fix.
+_tick_vwap_cache: dict = {}      # ticker -> (fetched_epoch, value_or_None)
+
+def _recorder_tick_vwap(ticker):
+    """Latest tick-VWAP for ticker from the recorder's ~vwap series in the dashboard store.
+    The value lives in the point's 'close' field (recorder build_payload). Returns None when the
+    series is missing or the newest point is stale — callers hold the bar line (no behavior change)."""
+    now = time.time()
+    c = _tick_vwap_cache.get(ticker)
+    if c and now - c[0] < 45:
+        return c[1]
+    val = None
+    try:
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        if url:
+            day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+            r = requests.get(f"{url}/api/bars", params={"date": day, "ticker": f"{ticker}~vwap"}, timeout=6)
+            if r.status_code == 200:
+                pts = (r.json() or {}).get("bars") or []
+                if pts:
+                    last = pts[-1]
+                    ts = datetime.strptime(str(last.get("time", ""))[:19],
+                                           "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc).timestamp()
+                    if now - ts <= RECORDER_VWAP_STALE_SECS:
+                        v = float(last.get("close") or 0)
+                        val = v if v > 0 else None
+    except Exception:
+        val = None
+    _tick_vwap_cache[ticker] = (now, val)
+    return val
+
+def _tick_vwap_ok(tick, bar, price):
+    """Sanity gate before the tick line may replace the bar line. Catastrophe band vs price kills
+    unit-scale bugs (the 2,000,000-'vwap' class); the 5% divergence clamp vs the bar line allows
+    the real ~1% correction but never a wild swap. Bar missing (B17) → price band alone decides."""
+    if not tick or tick <= 0:
+        return False
+    if price and price > 0 and not (0.5 * price <= tick <= 2.0 * price):
+        return False
+    if bar and bar > 0 and abs(tick - bar) / bar > 0.05:
+        return False
+    return True
+
 # ── 7/10 ENTRY-GATE + WIDE-STOP FIX STACK (all DEFAULT OFF until the 9-day completion grade ranks them) ──
 # check_momentum BUNDLES three gates; the reversal exemption (vwap_reclaim/ignition/bounce) was meant only for the
 # momentum gate but silently skipped the UNIVERSAL rules too (the 7/10 audit: flagged fills −$14.95 vs clean +$19.65).
@@ -3962,6 +4014,22 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                       f"({(_fullvw - _rthvw) / _rthvw * 100:+.0f}% pre-market gap)")
                         else:
                             print(f"⚠️  {t} VWAP=0 — Webull bars had no volume data")
+                        # RECORDER TICK-VWAP overlay (7/16): when fresh + sane, the tick line IS the
+                        # gate value; the bar line above remains fallback + divergence reference. Every
+                        # replacement is dual-logged — that log is the tick-vs-bar comparison record.
+                        if RECORDER_VWAP:
+                            _tick = _recorder_tick_vwap(t)
+                            _px_now = stream.get_price(t) or 0
+                            if _tick and _tick_vwap_ok(_tick, _fullvw, _px_now):
+                                if _fullvw > 0 and abs(_tick - _fullvw) / _fullvw >= 0.003:
+                                    print(f"   🎯 {t} tick-VWAP ${_tick:.4f} vs bar ${_fullvw:.4f} "
+                                          f"({(_tick - _fullvw) / _fullvw * 100:+.2f}%) — gating on tick")
+                                cache[t]["vwap"]         = _tick
+                                cache[t]["vwap_src"]     = "tick"
+                                cache[t]["vwap_fetched"] = time.time()
+                            elif _tick:
+                                print(f"   ⚠️ {t} tick-VWAP ${_tick:.4f} REJECTED by sanity "
+                                      f"(bar ${_fullvw:.4f}, px ${_px_now}) — bar line holds")
                 else:
                     print(f"⚠️  {t} VWAP unavailable — no Webull bars returned")
                 cache[t]["fetched"] = time.time()

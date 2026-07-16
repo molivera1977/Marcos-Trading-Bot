@@ -45,7 +45,10 @@ RTH_SUB_CAP     = 40                      # 7/16: Webull kicks session-2 repeate
                                           # mission) runs full-width; RTH runs top-priority only — the bot's own
                                           # shadow covers its watched names during RTH anyway (merge unions).
 RESCAN_SECS     = 180                     # add fresh movers every 3 min
-PERSIST_SECS    = 300                     # ship to durable store every 5 min
+PERSIST_SECS    = 90                      # ship to durable store every 90s (7/16: the BOT now gates on
+                                          # the store's ~vwap points — at 300s cadence the newest point
+                                          # averaged ~150-300s old and failed the bot's freshness guard
+                                          # half the time; incremental payloads keep this cheap)
 SESSION_END_ET  = (20, 0)                 # 8:00pm ET → exit
 BUCKET_FLOOR    = 20                      # keep even lightly-streamed names (premarket is thin) — over-capture
 

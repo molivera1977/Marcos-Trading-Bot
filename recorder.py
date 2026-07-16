@@ -56,8 +56,10 @@ _subscribed = set()
 _stop = threading.Event()
 
 # ── ingestion (mirrors the bot's proven _shadow_ingest + adds snapshot-VWAP) ──
+_last_ingest = [0.0]    # tick-liveness stamp (7/16: stream died silently at 9:31 open — zombie 45 min)
 def ingest(sym, price, cumvol, ts):
     try:
+        _last_ingest[0] = ts
         # 10s / 60s OHLC bars (identical bucketing to the bot's B12)
         for span in (10, 60):
             k = int(ts) // span * span
@@ -419,10 +421,18 @@ def in_session(now=None):
 
 def run_session():
     """One capture day: connect → seed → rescan/persist loop → final flush at 8pm. Errors bubble
-    to the supervisor, which reconnects with backoff."""
+    to the supervisor, which reconnects with backoff. 7/16: a NEW stream session has NO server-side
+    subscriptions — clear the client-side sets or resubscription is silently skipped; and re-baseline
+    cumvol trackers so the silent-gap volume isn't lumped onto one reconnect price."""
     global _stream, _sub_cap_hit
+    _subscribed.clear()
+    _sub_cap_hit = False
+    with _lock:
+        for _v in _vwap.values():
+            _v["last_cumvol"] = None      # re-baseline: exclude gap volume rather than distort VWAP
     if not connect_stream():
         raise RuntimeError("stream connect failed")
+    _last_ingest[0] = time.time()
     _ck = _ckpt_load()
     if _ck: log(f"vwap checkpoint restored for {_ck} symbol(s)")
     subscribe(carryover_seed())        # known names captured from premarket tick-1
@@ -433,6 +443,10 @@ def run_session():
             snapshot_vwap(); persist("session_end")
             break
         t = time.time()
+        if _last_ingest[0] and t - _last_ingest[0] > 90:
+            log(f"TICK SILENCE {t - _last_ingest[0]:.0f}s — stream presumed dead, forcing reconnect")
+            snapshot_vwap(); persist("silence_flush")
+            raise RuntimeError("tick silence >90s")
         if t - last_scan >= RESCAN_SECS:
             try: subscribe(scan_movers())
             except Exception as e: log(f"rescan err: {e}")

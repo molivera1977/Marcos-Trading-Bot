@@ -3939,9 +3939,20 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # Chart-matching = session-anchored INCLUDING pre-market. Dedicated pre+RTH fetch (slower TTL to
                         # limit API load); keep full_bars RTH-only so room/3-min setups don't move.
                         _vwb  = get_intraday_bars(t, count=VWAP_SESSION_COUNT, sessions=["PRE", "RTH"])
-                        _sess = _fresh_session(_vwb) if _vwb else full_bars   # B16: today-only, both branches
-                        _fullvw = calculate_vwap(_sess)
-                        _rthvw  = calculate_vwap([b for b in _sess if b.get("trading_session") == "RTH"]) or _fullvw
+                        _sess = _fresh_session(_vwb) if _vwb else []
+                        # B17 (7/16): when the PM fetch fails, NEVER silently substitute the RTH-only
+                        # line (23% wrong on heavy-PM gappers — TGHL 7/15). Hold the last-good PM VWAP
+                        # if it's fresh (≤10 min); otherwise mark VWAP unavailable so vwap>0 gates SKIP
+                        # (no decision on a known-wrong line — same doctrine as B16's no-data-no-decision).
+                        if not _sess:
+                            _b17_age = time.time() - cache[t].get("vwap_fetched", 0)
+                            if not (cache[t].get("vwap", 0) > 0 and _b17_age <= 600):
+                                cache[t]["vwap"] = 0.0
+                                print(f"⚠️  {t} PM-VWAP fetch failed, no recent value — VWAP unavailable (B17), gates skip")
+                            _fullvw = 0.0
+                        else:
+                            _fullvw = calculate_vwap(_sess)
+                        _rthvw  = (calculate_vwap([b for b in _sess if b.get("trading_session") == "RTH"]) or _fullvw) if _sess else 0.0
                         if _fullvw > 0:
                             cache[t]["vwap"]     = _fullvw   # pre+RTH session VWAP (chart-matching) — shown in status line
                             cache[t]["vwap_rth"] = _rthvw    # RTH-only (old) — dual-log to see the pre-market gap
@@ -6413,6 +6424,10 @@ def in_trading_window(now_et):
 if __name__ == "__main__":
     RESCAN_INTERVAL_MINUTES = 30
 
+    try:
+        sys.stdout.reconfigure(line_buffering=True)   # 7/16: Railway logs in real time (was block-buffered)
+    except Exception:
+        pass
     print("🤖 Marcos Trading Bot — always-on worker mode")
 
     # 7/15: SIGTERM → bulk-flush the in-memory 10s collection before Railway swaps the container.

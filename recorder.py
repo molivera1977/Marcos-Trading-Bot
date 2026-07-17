@@ -195,8 +195,13 @@ def carryover_seed():
             arch = (r.json() or {}).get("archived", {})
             if arch:
                 prev = max(arch.keys())
+                # 7/17: EXCLUDE our own sentinel series (ZZRECBOOT / ZZRECVOL) — they live in the
+                # ~10S archive but are NOT real tickers; seeding them made Webull 417 INVALID_SYMBOL
+                # on the whole chunk, which latched _sub_cap_hit and silently killed every remaining
+                # subscribe (Kev's picks went uncaptured on 7/17 premarket).
                 add(n[:-4] for n in arch.get(prev, [])
-                    if isinstance(n, str) and n.upper().endswith("~10S"))
+                    if isinstance(n, str) and n.upper().endswith("~10S")
+                    and not n.upper().startswith("ZZ"))
     except Exception:
         pass
     return seed
@@ -307,6 +312,19 @@ def subscribe(syms):
                 # watchdog; cycle the session immediately (supervisor tears down + reconnects).
                 log(f"subscribe INVALID_SESSION at {len(_subscribed)} subs — cycling session now")
                 raise InvalidSessionError(str(e))
+            if "INVALID_SYMBOL" in str(e):
+                # 7/17: ONE bad ticker must not kill its chunk AND latch the cap (that silently
+                # dropped every later subscribe — Kev's picks went uncaptured). Retry the chunk
+                # one-by-one so the good names get through; skip only the offender.
+                log(f"subscribe INVALID_SYMBOL in chunk — retrying {len(chunk)} names individually")
+                for s in chunk:
+                    try:
+                        _stream.subscribe([s], "US_STOCK", ["SNAPSHOT"])
+                        _subscribed.add(s); added += 1
+                    except Exception as e2:
+                        if "INVALID_SESSION" in str(e2): raise InvalidSessionError(str(e2))
+                        log(f"  skip bad symbol {s}")
+                continue
             log(f"subscribe cap/err at {len(_subscribed)} subs: {e} — holding here")
             _sub_cap_hit = True
             break

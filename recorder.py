@@ -174,8 +174,18 @@ def carryover_seed():
         if r.status_code == 200:
             d = r.json()
             if isinstance(d, dict) and d:
-                latest = max(k for k in d.keys() if isinstance(k, str))
-                if isinstance(d.get(latest), list): add(d[latest])
+                # 7/17 BUG: max() over ALL keys picked "_levels" (sorts above any "2026-.."), whose
+                # value is a dict → tier-1 seeded ZERO Kev picks EVERY day since the levels sidecar
+                # was added. Picks only ever arrived via tier-3 (yesterday's archive) by luck.
+                # Take the newest DATE-shaped key only.
+                dates = [k for k in d.keys() if isinstance(k, str) and k[:2] == "20" and "-" in k]
+                if dates:
+                    latest = max(dates)
+                    v = d.get(latest)
+                    if isinstance(v, list):
+                        add(v); log(f"tier-1 kev picks ({latest}): {v}")
+                    elif isinstance(v, dict) and isinstance(v.get("tickers"), list):
+                        add(v["tickers"]); log(f"tier-1 kev picks ({latest}): {v['tickers']}")
     except Exception:
         pass
     try:   # tier 2 — last evening's after-hours gainers (screener AFTER_MARKET rank)

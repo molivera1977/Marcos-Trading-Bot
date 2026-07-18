@@ -18,11 +18,12 @@
 # service's life/death never touches the bot — the only coupling is the dashboard store.
 [build]
 builder = "nixpacks"
-watchPatterns = ["newcomer_vision_reader.py"]
+watchPatterns = ["newcomer_vision_reader.py", "railway.reader.toml"]
 
 [deploy]
 startCommand = "python newcomer_vision_reader.py"
 restartPolicyType = "never"
-
-[cron]
-schedule = "50 12 * * 1-5"
+# VERIFIED schema (7/18): cronSchedule lives under [deploy] — a "[cron] schedule" table is
+# silently IGNORED by config-as-code (found live: manifest showed cronSchedule null; the bot's
+# own cron comes from its UI settings, not the root toml's decorative [cron] block).
+cronSchedule = "50 12 * * 1-5"

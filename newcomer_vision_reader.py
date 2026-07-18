@@ -324,10 +324,12 @@ def sheet_shadow_pass(dry=False, out_rows=None):
             _rfail[tk] = _rfail.get(tk, 0) + 1
             print(f"  [shadow] {tk}: no daily chart (fetch fail {_rfail[tk]}/{MAX_RENDER_FAILS}) — retry", flush=True)
             continue
-        _attempts[tk] = _attempts.get(tk, 0) + 1
         rd = vision_read(tk, png, cand, (cand or {}).get("prior_day_close"))
-        if rd.get("error"):
-            print(f"  [shadow] {tk}: read error: {rd['error']}", flush=True); continue
+        if rd.get("error"):                # transport/API error → free retry, never burns the graded cap
+            _rfail[tk] = _rfail.get(tk, 0) + 1
+            print(f"  [shadow] {tk}: read error ({_rfail[tk]}/{MAX_RENDER_FAILS}): {rd['error']}", flush=True)
+            continue
+        _attempts[tk] = _attempts.get(tk, 0) + 1
         ok_v, why = validate_read(rd, None)
         if out_rows is not None:
             out_rows.append({**rd, "ticker": tk, "_shadow": True, "_accepted": ok_v, "_why": why})
@@ -370,11 +372,13 @@ def process_once(dry=False, out_rows=None):
             _rfail[tk] = _rfail.get(tk, 0) + 1
             print(f"  {tk}: no daily chart (fetch fail {_rfail[tk]}/{MAX_RENDER_FAILS}) — retry next loop", flush=True)
             continue
-        _attempts[tk] = _attempts.get(tk, 0) + 1   # count BILLED attempts only, after a good render
         last_px = pxmap.get(tk) or (cand or {}).get("prior_day_close")
         rd = vision_read(tk, png, cand, last_px)
-        if rd.get("error"):
-            print(f"  {tk}: read error: {rd['error']}", flush=True); continue   # transient → retry next loop
+        if rd.get("error"):                # transport/API error → NOT a graded attempt (an Anthropic
+            _rfail[tk] = _rfail.get(tk, 0) + 1     # outage at 8:50 must never kill a name for the day);
+            print(f"  {tk}: read error ({_rfail[tk]}/{MAX_RENDER_FAILS}): {rd['error']}", flush=True)
+            continue                               # bounded by the free-retry cap + 90s loop cadence
+        _attempts[tk] = _attempts.get(tk, 0) + 1   # count GRADED reads only (billed + parseable)
         ok_v, why = validate_read(rd, last_px)
         if out_rows is not None:                              # capture EVERY read for grading (accepted or not)
             out_rows.append({**rd, "ticker": tk, "_accepted": ok_v, "_why": why})

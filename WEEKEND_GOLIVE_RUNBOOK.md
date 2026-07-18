@@ -86,6 +86,18 @@ NOTE: recorder + dashboard services redeploy too (silencer touched them) — wee
   + agreement) + newcomer forward grades; appends to iCloud `read_grades.jsonl` (the capability
   track record). Volume: up to ~85 reads/day ≈ $0.50/day ≈ $11/mo (estimate).
 
+## MON 8:45–9:30 — PRE-FLIGHT (minute-by-minute)
+- **8:45** bot cron fires (existing). Bot logs boot clean; gate lines read `CHART-GATE [ENFORCE]`.
+- **8:50** reader cron fires (FIRST EVER — watch it). Log must show `key=set` then the sheet
+  shadow pass. (Rehearsed 7/18 against empty-day conditions: clean zero-read pass, no crash.)
+- **8:55** FALLBACK if no reader log (cron no-fire / build issue):
+  `railway run --service Marcos-Trading-Bot python3 newcomer_vision_reader.py`
+  — identical pipeline from the Mac, key injected, nothing else changes.
+- **9:00** `curl .../api/kev_watchlist?date=2026-07-20` → every sheet name has a numeric `break`
+  + a `vision_shadow`; newcomer levels appear as the scanner populates.
+- **9:30** open. A NON-ZERO 429 gauge = the fixed counter working, not a new problem. No token
+  dumps anywhere in any service's logs.
+
 ## MON 7/20 — the reads run THEMSELVES
 - 8:50 ET: reader service cron-fires on Railway — check its logs show `key=set` + the shadow pass.
   NO terminal, NO key handling: sheet exam → morning batch → all-day trickle, all autonomous.

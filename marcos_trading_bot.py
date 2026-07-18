@@ -2058,27 +2058,80 @@ def _fetch_kev_watchlist():
     return []
 
 
-_kev_levels_cache = {"date": None, "levels": {}}
+_kev_levels_cache = {"date": None, "levels": {}, "ts": 0.0}
+KEV_LEVELS_TTL_SECS = int(os.environ.get("KEV_LEVELS_TTL_SECS", "90"))
 
 def _fetch_kev_levels():
-    """Kev's STATED levels for today's picks ({TICKER: {"break": x, ...}}), cached per day.
-    Feeds the level-anchoring study (7/13: 3-for-3, closest-to-level = best outcome) — the
-    record gets entry_vs_kev_level_pct so the correlation accrues automatically. Fail-safe {}."""
+    """Marked levels for today ({TICKER: {"break": x, ...}}) — night sheet + intraday vision reads.
+    Cached with a ~90s TTL: the old PER-DAY cache froze the first fetch of the morning, so levels
+    posted intraday (newcomer vision reads) were INVISIBLE to the chart gate all day — in ENFORCE
+    that silently blocked every newcomer (Fable audit 7/18). On refresh failure serve the SAME-DAY
+    last-known-good (never a fail-closed {} spike); a different-day cache is never served (date-blind
+    levels are the B14 bug class). Fail-safe {} before the first successful fetch."""
+    c = _kev_levels_cache
     try:
         date = datetime.now(EASTERN).strftime("%Y-%m-%d")
-        if _kev_levels_cache["date"] == date:
-            return _kev_levels_cache["levels"]
+        now = time.time()
+        if c["date"] == date and now - c["ts"] < KEV_LEVELS_TTL_SECS:
+            return c["levels"]
         url = os.environ.get("SCREENER_URL", "").rstrip("/")
-        if not url:
-            return {}
-        r = requests.get(f"{url}/api/kev_watchlist", params={"date": date}, timeout=10)
-        if r.status_code == 200:
-            lv = r.json().get("levels") or {}
-            _kev_levels_cache.update({"date": date, "levels": lv})
-            return lv
+        if url:
+            r = requests.get(f"{url}/api/kev_watchlist", params={"date": date}, timeout=10)
+            if r.status_code == 200:
+                lv = r.json().get("levels") or {}
+                c.update({"date": date, "levels": lv, "ts": now})
+                return lv
+    except Exception:
+        pass
+    try:
+        if c["date"] == datetime.now(EASTERN).strftime("%Y-%m-%d"):
+            c["ts"] = time.time()          # back off one TTL before retrying the failed refresh
+            return c["levels"]
     except Exception:
         pass
     return {}
+
+
+# ============================================================
+# LAYER 2 — "NO BREAK, NO TRADE" chart-level gate  (SHADOW by default)
+# ------------------------------------------------------------
+# Kev's core rule (Marcos, 7/17): enter ONLY when price has broken the MARKED level from the
+# chart read. The bot historically had NO "wait for the break" concept — it fired ignition on any
+# intraday base pop regardless of where price sat vs the level (7/17: 9/20 entries had NO break;
+# no-break entries netted -1.68R vs +0.75R for break entries; TGHL bought 1.40 vs a 1.95 break).
+#
+# Marked level source (v1): the night sheet's per-ticker levels via _fetch_kev_levels()
+#   → {ticker: {"break": x, "confirm": y, "targets": [...], "note": "..."}}.
+#   Newcomers with no sheet entry have no marked level yet (the visual read isn't wired into the
+#   bot yet — that's the Layer-2b follow-on: post newcomer reads to the store, look them up here).
+#
+# Enforcement: SHADOW by default (CHART_GATE_ENFORCE unset/0) — logs the verdict beside every trade
+#   but changes NOTHING. Set CHART_GATE_ENFORCE=1 ONLY after the shadow log proves the gate on live
+#   tape. Verdicts: 'allow' (price broke the level), 'block' (entered BELOW the level = no break),
+#   'skip' (no marked level, or a do-not-trade veto on the sheet).
+# ============================================================
+CHART_GATE_ENFORCE = os.environ.get("CHART_GATE_ENFORCE", "0") == "1"
+
+def _chart_break_gate(ticker, entry_price):
+    """No Break, No Trade. Returns (verdict, reason, level, source) and NEVER raises (fail-safe →
+    a gate bug must never crash the trade path). verdict ∈ {'allow','block','skip'}."""
+    try:
+        lv = (_fetch_kev_levels() or {}).get(ticker) or {}
+        note = str(lv.get("note") or "").lower()
+        if lv.get("veto") or "do-not-trade" in note or "do not trade" in note or "pass" == note.strip():
+            return ("skip", "veto_do_not_trade", lv.get("break"), "sheet")   # e.g. VEEE 7/17
+        brk = lv.get("break")
+        try:
+            brk = float(brk)
+        except (TypeError, ValueError):
+            brk = 0.0
+        if brk <= 0:
+            return ("skip", "no_marked_level", None, "none")                 # no read → no trade
+        if float(entry_price) >= brk:
+            return ("allow", "broke_level", brk, "sheet")                    # price broke the mark
+        return ("block", "no_break_below_level", brk, "sheet")               # entered under the mark
+    except Exception:
+        return ("skip", "gate_error", None, "none")
 
 
 def _seed_day2_from_gappers(gappers: list):
@@ -6042,6 +6095,23 @@ def main():
         def _trade_worker(ticker, entry_price, vwap, entry_type="flat_top", extra=None):
             nonlocal session_pnl, trade_count, settled_remaining, current_balance
             extra = extra or {}
+
+            # ── LAYER 2: "No Break, No Trade" chart-level gate — SHADOW unless CHART_GATE_ENFORCE=1 ──
+            # Logs the verdict beside EVERY trade so we can validate against real tape before enforcing.
+            # Default = shadow: records only, changes nothing. Enforce = block non-'allow' entries.
+            _cg_verdict, _cg_reason, _cg_level, _cg_src = _chart_break_gate(ticker, entry_price)
+            _log_decision(ticker, "chart_gate_" + _cg_verdict,
+                          entry=round(float(entry_price), 4), break_level=_cg_level,
+                          reason=_cg_reason, src=_cg_src, entry_type=entry_type,
+                          enforced=CHART_GATE_ENFORCE)
+            print(f"   📐 CHART-GATE [{'ENFORCE' if CHART_GATE_ENFORCE else 'SHADOW'}] {ticker}: "
+                  f"{_cg_verdict.upper()} ({_cg_reason}) — entry ${float(entry_price):.4f} vs level "
+                  f"{('$%.4f' % _cg_level) if _cg_level else 'none'}")
+            if CHART_GATE_ENFORCE and _cg_verdict != "allow":
+                _log_decision(ticker, "chart_gate_blocked_trade",
+                              entry=round(float(entry_price), 4), break_level=_cg_level, reason=_cg_reason)
+                print(f"   ⛔ CHART-GATE BLOCKED {ticker} entry (no break of marked level) — no trade")
+                return   # ENFORCE mode only: Kev's No-Break-No-Trade blocks this entry
 
             # DATA-ONLY: capture where price sat vs the 90 EMA at entry, so we can later study
             # whether a 90-EMA filter/entry would help. Does NOT affect this trade. See [[project_kev_lessons]].

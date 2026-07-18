@@ -153,6 +153,38 @@ if hasattr(bot, "_shadow_flush_payload"):
     with bot._shadow_lock:
         bot._shadow_bars[10].pop("RIGTEST", None); bot._shadow_bars[10].pop("TINY", None)
 
+
+# ── T8: chart-break gate contract (Layer 2 — "No Break, No Trade") ───────────
+# Locks _chart_break_gate's behavior BEFORE it is ever enforced (CHART_GATE_ENFORCE=1).
+# Levels are pre-seeded into the module cache so the gate reads them WITHOUT any network.
+print("T8  chart-gate: No-Break-No-Trade contract")
+check("T8a contract: _chart_break_gate exists", hasattr(bot, "_chart_break_gate"))
+if hasattr(bot, "_chart_break_gate"):
+    _today = bot.datetime.now(bot.EASTERN).strftime("%Y-%m-%d")
+    bot._kev_levels_cache.update({"date": _today, "ts": bot.time.time(), "levels": {
+        "BRK":  {"break": 2.00, "note": "vision TAKE (levels-only)"},
+        "VETO": {"break": 1.50, "note": "do-not-trade — parabolic blow-off"},
+    }})
+    g = bot._chart_break_gate
+    check("T8b entry ABOVE the marked break → allow", g("BRK", 2.05)[0] == "allow")
+    check("T8c entry BELOW the marked break → block", g("BRK", 1.80)[0] == "block")
+    check("T8d unknown ticker (no marked level) → skip", g("NONE", 3.00)[0] == "skip")
+    check("T8e do-not-trade veto → skip regardless of price", g("VETO", 9.99)[0] == "skip")
+    check("T8f gate is fail-safe: bad input never raises → skip",
+          g("BRK", None)[0] in ("allow", "block", "skip"))
+    check("T8g config pin: KEV_LEVELS_TTL_SECS <= 120 (intraday vision levels reach the gate fast; "
+          "the per-day cache blinded the gate to every level posted after boot — Fable audit 7/18)",
+          getattr(bot, "KEV_LEVELS_TTL_SECS", 10**9) <= 120)
+    # T8h: TTL expired + dashboard unreachable → serve same-day LAST-KNOWN-GOOD, never a {} spike
+    # (in ENFORCE a {} would block every name until the next successful refresh)
+    _saved_url = bot.os.environ.pop("SCREENER_URL", None)
+    bot._kev_levels_cache["ts"] = 0.0
+    check("T8h refresh failure serves last-known-good same-day levels", g("BRK", 2.05)[0] == "allow")
+    if _saved_url is not None:
+        bot.os.environ["SCREENER_URL"] = _saved_url
+    bot._kev_levels_cache.update({"date": None, "levels": {}, "ts": 0.0})   # reset shared cache
+
+
 print()
 print(f"{'='*50}\n{len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

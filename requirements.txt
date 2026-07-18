@@ -1,5 +1,6 @@
 anthropic>=0.52.0
 flask>=3.0.0
+matplotlib>=3.7        # newcomer_vision_reader chart renders (reader service)
 requests==2.31.0
 pytz==2024.1
 paho-mqtt==1.6.1

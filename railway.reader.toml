@@ -1,0 +1,25 @@
+# Newcomer vision reader — the 4th service (Marcos 7/18: "I want these reads to happen
+# on their own through the Anthropic API"). Point the reader service's Config-as-code
+# (Settings → Config-as-code) at THIS file so it doesn't inherit the bot's railway.toml.
+#
+# Pattern = the bot's own: CRON-started each weekday morning (13:05 UTC = 9:05am ET during
+# EDT; adjust to 14:05 when DST ends in November, same as the bot's 12:45), reads scanner
+# newcomers all day (autonomous Sonnet vision → mandatory level posted to the dashboard
+# _levels store), exits at NEWCOMER_STOP_HHMM (15:30 ET). restart=never: the daily exit is
+# NORMAL — the next cron re-arms tomorrow. Known limit: a mid-day crash stays down until
+# the next cron (the bot is unaffected — it fails closed to already-marked names).
+#
+# Env needed on THIS service: ANTHROPIC_API_KEY, SCREENER_URL,
+# START_APP=newcomer_vision_reader.py, NEWCOMER_VISION_MODEL=<bake-off winner>.
+# Isolation: watchPatterns means reader-only pushes rebuild ONLY the reader; and this
+# service's life/death never touches the bot — the only coupling is the dashboard store.
+[build]
+builder = "nixpacks"
+watchPatterns = ["newcomer_vision_reader.py"]
+
+[deploy]
+startCommand = "python newcomer_vision_reader.py"
+restartPolicyType = "never"
+
+[cron]
+schedule = "5 13 * * 1-5"

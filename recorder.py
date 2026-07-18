@@ -116,6 +116,16 @@ def cur_vwap(sym):
     return None
 
 # ── premarket / movers scan (standalone; mirrors scan_morning_gappers) ───────
+def _silence_webull_sdk_logs():
+    """429-kill (7/18): the SDK logs every ServerException at ERROR with the FULL SIGNED REQUEST
+    (x-access-token included) to stdout, and response.py force-DEBUGs its own logger. Every
+    webull.* logger → CRITICAL, each individually (a child's explicit level beats any parent)."""
+    import logging
+    names = {"webull", "webull.core", "webull.core.client", "webull.core.http.response"}
+    names.update(n for n in logging.root.manager.loggerDict if n.startswith("webull"))
+    for n in names:
+        logging.getLogger(n).setLevel(logging.CRITICAL)
+
 _data_client = None
 def data_client():
     global _data_client
@@ -129,6 +139,7 @@ def data_client():
         api = ApiClient(APP_KEY, APP_SECRET, "us", token_check_duration_seconds=60, token_check_interval_seconds=5)
         api.set_token_dir(str(td)); api.add_endpoint("us", "api.webull.com")
         _data_client = DataClient(api)
+        _silence_webull_sdk_logs()   # client init (re)configures SDK loggers — silence after
     except Exception as e:
         log(f"data client init failed: {e}")
         _data_client = None

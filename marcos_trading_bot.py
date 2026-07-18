@@ -186,11 +186,37 @@ def _make_data_client():
 
 _cached_data_client = None   # reused across calls to avoid reinit overhead
 
+# ── 429-KILL set (7/18, Marcos: "whatever is needed to eliminate the 429 spam do it") ────────
+# The SDK logs every ServerException at ERROR with the FULL SIGNED REQUEST — x-access-token
+# included — to stdout (client.py:360-362; data_client's default set_stream_logger), and
+# response.py force-sets its own logger to DEBUG with a private StreamHandler. On a 429 burst
+# that's the 500 logs/sec Railway storm that dropped 45K of our own prints (7/14) AND the token
+# leak. Fix: every webull.* logger → CRITICAL (each individually — a child's explicit level
+# beats any parent setting). Our own _exec_health counters/prints stay the observability.
+# NOTE: the already-leaked token still needs ROTATION — silencing stops NEW leaks only.
+try:
+    from webull.core.exception.exceptions import ServerException as _WBServerException
+    if not (isinstance(_WBServerException, type) and issubclass(_WBServerException, BaseException)):
+        raise ImportError("stubbed module")
+except Exception:
+    class _WBServerException(Exception):   # rig/stub fallback — keeps `except` clauses valid
+        http_status = None
+
+def _silence_webull_sdk_logs():
+    import logging
+    names = {"webull", "webull.core", "webull.core.client", "webull.core.http.response"}
+    names.update(n for n in logging.root.manager.loggerDict if n.startswith("webull"))
+    for n in names:
+        logging.getLogger(n).setLevel(logging.CRITICAL)
+
+_silence_webull_sdk_logs()   # pre-import: pins the known names before the SDK loads
+
 def _get_data_client():
     """Return a cached DataClient, initializing once per process."""
     global _cached_data_client
     if _cached_data_client is None:
         _, _cached_data_client = _make_data_client()
+        _silence_webull_sdk_logs()   # client init (re)configures SDK loggers — re-silence after
     return _cached_data_client
 
 
@@ -2308,10 +2334,29 @@ def get_account_balance():
     return 100.0
 
 
+_rest_price_cache = {}                  # {TICKER: (attempt_ts, price)} — see _get_price_rest
+_rest_price_lock = threading.Lock()
+REST_PRICE_TTL_SECS = float(os.environ.get("REST_PRICE_TTL_SECS", "3"))
+
 def _get_price_rest(ticker) -> float:
-    """REST fallback for current price when MQTT is unavailable. Uses SDK."""
+    """REST fallback for current price when MQTT is unavailable. Uses SDK.
+    CACHED ~3s per ticker (attempts AND results — 429-kill set 7/18): loop_sleep's single GLOBAL
+    tick stamp means one hot name keeps the whole loop at 0.5s, REST-hammering every quiet name
+    2×/sec (~20 calls/sec — the 7/17-verified flood). This cache enforces the loop's own documented
+    invariant ("streaming can never poll REST harder than plain 3s polling") PER NAME, regardless
+    of loop cadence. Failures cache too (0 already means "no price" to callers) so a 429 storm
+    can't hammer retries. A healthy stream bypasses this entirely (get_price serves fresh ticks)."""
+    t = str(ticker).upper()
+    now = time.time()
+    with _rest_price_lock:
+        rec = _rest_price_cache.get(t)
+        if rec and now - rec[0] < REST_PRICE_TTL_SECS:
+            return rec[1]
     q = _get_webull_quote(ticker)
-    return q.get("last_price", 0) or 0
+    px = q.get("last_price", 0) or 0
+    with _rest_price_lock:
+        _rest_price_cache[t] = (time.time(), px)
+    return px
 
 
 _quote_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4,
@@ -2401,10 +2446,22 @@ def _get_webull_quote(ticker, executor=None) -> dict:
             "pre_market_change_pct": round(pre_r, 2),
             "vwap":                  vwap,
         }
+    except _WBServerException as e:
+        # 7/17: the SDK RAISES on HTTP errors, so the resp.status_code==429 check above is dead code
+        # and the 429 gauge read zero through entire rate-limit storms. Count from the exception.
+        _st = getattr(e, "http_status", None)
+        _bump("api_429" if _st == 429 or "429" in str(e) else "api_err")
+        global _last_srvexc_print
+        if time.time() - _last_srvexc_print > 30:   # per-call prints at flood rate were their own storm
+            _last_srvexc_print = time.time()
+            print(f"⚠️  Webull ServerException (status {_st}) for {ticker} — counting quietly, next print ≥30s")
+        return {}
     except Exception as e:
         print(f"⚠️  Webull quote error for {ticker}: {e}")
         _bump("api_err")
         return {}
+
+_last_srvexc_print = 0.0   # throttle for the ServerException print above
 
 
 def check_webull_connection() -> bool:

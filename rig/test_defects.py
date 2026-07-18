@@ -185,6 +185,57 @@ if hasattr(bot, "_chart_break_gate"):
     bot._kev_levels_cache.update({"date": None, "levels": {}, "ts": 0.0})   # reset shared cache
 
 
+
+# ── T9: 429-kill set — REST cache, ServerException counting, SDK log silence ─
+print("T9  429-kill: REST cache / exception counting / log silence")
+check("T9a contract: cache + silencer + exc-class + TTL pin exist",
+      all(hasattr(bot, n) for n in ("_get_price_rest", "_silence_webull_sdk_logs",
+                                    "_WBServerException", "REST_PRICE_TTL_SECS", "_rest_price_cache")))
+if hasattr(bot, "_rest_price_cache"):
+    calls = {"n": 0}
+    _orig_qt = bot._get_webull_quote
+    bot._get_webull_quote = lambda tk, executor=None: (calls.__setitem__("n", calls["n"] + 1)
+                                                       or {"last_price": 5.0})
+    bot._rest_price_cache.clear()
+    p1 = bot._get_price_rest("RIG9"); p2 = bot._get_price_rest("RIG9")
+    check("T9b two calls within TTL → ONE underlying fetch", calls["n"] == 1 and p1 == p2 == 5.0,
+          f"underlying calls={calls['n']}")
+    bot._rest_price_cache["RIG9"] = (0.0, 5.0)                       # force-expire
+    bot._get_price_rest("RIG9")
+    check("T9c expired TTL → refetches", calls["n"] == 2, f"underlying calls={calls['n']}")
+    bot._get_webull_quote = lambda tk, executor=None: (calls.__setitem__("n", calls["n"] + 1) or {})
+    bot._rest_price_cache.clear()
+    z1 = bot._get_price_rest("RIG9F"); z2 = bot._get_price_rest("RIG9F")
+    check("T9d failures cached too — a 429 storm can't hammer retries",
+          calls["n"] == 3 and z1 == 0 and z2 == 0, f"underlying calls={calls['n']}")
+    bot._get_webull_quote = _orig_qt
+    bot._rest_price_cache.clear()
+
+    # the 429 gauge was STRUCTURALLY zero: SDK raises ServerException, never returns a 429 resp
+    class _DC:
+        class market_data:
+            @staticmethod
+            def get_snapshot(**kw):
+                raise bot._WBServerException("GATEWAY", "too many requests 429", 429)
+    _orig_gdc = bot._get_data_client
+    bot._get_data_client = lambda: _DC
+    b429 = bot._exec_health["api_429"]
+    r = bot._get_webull_quote("RIG9E")
+    check("T9e ServerException counts as api_429 + fails safe to {}",
+          r == {} and bot._exec_health["api_429"] == b429 + 1,
+          f"api_429 {b429}→{bot._exec_health['api_429']}")
+    bot._get_data_client = _orig_gdc
+
+    import logging as _lg
+    _lg.getLogger("webull.core.http.response").setLevel(_lg.DEBUG)   # simulate SDK's force-DEBUG
+    bot._silence_webull_sdk_logs()
+    check("T9f every webull.* logger at CRITICAL (token dump + 429 storm silenced)",
+          _lg.getLogger("webull.core.client").level == _lg.CRITICAL
+          and _lg.getLogger("webull.core.http.response").level == _lg.CRITICAL)
+    check("T9g config pin: REST_PRICE_TTL_SECS >= 2 (never regress to hammering)",
+          bot.REST_PRICE_TTL_SECS >= 2)
+
+
 print()
 print(f"{'='*50}\n{len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

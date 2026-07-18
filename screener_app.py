@@ -165,6 +165,16 @@ def _pre_populate_token():
         pass
 
 
+def _silence_webull_sdk_logs():
+    """429-kill (7/18): the SDK logs every ServerException at ERROR with the FULL SIGNED REQUEST
+    (x-access-token included) to stdout, and response.py force-DEBUGs its own logger. Every
+    webull.* logger → CRITICAL, each individually (a child's explicit level beats any parent)."""
+    import logging
+    names = {"webull", "webull.core", "webull.core.client", "webull.core.http.response"}
+    names.update(n for n in logging.root.manager.loggerDict if n.startswith("webull"))
+    for n in names:
+        logging.getLogger(n).setLevel(logging.CRITICAL)
+
 def _make_data_client():
     if not WEBULL_SDK_AVAILABLE or not WebullDataClient:
         return None
@@ -175,7 +185,9 @@ def _make_data_client():
                                token_check_interval_seconds=5)
         api_client.set_token_dir(WEBULL_TOKEN_DIR)
         api_client.add_endpoint("us", TRADING_HOST)
-        return WebullDataClient(api_client)
+        client = WebullDataClient(api_client)
+        _silence_webull_sdk_logs()   # client init (re)configures SDK loggers — silence after
+        return client
     except Exception as e:
         print(f"DataClient error: {e}")
         return None

@@ -18,6 +18,7 @@ Sonnet at ~55 reads/day (see LAYER2_AUDIT_NOTE.md). Model is env-configurable.
 Run modes:
   python3 newcomer_vision_reader.py --once      # read all current unread active newcomers, exit
   python3 newcomer_vision_reader.py             # loop until STOP_HHMM (default 15:30 ET)
+Deployed as the Railway "reader" service (cron 12:50 UTC weekdays — see railway.reader.toml).
 
 Requires env: ANTHROPIC_API_KEY (already on the bot's Railway env), SCREENER_URL, DASHBOARD_SECRET.
 SHADOW-SAFE: this only WRITES chart-read levels; it never places a trade. The bot's gate stays in

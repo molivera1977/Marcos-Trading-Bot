@@ -39,9 +39,13 @@ DAY = os.environ.get("NEWCOMER_DAY") or dt.datetime.now(ET).strftime("%Y-%m-%d")
 # Names that ALREADY have a level today (night sheet OR an earlier vision read) are excluded
 # DYNAMICALLY in active_newcomers() — never re-read, never overwrite the human-marked sheet.
 # (Was a hardcoded 7/17 sheet list — stale by the very next session; Fable audit 7/18.)
-MAX_ATTEMPTS = int(os.environ.get("NEWCOMER_MAX_ATTEMPTS", "3"))    # per-name daily cap (cost guard)
-SPACING      = float(os.environ.get("NEWCOMER_READ_SPACING", "2"))  # secs between reads (dashboard-kind)
-_attempts = {}                                                      # per-name attempts (process = one day)
+MAX_ATTEMPTS = int(os.environ.get("NEWCOMER_MAX_ATTEMPTS", "3"))    # per-name BILLED vision calls (cost guard)
+MAX_RENDER_FAILS = int(os.environ.get("NEWCOMER_MAX_RENDER_FAILS", "10"))  # per-name chart-fetch fails —
+#   /api/daily hits Webull LIVE (429-able); a failed render is free + retryable, so it gets its OWN,
+#   looser cap (10 × 90s loop ≈ rides out a 15-min 429 storm) and must NEVER burn a billed attempt
+SPACING      = float(os.environ.get("NEWCOMER_READ_SPACING", "2"))  # secs between reads (quota-kind)
+_attempts = {}                                                      # per-name BILLED attempts (process = one day)
+_rfail    = {}                                                      # per-name render failures
 # only names the bot ACTUALLY considers (reached these) get the (billable) read — not raw flickers
 ACTIVE_STATUSES = {"break_armed","consolidating","orb_break_armed","triggered_flat_top",
                    "triggered_ignition","filled","ignition_low_room_soft","low_room_soft","reentry_eligible"}
@@ -281,13 +285,15 @@ def process_once(dry=False, out_rows=None):
     print(f"[{dt.datetime.now(ET):%H:%M:%S}] active={len(roster)} already-read={len(seen)} "
           f"to-read={len(todo)}{'  (DRY — no posts)' if dry else ''}", flush=True)
     for tm,tk in todo:
-        if _attempts.get(tk, 0) >= MAX_ATTEMPTS:
+        if _attempts.get(tk, 0) >= MAX_ATTEMPTS or _rfail.get(tk, 0) >= MAX_RENDER_FAILS:
             continue                       # gave up on this name today (cost guard) → stays unarmed
-        _attempts[tk] = _attempts.get(tk, 0) + 1
-        time.sleep(SPACING)                # pace dashboard GETs + vision calls
+        time.sleep(SPACING)                # pace Webull-backed daily GETs + vision calls
         png, cand = render_daily_png(tk)
-        if not png:
-            print(f"  {tk}: no daily chart — skip", flush=True); continue
+        if not png:                        # /api/daily is Webull-live → could be a 429; free retry
+            _rfail[tk] = _rfail.get(tk, 0) + 1
+            print(f"  {tk}: no daily chart (fetch fail {_rfail[tk]}/{MAX_RENDER_FAILS}) — retry next loop", flush=True)
+            continue
+        _attempts[tk] = _attempts.get(tk, 0) + 1   # count BILLED attempts only, after a good render
         last_px = pxmap.get(tk) or (cand or {}).get("prior_day_close")
         rd = vision_read(tk, png, cand, last_px)
         if rd.get("error"):

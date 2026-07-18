@@ -189,7 +189,7 @@ READ_PROMPT = """You are an experienced small-cap momentum trader (Kev lineage) 
 ★ MANDATORY — you MUST return a break_level (this is Kev's method): the specific price that, once broken and HELD, confirms a tradeable upside move. Required for EVERY name including weak/downtrending/choppy ones — for a weak name it is the price it must RECLAIM to become tradeable (yesterday's high, the reaction high, or the level it broke down from). NEVER return null for break_level. Why it's safe: we only trade if price actually reaches and HOLDS the level intraday; if it never gets there, we don't trade — so marking a level costs nothing and missing one costs a winner if it turns.
 
 Assess objectively: TREND (up/down/sideways), STRUCTURE (base, coil near highs, pullback to support, breakdown, range), POSITION (near highs = room above, mid-range, at lows), ROOM (distance to next overhead vs risk to nearest support). For a gapper, use the MEANINGFUL recent structure high, not a stale prior-day high far below price.
-setup="parabolic" ONLY for an already-vertical blow-off with no definable risk (that name has no safe reclaim — it will be vetoed). Everything else gets a real break_level.
+setup="parabolic" ONLY for an already-vertical blow-off — the label is DATA, not a veto: STILL give the break/reclaim level like every other name (levels-only; Marcos 7/18).
 Set verdict to your genuine lean (TAKE favors an upside break next day / SKIP favors downside-or-chop / MARGINAL mixed) — but the DECISION is the LEVEL, not the verdict.
 
 PRECISE CANDIDATE LEVELS (computed from the data — SELECT the meaningful ones; do NOT estimate prices off the pixels):
@@ -201,15 +201,14 @@ Return ONLY this JSON (no prose, no code fence). break_level is REQUIRED (never 
 
 def validate_read(rd, last_px):
     """LEVELS-ONLY validation (7/18): the DECISION is the break_level, not the verdict, so a break_level
-    is MANDATORY for every read (parabolic = the one exception → vetoed at post, not here). Rejected =
-    no level posted = that name is not armed. Returns (ok, why)."""
+    is MANDATORY for every read — NO exceptions (the parabolic veto was removed 7/18 per Marcos:
+    levels-only; the full-week replay showed the veto forfeited the biggest winners, e.g. NVVE).
+    Rejected = no level posted = that name is not armed. Returns (ok, why)."""
     if not isinstance(rd, dict) or rd.get("error"):
         return False, rd.get("error","not a dict")
     v = str(rd.get("verdict","")).upper()
     if v not in ("TAKE","SKIP","MARGINAL"):
         return False, f"bad verdict {v!r}"
-    if str(rd.get("setup","")).lower() == "parabolic":
-        return True, "parabolic → will be vetoed at post"      # valid read, no tradeable level
     brk = rd.get("break_level")
     try: brk = float(brk)
     except (TypeError, ValueError): return False, "mandatory break_level missing/non-numeric"
@@ -252,7 +251,9 @@ def post_level(ticker, read):
     """MERGE (never overwrite): GET today's levels, add/replace this ticker, POST the union.
     LEVELS-ONLY (7/18): post the mandatory break_level for EVERY name regardless of verdict — the
     intraday break-and-hold-on-volume (shadow_trigger_10s) is what filters knives, NOT the verdict.
-    ONLY exception = setup 'parabolic' (no definable risk / Kev pass) → do-not-trade note = not armed.
+    NO veto branch: the parabolic veto was REMOVED 7/18 (Marcos: levels-only — "I don't remember
+    including a No-Trade grade for parabolics"; it forfeited NVVE +$62.60 in the week replay).
+    setup='parabolic' still posts as DATA on the entry; the level arms like every other name.
     Fable audit 7/18: (a) ABORT if the GET fails — the POST endpoint REPLACES the day's store, a blind
     post wipes it; (b) pass the tickers list through UNCHANGED — posting cur.keys() grew the bot's
     force-watched kev list every rescan (marcos_trading_bot line ~6038) = stream/rate-limit pollution."""
@@ -264,16 +265,11 @@ def post_level(ticker, read):
     # the gate vetoes on the phrase "do not trade" in the note — scrub model-authored reason text so
     # a phrase inside a TAKE reason can't accidentally veto the name
     reason  = re.sub(r"do[- ]?not[- ]?trade", "", reason, flags=re.I).strip()
-    if str(read.get("setup","")).lower() == "parabolic":
-        entry = {"break": read.get("break_level"), "confirm": None, "targets": [],
-                 "setup": "parabolic", "confidence": read.get("confidence"),
-                 "note": f"do-not-trade — parabolic blow-off: {reason}", "src": "vision"}
-    else:  # mandatory level for every other name → armed; intraday break-and-hold decides
-        entry = {"break": read.get("break_level"), "confirm": read.get("confirm_level"),
-                 "next_supply": read.get("next_supply"), "stop": read.get("stop_level"),
-                 "room_rr": read.get("room_rr"), "targets": read.get("targets") or [],
-                 "setup": read.get("setup"), "confidence": read.get("confidence"),
-                 "note": f"vision {verdict} (levels-only): {reason}", "src": "vision"}
+    entry = {"break": read.get("break_level"), "confirm": read.get("confirm_level"),
+             "next_supply": read.get("next_supply"), "stop": read.get("stop_level"),
+             "room_rr": read.get("room_rr"), "targets": read.get("targets") or [],
+             "setup": read.get("setup"), "confidence": read.get("confidence"),
+             "note": f"vision {verdict} (levels-only): {reason}", "src": "vision"}
     cur[ticker] = entry
     try:
         _post("/api/kev_watchlist", {"date": DAY, "tickers": tickers, "levels": cur})

@@ -71,9 +71,22 @@ NOTE: recorder + dashboard services redeploy too (silencer touched them) — wee
 - REST call volume: quiet names refresh ≤1/3s each (was 2×/sec each). If 429s persist at that
   reduced rate, the account-level quota itself is the story — that's a data-plan decision, not code.
 
+## THE STANDING DAILY WORKFLOW (Marcos's spec, 7/18 — "Nothing will ever get traded
+## unless a chart and read has been done")
+- **NIGHT** — Marcos gives the Kev list + HIS levels in chat → posted to the store → verify GET-back.
+  Kev's levels are CANONICAL for the gate (Kev is the Bible).
+- **8:50 ET** — reader cron fires. Wave 1: SHADOW-reads every sheet name — our automated read of
+  Kev's own charts, stored beside his levels (`vision_shadow`, never touching his) = the daily
+  reading exam. Wave 2: the bot's morning scanner batch (watching list) read before the open.
+- **All day** — wave 3: every new ticker joining the scanner triggers a chart+read (~90s poll).
+- **Always** — the ENFORCE gate: no level, no break of it → no trade. No Read, No Trade.
+- **EOD** — `python3 grade_reads_eod.py` → THE KEV EXAM (our level vs his vs the outcome, distance
+  + agreement) + newcomer forward grades; appends to iCloud `read_grades.jsonl` (the capability
+  track record). Volume: up to ~85 reads/day ≈ $0.50/day ≈ $11/mo (estimate).
+
 ## MON 7/20 — the reads run THEMSELVES
-- 9:05 ET: reader service cron-fires on Railway — check its logs show `key=set` + first cycle.
-  NO terminal, NO key handling: newcomer appears → chart read → level posted, all autonomous.
+- 8:50 ET: reader service cron-fires on Railway — check its logs show `key=set` + the shadow pass.
+  NO terminal, NO key handling: sheet exam → morning batch → all-day trickle, all autonomous.
 - Terminal (10s trigger only, shadow JSONL, stays local — writes to iCloud):
   `python3 shadow_trigger_10s.py`
 - Watch Railway bot logs for `CHART-GATE [ENFORCE]` lines: allow / block / skip per entry.
@@ -82,8 +95,9 @@ NOTE: recorder + dashboard services redeploy too (silencer touched them) — wee
   `railway run --service Marcos-Trading-Bot python3 newcomer_vision_reader.py`
 
 ## MON EOD — SCORECARD (before trusting anything)
+- `python3 grade_reads_eod.py` — the Kev exam + newcomer forward grades (automated)
 - Gate: every `chart_gate_*` decision vs what the name actually did (allow→outcome, block→saved?)
-- Reader: hand-grade every posted level vs the chart
+- Reader: hand-grade a few posted levels vs the actual charts (spot-check the automated grade)
 - Trigger: review `shadow_triggers_2026-07-20.jsonl` (fwd MFE/MAE per trigger)
 - First live day = DATA, not proof. The scorecard accrues; nothing scales until it proves out.
 

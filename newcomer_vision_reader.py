@@ -46,9 +46,11 @@ MAX_RENDER_FAILS = int(os.environ.get("NEWCOMER_MAX_RENDER_FAILS", "10"))  # per
 SPACING      = float(os.environ.get("NEWCOMER_READ_SPACING", "2"))  # secs between reads (quota-kind)
 _attempts = {}                                                      # per-name BILLED attempts (process = one day)
 _rfail    = {}                                                      # per-name render failures
-# only names the bot ACTUALLY considers (reached these) get the (billable) read — not raw flickers
+# only names the bot ACTUALLY considers (reached these) get the (billable) read — not raw flickers.
+# "watching" = the bot's morning scanner batch (posted ~8:50-9:00) → read BEFORE the open (7/18).
 ACTIVE_STATUSES = {"break_armed","consolidating","orb_break_armed","triggered_flat_top",
-                   "triggered_ignition","filled","ignition_low_room_soft","low_room_soft","reentry_eligible"}
+                   "triggered_ignition","filled","ignition_low_room_soft","low_room_soft",
+                   "reentry_eligible","watching"}
 
 def _get(url, timeout=45):
     return json.loads(urllib.request.urlopen(url, timeout=timeout).read())
@@ -81,7 +83,9 @@ def _today_watchlist():
         return None, None
 
 def active_newcomers():
-    """Returns (first_seen_map, last_price_map) for active newcomers WITHOUT a level today."""
+    """Returns (first_seen_map, last_price_map) for active names WITHOUT a level today.
+    Roster = decision-archive actives ∪ the bot's morning WATCHING batch (7/18: the day-keyed
+    /api/watching?date= history, so a stale prior-day snapshot can never leak in)."""
     lv, _tk = _today_watchlist()
     if lv is None:
         return {}, {}                      # dashboard unreachable → fail closed, retry next loop
@@ -100,6 +104,15 @@ def active_newcomers():
         if p is not None:
             try: px[tk]=float(p)     # last-written price wins (rows are appended in time order)
             except (TypeError, ValueError): pass
+    try:                                   # morning batch: read the scanner BEFORE names go active
+        watch = _get(f"{U}/api/watching?date={DAY}").get("tickers") or []
+    except Exception:
+        watch = []                         # fail-soft: the archive roster still drives
+    for tk in watch:
+        tk = str(tk).upper()
+        if not tk or tk in marked or tk.startswith("_") or tk in first: continue
+        first[tk] = ""                     # no archive row yet — sorts FIRST = read first
+        status.setdefault(tk, set()).add("watching")
     active={tk: first[tk] for tk in first if status[tk] & ACTIVE_STATUSES}
     return active, {tk: px.get(tk) for tk in active}
 
@@ -267,6 +280,69 @@ def post_level(ticker, read):
     except Exception as e:
         print(f"[write] post failed for {ticker}: {e}", flush=True); return False
 
+# ── Kev-sheet SHADOW reads (Marcos 7/18: "I want to give you the Kev list at night with his
+# levels but I want us to also have an automated read for them so we can grade out our reading
+# capabilities.") — HIS levels stay canonical for the gate; OUR read of the same chart is stored
+# BESIDE them under 'vision_shadow'. The gate reads only top-level break/note, so a shadow can
+# NEVER affect trading. grade_reads_eod.py turns the pairs into the daily reading scorecard. ──
+def post_shadow(ticker, read):
+    cur, tickers = _today_watchlist()
+    if cur is None:
+        return False                       # never post blind (endpoint REPLACES the day's store)
+    entry = dict(cur.get(ticker) or {})
+    entry["vision_shadow"] = {
+        "break": read.get("break_level"), "confirm": read.get("confirm_level"),
+        "next_supply": read.get("next_supply"), "stop": read.get("stop_level"),
+        "setup": read.get("setup"), "verdict": read.get("verdict"),
+        "confidence": read.get("confidence"), "room_rr": read.get("room_rr"),
+        "reason": str(read.get("reason", ""))[:160],
+        "model": MODEL, "read_at": f"{dt.datetime.now(ET):%H:%M:%S}",
+    }
+    cur[ticker] = entry
+    try:
+        _post("/api/kev_watchlist", {"date": DAY, "tickers": tickers, "levels": cur})
+        return True
+    except Exception as e:
+        print(f"[shadow] post failed for {ticker}: {e}", flush=True); return False
+
+def sheet_shadow_pass(dry=False, out_rows=None):
+    """One shadow read per sheet name per day (presence of 'vision_shadow' = done). Runs at the
+    top of every cycle, so a late-posted sheet still gets its exam on the next 90s poll."""
+    lv, _ = _today_watchlist()
+    if lv is None:
+        return 0
+    todo = sorted(str(tk).upper() for tk, d in lv.items()
+                  if isinstance(d, dict) and not str(tk).startswith("_")
+                  and d.get("src") != "vision" and "vision_shadow" not in d)
+    done = 0
+    for tk in todo:
+        if _attempts.get(tk, 0) >= MAX_ATTEMPTS or _rfail.get(tk, 0) >= MAX_RENDER_FAILS:
+            continue
+        time.sleep(SPACING)
+        png, cand = render_daily_png(tk)
+        if not png:
+            _rfail[tk] = _rfail.get(tk, 0) + 1
+            print(f"  [shadow] {tk}: no daily chart (fetch fail {_rfail[tk]}/{MAX_RENDER_FAILS}) — retry", flush=True)
+            continue
+        _attempts[tk] = _attempts.get(tk, 0) + 1
+        rd = vision_read(tk, png, cand, (cand or {}).get("prior_day_close"))
+        if rd.get("error"):
+            print(f"  [shadow] {tk}: read error: {rd['error']}", flush=True); continue
+        ok_v, why = validate_read(rd, None)
+        if out_rows is not None:
+            out_rows.append({**rd, "ticker": tk, "_shadow": True, "_accepted": ok_v, "_why": why})
+        if not ok_v:
+            print(f"  [shadow] {tk}: REJECTED ({why})", flush=True); continue
+        kev = (lv.get(tk) or {}).get("break")
+        if dry:
+            print(f"  [shadow-DRY] {tk}: our break={rd.get('break_level')} vs Kev {kev} (not stored)", flush=True)
+            done += 1; continue
+        ok = post_shadow(tk, rd)
+        print(f"  [shadow] {tk}: our break={rd.get('break_level')} vs Kev {kev} "
+              f"→ {'stored' if ok else 'POST FAILED'}", flush=True)
+        done += 1
+    return done
+
 # ── driver ───────────────────────────────────────────────────────────────────────────────────
 def already_read():
     """Names that already have a vision level today (avoid re-reading / re-billing)."""
@@ -277,6 +353,7 @@ def already_read():
         return set()
 
 def process_once(dry=False, out_rows=None):
+    sheet_shadow_pass(dry=dry, out_rows=out_rows)   # the Kev-sheet exam runs FIRST (8:50, pre-open)
     # dry (bake-off / live-proof): read + validate + PRINT every active newcomer, never post.
     seen = set() if dry else already_read()
     roster, pxmap = active_newcomers()

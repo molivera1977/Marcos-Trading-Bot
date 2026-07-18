@@ -544,6 +544,8 @@ HTML = """<!DOCTYPE html>
   tr.bot-candidate{background:#0d1f14}
   tr.bot-candidate:hover{background:#112b1a}
   tr.bot-candidate td.ticker-cell{font-weight:700;color:#3fb950}
+  .tale-link{margin-left:6px;text-decoration:none;font-size:12px;opacity:.8}
+  .tale-link:hover{opacity:1}
   .bot-pill{display:inline-block;background:#1a3a2a;border:1px solid #2d5a3d;
             color:#3fb950;font-size:10px;font-weight:600;padding:1px 6px;
             border-radius:4px;margin-left:6px;vertical-align:middle}
@@ -692,7 +694,7 @@ function renderRows(rows){
     var ahShow = r.ah_price > 0 && Math.abs(ahPct) >= 0.05;
     var ahP = ahShow ? ' <span class="ah '+(ahPct>=0?'ah-up':'ah-dn')+'">'+ahLbl+' $'+r.ah_price.toFixed(2)+' ('+(ahPct>=0?'+':'')+ahPct.toFixed(1)+'%)</span>' : '';
     return '<tr class="'+(isBot?'bot-candidate ':'')+(isKev?'kev-row':'')+'" data-bot="'+(isBot?'1':'0')+'" data-kev="'+(isKev?'1':'0')+'">'
-      +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+kevBadge+botBadge+'</td>'
+      +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+'<a class="tale-link" href="/tale/'+r.symbol+'" title="Tale of the Ticker — chart read, levels, gate status">📜</a>'+kevBadge+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+ahP+'</td>'
       +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
       +'<td class="'+floatClass+'">'+r.float_label+'</td>'
@@ -1668,6 +1670,79 @@ def get_kev_watchlist():
         return jsonify({"date": date, "tickers": _kev_wl.get(date, []),
                         "levels": _kev_wl.get("_levels", {}).get(date, {})})
     return jsonify(_kev_wl)
+
+
+@app.route("/tale/<ticker>")
+def tale_of_the_ticker(ticker):
+    """TALE OF THE TICKER (Marcos 7/18): the bot's chart read for one name, human-readable —
+    the marked levels and EXACTLY what the gate will do before any entry. Reads the same
+    _levels store the gate uses; ?date= for history (default today). Store-only: zero Webull."""
+    tk = (ticker or "").upper().strip()
+    date = request.args.get("date") or datetime.now(EASTERN).strftime("%Y-%m-%d")
+    d = (_kev_wl.get("_levels", {}).get(date) or {}).get(tk) or {}
+    sh = d.get("vision_shadow") or {}
+
+    def fmt(x):
+        try: return "$%.2f" % float(x)
+        except (TypeError, ValueError): return "—"
+
+    note = str(d.get("note") or "")
+    brk = d.get("break")
+    veto = bool(d.get("veto")) or "do-not-trade" in note.lower() or "do not trade" in note.lower()
+    if not d:
+        gate_color, gate_line = "#8b949e", ("NOT READ YET — No Read, No Trade: the bot will NOT enter "
+                                            + tk + " until a chart read posts a level.")
+    elif veto:
+        gate_color, gate_line = "#f85149", "DO-NOT-TRADE — vetoed by the read. The bot will never enter " + tk + " today."
+    elif not brk:
+        gate_color, gate_line = "#f85149", "No numeric break level — the gate BLOCKS all entries."
+    else:
+        gate_color, gate_line = "#3fb950", ("ARMED — entries ALLOWED at/above " + fmt(brk) +
+                                            " (the break). Below it: BLOCKED. No break, no trade.")
+
+    rows = ""
+    if d:
+        for label, key in [("Break — the trigger", "break"), ("Confirm", "confirm"),
+                           ("Next supply — room ceiling", "next_supply"), ("Stop", "stop")]:
+            rows += "<tr><td>" + label + "</td><td>" + fmt(d.get(key)) + "</td></tr>"
+        tg = d.get("targets") or []
+        rows += ("<tr><td>Targets</td><td>" + (", ".join(fmt(t) for t in tg) if tg else "—") + "</td></tr>")
+        rr = d.get("room_rr")
+        rows += "<tr><td>Room (R:R)</td><td>" + (str(rr) if rr not in (None, "") else "—") + "</td></tr>"
+        rows += "<tr><td>Setup</td><td>" + str(d.get("setup") or "—") + "</td></tr>"
+        rows += "<tr><td>Confidence</td><td>" + str(d.get("confidence") or "—") + "</td></tr>"
+        rows += ("<tr><td>Source</td><td>" + ("🤖 vision read" if d.get("src") == "vision" else "📋 Kev night sheet") + "</td></tr>")
+
+    shadow_html = ""
+    if sh:
+        shadow_html = ("<h3>Our shadow read (exam only — never trades)</h3><table>"
+                       + "<tr><td>Our break</td><td>" + fmt(sh.get("break")) + " vs Kev " + fmt(brk) + "</td></tr>"
+                       + "<tr><td>Our setup / verdict</td><td>" + str(sh.get("setup") or "—") + " / " + str(sh.get("verdict") or "—") + "</td></tr>"
+                       + "<tr><td>Read at</td><td>" + str(sh.get("read_at") or "—") + " by " + str(sh.get("model") or "—") + "</td></tr>"
+                       + "<tr><td>Its words</td><td>" + str(sh.get("reason") or "—") + "</td></tr></table>")
+
+    return ("<!doctype html><html><head><meta charset='utf-8'><meta http-equiv='refresh' content='60'>"
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            "<title>Tale of " + tk + "</title><style>"
+            "body{background:#0d1117;color:#e6edf3;font-family:-apple-system,Segoe UI,sans-serif;max-width:640px;margin:24px auto;padding:0 16px}"
+            "h1{font-size:26px;margin:6px 0} h3{color:#8b949e;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin:22px 0 6px}"
+            ".gate{border-left:4px solid " + gate_color + ";background:#161b22;padding:12px 14px;border-radius:6px;font-weight:600}"
+            "table{width:100%;border-collapse:collapse;background:#161b22;border-radius:6px}"
+            "td{padding:8px 12px;border-bottom:1px solid #21262d;font-size:14px} td:first-child{color:#8b949e;width:46%}"
+            ".note{background:#161b22;padding:12px 14px;border-radius:6px;font-size:14px;line-height:1.5;color:#c9d1d9}"
+            "a{color:#58a6ff;text-decoration:none} .top{font-size:13px;color:#8b949e}"
+            "</style></head><body>"
+            "<div class='top'><a href='/'>← scanner</a> &nbsp;·&nbsp; " + date + " &nbsp;·&nbsp; auto-refreshes 60s</div>"
+            "<h1>📜 Tale of " + tk + "</h1>"
+            "<div class='gate'>" + gate_line + "</div>"
+            "<h3>The chart report — what the bot is watching</h3>"
+            + ("<table>" + rows + "</table>" if rows else "<div class='note'>No read stored for " + tk + " on " + date +
+               ". Newcomers are read within ~2 minutes of joining the scanner (8:50 ET onward).</div>")
+            + ("<h3>The read's words</h3><div class='note'>" + note + "</div>" if note else "")
+            + shadow_html +
+            "<h3>Links</h3><div class='note'><a target='_blank' rel='noopener' href='https://www.tradingview.com/chart/?symbol="
+            + tk + "'>chart ↗</a></div>"
+            "</body></html>")
 
 @app.route("/api/room_stats", methods=["GET"])
 def get_room_stats():

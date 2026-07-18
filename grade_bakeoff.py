@@ -27,13 +27,18 @@ def _get(url, timeout=45):
 
 def day_bar(ticker, day, cache={}):
     if ticker in cache: return cache[ticker]
-    try:
-        bars = _get(f"{U}/api/daily?ticker={ticker}&count=30").get("bars") or []
-        row = next((b for b in bars if b.get("date") == day), None)
-        cache[ticker] = row and {"o": float(row["open"]), "h": float(row["high"]), "c": float(row["close"])}
-    except Exception as e:
-        print(f"  [bars] {ticker}: {e}"); cache[ticker] = None
-    time.sleep(1.0)                                    # pace the dashboard
+    for attempt in range(3):                   # /api/daily is Webull-LIVE → 429s need retry+backoff
+        try:
+            bars = _get(f"{U}/api/daily?ticker={ticker}&count=30").get("bars") or []
+            row = next((b for b in bars if b.get("date") == day), None)
+            cache[ticker] = row and {"o": float(row["open"]), "h": float(row["high"]), "c": float(row["close"])}
+            break
+        except Exception as e:
+            if attempt == 2:
+                print(f"  [bars] {ticker}: {e} (3 attempts)"); cache[ticker] = None
+            else:
+                time.sleep(6.0)
+    time.sleep(1.5)                                    # pace the shared quota
     return cache[ticker]
 
 def grade_file(path, day):

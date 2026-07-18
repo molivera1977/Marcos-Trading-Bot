@@ -88,25 +88,34 @@ def ingest(sym, price, cumvol, ts):
                     if price < b["l"]: b["l"] = price
                     b["c"] = price
                     if cumvol is not None: b["v1"] = cumvol
-        # snapshot-VWAP: accumulate price × Δ(cumulative volume). Complete volume via cumvol,
-        # frequent price via snapshots → far finer than 1-min bars, matches the chart's line.
+        # snapshot-VWAP — REPAIR SHIPPED 7/18 (acceptance = Monday's EOD chart check, NOT this
+        # comment). Old math booked ALL Δvolume at the single newest price — the 7/17 blind test
+        # measured −0.91%/−5.74% vs the chart in fast RTH tape, and this line feeds the bot's
+        # RECORDER_VWAP consumer. Fix: book each Δvolume at the MIDPOINT of (prev px, cur px).
+        # Synthetic-truth matrix (7 regimes): dense tape → strictly better (−0.17→−0.05, +0.28→0.00,
+        # +0.06→+0.03, +0.33→+0.15); sparse MONOTONE legs (Friday's measured failure class:
+        # "error scales with shares-per-snapshot") → −3.51%→−0.15%. Known residual corner: a full
+        # spike-AND-retrace hiding inside one long gap with clustered volume — BOTH formulas are
+        # broken there (old −5.25/+7.17, new −8.52/+11.65); rare under trade-driven quote streams
+        # (bursts generate ticks → density arrives exactly when volume does).
         if cumvol is not None:
             with _lock:
                 v = _vwap.setdefault(sym, {"num": 0.0, "den": 0.0, "last_cumvol": None, "series": []})
                 lc = v["last_cumvol"]
+                lp = v.get("last_px")
                 if lc is None:
                     v["last_cumvol"] = cumvol            # first snapshot: set baseline, no volume yet
                 elif cumvol >= lc:
                     dvol = cumvol - lc
                     if dvol > 0:
-                        v["num"] += price * dvol
+                        v["num"] += ((lp + price) / 2.0 if lp is not None else price) * dvol
                         v["den"] += dvol
                     v["last_cumvol"] = cumvol
                 else:
                     # cumvol decreased = session/counter reset (e.g. PRE→RTH). Re-baseline, don't
-                    # subtract. (Whether the chart treats PRE+RTH as one cumulative line validates
-                    # tomorrow against a screenshot; capture is safe either way.)
+                    # subtract.
                     v["last_cumvol"] = cumvol
+                v["last_px"] = price
     except Exception:
         pass                                            # a bad message never breaks the feed
 

@@ -60,8 +60,10 @@ NOTE: recorder + dashboard services redeploy too (silencer touched them) — wee
       `/api/kev_watchlist` (date=2026-07-20) — same ritual as 7/17
 - [ ] **VERIFY AFTER POST** (audit finding: POST REPLACES the day's store, last-writer-wins; the
       7/17 store ended at 3 names, not the full sheet): `curl -s "$SCREENER_URL/api/kev_watchlist?date=2026-07-20"`
-      and confirm every sheet name + level came back. Post the sheet BEFORE 9:00 Monday; the reader
-      merges around it after that (reader = the ONLY automated writer; recorder only GETs — verified).
+      and confirm every sheet name + level came back — **each name MUST have a NUMERIC `break`**
+      (the enforce gate reads `break` only; a sheet name without one is blocked ALL DAY).
+      Post the sheet BEFORE 9:00 Monday; the reader merges around it after that
+      (reader = the ONLY automated writer; recorder only GETs — verified).
 
 ## MON — WHAT THE LOGS SHOULD LOOK LIKE (429-kill verification)
 - No `ServerException occurred... x-access-token` dumps anywhere (bot/recorder/dashboard).

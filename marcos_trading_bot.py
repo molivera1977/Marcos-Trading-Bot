@@ -6136,6 +6136,9 @@ def main():
             break
 
         # Mark all breakout tickers as traded before threads start
+        _fetch_kev_levels()   # pre-warm the chart-gate levels cache ONCE in the main thread, so the
+                              # per-worker gate check hits a warm cache instead of N parallel cold
+                              # GETs (≤10s each) on the trade path (Fable interaction audit 7/18)
         for entry in breakouts:
             _t = entry[0]
             traded_tickers.add(_t)

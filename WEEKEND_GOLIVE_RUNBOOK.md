@@ -108,8 +108,16 @@ NOTE: recorder + dashboard services redeploy too (silencer touched them) — wee
   bot is UNAFFECTED and fails closed to already-marked names. Manual re-arm if wanted:
   `railway run --service Marcos-Trading-Bot python3 newcomer_vision_reader.py`
 
+## MONDAY'S EXIT ENGINE = kev25 (decided 7/19: "Challenger D is even more Full on Kev")
+- LIVE: 50%@+1R → 25%@+2R → **25% runner** on the prev-bar-low trail; **stop holds STRUCTURE
+  until the second scale** (BE floor moves only after scale #2). Rig T10a–c pin it.
+- SHADOW: the old grid (grid10) gets re-simmed on each day's trades at EOD — the A-vs-D score
+  accumulates daily (survivors-resim harness).
+- REVERT: `EXIT_PROFILE=grid10` env on the bot — **flip only at a FLAT moment** (restart).
+
 ## MON EOD — SCORECARD (before trusting anything)
 - `python3 grade_reads_eod.py` — the Kev exam + newcomer forward grades (automated)
+- A-vs-D shadow line: resim the day's closed trades under grid10, log the delta
 - Gate: every `chart_gate_*` decision vs what the name actually did (allow→outcome, block→saved?)
 - Reader: hand-grade a few posted levels vs the actual charts (spot-check the automated grade)
 - Trigger: review `shadow_triggers_2026-07-20.jsonl` (fwd MFE/MAE per trigger)

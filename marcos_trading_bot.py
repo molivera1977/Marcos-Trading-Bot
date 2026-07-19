@@ -3385,11 +3385,68 @@ def detect_bounce(completed, price):
         return None
 
 
+# ── KEV 3-GATE RECLAIM (7/19, Marcos: "This entry requires volume and the most consistent time of
+# day that provides that volume is early in the trading day. I want this installed for only
+# 9:30-11:00 and shadow it the rest of the trading day.")
+# Ported VERBATIM from the kill-tested detector (3 days of 10s tape: the 09:30–11:00 window scored
+# +$84.09/21 fires 62% WR; post-11:00 −$62.50/10 → LIVE window + all-day shadow logging).
+# Grammar (canon rAPtKlH4Oh0 / zlEn-4uD82k): G1 close crosses ABOVE the session line on ≥2× rolling
+# 10s volume then EXTENDS ≥1% over it; G2 pullback low tags the line (≤+0.5%) WITHOUT losing it
+# (close ≥ vwap×0.99) and prints a BOTTOMING WICK (close in the bar's upper half); G3 next close
+# ABOVE the wick bar's high = entry, risk = min(wick low, vwap), 7% cap. ONE fire per name per day.
+# Inputs = the kill-test's exact inputs: the bot's in-process 10s stream bars (B12 Phase 1) + the
+# recorder session VWAP (premarket-anchored, midpoint-repaired). RECLAIM_KEV=0 disables reclaim
+# entries entirely — the naive 1-gate detector below is RETIRED (era class: −$228.81 / 32 trades).
+RECLAIM_KEV        = os.environ.get("RECLAIM_KEV", "1") == "1"
+RECLAIM_LIVE_START = os.environ.get("RECLAIM_LIVE_START", "09:30")
+RECLAIM_LIVE_END   = os.environ.get("RECLAIM_LIVE_END", "11:00")
+_reclaim_st: dict = {}        # sym -> state machine (daily-keyed inside)
+_reclaim_cursor: dict = {}    # (day, sym) -> last processed 10s bucket epoch
+
+def kev_reclaim_step(sym, new_bars, vwap):
+    """Advance sym's 3-gate machine over NEW completed 10s bars [(o,h,l,c,vol),...] against the
+    current session line. Returns {'stop','wick_low'} exactly ONCE (on the curl), else None."""
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    st = _reclaim_st.get(sym)
+    if not st or st.get("day") != day:
+        st = {"day": day, "phase": "seek", "ext": False, "wick": None, "vols": [], "done": False, "prev_c": None}
+        _reclaim_st[sym] = st
+    if st["done"] or not vwap or vwap <= 0:
+        return None
+    prev_c = st["prev_c"]
+    fired = None
+    for o, h, l, c, v in new_bars:
+        st["vols"].append(v)
+        if len(st["vols"]) > 30: st["vols"].pop(0)
+        avgv = (sum(st["vols"][:-1]) / max(len(st["vols"]) - 1, 1)) if len(st["vols"]) > 1 else 0
+        if st["phase"] == "seek":
+            if prev_c is not None and prev_c <= vwap and c > vwap and avgv > 0 and v >= 2.0 * avgv:
+                st["phase"] = "extend"; st["ext"] = False
+        elif st["phase"] == "extend":
+            if c >= vwap * 1.01: st["ext"] = True
+            if st["ext"] and l <= vwap * 1.005:
+                st["phase"] = "retest"; st["wick"] = None
+            elif c < vwap * 0.99:
+                st["phase"] = "seek"; st["ext"] = False
+        if st["phase"] == "retest" and fired is None:
+            if c < vwap * 0.99:
+                st["phase"] = "seek"; st["ext"] = False; st["wick"] = None
+            else:
+                rng = h - l
+                if rng > 0 and l <= vwap * 1.005 and (c - l) / rng >= 0.5:
+                    st["wick"] = (h, l)
+                elif st["wick"] and c > st["wick"][0]:
+                    st["done"] = True
+                    fired = {"stop": round(max(min(st["wick"][1], vwap), c * 0.93), 4),
+                             "wick_low": st["wick"][1]}
+        prev_c = c
+    st["prev_c"] = prev_c
+    return fired
+
+
 def detect_vwap_reclaim(completed, price, vwap):
-    """Kev's VWAP RECLAIM: price LOST VWAP (traded below), then a candle CLOSES back above VWAP green on
-    returning volume = buyers reclaimed the line → enter, risk below the reclaim low / VWAP. A distinct
-    long trigger from the front-side pullback (this reclaims FROM BELOW) — carries its own volume
-    confirmation, so it bypasses the front-side momentum gate. Any error → None."""
+    """RETIRED 7/19 (kept for reference only — no callers). The naive 1-gate reclaim: era record
+    −$228.81 across 32 trades. Replaced by kev_reclaim_step (3-gate grammar) above."""
     try:
         if vwap <= 0 or len(completed) < 5:
             return None
@@ -4457,41 +4514,52 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     _log_decision(t, "triggered_bounce", price=price, kind=bnc["kind"])
                     found_entry = True
 
-            # ── Entry type 5: VWAP RECLAIM (Kev) — price lost VWAP then reclaimed it green on volume. A
-            #    distinct long trigger (reclaim from below); managed on 3-min, risk below the reclaim/VWAP. ──
-            if not found_entry and vwap > 0:
-                vr = detect_vwap_reclaim(completed, price, vwap)
-                if vr:
-                    vr_stop = vr["stop"]
-                    if "daily" not in cache[t]:
-                        cache[t]["daily"] = get_daily_levels(t)
-                    _daily = cache[t]["daily"]
-                    room = compute_room(price, vr_stop, cache[t].get("full_bars") or bars,
-                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
-                    _vfront = ema9 > ema20 > 0
-                    # 7/13 label split (Gate-2 prereq): this trigger's `vwap` is the ROLLING-45 line, which
-                    # hugs price on a runner — an ordinary pullback can "reclaim" it while sitting far above
-                    # the true SESSION VWAP (VMAR 7/13 entered +11.5% above session VWAP tagged "reclaim").
-                    # Record the session-anchored truth so the study can split true reclaims from momentum
-                    # continuation. INSTRUMENTATION ONLY — no gating, per feedback_dry_run_learning.
-                    _sess_vwap = 0.0
-                    try:
-                        _svb = get_intraday_bars(t, count=VWAP_SESSION_COUNT, sessions=["PRE", "RTH"])
-                        _sess_vwap = calculate_vwap(_fresh_session(_svb)) if _svb else 0.0
-                    except Exception:
-                        pass
-                    _vs_sess = round((price - _sess_vwap) / _sess_vwap * 100, 2) if _sess_vwap > 0 else None
-                    _subtype = ("reclaim_true" if _vs_sess is not None and _vs_sess <= 2.0
-                                else "continuation" if _vs_sess is not None else "unknown")
-                    print(f"\n🔵 {t} VWAP RECLAIM! ${price:.2f} back above VWAP ${vwap:.2f} — stop ${vr_stop:.2f}"
-                          f" | session-VWAP ${_sess_vwap:.2f} ({_vs_sess if _vs_sess is not None else '?'}% above) → {_subtype}")
-                    breakouts.append((t, price, vwap, "vwap_reclaim", {
-                        "zone_stop": vr_stop, "room": room, "ema90": round(ema90, 4),
-                        "front_side": _vfront, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
-                        "reclaim_subtype": _subtype, "entry_vs_session_vwap_pct": _vs_sess,
-                    }))
-                    _log_decision(t, f"triggered_vwap_reclaim_{_subtype}", price=price, vwap=vwap)
-                    found_entry = True
+            # ── Entry type 5: VWAP RECLAIM — KEV 3-GATE (7/19; naive 1-gate RETIRED, era −$228.81/32).
+            #    LIVE fires only 09:30–11:00 ("this entry requires volume; volume is early" — Marcos);
+            #    fires outside the window are SHADOW-LOGGED, no trade. Line = recorder session VWAP
+            #    (premarket-anchored, repaired); bars = in-process 10s stream — the kill-test's inputs. ──
+            if not found_entry and RECLAIM_KEV:
+                _sv = _recorder_tick_vwap(t)
+                _nb = []
+                if _sv and _tick_vwap_ok(_sv, vwap, price):
+                    _day_k = datetime.now(EASTERN).strftime("%Y-%m-%d")
+                    _cur_key = (_day_k, t)
+                    _last_k = _reclaim_cursor.get(_cur_key, 0)
+                    _now_cut = int(time.time()) // 10 * 10          # exclude the still-forming bucket
+                    with _shadow_lock:
+                        _d10 = dict(_shadow_bars[10].get(t) or {})
+                    for _k in sorted(_d10):
+                        if _last_k < _k < _now_cut:
+                            _b = _d10[_k]
+                            _nb.append((_b["o"], _b["h"], _b["l"], _b["c"],
+                                        max((_b.get("v1") or 0) - (_b.get("v0") or 0), 0)))
+                            _reclaim_cursor[_cur_key] = _k
+                if _nb:
+                    vr = kev_reclaim_step(t, _nb, _sv)
+                    if vr:
+                        vr_stop = vr["stop"]
+                        _hm = datetime.now(EASTERN).strftime("%H:%M")
+                        if RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
+                            if "daily" not in cache[t]:
+                                cache[t]["daily"] = get_daily_levels(t)
+                            _daily = cache[t]["daily"]
+                            room = compute_room(price, vr_stop, cache[t].get("full_bars") or bars,
+                                                daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                            print(f"\n🔵 {t} KEV RECLAIM (3-gate)! ${price:.2f} wick-confirmed off session "
+                                  f"VWAP ${_sv:.2f} — stop ${vr_stop:.2f}")
+                            breakouts.append((t, price, _sv, "vwap_reclaim", {
+                                "zone_stop": vr_stop, "room": room, "ema90": round(ema90, 4),
+                                "front_side": ema9 > ema20 > 0, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
+                                "reclaim_subtype": "kev3gate",
+                                "entry_vs_session_vwap_pct": round((price - _sv) / _sv * 100, 2),
+                            }))
+                            _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv)
+                            found_entry = True
+                        else:
+                            print(f"👥 {t} KEV RECLAIM fired {_hm} — outside {RECLAIM_LIVE_START}-"
+                                  f"{RECLAIM_LIVE_END}, SHADOW logged, no trade")
+                            _log_decision(t, "reclaim_shadow_fire", price=price, vwap=_sv,
+                                          stop=vr_stop, time_hm=_hm)
 
             if not found_entry and t not in [s.split(":")[0] for s in status_parts]:
                 status_parts.append(f"{t}:${price:.2f} EMA9:${ema9:.2f}{vwap_tag}")

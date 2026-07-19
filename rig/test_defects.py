@@ -236,6 +236,34 @@ if hasattr(bot, "_rest_price_cache"):
           bot.REST_PRICE_TTL_SECS >= 2)
 
 
+# ── T11: Kev 3-gate reclaim (Marcos 7/19: live 09:30–11:00, shadow otherwise) ─
+print("T11 Kev reclaim state machine + pins")
+check("T11a contract: kev_reclaim_step + config exist",
+      all(hasattr(bot, n) for n in ("kev_reclaim_step", "RECLAIM_KEV",
+                                    "RECLAIM_LIVE_START", "RECLAIM_LIVE_END")))
+if hasattr(bot, "kev_reclaim_step"):
+    VW = 1.00
+    bot._reclaim_st.pop("RIGRC", None)
+    # G1 cross w/ 10x vol -> extend >=1% -> G2 retest wick (close upper half) -> G3 curl fires
+    seq = ([(0.98, 0.99, 0.97, 0.98, 100)] * 10 +          # below the line, builds vol baseline
+           [(0.98, 1.02, 0.98, 1.02, 1000)] +              # G1: cross on 10x volume
+           [(1.02, 1.06, 1.02, 1.055, 300)] +              # extension >= 1.01*vwap
+           [(1.05, 1.05, 1.000, 1.04, 200)] +              # G2: tags the line, closes upper half (wick)
+           [(1.04, 1.06, 1.03, 1.055, 250)])               # G3: closes above wick high 1.05 -> FIRE
+    fire = bot.kev_reclaim_step("RIGRC", seq, VW)
+    check("T11b full grammar fires on the curl", bool(fire) and fire["stop"] <= 1.0,
+          f"fire={fire}")
+    check("T11c ONE fire per name per day (done-latch)",
+          bot.kev_reclaim_step("RIGRC", seq[-3:], VW) is None)
+    bot._reclaim_st.pop("RIGRC2", None)
+    seq_novol = [(s[0], s[1], s[2], s[3], 100) for s in seq]     # same shape, NO volume expansion
+    check("T11d no volume on the break → NEVER fires",
+          bot.kev_reclaim_step("RIGRC2", seq_novol, VW) is None)
+    check("T11e pins: RECLAIM_KEV on, live window 09:30–11:00",
+          bot.RECLAIM_KEV is True and bot.RECLAIM_LIVE_START == "09:30"
+          and bot.RECLAIM_LIVE_END == "11:00")
+
+
 # ── T10: exit profile — Kev25 (Marcos 7/19: "Challenger D is even more Full on Kev") ─
 print("T10 exit profile pins (Kev25 default; grid10 = env revert)")
 check("T10a default EXIT_PROFILE is kev25", bot.EXIT_PROFILE == "kev25")

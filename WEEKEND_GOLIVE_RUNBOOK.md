@@ -108,6 +108,16 @@ NOTE: recorder + dashboard services redeploy too (silencer touched them) — wee
   bot is UNAFFECTED and fails closed to already-marked names. Manual re-arm if wanted:
   `railway run --service Marcos-Trading-Bot python3 newcomer_vision_reader.py`
 
+## MONDAY'S RECLAIM = KEV 3-GATE, LIVE 09:30–11:00 ONLY (decided 7/19: "this entry requires
+## volume... volume is early")
+- Grammar: ≥2×-volume cross above session VWAP → ≥1% extension → wick-confirmed retest → curl
+  entry risking the wick low/VWAP. ONE fire per name per day. Naive 1-gate reclaim RETIRED
+  (era −$228.81/32). Window evidence: 09:30–11:00 +$84.09/21 (62% WR); post-11:00 −$62.50/10.
+- Outside the window: fires log as `reclaim_shadow_fire` decisions — no trades, pure data.
+- Inputs: in-process 10s stream bars + recorder session VWAP (sanity-gated). Rig T11a–e pin it.
+- Kill switch: `RECLAIM_KEV=0` (disables reclaim entries entirely — never resurrects the naive one).
+- Known-open, disclosed: n=21 window sample; chop-day confound; tight-wick-stop overshoot class.
+
 ## MONDAY'S EXIT ENGINE = kev25 (decided 7/19: "Challenger D is even more Full on Kev")
 - LIVE: 50%@+1R → 25%@+2R → **25% runner** on the prev-bar-low trail; **stop holds STRUCTURE
   until the second scale** (BE floor moves only after scale #2). Rig T10a–c pin it.

@@ -383,7 +383,18 @@ IGNITION_DAILY_VETO    = False   # ignition is EXEMPT from Kev's daily-first vet
 #    Full-population 4-day faithful backtest: +25.8R → +32.2R (helps ignition +5.8R + ma_pullback +0.5R, neutral
 #    on flat_top/vwap_reclaim, hurts none; median R +0.65→+1.16). Over-scaling (a 4th tranche) was WORSE — rejected.
 #    Homegrown levels → calibrate w/ DRY_RUN data; the real fix is better supply levels (round-$), a later build.
-SCALE_TIERS        = [(1, 0.50), (2, 0.75), (3.5, 0.90)]   # (R-multiple, cumulative fraction sold); None = old supply grid
+# ── EXIT PROFILE (7/19, Marcos: "Challenger D is even more Full on Kev" — and it IS Kev's canonical
+# legs: half at +1R, quarter into strength, QUARTER RIDES, stop stays at STRUCTURE through the +1R
+# retest). Kill-tested 3-0 vs the old grid: +$11.09 (single-entry sim), +$212.50 (refire sim),
+# +$115.68 (real survivors resim — Monday's runners +$213.09 vs +$69.86). The old grid becomes the
+# EOD SHADOW comparison. EXIT_PROFILE=grid10 env = instant revert (flip only when FLAT — restart).
+EXIT_PROFILE = os.environ.get("EXIT_PROFILE", "kev25")
+if EXIT_PROFILE == "grid10":
+    SCALE_TIERS          = [(1, 0.50), (2, 0.75), (3.5, 0.90)]  # the 7/5 grid: 10% runner
+    BE_FLOOR_AFTER_SCALE = 1                                    # BE after the FIRST partial
+else:
+    SCALE_TIERS          = [(1, 0.50), (2, 0.75)]               # Kev legs: 25% RUNNER
+    BE_FLOOR_AFTER_SCALE = 2                                    # structure stop holds until scale #2
 # ── VELOCITY-AWARE RIDE (7/5) — don't sell into strength. At each scale tier, if the move is STILL accelerating
 #    hard (gained >=VELO_RIDE_PCT over the last VELO_BARS 1-min bars — the "ff3" 3-bar-follow-through signature
 #    that separated verticals from chop in the feature study), DEFER the scale and let the full position ride;
@@ -4971,14 +4982,17 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     result["exit_reason"] = f"Full exit ({tier_label}) ✅"
                     break
 
-                # After the first scale, the intrabar hard stop = BREAK-EVEN (risk-free). The prev-bar-low
-                # trail then ratchets the runner up on a CLOSE basis (bar-close exit in the EMA section).
-                current_stop     = entry_price
+                # Kev structure-hold (7/19): the BE floor arrives only after scale #BE_FLOOR_AFTER_SCALE.
+                # Until then the stop stays at STRUCTURE — snapping to entry after the first partial was
+                # donating healthy +1R retests back at breakeven (12 BE-scratches → 0 in the kill-test).
+                # The prev-bar-low trail still ratchets the runner on a CLOSE basis (EMA section).
+                if tier_idx >= BE_FLOOR_AFTER_SCALE:
+                    current_stop = entry_price
                 placed_stop_id    = place_stop_order(ticker, remaining_shares, current_stop)
                 placed_stop_price = current_stop
                 placed_stop_qty   = remaining_shares
-                print(f"📈 Floor at entry ${entry_price:.2f}, trail stop ${current_stop:.2f} "
-                      f"— {remaining_shares} shares remaining")
+                _floor_lbl = "floored at ENTRY (risk-free)" if current_stop == entry_price else "holding STRUCTURE"
+                print(f"📈 Stop {_floor_lbl} ${current_stop:.2f} — {remaining_shares} shares remaining")
                 send_partial_exit_alert(ticker, sell_qty, partial_price, entry_price,
                                         remaining_shares, current_stop, profit_pct)
 

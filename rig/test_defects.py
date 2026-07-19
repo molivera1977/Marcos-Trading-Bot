@@ -236,6 +236,14 @@ if hasattr(bot, "_rest_price_cache"):
           bot.REST_PRICE_TTL_SECS >= 2)
 
 
+# ── T10: exit profile — Kev25 (Marcos 7/19: "Challenger D is even more Full on Kev") ─
+print("T10 exit profile pins (Kev25 default; grid10 = env revert)")
+check("T10a default EXIT_PROFILE is kev25", bot.EXIT_PROFILE == "kev25")
+check("T10b tiers = 50%@1R, 75%@2R → 25% RUNNER", bot.SCALE_TIERS == [(1, 0.50), (2, 0.75)])
+check("T10c BE floor only after scale #2 (structure holds the +1R retest)",
+      bot.BE_FLOOR_AFTER_SCALE == 2)
+
+
 print()
 print(f"{'='*50}\n{len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

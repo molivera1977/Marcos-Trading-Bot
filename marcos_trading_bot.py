@@ -3409,9 +3409,9 @@ def kev_reclaim_step(sym, new_bars, vwap):
     day = datetime.now(EASTERN).strftime("%Y-%m-%d")
     st = _reclaim_st.get(sym)
     if not st or st.get("day") != day:
-        st = {"day": day, "phase": "seek", "ext": False, "wick": None, "vols": [], "done": False, "prev_c": None}
+        st = {"day": day, "phase": "seek", "ext": False, "wick": None, "vols": [], "n": 0, "prev_c": None}
         _reclaim_st[sym] = st
-    if st["done"] or not vwap or vwap <= 0:
+    if not vwap or vwap <= 0:
         return None
     prev_c = st["prev_c"]
     fired = None
@@ -3436,9 +3436,13 @@ def kev_reclaim_step(sym, new_bars, vwap):
                 if rng > 0 and l <= vwap * 1.005 and (c - l) / rng >= 0.5:
                     st["wick"] = (h, l)
                 elif st["wick"] and c > st["wick"][0]:
-                    st["done"] = True
+                    # fire — then RESET to seek so later setups keep getting DETECTED all day
+                    # (Marcos 7/19: "data for and against it the whole day"). seq 0 = the day's
+                    # first fire (the only live-eligible one); seq 1+ = shadow evidence.
                     fired = {"stop": round(max(min(st["wick"][1], vwap), c * 0.93), 4),
-                             "wick_low": st["wick"][1]}
+                             "wick_low": st["wick"][1], "seq": st["n"]}
+                    st["n"] += 1
+                    st["phase"] = "seek"; st["ext"] = False; st["wick"] = None
         prev_c = c
     st["prev_c"] = prev_c
     return fired
@@ -4539,7 +4543,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     if vr:
                         vr_stop = vr["stop"]
                         _hm = datetime.now(EASTERN).strftime("%H:%M")
-                        if RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
+                        # LIVE = the day's FIRST fire (seq 0, the tested policy) inside the window;
+                        # everything else — later fires OR outside 09:30–11:00 — is shadow evidence.
+                        if vr.get("seq", 0) == 0 and RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
                             if "daily" not in cache[t]:
                                 cache[t]["daily"] = get_daily_levels(t)
                             _daily = cache[t]["daily"]
@@ -4556,10 +4562,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv)
                             found_entry = True
                         else:
-                            print(f"👥 {t} KEV RECLAIM fired {_hm} — outside {RECLAIM_LIVE_START}-"
-                                  f"{RECLAIM_LIVE_END}, SHADOW logged, no trade")
+                            _why = ("late-window" if not (RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END)
+                                    else f"seq{vr.get('seq', 0)}")
+                            print(f"👥 {t} KEV RECLAIM fired {_hm} (seq{vr.get('seq', 0)}, {_why}) "
+                                  f"— SHADOW logged, no trade")
                             _log_decision(t, "reclaim_shadow_fire", price=price, vwap=_sv,
-                                          stop=vr_stop, time_hm=_hm)
+                                          stop=vr_stop, time_hm=_hm, seq=vr.get("seq", 0))
 
             if not found_entry and t not in [s.split(":")[0] for s in status_parts]:
                 status_parts.append(f"{t}:${price:.2f} EMA9:${ema9:.2f}{vwap_tag}")

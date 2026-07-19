@@ -251,10 +251,13 @@ if hasattr(bot, "kev_reclaim_step"):
            [(1.05, 1.05, 1.000, 1.04, 200)] +              # G2: tags the line, closes upper half (wick)
            [(1.04, 1.06, 1.03, 1.055, 250)])               # G3: closes above wick high 1.05 -> FIRE
     fire = bot.kev_reclaim_step("RIGRC", seq, VW)
-    check("T11b full grammar fires on the curl", bool(fire) and fire["stop"] <= 1.0,
-          f"fire={fire}")
-    check("T11c ONE fire per name per day (done-latch)",
-          bot.kev_reclaim_step("RIGRC", seq[-3:], VW) is None)
+    check("T11b full grammar fires on the curl, seq 0 (the live-eligible fire)",
+          bool(fire) and fire["stop"] <= 1.0 and fire.get("seq") == 0, f"fire={fire}")
+    # detection must CONTINUE all day (Marcos: "data for and against it the whole day"):
+    # a fresh full setup after the first fire fires AGAIN, tagged seq 1 (shadow-only at the call site)
+    refire = bot.kev_reclaim_step("RIGRC", seq[9:], VW)   # replay cross→extend→wick→curl
+    check("T11c later setups keep firing as SHADOW evidence (seq 1)",
+          bool(refire) and refire.get("seq") == 1, f"refire={refire}")
     bot._reclaim_st.pop("RIGRC2", None)
     seq_novol = [(s[0], s[1], s[2], s[3], 100) for s in seq]     # same shape, NO volume expansion
     check("T11d no volume on the break → NEVER fires",

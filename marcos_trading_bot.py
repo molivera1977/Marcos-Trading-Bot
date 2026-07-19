@@ -4994,11 +4994,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if current_price > highest_price:
             highest_price = current_price
 
-        # ── Runner protection after the first partial: the intrabar hard stop stays at BREAK-EVEN
-        # (set when the partial fired). Kev's "risk off the previous bar low" is a CLOSE-based
-        # structure rule (a 1-min bar low is far too tight as an intrabar stop — it would snipe the
-        # runner on every normal pullback / can sit above live price), so the prev-bar-low TRAIL is
-        # enforced as a bar-close exit in the EMA section below, NOT through current_stop. (audit fix) ─
+        # ── Runner protection: the intrabar hard stop = current_stop (STRUCTURE until scale
+        # #BE_FLOOR_AFTER_SCALE, then BREAK-EVEN — kev25 floors at the 2nd scale, grid10 at the 1st;
+        # see the 7/19 structure-hold change). Close-based structure exits (health-trail while
+        # RUNNER_HEALTH_EXIT, else prev-bar-low/topping-tail) run in the EMA section below,
+        # NOT through current_stop. ─
 
         # Throttled status print — only on a ≥0.3% move or every ≥6s (streaming's 0.5s loop otherwise floods the
         # logs with identical lines, risking Railway's rate cap + burying real events). Dashboard still gets every tick.

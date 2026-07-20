@@ -105,6 +105,9 @@ def ingest(sym, price, cumvol, ts):
                 lp = v.get("last_px")
                 if lc is None:
                     v["last_cumvol"] = cumvol            # first snapshot: set baseline, no volume yet
+                    # 7/20 completeness canary: session_base survives reconnect re-baselines (unlike
+                    # last_cumvol) so the ratio measures capture against the WHOLE session counter.
+                    v.setdefault("session_base", cumvol)
                 elif cumvol >= lc:
                     dvol = cumvol - lc
                     if dvol > 0:
@@ -113,8 +116,10 @@ def ingest(sym, price, cumvol, ts):
                     v["last_cumvol"] = cumvol
                 else:
                     # cumvol decreased = session/counter reset (e.g. PRE→RTH). Re-baseline, don't
-                    # subtract.
+                    # subtract — and reset session_base to the new counter regime so completeness
+                    # measures against the live counter, not the stale pre-reset one.
                     v["last_cumvol"] = cumvol
+                    v["session_base"] = cumvol
                 v["last_px"] = price
     except Exception:
         pass                                            # a bad message never breaks the feed
@@ -495,10 +500,53 @@ def persist(reason="periodic"):
                 _shipped.update(marks[0])
                 _vw_shipped.update(marks[1])
         log(f"persist({reason}): {len(pl['series'])} series → {r.status_code}")
+        _completeness_report()               # 7/20 canary: feed health logged with every persist window
         return ok
     except Exception as e:
         log(f"persist failed: {e}")
         return False
+
+_comp_last = [0.0]
+def _completeness_report():
+    """7/20 Feed-Engineer canary: per-symbol capture ratio = Σaccumulated Δvol ÷ (last_cumvol −
+    session_base). The vendor's cumulative counter is provably complete (BIYA 7/20 recaptured
+    105.9% after stalls), so this ratio IS feed health: 1.0 = whole tape, 0.5 = half lost to
+    kick blackouts. 7/20 measured median ~0.52, min 0.007 (ZYBT) — and nobody knew. Ships a
+    ZZRECCOMP~10s sentinel (open=n symbols, high=p25, low=min, close=MEDIAN, volume=n<0.95)
+    every ≥5 min so feed health is a number on the dashboard, never a screenshot surprise."""
+    now = time.time()
+    if now - _comp_last[0] < 300:
+        return
+    _comp_last[0] = now
+    with _lock:
+        ratios = []
+        for s, v in _vwap.items():
+            base, last = v.get("session_base"), v.get("last_cumvol")
+            if base is None or last is None or last <= base:
+                continue                     # no session volume yet → not measurable
+            ratios.append((v["den"] / (last - base), s))
+    if not ratios:
+        return
+    ratios.sort()
+    vals = [r for r, _ in ratios]
+    med = vals[len(vals) // 2]
+    p25 = vals[len(vals) // 4]
+    nbad = sum(1 for r in vals if r < 0.95)
+    worst = ", ".join(f"{s}={r:.2f}" for r, s in ratios[:3])
+    lvl = "🚨" if med < 0.95 else "✅"
+    log(f"{lvl} completeness: median {med:.2f} p25 {p25:.2f} min {vals[0]:.3f} "
+        f"({nbad}/{len(vals)} below 0.95; worst: {worst})")
+    try:
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000+0000")
+        pl = {"date": et_now().strftime("%Y-%m-%d"), "reason": "completeness",
+              "series": {"ZZRECCOMP~10s": [{"time": ts, "open": str(len(vals)),
+                                            "high": f"{p25:.4f}", "low": f"{vals[0]:.4f}",
+                                            "close": f"{med:.4f}", "volume": str(nbad)}]}}
+        requests.post(f"{DASH_URL}/api/bars_bulk", data=gzip.compress(json.dumps(pl).encode(), 1),
+                      headers={"X-Dashboard-Secret": DASH_SECRET, "Content-Encoding": "gzip",
+                               "Content-Type": "application/json"}, timeout=10)
+    except Exception:
+        pass
 
 def _first_light_report():
     """4:00–9:30 canary (audit S1; 7/16: prices flowed 4.5h while volumes read zero — the VWAP
@@ -574,10 +622,15 @@ def run_session():
             snapshot_vwap(); persist("session_end")
             break
         t = time.time()
-        if _last_ingest[0] and t - _last_ingest[0] > 90:
-            log(f"TICK SILENCE {t - _last_ingest[0]:.0f}s — stream presumed dead, forcing reconnect")
+        # 7/20 F2 (Feed Engineer): during RTH a silent kick costs tape every second — 38 kicks
+        # 7/20 measured ~164s blackout each (90 fuse + 60 backoff + 13 connect) ≈ 32% of RTH deaf.
+        # RTH fuse 20s; premarket keeps 90s (thin tape has honest silences).
+        _n9 = et_now()
+        _fz = 20 if (_n9.weekday() < 5 and (9, 30) <= (_n9.hour, _n9.minute) < (16, 0)) else 90
+        if _last_ingest[0] and t - _last_ingest[0] > _fz:
+            log(f"TICK SILENCE {t - _last_ingest[0]:.0f}s (fuse {_fz}s) — stream presumed dead, forcing reconnect")
             snapshot_vwap(); persist("silence_flush")
-            raise RuntimeError("tick silence >90s")
+            raise RuntimeError(f"tick silence >{_fz}s")
         # audit S2: controlled downshift — shed premarket-width subs BEFORE the open's message
         # rates arrive. One deliberate cycle at ~9:15 (reconnect resubscribes priority-first under
         # the 9:15-shoulder cap) beats an uncontrolled Webull kick at 9:31.
@@ -668,10 +721,13 @@ def main():
                     try: _ckpt_save()
                     except Exception: pass
                     sys.exit(1)
-                _stop.wait(backoff)
-                # 7/16: kicks are EXTERNAL (Webull), not retry storms — escalating backoff just
-                # donates capture time. Cap at 60s; a fresh kick after a stable run resets to 30.
-                backoff = min(backoff * 2, 60)
+                # 7/20 F2: RTH reconnects hurry back (10s base, 20s cap) — every backoff second is
+                # lost tape; kick cause still unproven so NOT going to 5s (avoid storming a possible
+                # rate limit). Premarket keeps the 7/16 settled 30/60 (kicks are external there).
+                _nb = et_now()
+                _rth_b = _nb.weekday() < 5 and (9, 30) <= (_nb.hour, _nb.minute) < (16, 0)
+                _stop.wait(min(backoff, 10) if _rth_b else backoff)
+                backoff = min(backoff * 2, 20 if _rth_b else 60)
         else:
             _stop.wait(60)                  # outside the gate: idle cheaply, never exit
     log("recorder stopped")

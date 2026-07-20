@@ -275,6 +275,45 @@ check("T10c BE floor only after scale #2 (structure holds the +1R retest)",
       bot.BE_FLOOR_AFTER_SCALE == 2)
 
 
+# ── T13: zone-flip machine + 7/20 role swap (Marcos: "I want this to go in") ─
+print("T13 zone-flip Z-gates + role-swap pins")
+check("T13a pins: ZONEFLIP_KEV on, tested primary cell (flush 4%, band 2%)",
+      bot.ZONEFLIP_KEV is True and abs(bot.ZONEFLIP_FLUSH - 0.04) < 1e-9
+      and abs(bot.ZONEFLIP_BAND - 0.02) < 1e-9)
+check("T13b role swap: VWAP-reclaim demoted to shadow (RECLAIM_LIVE off, machine still on)",
+      bot.RECLAIM_LIVE is False and bot.RECLAIM_KEV is True)
+check("T13c zone_flip is in the entry allowlist",
+      "zone_flip" in (HERE.parent / "marcos_trading_bot.py").read_text()
+                     .split("BREAKOUT_ENTRIES or b[3] in")[1][:120])
+# synthetic ZYBT-0720-A: zone 1.21 (injected), open930 1.30; flush bar 9:31 low 1.19 (−8.5%,
+# in band, 10x vol) → wick bar (low 1.21, close upper half) → curl bar close > wick high → FIRE.
+from datetime import datetime as _dt
+_day = _dt.now(bot.EASTERN).strftime("%Y-%m-%d")
+bot._zf_zone[(_day, "RIGZF")] = {"zone": 1.21, "src": "pm_shelf3", "open930": 1.30}
+bot._zf_st.pop("RIGZF", None)
+def _k_at(hh, mm, ss):
+    return int(_dt.now(bot.EASTERN).replace(hour=hh, minute=mm, second=ss, microsecond=0).timestamp())
+_seq_zf = [(_k_at(9, 30, 40), 1.30, 1.30, 1.28, 1.29, 100),   # warmup vols
+           (_k_at(9, 30, 50), 1.29, 1.29, 1.27, 1.28, 100),
+           (_k_at(9, 31, 0), 1.28, 1.28, 1.19, 1.225, 2000),  # Z1 flush: low 1.19 in band, 10x vol
+           (_k_at(9, 31, 10), 1.225, 1.24, 1.21, 1.235, 800), # Z2 wick: low at zone, close upper half
+           (_k_at(9, 31, 20), 1.235, 1.27, 1.23, 1.26, 900)]  # Z3 curl: close 1.26 > wick high 1.24
+_zf_fire = bot.kev_zoneflip_step("RIGZF", _seq_zf)
+check("T13d ZYBT-shape fires on the curl, seq 0, stop = flush low − 1 tick",
+      bool(_zf_fire) and _zf_fire.get("seq") == 0 and abs(_zf_fire["stop"] - 1.18) < 0.005,
+      f"fire={_zf_fire}")
+bot._zf_st.pop("RIGZF2", None)
+bot._zf_zone[(_day, "RIGZF2")] = {"zone": 1.21, "src": "pm_shelf3", "open930": 1.30}
+_seq_novol = [(k, o, h, l, c, 100) for k, o, h, l, c, v in _seq_zf]   # same shape, NO vol expansion
+check("T13e no volume on the flush → NEVER arms/fires",
+      bot.kev_zoneflip_step("RIGZF2", _seq_novol) is None)
+bot._zf_st.pop("RIGZF3", None)
+bot._zf_zone[(_day, "RIGZF3")] = {"zone": 1.21, "src": "pm_shelf3", "open930": 1.30}
+_seq_late = [(k + 3600, o, h, l, c, v) for k, o, h, l, c, v in _seq_zf]   # 10:30+ — outside arm window
+check("T13f flush after 9:45 never arms (arm window pin)",
+      bot.kev_zoneflip_step("RIGZF3", _seq_late) is None)
+
+
 # ── T12: blended P&L includes the runner leg (7/20 BIYA bug) ─
 print("T12 blended P&L runner-leg integrity")
 # BIYA 7/20: entry 7.50, 65 sh, scales 32@8.1101 + 16@8.43, runner 17 exits 6.87.

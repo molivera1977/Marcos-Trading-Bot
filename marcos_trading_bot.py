@@ -3461,6 +3461,124 @@ def kev_reclaim_step(sym, new_bars, vwap):
     return fired
 
 
+# ── ZONE-FLIP pullback machine (7/20, Reclaim Architect — Marcos: "I want this to go in and let
+# the other of what we have be the shadow"). Kev's ZYBT 7/20 entry class: open flush into the
+# late-premarket shelf → absorption wick → curl. Phase-1 kill-test PASSED (17 fires/10 sessions,
+# model B +0.440R/fire, 71% +1R-first, ZYBT specimen caught 1.285 vs Kev 1.28 — scratchpad
+# zone_flip_killtest_results.txt). Zone rule is BYTE-FAITHFUL to the tested pm_floor(): 1-minute
+# lows 9:00–9:29 (10s bars folded to 1m first — parity with the tested granularity), chained-merge
+# shelves within 1%, shelf FLOOR, ≥3 touches then ≥2, else 9:15–9:29 min-low; zone must sit below
+# the 9:30 open. ZONEFLIP_KEV=0 kill switch. RECLAIM_LIVE=0 (default) demotes the VWAP-reclaim
+# machine to shadow — 7/20 role swap; flip to 1 to restore it.
+ZONEFLIP_KEV   = os.environ.get("ZONEFLIP_KEV", "1") == "1"
+ZONEFLIP_FLUSH = float(os.environ.get("ZONEFLIP_FLUSH_PCT", "0.04"))   # tested primary cell
+ZONEFLIP_BAND  = float(os.environ.get("ZONEFLIP_BAND", "0.02"))        # tested primary cell
+RECLAIM_LIVE   = os.environ.get("RECLAIM_LIVE", "0") == "1"
+_zf_st: dict = {}      # sym -> daily state machine
+_zf_cursor: dict = {}  # (day, sym) -> last processed 10s bucket epoch
+_zf_zone: dict = {}    # (day, sym) -> {"zone","src","open930"} or "none" (computed, no zone)
+
+def _zf_pm_floor(sym):
+    """Mechanical late-premarket floor, verbatim from the kill-test's pm_floor(). Computed once
+    per (day, sym) after the 9:30 bar exists; returns None (retry) until data is complete."""
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    key = (day, sym)
+    cached = _zf_zone.get(key)
+    if cached is not None:
+        return None if cached == "none" else cached
+    with _shadow_lock:
+        d10 = dict(_shadow_bars[10].get(sym) or {})
+    if not d10:
+        return None                              # no bars yet — retry next loop
+    mins, open930 = {}, None
+    for k in sorted(d10):
+        b = d10[k]
+        _t = datetime.fromtimestamp(k, EASTERN)
+        hm = _t.hour * 60 + _t.minute
+        if 540 <= hm <= 569:                     # 9:00–9:29 window, folded to 1m lows
+            m = k // 60 * 60
+            lo = mins.get(m)
+            mins[m] = b["l"] if lo is None else min(lo, b["l"])
+        elif hm >= 570 and open930 is None:
+            open930 = b["o"]
+    if open930 is None:
+        return None                              # 9:30 bar not seen yet — retry
+    lows = sorted(v for v in mins.values() if v > 0)
+    zone = src = None
+    if lows:
+        shelves, cur = [], [lows[0]]
+        for x in lows[1:]:
+            if x <= cur[-1] * 1.01:
+                cur.append(x)
+            else:
+                shelves.append((cur[0], len(cur))); cur = [x]
+        shelves.append((cur[0], len(cur)))
+        for min_touch in (3, 2):
+            cands = [p for p, n in shelves if n >= min_touch and p < open930]
+            if cands:
+                zone, src = max(cands), f"pm_shelf{min_touch}"
+                break
+    if zone is None:
+        late = [v for m, v in mins.items()
+                if 555 <= (datetime.fromtimestamp(m, EASTERN).hour * 60
+                           + datetime.fromtimestamp(m, EASTERN).minute) <= 569 and v > 0]
+        if late and min(late) < open930:
+            zone, src = min(late), "pm_minlow"
+    if zone is None:
+        _zf_zone[key] = "none"                   # computed on complete data: genuinely no zone
+        return None
+    z = {"zone": zone, "src": src, "open930": open930}
+    _zf_zone[key] = z
+    return z
+
+def kev_zoneflip_step(sym, new_bars):
+    """Advance sym's Z1–Z3 machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
+    Z1 arm: 9:30–9:45 flush ≥ZONEFLIP_FLUSH from the 9:30 open, low inside zone±band, vol ≥2×
+    rolling avg. Z2: bottoming wick in the band. Z3 (fire): close > wick high — the live 10s
+    analog of the tested model-B break-fill. Fires at most once per call; resets to re-arm so
+    later setups keep getting DETECTED all day (seq 1+ = shadow evidence, mirror of reclaim)."""
+    z = _zf_pm_floor(sym)
+    if not z:
+        return None
+    zone, open930 = z["zone"], z["open930"]
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    st = _zf_st.get(sym)
+    if not st or st.get("day") != day:
+        st = {"day": day, "armed": False, "wick": None, "flush_low": None, "vols": [], "n": 0}
+        _zf_st[sym] = st
+    zlo, zhi = zone * (1 - ZONEFLIP_BAND), zone * (1 + ZONEFLIP_BAND)
+    fired = None
+    for k, o, h, l, c, v in new_bars:
+        st["vols"].append(v)
+        if len(st["vols"]) > 60: st["vols"].pop(0)    # rolling ~10 min of 10s bars (tested: prior-10 1m)
+        avgv = (sum(st["vols"][:-1]) / max(len(st["vols"]) - 1, 1)) if len(st["vols"]) > 1 else 0
+        _t = datetime.fromtimestamp(k, EASTERN)
+        hm = _t.hour * 60 + _t.minute
+        if hm < 570:
+            continue
+        if st["armed"] and c < zone * (1 - ZONEFLIP_BAND):
+            st["armed"] = False; st["wick"] = None; st["flush_low"] = None   # clean zone loss → disarm
+        if 570 <= hm <= 585 and not st["armed"]:
+            if (open930 > 0 and (open930 - l) / open930 >= ZONEFLIP_FLUSH
+                    and zlo <= l <= zhi and avgv > 0 and v >= 2.0 * avgv):
+                st["armed"] = True; st["wick"] = None; st["flush_low"] = l
+        if not st["armed"]:
+            continue
+        st["flush_low"] = min(st["flush_low"], l) if st["flush_low"] else l
+        if st["wick"] and c > st["wick"][0] and fired is None:
+            # stop = flush low − 1 tick (tested), floored at c×0.93 (7% cap, reclaim-style)
+            fired = {"stop": round(max(st["flush_low"] - 0.01, c * 0.93), 4),
+                     "wick_high": st["wick"][0], "flush_low": st["flush_low"],
+                     "zone": zone, "zone_src": z["src"], "seq": st["n"]}
+            st["n"] += 1
+            st["armed"] = False; st["wick"] = None; st["flush_low"] = None
+            continue
+        rng = h - l
+        if rng > 0 and zlo <= l <= zhi and (c - l) / rng >= 0.5 and c >= zone * (1 - ZONEFLIP_BAND):
+            st["wick"] = (h, l)
+    return fired
+
+
 def detect_vwap_reclaim(completed, price, vwap):
     """RETIRED 7/19 (kept for reference only — no callers). The naive 1-gate reclaim: era record
     −$228.81 across 32 trades. Replaced by kev_reclaim_step (3-gate grammar) above."""
@@ -4535,6 +4653,55 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             #    LIVE fires only 09:30–11:00 ("this entry requires volume; volume is early" — Marcos);
             #    fires outside the window are SHADOW-LOGGED, no trade. Line = recorder session VWAP
             #    (premarket-anchored, repaired); bars = in-process 10s stream — the kill-test's inputs. ──
+            # ── ZONE-FLIP (7/20 Marcos: live slot; VWAP-reclaim demoted to shadow below) ──
+            if not found_entry and ZONEFLIP_KEV:
+                _zf_nb = []
+                _day_z = datetime.now(EASTERN).strftime("%Y-%m-%d")
+                _cur_z = (_day_z, t)
+                _last_z = _zf_cursor.get(_cur_z, 0)
+                _cut_z = int(time.time()) // 10 * 10           # exclude the still-forming bucket
+                with _shadow_lock:
+                    _d10z = dict(_shadow_bars[10].get(t) or {})
+                for _k in sorted(_d10z):
+                    if _last_z < _k < _cut_z:
+                        _b = _d10z[_k]
+                        _zf_nb.append((_k, _b["o"], _b["h"], _b["l"], _b["c"],
+                                       max((_b.get("v1") or 0) - (_b.get("v0") or 0), 0)))
+                        _zf_cursor[_cur_z] = _k
+                if _zf_nb:
+                    zf = kev_zoneflip_step(t, _zf_nb)
+                    if zf:
+                        zf_stop = zf["stop"]
+                        _hm = datetime.now(EASTERN).strftime("%H:%M")
+                        # LIVE = the day's FIRST fire inside the window (mirror of the tested
+                        # reclaim policy); later fires / outside window = shadow evidence.
+                        if zf.get("seq", 0) == 0 and RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
+                            if "daily" not in cache[t]:
+                                cache[t]["daily"] = get_daily_levels(t)
+                            _daily = cache[t]["daily"]
+                            room = compute_room(price, zf_stop, cache[t].get("full_bars") or bars,
+                                                daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                            print(f"\n🟣 {t} ZONE-FLIP (Kev pm-shelf)! ${price:.2f} curl off "
+                                  f"{zf['zone_src']} ${zf['zone']:.2f} — stop ${zf_stop:.2f}")
+                            breakouts.append((t, price, zf["zone"], "zone_flip", {
+                                "zone_stop": zf_stop, "room": room, "ema90": round(ema90, 4),
+                                "front_side": ema9 > ema20 > 0, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
+                                "reclaim_subtype": "zone_flip",
+                                "zf_zone": zf["zone"], "zf_zone_src": zf["zone_src"],
+                                "zf_flush_low": zf["flush_low"],
+                            }))
+                            _log_decision(t, "triggered_zone_flip", price=price, zone=zf["zone"],
+                                          zone_src=zf["zone_src"], stop=zf_stop)
+                            found_entry = True
+                        else:
+                            _whyz = ("late-window" if not (RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END)
+                                     else f"seq{zf.get('seq', 0)}")
+                            print(f"👥 {t} ZONE-FLIP fired {_hm} (seq{zf.get('seq', 0)}, {_whyz}) "
+                                  f"— SHADOW logged, no trade")
+                            _log_decision(t, "zoneflip_shadow_fire", price=price, zone=zf["zone"],
+                                          zone_src=zf["zone_src"], stop=zf_stop, time_hm=_hm,
+                                          seq=zf.get("seq", 0))
+
             if not found_entry and RECLAIM_KEV:
                 _sv = _recorder_tick_vwap(t)
                 _nb = []
@@ -4556,9 +4723,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     if vr:
                         vr_stop = vr["stop"]
                         _hm = datetime.now(EASTERN).strftime("%H:%M")
-                        # LIVE = the day's FIRST fire (seq 0, the tested policy) inside the window;
-                        # everything else — later fires OR outside 09:30–11:00 — is shadow evidence.
-                        if vr.get("seq", 0) == 0 and RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
+                        # 7/20 ROLE SWAP (Marcos): zone-flip holds the live slot; this machine is
+                        # SHADOW-ONLY unless RECLAIM_LIVE=1 restores it. All fires still logged.
+                        if RECLAIM_LIVE and vr.get("seq", 0) == 0 and RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
                             if "daily" not in cache[t]:
                                 cache[t]["daily"] = get_daily_levels(t)
                             _daily = cache[t]["daily"]
@@ -4575,7 +4742,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv)
                             found_entry = True
                         else:
-                            _why = ("late-window" if not (RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END)
+                            _why = ("demoted-to-shadow" if not RECLAIM_LIVE
+                                    else "late-window" if not (RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END)
                                     else f"seq{vr.get('seq', 0)}")
                             print(f"👥 {t} KEV RECLAIM fired {_hm} (seq{vr.get('seq', 0)}, {_why}) "
                                   f"— SHADOW logged, no trade")
@@ -4589,7 +4757,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         # bounce = observe-only (dropped; its backtest read was clearly −0.40, needs reversal-regime data).
         # Others active per BREAKOUT_ENTRIES: True → full bag; False → pullback + VWAP-reclaim only.
         breakouts = [b for b in breakouts
-                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition"))]
+                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition", "zone_flip"))]
         # EXTENSION GUARD — don't chase a name too far above its 90-EMA (7/3 data; Kev "don't chase extended").
         if EXTENSION_MAX_PCT and EXTENSION_MAX_PCT < 9:
             _kept = []

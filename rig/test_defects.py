@@ -275,6 +275,18 @@ check("T10c BE floor only after scale #2 (structure holds the +1R retest)",
       bot.BE_FLOOR_AFTER_SCALE == 2)
 
 
+# ── T12: blended P&L includes the runner leg (7/20 BIYA bug) ─
+print("T12 blended P&L runner-leg integrity")
+# BIYA 7/20: entry 7.50, 65 sh, scales 32@8.1101 + 16@8.43, runner 17 exits 6.87.
+# The bug dropped the runner leg → recorded +34.40; true +23.69.
+check("T12a BIYA regression: runner leg counted (23.69 not 34.40)",
+      abs(bot._blended_pnl(7.50, 65, [(32, 8.1101), (16, 8.43)], 6.87) - 23.69) < 0.02)
+check("T12b no-partials path unchanged (VMAR −27.90)",
+      abs(bot._blended_pnl(1.08, 930, [], 1.05) - (-27.90)) < 0.02)
+check("T12c full scale-out (0 runner) = sum of legs only",
+      abs(bot._blended_pnl(10.0, 100, [(50, 11.0), (50, 12.0)], 9.0) - 150.0) < 1e-6)
+
+
 print()
 print(f"{'='*50}\n{len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

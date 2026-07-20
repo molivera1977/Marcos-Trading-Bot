@@ -1,5 +1,9 @@
 [build]
 builder = "nixpacks"
+# 7/20: without watchPatterns, ANY push (even reader-only) rebuilds the bot — and a bot
+# rebuild does NOT self-start on this cron service (proven 7/20, required a UI Run-now).
+# Scope the bot's rebuilds to files it actually runs so sibling-service pushes leave it alone.
+watchPatterns = ["marcos_trading_bot.py", "railway.toml"]
 
 [deploy]
 startCommand = "python ${START_APP:-marcos_trading_bot.py}"

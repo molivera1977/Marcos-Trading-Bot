@@ -2149,6 +2149,19 @@ def _fetch_kev_levels():
 # ============================================================
 CHART_GATE_ENFORCE = os.environ.get("CHART_GATE_ENFORCE", "0") == "1"
 
+def _blended_pnl(entry_price, total_shares, partial_fills, exit_price):
+    """Whole-trade P&L: every scale-out leg plus the runner leg. The runner quantity is
+    derived from what was never scaled out (total − sum of partials) — NEVER from the
+    monitor loop's `remaining_shares`, which exit branches zero for bookkeeping before
+    this math runs (7/20: that erased BIYA's −$10.71 runner leg → recorded +$34.40,
+    true +$23.69; inflates losses dropped, understates runner wins equally)."""
+    if partial_fills:
+        pnl = sum((px - entry_price) * qty for qty, px in partial_fills)
+        runner_qty = total_shares - sum(qty for qty, _px in partial_fills)
+        return pnl + (exit_price - entry_price) * runner_qty
+    return (exit_price - entry_price) * total_shares
+
+
 def _chart_break_gate(ticker, entry_price):
     """No Break, No Trade. Returns (verdict, reason, level, source) and NEVER raises (fail-safe →
     a gate bug must never crash the trade path). verdict ∈ {'allow','block','skip'}."""
@@ -5262,12 +5275,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         time.sleep(sleep_secs)
 
     # ── Blended P&L (sum across all tier fills + remaining) ──
-    if partial_fills:
-        pnl = sum((px - entry_price) * qty for qty, px in partial_fills)
-        pnl += (result["exit_price"] - entry_price) * remaining_shares
-        result["profit_loss"] = pnl
-    else:
-        result["profit_loss"] = (result["exit_price"] - entry_price) * total_shares
+    result["profit_loss"] = _blended_pnl(entry_price, total_shares, partial_fills,
+                                         result["exit_price"])
 
     # 7/11 audit A6: pct must be BLENDED (pnl ÷ initial cost), not the runner's last print — the old
     # formula showed ~0% on a trade that banked +1R on half and runner-exited at breakeven.

@@ -111,8 +111,12 @@ def active_newcomers():
         watch = []                         # fail-soft: the archive roster still drives
     for tk in watch:
         tk = str(tk).upper()
-        if not tk or tk in marked or tk.startswith("_") or tk in first: continue
-        first[tk] = ""                     # no archive row yet — sorts FIRST = read first
+        if not tk or tk in marked or tk.startswith("_"): continue
+        # 7/20 fix: names with a NON-active archive row (e.g. boot-time daily_loaded) were skipped
+        # here via `tk in first`, so "watching" never attached and the whole morning batch filtered
+        # to active=0. Always attach "watching"; only seed first-seen when the archive hasn't.
+        if tk not in first:
+            first[tk] = ""                 # no archive row yet — sorts FIRST = read first
         status.setdefault(tk, set()).add("watching")
     active={tk: first[tk] for tk in first if status[tk] & ACTIVE_STATUSES}
     return active, {tk: px.get(tk) for tk in active}

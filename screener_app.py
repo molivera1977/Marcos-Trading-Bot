@@ -459,6 +459,35 @@ def run_scan():
 
 # ── HTML template ──────────────────────────────────────────────────────────────
 
+# ── Light/dark toggle (Marcos 7/20 night: "hard to read in bright sunlight"). One snippet,
+# injected into every page's <head> at render time. Light mode = smart inversion (keeps the
+# green/red semantics via hue-rotate); choice persists per device via localStorage. ──
+THEME_SNIPPET = """
+<style>
+html[data-theme=light]{filter:invert(.93) hue-rotate(180deg);background:#ececea}
+html[data-theme=light] img,html[data-theme=light] .no-invert{filter:invert(1) hue-rotate(180deg)}
+#themeBtn{position:fixed;bottom:14px;right:14px;z-index:9999;width:44px;height:44px;border-radius:50%;
+border:1px solid #30363d;background:#161b22;color:#e6edf3;font-size:19px;line-height:1;cursor:pointer;
+opacity:.9;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+#themeBtn:hover{opacity:1}
+</style>
+<script>
+(function(){
+  document.documentElement.setAttribute('data-theme', localStorage.getItem('mtheme') || 'dark');
+  function addBtn(){
+    var b=document.createElement('button'); b.id='themeBtn'; b.title='Light / dark';
+    b.textContent='\\u25D1';
+    b.onclick=function(){
+      var n=document.documentElement.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', n); localStorage.setItem('mtheme', n);
+    };
+    document.body.appendChild(b);
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', addBtn); } else { addBtn(); }
+})();
+</script>
+"""
+
 HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -848,7 +877,7 @@ setInterval(function(){
 
 @app.route("/")
 def index():
-    return render_template_string(HTML)
+    return render_template_string(HTML.replace("</head>", THEME_SNIPPET + "</head>"))
 
 
 @app.route("/api/scan")
@@ -1768,7 +1797,7 @@ def tale_of_the_ticker(ticker):
             "td{padding:8px 12px;border-bottom:1px solid #21262d;font-size:14px} td:first-child{color:#8b949e;width:46%}"
             ".note{background:#161b22;padding:12px 14px;border-radius:6px;font-size:14px;line-height:1.5;color:#c9d1d9}"
             "a{color:#58a6ff;text-decoration:none} .top{font-size:13px;color:#8b949e}"
-            "</style></head><body>"
+            "</style>" + THEME_SNIPPET + "</head><body>"
             "<div class='top'><a href='/'>← scanner</a> &nbsp;·&nbsp; " + date + " &nbsp;·&nbsp; auto-refreshes 60s</div>"
             "<h1>📜 Tale of " + tk + "</h1>"
             "<div class='gate'>" + gate_line + "</div>"
@@ -1868,7 +1897,7 @@ def dashboard():
     # no-cache: the page's static HTML (strategy card etc.) changes when the bot changes; without this
     # the browser serves a stale cached copy and the dashboard's AJAX "Refresh" only updates the data,
     # not the template — so the strategy params looked stale even after a deploy. Force fresh HTML.
-    return render_template_string(DASHBOARD_HTML), 200, {
+    return render_template_string(DASHBOARD_HTML.replace("</head>", THEME_SNIPPET + "</head>")), 200, {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Pragma": "no-cache",
         "Expires": "0",
@@ -1915,7 +1944,7 @@ fetch('/api/day2').then(r=>r.json()).then(d=>{
 
 @app.route("/day2")
 def day2_view():
-    return render_template_string(DAY2_HTML)
+    return render_template_string(DAY2_HTML.replace("</head>", THEME_SNIPPET + "</head>"))
 
 
 # ── Dashboard HTML ─────────────────────────────────────────────────────────────

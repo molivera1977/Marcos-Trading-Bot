@@ -2798,3 +2798,5 @@ setInterval(loadMarket, 60000);
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port, debug=False)
+
+# build-trigger 7/20-night: ship 9dcf223 (minute_ext trading_sessions) — the redeploy reused the stale image

@@ -1,9 +1,10 @@
 [build]
 builder = "nixpacks"
-# 7/20: without watchPatterns, ANY push (even reader-only) rebuilds the bot — and a bot
-# rebuild does NOT self-start on this cron service (proven 7/20, required a UI Run-now).
-# Scope the bot's rebuilds to files it actually runs so sibling-service pushes leave it alone.
-watchPatterns = ["marcos_trading_bot.py", "railway.toml"]
+# SHARED config: bot + dashboard + recorder all read THIS file (START_APP picks the entrypoint);
+# only the reader has its own railway.reader.toml. So watchPatterns here must cover EVERY
+# sharing service's files — 7/20 night: listing only bot files silently blocked ALL dashboard
+# deploys ("No changes to watched files"). Proper per-service configs = task #53.
+watchPatterns = ["marcos_trading_bot.py", "screener_app.py", "recorder.py", "railway.toml"]
 
 [deploy]
 startCommand = "python ${START_APP:-marcos_trading_bot.py}"

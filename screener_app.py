@@ -1466,9 +1466,10 @@ def api_minute_ext():
                          "open": b.get("open"), "high": b.get("high"), "low": b.get("low"),
                          "close": b.get("close"), "volume": b.get("volume"),
                          "session": b.get("trading_session") or b.get("tradingSession") or ""})
-        return jsonify({"ticker": ticker, "count": len(bars), "bars": bars})
+        return jsonify({"ticker": ticker, "count": len(bars), "bars": bars,
+                        "v": "ext2"})   # deploy marker: absent ⇒ stale build running
     except Exception as e:
-        return jsonify({"error": str(e), "ticker": ticker}), 500
+        return jsonify({"error": str(e), "ticker": ticker, "v": "ext2"}), 500
 
 @app.route("/api/stream_check", methods=["GET"])
 def api_stream_check():

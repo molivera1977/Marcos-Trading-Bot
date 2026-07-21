@@ -3473,7 +3473,13 @@ def kev_reclaim_step(sym, new_bars, vwap):
 ZONEFLIP_KEV   = os.environ.get("ZONEFLIP_KEV", "1") == "1"
 ZONEFLIP_FLUSH = float(os.environ.get("ZONEFLIP_FLUSH_PCT", "0.04"))   # tested primary cell
 ZONEFLIP_BAND  = float(os.environ.get("ZONEFLIP_BAND", "0.02"))        # tested primary cell
-RECLAIM_LIVE   = os.environ.get("RECLAIM_LIVE", "0") == "1"
+# 7/20 FINAL CONFIG (Marcos: "put in both... VWAP reclaim in the morning like we had it...
+# but I want the zone flip all day live"): BOTH machines live — zone-flip = first fire per
+# name, ALL DAY (arm window is structurally 9:30–9:45, so fires cluster at the open; a rare
+# late curl off an early arm is the only new territory); VWAP-reclaim = first fire inside
+# 09:30–11:00 (its head-to-head-verified window: +0.289R/fire in-window vs −0.38R after),
+# shadow the rest of the day. Head-to-head evidence: scratchpad zone_flip_killtest_results.txt.
+RECLAIM_LIVE   = os.environ.get("RECLAIM_LIVE", "1") == "1"
 _zf_st: dict = {}      # sym -> daily state machine
 _zf_cursor: dict = {}  # (day, sym) -> last processed 10s bucket epoch
 _zf_zone: dict = {}    # (day, sym) -> {"zone","src","open930"} or "none" (computed, no zone)
@@ -4673,9 +4679,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     if zf:
                         zf_stop = zf["stop"]
                         _hm = datetime.now(EASTERN).strftime("%H:%M")
-                        # LIVE = the day's FIRST fire inside the window (mirror of the tested
-                        # reclaim policy); later fires / outside window = shadow evidence.
-                        if zf.get("seq", 0) == 0 and RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
+                        # LIVE = the day's FIRST fire, ALL DAY (Marcos 7/20: "I want the zone
+                        # flip all day live"); later fires (seq 1+) = shadow evidence.
+                        if zf.get("seq", 0) == 0:
                             if "daily" not in cache[t]:
                                 cache[t]["daily"] = get_daily_levels(t)
                             _daily = cache[t]["daily"]
@@ -4694,8 +4700,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                           zone_src=zf["zone_src"], stop=zf_stop)
                             found_entry = True
                         else:
-                            _whyz = ("late-window" if not (RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END)
-                                     else f"seq{zf.get('seq', 0)}")
+                            _whyz = f"seq{zf.get('seq', 0)}"
                             print(f"👥 {t} ZONE-FLIP fired {_hm} (seq{zf.get('seq', 0)}, {_whyz}) "
                                   f"— SHADOW logged, no trade")
                             _log_decision(t, "zoneflip_shadow_fire", price=price, zone=zf["zone"],
@@ -4723,8 +4728,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     if vr:
                         vr_stop = vr["stop"]
                         _hm = datetime.now(EASTERN).strftime("%H:%M")
-                        # 7/20 ROLE SWAP (Marcos): zone-flip holds the live slot; this machine is
-                        # SHADOW-ONLY unless RECLAIM_LIVE=1 restores it. All fires still logged.
+                        # 7/20 FINAL: BOTH machines live — this one first-fire in 09:30–11:00
+                        # (its verified window), shadow otherwise. RECLAIM_LIVE=0 re-demotes.
                         if RECLAIM_LIVE and vr.get("seq", 0) == 0 and RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
                             if "daily" not in cache[t]:
                                 cache[t]["daily"] = get_daily_levels(t)

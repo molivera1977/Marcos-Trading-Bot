@@ -280,8 +280,13 @@ print("T13 zone-flip Z-gates + role-swap pins")
 check("T13a pins: ZONEFLIP_KEV on, tested primary cell (flush 4%, band 2%)",
       bot.ZONEFLIP_KEV is True and abs(bot.ZONEFLIP_FLUSH - 0.04) < 1e-9
       and abs(bot.ZONEFLIP_BAND - 0.02) < 1e-9)
-check("T13b role swap: VWAP-reclaim demoted to shadow (RECLAIM_LIVE off, machine still on)",
-      bot.RECLAIM_LIVE is False and bot.RECLAIM_KEV is True)
+check("T13b BOTH live (Marcos 7/20 final): reclaim restored in-window, zone-flip window-free",
+      bot.RECLAIM_LIVE is True and bot.RECLAIM_KEV is True
+      and bot.RECLAIM_LIVE_START == "09:30" and bot.RECLAIM_LIVE_END == "11:00")
+_src_t13 = (HERE.parent / "marcos_trading_bot.py").read_text()
+check("T13b2 zone-flip live branch has NO clock window (all-day, first-fire only)",
+      'if zf.get("seq", 0) == 0:' in _src_t13
+      and 'zf.get("seq", 0) == 0 and RECLAIM_LIVE_START' not in _src_t13)
 check("T13c zone_flip is in the entry allowlist",
       "zone_flip" in (HERE.parent / "marcos_trading_bot.py").read_text()
                      .split("BREAKOUT_ENTRIES or b[3] in")[1][:120])

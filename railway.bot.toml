@@ -1,0 +1,23 @@
+# BOT service config — #53 per-service isolation (7/21, after the 9:53 incident: a recorder-only
+# push rebuilt ALL services via the shared railway.toml, and the cron bot built-without-starting,
+# leaving the bot dark mid-session until Marcos clicked Run-now).
+#
+# Point Marcos-Trading-Bot's Config-as-code (Settings → Config-as-code) at THIS file.
+# From then on: only pushes touching marcos_trading_bot.py (or this file) rebuild the bot.
+# A recorder or dashboard push never touches it again.
+#
+# Cron semantics preserved exactly (45 12 UTC = 8:45 ET during EDT; shift to 13:45 when DST
+# ends in November). NOTE the redeploy-no-start trap remains inherent to cron services: a
+# rebuild still stages without starting until the next cron fire or a Run-now click. The full
+# fix is converting the bot to an always-on worker with an internal 8:45 gate (recorder
+# pattern) — planned as #53 part 2, needs bot-code changes through the rig first.
+[build]
+builder = "nixpacks"
+watchPatterns = ["marcos_trading_bot.py", "railway.bot.toml"]
+
+[deploy]
+startCommand = "python marcos_trading_bot.py"
+restartPolicyType = "never"
+# VERIFIED schema (7/18, reader): cronSchedule lives under [deploy]; a "[cron]" table is
+# silently ignored by config-as-code.
+cronSchedule = "45 12 * * 1-5"

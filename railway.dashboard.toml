@@ -1,0 +1,12 @@
+# DASHBOARD/SCANNER service config — #53 per-service isolation (7/21).
+# Point the dashboard service's Config-as-code (Settings → Config-as-code) at THIS file.
+# Only screener_app.py pushes rebuild it; bot/recorder pushes never touch it. Always-on,
+# no cron. restartPolicyType mirrors current shared-toml behavior exactly (test-push parity);
+# upgrading to "always" is a separate deliberate decision, not a side effect of #53.
+[build]
+builder = "nixpacks"
+watchPatterns = ["screener_app.py", "railway.dashboard.toml"]
+
+[deploy]
+startCommand = "python screener_app.py"
+restartPolicyType = "never"

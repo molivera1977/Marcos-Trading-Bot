@@ -1451,7 +1451,9 @@ def api_minute_ext():
     if not dc:
         return jsonify({"error": "no data client"}), 503
     try:
-        resp = dc.market_data.get_history_bar(symbol=ticker, category="US_STOCK", timespan="M1", count=str(count))
+        resp = dc.market_data.get_history_bar(symbol=ticker, category="US_STOCK", timespan="M1",
+                                              count=str(count),
+                                              trading_sessions=["RTH", "PRE", "ATH"])
         if getattr(resp, "status_code", 0) != 200:
             return jsonify({"error": f"HTTP {getattr(resp, 'status_code', None)}", "ticker": ticker}), 502
         raw = resp.json()

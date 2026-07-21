@@ -496,3 +496,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# deploy-trigger 7/20 23:28: dashboard watchPatterns miss screener_app.py — touching a watched file ships the minute_ext sessions fix

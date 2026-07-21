@@ -26,6 +26,11 @@ shadow (CHART_GATE_ENFORCE unset) until validated — so even a bad read cannot 
 """
 import os, re, sys, io, json, time, base64, datetime as dt
 import urllib.request
+import urllib.parse
+
+def _q(t):
+    """URL-encode a ticker for query strings — 'GTN A' class symbols carry a space."""
+    return urllib.parse.quote(str(t), safe="")
 from zoneinfo import ZoneInfo
 
 ET   = ZoneInfo("America/New_York")
@@ -151,7 +156,7 @@ def _fetch_ext_bars(ticker):
     exam 0/3 within-2% of Kev — his levels live in the extended sessions our reads never saw).
     Fail-SOFT: any error returns [] and the read proceeds gap-blind (a blind read beats no read)."""
     try:
-        rows = _get(f"{U}/api/minute_ext?ticker={ticker}&count=1200", timeout=45).get("bars") or []
+        rows = _get(f"{U}/api/minute_ext?ticker={_q(ticker)}&count=1200", timeout=45).get("bars") or []
         out = []
         for b in rows:
             s = b.get("session") or ""
@@ -187,7 +192,7 @@ def _fetch_ext_bars(ticker):
 
 def render_daily_png(ticker):
     try:
-        bars = _get(f"{U}/api/daily?ticker={ticker}&count=45").get("bars") or []
+        bars = _get(f"{U}/api/daily?ticker={_q(ticker)}&count=45").get("bars") or []
     except Exception:
         return None, None
     b=[]
@@ -311,7 +316,7 @@ def vision_read(ticker, png_bytes, candidates, last_px):
         prompt = READ_PROMPT.format(ticker=ticker, candidates=json.dumps(candidates),
                                     last_px=(round(last_px,4) if last_px else "n/a"))
         msg = client.messages.create(
-            model=MODEL, max_tokens=700,
+            model=MODEL, max_tokens=1100,
             messages=[{"role":"user","content":[
                 {"type":"image","source":{"type":"base64","media_type":"image/png","data":img_b64}},
                 {"type":"text","text": prompt},

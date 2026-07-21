@@ -1434,6 +1434,40 @@ def api_daily():
     except Exception as e:
         return jsonify({"error": str(e), "ticker": ticker}), 500
 
+@app.route("/api/minute_ext", methods=["GET"])
+def api_minute_ext():
+    """Webull M1 bars INCLUDING extended hours for one ticker — the reader's gap-awareness feed
+    (7/20: reads were AH/PM-blind; Kev exam 0/3 within-2% — BXBL's 14.75 lived only in Sunday AH).
+    Bars carry trading_session (PRE/RTH/ATH) so the client can slice sessions. ?ticker=X [&count=1200].
+    Same gentle contract as /api/daily: one ticker per call, client paces."""
+    ticker = (request.args.get("ticker") or "").upper().strip()
+    if not ticker:
+        return jsonify({"error": "need ?ticker="}), 400
+    try:
+        count = min(int(request.args.get("count", "1200")), 1200)
+    except ValueError:
+        count = 1200
+    dc = _make_data_client()
+    if not dc:
+        return jsonify({"error": "no data client"}), 503
+    try:
+        resp = dc.market_data.get_history_bar(symbol=ticker, category="US_STOCK", timespan="M1", count=str(count))
+        if getattr(resp, "status_code", 0) != 200:
+            return jsonify({"error": f"HTTP {getattr(resp, 'status_code', None)}", "ticker": ticker}), 502
+        raw = resp.json()
+        items = raw if isinstance(raw, list) else (raw.get("data", {}) if isinstance(raw, dict) else {})
+        if isinstance(items, dict):
+            items = items.get("items", items)
+        bars = []
+        for b in (items or []):
+            bars.append({"time": b.get("time") or b.get("timeStamp") or b.get("tradeTime") or "",
+                         "open": b.get("open"), "high": b.get("high"), "low": b.get("low"),
+                         "close": b.get("close"), "volume": b.get("volume"),
+                         "session": b.get("trading_session") or b.get("tradingSession") or ""})
+        return jsonify({"ticker": ticker, "count": len(bars), "bars": bars})
+    except Exception as e:
+        return jsonify({"error": str(e), "ticker": ticker}), 500
+
 @app.route("/api/stream_check", methods=["GET"])
 def api_stream_check():
     if not _endpoint_authed():

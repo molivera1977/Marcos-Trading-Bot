@@ -146,6 +146,45 @@ def _candidate_levels(hist):
             "reaction_highs":react,"round_numbers_above":rn}
 
 # ── STEP 2: RENDER — daily chart to PNG bytes (+ candidate levels) ───────────────────────────
+def _fetch_ext_bars(ticker):
+    """Yesterday's AFTER-HOURS + today's PREMARKET 1m bars (the gap-awareness feed, 7/20:
+    exam 0/3 within-2% of Kev — his levels live in the extended sessions our reads never saw).
+    Fail-SOFT: any error returns [] and the read proceeds gap-blind (a blind read beats no read)."""
+    try:
+        rows = _get(f"{U}/api/minute_ext?ticker={ticker}&count=1200", timeout=45).get("bars") or []
+        out = []
+        for b in rows:
+            s = b.get("session") or ""
+            t = str(b.get("time") or "")
+            if s not in ("PRE", "ATH") or len(t) < 16:
+                continue
+            try:
+                out.append({"t": t, "s": s, "o": float(b["open"]), "h": float(b["high"]),
+                            "l": float(b["low"]), "c": float(b["close"]),
+                            "v": float(b.get("volume") or 0)})
+            except (TypeError, ValueError):
+                continue
+        if not out:
+            return []
+        # ONE arc = today's PREMARKET + the most recent PRIOR day's AFTER-HOURS (for a Monday
+        # read that's Friday AH — a 56h wall-clock gap, so slice by session DATE, not by time
+        # gaps). Bar times are UTC; ET date = UTC-4 (EDT; the reader runs Mar-Nov sessions).
+        def _et_date(t):
+            hh = int(t[11:13]); d = t[:10]
+            if hh < 4:                      # 00:00-03:59 UTC = previous ET date (20:00-23:59)
+                import datetime as _dt
+                return (_dt.date.fromisoformat(d) - _dt.timedelta(days=1)).isoformat()
+            return d
+        pre_today = [b for b in out if b["t"][:10] == DAY and (b.get("s") or "PRE") == "PRE"]
+        ah_dates = sorted({_et_date(b["t"]) for b in out if (b.get("s") or "") == "ATH"
+                           and _et_date(b["t"]) < DAY})
+        ah_prev = ([b for b in out if (b.get("s") or "") == "ATH"
+                    and _et_date(b["t"]) == ah_dates[-1]] if ah_dates else [])
+        arc = sorted(ah_prev + pre_today, key=lambda x: x["t"])
+        return arc
+    except Exception:
+        return []
+
 def render_daily_png(ticker):
     try:
         bars = _get(f"{U}/api/daily?ticker={ticker}&count=45").get("bars") or []
@@ -159,6 +198,19 @@ def render_daily_png(ticker):
     b.sort(key=lambda z:z["date"]); hist=[z for z in b if z["date"] < DAY]
     if len(hist) < 2: return None, None    # ≥2 prior days (recent IPOs are core universe; was 6 — audit 7/18)
     cand=_candidate_levels(hist)
+    ext = _fetch_ext_bars(ticker)          # gap-awareness (7/20): [] on any failure → fail-soft
+    if ext:
+        pre = [x for x in ext if x["s"] == "PRE"]; ah = [x for x in ext if x["s"] == "ATH"]
+        if pre:
+            pv = sum(((x["h"]+x["l"]+x["c"])/3)*x["v"] for x in pre); vv = sum(x["v"] for x in pre)
+            cand["TODAY_PREMARKET"] = {"pm_high": round(max(x["h"] for x in pre), 4),
+                                       "pm_low": round(min(x["l"] for x in pre), 4),
+                                       "pm_last": round(pre[-1]["c"], 4),
+                                       "pm_vwap": round(pv/vv, 4) if vv else None}
+        if ah:
+            cand["YESTERDAY_AFTERHOURS"] = {"ah_high": round(max(x["h"] for x in ah), 4),
+                                            "ah_low": round(min(x["l"] for x in ah), 4),
+                                            "ah_close": round(ah[-1]["c"], 4)}
     import matplotlib; matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.patches import Rectangle
@@ -168,7 +220,11 @@ def render_daily_png(ticker):
     RECENT_DAYS = int(os.environ.get("NEWCOMER_RECENT_DAYS", "6"))   # TIGHT (validated 7/18: Kev weights recent)
     show=hist[-RECENT_DAYS:]; y=hist[-1]
     pdh=cand["prior_day_high"]; pdc=cand["prior_day_close"]; moHi=cand["month_high"]
-    fig, ax = plt.subplots(figsize=(8.5, 5.2))
+    if ext:
+        fig, (ax, ax2) = plt.subplots(2, 1, figsize=(8.5, 8.6),
+                                      gridspec_kw={"height_ratios": [1, 1.15]})
+    else:
+        fig, ax = plt.subplots(figsize=(8.5, 5.2))
     for i,x in enumerate(show):
         col="#26a69a" if x["c"]>=x["o"] else "#ef5350"
         ax.plot([i,i],[x["l"],x["h"]],color=col,lw=2.2)                       # thick = legible recent
@@ -182,17 +238,35 @@ def render_daily_png(ticker):
     ax.set_title(f"{ticker}  DAILY last {len(show)}d (Kev: yesterday+recent)  yest: O{y['o']:.2f} H{y['h']:.2f} L{y['l']:.2f} C{y['c']:.2f}", fontsize=10)
     ax.set_xticks(range(len(show))); ax.set_xticklabels([x["date"][5:] for x in show],fontsize=7,rotation=45)
     ax.legend(fontsize=8, loc="best"); ax.grid(alpha=0.18)
+    if ext:
+        # ── EXTENDED panel: yesterday AH → today premarket, ONE continuous arc (7/20 gap fix;
+        # this is Kev's "Ext" view — where gapper levels are born). Downsample for legibility.
+        step = max(1, len(ext)//240); ev = ext[::step]
+        _ah_n = sum(1 for x in ev if x["s"] == "ATH")
+        for i,x in enumerate(ev):
+            col = "#26a69a" if x["c"] >= x["o"] else "#ef5350"
+            if x["s"] == "ATH": col = "#7e57c2" if x["c"] >= x["o"] else "#b39ddb"   # AH tinted
+            ax2.plot([i,i],[x["l"],x["h"]],color=col,lw=1.0)
+        if _ah_n: ax2.axvline(_ah_n-0.5, color="black", ls="--", lw=0.8, alpha=0.5)
+        eh=max(x["h"] for x in ext); el=min(x["l"] for x in ext)
+        ax2.axhline(eh,color="#1976d2",ls="--",lw=1.2,label=f"ext-session high {eh:.2f}")
+        ax2.axhline(el,color="#455a64",ls=":",lw=1.0,label=f"ext-session low {el:.2f}")
+        _tks=list(range(0,len(ev),max(1,len(ev)//8)))
+        ax2.set_xticks(_tks); ax2.set_xticklabels([ev[i]["t"][11:16]+"Z" for i in _tks],fontsize=6,rotation=45)
+        ax2.set_title(f"{ticker} EXTENDED: yesterday after-hours (purple) → today premarket  "
+                      f"last {ext[-1]['c']:.2f}", fontsize=9)
+        ax2.legend(fontsize=7); ax2.grid(alpha=0.18)
     buf=io.BytesIO(); fig.tight_layout(); fig.savefig(buf, format="png", dpi=90); plt.close(fig)
     return buf.getvalue(), cand
 
 # ── STEP 3: READ — Claude vision (grounded persona + Kev spec + provided candidate levels) ──────
 # Lever 1: the read IS the Momentum Operator reading per the canonical Kev system spec — not a generic
 # "day trader". Lever 2: candidate levels are provided as DATA; the model SELECTS, never eyeballs.
-READ_PROMPT = """You are an experienced small-cap momentum trader (Kev lineage) reading this TIGHT, recent DAILY chart of {ticker} (yesterday + the last several sessions). Mark the trigger for the NEXT trading day. Judge the chart on its own merits — no leaning toward caution or aggression.
+READ_PROMPT = """You are an experienced small-cap momentum trader (Kev lineage) reading this chart of {ticker} — TOP panel: TIGHT recent DAILY structure (yesterday + the last several sessions); BOTTOM panel (when present): the EXTENDED sessions — yesterday's after-hours (purple candles) flowing into today's premarket. For a gapper, the extended panel IS the live structure: weight its shelves and range over stale daily levels far from current price. Mark the trigger for the NEXT trading session. Judge the chart on its own merits — no leaning toward caution or aggression.
 
 ★ MANDATORY — you MUST return a break_level (this is Kev's method): the specific price that, once broken and HELD, confirms a tradeable upside move. Required for EVERY name including weak/downtrending/choppy ones — for a weak name it is the price it must RECLAIM to become tradeable (yesterday's high, the reaction high, or the level it broke down from). NEVER return null for break_level. Why it's safe: we only trade if price actually reaches and HOLDS the level intraday; if it never gets there, we don't trade — so marking a level costs nothing and missing one costs a winner if it turns.
 
-Assess objectively: TREND (up/down/sideways), STRUCTURE (base, coil near highs, pullback to support, breakdown, range), POSITION (near highs = room above, mid-range, at lows), ROOM (distance to next overhead vs risk to nearest support). For a gapper, use the MEANINGFUL recent structure high, not a stale prior-day high far below price.
+Assess objectively: TREND (up/down/sideways), STRUCTURE (base, coil near highs, pullback to support, breakdown, range), POSITION (near highs = room above, mid-range, at lows), ROOM (distance to next overhead vs risk to nearest support). For a gapper, use the MEANINGFUL recent structure high, not a stale prior-day high far below price. CRITICAL for a gapper that has FADED off its premarket/after-hours high: the break_level is the extended-session structure price must RECLAIM to prove the gap is real — the premarket high region or the shelf it broke down from — NOT the low range it is currently sitting in. Marking a level above current price costs nothing (we only trade if it gets there and holds); marking the current range risks buying a dead gap.
 setup="parabolic" ONLY for an already-vertical blow-off — the label is DATA, not a veto: STILL give the break/reclaim level like every other name (levels-only; Marcos 7/18).
 Set verdict to your genuine lean (TAKE favors an upside break next day / SKIP favors downside-or-chop / MARGINAL mixed) — but the DECISION is the LEVEL, not the verdict.
 

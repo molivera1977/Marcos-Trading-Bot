@@ -40,6 +40,8 @@ TOKEN_DIR = os.environ.get("RECORDER_TOKEN_DIR", "/tmp/recorder_webull_token")
 # universe / timing
 PRICE_MIN, PRICE_MAX = 0.30, 20.0        # Kev realm (a touch wider than the bot to over-capture)
 MAX_SUBSCRIBE   = 98                      # Webull hard cap measured 7/16: 100/session
+RESERVE_LIVE    = 15                      # F3 (7/21): RTH slots held for RANKED live movers (forensic rec);
+_last_hot_cycle = [0.0]                   #   lockout-breaker cooldown (≥10 min between forced reseeds)
 RTH_SUB_CAP     = 40                      # 7/16: Webull kicks session-2 repeatedly at RTH message rates with
                                           # ~98 subs (3 kicks: 9:31/10:31/10:46). Premarket (the irreplaceable
                                           # mission) runs full-width; RTH runs top-priority only — the bot's own
@@ -71,23 +73,36 @@ _stop = threading.Event()
 # ── ingestion (mirrors the bot's proven _shadow_ingest + adds snapshot-VWAP) ──
 _last_ingest = [0.0]    # tick-liveness stamp (7/16: stream died silently at 9:31 open — zombie 45 min)
 _last_real_ingest = [0.0]  # 7/16: REAL-tick-only stamp — NOT reset on connect (unlike _last_ingest); powers the dead-man's switch
+_prev_cv: dict = {}   # F1 (7/21): sym → last seen cumvol — carried across bucket boundaries AND
+#   reconnects so no received volume is ever dropped. The 7/20 forensic measured the old behavior
+#   (each new bucket re-baselining v0 to its own first snapshot) leaking 10-25% of volume on a CLEAN
+#   connection, plus discarding every blackout's volume. Conservation law: Σ(bar volumes) must equal
+#   the counter's total delta. Decrease-guard: counter reset (PRE→RTH) re-baselines, never negative.
 def ingest(sym, price, cumvol, ts):
     try:
         _last_ingest[0] = ts
         _last_real_ingest[0] = ts
         # 10s / 60s OHLC bars (identical bucketing to the bot's B12)
+        carried = _prev_cv.get(sym) if cumvol is not None else None
+        if carried is not None and cumvol is not None and carried > cumvol:
+            carried = cumvol                      # counter reset → re-baseline, never negative
         for span in (10, 60):
             k = int(ts) // span * span
             with _lock:
                 d = _bars[span].setdefault(sym, {})
                 b = d.get(k)
                 if b is None:
-                    d[k] = {"o": price, "h": price, "l": price, "c": price, "v0": cumvol, "v1": cumvol}
+                    # F1: v0 = the carried counter (last snapshot we saw, possibly pre-gap), NOT this
+                    # snapshot's value — the straddling/blackout delta lands in THIS bucket.
+                    v0 = carried if carried is not None else cumvol
+                    d[k] = {"o": price, "h": price, "l": price, "c": price, "v0": v0, "v1": cumvol}
                 else:
                     if price > b["h"]: b["h"] = price
                     if price < b["l"]: b["l"] = price
                     b["c"] = price
                     if cumvol is not None: b["v1"] = cumvol
+        if cumvol is not None:
+            _prev_cv[sym] = cumvol
         # snapshot-VWAP — REPAIR SHIPPED 7/18 (acceptance = Monday's EOD chart check, NOT this
         # comment). Old math booked ALL Δvolume at the single newest price — the 7/17 blind test
         # measured −0.91%/−5.74% vs the chart in fast RTH tape, and this line feeds the bot's
@@ -160,10 +175,14 @@ def data_client():
     return _data_client
 
 def scan_movers():
-    """Broad gapper/mover universe: premarket gainers pre-open, live gainers after. Returns symbol set."""
+    """Broad gapper/mover universe: premarket gainers pre-open, live gainers after.
+    F3 (7/21): returns a RANKED LIST (screener CHANGE_RATIO desc, order preserved) — the old
+    unordered set() threw the ranking away, so under a full cap the hottest new mover had the
+    same zero chance as the #100 name. ZYBT 7/20 (day's biggest move, appeared post-open):
+    captured 7% because it never won a slot."""
     dc = data_client()
-    if not dc: return set()
-    syms = set()
+    if not dc: return []
+    syms, seen = [], set()
     now = et_now()
     market_open = now.hour > 9 or (now.hour == 9 and now.minute >= 30)
     rank = "DAY_1" if market_open else "PRE_MARKET"
@@ -174,7 +193,9 @@ def scan_movers():
             raw = res.json(); items = raw if isinstance(raw, list) else raw.get("data", raw.get("items", []))
             for it in items:
                 s = it.get("symbol", ""); p = float(it.get("price") or it.get("close") or 0)
-                if s and PRICE_MIN <= p <= PRICE_MAX: syms.add(s.upper())
+                u = str(s).upper()
+                if u and u not in seen and PRICE_MIN <= p <= PRICE_MAX:
+                    seen.add(u); syms.append(u)
     except Exception as e:
         log(f"scan error: {e}")
     return syms
@@ -606,15 +627,29 @@ def run_session():
     global _stream, _sub_cap_hit
     _subscribed.clear()
     _sub_cap_hit = False
-    with _lock:
-        for _v in _vwap.values():
-            _v["last_cumvol"] = None      # re-baseline: exclude gap volume rather than distort VWAP
+    # F1 (7/21): reconnects NO LONGER null last_cumvol. The old re-baseline deliberately discarded
+    # every blackout's volume (measured 7/20: ~32% of RTH deaf → the day-total undercount). The
+    # counter is provably complete (BIYA recaptured 106% post-stall), so we KEEP the baseline:
+    # the gap's volume books at midpoint(last_px, resume px) via the existing accumulator math,
+    # and the decrease-guard in ingest() still handles true counter resets (PRE→RTH).
     if not connect_stream():
         raise RuntimeError("stream connect failed")
     _last_ingest[0] = time.time()
     _ck = _ckpt_load()
     if _ck: log(f"vwap checkpoint restored for {_ck} symbol(s)")
-    subscribe(carryover_seed())        # known names captured from premarket tick-1
+    # F3 (7/21): during RTH, cap the carryover seed so RESERVE_LIVE slots stay open for RANKED
+    # live movers — the old all-carryover refill locked every post-open runner out for the day
+    # (ZYBT 7/20: day's biggest move, 7% captured, never won a slot).
+    _seed = carryover_seed()
+    _n0 = et_now()
+    _rth0 = _n0.weekday() < 5 and (9, 30) <= (_n0.hour, _n0.minute) < (16, 0)
+    if _rth0:
+        _seed = _seed[:max(0, RTH_SUB_CAP - RESERVE_LIVE)]
+        subscribe(_seed)
+        try: subscribe(scan_movers())     # ranked: hottest movers take the reserve immediately
+        except Exception as e: log(f"reserve-fill scan err: {e}")
+    else:
+        subscribe(_seed)                  # premarket: wide cap, unchanged
     last_scan = last_persist = last_snap = last_flight = 0.0
     while not _stop.is_set():
         if not in_session():
@@ -649,8 +684,23 @@ def run_session():
         if t - last_snap >= 60:
             snapshot_vwap(); last_snap = t
         if t - last_scan >= RESCAN_SECS:
-            try: subscribe(scan_movers())
+            try:
+                _mv = scan_movers()
+                subscribe(_mv)
+                # F3 lockout breaker: if a TOP-10 ranked mover can't get a slot (cap full) during
+                # RTH, force ONE controlled cycle (≥10 min apart) — the reconnect reseeds
+                # carryover(cap−reserve) + ranked movers, so the hot name wins a reserve slot.
+                _nl = et_now()
+                _rth_l = _nl.weekday() < 5 and (9, 30) <= (_nl.hour, _nl.minute) < (16, 0)
+                _locked = [s for s in _mv[:10] if s not in _subscribed]
+                if (_rth_l and _locked and len(_subscribed) >= RTH_SUB_CAP
+                        and t - _last_hot_cycle[0] >= 600):
+                    _last_hot_cycle[0] = t
+                    log(f"HOT MOVER LOCKED OUT {_locked[:3]} — controlled cycle to reseed with reserve")
+                    snapshot_vwap(); persist("hot_mover_flush")
+                    raise RuntimeError("hot-mover reseed cycle")
             except InvalidSessionError: raise          # F3: must escape to the supervisor
+            except RuntimeError: raise
             except Exception as e: log(f"rescan err: {e}")
             last_scan = t
         if t - last_persist >= PERSIST_SECS:
@@ -661,6 +711,7 @@ def _reset_day():
     with _lock:
         _bars[10].clear(); _bars[60].clear(); _vwap.clear()
         _shipped.clear(); _vw_shipped.clear()
+        _prev_cv.clear()              # F1: yesterday's counter must not leak into today's first bar
     _subscribed.clear()
     globals()["_sub_cap_hit"] = False
     _teardown_stream()          # F1: day roll must KILL the session, not orphan it overnight

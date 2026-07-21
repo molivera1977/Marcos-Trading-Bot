@@ -661,7 +661,11 @@ def run_session():
         # 7/20 measured ~164s blackout each (90 fuse + 60 backoff + 13 connect) ≈ 32% of RTH deaf.
         # RTH fuse 20s; premarket keeps 90s (thin tape has honest silences).
         _n9 = et_now()
-        _fz = 20 if (_n9.weekday() < 5 and (9, 30) <= (_n9.hour, _n9.minute) < (16, 0)) else 90
+        # 7/21 LIVE REGRESSION FIX: 20s fuse false-tripped on NORMAL snapshot gaps (measured 21-24s
+        # lulls at 9:41/9:45) → reconnect churn every 1-3 min that cleared all 40 subs each time and
+        # fragmented the movers' capture to near-zero (VIVK, day's #1, 0 stable bars). 45s clears
+        # the observed natural gaps with margin, still halves the old 90s blackout window.
+        _fz = 45 if (_n9.weekday() < 5 and (9, 30) <= (_n9.hour, _n9.minute) < (16, 0)) else 90
         if _last_ingest[0] and t - _last_ingest[0] > _fz:
             log(f"TICK SILENCE {t - _last_ingest[0]:.0f}s (fuse {_fz}s) — stream presumed dead, forcing reconnect")
             snapshot_vwap(); persist("silence_flush")

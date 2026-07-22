@@ -48,8 +48,8 @@ check("T16 vel5 floor: hard gate on legacy machines, curl-machines exempt, fails
       "vel5_reject" in SRC and '"ignition", "flat_top", "ma_pullback", "orb", "ema_bounce"' in SRC
       and "_v5 is not None and _v5 < 0" in SRC)
 
-check("T17 read-staleness: EXHAUSTED skip on legacy, curl machines exempt, entry_type threaded",
-      "read_exhausted" in SRC and '_STALE_EXEMPT = ("rocket_catcher", "vwap_reclaim", "zone_flip")' in SRC
+check("T17 read-staleness: OBSERVE-ONLY (hard skip REFUTED by 7/20 killtest: would block ZYBT/BIYA winners)",
+      "read_exhausted_observed" in SRC and 'return ("skip", "read_exhausted"' not in SRC
       and "_chart_break_gate(ticker, entry_price, entry_type)" in SRC)
 
 check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",

@@ -2207,7 +2207,15 @@ def _chart_break_gate(ticker, entry_price, entry_type=None):
             except (TypeError, ValueError, IndexError):
                 _lastT = 0.0
             if _lastT > 0 and float(entry_price) > _lastT:
-                return ("skip", "read_exhausted", brk, "sheet")              # map spent → re-read needed
+                # 7/21 late KILL-TEST REFUTED the hard skip (read_staleness_killtest.py, BOTH enforce
+                # days): on 7/20 past-map = MOMENTUM — the skip would have blocked ZYBT +$164.79 and
+                # BIYA +$34.40 to avoid SKYQ −$41 (net ≈ −$160). Room-gate-inversion class. So:
+                # OBSERVE-ONLY — log the exhausted state (evidence + future re-read trigger), never block.
+                try:
+                    _log_decision(ticker, "read_exhausted_observed", entry=round(float(entry_price), 4),
+                                  last_target=_lastT, break_level=brk, machine=entry_type)
+                except Exception:
+                    pass
         if float(entry_price) >= brk:
             return ("allow", "broke_level", brk, "sheet")                    # price broke the mark
         return ("block", "no_break_below_level", brk, "sheet")               # entered under the mark

@@ -4458,35 +4458,65 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         cache[t]["ignition_fired"] = True
                         continue                              # ignition captured (in `breakouts`) — skip other detectors for t
 
-            # ── ROCKET CATCHER (7/21, Fable-approved) — velocity ≥25%/5min = rocket mode → enter, scale-out
-            #    exit (handled in monitor_trade by entry_type). Fires ALL DAY; EXEMPT from the extension guard
-            #    (catches extension by design); capped ROCKET_DAILY_CAP/day. once-per-name via rocket_fired.
+            # ── ROCKET CATCHER (7/21 KEV-SPEC, video XFSPUI5YJsE: "wait for the pullback to draw down
+            #    off the 20 EMA... these were the BEST entries") — three phases, NOT a chase:
+            #    1) ARM: velocity ≥25%/5min fires (detect_rocket) → rocket alarm, no entry (chase REFUTED
+            #       by order-dependent replay: median-negative).
+            #    2) WAIT: track the pullback low; require a touch of the 1m 20-EMA (Kev's anchor).
+            #    3) CURL: just-closed 1m bar closes above the prior bar's high → ENTER; stop = pullback low.
+            #    Exit = scale-out ladder in monitor_trade (entry_type rocket_catcher). Kill-tested n=5:
+            #    mean +50%, median +21%, win 60% (kev_anchor_dipbuy.py). Extension-guard EXEMPT; capped/day.
             if ROCKET_CATCHER and not cache[t].get("rocket_fired"):
-                _rk = detect_rocket(_latest_session(cache[t].get("full_bars") or bars), price)
-                if _rk:
-                    _rkday = datetime.now(EASTERN).strftime("%Y-%m-%d")
-                    if _rocket_day["d"] != _rkday:
-                        _rocket_day["d"] = _rkday; _rocket_day["n"] = 0
-                    if _rocket_day["n"] >= ROCKET_DAILY_CAP:
-                        _log_decision(t, "rocket_capped", price=price, vel=_rk["vel"])
-                        cache[t]["rocket_fired"] = True
-                    else:
-                        _rk_comp = aggregate_bars(cache[t].get("full_bars") or bars, SETUP_TF_MIN)[:-1]
-                        if len(_rk_comp) >= EMA20_PERIOD + 2:
-                            _re9, _re20, _re90 = calculate_ema9(_rk_comp), calculate_ema20(_rk_comp), calculate_ema90(_rk_comp)
+                _rs1 = _latest_session(cache[t].get("full_bars") or bars)
+                if not cache[t].get("rocket_armed"):
+                    _rk = detect_rocket(_rs1, price)
+                    if _rk:
+                        cache[t]["rocket_armed"] = True
+                        cache[t]["rocket_vel"] = _rk["vel"]
+                        cache[t]["rocket_plow"] = price          # pullback low starts at the alarm print
+                        cache[t]["rocket_touched"] = False
+                        print(f"\n🚀 {t} ROCKET ARMED +{_rk['vel']}%/{ROCKET_VEL_BARS}min — waiting for "
+                              f"20-EMA pullback + curl (Kev spec), NOT chasing")
+                        _log_decision(t, "rocket_armed", price=price, vel=_rk["vel"])
+                elif len(_rs1) >= 2:
+                    _lb, _pb = _rs1[-1], _rs1[-2]                 # just-closed bar + the one before it
+                    _lo, _cl = _bar_low(_lb), _bar_close(_lb)
+                    if _lo > 0:
+                        cache[t]["rocket_plow"] = min(cache[t].get("rocket_plow") or _lo, _lo)
+                    _closes = [_bar_close(b) for b in _rs1 if _bar_close(b) > 0]
+                    _e20r = 0.0
+                    if len(_closes) >= 3:
+                        _e20r = _closes[0]
+                        for _c in _closes[1:]:
+                            _e20r = _c * (2 / 21) + _e20r * (1 - 2 / 21)
+                    if _e20r > 0 and _lo <= _e20r:
+                        cache[t]["rocket_touched"] = True         # Kev: pullback reached the 20 EMA
+                    if cache[t].get("rocket_touched") and _cl > _bar_high(_pb) and _cl > 0:
+                        _rkday = datetime.now(EASTERN).strftime("%Y-%m-%d")
+                        if _rocket_day["d"] != _rkday:
+                            _rocket_day["d"] = _rkday; _rocket_day["n"] = 0
+                        if _rocket_day["n"] >= ROCKET_DAILY_CAP:
+                            _log_decision(t, "rocket_capped", price=price, vel=cache[t].get("rocket_vel"))
+                            cache[t]["rocket_fired"] = True
                         else:
-                            _re9 = _re20 = _re90 = 0.0
-                        print(f"\n🚀🚀 {t} ROCKET! ${price:.2f} velocity +{_rk['vel']}%/{ROCKET_VEL_BARS}min — "
-                              f"rocket-mode entry (scale-out exit), stop ${_rk['stop']:.2f} "
-                              f"[#{_rocket_day['n'] + 1}/{ROCKET_DAILY_CAP} today]")
-                        breakouts.append((t, price, price, "rocket_catcher",
-                                          {"zone_stop": _rk["stop"], "vel": _rk["vel"],
-                                           "ema90": round(_re90, 4), "front_side": _re9 > _re20 > 0,
-                                           "ema9": round(_re9, 4), "ema20": round(_re20, 4)}))
-                        _log_decision(t, "triggered_rocket", price=price, vel=_rk["vel"], stop=_rk["stop"])
-                        _rocket_day["n"] += 1
-                        cache[t]["rocket_fired"] = True
-                        continue                              # rocket captured — skip other detectors for t
+                            _rstop = cache[t].get("rocket_plow") or price * 0.75
+                            _rk_comp = aggregate_bars(cache[t].get("full_bars") or bars, SETUP_TF_MIN)[:-1]
+                            if len(_rk_comp) >= EMA20_PERIOD + 2:
+                                _re9, _re20, _re90 = calculate_ema9(_rk_comp), calculate_ema20(_rk_comp), calculate_ema90(_rk_comp)
+                            else:
+                                _re9 = _re20 = _re90 = 0.0
+                            print(f"\n🚀🚀 {t} ROCKET DIP-BUY! ${price:.2f} — 20-EMA pullback held, curl over "
+                                  f"${_bar_high(_pb):.2f}; stop ${_rstop:.2f} (pullback low) "
+                                  f"[#{_rocket_day['n'] + 1}/{ROCKET_DAILY_CAP} today]")
+                            breakouts.append((t, price, price, "rocket_catcher",
+                                              {"zone_stop": _rstop, "vel": cache[t].get("rocket_vel"),
+                                               "ema90": round(_re90, 4), "front_side": _re9 > _re20 > 0,
+                                               "ema9": round(_re9, 4), "ema20": round(_re20, 4)}))
+                            _log_decision(t, "triggered_rocket", price=price, vel=cache[t].get("rocket_vel"),
+                                          stop=_rstop, curl_over=round(_bar_high(_pb), 4))
+                            _rocket_day["n"] += 1
+                            cache[t]["rocket_fired"] = True
+                            continue                              # rocket captured — skip other detectors for t
 
             # ── Kev's SETUPS come from the 3-MIN chart (#215); the 1-min is only entry timing + risk.
             #    Aggregate the multi-day 1-min series → 3-min so the flat-top base, the 9/20/90 EMAs

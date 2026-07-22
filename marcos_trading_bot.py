@@ -4894,6 +4894,21 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         b[4]["entry_vel5"] = round((_c1 - _c0) / _c0 * 100, 2)
             except Exception:
                 pass
+        # ── VEL5 FLOOR (7/21 kill-test, n=56 real trades 7/13-7/21): entries with NEGATIVE trailing
+        # 5-min velocity ran ~30% win / −$173 total; >=0 ran +$60. Natural sign boundary (tape falling
+        # = knife-catch, Kev waits for the curl), sweep-robust F∈[0,1]. HARD gate on legacy BREAKOUT
+        # machines only; curl-entry machines (rocket_catcher / vwap_reclaim / zone_flip) are exempt —
+        # their entries are definitionally rising. entry_vel5 None (unmeasured) fails OPEN.
+        _kept_v = []
+        for b in breakouts:
+            _v5 = b[4].get("entry_vel5")
+            if (b[3] in ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
+                    and _v5 is not None and _v5 < 0):
+                _log_decision(b[0], "vel5_reject", price=b[1], entry_vel5=_v5, machine=b[3])
+                print(f"   ⛔ VEL5 FLOOR blocked {b[0]} {b[3]} entry (vel5 {_v5:+.1f}% < 0 — falling tape)")
+            else:
+                _kept_v.append(b)
+        breakouts = _kept_v
         if EXTENSION_MAX_PCT and EXTENSION_MAX_PCT < 9:
             _kept = []
             for b in breakouts:

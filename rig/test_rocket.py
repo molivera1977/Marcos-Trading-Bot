@@ -44,6 +44,10 @@ check("T15 entry_vel5 instrumentation (LOG-ONLY, no gate)",
       '"entry_vel5"' in SRC and 'b[4]["entry_vel5"]' in SRC
       and "vel5>=0 floor" in SRC and "NOT" in SRC)   # candidate rule documented, not enforced
 
+check("T16 vel5 floor: hard gate on legacy machines, curl-machines exempt, fails open on None",
+      "vel5_reject" in SRC and '"ignition", "flat_top", "ma_pullback", "orb", "ema_bounce"' in SRC
+      and "_v5 is not None and _v5 < 0" in SRC)
+
 check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",
       "_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap" in SRC
       and "if _sv and _tick_vwap_ok(_sv, vwap, price):\n                    _day_k" not in SRC)

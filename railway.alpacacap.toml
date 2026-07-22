@@ -1,0 +1,17 @@
+# Alpaca parallel-capture service config (Phase 0 vendor test). Point the NEW Railway
+# service's "Railway Config File" (Settings → Config-as-code) at THIS file so it never
+# inherits the bot's railway.toml. Own start command, restart=ALWAYS (crash recovery —
+# the internal supervisor handles socket deaths; this covers hard process death), and
+# its own watch paths so alpaca pushes rebuild ONLY this service (bot/recorder/dashboard
+# untouched — the 7/21 shared-toml lesson).
+[build]
+builder = "nixpacks"
+watchPatterns = ["alpaca_capture.py", "railway.alpacacap.toml"]
+
+[deploy]
+# websocket-client is NOT in the shared requirements.txt (can't touch it during market
+# hours — rebuilds every service). Boot-time pip install keeps Phase 0 self-contained;
+# fold `websocket-client==1.8.0` into requirements.txt at an evening push, then simplify
+# this to plain `python alpaca_capture.py`. See ALPACA_CAPTURE_REQUIREMENTS_NOTE.md.
+startCommand = "pip install --no-input websocket-client==1.8.0 && python alpaca_capture.py"
+restartPolicyType = "always"

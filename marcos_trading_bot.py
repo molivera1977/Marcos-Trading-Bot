@@ -867,6 +867,7 @@ class WebullStream:
         self._attempted = set()      # symbols we've tried to subscribe (avoids a retry storm on a failing sub)
         self._last_tick_ts = 0.0     # wall-clock of the last VALID tick — gates the fast loop cadence
         self._sub_lock  = threading.Lock()
+        self._last_reconnect = 0.0   # #86 ghost-session rebuild rate-limit (one attempt / 300s)
         self._connect()
 
     def _connect(self):
@@ -916,6 +917,45 @@ class WebullStream:
                 self.subscribed.update(new)
         except Exception as e:
             print(f"⚠️  Stream subscribe error {new}: {e}")
+            # #86 (7/22): the server can drop our session MID-DAY (live ~12:27 — every new subscribe
+            # 417/INVALID_SESSION after) and the attempted-set made that permanent for those names.
+            # Same ghost-session class the recorder fixed with teardown+rebuild. Un-attempt the names
+            # so they retry once the session is rebuilt, and rebuild in the background (never blocks
+            # the trading loop; get_price falls back to REST meanwhile).
+            if "INVALID_SESSION" in str(e) or "417" in str(e):
+                with self._sub_lock:
+                    self._attempted.difference_update(new)
+                threading.Thread(target=self._reconnect,
+                                 args=(f"INVALID_SESSION on {new[:3]}",), daemon=True).start()
+
+    def _reconnect(self, reason=""):
+        """#86 ghost-session rebuild: full teardown (the recorder's missing-teardown lesson) → token
+        refresh → fresh client → re-subscribe the whole book. Rate-limited to one attempt / 300s so a
+        hard Webull outage degrades to plain REST polling instead of a reconnect storm."""
+        with self._sub_lock:
+            now = time.time()
+            if now - self._last_reconnect < 300:
+                return False
+            self._last_reconnect = now
+        print(f"🔄 Stream session rebuild ({reason}) — teardown + token refresh + resubscribe")
+        try:
+            self.connected = False                    # get_price → REST while we rebuild
+            if self.client:
+                try:
+                    self.client.disconnect(); self.client.loop_stop()
+                except Exception:
+                    pass
+            with self._sub_lock:
+                book = sorted(self.subscribed | {t.upper() for t in self.tickers if t})
+                self.subscribed = set()
+                self._attempted = set()
+            self.tickers = book
+            self.client = None
+            self._connect()
+            return self.connected
+        except Exception as e:
+            print(f"⚠️  Stream rebuild failed ({e}) — REST covers until the next trigger")
+            return False
 
     def _on_msg(self, _client, topic, payload):
         """SNAPSHOT push → update the price registry with the last-trade price (+ ext/overnight if RTH is None)."""

@@ -82,6 +82,11 @@ SSRC = (pathlib.Path(__file__).resolve().parent.parent / "screener_app.py").read
 check("T20c whitelist-strip class killer: record_trade passes unknown fields through",
       "trade.setdefault(_k, _v)" in SSRC and "WHITELIST-STRIP CLASS KILLER" in SSRC)
 
+check("T21 #86 ghost-session: INVALID_SESSION → un-attempt names + background teardown/rebuild, rate-limited 300s",
+      "def _reconnect(self" in SRC and "_attempted.difference_update(new)" in SRC
+      and "_last_reconnect < 300" in SRC and 'INVALID_SESSION" in str(e) or "417"' in SRC
+      and "target=self._reconnect" in SRC and "daemon=True" in SRC)
+
 check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",
       "_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap" in SRC
       and "if _sv and _tick_vwap_ok(_sv, vwap, price):\n                    _day_k" not in SRC)

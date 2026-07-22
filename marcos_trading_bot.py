@@ -3629,7 +3629,7 @@ def detect_vwap_reclaim(completed, price, vwap):
 #    NOT trail20 — Fable: detection+trail20 = +1.5% noise, detection+scale-out = +32%). rocket_catcher
 #    is EXEMPT from the extension guard by design (it deliberately catches extension); NO blanket
 #    gate-inversion for the legacy machines. See [[project_rocket_catcher_package.md]] Fable verdict.
-ROCKET_CATCHER   = os.environ.get("ROCKET_CATCHER", "0") == "1"    # ships DISABLED — flip env to 1 ONLY after the 6-tape replay (Fable/replay-rig gate)
+ROCKET_CATCHER   = os.environ.get("ROCKET_CATCHER", "1") == "1"    # ACTIVE in DRY_RUN (Fable shadow verdict 7/21: replays+hand-trace passed; env=0 = kill-switch)
 ROCKET_VEL_PCT   = float(os.environ.get("ROCKET_VEL_PCT", "25"))    # % over the window (Fable T=25 = 0 false-pos/95 fades)
 ROCKET_VEL_BARS  = int(os.environ.get("ROCKET_VEL_BARS", "5"))      # trailing 1-min bars = a 5-minute velocity window
 ROCKET_DAILY_CAP = int(os.environ.get("ROCKET_DAILY_CAP", "3"))     # max rocket entries/day (Fable: cap 2-3)

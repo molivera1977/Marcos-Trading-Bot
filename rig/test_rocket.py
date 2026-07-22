@@ -14,8 +14,7 @@ def bars(closes, lows=None):
     return [{"close": c, "low": l, "open": c, "high": c * 1.01, "volume": 1000} for c, l in zip(closes, lows)]
 
 # ── ships DISABLED by default (safe until 6-tape replay); rig enables to exercise the detector ──
-check("T0 ships DISABLED by default (ROCKET_CATCHER off until replay)", bot.ROCKET_CATCHER is False)
-bot.ROCKET_CATCHER = True
+check("T0 ACTIVE by default in DRY_RUN (Fable shadow verdict 7/21; env ROCKET_CATCHER=0 is the kill-switch)", bot.ROCKET_CATCHER is True)
 
 # ── detector ──
 r = bot.detect_rocket(bars([1.00, 1.00, 1.05, 1.12, 1.22, 1.30]), 1.30)

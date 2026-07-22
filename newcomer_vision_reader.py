@@ -353,6 +353,11 @@ def post_level(ticker, read):
              "room_rr": read.get("room_rr"), "targets": read.get("targets") or [],
              "setup": read.get("setup"), "confidence": read.get("confidence"),
              "note": f"vision {verdict} (levels-only): {reason}", "src": "vision"}
+    # LEDGER pass-through (#77 part 3): version lineage survives the post — read_version/trigger/
+    # read_at/history were silently stripped by this whitelist (found 7/21: CPHI v2 posted, history:0).
+    for _lk in ("read_version", "trigger", "read_at", "history"):
+        if read.get(_lk) is not None:
+            entry[_lk] = read[_lk]
     cur[ticker] = entry
     try:
         _post("/api/kev_watchlist", {"date": DAY, "tickers": tickers, "levels": cur})

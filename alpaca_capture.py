@@ -48,6 +48,11 @@ ALPACA_KEY    = os.environ.get("ALPACA_KEY", "")
 ALPACA_SECRET = os.environ.get("ALPACA_SECRET", "")
 ALPACA_FEED   = os.environ.get("ALPACA_FEED", "iex")        # "iex" free tier; "sip" = Phase 1 paid test
 SYMBOL_CAP    = int(os.environ.get("SYMBOL_CAP", "150"))    # deliberately ABOVE Webull's 40 — the probe point
+_cap_eff      = [SYMBOL_CAP]  # EFFECTIVE cap — a 405 symbol-limit frame trims this instead of
+                              # reconnect-looping (Phase 0 on the free tier burned cycles that way);
+                              # SIP never 405s, so on Phase 1+ this stays == SYMBOL_CAP
+SILENCE_SECS  = 90 if ALPACA_FEED == "sip" else 180   # feed-aware zombie fuse: SIP with a full book
+                              # quiet 90s IS a dead socket; IEX premarket is honestly thin — err wide
 SYMBOL_PROBE  = os.environ.get("SYMBOL_PROBE", "0") == "1"  # 1 → pad roster with top actives to SYMBOL_CAP
 DASH_URL      = os.environ.get("SCREENER_URL", "").rstrip("/")
 DASH_SECRET   = os.environ.get("DASHBOARD_SECRET", "marcos2026")
@@ -137,7 +142,7 @@ def roster_targets():
     if isinstance(d, dict): add(d.get("tickers"))
     if SYMBOL_PROBE:
         add(_actives["names"])                     # cached ranking; refreshed in background
-    return out[:SYMBOL_CAP]
+    return out[:_cap_eff[0]]
 
 _actives = {"ts": 0.0, "names": [], "busy": False}
 def _refresh_actives_bg():
@@ -328,11 +333,21 @@ def handle_frames(raw):
             except Exception:
                 pass
         elif T == "subscription":                        # server-truth sub count (probe evidence)
-            log("server ack: %d trade subs" % len(f.get("trades") or []))
+            _truth = {str(s).upper() for s in (f.get("trades") or [])}
+            log("server ack: %d trade subs" % len(_truth))
+            # reconcile: our set is updated optimistically at send time; a rejected subscribe
+            # (405) leaves it inflated. Server ack is truth — next sync_roster diffs off THIS.
+            _subscribed.clear(); _subscribed.update(_truth)
         elif T == "error":
             # mid-session error frame (e.g. 405 symbol limit, 406 conn limit) = probe FINDING
             log("ALPACA ERROR frame: code=%s msg=%s" % (f.get("code"), f.get("msg")))
-            raise RuntimeError("alpaca error frame %s" % f.get("code"))
+            if str(f.get("code")) == "405" and _cap_eff[0] > 25:
+                # symbol limit: trim the effective cap below what we just tried and keep the
+                # session — reconnect-looping on 405 re-hits the same wall (Phase 0 evidence)
+                _cap_eff[0] = max(25, min(_cap_eff[0], len(_subscribed) if _subscribed else _cap_eff[0]) - 5)
+                log("405 symbol-limit: effective cap trimmed to %d — no reconnect" % _cap_eff[0])
+            else:
+                raise RuntimeError("alpaca error frame %s" % f.get("code"))
 
 def in_session(now=None):
     now = now or et_now()
@@ -361,12 +376,12 @@ def run_session():
                 pass                                     # quiet 5s — chores below still run
             t = time.time()
             # silent-zombie fuse (recorder 7/16: stream died silently at the open, 45-min zombie).
-            # 180s: IEX premarket tape is honestly thin — err wide, the probe counts REAL kicks.
-            if _last_trade[0] and _subscribed and t - _last_trade[0] > 180:
-                log("TICK SILENCE %.0fs with %d subs — presuming dead socket, forcing reconnect"
-                    % (t - _last_trade[0], len(_subscribed)))
+            # Feed-aware (SILENCE_SECS): SIP 90s, IEX 180s — IEX premarket tape is honestly thin.
+            if _last_trade[0] and _subscribed and t - _last_trade[0] > SILENCE_SECS:
+                log("TICK SILENCE %.0fs with %d subs (fuse %ds, feed=%s) — presuming dead socket, forcing reconnect"
+                    % (t - _last_trade[0], len(_subscribed), SILENCE_SECS, ALPACA_FEED))
                 snapshot_vwap(); persist("silence_flush")
-                raise RuntimeError("tick silence >180s")
+                raise RuntimeError("tick silence >%ds" % SILENCE_SECS)
             if t - last_roster >= ROSTER_SECS:
                 if SYMBOL_PROBE: _refresh_actives_bg()
                 try: sync_roster(ws)

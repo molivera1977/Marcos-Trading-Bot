@@ -68,6 +68,14 @@ check("A17 5-min ALP-health line (mandatory kick evidence)", "ALP-health" in SRC
 check("A18 probe mode pads roster with top actives", "SYMBOL_PROBE" in SRC
       and "_refresh_actives_bg" in SRC and "_actives" in SRC)
 check("A19 tick-silence fuse (no silent zombies, recorder 7/16)", "TICK SILENCE" in SRC)
+check("A19b feed-aware fuse: SIP 90s / IEX 180s, wired into the check",
+      'SILENCE_SECS  = 90 if ALPACA_FEED == "sip" else 180' in SRC
+      and "> SILENCE_SECS" in SRC and 'raise RuntimeError("tick silence >%ds" % SILENCE_SECS)' in SRC)
+check("A19c 405 self-trim: effective cap shrinks (floor 25), NO reconnect loop; roster uses _cap_eff",
+      "_cap_eff[0] = max(25," in SRC and "effective cap trimmed" in SRC
+      and "return out[:_cap_eff[0]]" in SRC and "return out[:SYMBOL_CAP]" not in SRC)
+check("A19d server-truth sub reconciliation on subscription ack",
+      "_subscribed.clear(); _subscribed.update(_truth)" in SRC)
 
 # ── secrets hygiene ──
 check("A20 no hardcoded key/secret literals",

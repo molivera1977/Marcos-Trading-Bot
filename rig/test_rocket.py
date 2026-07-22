@@ -72,6 +72,16 @@ check("T19d stamped on each decision: candidate extra + chart-gate row + vel5-re
 check("T19e sheet-exemption helper: vision reads NOT exempt, fail-closed",
       'lv.get("src") or "") != "vision"' in SRC and "def _kev_sheet_name" in SRC)
 
+check("T20 #81 amnesia fix: session_cache param + setdefault preserve + main-loop wiring",
+      "session_cache: dict = None" in SRC and "cache = session_cache" in SRC
+      and 'cache.setdefault(t, {"bars": [], "vwap": 0.0, "fetched": 0.0})' in SRC
+      and "session_cache=_session_cache" in SRC and "_session_cache = {}" in SRC)
+check("T20b #81 rescan rate budget (240s) + empty-rescan session-end guard",
+      "_last_full_scan[0] < 240" in SRC and "keeping prior candidate roster" in SRC)
+SSRC = (pathlib.Path(__file__).resolve().parent.parent / "screener_app.py").read_text()
+check("T20c whitelist-strip class killer: record_trade passes unknown fields through",
+      "trade.setdefault(_k, _v)" in SSRC and "WHITELIST-STRIP CLASS KILLER" in SSRC)
+
 check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",
       "_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap" in SRC
       and "if _sv and _tick_vwap_ok(_sv, vwap, price):\n                    _day_k" not in SRC)

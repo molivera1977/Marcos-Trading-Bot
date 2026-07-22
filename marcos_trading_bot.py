@@ -4325,7 +4325,7 @@ INTRADAY_RESCAN_INTERVAL = 3 * 60   # 7/3: 5→3 min — catch intraday runners 
 
 def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                              rescan_callback=None, traded_tickers: set = None,
-                             reentry: dict = None):
+                             reentry: dict = None, session_cache: dict = None):
     """
     v10 entry detection: watches candidates for TWO entry types:
     1. Flat top breakout — 4-bar consolidation <8% range, price breaks window high
@@ -4339,7 +4339,17 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         traded_tickers = set()
     print(f"\n⏳ [v8] Watching {len(candidates)} candidate(s) for flat top breakout: {', '.join(candidates)}")
 
-    cache = {t: {"bars": [], "vwap": 0.0, "fetched": 0.0} for t in candidates}
+    # #81 RESCAN AMNESIA FIX (7/22): the cache is the machines' MEMORY — rocket arms, pullback
+    # states, once-per-day flags, daily levels, session bars. Rebuilding it fresh on every
+    # trade-done rescan rebirthed every detector with amnesia mid-session (ZCMD 7/22: +714% high,
+    # rocket ARMED NINE TIMES, zero entries — arm state wiped each cycle). When the caller passes
+    # session_cache, state PERSISTS across watch-loop invocations; new names get fresh entries.
+    if session_cache is not None:
+        cache = session_cache
+        for t in candidates:
+            cache.setdefault(t, {"bars": [], "vwap": 0.0, "fetched": 0.0})
+    else:
+        cache = {t: {"bars": [], "vwap": 0.0, "fetched": 0.0} for t in candidates}
     last_rescan = time.time()
 
     # ── DAILY-LEVEL HOMEWORK, done UP FRONT (follow-up #1). Kev sets his daily levels BEFORE the
@@ -6599,6 +6609,9 @@ def main():
                "count": {}, "consec_loss": {}, "lock": trade_lock}
     _reservations = {}   # ticker → reserved notional (guard: trade_lock). pop() = exactly-once release; the
                          # worker safety-wrapper repairs any leak if a worker thread dies mid-trade (7/11 review).
+    _session_cache = {}  # #81 (7/22): per-name machine state that SURVIVES trade-done rescans —
+                         # rocket arms, pullback states, once-flags, daily levels, session bars.
+    _last_full_scan = [time.time()]   # #81: rescan rate budget (>=240s between full screener sweeps)
 
     while True:
         now = datetime.now(EASTERN)
@@ -6613,13 +6626,28 @@ def main():
             break
 
         # After first trade, rescan for fresh gap stocks — technicals only
+        # #81 (7/22) RATE BUDGET: the trade-done full rescan was unbudgeted — every completed trade
+        # slammed the screener (DataClient init 429s measured all afternoon 7/22). Full rescans now
+        # pace at >=240s apart; inside the window the prior candidate list carries forward.
         if trade_count > 0:
-            print(f"\n🔄 Trade #{trade_count} done — rescanning live market for next setup...")
-            fresh_gappers = scan_morning_gappers()
             with reentry["lock"]:                       # RE-ENTRY FIX (7/9): exclude only held+givenup, not all traded
                 _reexcl = reentry["held"] | reentry["givenup"]
-            remaining_candidates = [g["symbol"] for g in fresh_gappers
-                                    if g.get("symbol") and g["symbol"] not in _reexcl]
+            if time.time() - _last_full_scan[0] < 240:
+                print(f"\n🔄 Trade #{trade_count} done — rescan inside 240s budget, carrying prior roster forward")
+                remaining_candidates = [t for t in remaining_candidates if t not in _reexcl]
+                fresh_gappers = None
+            else:
+                print(f"\n🔄 Trade #{trade_count} done — rescanning live market for next setup...")
+                fresh_gappers = scan_morning_gappers()
+                _last_full_scan[0] = time.time()
+            if fresh_gappers is not None and fresh_gappers:
+                remaining_candidates = [g["symbol"] for g in fresh_gappers
+                                        if g.get("symbol") and g["symbol"] not in _reexcl]
+            elif fresh_gappers is not None:
+                # #81 GUARD: a failed/empty rescan (429 etc.) must NOT empty the pool — an empty
+                # remaining_candidates below ends the SESSION ("No more candidates"). Keep prior.
+                print("⚠️  Rescan returned nothing (throttled?) — keeping prior candidate roster")
+                remaining_candidates = [t for t in remaining_candidates if t not in _reexcl]
             # 7/13 B10: the rescan rebuilt the pool from RANK ONLY, silently evicting Kev's
             # force-watched names after the first completed trade (GMM 7/13: decisions stopped
             # 9:56am, then it made a new HOD at 3:15pm unwatched). Re-apply the force-add every
@@ -6650,6 +6678,7 @@ def main():
             rescan_callback=_intraday_rescan,
             traded_tickers=traded_tickers,
             reentry=reentry,
+            session_cache=_session_cache,   # #81: machine memory persists across rescans
         )
 
         if not breakouts:

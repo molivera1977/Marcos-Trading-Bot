@@ -1,0 +1,19 @@
+A STATIC (current): n=99  meanR +0.51  medianR +0.75  win% 58
+   movers>=40%: n=5 meanR +1.09
+     ZYBT@07-20 move 551%  R +0.80
+     DFNS@07-21 move 106%  R +1.11
+     GMM@07-20 move 69%  R +1.27
+     IPW@07-21 move 57%  R +1.27
+     VIVK@07-21 move 55%  R +1.00
+B TRAILING (20-EMA): n=118  meanR +0.38  medianR +0.73  win% 56
+   movers>=40%: n=7 meanR +0.72
+     CPHI@07-21 move 2258%  R +0.84
+     ZYBT@07-20 move 551%  R +0.86
+     JZXN@07-21 move 109%  R -1.00
+     DFNS@07-21 move 106%  R +1.11
+     GMM@07-20 move 69%  R +1.27
+     IPW@07-21 move 57%  R +1.27
+
+GMM check — static: [1.2679487179487277] | trailing: [1.2679487179487277]
+fader safety — static: n=60 meanR +0.47
+fader safety — trailing: n=68 meanR +0.36

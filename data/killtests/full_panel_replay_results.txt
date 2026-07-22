@@ -1,0 +1,164 @@
+/Users/marcosolivera/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+⚠️  webull-openapi-python-sdk not installed — trading disabled
+====================================================================================================
+FULL-PANEL AS-DEPLOYED REPLAY (56d585d) — every simulated trade
+====================================================================================================
+
+───── 2026-07-20: 11 trades, sim P&L +455.37 ─────
+EDBL   ignition       in 9:31 @3.40 stop 3.22 166sh → 83sh@3.58 scale1 9:50 | 83sh@3.48 health fold 11:00  P&L +21.56  (+0.72R)
+ARMP   ma_pullback    in 9:31 @4.87 stop 4.33 55sh → 55sh@5.08 3:45pm time stop 15:46  P&L +11.46  (+0.39R)
+ZYBT   ignition       in 9:32 @1.35 stop 1.19 181sh → 90sh@1.52 scale1 9:51 | 45sh@1.68 scale2 9:56 | 46sh@8.01 3:45pm time stop 15:59  P&L +335.98  (+11.26R)
+VMAR   ignition       in 9:41 @1.08 stop 1.07 925sh → 925sh@1.05 3m close stop 9:48  P&L -23.13  (-1.89R)
+AGPU   ignition       in 9:59 @7.09 stop 6.88 141sh → 70sh@7.30 scale1 10:30 | 35sh@7.51 scale2 11:12 | 36sh@8.63 3:45pm time stop 15:45  P&L +85.12  (+2.87R)
+RPGL   flat_top       in 10:05 @2.13 stop 1.98 201sh → 201sh@1.92 3m close stop 10:15  P&L -43.19  (-1.44R)
+XCUR   flat_top       in 10:20 @1.81 stop 1.68 236sh → 118sh@1.94 scale1 12:54 | 118sh@1.95 3:45pm time stop 15:45  P&L +31.47  (+1.05R)
+HODO   ignition       in 10:34 @1.26 stop 1.22 135sh → 67sh@1.30 scale1 13:10 | 34sh@1.35 scale2 13:20 | 34sh@1.26 3m close stop 15:32  P&L +5.95  (+1.00R)
+GMM    flat_top       in 11:00 @3.17 stop 2.95 135sh → 67sh@3.39 scale1 11:52 | 34sh@3.61 scale2 12:45 | 34sh@3.91 health fold 15:12  P&L +55.15  (+1.84R)
+ADVB   flat_top       in 15:01 @8.85 stop 8.23 48sh → 48sh@8.15 3m close stop 15:28  P&L -33.60  (-1.13R)
+SKYQ   flat_top       in 15:28 @4.81 stop 4.61 147sh → 73sh@5.01 scale1 15:36 | 74sh@4.72 3:45pm time stop 15:45  P&L +8.59  (+0.29R)
+
+───── 2026-07-21: 7 trades, sim P&L -115.17 ─────
+PFSA   ma_pullback    in 9:43 @2.26 stop 1.88 79sh → 79sh@1.85 3m close stop 15:15  P&L -32.39  (-1.09R)
+VIVK   rocket_catcher in 10:03 @8.14 stop 7.35 37sh → 37sh@6.79 3m close stop 10:15  P&L -49.95  (-1.71R)
+NCRA   flat_top       in 10:05 @1.50 stop 1.39 285sh → 285sh@1.51 3:45pm time stop 15:50  P&L +2.88  (+0.10R)
+CJMB   ma_pullback    in 10:32 @1.39 stop 1.34 634sh → 634sh@1.32 3m close stop 10:39  P&L -44.38  (-1.48R)
+CHR    flat_top       in 11:25 @1.97 stop 1.86 284sh → 142sh@2.08 scale1 12:46 | 142sh@1.97 health fold 13:06  P&L +14.60  (+0.49R)
+CJMB   flat_top       in 12:58 @1.43 stop 1.37 494sh → 247sh@1.49 scale1 13:30 | 247sh@1.34 3m close stop 14:57  P&L -5.93  (-0.20R)
+IQMX   ma_pullback    in 15:59 @11.95 stop 11.55 74sh → 74sh@11.95 eod 12:00  P&L +0.00  (+0.00R)
+
+====================================================================================================
+REJECT LOG (why candidate entries died) — grouped
+  chart_gate_skip        470
+  chart_gate_block       280
+  momentum_reject        157
+  no_capital             77
+  extension_reject       73
+  vel5_reject            59
+  rocket_capped          2
+
+Notable rejects on movers (full rows):
+  07-20 GMM    9:44  chart_gate_block ignition (below_level)
+  07-20 CPHI   9:46  vel5_reject ignition -0.9
+  07-20 GMM    9:57  chart_gate_block orb (below_level)
+  07-20 CPHI   10:10  chart_gate_skip flat_top (no_marked_level)
+  07-20 CPHI   10:14  chart_gate_skip flat_top (no_marked_level)
+  07-21 VIVK   9:31  extension_reject ma_pullback +277%
+  07-21 DFNS   9:32  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 VIVK   9:32  extension_reject ma_pullback +318%
+  07-21 CPHI   9:33  chart_gate_block ignition (below_level)
+  07-21 IPW    9:34  chart_gate_skip ignition (no_marked_level)
+  07-21 CPHI   9:37  chart_gate_block orb (below_level)
+  07-21 DFNS   9:40  chart_gate_skip orb (no_marked_level)
+  07-21 VIVK   9:52  extension_reject orb +257%
+  07-21 IPW    9:54  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 CPHI   9:56  chart_gate_block flat_top (below_level)
+  07-21 DFNS   9:56  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 DFNS   10:06  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 DFNS   10:07  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 DFNS   10:08  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 CPHI   10:13  chart_gate_block flat_top (below_level)
+  07-21 CPHI   10:16  chart_gate_block flat_top (below_level)
+  07-21 CPHI   10:17  extension_reject ma_pullback +28%
+  07-21 DFNS   10:17  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 GMM    10:17  chart_gate_block flat_top (below_level)
+  07-21 DFNS   10:21  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 DFNS   10:22  chart_gate_skip flat_top (no_marked_level)
+  07-21 DFNS   10:23  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 DFNS   10:24  chart_gate_skip flat_top (no_marked_level)
+  07-21 DFNS   10:28  extension_reject flat_top +26%
+  07-21 DFNS   10:30  extension_reject flat_top +32%
+  07-21 IPW    10:31  chart_gate_skip flat_top (no_marked_level)
+  07-21 CPHI   10:39  chart_gate_block rocket_catcher (below_level)
+  07-21 DFNS   11:05  chart_gate_skip rocket_catcher (no_marked_level)
+  07-21 DFNS   11:09  extension_reject ma_pullback +41%
+  07-21 DFNS   11:10  extension_reject ma_pullback +39%
+  07-21 DFNS   11:15  extension_reject ma_pullback +55%
+  07-21 DFNS   11:16  extension_reject ma_pullback +53%
+  07-21 DFNS   11:17  extension_reject ma_pullback +53%
+  07-21 VIVK   11:24  extension_reject ma_pullback +56%
+  07-21 IPW    11:28  chart_gate_skip flat_top (no_marked_level)
+  07-21 IPW    11:33  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 IPW    11:34  chart_gate_skip flat_top (no_marked_level)
+  07-21 IPW    11:35  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 VIVK   11:39  extension_reject ma_pullback +48%
+  07-21 JZXN   11:41  chart_gate_skip flat_top (no_marked_level)
+  07-21 NIPG   11:41  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 IPW    11:43  chart_gate_skip flat_top (no_marked_level)
+  07-21 JZXN   11:43  chart_gate_skip orb (no_marked_level)
+  07-21 IPW    11:45  chart_gate_skip flat_top (no_marked_level)
+  07-21 JZXN   11:54  chart_gate_skip flat_top (no_marked_level)
+  07-21 CPHI   11:57  extension_reject ma_pullback +235%
+  07-21 IPW    11:57  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 IPW    11:58  chart_gate_skip flat_top (no_marked_level)
+  07-21 IPW    11:59  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 IPW    12:00  chart_gate_skip flat_top (no_marked_level)
+  07-21 IPW    12:03  extension_reject ma_pullback +37%
+  07-21 IPW    12:04  extension_reject ma_pullback +42%
+  07-21 IPW    12:05  extension_reject ma_pullback +34%
+  07-21 JZXN   12:56  chart_gate_skip flat_top (no_marked_level)
+  07-21 NIPG   12:57  chart_gate_skip flat_top (no_marked_level)
+  07-21 JZXN   12:58  chart_gate_skip flat_top (no_marked_level)
+  07-21 JZXN   13:03  chart_gate_skip flat_top (no_marked_level)
+  07-21 NIPG   13:09  rocket_capped
+  07-21 CPHI   13:36  extension_reject ma_pullback +248%
+  07-21 CPHI   13:37  extension_reject ma_pullback +265%
+  07-21 CPHI   13:38  extension_reject ma_pullback +274%
+  07-21 DFNS   13:53  chart_gate_skip flat_top (no_marked_level)
+  07-21 JZXN   14:15  chart_gate_skip flat_top (no_marked_level)
+  07-21 NIPG   14:25  chart_gate_skip ma_pullback (no_marked_level)
+  07-21 CPHI   14:26  vel5_reject ma_pullback -3.4
+  07-21 CPHI   14:27  extension_reject ma_pullback +149%
+  07-21 CPHI   14:28  extension_reject ma_pullback +158%
+  07-21 JZXN   14:28  chart_gate_skip flat_top (no_marked_level)
+  07-21 CPHI   14:29  extension_reject ma_pullback +133%
+  07-21 JZXN   14:34  chart_gate_skip flat_top (no_marked_level)
+  07-21 JZXN   14:37  chart_gate_skip flat_top (no_marked_level)
+  07-21 JZXN   14:39  chart_gate_skip flat_top (no_marked_level)
+  07-21 JZXN   14:42  extension_reject flat_top +28%
+  07-21 JZXN   14:43  extension_reject ma_pullback +28%
+  07-21 JZXN   14:44  extension_reject ma_pullback +34%
+  07-21 JZXN   14:52  rocket_capped
+  07-21 NIPG   15:13  extension_reject flat_top +26%
+  07-21 JZXN   15:51  extension_reject ma_pullback +53%
+  07-21 JZXN   15:52  extension_reject ma_pullback +46%
+  07-21 JZXN   15:53  extension_reject ma_pullback +42%
+  07-21 NIPG   15:54  chart_gate_skip flat_top (no_marked_level)
+  07-21 NIPG   15:58  chart_gate_skip flat_top (no_marked_level)
+
+====================================================================================================
+2026-07-20: SIM  +455.37 (11 trades)   vs   ACTUAL LIVE  +134.62 (4 trades)
+2026-07-21: SIM  -115.17 (7 trades)   vs   ACTUAL LIVE   -40.45 (4 trades)
+
+APPROXIMATIONS (declared):
+- Price = 1m bar closes (live polls ~2s); tier fills at tier price when the bar high reaches it.
+- vwap_reclaim/zone_flip machines EXCLUDED (10s stream not in cache; live fired 0 both days pre-#67).
+- daily-first veto, spread gate, L2 gate: FAIL-OPEN (no offline data).
+- Roster = names with cached recorder bars (>=10 RTH 1m bars) — the recorder's watch, close to live's.
+- Capital fixed $3k basis; balance not compounded intraday.
+- Failed-breakout + early-VWAP-fade cuts OFF (live: disabled under EXITS_ON_3MIN=True) — faithful.
+- Chart-gate levels = the day's REAL posted sheet (same source live used).
+
+════════ WIND-TUNNEL RECONCILIATION LEDGER (vs actual live trades) ════════
+ANCHOR MATCHES:
+- VMAR 7/20 ignition: sim -23.13 vs live -23.25 (near-exact)
+- VIVK 7/21 rocket 10:03 fire: matches independent shipped_replay harness (same entry/stop; exits modeled differently)
+- NCRA/CJMB/IQMX 7/21: same names, similar scratches/losses, timing/machine variants
+ZYBT 7/20: sim +335.98 vs live +164.79. ~$86 of the gap = HALT-GAP EXIT OPTIMISM (no cached bars
+  15:35->15:59 ET; sim force-closed on the 15:59 bar @8.01 vs live 15:45 @6.15). Rest = 1-bar-earlier
+  entry (1.35 vs 1.46) + kev25 ladder partials.
+MISSING vs live: BIYA + SKYQ ignitions (recorder cache has NO morning bars - first BIYA bar 10:44 ET,
+  SKYQ 11:08 ET; intraday-add blindness, the #72 class). NIKI ma_pullback (momentum gate saw recorder
+  vols 2.0-2.7k/bar vs live REST bars >=10k - the #71/pre-#67 volume-undercount class).
+EXTRAS vs live: the #73 wick-aware entries (GMM +55.15 = the fix's poster child, XCUR +31.47,
+  SKYQ +8.59, CHR +14.60, RPGL -43.19, ADVB -33.60) + full-day-sheet levels (sim sees all levels from
+  9:30; live levels post through the day) + fail-open daily/spread/L2.
+LEVEL TIME-TRAVEL CAVEAT (material): kevlv_*.json = EOD state. CPHI 7/21 stored break 9.25 (tonight's
+  v2 re-read) so the sim BLOCKED the 10:39 CPHI rocket curl; live-truth level at that hour was 1.07 ->
+  live gate would have ALLOWED it. shipped_replay priced that trade +218% on the runner. 7/21 sim is
+  therefore materially UNDERSTATED for the as-deployed config.
+LIVE-FAITHFUL QUIRK FOUND: a chart-gate-blocked rocket still burns a daily-cap slot (live increments
+  _rocket_day.n before _trade_worker's gate). On 7/21 sim: VIVK fired, CPHI+DFNS burned slots on gate
+  rejects -> NIPG 13:09 and JZXN 14:52 arrived rocket_capped. Queue observation, nothing shipped.
+PER-MACHINE (sim, 2 days): ignition +425.48 (5) | flat_top +29.97 (8) | ma_pullback -65.31 (4, incl
+  0.00 edge row) | rocket -49.95 (1). Totals: 7/20 +455.37 (11), 7/21 -115.17 (7); ex-ZYBT 7/20 +119.39.

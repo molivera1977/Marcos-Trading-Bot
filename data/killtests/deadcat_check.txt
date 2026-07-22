@@ -1,0 +1,31 @@
+182 trades; matched 165, unmatched 17
+
+fresh (<10% off pre-entry high): n=129  total   -48.34  win 72/129 (56%)  avg  -0.37
+   SLND   07-17 dd   0.9%    -48.07
+   MIMI   07-13 dd   0.8%    -45.70
+   GLMD   07-16 dd   0.0%    -44.29
+   SKYQ   07-20 dd   2.3%    -41.32
+   SOBR   07-14 dd   1.4%    -41.11
+   LBGJ   07-15 dd   2.2%    -40.99
+   CJMB   07-17 dd   2.3%    -39.69
+   MGIH   07-14 dd   3.7%    -39.01
+
+faded 10-25%: n=18  total  -147.45  win 10/18 (56%)  avg  -8.19
+   HPAI   07-17 dd  21.5%    -91.26
+   KUST   07-15 dd  19.3%    -47.97
+   TGHL   07-17 dd  13.6%    -45.75
+   EDHL   07-07 dd  14.7%     -7.02
+   TDTH   07-13 dd  13.7%     -5.31
+   ZCMD   07-10 dd  10.9%     -3.50
+   WOK    07-10 dd  24.8%     -3.01
+   MIMI   07-14 dd  17.5%     -2.46
+
+DEAD-CAT (>25% off high): n=18  total  +204.86  win 14/18 (78%)  avg +11.38
+   DXST   07-16 dd  26.6%    -23.23
+   LHSW   07-07 dd  33.3%     -7.35
+   XCUR   07-09 dd  35.5%     -6.00
+   VEEE   07-10 dd  37.7%     -4.64
+   NTRP   07-17 dd  30.7%     +0.38
+   IVF    07-14 dd  30.5%     +2.10
+   ZSTK   07-15 dd  64.7%     +2.12
+   TRNR   07-13 dd  50.5%     +4.32

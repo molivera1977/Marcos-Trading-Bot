@@ -1,0 +1,42 @@
+════════ CAP_MODE=burn CPHI_FIX=0 ════════
+───── 2026-07-20: 11 trades, sim P&L +455.37 ─────
+───── 2026-07-21: 7 trades, sim P&L -115.17 ─────
+VIVK   rocket_catcher in 10:03 @8.14 stop 7.35 37sh → 37sh@6.79 3m close stop 10:15  P&L -49.95  (-1.71R)
+  rocket_capped          2
+  07-21 CPHI   10:39  chart_gate_block rocket_catcher (below_level)
+  07-21 DFNS   11:05  chart_gate_skip rocket_catcher (no_marked_level)
+  07-21 NIPG   13:09  rocket_capped
+  07-21 JZXN   14:52  rocket_capped
+2026-07-20: SIM  +455.37 (11 trades)   vs   ACTUAL LIVE  +134.62 (4 trades)
+2026-07-21: SIM  -115.17 (7 trades)   vs   ACTUAL LIVE   -40.45 (4 trades)
+════════ CAP_MODE=burn CPHI_FIX=1 ════════
+───── 2026-07-20: 11 trades, sim P&L +455.37 ─────
+───── 2026-07-21: 9 trades, sim P&L -36.73 ─────
+VIVK   rocket_catcher in 10:03 @8.14 stop 7.35 37sh → 37sh@6.79 3m close stop 10:15  P&L -49.95  (-1.71R)
+CPHI   rocket_catcher in 11:49 @3.72 stop 1.48 13sh → 4sh@5.58 scale1 12:14 | 4sh@7.44 scale2 12:14 | 5sh@8.80 3:45pm time stop 15:45  P&L +47.72  (+1.64R)
+  rocket_capped          2
+  07-21 DFNS   11:05  chart_gate_skip rocket_catcher (no_marked_level)
+  07-21 NIPG   13:09  rocket_capped
+  07-21 JZXN   14:52  rocket_capped
+2026-07-20: SIM  +455.37 (11 trades)   vs   ACTUAL LIVE  +134.62 (4 trades)
+2026-07-21: SIM   -36.73 (9 trades)   vs   ACTUAL LIVE   -40.45 (4 trades)
+════════ CAP_MODE=refund CPHI_FIX=0 ════════
+───── 2026-07-20: 11 trades, sim P&L +455.37 ─────
+───── 2026-07-21: 7 trades, sim P&L -115.17 ─────
+VIVK   rocket_catcher in 10:03 @8.14 stop 7.35 37sh → 37sh@6.79 3m close stop 10:15  P&L -49.95  (-1.71R)
+  07-21 CPHI   10:39  chart_gate_block rocket_catcher (below_level)
+  07-21 DFNS   11:05  chart_gate_skip rocket_catcher (no_marked_level)
+  07-21 NIPG   13:09  chart_gate_skip rocket_catcher (no_marked_level)
+  07-21 JZXN   14:52  chart_gate_skip rocket_catcher (no_marked_level)
+2026-07-20: SIM  +455.37 (11 trades)   vs   ACTUAL LIVE  +134.62 (4 trades)
+2026-07-21: SIM  -115.17 (7 trades)   vs   ACTUAL LIVE   -40.45 (4 trades)
+════════ CAP_MODE=refund CPHI_FIX=1 ════════
+───── 2026-07-20: 11 trades, sim P&L +455.37 ─────
+───── 2026-07-21: 9 trades, sim P&L -36.73 ─────
+VIVK   rocket_catcher in 10:03 @8.14 stop 7.35 37sh → 37sh@6.79 3m close stop 10:15  P&L -49.95  (-1.71R)
+CPHI   rocket_catcher in 11:49 @3.72 stop 1.48 13sh → 4sh@5.58 scale1 12:14 | 4sh@7.44 scale2 12:14 | 5sh@8.80 3:45pm time stop 15:45  P&L +47.72  (+1.64R)
+  07-21 DFNS   11:05  chart_gate_skip rocket_catcher (no_marked_level)
+  07-21 NIPG   13:09  chart_gate_skip rocket_catcher (no_marked_level)
+  07-21 JZXN   14:52  chart_gate_skip rocket_catcher (no_marked_level)
+2026-07-20: SIM  +455.37 (11 trades)   vs   ACTUAL LIVE  +134.62 (4 trades)
+2026-07-21: SIM   -36.73 (9 trades)   vs   ACTUAL LIVE   -40.45 (4 trades)

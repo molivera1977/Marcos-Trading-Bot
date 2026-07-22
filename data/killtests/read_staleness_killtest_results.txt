@@ -1,0 +1,38 @@
+day          gate rows  priced FLIPPED (exhausted allows/blocks/skips on legacy)
+2026-07-20         139     139                                                10
+2026-07-21         111     111                                                19
+
+FULL FLIPPED ROWS (day, ticker, machine, old status, price, lastTarget, was-actual-trade):
+   ('2026-07-20', 'ZYBT', 'ignition', 'chart_gate_allow', 1.46, 0.85, True)
+   ('2026-07-20', 'NIKI', 'ignition', 'chart_gate_skip', 10.78, 8.3, False)
+   ('2026-07-20', 'NIKI', None, 'chart_gate_blocked_trade', 10.78, 8.3, False)
+   ('2026-07-20', 'SKYQ', 'ignition', 'chart_gate_skip', 4.73, 4.39, False)
+   ('2026-07-20', 'SKYQ', None, 'chart_gate_blocked_trade', 4.73, 4.39, False)
+   ('2026-07-20', 'SKYQ', 'ignition', 'chart_gate_allow', 4.7201, 4.39, True)
+   ('2026-07-20', 'BIYA', 'ignition', 'chart_gate_allow', 7.5, 6.9, True)
+   ('2026-07-20', 'LVLU', 'flat_top', 'chart_gate_allow', 16.4, 14.5, False)
+   ('2026-07-20', 'LVLU', 'flat_top', 'chart_gate_allow', 16.99, 14.5, False)
+   ('2026-07-20', 'SKYQ', 'orb', 'chart_gate_allow', 4.7101, 4.39, True)
+   ('2026-07-21', 'BANL', 'ma_pullback', 'chart_gate_allow', 5.25, 5.0, False)
+   ('2026-07-21', 'BANL', 'ma_pullback', 'chart_gate_allow', 5.25, 5.0, False)
+   ('2026-07-21', 'BANL', 'ma_pullback', 'chart_gate_allow', 5.25, 5.0, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 5.14, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 5.14, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 5.14, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 5.14, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 5.14, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 5.14, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 5.1892, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 13.0104, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 13.34, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 13.34, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 13.34, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 13.34, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 14.6, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 12.12, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 13.5219, 1.4, False)
+   ('2026-07-21', 'CPHI', 'ma_pullback', 'chart_gate_allow', 11.9358, 1.4, False)
+
+COST CHECK: flipped rows that were ACTUAL trades: 4 (any >0 would mean the rule cost a real entry)
+BENEFIT: every flipped ALLOW was a green light on a spent map (CPHI-class); other soft gates stopped them TODAY by luck, not design.
+LIMITS: 2 enforce-days only; single-sided (proves the rule fires where intended + cost=0 on these days; profitability across regimes accrues from live logs of read_exhausted skips).

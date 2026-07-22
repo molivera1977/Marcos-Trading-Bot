@@ -1,0 +1,4270 @@
+{
+ "AARD": {
+  "days": {
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 7.12,
+      "exit": 7.44,
+      "exit_reason": "3:45pm time stop",
+      "machine": null,
+      "pnl": 6.44
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "ACXP": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": -1.26,
+      "entry": 1.88,
+      "exit": 1.76,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -22.68
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "ADVB": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 8.9,
+     "day_vol": 23857110,
+     "first_bar_utc": "14:43",
+     "giveback_pct": 40.6,
+     "maxvel5_pct": 17.3,
+     "missing_min": 12,
+     "o2h_pct": 15.7
+    }
+   }
+  },
+  "notes": []
+ },
+ "AEC": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 4.82,
+     "day_vol": 37886,
+     "first_bar_utc": "13:37",
+     "giveback_pct": 8.3,
+     "maxvel5_pct": 4.1,
+     "missing_min": 349,
+     "o2h_pct": 11.0
+    }
+   }
+  },
+  "notes": []
+ },
+ "AEHL": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 0.6456,
+     "day_vol": 285871,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 145.5,
+     "maxvel5_pct": 5.9,
+     "missing_min": 297,
+     "o2h_pct": 12.5
+    }
+   }
+  },
+  "notes": [
+   {
+    "date": "2026-07-21",
+    "source": "kev-sheet-7/22",
+    "text": "Kev 7/22 pick: over 1.39 + VWAP 1.20 -> 2.00/3.00"
+   }
+  ]
+ },
+ "AGPU": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 8.71,
+     "day_vol": 803469,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 14.2,
+     "maxvel5_pct": 5.6,
+     "missing_min": 160,
+     "o2h_pct": 29.3
+    }
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 9.54,
+     "day_vol": 888380,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 46.0,
+     "maxvel5_pct": 8.0,
+     "missing_min": 173,
+     "o2h_pct": 11.1
+    }
+   }
+  },
+  "notes": []
+ },
+ "AIHS": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 1.35,
+     "day_vol": 1192869,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 42.7,
+     "maxvel5_pct": 7.7,
+     "missing_min": 124,
+     "o2h_pct": 30.3
+    }
+   }
+  },
+  "notes": []
+ },
+ "AIXI": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 1.24,
+     "day_vol": 733030,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 71.4,
+     "maxvel5_pct": 7.0,
+     "missing_min": 135,
+     "o2h_pct": 11.7
+    }
+   }
+  },
+  "notes": []
+ },
+ "ALGS": {
+  "days": {
+   "2026-07-08": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 6.52,
+      "exit": 6.74,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 1.96
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "AMST": {
+  "days": {
+   "2026-07-17": {
+    "tape": {
+     "close": 1.08,
+     "day_vol": 449410,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 75.0,
+     "maxvel5_pct": 6.7,
+     "missing_min": 246,
+     "o2h_pct": 11.4
+    },
+    "trades": [
+     {
+      "R": 1.05,
+      "entry": 1.11,
+      "exit": 1.11,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 5.0
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "ANNA": {
+  "days": {
+   "2026-07-16": {
+    "tape": {
+     "close": 3.38,
+     "day_vol": 419240,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 62.3,
+     "maxvel5_pct": 5.5,
+     "missing_min": 227,
+     "o2h_pct": 11.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "ARMP": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 5.06,
+     "day_vol": 476395,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 55.6,
+     "maxvel5_pct": 7.5,
+     "missing_min": 223,
+     "o2h_pct": 12.7
+    }
+   }
+  },
+  "notes": []
+ },
+ "ASBP": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 7.54,
+     "day_vol": 116874,
+     "first_bar_utc": "13:57",
+     "giveback_pct": 0.0,
+     "maxvel5_pct": 9.4,
+     "missing_min": 288,
+     "o2h_pct": 18.6
+    }
+   }
+  },
+  "notes": []
+ },
+ "ATPC": {
+  "days": {
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": 1.84,
+      "entry": 3.66,
+      "exit": 4.25,
+      "exit_reason": "3:45pm time stop",
+      "machine": "ignition",
+      "pnl": 54.71
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "AZI": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 1.38,
+     "day_vol": 118934,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 20.0,
+     "maxvel5_pct": 6.2,
+     "missing_min": 294,
+     "o2h_pct": 16.4
+    }
+   }
+  },
+  "notes": []
+ },
+ "BANL": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 5.16,
+     "day_vol": 146969,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 8.8,
+     "maxvel5_pct": 9.5,
+     "missing_min": 284,
+     "o2h_pct": 24.3
+    }
+   }
+  },
+  "notes": []
+ },
+ "BAOS": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 1.92,
+     "day_vol": 262413,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 308.0,
+     "maxvel5_pct": 14.3,
+     "missing_min": 237,
+     "o2h_pct": 10.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "BIVI": {
+  "days": {
+   "2026-07-15": {
+    "tape": {
+     "close": 1.77,
+     "day_vol": 284992,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 26.1,
+     "maxvel5_pct": 9.8,
+     "missing_min": 286,
+     "o2h_pct": 14.4
+    },
+    "trades": [
+     {
+      "R": 0.64,
+      "entry": 1.74,
+      "exit": 1.73,
+      "exit_reason": "BLIND-STOP FAILSAFE \ud83d\udedf",
+      "machine": "vwap_reclaim",
+      "pnl": 9.2
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "BIYA": {
+  "days": {
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": -0.86,
+      "entry": 4.51,
+      "exit": 4.12,
+      "exit_reason": "3:45pm time stop",
+      "machine": "ignition",
+      "pnl": -25.74
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 3.51,
+     "day_vol": 28525989,
+     "first_bar_utc": "14:44",
+     "giveback_pct": 1181.5,
+     "maxvel5_pct": 19.9,
+     "missing_min": 24,
+     "o2h_pct": 5.8
+    },
+    "trades": [
+     {
+      "R": 1.15,
+      "entry": 7.5,
+      "exit": 6.87,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 34.4
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "BJDX": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.61,
+      "exit": 1.54,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -4.57
+     },
+     {
+      "R": null,
+      "entry": 1.55,
+      "exit": 1.56,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 1.23
+     }
+    ]
+   },
+   "2026-07-09": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.51,
+      "exit": 1.53,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 3.3
+     }
+    ]
+   },
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": -1.22,
+      "entry": 1.49,
+      "exit": 1.34,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "vwap_reclaim",
+      "pnl": -36.54
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "BNZI": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.74,
+      "exit": 2.76,
+      "exit_reason": "RECOVERED after restart",
+      "machine": "ma_pullback",
+      "pnl": 0.62
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "BVC": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 10.67,
+     "day_vol": 43548,
+     "first_bar_utc": "13:36",
+     "giveback_pct": 100.5,
+     "maxvel5_pct": 11.6,
+     "missing_min": 354,
+     "o2h_pct": 17.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "BYAH": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 0.4851,
+     "day_vol": 1860687,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 30.9,
+     "maxvel5_pct": 9.5,
+     "missing_min": 145,
+     "o2h_pct": 22.4
+    }
+   }
+  },
+  "notes": []
+ },
+ "CCTG": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 0.775,
+     "day_vol": 151980,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 2.8,
+     "maxvel5_pct": 8.4,
+     "missing_min": 341,
+     "o2h_pct": 14.4
+    }
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 0.8498,
+     "day_vol": 6989638,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 113.7,
+     "maxvel5_pct": 16.6,
+     "missing_min": 31,
+     "o2h_pct": 25.0
+    }
+   }
+  },
+  "notes": []
+ },
+ "CDT": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 3.565,
+     "day_vol": 162550,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 13.7,
+     "maxvel5_pct": 7.7,
+     "missing_min": 305,
+     "o2h_pct": 17.6
+    }
+   }
+  },
+  "notes": []
+ },
+ "CDTG": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 1.24,
+     "day_vol": 971897,
+     "first_bar_utc": "13:33",
+     "giveback_pct": 314.8,
+     "maxvel5_pct": 13.7,
+     "missing_min": 200,
+     "o2h_pct": 14.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "CETX": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 2.88,
+     "day_vol": 282908,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 53.6,
+     "maxvel5_pct": 4.6,
+     "missing_min": 246,
+     "o2h_pct": 10.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "CHR": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 1.99,
+     "day_vol": 321347,
+     "first_bar_utc": "13:34",
+     "giveback_pct": 86.4,
+     "maxvel5_pct": 6.9,
+     "missing_min": 219,
+     "o2h_pct": 11.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "CHSN": {
+  "days": {
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.25,
+      "exit": 1.3,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 2.96
+     },
+     {
+      "R": null,
+      "entry": 1.31,
+      "exit": 1.21,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -7.37
+     },
+     {
+      "R": null,
+      "entry": 1.3,
+      "exit": 1.27,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -2.16
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "CIIT": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 3.48,
+     "day_vol": 99294,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 29.2,
+     "maxvel5_pct": 7.8,
+     "missing_min": 302,
+     "o2h_pct": 12.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "CIRC": {
+  "days": {
+   "2026-07-09": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 0.69,
+      "exit": 0.78,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 10.59
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "CJMB": {
+  "days": {
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": 0.54,
+      "entry": 1.25,
+      "exit": 1.24,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 16.11
+     },
+     {
+      "R": -1.32,
+      "entry": 1.25,
+      "exit": 1.18,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -39.69
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 1.21,
+     "day_vol": 2899876,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 156.3,
+     "maxvel5_pct": 8.6,
+     "missing_min": 48,
+     "o2h_pct": 12.3
+    }
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 1.44,
+     "day_vol": 1958402,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 20.0,
+     "maxvel5_pct": 9.0,
+     "missing_min": 38,
+     "o2h_pct": 25.0
+    },
+    "trades": [
+     {
+      "R": -0.79,
+      "entry": 1.44,
+      "exit": 1.38,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "flat_top",
+      "pnl": -23.72
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "CLIK": {
+  "days": {
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": 0.54,
+      "entry": 1.76,
+      "exit": 1.78,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "ignition",
+      "pnl": 16.05
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "CLRO": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 10.73,
+      "exit": 10.8,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 2.69
+     }
+    ]
+   },
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.53,
+      "entry": 7.43,
+      "exit": 8.0,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 11.75
+     },
+     {
+      "R": 0.49,
+      "entry": 8.53,
+      "exit": 7.71,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "vwap_reclaim",
+      "pnl": 14.45
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "CMND": {
+  "days": {
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": 0.53,
+      "entry": 1.96,
+      "exit": 2.03,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 4.75
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "CNEY": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": 0.52,
+      "entry": 0.59,
+      "exit": 0.64,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ma_pullback",
+      "pnl": 15.64
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "CNTB": {
+  "days": {
+   "2026-07-09": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.63,
+      "exit": 2.67,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 0.76
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "CPHI": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.53,
+      "entry": 0.62,
+      "exit": 0.63,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 4.26
+     },
+     {
+      "R": -0.99,
+      "entry": 0.68,
+      "exit": 0.64,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -5.39
+     },
+     {
+      "R": -0.95,
+      "entry": 0.74,
+      "exit": 0.65,
+      "exit_reason": "3:45pm time stop",
+      "machine": null,
+      "pnl": -28.39
+     }
+    ]
+   },
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": 1.66,
+      "entry": 0.98,
+      "exit": 1.14,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "flat_top",
+      "pnl": 49.62
+     }
+    ]
+   },
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": -0.23,
+      "entry": 1.32,
+      "exit": 1.31,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -1.5
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 0.91,
+     "day_vol": 810849,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 229.6,
+     "maxvel5_pct": 9.8,
+     "missing_min": 233,
+     "o2h_pct": 12.4
+    }
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 8.1,
+     "day_vol": 81052255,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 60.4,
+     "maxvel5_pct": 93.7,
+     "missing_min": 155,
+     "o2h_pct": 2257.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "CRE": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.96,
+      "exit": 2.93,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -0.99
+     }
+    ]
+   },
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 3.39,
+      "exit": 3.08,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -9.08
+     },
+     {
+      "R": null,
+      "entry": 3.29,
+      "exit": 3.22,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 5.23
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "CRIS": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 4.75,
+     "day_vol": 49001,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 69.2,
+     "maxvel5_pct": 7.3,
+     "missing_min": 348,
+     "o2h_pct": 11.3
+    }
+   }
+  },
+  "notes": []
+ },
+ "CRMT": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": -1.44,
+      "entry": 3.6,
+      "exit": 3.37,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -8.17
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "CTOR": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 0.57,
+     "day_vol": 279060,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 112.6,
+     "maxvel5_pct": 13.2,
+     "missing_min": 308,
+     "o2h_pct": 24.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "CVKD": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 2.17,
+     "day_vol": 167153,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 87.8,
+     "maxvel5_pct": 7.9,
+     "missing_min": 350,
+     "o2h_pct": 11.5
+    }
+   }
+  },
+  "notes": []
+ },
+ "DAIC": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 1.25,
+     "day_vol": 1180141,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 62.5,
+     "maxvel5_pct": 9.3,
+     "missing_min": 142,
+     "o2h_pct": 13.4
+    }
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 1.34,
+     "day_vol": 538463,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 50.8,
+     "maxvel5_pct": 10.0,
+     "missing_min": 275,
+     "o2h_pct": 24.7
+    }
+   }
+  },
+  "notes": []
+ },
+ "DFNS": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 6.57,
+     "day_vol": 20204439,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 48.3,
+     "maxvel5_pct": 38.2,
+     "missing_min": 50,
+     "o2h_pct": 106.4
+    }
+   }
+  },
+  "notes": []
+ },
+ "DSC": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 5.6,
+     "day_vol": 121161,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 37.8,
+     "maxvel5_pct": 11.4,
+     "missing_min": 324,
+     "o2h_pct": 11.4
+    }
+   }
+  },
+  "notes": []
+ },
+ "DXF": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 0.5793,
+     "day_vol": 2659201,
+     "first_bar_utc": "13:32",
+     "giveback_pct": 33.9,
+     "maxvel5_pct": 17.2,
+     "missing_min": 200,
+     "o2h_pct": 31.1
+    }
+   }
+  },
+  "notes": []
+ },
+ "DXST": {
+  "days": {
+   "2026-07-16": {
+    "tape": {
+     "close": 2.99,
+     "day_vol": 3702266,
+     "first_bar_utc": "15:05",
+     "giveback_pct": 30.8,
+     "maxvel5_pct": 8.3,
+     "missing_min": 11,
+     "o2h_pct": 24.8
+    },
+    "trades": [
+     {
+      "R": 0.51,
+      "entry": 2.69,
+      "exit": 2.74,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 15.25
+     },
+     {
+      "R": 0.57,
+      "entry": 2.76,
+      "exit": 2.7,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 16.98
+     },
+     {
+      "R": -0.89,
+      "entry": 2.79,
+      "exit": 2.72,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "vwap_reclaim",
+      "pnl": -23.23
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "EDBL": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 3.56,
+     "day_vol": 330768,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 61.4,
+     "maxvel5_pct": 7.2,
+     "missing_min": 198,
+     "o2h_pct": 21.3
+    }
+   }
+  },
+  "notes": []
+ },
+ "EDHL": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 4.75,
+      "exit": 4.94,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 3.75
+     },
+     {
+      "R": null,
+      "entry": 5.05,
+      "exit": 5.29,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 1.94
+     },
+     {
+      "R": null,
+      "entry": 5.23,
+      "exit": 4.86,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -7.02
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "EHGO": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.54,
+      "entry": 2.15,
+      "exit": 2.15,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 16.12
+     },
+     {
+      "R": 0.53,
+      "entry": 2.2,
+      "exit": 2.28,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 15.75
+     },
+     {
+      "R": 0.51,
+      "entry": 2.26,
+      "exit": 2.29,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 15.15
+     }
+    ]
+   },
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": 1.1,
+      "entry": 1.98,
+      "exit": 2.11,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 19.76
+     },
+     {
+      "R": -1.15,
+      "entry": 2.13,
+      "exit": 1.9,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -34.45
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "ELAB": {
+  "days": {
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.32,
+      "exit": 1.4,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 2.77
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "ELWT": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 7.25,
+      "exit": 7.05,
+      "exit_reason": "RECOVERED after restart",
+      "machine": "ignition",
+      "pnl": 6.56
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "ERNA": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 6.15,
+      "exit": 5.97,
+      "exit_reason": "RECOVERED after restart",
+      "machine": "vwap_reclaim",
+      "pnl": -6.65
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "EROC": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 13.29,
+     "day_vol": 1321721,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 32.6,
+     "maxvel5_pct": 3.5,
+     "missing_min": 62,
+     "o2h_pct": 15.5
+    }
+   }
+  },
+  "notes": []
+ },
+ "EXOD": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 5.56,
+     "day_vol": 91010,
+     "first_bar_utc": "13:40",
+     "giveback_pct": 21.7,
+     "maxvel5_pct": 9.8,
+     "missing_min": 315,
+     "o2h_pct": 21.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "FEMY": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 3.91,
+     "day_vol": 225894,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 30.4,
+     "maxvel5_pct": 18.8,
+     "missing_min": 280,
+     "o2h_pct": 31.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "FGMC": {
+  "days": {},
+  "notes": [
+   {
+    "date": "2026-07-16",
+    "source": "incident-7/16",
+    "text": "dead/renamed listing \u2014 poisoned the recorder batch-subscribe 7/16; hazard class, screen before subscribing"
+   }
+  ]
+ },
+ "FGNX": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 6.2,
+     "day_vol": 89884,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 78.8,
+     "maxvel5_pct": 6.3,
+     "missing_min": 340,
+     "o2h_pct": 10.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "FRMM": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 6.06,
+     "day_vol": 436614,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 41.4,
+     "maxvel5_pct": 3.3,
+     "missing_min": 224,
+     "o2h_pct": 10.1
+    }
+   }
+  },
+  "notes": []
+ },
+ "FRNM": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 13.01,
+     "day_vol": 574697,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 48.0,
+     "maxvel5_pct": 4.1,
+     "missing_min": 171,
+     "o2h_pct": 21.5
+    }
+   }
+  },
+  "notes": []
+ },
+ "FTFT": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 1.43,
+     "day_vol": 182137,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 58.8,
+     "maxvel5_pct": 7.1,
+     "missing_min": 320,
+     "o2h_pct": 12.5
+    }
+   }
+  },
+  "notes": []
+ },
+ "FTRK": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.63,
+      "entry": 0.52,
+      "exit": 0.54,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 18.96
+     },
+     {
+      "R": -1.08,
+      "entry": 0.55,
+      "exit": 0.53,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -32.41
+     },
+     {
+      "R": 1.54,
+      "entry": 0.56,
+      "exit": 0.58,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 46.2
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "GCTK": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": -1.18,
+      "entry": 0.59,
+      "exit": 0.57,
+      "exit_reason": "BLIND-STOP FAILSAFE \ud83d\udedf",
+      "machine": "vwap_reclaim",
+      "pnl": -24.4
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "GLMD": {
+  "days": {
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": -1.48,
+      "entry": 0.58,
+      "exit": 0.54,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -44.29
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "GLXG": {
+  "days": {
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": 0.61,
+      "entry": 1.2,
+      "exit": 1.19,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 1.54
+     },
+     {
+      "R": 1.6,
+      "entry": 1.27,
+      "exit": 1.34,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "ignition",
+      "pnl": 10.22
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "GMM": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.5,
+      "entry": 3.19,
+      "exit": 3.15,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 14.9
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 3.51,
+     "day_vol": 24138640,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 50.6,
+     "maxvel5_pct": 15.0,
+     "missing_min": 1,
+     "o2h_pct": 68.7
+    }
+   }
+  },
+  "notes": []
+ },
+ "GOAI": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 2.36,
+     "day_vol": 1839452,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 65.6,
+     "maxvel5_pct": 10.0,
+     "missing_min": 86,
+     "o2h_pct": 18.6
+    }
+   }
+  },
+  "notes": []
+ },
+ "GOVX": {
+  "days": {
+   "2026-07-17": {
+    "tape": {
+     "close": 0.9742,
+     "day_vol": 323889,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 35.0,
+     "maxvel5_pct": 6.2,
+     "missing_min": 275,
+     "o2h_pct": 14.7
+    }
+   }
+  },
+  "notes": []
+ },
+ "GRDX": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 3.54,
+     "day_vol": 75208,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 58.8,
+     "maxvel5_pct": 8.7,
+     "missing_min": 314,
+     "o2h_pct": 15.3
+    }
+   }
+  },
+  "notes": []
+ },
+ "GREE": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 2.13,
+     "day_vol": 993265,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 14.7,
+     "maxvel5_pct": 13.3,
+     "missing_min": 124,
+     "o2h_pct": 27.7
+    }
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 2.91,
+     "day_vol": 13769250,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 16.1,
+     "maxvel5_pct": 13.8,
+     "missing_min": 6,
+     "o2h_pct": 39.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "GVH": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 1.48,
+     "day_vol": 5068484,
+     "first_bar_utc": "14:31",
+     "giveback_pct": 231.4,
+     "maxvel5_pct": 8.5,
+     "missing_min": 8,
+     "o2h_pct": 14.0
+    }
+   }
+  },
+  "notes": []
+ },
+ "HAO": {
+  "days": {
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.46,
+      "exit": 1.49,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 1.02
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "HIHO": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 0.9296,
+     "day_vol": 107786,
+     "first_bar_utc": "13:31",
+     "giveback_pct": 6.1,
+     "maxvel5_pct": 15.6,
+     "missing_min": 355,
+     "o2h_pct": 19.6
+    }
+   }
+  },
+  "notes": []
+ },
+ "HODO": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": 0.51,
+      "entry": 1.58,
+      "exit": 1.65,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "vwap_reclaim",
+      "pnl": 15.35
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 1.29,
+     "day_vol": 189657,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 43.4,
+     "maxvel5_pct": 10.0,
+     "missing_min": 290,
+     "o2h_pct": 19.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "HPAI": {
+  "days": {
+   "2026-07-17": {
+    "tape": {
+     "close": 0.5375,
+     "day_vol": 8761377,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 70.3,
+     "maxvel5_pct": 17.2,
+     "missing_min": 232,
+     "o2h_pct": 44.2
+    },
+    "trades": [
+     {
+      "R": -3.04,
+      "entry": 0.62,
+      "exit": 0.54,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "vwap_reclaim",
+      "pnl": -91.26
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "HUBC": {
+  "days": {
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": 0.6,
+      "entry": 1.26,
+      "exit": 1.26,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 0.81
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "HUHU": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 5.37,
+     "day_vol": 31884,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 68.8,
+     "maxvel5_pct": 13.5,
+     "missing_min": 354,
+     "o2h_pct": 11.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "IMNN": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 1.67,
+     "day_vol": 1040044,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 137.8,
+     "maxvel5_pct": 8.0,
+     "missing_min": 158,
+     "o2h_pct": 12.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "INBS": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": -1.7,
+      "entry": 2.3,
+      "exit": 2.16,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -12.17
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "INDP": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.37,
+      "entry": 2.92,
+      "exit": 2.95,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "vwap_reclaim",
+      "pnl": 4.74
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "INTS": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 4.9,
+      "exit": 4.78,
+      "exit_reason": "3:45pm time stop",
+      "machine": null,
+      "pnl": -2.4
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "INUV": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.57,
+      "entry": 1.28,
+      "exit": 1.26,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 0.46
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "IPW": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 0.9,
+     "day_vol": 15569591,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 102.9,
+     "maxvel5_pct": 24.3,
+     "missing_min": 50,
+     "o2h_pct": 57.4
+    }
+   }
+  },
+  "notes": []
+ },
+ "IQMX": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 11.95,
+     "day_vol": 643879,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 0.0,
+     "maxvel5_pct": 2.5,
+     "missing_min": 129,
+     "o2h_pct": 4.1
+    },
+    "trades": [
+     {
+      "R": -0.87,
+      "entry": 11.95,
+      "exit": 11.72,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "flat_top",
+      "pnl": -18.67
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "IQST": {
+  "days": {
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": 0.54,
+      "entry": 1.22,
+      "exit": 1.31,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 16.33
+     },
+     {
+      "R": -1.15,
+      "entry": 1.25,
+      "exit": 1.2,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -34.4
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "IVF": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": 0.57,
+      "entry": 1.25,
+      "exit": 1.27,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 2.1
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "JLHL": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 4.2,
+      "exit": 4.5,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 12.02
+     }
+    ]
+   },
+   "2026-07-09": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 3.99,
+      "exit": 3.99,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": 0.0
+     },
+     {
+      "R": null,
+      "entry": 4.02,
+      "exit": 4.02,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": 0.0
+     }
+    ]
+   },
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 1.5,
+      "entry": 8.9,
+      "exit": 10.05,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "vwap_reclaim",
+      "pnl": 44.43
+     },
+     {
+      "R": -1.21,
+      "entry": 11.01,
+      "exit": 10.12,
+      "exit_reason": "BLIND-STOP FAILSAFE \ud83d\udedf",
+      "machine": "vwap_reclaim",
+      "pnl": -35.6
+     }
+    ]
+   },
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": 0.52,
+      "entry": 10.12,
+      "exit": 9.64,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 15.5
+     },
+     {
+      "R": -0.89,
+      "entry": 9.68,
+      "exit": 9.2,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -26.6
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "JTAI": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 2.29,
+     "day_vol": 1073505,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 38.6,
+     "maxvel5_pct": 8.8,
+     "missing_min": 98,
+     "o2h_pct": 21.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "JZXN": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 1.93,
+     "day_vol": 26995768,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 35.6,
+     "maxvel5_pct": 44.7,
+     "missing_min": 169,
+     "o2h_pct": 108.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "KIDZ": {
+  "days": {
+   "2026-07-08": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 0.84,
+      "exit": 0.92,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 5.18
+     },
+     {
+      "R": null,
+      "entry": 0.86,
+      "exit": 0.83,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 5.73
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "KTTA": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 0.4732,
+     "day_vol": 852869,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 98.6,
+     "maxvel5_pct": 7.6,
+     "missing_min": 241,
+     "o2h_pct": 10.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "KUST": {
+  "days": {
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 0.97,
+      "exit": 0.98,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 3.28
+     }
+    ]
+   },
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": -1.6,
+      "entry": 1.46,
+      "exit": 1.28,
+      "exit_reason": "BLIND-STOP FAILSAFE \ud83d\udedf",
+      "machine": "vwap_reclaim",
+      "pnl": -47.97
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 1.27,
+     "day_vol": 900018,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 48.0,
+     "maxvel5_pct": 4.0,
+     "missing_min": 115,
+     "o2h_pct": 21.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "LBGJ": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": -1.37,
+      "entry": 1.61,
+      "exit": 1.5,
+      "exit_reason": "BLIND-STOP FAILSAFE \ud83d\udedf",
+      "machine": "ma_pullback",
+      "pnl": -40.99
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "LEDS": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": 0.51,
+      "entry": 1.85,
+      "exit": 2.0,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 11.2
+     },
+     {
+      "R": -0.18,
+      "entry": 2.31,
+      "exit": 2.29,
+      "exit_reason": "3:45pm time stop",
+      "machine": "vwap_reclaim",
+      "pnl": -5.31
+     }
+    ]
+   },
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": -1.28,
+      "entry": 2.34,
+      "exit": 2.28,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -6.72
+     },
+     {
+      "R": 0.59,
+      "entry": 2.25,
+      "exit": 2.29,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 17.76
+     },
+     {
+      "R": -1.37,
+      "entry": 2.36,
+      "exit": 2.24,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -37.3
+     }
+    ]
+   },
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": 1.55,
+      "entry": 3.08,
+      "exit": 3.1,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "flat_top",
+      "pnl": 46.4
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "LHAI": {
+  "days": {
+   "2026-07-08": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.47,
+      "exit": 1.52,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 4.12
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "LHSW": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 4.59,
+      "exit": 4.24,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -7.35
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "LMFA": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 2.6,
+     "day_vol": 683172,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 150.0,
+     "maxvel5_pct": 8.7,
+     "missing_min": 147,
+     "o2h_pct": 10.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "LNAI": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 2.76,
+     "day_vol": 47779,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 93.5,
+     "maxvel5_pct": 7.9,
+     "missing_min": 359,
+     "o2h_pct": 11.3
+    }
+   }
+  },
+  "notes": []
+ },
+ "LVLU": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 16.62,
+     "day_vol": 111435,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 19.6,
+     "maxvel5_pct": 16.0,
+     "missing_min": 294,
+     "o2h_pct": 34.6
+    }
+   }
+  },
+  "notes": []
+ },
+ "LVWR": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 0.8246,
+     "day_vol": 528277,
+     "first_bar_utc": "13:32",
+     "giveback_pct": 14.9,
+     "maxvel5_pct": 7.2,
+     "missing_min": 204,
+     "o2h_pct": 25.0
+    }
+   }
+  },
+  "notes": []
+ },
+ "MGIH": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": -1.31,
+      "entry": 1.81,
+      "exit": 1.57,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -39.01
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "MIMI": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.57,
+      "entry": 3.1,
+      "exit": 3.18,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 14.49
+     },
+     {
+      "R": -1.53,
+      "entry": 3.15,
+      "exit": 2.95,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -45.7
+     }
+    ]
+   },
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": -1.26,
+      "entry": 2.64,
+      "exit": 2.58,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -2.46
+     }
+    ]
+   },
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.51,
+      "entry": 2.67,
+      "exit": 2.68,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "ignition",
+      "pnl": 11.7
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "MLEC": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 8.45,
+     "day_vol": 136946,
+     "first_bar_utc": "17:14",
+     "giveback_pct": 56.1,
+     "maxvel5_pct": 9.6,
+     "missing_min": 99,
+     "o2h_pct": 29.5
+    }
+   }
+  },
+  "notes": []
+ },
+ "MOVE": {
+  "days": {
+   "2026-07-17": {
+    "tape": {
+     "close": 14.04,
+     "day_vol": 55156,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 32.7,
+     "maxvel5_pct": 9.4,
+     "missing_min": 352,
+     "o2h_pct": 20.3
+    }
+   }
+  },
+  "notes": []
+ },
+ "MTVA": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 1.02,
+      "entry": 2.19,
+      "exit": 2.21,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 30.56
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "NAKA": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 4.63,
+     "day_vol": 326695,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 4.3,
+     "maxvel5_pct": 5.3,
+     "missing_min": 269,
+     "o2h_pct": 11.0
+    }
+   }
+  },
+  "notes": []
+ },
+ "NAMM": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 1.6,
+     "day_vol": 880296,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 41.4,
+     "maxvel5_pct": 9.6,
+     "missing_min": 113,
+     "o2h_pct": 20.3
+    }
+   }
+  },
+  "notes": []
+ },
+ "NCRA": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 1.5,
+     "day_vol": 232025,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 27.8,
+     "maxvel5_pct": 7.4,
+     "missing_min": 284,
+     "o2h_pct": 13.1
+    },
+    "trades": [
+     {
+      "R": -0.93,
+      "entry": 1.54,
+      "exit": 1.48,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -4.26
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "NIKI": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 9.54,
+     "day_vol": 179636,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 21.3,
+     "maxvel5_pct": 24.1,
+     "missing_min": 271,
+     "o2h_pct": 29.0
+    },
+    "trades": [
+     {
+      "R": 0.21,
+      "entry": 9.01,
+      "exit": 9.32,
+      "exit_reason": "3:45pm time stop",
+      "machine": "ma_pullback",
+      "pnl": 6.2
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "NIPG": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 7.5,
+     "day_vol": 148946,
+     "first_bar_utc": "13:54",
+     "giveback_pct": 0.0,
+     "maxvel5_pct": 27.0,
+     "missing_min": 276,
+     "o2h_pct": 56.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "NTRP": {
+  "days": {
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": 0.06,
+      "entry": 1.87,
+      "exit": 1.88,
+      "exit_reason": "3:45pm time stop",
+      "machine": "vwap_reclaim",
+      "pnl": 0.38
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "NVVE": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 1.05,
+      "entry": 17.52,
+      "exit": 16.16,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 31.25
+     }
+    ]
+   },
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": -1.16,
+      "entry": 17.46,
+      "exit": 14.88,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "vwap_reclaim",
+      "pnl": -33.47
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 8.07,
+     "day_vol": 605396,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 68.1,
+     "maxvel5_pct": 10.7,
+     "missing_min": 144,
+     "o2h_pct": 28.4
+    }
+   }
+  },
+  "notes": []
+ },
+ "NXPL": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 7.24,
+      "exit": 7.15,
+      "exit_reason": "3:45pm time stop",
+      "machine": null,
+      "pnl": -1.17
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "NYC": {
+  "days": {
+   "2026-07-16": {
+    "tape": {
+     "close": 8.52,
+     "day_vol": 553887,
+     "first_bar_utc": "16:25",
+     "giveback_pct": 69.0,
+     "maxvel5_pct": 4.9,
+     "missing_min": 126,
+     "o2h_pct": 8.6
+    },
+    "trades": [
+     {
+      "R": 1.1,
+      "entry": 8.63,
+      "exit": 8.63,
+      "exit_reason": "3:45pm time stop",
+      "machine": "vwap_reclaim",
+      "pnl": 20.99
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "OCC": {
+  "days": {
+   "2026-07-09": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 17.15,
+      "exit": 16.68,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -2.35
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "OMH": {
+  "days": {},
+  "notes": [
+   {
+    "date": "2026-07-21",
+    "source": "kev-sheet-7/22",
+    "text": "Kev 7/22 pick: over 0.70 (HL 0.60 -> 0.90/1.20), stage-2 over 1.21 -> 2.00; scanner 7/21 eve: +222.7% day but -34.6% AH on 21.3M float"
+   }
+  ]
+ },
+ "ONCO": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 1.0,
+     "day_vol": 659336,
+     "first_bar_utc": "13:37",
+     "giveback_pct": 3.9,
+     "maxvel5_pct": 12.4,
+     "missing_min": 277,
+     "o2h_pct": 33.6
+    }
+   }
+  },
+  "notes": []
+ },
+ "OPAD": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.61,
+      "entry": 5.29,
+      "exit": 5.46,
+      "exit_reason": "3:45pm time stop",
+      "machine": "vwap_reclaim",
+      "pnl": 16.66
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "PBM": {
+  "days": {
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": -1.62,
+      "entry": 3.14,
+      "exit": 2.97,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -21.16
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "PCLA": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 4.86,
+     "day_vol": 46884,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 78.3,
+     "maxvel5_pct": 12.0,
+     "missing_min": 352,
+     "o2h_pct": 11.6
+    }
+   }
+  },
+  "notes": []
+ },
+ "PCSA": {
+  "days": {
+   "2026-07-14": {
+    "tape": {
+     "close": 2.29,
+     "day_vol": 109154,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 40.0,
+     "maxvel5_pct": 12.3,
+     "missing_min": 336,
+     "o2h_pct": 14.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "PCSC": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 12.0,
+      "exit": 11.71,
+      "exit_reason": "RECOVERED after restart",
+      "machine": "ignition",
+      "pnl": -21.95
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "PDC": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 3.87,
+      "exit": 4.01,
+      "exit_reason": "RECOVERED after restart",
+      "machine": "vwap_reclaim",
+      "pnl": 11.76
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "PED": {
+  "days": {
+   "2026-07-08": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 13.08,
+      "exit": 12.24,
+      "exit_reason": "3:45pm time stop",
+      "machine": null,
+      "pnl": -5.88
+     }
+    ]
+   },
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.14,
+      "entry": 13.0,
+      "exit": 13.19,
+      "exit_reason": "3:45pm time stop",
+      "machine": null,
+      "pnl": 4.28
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "PFSA": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 1.95,
+     "day_vol": 136264,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 29.0,
+     "maxvel5_pct": 9.7,
+     "missing_min": 296,
+     "o2h_pct": 17.9
+    }
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 2.0,
+     "day_vol": 507854,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 90.0,
+     "maxvel5_pct": 21.5,
+     "missing_min": 254,
+     "o2h_pct": 25.6
+    }
+   }
+  },
+  "notes": []
+ },
+ "PMAX": {
+  "days": {
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": -1.13,
+      "entry": 2.1,
+      "exit": 1.98,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -33.91
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "PMN": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 15.075,
+     "day_vol": 212205,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 91.7,
+     "maxvel5_pct": 5.0,
+     "missing_min": 242,
+     "o2h_pct": 11.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "PSQH": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 3.33,
+     "day_vol": 55934,
+     "first_bar_utc": "13:33",
+     "giveback_pct": 51.0,
+     "maxvel5_pct": 6.2,
+     "missing_min": 318,
+     "o2h_pct": 16.6
+    }
+   }
+  },
+  "notes": []
+ },
+ "QNCX": {
+  "days": {
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": -1.38,
+      "entry": 20.29,
+      "exit": 19.63,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "vwap_reclaim",
+      "pnl": -15.07
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "QTTB": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.51,
+      "entry": 20.08,
+      "exit": 20.09,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 7.92
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "RBNE": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 4.62,
+     "day_vol": 65987,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 46.6,
+     "maxvel5_pct": 12.0,
+     "missing_min": 313,
+     "o2h_pct": 13.5
+    }
+   }
+  },
+  "notes": []
+ },
+ "RDAC": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 6.705,
+     "day_vol": 58995,
+     "first_bar_utc": "13:55",
+     "giveback_pct": 46.2,
+     "maxvel5_pct": 17.1,
+     "missing_min": 318,
+     "o2h_pct": 50.3
+    }
+   }
+  },
+  "notes": []
+ },
+ "RDGT": {
+  "days": {
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.53,
+      "exit": 1.49,
+      "exit_reason": "3:45pm time stop",
+      "machine": null,
+      "pnl": -2.6
+     }
+    ]
+   },
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": 0.53,
+      "entry": 1.62,
+      "exit": 1.63,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "ignition",
+      "pnl": 2.07
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "RPGL": {
+  "days": {
+   "2026-07-09": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.33,
+      "exit": 2.36,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 2.63
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 1.77,
+     "day_vol": 397248,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 124.1,
+     "maxvel5_pct": 7.5,
+     "missing_min": 247,
+     "o2h_pct": 15.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "RYOJ": {
+  "days": {
+   "2026-07-09": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 3.63,
+      "exit": 3.88,
+      "exit_reason": "3:45pm time stop",
+      "machine": null,
+      "pnl": 6.75
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "SDOT": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": 0.48,
+      "entry": 19.45,
+      "exit": 19.3,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "vwap_reclaim",
+      "pnl": 14.16
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "SECZ": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 7.54,
+     "day_vol": 1458870,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 6.8,
+     "maxvel5_pct": 4.4,
+     "missing_min": 28,
+     "o2h_pct": 13.1
+    }
+   }
+  },
+  "notes": []
+ },
+ "SKYQ": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.49,
+      "exit": 2.54,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 1.77
+     }
+    ]
+   },
+   "2026-07-08": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 3.43,
+      "exit": 3.58,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 2.24
+     }
+    ]
+   },
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.52,
+      "entry": 3.96,
+      "exit": 3.86,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 15.55
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 4.74,
+     "day_vol": 7488229,
+     "first_bar_utc": "15:08",
+     "giveback_pct": 54.8,
+     "maxvel5_pct": 4.2,
+     "missing_min": 1,
+     "o2h_pct": 13.9
+    },
+    "trades": [
+     {
+      "R": -1.39,
+      "entry": 4.72,
+      "exit": 4.34,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -41.32
+     }
+    ]
+   }
+  },
+  "notes": [
+   {
+    "date": "2026-07-20",
+    "source": "kev-video-7/20",
+    "text": "one of the nastiest stocks in the entire market... trades like junk \u2014 Kev skips it on name alone"
+   }
+  ]
+ },
+ "SLGB": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 0.9799,
+     "day_vol": 80747744,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 133.4,
+     "maxvel5_pct": 16.3,
+     "missing_min": 4,
+     "o2h_pct": 18.7
+    }
+   }
+  },
+  "notes": [
+   {
+    "date": "2026-07-21",
+    "source": "kev-sheet-7/22",
+    "text": "Kev 7/22 pick: over 1.20 (HL 1.05 -> 1.50/2.00/2.40); 3.0M float"
+   }
+  ]
+ },
+ "SLND": {
+  "days": {
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": -1.61,
+      "entry": 1.1,
+      "exit": 0.93,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -48.07
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "SLSN": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 0.771,
+     "day_vol": 95245,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 80.9,
+     "maxvel5_pct": 13.0,
+     "missing_min": 359,
+     "o2h_pct": 14.7
+    }
+   }
+  },
+  "notes": []
+ },
+ "SMX": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.0,
+      "entry": 20.85,
+      "exit": 20.85,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "vwap_reclaim",
+      "pnl": 0.0
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 17.66,
+     "day_vol": 30448,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 67.1,
+     "maxvel5_pct": 9.4,
+     "missing_min": 336,
+     "o2h_pct": 11.2
+    }
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 20.3,
+     "day_vol": 78261,
+     "first_bar_utc": "13:35",
+     "giveback_pct": 41.7,
+     "maxvel5_pct": 10.7,
+     "missing_min": 323,
+     "o2h_pct": 19.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "SNAL": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 3.44,
+      "exit": 3.46,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 2.02
+     }
+    ]
+   },
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 4.56,
+      "exit": 4.8,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 6.52
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "SOBR": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 3.12,
+      "entry": 0.56,
+      "exit": 0.72,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 93.56
+     }
+    ]
+   },
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": 0.6,
+      "entry": 1.25,
+      "exit": 1.36,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 17.92
+     },
+     {
+      "R": -1.38,
+      "entry": 1.38,
+      "exit": 1.14,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -41.11
+     }
+    ]
+   },
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": -0.22,
+      "entry": 2.16,
+      "exit": 2.11,
+      "exit_reason": "3:45pm time stop",
+      "machine": "vwap_reclaim",
+      "pnl": -6.63
+     }
+    ]
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 0.679,
+     "day_vol": 2364890,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 23.3,
+     "maxvel5_pct": 11.8,
+     "missing_min": 101,
+     "o2h_pct": 23.0
+    }
+   }
+  },
+  "notes": []
+ },
+ "SPRC": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 5.07,
+      "exit": 5.21,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 4.41
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "STAK": {
+  "days": {
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": -0.27,
+      "entry": 3.95,
+      "exit": 3.7,
+      "exit_reason": "3:45pm time stop",
+      "machine": "vwap_reclaim",
+      "pnl": -8.0
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "STFS": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 7.55,
+     "day_vol": 96588,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 43.5,
+     "maxvel5_pct": 10.7,
+     "missing_min": 305,
+     "o2h_pct": 13.1
+    }
+   }
+  },
+  "notes": []
+ },
+ "SUGP": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 0.5446,
+     "day_vol": 1874019,
+     "first_bar_utc": "13:31",
+     "giveback_pct": 21.2,
+     "maxvel5_pct": 9.8,
+     "missing_min": 182,
+     "o2h_pct": 25.0
+    }
+   }
+  },
+  "notes": []
+ },
+ "SUNE": {
+  "days": {
+   "2026-07-09": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.36,
+      "exit": 2.4,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 5.89
+     },
+     {
+      "R": null,
+      "entry": 2.52,
+      "exit": 2.66,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 3.14
+     }
+    ]
+   },
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 3.18,
+      "exit": 3.5,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 16.28
+     }
+    ]
+   },
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": -1.3,
+      "entry": 3.85,
+      "exit": 3.67,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "vwap_reclaim",
+      "pnl": -38.85
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "SVRE": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 3.18,
+     "day_vol": 75087,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 42.9,
+     "maxvel5_pct": 6.9,
+     "missing_min": 340,
+     "o2h_pct": 11.7
+    }
+   }
+  },
+  "notes": []
+ },
+ "TDTH": {
+  "days": {
+   "2026-07-09": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.23,
+      "exit": 2.04,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -8.36
+     }
+    ]
+   },
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": -1.25,
+      "entry": 2.32,
+      "exit": 2.23,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -5.31
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "TGHL": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.53,
+      "entry": 0.85,
+      "exit": 0.89,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "ignition",
+      "pnl": 15.74
+     }
+    ]
+   },
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": -1.13,
+      "entry": 1.43,
+      "exit": 1.33,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -33.82
+     }
+    ]
+   },
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": -1.53,
+      "entry": 1.4,
+      "exit": 1.32,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -45.75
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "TJGC": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.25,
+      "entry": 4.88,
+      "exit": 4.92,
+      "exit_reason": "3:45pm time stop",
+      "machine": "vwap_reclaim",
+      "pnl": 4.92
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "TRNR": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.77,
+      "entry": 2.72,
+      "exit": 2.85,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 4.32
+     },
+     {
+      "R": 0.54,
+      "entry": 2.85,
+      "exit": 2.87,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 16.22
+     }
+    ]
+   },
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": 0.7,
+      "entry": 3.27,
+      "exit": 3.47,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "vwap_reclaim",
+      "pnl": 13.2
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "TRT": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": -1.25,
+      "entry": 12.58,
+      "exit": 11.65,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "vwap_reclaim",
+      "pnl": -37.2
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "TRUG": {
+  "days": {
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": 0.52,
+      "entry": 1.53,
+      "exit": 1.48,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 15.44
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 1.24,
+     "day_vol": 322877,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 47.4,
+     "maxvel5_pct": 7.3,
+     "missing_min": 260,
+     "o2h_pct": 10.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "TVRD": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.39,
+      "exit": 2.51,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 2.6
+     }
+    ]
+   },
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": 0.58,
+      "entry": 3.21,
+      "exit": 3.32,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "flat_top",
+      "pnl": 17.5
+     }
+    ]
+   },
+   "2026-07-17": {
+    "tape": {
+     "close": 3.2,
+     "day_vol": 963018,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 50.0,
+     "maxvel5_pct": 5.2,
+     "missing_min": 210,
+     "o2h_pct": 16.9
+    },
+    "trades": [
+     {
+      "R": -0.79,
+      "entry": 3.21,
+      "exit": 3.14,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -22.08
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "UBXG": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.5,
+      "entry": 4.98,
+      "exit": 4.64,
+      "exit_reason": "BLIND-STOP FAILSAFE \ud83d\udedf",
+      "machine": "vwap_reclaim",
+      "pnl": 14.91
+     },
+     {
+      "R": 0.56,
+      "entry": 5.44,
+      "exit": 5.62,
+      "exit_reason": "3:45pm time stop",
+      "machine": "vwap_reclaim",
+      "pnl": 16.65
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "UCAR": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 1.38,
+      "entry": 1.27,
+      "exit": 1.33,
+      "exit_reason": "3:45pm time stop",
+      "machine": null,
+      "pnl": 6.16
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "UONEK": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": 0.75,
+      "entry": 3.8,
+      "exit": 3.92,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "ignition",
+      "pnl": 10.06
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 4.0,
+     "day_vol": 56987,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 82.2,
+     "maxvel5_pct": 9.5,
+     "missing_min": 338,
+     "o2h_pct": 34.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "VCIG": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 0.68,
+     "day_vol": 4865274,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 56.4,
+     "maxvel5_pct": 13.7,
+     "missing_min": 64,
+     "o2h_pct": 35.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "VEEE": {
+  "days": {
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 4.85,
+      "exit": 4.62,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -4.64
+     }
+    ]
+   },
+   "2026-07-17": {
+    "trades": [
+     {
+      "R": 1.77,
+      "entry": 42.02,
+      "exit": 41.62,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "ignition",
+      "pnl": 52.59
+     },
+     {
+      "R": -1.12,
+      "entry": 43.0,
+      "exit": 37.37,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -28.17
+     },
+     {
+      "R": 0.5,
+      "entry": 39.36,
+      "exit": 40.56,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "ignition",
+      "pnl": 14.98
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "VIDA": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 2.51,
+     "day_vol": 266040,
+     "first_bar_utc": "13:34",
+     "giveback_pct": 87.2,
+     "maxvel5_pct": 7.8,
+     "missing_min": 281,
+     "o2h_pct": 19.1
+    }
+   }
+  },
+  "notes": []
+ },
+ "VIVK": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 2.58,
+     "day_vol": 120851335,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 205.5,
+     "maxvel5_pct": 28.2,
+     "missing_min": 4,
+     "o2h_pct": 55.3
+    }
+   }
+  },
+  "notes": [
+   {
+    "date": "2026-07-21",
+    "source": "kev-video-XFSPUI5YJsE",
+    "text": "Kev traded it himself (500%-squeeze video XFSPUI5YJsE): entries = pullbacks to 20 EMA / 90 MA with buyer curl, never chases, never first candle; trades it on 10-second charts"
+   }
+  ]
+ },
+ "VMAR": {
+  "days": {
+   "2026-07-13": {
+    "trades": [
+     {
+      "R": 0.52,
+      "entry": 1.6,
+      "exit": 1.66,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 15.58
+     }
+    ]
+   },
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": -1.01,
+      "entry": 1.44,
+      "exit": 1.35,
+      "exit_reason": "BLIND-STOP FAILSAFE \ud83d\udedf",
+      "machine": "vwap_reclaim",
+      "pnl": -30.15
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 0.9334,
+     "day_vol": 3774512,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 1244.0,
+     "maxvel5_pct": 4.0,
+     "missing_min": 11,
+     "o2h_pct": 1.4
+    },
+    "trades": [
+     {
+      "R": -2.98,
+      "entry": 1.08,
+      "exit": 1.05,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -23.25
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "VRAX": {
+  "days": {
+   "2026-07-16": {
+    "trades": [
+     {
+      "R": -1.28,
+      "entry": 3.85,
+      "exit": 3.58,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -38.34
+     },
+     {
+      "R": -1.31,
+      "entry": 3.84,
+      "exit": 3.79,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -10.0
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 3.89,
+     "day_vol": 294223,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 55.0,
+     "maxvel5_pct": 9.3,
+     "missing_min": 256,
+     "o2h_pct": 10.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "VS": {
+  "days": {
+   "2026-07-07": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.58,
+      "exit": 1.47,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -6.86
+     }
+    ]
+   },
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.57,
+      "exit": 1.59,
+      "exit_reason": "RECOVERED after restart",
+      "machine": "flat_top",
+      "pnl": 7.01
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "VTAK": {
+  "days": {
+   "2026-07-08": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.51,
+      "exit": 1.41,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -6.6
+     }
+    ]
+   },
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.53,
+      "entry": 0.7,
+      "exit": 0.72,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": "ignition",
+      "pnl": 15.75
+     },
+     {
+      "R": -1.13,
+      "entry": 0.74,
+      "exit": 0.67,
+      "exit_reason": "BLIND-STOP FAILSAFE \ud83d\udedf",
+      "machine": "ignition",
+      "pnl": -33.92
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "WAI": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.1,
+      "entry": 2.5,
+      "exit": 2.53,
+      "exit_reason": "3:45pm time stop",
+      "machine": "vwap_reclaim",
+      "pnl": 3.04
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "WBUY": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 0.6266,
+     "day_vol": 337145,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 211.6,
+     "maxvel5_pct": 11.6,
+     "missing_min": 287,
+     "o2h_pct": 10.2
+    }
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 0.7464,
+     "day_vol": 138661,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 3.3,
+     "maxvel5_pct": 12.6,
+     "missing_min": 350,
+     "o2h_pct": 17.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "WETO": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 0.7527,
+     "day_vol": 1222704,
+     "first_bar_utc": "14:45",
+     "giveback_pct": 83.3,
+     "maxvel5_pct": 21.5,
+     "missing_min": 211,
+     "o2h_pct": 35.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "WGRX": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 3.52,
+     "day_vol": 536256,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 25.2,
+     "maxvel5_pct": 21.6,
+     "missing_min": 201,
+     "o2h_pct": 39.3
+    }
+   }
+  },
+  "notes": []
+ },
+ "WLDS": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 1.51,
+     "day_vol": 57699,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 29.4,
+     "maxvel5_pct": 5.7,
+     "missing_min": 342,
+     "o2h_pct": 12.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "WOK": {
+  "days": {
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.32,
+      "exit": 2.35,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": null,
+      "pnl": 6.45
+     },
+     {
+      "R": null,
+      "entry": 2.31,
+      "exit": 2.24,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -3.01
+     },
+     {
+      "R": null,
+      "entry": 2.37,
+      "exit": 2.34,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 2.47
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "XBP": {
+  "days": {
+   "2026-07-21": {
+    "tape": {
+     "close": 2.85,
+     "day_vol": 75792,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 70.3,
+     "maxvel5_pct": 11.0,
+     "missing_min": 341,
+     "o2h_pct": 24.1
+    }
+   }
+  },
+  "notes": []
+ },
+ "XCUR": {
+  "days": {
+   "2026-07-09": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.0,
+      "exit": 1.88,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -6.0
+     }
+    ]
+   },
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.13,
+      "entry": 1.95,
+      "exit": 1.97,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": 3.86
+     },
+     {
+      "R": -0.11,
+      "entry": 1.9,
+      "exit": 1.89,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": "ignition",
+      "pnl": -3.35
+     }
+    ]
+   },
+   "2026-07-20": {
+    "tape": {
+     "close": 1.89,
+     "day_vol": 472694,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 34.6,
+     "maxvel5_pct": 10.5,
+     "missing_min": 212,
+     "o2h_pct": 22.8
+    }
+   }
+  },
+  "notes": []
+ },
+ "XELB": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 1.25,
+     "day_vol": 64630,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 126.3,
+     "maxvel5_pct": 8.9,
+     "missing_min": 333,
+     "o2h_pct": 14.6
+    }
+   }
+  },
+  "notes": []
+ },
+ "XHLD": {
+  "days": {
+   "2026-07-17": {
+    "tape": {
+     "close": 2.11,
+     "day_vol": 1003238,
+     "first_bar_utc": "13:34",
+     "giveback_pct": 40.0,
+     "maxvel5_pct": 13.5,
+     "missing_min": 318,
+     "o2h_pct": 10.1
+    }
+   }
+  },
+  "notes": []
+ },
+ "YIBO": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 1.14,
+     "day_vol": 120213,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 25.0,
+     "maxvel5_pct": 12.1,
+     "missing_min": 330,
+     "o2h_pct": 20.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "YSXT": {
+  "days": {
+   "2026-07-08": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 1.16,
+      "exit": 1.23,
+      "exit_reason": "Trailing stop \ud83d\udcc9",
+      "machine": null,
+      "pnl": 3.01
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "YYAI": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 0.23,
+      "entry": 9.13,
+      "exit": 9.28,
+      "exit_reason": "3:45pm time stop",
+      "machine": "vwap_reclaim",
+      "pnl": 6.68
+     }
+    ]
+   },
+   "2026-07-16": {
+    "tape": {
+     "close": 9.73,
+     "day_vol": 21753,
+     "first_bar_utc": "13:31",
+     "giveback_pct": 66.4,
+     "maxvel5_pct": 10.8,
+     "missing_min": 348,
+     "o2h_pct": 17.2
+    }
+   }
+  },
+  "notes": []
+ },
+ "YYGH": {
+  "days": {
+   "2026-07-14": {
+    "trades": [
+     {
+      "R": 1.71,
+      "entry": 1.33,
+      "exit": 1.43,
+      "exit_reason": "HEALTH FOLD (lost VWAP+EMA)",
+      "machine": "ignition",
+      "pnl": 36.22
+     }
+    ]
+   },
+   "2026-07-21": {
+    "tape": {
+     "close": 1.28,
+     "day_vol": 418188,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 21.9,
+     "maxvel5_pct": 4.9,
+     "missing_min": 195,
+     "o2h_pct": 13.9
+    }
+   }
+  },
+  "notes": []
+ },
+ "ZCMD": {
+  "days": {
+   "2026-07-10": {
+    "trades": [
+     {
+      "R": null,
+      "entry": 2.33,
+      "exit": 2.15,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -7.6
+     },
+     {
+      "R": null,
+      "entry": 2.21,
+      "exit": 2.14,
+      "exit_reason": "Stop loss \ud83d\uded1",
+      "machine": null,
+      "pnl": -3.5
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "ZSTK": {
+  "days": {
+   "2026-07-15": {
+    "trades": [
+     {
+      "R": 2.26,
+      "entry": 2.01,
+      "exit": 2.0,
+      "exit_reason": "BLIND-STOP FAILSAFE \ud83d\udedf",
+      "machine": "ignition",
+      "pnl": 2.12
+     }
+    ]
+   }
+  },
+  "notes": []
+ },
+ "ZYBT": {
+  "days": {
+   "2026-07-20": {
+    "tape": {
+     "close": 8.01,
+     "day_vol": 117261826,
+     "first_bar_utc": "13:30",
+     "giveback_pct": 0.0,
+     "maxvel5_pct": 78.0,
+     "missing_min": 227,
+     "o2h_pct": 551.2
+    },
+    "trades": [
+     {
+      "R": 5.53,
+      "entry": 1.46,
+      "exit": 6.15,
+      "exit_reason": "3:45pm time stop",
+      "machine": "ignition",
+      "pnl": 164.79
+     }
+    ]
+   }
+  },
+  "notes": [
+   {
+    "date": "2026-07-20",
+    "source": "kev-short-7/20",
+    "text": "Kev's live selection demo: among the open's top gainers, ZYBT curled FIRST while BIYA/ADVB faded \u2014 that test picked the day's winner before any level broke"
+   }
+  ]
+ }
+}

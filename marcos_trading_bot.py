@@ -4819,9 +4819,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                           seq=zf.get("seq", 0))
 
             if not found_entry and RECLAIM_KEV:
-                _sv = _recorder_tick_vwap(t)
+                # PATH-1 FIX (7/21 #67): the tick-VWAP sanity gate used to be an entry KILL-SWITCH —
+                # tick missing/clamp-rejected → _nb never built → kev_reclaim_step never ran (reclaim
+                # blind on exactly the fast movers whose tick line diverges: CPHI/EXYN/AIFF 7/21).
+                # DECOUPLE: the machine always gets its bars; the VWAP line degrades gracefully —
+                # tick when sane, else the bar line (pre+RTH session VWAP, the known-good −0.7% anchor).
+                _tickv = _recorder_tick_vwap(t)
+                _sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap
                 _nb = []
-                if _sv and _tick_vwap_ok(_sv, vwap, price):
+                if _sv and _sv > 0:
                     _day_k = datetime.now(EASTERN).strftime("%Y-%m-%d")
                     _cur_key = (_day_k, t)
                     _last_k = _reclaim_cursor.get(_cur_key, 0)

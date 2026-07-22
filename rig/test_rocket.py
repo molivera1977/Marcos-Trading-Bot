@@ -39,6 +39,11 @@ check("T11 touchpoint: monitor_trade %-tier branch", 'entry_type="flat_top")' in
 check("T12 touchpoint: call site threads entry_type", "entry_type=entry_type," in SRC)
 check("T13 touchpoint: daily cap + reset wired", "_rocket_day" in SRC and "rocket_capped" in SRC)
 
+# ── PATH-1 decouple pin (#67): reclaim bars no longer gated on tick-VWAP sanity ──
+check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",
+      "_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap" in SRC
+      and "if _sv and _tick_vwap_ok(_sv, vwap, price):\n                    _day_k" not in SRC)
+
 print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:
     print("RED:", ", ".join(FAIL))

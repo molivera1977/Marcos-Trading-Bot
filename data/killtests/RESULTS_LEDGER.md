@@ -20,6 +20,9 @@ supersede it with a new one._
 | 7/22 | VWAP anchor: PM vs RTH in disagreement band | DOCTRINE CONFIRMED | IN-BAND (PM front/RTH back): +1.16% mean fwd30, 60.9% win — BEST cohort; inv-band weakest (53.0%) — PM anchor right both directions | 9,393 samples / 195 name-days / 7/14-17 | in-band n=133; up-tape baseline (read ranking not absolutes); 295 pairs lacked PM tape; harness caught 2 own bugs pre-result | vwap_anchor_killtest_results.txt |
 | 7/22 | Machine-scoped day-gain floor | SHIPPED ed73f8d | sweep +$122-165 all T in [10,40]; ex-ZYBT intact; same-day: all 3 losers floor-blockable | 124 matched trades | era-mixed; T=30 homegrown | daygain_floor_killtest.txt |
 
+| 7/22 | Alpaca preview grade (PARTIAL window) | PIPELINE PROVEN — no verdict | alp median 11.1%/mean 14.0% vs wb 15.5%/40.8% (n=35 matched) — BOTH denominators are full-day /api/daily volume; SIP only ran 15:28→AH, wb had its #68-degraded day | 35 names, ~32min RTH + AH | numbers are window artifacts, NOT vendor quality; formal ≥98% gate = 7/23 full-day 4:00-20:00 capture | vendor_test_grade.py run 7/22 19:10 |
+| 7/22 | Evening build (5 change-sets + hardening) | ALL SHIPPED | #68 de31e74 reserve-first reseed; #81 2efeb7d amnesia+rescan budget; whitelist class killer 75fe99b; #84 5beab99 re-read isolation; #86 8255dd5 stream ghost-session self-heal; #87 76b913d ALP-primary VWAP chain; alp 405-trim/fuse 220dfdf | rigs: defects 61/61, rocket 31/31, recorder 11/11, reader 6/6, alp 28/28 | each has a named Thu acceptance check; bot verified sleeping-till-8:45 post-rebuild | git log 7/22 evening |
+
 ## Standing stat-hygiene flags (check before quoting any row)
 - n<10 → directional only, never a ship verdict alone.
 - Mean vs median divergence → report both; find the outlier rows.

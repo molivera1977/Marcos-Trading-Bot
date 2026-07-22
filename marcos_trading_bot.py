@@ -2176,9 +2176,18 @@ def _blended_pnl(entry_price, total_shares, partial_fills, exit_price):
     return (exit_price - entry_price) * total_shares
 
 
-def _chart_break_gate(ticker, entry_price):
+def _chart_break_gate(ticker, entry_price, entry_type=None):
     """No Break, No Trade. Returns (verdict, reason, level, source) and NEVER raises (fail-safe →
-    a gate bug must never crash the trade path). verdict ∈ {'allow','block','skip'}."""
+    a gate bug must never crash the trade path). verdict ∈ {'allow','block','skip'}.
+
+    READ-STALENESS (7/21 Cartographer, task #77 part 1): a map whose targets are EXHAUSTED must
+    stop issuing verdicts — CPHI's 8:50 map (break 1.07) issued 16 meaningless ALLOWs at $5–14.60.
+    For LEGACY breakout machines only: price beyond the read's LAST target → skip 'read_exhausted'
+    (doubles as the re-read request marker for the reader). Curl-entry machines (rocket_catcher /
+    vwap_reclaim / zone_flip) are EXEMPT — they trade live structure, not the stale level, and the
+    CPHI dip-buy at $5+ must not be blocked by a $1 map. Classifier replayed on all 96 priced 7/21
+    gate rows: flips exactly the 19 stale allows (all ma_pullback), touches none of the day's trades."""
+    _STALE_EXEMPT = ("rocket_catcher", "vwap_reclaim", "zone_flip")
     try:
         lv = (_fetch_kev_levels() or {}).get(ticker) or {}
         note = str(lv.get("note") or "").lower()
@@ -2191,6 +2200,14 @@ def _chart_break_gate(ticker, entry_price):
             brk = 0.0
         if brk <= 0:
             return ("skip", "no_marked_level", None, "none")                 # no read → no trade
+        if entry_type not in _STALE_EXEMPT:
+            try:
+                _tgts = lv.get("targets") or []
+                _lastT = float(_tgts[-1]) if _tgts else 0.0
+            except (TypeError, ValueError, IndexError):
+                _lastT = 0.0
+            if _lastT > 0 and float(entry_price) > _lastT:
+                return ("skip", "read_exhausted", brk, "sheet")              # map spent → re-read needed
         if float(entry_price) >= brk:
             return ("allow", "broke_level", brk, "sheet")                    # price broke the mark
         return ("block", "no_break_below_level", brk, "sheet")               # entered under the mark
@@ -6584,7 +6601,7 @@ def main():
             # ── LAYER 2: "No Break, No Trade" chart-level gate — SHADOW unless CHART_GATE_ENFORCE=1 ──
             # Logs the verdict beside EVERY trade so we can validate against real tape before enforcing.
             # Default = shadow: records only, changes nothing. Enforce = block non-'allow' entries.
-            _cg_verdict, _cg_reason, _cg_level, _cg_src = _chart_break_gate(ticker, entry_price)
+            _cg_verdict, _cg_reason, _cg_level, _cg_src = _chart_break_gate(ticker, entry_price, entry_type)
             _log_decision(ticker, "chart_gate_" + _cg_verdict,
                           entry=round(float(entry_price), 4), break_level=_cg_level,
                           reason=_cg_reason, src=_cg_src, entry_type=entry_type,

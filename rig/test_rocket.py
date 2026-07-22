@@ -48,6 +48,10 @@ check("T16 vel5 floor: hard gate on legacy machines, curl-machines exempt, fails
       "vel5_reject" in SRC and '"ignition", "flat_top", "ma_pullback", "orb", "ema_bounce"' in SRC
       and "_v5 is not None and _v5 < 0" in SRC)
 
+check("T17 read-staleness: EXHAUSTED skip on legacy, curl machines exempt, entry_type threaded",
+      "read_exhausted" in SRC and '_STALE_EXEMPT = ("rocket_catcher", "vwap_reclaim", "zone_flip")' in SRC
+      and "_chart_break_gate(ticker, entry_price, entry_type)" in SRC)
+
 check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",
       "_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap" in SRC
       and "if _sv and _tick_vwap_ok(_sv, vwap, price):\n                    _day_k" not in SRC)

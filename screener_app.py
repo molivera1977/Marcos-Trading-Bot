@@ -1800,7 +1800,12 @@ def tale_of_the_ticker(ticker):
             "</style>" + THEME_SNIPPET + "</head><body>"
             "<div class='top'><a href='/'>← scanner</a> &nbsp;·&nbsp; " + date + " &nbsp;·&nbsp; auto-refreshes 60s</div>"
             "<h1>📜 Tale of " + tk + "</h1>"
-            "<div class='gate'>" + gate_line + "</div>"
+            + (("<div class='top' style='margin:2px 0 8px'>🗺️ map v" + str(d.get("read_version"))
+                + " · re-read " + str(d.get("read_at") or "?") + " (" + str(d.get("trigger") or "?") + ")"
+                + ((" · prior break " + fmt((d.get("history") or [{}])[-1].get("break")))
+                   if (d.get("history") or [{}])[-1].get("break") else "")
+                + "</div>") if d.get("read_version") and int(d.get("read_version") or 1) >= 2 else "")
+            + "<div class='gate'>" + gate_line + "</div>"
             "<h3>The chart report — what the bot is watching</h3>"
             + ("<table>" + rows + "</table>" if rows else "<div class='note'>No read stored for " + tk + " on " + date +
                ". Newcomers are read within ~2 minutes of joining the scanner (8:50 ET onward).</div>")

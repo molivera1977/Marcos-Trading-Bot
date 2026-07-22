@@ -522,10 +522,33 @@ def persist(reason="periodic"):
                 _vw_shipped.update(marks[1])
         log(f"persist({reason}): {len(pl['series'])} series → {r.status_code}")
         _completeness_report()               # 7/20 canary: feed health logged with every persist window
+        _coverage_report()                   # 7/22 F3-acceptance canary: are the TOP MOVERS captured?
         return ok
     except Exception as e:
         log(f"persist failed: {e}")
         return False
+
+_cov_last = [0.0]
+def _coverage_report():
+    """7/22 F3-ACCEPTANCE canary (#68): the conservation canary grades only SUBSCRIBED names — the
+    7/21 lesson was that the day's #1 mover (VIVK) hid from it by never being stably subscribed.
+    This one asks the question F3 exists to answer: of the LIVE top-10 movers, how many are we
+    actually capturing? Logs the missing names so an EOD acceptance is a column read, not forensics.
+    Acceptance bar: >=9/10 sustained through RTH, the #1 never missing."""
+    try:
+        if time.time() - _cov_last[0] < 300:
+            return
+        _cov_last[0] = time.time()
+        mv = scan_movers()[:10]
+        if not mv:
+            return
+        missing = [t for t in mv if t not in _subscribed]
+        n1 = mv[0]
+        log(f"F3-coverage: {10 - len(missing)}/10 top movers subscribed"
+            + (f" — MISSING {missing}" if missing else "")
+            + (f" | #1 {n1} {'IN' if n1 not in missing else 'MISSING ⚠️'}"))
+    except Exception as e:
+        log(f"F3-coverage error: {e}")
 
 _comp_last = [0.0]
 def _completeness_report():

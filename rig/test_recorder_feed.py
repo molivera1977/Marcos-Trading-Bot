@@ -93,6 +93,11 @@ src = open(HERE.parent / "recorder.py").read()
 check("T9 hot-mover lockout breaker wired in rescan (cooldown 600s)",
       "HOT MOVER LOCKED OUT" in src and "hot_mover_flush" in src and ">= 600" in src)
 
+# T10: F3-acceptance coverage canary wired (source pins)
+src2 = open(HERE.parent / "recorder.py").read()
+check("T10 F3-coverage canary: wired into persist + asks top-movers-vs-subscribed",
+      "_coverage_report()" in src2 and "F3-coverage:" in src2 and "scan_movers()[:10]" in src2)
+
 print()
 print(f"{len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

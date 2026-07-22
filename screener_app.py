@@ -2202,7 +2202,9 @@ a.watch-chip:hover{filter:brightness(1.25)}
     <div class="param-grid">
       <div class="param-pill"><span>Qualify</span><strong>price &lt;$20 · float &lt;20M · gap÷float rank · volume-ignition (2× RVOL, flat OK)</strong></div>
       <div class="param-pill"><span>Setup TF</span><strong>3-min chart — setups AND trade management</strong></div>
-      <div class="param-pill"><span>Entries</span><strong>MA-pullback 9/20/50/90 (core) · flat-top · ORB · VWAP-reclaim · bounce (observe)</strong></div>
+      <div class="param-pill"><span>Entries</span><strong>ignition (1-min) · flat-top · ORB · MA-pullback · VWAP-reclaim 3-gate (10s) · zone-flip (10s) · 🚀 ROCKET CATCHER (vel ≥25%/5min → 20-EMA pullback → curl, cap 3/day)</strong></div>
+      <div class="param-pill"><span>Chart Gate</span><strong>ENFORCE — no break of the vision read's level, no trade · exhausted maps auto RE-READ intraday (v2+ maps)</strong></div>
+      <div class="param-pill"><span>Vel5 Floor</span><strong>no legacy breakout entry on NEGATIVE 5-min velocity (knife-catch guard) · curl machines exempt</strong></div>
       <div class="param-pill"><span>Base</span><strong>≤12% chase-guard (room:risk is the real filter)</strong></div>
       <div class="param-pill"><span>Daily-first</span><strong>above daily 20/50 MA + has room, else no trade</strong></div>
       <div class="param-pill"><span>Room gate</span><strong>≥2:1 to next DAILY significant level</strong></div>
@@ -2210,10 +2212,10 @@ a.watch-chip:hover{filter:brightness(1.25)}
       <div class="param-pill"><span>Front-side</span><strong>9&gt;20 EMA — gated on pullback, observed on breakout</strong></div>
       <div class="param-pill"><span>Momentum</span><strong>HARD gate — building vol + ≥30% of peak · reversal setups exempt · topping-tail = hard skip</strong></div>
       <div class="param-pill"><span>Stop</span><strong>structural at the level (base/OR/MA low) · NO −7% · managed on the 3-min close</strong></div>
-      <div class="param-pill"><span>Exits</span><strong>on the 3-MIN CLOSE — 50%@1R→BE · trail prev-3-min-bar low · topping-tail full exit · sub-min cuts OFF</strong></div>
+      <div class="param-pill"><span>Exits</span><strong>kev25 on the 3-MIN CLOSE — 50%@+1R→BE · 25%@+2R · runner health-trail (VWAP/9-EMA) · 3:45 time stop · rockets: ⅓@+50% · ⅓@+100% · runner trails</strong></div>
       <div class="param-pill"><span>Re-entry</span><strong>after exit → re-gated · topping-tail / consec-loss give-up</strong></div>
       <div class="param-pill"><span>Entry Cutoff</span><strong>3:30pm ET</strong></div>
-      <div class="param-pill"><span>L1 book · 90 EMA · vol-trajectory</span><strong>logged (study)</strong></div>
+      <div class="param-pill"><span>Quality logs</span><strong>entry_vel5 · read-confidence · L1 book · vol-trajectory — logged (study)</strong></div>
     </div>
   </div>
   <div class="panel-card">

@@ -565,17 +565,34 @@ def reread_one(ticker, trigger):
         print(f"[reread] {ticker} failed: {e}", flush=True)
         return False
 
+def _get_retry(path, timeout=20, tries=3):
+    """#84 (7/22): per-call retry with backoff — a single dashboard 503 must not kill a probe."""
+    for i in range(tries):
+        try:
+            return _get(path, timeout=timeout)
+        except Exception:
+            if i == tries - 1: raise
+            time.sleep(2 + 3 * i)
+    return {}
+
+
 def reread_check():
-    """Called each trickle cycle. Finds exhausted maps + bot markers; fires capped re-reads."""
+    """Called each trickle cycle. Finds exhausted maps + bot markers; fires capped re-reads.
+
+    #84 (7/22): SECTION-ISOLATED. The single try/except aborted the WHOLE cycle when the heavy
+    marker query 503'd — killing already-collected passive candidates before they fired (ADVB
+    past-map since morning, 4 markers logged, ZERO v2 maps all day; 8 consecutive 503 cycles).
+    Now: passive and marker sections fail independently; the marker pull is limit=1500 (was 8000
+    — the query that was 503ing our own dashboard); every GET retries with backoff."""
+    now = dt.datetime.now(ET)
+    if now.strftime("%H:%M") >= REREAD_CUTOFF_HHMM: return
+    if _rr_state["count"] >= REREAD_DAILY_CAP: return
+    if time.time() - _rr_state["last_probe"] < 240: return       # probe every ~4 min
+    _rr_state["last_probe"] = time.time()
+    want = []
+    # (a) passive: live price beyond the current map's last target — CHEAP, fires first
     try:
-        now = dt.datetime.now(ET)
-        if now.strftime("%H:%M") >= REREAD_CUTOFF_HHMM: return
-        if _rr_state["count"] >= REREAD_DAILY_CAP: return
-        if time.time() - _rr_state["last_probe"] < 240: return       # probe every ~4 min
-        _rr_state["last_probe"] = time.time()
-        lv = _get(f"{U}/api/kev_watchlist?date={DAY}").get("levels") or {}
-        want = []
-        # (a) passive: live price beyond the current map's last target
+        lv = _get_retry(f"{U}/api/kev_watchlist?date={DAY}").get("levels") or {}
         for tk, rec in lv.items():
             if not isinstance(rec, dict): continue
             if _rr_state["per_name"].get(tk, 0) >= REREAD_MAX_PER_NAME: continue
@@ -583,15 +600,21 @@ def reread_check():
             try: lastT = float(tg[-1]) if tg else 0.0
             except (TypeError, ValueError): lastT = 0.0
             if lastT <= 0: continue
-            rows = _get(f"{U}/api/minute_ext?ticker={_q(tk)}&count=8", timeout=20).get("bars") or []
+            try:
+                rows = _get_retry(f"{U}/api/minute_ext?ticker={_q(tk)}&count=8").get("bars") or []
+            except Exception:
+                continue                    # one name's bars failing must not kill the sweep
             px = 0.0
             for r in rows:
                 if str(r.get("time","")).startswith(DAY) and r.get("session")=="RTH":
                     px = float(r.get("close") or 0)
             if px > lastT:
                 want.append((tk, "past_map"))
-        # (b) bot markers: rocket arms + entry-attempt exhaustion
-        rows = _get(f"{U}/api/decisions_archive?date={DAY}&limit=8000").get("rows") or []
+    except Exception as e:
+        print(f"[reread] passive-section error (markers still run): {e}", flush=True)
+    # (b) bot markers: rocket arms + entry-attempt exhaustion — heavier, isolated
+    try:
+        rows = _get_retry(f"{U}/api/decisions_archive?date={DAY}&limit=1500").get("rows") or []
         for r in rows:
             st = r.get("status")
             if st in ("rocket_armed", "read_exhausted_observed"):
@@ -601,6 +624,10 @@ def reread_check():
                 tk = (r.get("ticker") or "").upper()
                 if _rr_state["per_name"].get(tk, 0) < REREAD_MAX_PER_NAME:
                     want.append((tk, st))
+    except Exception as e:
+        print(f"[reread] marker-section error (passive candidates still fire): {e}", flush=True)
+    # (c) fire — its own guard so a render/post failure can't mark the probe dead
+    try:
         done = set()
         for tk, trig in want:
             if tk in done or _rr_state["count"] >= REREAD_DAILY_CAP: continue
@@ -609,7 +636,7 @@ def reread_check():
                 _rr_state["count"] += 1
                 _rr_state["per_name"][tk] = _rr_state["per_name"].get(tk, 0) + 1
     except Exception as e:
-        print(f"[reread] check error: {e}", flush=True)
+        print(f"[reread] fire error: {e}", flush=True)
 
 def main():
     once = "--once" in sys.argv

@@ -3682,6 +3682,21 @@ def detect_rocket(session_bars, price):
         return None
 
 
+def _recent_low_dip(bars_, level, n=3):
+    """Wick-aware dip detection (7/22 #73 kill-test + hand-trace): the polled-price check misses
+    one-bar WICK touches between scan cycles — DFNS 7/21 wicked its OR-high (4.50) and GMM 7/20
+    dipped to 2.60 one bar after breaking, while dipped stayed False all day and both timed out.
+    Checks the last n COMPLETED 1m bar lows against the level. Kill-test (orb_anchor_killtest.py,
+    156 name-days): bar-low dip + confirm-curl = +0.51R mean, 58% win; movers>=40% = +1.09R
+    (GMM +1.27, DFNS +1.11). Trailing-anchor variant REFUTED (worse: +0.38R, adds faders)."""
+    try:
+        _s = _latest_session(bars_)
+        lows = [_bar_low(b) for b in _s[-1 - n:-1] if _bar_low(b) > 0]
+        return any(lo <= level * (1 + PULLBACK_TOL) for lo in lows)
+    except Exception:
+        return False
+
+
 def detect_ignition(session_bars, price):
     """IGNITION entry (7/4) — the fast-vertical catch. Reverse-engineered from the 8 fast verticals
     (ZCMD/JEM/AZI/CCTG, 6/29–7/2). Shape = QUIET early base (low vol, choppy, often BELOW VWAP) → a
@@ -4593,8 +4608,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             cache[t]["pb"] = None                       # stale — let a fresh break re-arm
                             _log_decision(t, "pullback_timeout", price=price, level=_pb["level"])
                         else:
-                            if price <= _pb["level"] * (1 + PULLBACK_TOL):
-                                _pb["dipped"] = True                    # pulled back to the level
+                            if price <= _pb["level"] * (1 + PULLBACK_TOL) or _recent_low_dip(cache[t].get("full_bars") or bars, _pb["level"]):
+                                _pb["dipped"] = True                    # pulled back to the level (wick-aware, #73)
                             if (_pb["dipped"] and price > _pb["level"]
                                     and _confirm_reclaim(cache[t].get("full_bars") or bars, _pb["level"])):
                                 _pb_enter = True                        # reclaimed + CONFIRMED = Kev's entry
@@ -4699,8 +4714,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             cache[t]["pb_orb"] = None
                             _log_decision(t, "orb_pullback_timeout", price=price, level=_po["level"])
                         else:
-                            if price <= _po["level"] * (1 + PULLBACK_TOL):
-                                _po["dipped"] = True
+                            if price <= _po["level"] * (1 + PULLBACK_TOL) or _recent_low_dip(cache[t].get("full_bars") or bars, _po["level"]):
+                                _po["dipped"] = True                    # wick-aware (#73)
                             if (_po["dipped"] and price > _po["level"]
                                     and _confirm_reclaim(cache[t].get("full_bars") or bars, _po["level"])):
                                 _oenter = True

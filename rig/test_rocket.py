@@ -52,6 +52,9 @@ check("T17 read-staleness: OBSERVE-ONLY (hard skip REFUTED by 7/20 killtest: wou
       "read_exhausted_observed" in SRC and 'return ("skip", "read_exhausted"' not in SRC
       and "_chart_break_gate(ticker, entry_price, entry_type)" in SRC)
 
+check("T18 wick-aware dip (#73): helper exists + wired at BOTH parallel sites (flat-top + ORB)",
+      "_recent_low_dip" in SRC and SRC.count("_recent_low_dip(cache[t]") == 2)
+
 check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",
       "_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap" in SRC
       and "if _sv and _tick_vwap_ok(_sv, vwap, price):\n                    _day_k" not in SRC)

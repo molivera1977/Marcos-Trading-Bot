@@ -98,6 +98,15 @@ src2 = open(HERE.parent / "recorder.py").read()
 check("T10 F3-coverage canary: wired into persist + asks top-movers-vs-subscribed",
       "_coverage_report()" in src2 and "F3-coverage:" in src2 and "scan_movers()[:10]" in src2)
 
+# T11: #68 reserve-first reseed (7/22): the 9:15 downshift reconnect must take the RTH branch
+# (boundary was 9:30 → premarket branch, no reserve, no movers scan = the day-1 canary catch),
+# and ranked movers must subscribe BEFORE carryover so order decides seats under the cap.
+src3 = open(HERE.parent / "recorder.py").read()
+check("T11 #68 reseed: boundary (9,15) matches downshift + movers subscribe BEFORE carryover slice",
+      "(9, 15) <= (_n0.hour, _n0.minute)" in src3
+      and src3.index("subscribe(scan_movers()[:RESERVE_LIVE])")
+          < src3.index("_seed = _seed[:max(0, RTH_SUB_CAP - RESERVE_LIVE)]"))
+
 print()
 print(f"{len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

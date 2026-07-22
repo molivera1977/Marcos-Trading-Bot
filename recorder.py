@@ -665,12 +665,17 @@ def run_session():
     # (ZYBT 7/20: day's biggest move, 7% captured, never won a slot).
     _seed = carryover_seed()
     _n0 = et_now()
-    _rth0 = _n0.weekday() < 5 and (9, 30) <= (_n0.hour, _n0.minute) < (16, 0)
+    # #68 FIX (7/22): boundary was (9,30) while the controlled downshift fires at (9,15) — so the
+    # 9:15-9:29 reconnect took the PREMARKET branch (all-carryover, NO reserve, NO movers scan) and
+    # the day's board leaders (#1 LABT + INM/ZCMD/CRIS) never got seats. F3 canary caught it day-1:
+    # 10/10 premarket -> 3/10 at 9:31. Reseed boundary now matches the downshift boundary, AND the
+    # ranked movers subscribe FIRST (reserve-first): under the cap, order decides who keeps a seat.
+    _rth0 = _n0.weekday() < 5 and (9, 15) <= (_n0.hour, _n0.minute) < (16, 0)
     if _rth0:
-        _seed = _seed[:max(0, RTH_SUB_CAP - RESERVE_LIVE)]
-        subscribe(_seed)
-        try: subscribe(scan_movers())     # ranked: hottest movers take the reserve immediately
+        try: subscribe(scan_movers()[:RESERVE_LIVE])   # RESERVE FIRST — top movers guaranteed seats
         except Exception as e: log(f"reserve-fill scan err: {e}")
+        _seed = _seed[:max(0, RTH_SUB_CAP - RESERVE_LIVE)]
+        subscribe(_seed)                  # carryover fills the remaining slots
     else:
         subscribe(_seed)                  # premarket: wide cap, unchanged
     last_scan = last_persist = last_snap = last_flight = 0.0

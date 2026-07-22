@@ -962,6 +962,16 @@ def record_trade():
         "entry_ema20":        data.get("entry_ema20"),
         "recorded_at":   datetime.now(EASTERN).isoformat(),
         }
+        # ── WHITELIST-STRIP CLASS KILLER (7/22, 3rd occurrence of this bug family): the explicit
+        # dict above silently DROPPED any field the bot added later — entry_vel5 (shipped 7/21)
+        # and day_gain_at_entry (shipped 7/22) posted on every trade and never landed once (all
+        # None on 7/22's six records while the decision rows carried the values). Same disease as
+        # the #77 post_level ledger stripping. Unknown keys now pass through; the typed/rounded
+        # known fields above keep precedence via setdefault. Payload source is our own bot behind
+        # the dashboard secret — pass-through is safe here.
+        for _k, _v in (data or {}).items():
+            if _k != "account_balance":
+                trade.setdefault(_k, _v)
         _trades.append(trade)
         if data.get("account_balance"):
             _account["balance"] = round(float(data["account_balance"]), 2)

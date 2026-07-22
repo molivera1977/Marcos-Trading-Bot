@@ -55,6 +55,23 @@ check("T17 read-staleness: OBSERVE-ONLY (hard skip REFUTED by 7/20 killtest: wou
 check("T18 wick-aware dip (#73): helper exists + wired at BOTH parallel sites (flat-top + ORB)",
       "_recent_low_dip" in SRC and SRC.count("_recent_low_dip(cache[t]") == 2)
 
+check("T19 day-gain floor config: T=30 default, legacy-machine scope exact, env kill-switch",
+      bot.DAYGAIN_FLOOR_PCT == 30.0
+      and bot.DAYGAIN_LEGACY == ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
+      and 'os.environ.get("DAYGAIN_FLOOR"' in SRC and "if DAYGAIN_FLOOR_PCT > 0:" in SRC)
+check("T19b floor wired: reject row + threshold compare + KEV-SHEET exemption call",
+      "daygain_reject" in SRC and "_dg < DAYGAIN_FLOOR_PCT" in SRC
+      and "not _kev_sheet_name(b[0])" in SRC)
+check("T19c exemptions structural: curl lanes NOT in the legacy scope",
+      "rocket_catcher" not in bot.DAYGAIN_LEGACY and "vwap_reclaim" not in bot.DAYGAIN_LEGACY
+      and "zone_flip" not in bot.DAYGAIN_LEGACY and "bounce" not in bot.DAYGAIN_LEGACY)
+check("T19d stamped on each decision: candidate extra + chart-gate row + vel5-reject row + trade record",
+      '"day_gain"' in SRC and SRC.count('day_gain=b[4].get("day_gain")') >= 1
+      and 'day_gain=extra.get("day_gain")' in SRC and '"day_gain_at_entry"' in SRC
+      and '"prior_day_close"' in SRC)
+check("T19e sheet-exemption helper: vision reads NOT exempt, fail-closed",
+      'lv.get("src") or "") != "vision"' in SRC and "def _kev_sheet_name" in SRC)
+
 check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",
       "_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap" in SRC
       and "if _sv and _tick_vwap_ok(_sv, vwap, price):\n                    _day_k" not in SRC)

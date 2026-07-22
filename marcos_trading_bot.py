@@ -2176,6 +2176,19 @@ def _blended_pnl(entry_price, total_shares, partial_fills, exit_price):
     return (exit_price - entry_price) * total_shares
 
 
+def _kev_sheet_name(ticker):
+    """DAY-GAIN FLOOR exemption (7/22): True when today's levels carry a NON-vision (sheet/manual)
+    entry for this ticker — Kev's explicit picks trade his LEVELS and may sit flat/red at pick time
+    (OMH −34% AH was still 'over 0.65'); a homegrown filter must never override the Bible.
+    Fail-closed (floor applies) — if the levels fetch is down, the ENFORCE chart gate blocks the
+    entry anyway (no_marked_level), so this can't strand a Kev entry."""
+    try:
+        lv = (_fetch_kev_levels() or {}).get(ticker) or {}
+        return bool(lv) and str(lv.get("src") or "") != "vision"
+    except Exception:
+        return False
+
+
 def _chart_break_gate(ticker, entry_price, entry_type=None):
     """No Break, No Trade. Returns (verdict, reason, level, source) and NEVER raises (fail-safe →
     a gate bug must never crash the trade path). verdict ∈ {'allow','block','skip'}.
@@ -3261,9 +3274,11 @@ def get_daily_levels(ticker):
         _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
         _prior = [b for b in bars if b["t"] and b["t"] < _today]
         _pdh = _prior[-1]["h"] if _prior else (bars[-2]["h"] if len(bars) >= 2 else None)
+        _pdc = _prior[-1]["c"] if _prior else (bars[-2]["c"] if len(bars) >= 2 else None)
         return {"m20": _sma(20), "m50": _sma(50), "m200": _sma(200),
                 "reaction_highs": reaction,
-                "prior_day_high": _pdh}
+                "prior_day_high": _pdh,
+                "prior_day_close": _pdc}   # DAY-GAIN FLOOR reference (7/22): gain vs last completed day
     except Exception as e:
         print(f"⚠️  daily-levels error {ticker}: {e} — failing open (room gate degraded for this name)")
         return None
@@ -3655,6 +3670,16 @@ def detect_vwap_reclaim(completed, price, vwap):
 #    is EXEMPT from the extension guard by design (it deliberately catches extension); NO blanket
 #    gate-inversion for the legacy machines. See [[project_rocket_catcher_package.md]] Fable verdict.
 ROCKET_CATCHER   = os.environ.get("ROCKET_CATCHER", "1") == "1"    # ACTIVE in DRY_RUN (Fable shadow verdict 7/21: replays+hand-trace passed; env=0 = kill-switch)
+# ── DAY-GAIN FLOOR (7/22, Marcos: "if a stock isn't jumping 30% or more, we shouldn't be wasting
+#    time" — Kev's own hunting ground is the top of the gainers board). Kill-test daygain_floor_killtest
+#    (124 matched trades): floor on LEGACY machines improves −$94.16 → +$70.79 (+$164.95), sweep-robust
+#    T∈[10,40], improvement intact ex-ZYBT. EXEMPT: curl/reversal lanes (their winners live at ugly
+#    day-gains — SOBR +$93.56 reclaim was DOWN 23% at entry) and KEV-SHEET names (his explicit levels
+#    outrank this homegrown filter — AEHL "over 1.00" must fire regardless of day-gain). T=30 is a
+#    HOMEGROWN number (Kev never quantifies) → translation registry; recalibrate from the stamped
+#    day_gain column as live n accrues. env DAYGAIN_FLOOR=0 = kill-switch. ──
+DAYGAIN_FLOOR_PCT = float(os.environ.get("DAYGAIN_FLOOR", "30"))
+DAYGAIN_LEGACY    = ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
 ROCKET_VEL_PCT   = float(os.environ.get("ROCKET_VEL_PCT", "25"))    # % over the window (Fable T=25 = 0 false-pos/95 fades)
 ROCKET_VEL_BARS  = int(os.environ.get("ROCKET_VEL_BARS", "5"))      # trailing 1-min bars = a 5-minute velocity window
 ROCKET_DAILY_CAP = int(os.environ.get("ROCKET_DAILY_CAP", "3"))     # max rocket entries/day (Fable: cap 2-3)
@@ -4934,6 +4959,19 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         b[4]["entry_vel5"] = round((_c1 - _c0) / _c0 * 100, 2)
             except Exception:
                 pass
+        # ── DAY-GAIN STAMP (7/22, Marcos: "make sure it gets stamped on each decision") — computed for
+        # EVERY breakout candidate before any gate touches it, so kept entries carry it into the chart-
+        # gate row + trade record and blocked ones carry it in their reject row. Prior close = daily-bar
+        # last completed day (cached per ticker/session). Fails open (no stamp) on missing daily data. ──
+        for b in breakouts:
+            try:
+                if "daily" not in cache.setdefault(b[0], {}):
+                    cache[b[0]]["daily"] = get_daily_levels(b[0])
+                _pdc = ((cache[b[0]].get("daily") or {}).get("prior_day_close") or 0)
+                if _pdc > 0:
+                    b[4]["day_gain"] = round((b[1] - _pdc) / _pdc * 100, 2)
+            except Exception:
+                pass
         # ── VEL5 FLOOR (7/21 kill-test, n=56 real trades 7/13-7/21): entries with NEGATIVE trailing
         # 5-min velocity ran ~30% win / −$173 total; >=0 ran +$60. Natural sign boundary (tape falling
         # = knife-catch, Kev waits for the curl), sweep-robust F∈[0,1]. HARD gate on legacy BREAKOUT
@@ -4944,11 +4982,29 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             _v5 = b[4].get("entry_vel5")
             if (b[3] in ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
                     and _v5 is not None and _v5 < 0):
-                _log_decision(b[0], "vel5_reject", price=b[1], entry_vel5=_v5, machine=b[3])
+                _log_decision(b[0], "vel5_reject", price=b[1], entry_vel5=_v5, machine=b[3],
+                              day_gain=b[4].get("day_gain"))
                 print(f"   ⛔ VEL5 FLOOR blocked {b[0]} {b[3]} entry (vel5 {_v5:+.1f}% < 0 — falling tape)")
             else:
                 _kept_v.append(b)
         breakouts = _kept_v
+        # ── DAY-GAIN FLOOR (7/22 kill-test: +$164.95 on 124 matched trades, sweep-robust, intact
+        # ex-ZYBT): LEGACY machines only trade names actually MOVING today (Kev hunts the board's
+        # leaders — SKYQ-class +8-24% grinders were the bleed). Curl lanes + Kev-sheet names exempt;
+        # fails open when day_gain unmeasured. ──
+        if DAYGAIN_FLOOR_PCT > 0:
+            _kept_g = []
+            for b in breakouts:
+                _dg = b[4].get("day_gain")
+                if (b[3] in DAYGAIN_LEGACY and _dg is not None and _dg < DAYGAIN_FLOOR_PCT
+                        and not _kev_sheet_name(b[0])):
+                    _log_decision(b[0], "daygain_reject", price=b[1], day_gain=_dg,
+                                  machine=b[3], floor=DAYGAIN_FLOOR_PCT)
+                    print(f"   ⛔ DAY-GAIN FLOOR blocked {b[0]} {b[3]} (day gain {_dg:+.1f}% < "
+                          f"{DAYGAIN_FLOOR_PCT:.0f}% — not a board leader)")
+                else:
+                    _kept_g.append(b)
+            breakouts = _kept_g
         if EXTENSION_MAX_PCT and EXTENSION_MAX_PCT < 9:
             _kept = []
             for b in breakouts:
@@ -6628,7 +6684,7 @@ def main():
             _log_decision(ticker, "chart_gate_" + _cg_verdict,
                           entry=round(float(entry_price), 4), break_level=_cg_level,
                           reason=_cg_reason, src=_cg_src, entry_type=entry_type,
-                          enforced=CHART_GATE_ENFORCE)
+                          enforced=CHART_GATE_ENFORCE, day_gain=extra.get("day_gain"))
             print(f"   📐 CHART-GATE [{'ENFORCE' if CHART_GATE_ENFORCE else 'SHADOW'}] {ticker}: "
                   f"{_cg_verdict.upper()} ({_cg_reason}) — entry ${float(entry_price):.4f} vs level "
                   f"{('$%.4f' % _cg_level) if _cg_level else 'none'}")
@@ -6947,6 +7003,7 @@ def main():
                 "entry_l1_spread":    l2_details.get("spread"),
                 # Room to next supply at entry (Kev's master filter — taken trades should be ≥2:1)
                 "entry_vel5":         extra.get("entry_vel5"),   # trailing 5-min velocity at entry (LOG-ONLY candidate gate)
+                "day_gain_at_entry":  extra.get("day_gain"),     # DAY-GAIN FLOOR column (7/22): % vs prior close at entry
                 "entry_room_rr":      (extra.get("room") or {}).get("rr_to_supply"),
                 "entry_room_pct":     (extra.get("room") or {}).get("room_pct"),
                 "entry_next_supply":  (extra.get("room") or {}).get("next_supply"),

@@ -4300,33 +4300,50 @@ RECORDER_VWAP_STALE_SECS = 240   # recorder snapshots 60s + persists 90s → typ
                                  # 240 tolerates one missed persist. Older = recorder gap → bar line
                                  # holds (B17 doctrine). Live-tested 7/16: 196s-old point at 300s
                                  # persist cadence was correctly rejected — hence the cadence fix.
+# ── #87 ALP-PRIMARY (7/22, Marcos: "We already know the issues of Webull. We have been hurt by the
+# issues of Webull... throw Alpaca into the deep end."): the tick-VWAP line prefers the Alpaca SIP
+# capture (~ALPVWAP: exact trade-weighted, premarket-anchored, no counter math — the F1 leak class
+# can't exist there) and falls back to the Webull recorder (~vwap), then to the callers' bar line.
+# Same point format, same staleness gate, same _tick_vwap_ok sanity clamps on whichever wins.
+# DATA_PRIMARY=webull is the one-env instant revert.
+DATA_PRIMARY = os.environ.get("DATA_PRIMARY", "alpaca").strip().lower()
+_TICKVWAP_SUFFIXES = ("~ALPVWAP", "~vwap") if DATA_PRIMARY != "webull" else ("~vwap", "~ALPVWAP")
 _tick_vwap_cache: dict = {}      # ticker -> (fetched_epoch, value_or_None)
 
+def _fetch_series_last_vwap(series_name, now):
+    """Newest fresh point of one dashboard series (value in 'close'), else None."""
+    try:
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        if not url:
+            return None
+        day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        r = requests.get(f"{url}/api/bars", params={"date": day, "ticker": series_name}, timeout=6)
+        if r.status_code == 200:
+            pts = (r.json() or {}).get("bars") or []
+            if pts:
+                last = pts[-1]
+                ts = datetime.strptime(str(last.get("time", ""))[:19],
+                                       "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc).timestamp()
+                if now - ts <= RECORDER_VWAP_STALE_SECS:
+                    v = float(last.get("close") or 0)
+                    return v if v > 0 else None
+    except Exception:
+        pass
+    return None
+
 def _recorder_tick_vwap(ticker):
-    """Latest tick-VWAP for ticker from the recorder's ~vwap series in the dashboard store.
-    The value lives in the point's 'close' field (recorder build_payload). Returns None when the
-    series is missing or the newest point is stale — callers hold the bar line (no behavior change)."""
+    """Latest tick-VWAP for ticker — vendors tried in DATA_PRIMARY preference order (#87:
+    ~ALPVWAP first by default, Webull ~vwap fallback). Returns None when both are missing or
+    stale — callers hold the bar line (no behavior change)."""
     now = time.time()
     c = _tick_vwap_cache.get(ticker)
     if c and now - c[0] < 45:
         return c[1]
     val = None
-    try:
-        url = os.environ.get("SCREENER_URL", "").rstrip("/")
-        if url:
-            day = datetime.now(EASTERN).strftime("%Y-%m-%d")
-            r = requests.get(f"{url}/api/bars", params={"date": day, "ticker": f"{ticker}~vwap"}, timeout=6)
-            if r.status_code == 200:
-                pts = (r.json() or {}).get("bars") or []
-                if pts:
-                    last = pts[-1]
-                    ts = datetime.strptime(str(last.get("time", ""))[:19],
-                                           "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc).timestamp()
-                    if now - ts <= RECORDER_VWAP_STALE_SECS:
-                        v = float(last.get("close") or 0)
-                        val = v if v > 0 else None
-    except Exception:
-        val = None
+    for _sfx in _TICKVWAP_SUFFIXES:
+        val = _fetch_series_last_vwap(f"{ticker}{_sfx}", now)
+        if val:
+            break
     _tick_vwap_cache[ticker] = (now, val)
     return val
 

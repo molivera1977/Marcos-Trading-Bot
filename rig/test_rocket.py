@@ -87,6 +87,15 @@ check("T21 #86 ghost-session: INVALID_SESSION → un-attempt names + background 
       and "_last_reconnect < 300" in SRC and 'INVALID_SESSION" in str(e) or "417"' in SRC
       and "target=self._reconnect" in SRC and "daemon=True" in SRC)
 
+check("T22 #87 ALP-primary chain: default alpaca (~ALPVWAP first, ~vwap fallback), DATA_PRIMARY=webull reverts",
+      bot.DATA_PRIMARY == "alpaca" and bot._TICKVWAP_SUFFIXES == ("~ALPVWAP", "~vwap")
+      and '("~vwap", "~ALPVWAP") if DATA_PRIMARY != "webull"' not in SRC   # order must be ALP-first on default
+      and 'os.environ.get("DATA_PRIMARY", "alpaca")' in SRC
+      and 'if DATA_PRIMARY != "webull" else ("~vwap", "~ALPVWAP")' in SRC)
+check("T22b #87 sanity clamps unchanged: _tick_vwap_ok still gates BOTH call sites, bar line last resort",
+      SRC.count("_tick_vwap_ok(") >= 3 and "def _fetch_series_last_vwap" in SRC
+      and "for _sfx in _TICKVWAP_SUFFIXES" in SRC)
+
 check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",
       "_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap" in SRC
       and "if _sv and _tick_vwap_ok(_sv, vwap, price):\n                    _day_k" not in SRC)

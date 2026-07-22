@@ -17,6 +17,7 @@ coverage hole (confounded); late first_bar = late subscribe. Character is DATA u
 ### AEHL
 - 2026-07-21 tape: o→h +12.5%, giveback 145.5%, vel5 5.9%, missing 297m, first bar 13:30Z, close 0.6456, vol 285,871
 - 2026-07-21 KEV/NOTE [kev-sheet-7/22]: Kev 7/22 pick: over 1.39 + VWAP 1.20 -> 2.00/3.00
+- 2026-07-22 KEV/NOTE [kev-short-VEQdAW1Bp5E]: Kev 7/22 AM: 'granddaddy China squeezer — when Chinese stocks run, this one finds a way to run'; stage-1 over 1.00 (confirm 0.93->1.17), main plan break 1.39
 
 ### AGPU
 - 2026-07-20 tape: o→h +29.3%, giveback 14.2%, vel5 5.6%, missing 160m, first bar 13:30Z, close 8.71, vol 803,469
@@ -419,6 +420,7 @@ coverage hole (confounded); late first_bar = late subscribe. Character is DATA u
 
 ### OMH
 - 2026-07-21 KEV/NOTE [kev-sheet-7/22]: Kev 7/22 pick: over 0.70 (HL 0.60 -> 0.90/1.20), stage-2 over 1.21 -> 2.00; scanner 7/21 eve: +222.7% day but -34.6% AH on 21.3M float
+- 2026-07-22 KEV/NOTE [kev-short-VEQdAW1Bp5E]: Kev 7/22 AM: plan intact but levels lowered — break 0.65 (prev high), dips confirm 0.55+VWAP, range to 1.00-1.20
 
 ### ONCO
 - 2026-07-20 tape: o→h +33.6%, giveback 3.9%, vel5 12.4%, missing 277m, first bar 13:37Z, close 1.0, vol 659,336
@@ -498,6 +500,7 @@ coverage hole (confounded); late first_bar = late subscribe. Character is DATA u
 ### SLGB
 - 2026-07-21 tape: o→h +18.7%, giveback 133.4%, vel5 16.3%, missing 4m, first bar 13:30Z, close 0.9799, vol 80,747,744
 - 2026-07-21 KEV/NOTE [kev-sheet-7/22]: Kev 7/22 pick: over 1.20 (HL 1.05 -> 1.50/2.00/2.40); 3.0M float
+- 2026-07-22 KEV/NOTE [kev-short-VEQdAW1Bp5E]: Kev 7/22 AM: 'did look great... it's broken down. Take it off your list' — pick pulled after overnight breakdown
 
 ### SLND
 - 2026-07-17 TRADE ignition: 1.1→0.93 -48.07 (-1.61R) [Stop loss 🛑]

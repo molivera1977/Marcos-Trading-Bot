@@ -1,0 +1,10 @@
+pairs analyzed 195, skipped 295 (thin RTH or no PM tape) — days ['2026-07-14', '2026-07-15', '2026-07-16', '2026-07-17']
+cohort                                          n mean fwd30%   median  win%
+above_both                                   4864      +0.720   +0.358  56.9
+IN_BAND (PM says front, RTH says back)        133      +1.161   +0.805  60.9
+inv_band (PM back, RTH front)                 334      +0.582   +0.342  53.0
+below_both                                   4062      +0.590   +0.366  54.1
+
+READ: if IN_BAND mean/median tracks above_both -> premarket anchor correct in the fight zone
+(doctrine holds); if it tracks below_both -> RTH anchor wins and doctrine needs revisit.
+inv_band (price above RTH line but below PM line) is the mirror check.

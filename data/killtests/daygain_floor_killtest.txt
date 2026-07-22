@@ -1,0 +1,50 @@
+matched 124 trades (baseline P&L -94.16); unmatched 59 (+49.93) excluded from all arms equally
+machines in matched set: ['?', 'flat_top', 'ignition', 'ma_pullback', 'vwap_reclaim']
+
+T=10%: kept 89 trades P&L +68.68 (vs baseline -94.16 → IMPROVES by +162.84)
+   blocked 35 legacy entries: -162.84 total (18 winners forfeited, +265.12)
+     forfeit WIN  CPHI   07-16 flat_top     gain   -4.9%    +49.62
+     forfeit WIN  YYGH   07-14 ignition     gain   -8.2%    +36.22
+     forfeit WIN  EHGO   07-16 ignition     gain  -12.4%    +19.76
+     forfeit WIN  SOBR   07-14 ignition     gain   -2.3%    +17.92
+     avoid  LOSS TGHL   07-17 ignition     gain   -7.9%    -45.75
+     avoid  LOSS SOBR   07-14 ignition     gain    7.8%    -41.11
+     avoid  LOSS MGIH   07-14 ignition     gain    9.7%    -39.01
+     avoid  LOSS VRAX   07-16 ignition     gain   -8.4%    -38.34
+
+T=20%: kept 82 trades P&L +27.91 (vs baseline -94.16 → IMPROVES by +122.07)
+   blocked 42 legacy entries: -122.07 total (23 winners forfeited, +331.11)
+     forfeit WIN  CPHI   07-16 flat_top     gain   -4.9%    +49.62
+     forfeit WIN  YYGH   07-14 ignition     gain   -8.2%    +36.22
+     forfeit WIN  EHGO   07-16 ignition     gain  -12.4%    +19.76
+     forfeit WIN  SOBR   07-14 ignition     gain   -2.3%    +17.92
+     avoid  LOSS TGHL   07-17 ignition     gain   -7.9%    -45.75
+     avoid  LOSS SOBR   07-14 ignition     gain    7.8%    -41.11
+     avoid  LOSS MGIH   07-14 ignition     gain    9.7%    -39.01
+     avoid  LOSS VRAX   07-16 ignition     gain   -8.4%    -38.34
+
+T=30%: kept 76 trades P&L +70.79 (vs baseline -94.16 → IMPROVES by +164.95)
+   blocked 48 legacy entries: -164.95 total (26 winners forfeited, +404.45)
+     forfeit WIN  CPHI   07-16 flat_top     gain   -4.9%    +49.62
+     forfeit WIN  LEDS   07-17 flat_top     gain   23.2%    +46.40
+     forfeit WIN  YYGH   07-14 ignition     gain   -8.2%    +36.22
+     forfeit WIN  EHGO   07-16 ignition     gain  -12.4%    +19.76
+     avoid  LOSS TGHL   07-17 ignition     gain   -7.9%    -45.75
+     avoid  LOSS SKYQ   07-20 ignition     gain   23.9%    -41.32
+     avoid  LOSS SOBR   07-14 ignition     gain    7.8%    -41.11
+     avoid  LOSS LBGJ   07-15 ma_pullback  gain   28.8%    -40.99
+
+T=40%: kept 75 trades P&L +36.39 (vs baseline -94.16 → IMPROVES by +130.55)
+   blocked 49 legacy entries: -130.55 total (27 winners forfeited, +438.85)
+     forfeit WIN  CPHI   07-16 flat_top     gain   -4.9%    +49.62
+     forfeit WIN  LEDS   07-17 flat_top     gain   23.2%    +46.40
+     forfeit WIN  YYGH   07-14 ignition     gain   -8.2%    +36.22
+     forfeit WIN  BIYA   07-20 ignition     gain   35.6%    +34.40
+     avoid  LOSS TGHL   07-17 ignition     gain   -7.9%    -45.75
+     avoid  LOSS SKYQ   07-20 ignition     gain   23.9%    -41.32
+     avoid  LOSS SOBR   07-14 ignition     gain    7.8%    -41.11
+     avoid  LOSS LBGJ   07-15 ma_pullback  gain   28.8%    -40.99
+
+FRAGILITY (T=30): kept-arm P&L ex-top-row:
+   kept top rows: ZYBT +164.79, SOBR +93.56, VEEE +52.59
+   kept P&L +70.79 | ex-top1 -94.00 | baseline ex-same-row -258.95

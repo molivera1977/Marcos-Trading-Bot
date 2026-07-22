@@ -17,6 +17,9 @@ supersede it with a new one._
 | 7/22 | RS-at-open ranker pass 1 | MIXED (hypothesis) | 7/21: top-3 potential +624% vs rest +14% (CPHI #3 at 9:40!); 7/20: top-3 +6.9% vs rest +12.7% (FAIL) | 2 mornings | one-name dominated (CPHI); GMM-class invisible at open; ZYBT unscoreable (halt bars) = inverted exclusion | rs_at_open_pass1_results.txt |
 | 7/22 | Dead-cat entries hurt us (Marcos claim) | REFUTED (3rd inversion) | >25% off pre-entry high: +$204.86, 78% win (BEST bucket); mid-fade 10-25%: −$147.45 (WORST) | 165/182 trades matched | entry-minute heuristic; bucket conflates dead-cats w/ runner pullbacks; map-relative A-1 still owed | deadcat_check.txt |
 
+| 7/22 | VWAP anchor: PM vs RTH in disagreement band | DOCTRINE CONFIRMED | IN-BAND (PM front/RTH back): +1.16% mean fwd30, 60.9% win — BEST cohort; inv-band weakest (53.0%) — PM anchor right both directions | 9,393 samples / 195 name-days / 7/14-17 | in-band n=133; up-tape baseline (read ranking not absolutes); 295 pairs lacked PM tape; harness caught 2 own bugs pre-result | vwap_anchor_killtest_results.txt |
+| 7/22 | Machine-scoped day-gain floor | SHIPPED ed73f8d | sweep +$122-165 all T in [10,40]; ex-ZYBT intact; same-day: all 3 losers floor-blockable | 124 matched trades | era-mixed; T=30 homegrown | daygain_floor_killtest.txt |
+
 ## Standing stat-hygiene flags (check before quoting any row)
 - n<10 → directional only, never a ship verdict alone.
 - Mean vs median divergence → report both; find the outlier rows.

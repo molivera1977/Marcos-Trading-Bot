@@ -1,0 +1,32 @@
+
+quiet (<10% day-gain at entry): n=76  total   -110.58  win 41/76 (54%)  avg  -1.46
+   HPAI   07-17 gain@entry  -12.7%    -91.26
+   TGHL   07-17 gain@entry   -7.9%    -45.75
+   SOBR   07-14 gain@entry    7.8%    -41.11
+   MGIH   07-14 gain@entry    9.7%    -39.01
+   VRAX   07-16 gain@entry   -8.4%    -38.34
+   SOBR   07-13 gain@entry  -23.4%    +93.56  (top)
+   CPHI   07-16 gain@entry   -4.9%    +49.62  (top)
+   JLHL   07-15 gain@entry  -18.5%    +44.43  (top)
+
+warm 10-30%: n=32  total    -56.03  win 18/32 (56%)  avg  -1.75
+   SKYQ   07-20 gain@entry   23.9%    -41.32
+   LBGJ   07-15 gain@entry   28.8%    -40.99
+   SUNE   07-14 gain@entry   17.4%    -38.85
+   TRT    07-15 gain@entry   15.2%    -37.20
+   PMAX   07-17 gain@entry   26.5%    -33.91
+   LEDS   07-17 gain@entry   23.2%    +46.40  (top)
+   NVVE   07-13 gain@entry   29.4%    +31.25  (top)
+   MTVA   07-13 gain@entry   26.7%    +30.56  (top)
+
+MOVER >30%: n=16  total    +72.45  win 7/16 (44%)  avg  +4.53
+   KUST   07-15 gain@entry   50.5%    -47.97
+   MIMI   07-13 gain@entry   52.2%    -45.70
+   CJMB   07-17 gain@entry   45.2%    -39.69
+   CPHI   07-13 gain@entry   31.7%    -28.39
+   VEEE   07-17 gain@entry   67.4%    -28.17
+   ZYBT   07-20 gain@entry   90.2%   +164.79  (top)
+   VEEE   07-17 gain@entry   63.6%    +52.59  (top)
+   BIYA   07-20 gain@entry   35.6%    +34.40  (top)
+
+unmatched (no prior-day archive): n=59, P&L +49.93

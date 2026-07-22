@@ -4881,6 +4881,19 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         breakouts = [b for b in breakouts
                      if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition", "zone_flip", "rocket_catcher"))]
         # EXTENSION GUARD — don't chase a name too far above its 90-EMA (7/3 data; Kev "don't chase extended").
+        # ── ENTRY-VELOCITY INSTRUMENTATION (7/21 #49-class, LOG-ONLY per sim-integrity/n=8) —
+        # kill-test found both 7/21 big losers (IQMX/CJMB) entered with NEGATIVE trailing 5-min
+        # velocity (buying a break while the tape falls). Candidate rule = vel5>=0 floor; NOT
+        # gated until real n accrues. Stamp entry_vel5 on every breakout for the column-read later.
+        for b in breakouts:
+            try:
+                _vb = _latest_session(cache.get(b[0], {}).get("full_bars") or bars)
+                if _vb and len(_vb) > ROCKET_VEL_BARS:
+                    _c0, _c1 = _bar_close(_vb[-1 - ROCKET_VEL_BARS]), _bar_close(_vb[-1])
+                    if _c0 > 0 and _c1 > 0:
+                        b[4]["entry_vel5"] = round((_c1 - _c0) / _c0 * 100, 2)
+            except Exception:
+                pass
         if EXTENSION_MAX_PCT and EXTENSION_MAX_PCT < 9:
             _kept = []
             for b in breakouts:
@@ -6878,6 +6891,7 @@ def main():
                 "entry_bid_size":     l2_details.get("bid_size"),
                 "entry_l1_spread":    l2_details.get("spread"),
                 # Room to next supply at entry (Kev's master filter — taken trades should be ≥2:1)
+                "entry_vel5":         extra.get("entry_vel5"),   # trailing 5-min velocity at entry (LOG-ONLY candidate gate)
                 "entry_room_rr":      (extra.get("room") or {}).get("rr_to_supply"),
                 "entry_room_pct":     (extra.get("room") or {}).get("room_pct"),
                 "entry_next_supply":  (extra.get("room") or {}).get("next_supply"),

@@ -930,11 +930,25 @@ class WebullStream:
                     self._last_tick_ts = now                     # proof ticks are flowing → allows fast loop cadence
                     with _price_lock:
                         _price_registry[str(sym).upper()] = {"p": p, "t": now}
-                    _cv = getattr(payload, "volume", None) or getattr(basic, "volume", None)
-                    try:
-                        _cv = float(_cv) if _cv is not None else None
-                    except Exception:
-                        _cv = None
+                    # 7/21 FIX (#67): extended-session snapshots carry cumulative volume in
+                    # NON-`volume` fields (recorder discovered 7/16 — see recorder._on_msg). This
+                    # RTH-era callback only read `.volume`, so the bot's 10s shadow bars were
+                    # volume-less → the reclaim/zone-flip seek gates (v>=2*avgv) NEVER tripped →
+                    # 0 fires all day. Mirror the recorder's proven 6-field extraction exactly.
+                    _cv = None
+                    for _obj in (payload, basic):
+                        if _obj is None:
+                            continue
+                        for _f in ("volume", "ext_volume", "extVolume", "total_volume",
+                                   "totalVolume", "accumulate_volume", "ovn_volume"):
+                            _v = getattr(_obj, _f, None)
+                            if _v not in (None, 0, "0", ""):
+                                try:
+                                    _cv = float(_v); break
+                                except Exception:
+                                    pass
+                        if _cv is not None:
+                            break
                     _shadow_ingest(str(sym).upper(), p, _cv, now)   # B12 shadow — cannot raise
         except Exception:
             pass                                                # a bad message never breaks the feed
@@ -3606,6 +3620,43 @@ def detect_vwap_reclaim(completed, price, vwap):
         return None
 
 
+# ── ROCKET CATCHER (7/21, Rocket Rider — FABLE-APPROVED corrected design) — the mid-day parabola catch.
+#    DETECTOR = trailing ROCKET_VEL_BARS-min VELOCITY ≥ ROCKET_VEL_PCT (the "plowing through the levels"
+#    signal — velocity, NOT volume; RVOL was REFUTED, fades spike volume too). Validated 7/21
+#    (scratchpad/rocket_expand.py, 156 name-days): T=25 → 5/6 rockets, 0/95 fades = 100% precision;
+#    6 live fires over 2 days, EVERY one a ≥58% mover. Fires ALL DAY (mid-day rockets launch late —
+#    NO early-session window, unlike ignition). EXIT = SCALE-OUT ladder (to be built in monitor_trade,
+#    NOT trail20 — Fable: detection+trail20 = +1.5% noise, detection+scale-out = +32%). rocket_catcher
+#    is EXEMPT from the extension guard by design (it deliberately catches extension); NO blanket
+#    gate-inversion for the legacy machines. See [[project_rocket_catcher_package.md]] Fable verdict.
+ROCKET_CATCHER   = os.environ.get("ROCKET_CATCHER", "0") == "1"    # ships DISABLED — flip env to 1 ONLY after the 6-tape replay (Fable/replay-rig gate)
+ROCKET_VEL_PCT   = float(os.environ.get("ROCKET_VEL_PCT", "25"))    # % over the window (Fable T=25 = 0 false-pos/95 fades)
+ROCKET_VEL_BARS  = int(os.environ.get("ROCKET_VEL_BARS", "5"))      # trailing 1-min bars = a 5-minute velocity window
+ROCKET_DAILY_CAP = int(os.environ.get("ROCKET_DAILY_CAP", "3"))     # max rocket entries/day (Fable: cap 2-3)
+_rocket_day      = {"d": None, "n": 0}                              # daily rocket-entry counter (resets per ET date)
+
+def detect_rocket(session_bars, price):
+    """ROCKET CATCHER detector — fires when trailing ROCKET_VEL_BARS-min velocity ≥ ROCKET_VEL_PCT%.
+    Returns {vel, stop} on a fire, else None. Stop = low of the velocity window (natural invalidation
+    of the spike), floored at price*0.75 so sizing risk is bounded (≤25%) on a violent name. Pure;
+    any error → None (never crash the scan). Exit is scale-out, handled in monitor_trade — NOT here."""
+    try:
+        if not ROCKET_CATCHER or not session_bars or len(session_bars) < ROCKET_VEL_BARS + 1:
+            return None
+        c_now = _bar_close(session_bars[-1]); c_ago = _bar_close(session_bars[-1 - ROCKET_VEL_BARS])
+        if c_now <= 0 or c_ago <= 0 or price <= 0:
+            return None
+        vel = (c_now - c_ago) / c_ago * 100.0
+        if vel < ROCKET_VEL_PCT:
+            return None
+        win = session_bars[-1 - ROCKET_VEL_BARS:]
+        lows = [_bar_low(b) for b in win if _bar_low(b) > 0]
+        stop = max(min(lows) if lows else price * 0.75, price * 0.75)   # bound risk ≤25% on a violent mover
+        return {"vel": round(vel, 1), "stop": round(stop, 4)}
+    except Exception:
+        return None
+
+
 def detect_ignition(session_bars, price):
     """IGNITION entry (7/4) — the fast-vertical catch. Reverse-engineered from the 8 fast verticals
     (ZCMD/JEM/AZI/CCTG, 6/29–7/2). Shape = QUIET early base (low vol, choppy, often BELOW VWAP) → a
@@ -4407,6 +4458,36 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         cache[t]["ignition_fired"] = True
                         continue                              # ignition captured (in `breakouts`) — skip other detectors for t
 
+            # ── ROCKET CATCHER (7/21, Fable-approved) — velocity ≥25%/5min = rocket mode → enter, scale-out
+            #    exit (handled in monitor_trade by entry_type). Fires ALL DAY; EXEMPT from the extension guard
+            #    (catches extension by design); capped ROCKET_DAILY_CAP/day. once-per-name via rocket_fired.
+            if ROCKET_CATCHER and not cache[t].get("rocket_fired"):
+                _rk = detect_rocket(_latest_session(cache[t].get("full_bars") or bars), price)
+                if _rk:
+                    _rkday = datetime.now(EASTERN).strftime("%Y-%m-%d")
+                    if _rocket_day["d"] != _rkday:
+                        _rocket_day["d"] = _rkday; _rocket_day["n"] = 0
+                    if _rocket_day["n"] >= ROCKET_DAILY_CAP:
+                        _log_decision(t, "rocket_capped", price=price, vel=_rk["vel"])
+                        cache[t]["rocket_fired"] = True
+                    else:
+                        _rk_comp = aggregate_bars(cache[t].get("full_bars") or bars, SETUP_TF_MIN)[:-1]
+                        if len(_rk_comp) >= EMA20_PERIOD + 2:
+                            _re9, _re20, _re90 = calculate_ema9(_rk_comp), calculate_ema20(_rk_comp), calculate_ema90(_rk_comp)
+                        else:
+                            _re9 = _re20 = _re90 = 0.0
+                        print(f"\n🚀🚀 {t} ROCKET! ${price:.2f} velocity +{_rk['vel']}%/{ROCKET_VEL_BARS}min — "
+                              f"rocket-mode entry (scale-out exit), stop ${_rk['stop']:.2f} "
+                              f"[#{_rocket_day['n'] + 1}/{ROCKET_DAILY_CAP} today]")
+                        breakouts.append((t, price, price, "rocket_catcher",
+                                          {"zone_stop": _rk["stop"], "vel": _rk["vel"],
+                                           "ema90": round(_re90, 4), "front_side": _re9 > _re20 > 0,
+                                           "ema9": round(_re9, 4), "ema20": round(_re20, 4)}))
+                        _log_decision(t, "triggered_rocket", price=price, vel=_rk["vel"], stop=_rk["stop"])
+                        _rocket_day["n"] += 1
+                        cache[t]["rocket_fired"] = True
+                        continue                              # rocket captured — skip other detectors for t
+
             # ── Kev's SETUPS come from the 3-MIN chart (#215); the 1-min is only entry timing + risk.
             #    Aggregate the multi-day 1-min series → 3-min so the flat-top base, the 9/20/90 EMAs
             #    (front-side / MA-pullback levels) all read the timeframe Kev actually trades. VWAP,
@@ -4762,13 +4843,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         # bounce = observe-only (dropped; its backtest read was clearly −0.40, needs reversal-regime data).
         # Others active per BREAKOUT_ENTRIES: True → full bag; False → pullback + VWAP-reclaim only.
         breakouts = [b for b in breakouts
-                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition", "zone_flip"))]
+                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition", "zone_flip", "rocket_catcher"))]
         # EXTENSION GUARD — don't chase a name too far above its 90-EMA (7/3 data; Kev "don't chase extended").
         if EXTENSION_MAX_PCT and EXTENSION_MAX_PCT < 9:
             _kept = []
             for b in breakouts:
                 _e90 = (b[4].get("ema90") or 0)
-                if _e90 > 0 and (b[1] - _e90) / _e90 > EXTENSION_MAX_PCT:
+                if b[3] == "rocket_catcher":
+                    _kept.append(b)   # ROCKET CATCHER is EXEMPT — it catches extension by design (Fable 7/21)
+                elif _e90 > 0 and (b[1] - _e90) / _e90 > EXTENSION_MAX_PCT:
                     _shadow_keep.add(b[0]); _log_decision(b[0], "extension_reject", price=b[1], ext_pct=round((b[1] - _e90) / _e90 * 100, 1))
                 else:
                     _kept.append(b)   # fail-open when there's no 90-EMA to measure
@@ -5041,7 +5124,7 @@ def _vride_defer(ticker, tier_idx):
     return False
 
 def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
-                  stream: WebullStream, stop_order_id, vwap=0, next_supply=None):
+                  stream: WebullStream, stop_order_id, vwap=0, next_supply=None, entry_type="flat_top"):
     """
     Monitors the trade using the real-time stream.
     All stop levels are kept as live orders on Webull — not just in memory.
@@ -5082,7 +5165,13 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     # (risk-free → stop to break-even), trim to a ~1/4 runner at the next supply (or +2R if open room),
     # then the 1/4 runner trails the PREVIOUS-BAR LOW. Replaces the made-up +8/12/20% tiers + TRAIL_PCT. ──
     R = max(entry_price - stop_loss, 0.01)
-    if SCALE_TIERS:                                    # reimagined R-grid scale-out (7/5 exit study — beats supply grid)
+    if entry_type == "rocket_catcher":                 # ROCKET scale-out ladder (Fable 7/21): %-of-entry, NOT R —
+        # a parabola round-trips, so bank 1/3 @ +50%, 1/3 @ +100% on the way up; runner health-trails.
+        # Fable evidence: detection-entry + scale-out = +32% mean vs trail20 = +1.5% noise. Runner trail
+        # kept as health-trail (hold-above-9EMA) for v1; trail30 vs health-trail = a replay calibration.
+        kev_tiers = [(round(entry_price * 1.50, 4), 0.33),
+                     (round(entry_price * 2.00, 4), 0.67)]
+    elif SCALE_TIERS:                                  # reimagined R-grid scale-out (7/5 exit study — beats supply grid)
         kev_tiers = [(round(entry_price + rm * R, 4), cum) for rm, cum in SCALE_TIERS]
     else:
         _scale2 = next_supply if (next_supply and next_supply > entry_price + R) else entry_price + 2 * R
@@ -6655,6 +6744,7 @@ def main():
                 ticker, shares, entry_price, target_price, stop_loss,
                 stream, stop_order_id, vwap=vwap,
                 next_supply=((extra or {}).get("room") or {}).get("next_supply"),
+                entry_type=entry_type,               # rocket_catcher → %-based scale-out ladder in monitor_trade
             )
             _active_monitors.pop(ticker, None)   # monitor returned — deregister from watchdog
 

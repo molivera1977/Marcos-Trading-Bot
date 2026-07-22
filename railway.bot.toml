@@ -17,7 +17,9 @@ watchPatterns = ["marcos_trading_bot.py", "railway.bot.toml"]
 
 [deploy]
 startCommand = "python marcos_trading_bot.py"
-restartPolicyType = "never"
-# VERIFIED schema (7/18, reader): cronSchedule lives under [deploy]; a "[cron]" table is
-# silently ignored by config-as-code.
-cronSchedule = "45 12 * * 1-5"
+# 7/21 #53 CRON→WORKER (Marcos: "get this cron nonsense out — all-day run and a timer"):
+# the bot CODE is already an always-on worker (__main__ while-True + in_trading_window sleeps
+# until 8:45, runs the session, sleeps to next open). The redeploy-no-start pain was PURELY
+# the cron config. always-on + restart=always → a push simply restarts the bot; no more
+# Run-now clicks, no build-without-start. Mirrors the recorder's proven pattern.
+restartPolicyType = "always"

@@ -474,6 +474,138 @@ def process_once(dry=False, out_rows=None):
               f"→ {'posted' if ok else 'POST FAILED'}  ({str(rd.get('reason',''))[:55]})", flush=True)
     return len(todo)
 
+
+
+# ═══ RE-READ SYSTEM (#77 part 2, Cartographer 7/21) — redraw exhausted maps mid-flight ═══════════
+# Triggers (all internal): (a) PASSIVE staleness — live price crosses the current map's LAST target;
+# (b) bot markers polled from decisions (rocket_armed / read_exhausted_observed). ~9 re-reads/day
+# measured on 7/20-21 (every monster flagged: ZYBT 9:30, CPHI 10:18, VIVK 9:47). Never blocks —
+# posts a v2+ map so the gate governs the REMAINING move (median +7%, tails +273-449%).
+REREAD_MAX_PER_NAME = int(os.environ.get("REREAD_MAX_PER_NAME", "2"))
+REREAD_DAILY_CAP    = int(os.environ.get("REREAD_DAILY_CAP", "15"))
+REREAD_CUTOFF_HHMM  = os.environ.get("REREAD_CUTOFF_HHMM", "15:25")
+_rr_state = {"count": 0, "per_name": {}, "last_probe": 0.0, "seen_markers": set()}
+
+def render_intraday_png(ticker):
+    """Single-panel TODAY-RTH 1m chart (candles + session VWAP + prior levels as dashed lines).
+    The re-read maps CURRENT structure; daily context rides in the prompt text. Returns (png, meta)."""
+    try:
+        import matplotlib; matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        rows = _get(f"{U}/api/minute_ext?ticker={_q(ticker)}&count=1200", timeout=45).get("bars") or []
+        b = sorted([r for r in rows if str(r.get("time","")).startswith(DAY) and r.get("session")=="RTH"],
+                   key=lambda r: str(r["time"]))
+        if len(b) < 10:
+            return None, {}
+        o=[float(x["open"]) for x in b]; h=[float(x["high"]) for x in b]
+        l=[float(x["low"]) for x in b]; c=[float(x["close"]) for x in b]; v=[float(x.get("volume") or 0) for x in b]
+        cpv=cv=0; vw=[]
+        for ci,vi in zip(c,v): cpv+=ci*vi; cv+=vi; vw.append(cpv/cv if cv else ci)
+        fig, ax = plt.subplots(figsize=(11,5.2), dpi=110)
+        for i in range(len(b)):
+            col = "#26a69a" if c[i]>=o[i] else "#ef5350"
+            ax.plot([i,i],[l[i],h[i]], color=col, lw=0.7)
+            ax.plot([i,i],[min(o[i],c[i]),max(o[i],c[i])], color=col, lw=2.6)
+        ax.plot(range(len(b)), vw, color="#f0a500", lw=1.4, label="VWAP")
+        meta = dict(day_high=max(h), day_low=min(l), last=c[-1], vwap=round(vw[-1],4),
+                    n_bars=len(b), open_px=o[0])
+        ax.set_title(f"{ticker} — TODAY 1-min RTH (re-read)"); ax.legend(loc="upper left", fontsize=8)
+        import io as _io
+        buf=_io.BytesIO(); fig.tight_layout(); fig.savefig(buf, format="png"); plt.close(fig)
+        return buf.getvalue(), meta
+    except Exception as e:
+        print(f"[reread] render failed {ticker}: {e}", flush=True)
+        return None, {}
+
+REREAD_PROMPT = """You are an experienced small-cap momentum trader (Kev lineage). This chart is TODAY'S 1-minute RTH tape of {ticker} — a name that has BLOWN THROUGH its earlier map and needs a FRESH map drawn mid-flight.
+PRIOR READ (now exhausted): {prior}. Price since: {since}. Session facts: {meta}.
+Re-map from CURRENT intraday structure only: the reclaim/break level that would confirm the NEXT leg (a real shelf/pivot on this chart, not the old map), confirm level, next supply (today's high or the visible ceiling), a structural stop, and 1-2 targets. If the move looks finished (distribution, lower highs, dead tape), verdict SKIP — but STILL give the break_level it would take to change your mind (levels-only doctrine: a level is mandatory on every read). Same JSON as always:
+{{"ticker":"{ticker}","verdict":"TAKE|MARGINAL|SKIP","confidence":"HIGH|MEDIUM|LOW","setup":"...","break_level":0.0,"confirm_level":0.0,"next_supply":0.0,"stop_level":0.0,"targets":[0.0],"reason":"<=40 words"}}"""
+
+def reread_one(ticker, trigger):
+    """One re-read: intraday chart + prior-map context -> vision -> post as versioned map."""
+    try:
+        lv = (_get(f"{U}/api/kev_watchlist?date={DAY}").get("levels") or {}).get(ticker) or {}
+        png, meta = render_intraday_png(ticker)
+        if not png:
+            return False
+        prior = {k: lv.get(k) for k in ("break","confirm","targets","stop","setup","confidence") if lv.get(k) is not None}
+        since = f"day high {meta['day_high']}, last {meta['last']}, vwap {meta['vwap']}"
+        prompt = REREAD_PROMPT.format(ticker=ticker, prior=json.dumps(prior), since=since, meta=json.dumps(meta))
+        import anthropic, base64
+        client = anthropic.Anthropic(api_key=API_KEY)
+        img = base64.standard_b64encode(png).decode()
+        msg = client.messages.create(model=MODEL, max_tokens=1100, messages=[{"role":"user","content":[
+            {"type":"image","source":{"type":"base64","media_type":"image/png","data":img}},
+            {"type":"text","text":prompt}]}])
+        raw = "".join(bl.text for bl in msg.content if getattr(bl,"type",None)=="text").strip()
+        if "```" in raw:
+            raw = raw.split("```")[1].replace("json","",1).strip() if "```json" in raw else raw.split("```")[1].strip()
+        rd = json.loads(raw)
+        ok, why = validate_read(rd, meta.get("last"))
+        if not ok:
+            print(f"[reread] {ticker} v-read invalid: {why}", flush=True); return False
+        # LEDGER: carry prior map forward inside the record, bump version, tag trigger
+        hist = lv.get("history") or []
+        hist.append({k: lv.get(k) for k in ("break","confirm","targets","stop","read_at","read_version") if lv.get(k) is not None})
+        rd["history"] = hist[-4:]
+        rd["read_version"] = int(lv.get("read_version") or 1) + 1
+        rd["trigger"] = trigger
+        rd["read_at"] = dt.datetime.now(ET).strftime("%H:%M")
+        post_level(ticker, rd)
+        print(f"[reread] {ticker} v{rd['read_version']} ({trigger}): break {rd.get('break_level')} "
+              f"targets {rd.get('targets')} [{rd.get('verdict')}/{rd.get('confidence')}]", flush=True)
+        return True
+    except Exception as e:
+        print(f"[reread] {ticker} failed: {e}", flush=True)
+        return False
+
+def reread_check():
+    """Called each trickle cycle. Finds exhausted maps + bot markers; fires capped re-reads."""
+    try:
+        now = dt.datetime.now(ET)
+        if now.strftime("%H:%M") >= REREAD_CUTOFF_HHMM: return
+        if _rr_state["count"] >= REREAD_DAILY_CAP: return
+        if time.time() - _rr_state["last_probe"] < 240: return       # probe every ~4 min
+        _rr_state["last_probe"] = time.time()
+        lv = _get(f"{U}/api/kev_watchlist?date={DAY}").get("levels") or {}
+        want = []
+        # (a) passive: live price beyond the current map's last target
+        for tk, rec in lv.items():
+            if not isinstance(rec, dict): continue
+            if _rr_state["per_name"].get(tk, 0) >= REREAD_MAX_PER_NAME: continue
+            tg = rec.get("targets") or []
+            try: lastT = float(tg[-1]) if tg else 0.0
+            except (TypeError, ValueError): lastT = 0.0
+            if lastT <= 0: continue
+            rows = _get(f"{U}/api/minute_ext?ticker={_q(tk)}&count=8", timeout=20).get("bars") or []
+            px = 0.0
+            for r in rows:
+                if str(r.get("time","")).startswith(DAY) and r.get("session")=="RTH":
+                    px = float(r.get("close") or 0)
+            if px > lastT:
+                want.append((tk, "past_map"))
+        # (b) bot markers: rocket arms + entry-attempt exhaustion
+        rows = _get(f"{U}/api/decisions_archive?date={DAY}&limit=8000").get("rows") or []
+        for r in rows:
+            st = r.get("status")
+            if st in ("rocket_armed", "read_exhausted_observed"):
+                key = f"{r.get('ticker')}|{st}|{r.get('recorded_at')}"
+                if key in _rr_state["seen_markers"]: continue
+                _rr_state["seen_markers"].add(key)
+                tk = (r.get("ticker") or "").upper()
+                if _rr_state["per_name"].get(tk, 0) < REREAD_MAX_PER_NAME:
+                    want.append((tk, st))
+        done = set()
+        for tk, trig in want:
+            if tk in done or _rr_state["count"] >= REREAD_DAILY_CAP: continue
+            done.add(tk)
+            if reread_one(tk, trig):
+                _rr_state["count"] += 1
+                _rr_state["per_name"][tk] = _rr_state["per_name"].get(tk, 0) + 1
+    except Exception as e:
+        print(f"[reread] check error: {e}", flush=True)
+
 def main():
     once = "--once" in sys.argv
     dry  = "--dry" in sys.argv                 # read+validate+PRINT, never post (bake-off / live-call proof)
@@ -497,6 +629,8 @@ def main():
             print(f"[vision-reader] {now:%H:%M} reached {STOP_HHMM} — done.", flush=True); break
         try: process_once()
         except Exception as e: print(f"[loop] error: {e}", flush=True)
+        try: reread_check()                                  # #77 part 2 — exhausted-map re-reads
+        except Exception as e: print(f"[reread] loop error: {e}", flush=True)
         time.sleep(POLL_SECS)
 
 if __name__ == "__main__":

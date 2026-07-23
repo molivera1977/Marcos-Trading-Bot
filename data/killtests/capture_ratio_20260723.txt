@@ -1,0 +1,53 @@
+CAPTURE RATIO v2 (BLENDED partials) — era >=7/13, in-trade (entry->highest), v1 VOID (ignored partial_fills)
+n=102 scoreable, 47 with >=1R potential
+capture mean 0.435 median 0.404; total giveback 78.6R; round-trippers 3/47
+by exit_reason: {"Trailing stop \ud83d\udcc9": {"n": 24, "cap": 0.56, "gb": 0.77}, "HEALTH FOLD (lost VWAP+E": {"n": 15, "cap": 0.36, "gb": 2.37}, "BLIND-STOP FAILSAFE \ud83d\udedf": {"n": 3, "cap": 0.31, "gb": 2.1}, "Stop loss \ud83d\uded1": {"n": 1, "cap": -1.0, "gb": 2.19}, "3:45pm time stop": {"n": 4, "cap": 0.43, "gb": 3.98}}
+
+ALL >=1R rows (tk,date,type,exit,realR,maxR,gb,pnl_xcheck):
+  ZYBT 2026-07-20 ignition | 3:45pm time stop | +5.53 +17.14 11.62 ok
+  CPHI 2026-07-16 flat_top | HEALTH FOLD (lost VWAP+E | +2.00 +11.76 9.76 XCHK-FAIL
+  ZSTK 2026-07-15 ignition | BLIND-STOP FAILSAFE 🛟 | +2.22 +6.54 4.32 ok
+  YYGH 2026-07-14 ignition | HEALTH FOLD (lost VWAP+E | +1.85 +5.83 3.98 XCHK-FAIL
+  BIYA 2026-07-20 ignition | Trailing stop 📉 | +0.79 +4.66 3.86 XCHK-FAIL
+  JLHL 2026-07-15 vwap_reclaim | HEALTH FOLD (lost VWAP+E | +1.69 +5.18 3.49 XCHK-FAIL
+  VEEE 2026-07-17 ignition | HEALTH FOLD (lost VWAP+E | +1.75 +4.35 2.59 ok
+  LEDS 2026-07-17 flat_top | HEALTH FOLD (lost VWAP+E | +1.56 +4.12 2.56 ok
+  GLXG 2026-07-17 ignition | HEALTH FOLD (lost VWAP+E | +1.73 +4.28 2.55 ok
+  ADVB 2026-07-22 ma_pullback | HEALTH FOLD (lost VWAP+E | +1.04 +3.49 2.45 ok
+  ATPC 2026-07-16 ignition | 3:45pm time stop | +1.84 +4.25 2.41 ok
+  VRAX 2026-07-16 ignition | Stop loss 🛑 | -1.10 +1.09 2.19 ok
+  JLHL 2026-07-17 ignition | Trailing stop 📉 | -0.17 +1.46 1.63 XCHK-FAIL
+  CLRO 2026-07-15 vwap_reclaim | Trailing stop 📉 | -0.01 +1.50 1.51 XCHK-FAIL
+  EHGO 2026-07-16 ignition | Trailing stop 📉 | +1.60 +3.04 1.43 XCHK-FAIL
+  GLXG 2026-07-17 ignition | Trailing stop 📉 | +0.35 +1.75 1.41 ok
+  SNTG 2026-07-22 ignition | HEALTH FOLD (lost VWAP+E | +0.28 +1.58 1.31 ok
+  UBXG 2026-07-15 vwap_reclaim | BLIND-STOP FAILSAFE 🛟 | +0.25 +1.47 1.22 XCHK-FAIL
+  NYC 2026-07-16 vwap_reclaim | 3:45pm time stop | +1.10 +2.30 1.19 ok
+  DXST 2026-07-16 ignition | Trailing stop 📉 | +0.36 +1.54 1.19 XCHK-FAIL
+  CLIK 2026-07-16 ignition | HEALTH FOLD (lost VWAP+E | +0.59 +1.76 1.17 ok
+  VEEE 2026-07-17 ignition | HEALTH FOLD (lost VWAP+E | +0.78 +1.95 1.16 XCHK-FAIL
+  TGHL 2026-07-15 ignition | HEALTH FOLD (lost VWAP+E | +0.83 +1.96 1.13 XCHK-FAIL
+  CJMB 2026-07-17 ignition | Trailing stop 📉 | +0.48 +1.58 1.10 ok
+  RDGT 2026-07-14 ignition | HEALTH FOLD (lost VWAP+E | +0.61 +1.70 1.09 ok
+  AMST 2026-07-17 ignition | Trailing stop 📉 | +1.05 +2.10 1.05 ok
+  TRUG 2026-07-17 ignition | Trailing stop 📉 | +0.39 +1.40 1.00 XCHK-FAIL
+  UONEK 2026-07-14 ignition | HEALTH FOLD (lost VWAP+E | +1.07 +1.95 0.88 XCHK-FAIL
+  MIMI 2026-07-15 ignition | HEALTH FOLD (lost VWAP+E | +0.55 +1.33 0.79 ok
+  BIVI 2026-07-15 vwap_reclaim | BLIND-STOP FAILSAFE 🛟 | +0.53 +1.28 0.75 ok
+  SDOT 2026-07-14 vwap_reclaim | Trailing stop 📉 | +0.44 +1.18 0.74 ok
+  PN 2026-07-22 flat_top | 3:45pm time stop | +0.64 +1.35 0.72 ok
+  MTEN 2026-07-22 ma_pullback | HEALTH FOLD (lost VWAP+E | +0.47 +1.17 0.70 ok
+  HUBC 2026-07-17 ignition | Trailing stop 📉 | +0.60 +1.27 0.67 ok
+  DXST 2026-07-16 ignition | Trailing stop 📉 | +0.68 +1.28 0.60 XCHK-FAIL
+  VTAK 2026-07-15 ignition | Trailing stop 📉 | +0.86 +1.22 0.35 XCHK-FAIL
+  IVF 2026-07-14 ignition | Trailing stop 📉 | +0.80 +1.15 0.35 ok
+  HODO 2026-07-14 vwap_reclaim | Trailing stop 📉 | +0.73 +1.03 0.31 XCHK-FAIL
+  LEDS 2026-07-15 ignition | Trailing stop 📉 | +0.84 +1.12 0.28 XCHK-FAIL
+  TRNR 2026-07-14 vwap_reclaim | Trailing stop 📉 | +1.41 +1.67 0.26 XCHK-FAIL
+  SOBR 2026-07-14 ignition | Trailing stop 📉 | +1.01 +1.20 0.19 XCHK-FAIL
+  CNEY 2026-07-14 ma_pullback | Trailing stop 📉 | +0.91 +1.07 0.16 XCHK-FAIL
+  LEDS 2026-07-14 ignition | Trailing stop 📉 | +1.00 +1.13 0.13 XCHK-FAIL
+  TVRD 2026-07-16 flat_top | Trailing stop 📉 | +1.05 +1.17 0.13 XCHK-FAIL
+  CLRO 2026-07-15 ignition | Trailing stop 📉 | +1.18 +1.29 0.11 XCHK-FAIL
+  IQST 2026-07-16 ignition | Trailing stop 📉 | +1.08 +1.15 0.06 XCHK-FAIL
+  CMND 2026-07-16 ignition | Trailing stop 📉 | +1.06 +1.07 0.00 XCHK-FAIL

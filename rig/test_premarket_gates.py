@@ -40,6 +40,12 @@ check("P8 hardcoded 8:30 floor GONE; hardcoded 9:30 watch-sleep GONE (fail-witho
 check("P9 both call sites wired to the pure functions",
       "if not run_window_ok(now):" in SRC and '_dg = detect_gate(now)' in SRC)
 
+# link 5 — GUARD ORDER (7/23 am live finding): curl stepping must sit ABOVE the no-data
+# short-circuit, or empty premarket 1-min bars starve the 10s-driven curl machines.
+SRC2 = (pathlib.Path(__file__).resolve().parent.parent / "marcos_trading_bot.py").read_text()
+check("P10 curl-step block ABOVE the no-data guard (premarket 10s data reaches the machines)",
+      SRC2.index("CURL DETECTORS ALWAYS STEP") < SRC2.index('status_parts.append(f"{t}:no data")'))
+
 print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
 if FAIL: print("RED:", ", ".join(FAIL))
 sys.exit(1 if FAIL else 0)

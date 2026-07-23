@@ -4568,11 +4568,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             vwap = cache[t]["vwap"]
             price = stream.get_price(t)
 
-            if not bars or price <= 0:
-                status_parts.append(f"{t}:no data")
-                continue
-
-            # ── #89 FIX (7/23): CURL DETECTORS ALWAYS STEP. The pullback arm-wait `continue`s below
+            # ── #89 FIX (7/23): CURL DETECTORS ALWAYS STEP — ABOVE the no-data guard (7/23 am:
+            # premarket has NO 1-min bars, so the guard starved the curls of their 10s data;
+            # the machines need only the stream's shadow bars + the ALP/recorder VWAP line). The pullback arm-wait `continue`s below
             # starved zone-flip/reclaim of bars on every armed pass — and movers are perpetually armed
             # (813 arms 7/22), so 31 replay fires produced ZERO live rows ever. Integrator law:
             # DETECTION is unconditional (the rocket-detector pattern); entry SELECTION below stays
@@ -4623,6 +4621,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                                # (old code advanced it even when _sv<=0 dropped them)
                         if _vr_fire:
                             _shadow_log_curl_leftovers(t, price, None, _vr_fire, _vr_sv, "detected")
+
+            if not bars or price <= 0:
+                status_parts.append(f"{t}:no data")
+                continue
 
             # ── Entry type: IGNITION (7/4) — runs FIRST, BEFORE the 3-min-EMA warmup guard below, because it
             #    reads 1-MIN SESSION bars + the volume-acceleration surge and does NOT need the 3-min EMAs

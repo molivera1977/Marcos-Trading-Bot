@@ -111,6 +111,18 @@ check("T23d #89 old starved branches GONE (fail-without-fix)",
 check("T23e #89 reclaim cursor advances only on FED bars (no consume-and-drop when line missing)",
       "_reclaim_cursor[_cur_key] = _fed_k" in SRC and "_fed_k = 0" in SRC)
 
+check("T24 premarket mode: WAKE_ET default 03:55, wake fn + trading window BOTH use it",
+      bot.WAKE_ET == "03:55" and (bot.WAKE_H, bot.WAKE_M) == (3, 55)
+      and "candidate = now_et.replace(hour=WAKE_H, minute=WAKE_M" in SRC
+      and ">= (WAKE_H, WAKE_M)" in SRC and ">= (8, 45)" not in SRC)
+check("T24b premarket HARD entry gate: nothing trades before ENTRY_OPEN_ET; shadow row + print",
+      bot.ENTRY_OPEN_ET == "09:30" and '"premarket_shadow_entry"' in SRC
+      and 'if _hm_pm < ENTRY_OPEN_ET:' in SRC
+      and SRC.index('if _hm_pm < ENTRY_OPEN_ET:') < SRC.index("# Mark all breakout tickers as traded"))
+check("T24c premarket gate restores one-shot ammunition (ignition flag, rocket flag+count)",
+      '.pop("ignition_fired", None)' in SRC and '.pop("rocket_fired", None)' in SRC
+      and '_rocket_day["n"] = max(0, _rocket_day["n"] - 1)' in SRC)
+
 check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",
       "_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap" in SRC
       and "if _sv and _tick_vwap_ok(_sv, vwap, price):\n                    _day_k" not in SRC)

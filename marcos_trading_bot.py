@@ -6776,6 +6776,27 @@ def main():
             print(f"⏰ No entry detected ({', '.join(remaining_candidates)}). Cash preserved.")
             break
 
+        # ── PREMARKET SHADOW GATE (7/23): before ENTRY_OPEN_ET nothing converts to a trade —
+        # the fire is logged with its full payload (the premarket scorecard) and one-shot
+        # ammunition is restored so RTH keeps its full bag. Entries open at ENTRY_OPEN_ET sharp.
+        _hm_pm = datetime.now(EASTERN).strftime("%H:%M")
+        if _hm_pm < ENTRY_OPEN_ET:
+            for entry in breakouts:
+                _pt, _pp, _pe = entry[0], entry[1], entry[3]
+                _px2 = entry[4] if len(entry) > 4 else {}
+                _log_decision(_pt, "premarket_shadow_entry", price=_pp, entry_type=_pe,
+                              stop=(_px2 or {}).get("zone_stop"), time_hm=_hm_pm,
+                              day_gain=(_px2 or {}).get("day_gain"))
+                print(f"👥 {_pt} {_pe} fired {_hm_pm} — PREMARKET SHADOW logged, entries open {ENTRY_OPEN_ET}")
+                if _pe == "ignition":
+                    _session_cache.get(_pt, {}).pop("ignition_fired", None)
+                elif _pe == "rocket_catcher":
+                    _session_cache.get(_pt, {}).pop("rocket_fired", None)
+                    _rocket_day["n"] = max(0, _rocket_day["n"] - 1)
+                # KNOWN LIMITATION (weekend fix queued): a premarket seq-0 reclaim/zone-flip fire
+                # consumes that lane's daily live slot — fails toward MORE shadow, never more risk.
+            continue
+
         # Mark all breakout tickers as traded before threads start
         _fetch_kev_levels()   # pre-warm the chart-gate levels cache ONCE in the main thread, so the
                               # per-worker gate check hits a warm cache instead of N parallel cold
@@ -7242,9 +7263,23 @@ def main():
     _do_archive_once()
 
 
+# ── PREMARKET OPERATING MODE (7/23, Marcos: "shadow trade 4:00-9:30... in the least we warm up
+# all the systems... like warming up the car"): the bot's day starts at WAKE_ET (default 03:55 —
+# at the desk for the 4:00 premarket bell). Entries are HARD-GATED until ENTRY_OPEN_ET (09:30):
+# every premarket would-be entry logs as premarket_shadow_entry (the scorecard for the
+# expand-trading-hours decision) and one-shot ammunition is restored so RTH keeps its full bag.
+# WAKE_ET=08:45 reverts to the old day in one env change.
+WAKE_ET = os.environ.get("WAKE_ET", "03:55").strip()
+try:
+    WAKE_H, WAKE_M = (int(x) for x in WAKE_ET.split(":"))
+except Exception:
+    WAKE_H, WAKE_M = 3, 55
+ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "09:30").strip()
+
+
 def next_trading_open(now_et):
-    """Return the next 8:45am ET weekday datetime from now."""
-    candidate = now_et.replace(hour=8, minute=45, second=0, microsecond=0)
+    """Return the next WAKE_ET weekday datetime from now (premarket operating mode)."""
+    candidate = now_et.replace(hour=WAKE_H, minute=WAKE_M, second=0, microsecond=0)
     if now_et >= candidate:
         candidate += timedelta(days=1)
     while candidate.weekday() >= 5:
@@ -7256,7 +7291,7 @@ def in_trading_window(now_et):
     """True if we should be scanning/trading right now."""
     if now_et.weekday() >= 5:
         return False
-    past_open  = (now_et.hour, now_et.minute) >= (8, 45)
+    past_open  = (now_et.hour, now_et.minute) >= (WAKE_H, WAKE_M)
     past_close = now_et.hour > VWAP_ENTRY_TIMEOUT or (
         now_et.hour == VWAP_ENTRY_TIMEOUT and now_et.minute >= VWAP_ENTRY_TIMEOUT_MIN
     )
@@ -7303,7 +7338,7 @@ if __name__ == "__main__":
         if not in_trading_window(now_et):
             wake = next_trading_open(now_et)
             sleep_secs = (wake - now_et).total_seconds()
-            print(f"💤 Outside trading hours — sleeping until {wake.strftime('%A %b %d at 8:45am ET')} ({sleep_secs/3600:.1f}h away)")
+            print(f"💤 Outside trading hours — sleeping until {wake.strftime('%A %b %d')} at {WAKE_ET} ET ({sleep_secs/3600:.1f}h away)")
             time.sleep(sleep_secs)
             continue
 
@@ -7314,7 +7349,7 @@ if __name__ == "__main__":
         if not in_trading_window(now_et):
             wake = next_trading_open(now_et)
             sleep_secs = (wake - now_et).total_seconds()
-            print(f"⏰ Session complete — sleeping until {wake.strftime('%A %b %d at 8:45am ET')} ({sleep_secs/3600:.1f}h away)")
+            print(f"⏰ Session complete — sleeping until {wake.strftime('%A %b %d')} at {WAKE_ET} ET ({sleep_secs/3600:.1f}h away)")
             time.sleep(sleep_secs)
         else:
             next_et_min = now_et.hour * 60 + now_et.minute + RESCAN_INTERVAL_MINUTES

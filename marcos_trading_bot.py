@@ -4457,11 +4457,14 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         # boundary in main() ahead of the 3:45pm forced flat. Kev's setups trigger all day, e.g. the
         # 2pm base-breakouts on SDOT/IVF that this used to block live.)
 
-        if now.hour < 9 or (now.hour == 9 and now.minute < 30):
-            mins = (9 * 60 + 30) - (now.hour * 60 + now.minute)
-            print(f"⏳ Market opens in ~{mins} min...")
+        _dg = detect_gate(now)
+        if _dg == "idle":
+            mins = 4 * 60 - (now.hour * 60 + now.minute)
+            print(f"⏳ Premarket opens in ~{mins} min — machines idle...")
             time.sleep(30)
             continue
+        # 'detect' → fall through: detection + shadow logging run from 4:00; the ENTRY_OPEN_ET
+        # choke gate (premarket_shadow_entry) is what blocks trades before 9:30.
 
         # Session entry cutoff (ALL modes) — after 3:30pm ET, hand control back to main() so the
         # session can END and run end-of-day archival. Without this the loop spins forever on a
@@ -6574,12 +6577,10 @@ def main():
         print(f"\n✅ TEST TRADE COMPLETE — P&L: ${pnl:.2f} | New balance: ${new_balance:.2f}")
         return
 
-    # Hard time gate — exit if outside 8:30am–3:30pm ET.
-    # Allow mid-day restarts (e.g. Railway redeploy) to resume scanning until cutoff.
-    minutes_et = now.hour * 60 + now.minute
-    cutoff_min = VWAP_ENTRY_TIMEOUT * 60 + VWAP_ENTRY_TIMEOUT_MIN
-    if not (8 * 60 + 30 <= minutes_et <= cutoff_min):
-        print(f"⏰ Outside trading window ({now.strftime('%H:%M')} ET) — exiting.")
+    # Hard time gate — exit if outside WAKE_ET–3:30pm ET (was a hardcoded 8:30 floor that
+    # killed premarket day 1). Mid-day restarts (e.g. Railway redeploy) resume until cutoff.
+    if not run_window_ok(now):
+        print(f"⏰ Outside trading window ({now.strftime('%H:%M')} ET, wake {WAKE_ET}) — exiting.")
         return
 
 
@@ -7275,6 +7276,27 @@ try:
 except Exception:
     WAKE_H, WAKE_M = 3, 55
 ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "09:30").strip()
+
+
+def run_window_ok(now_et):
+    """Gate 2 (main): may the session run right now? Keyed to WAKE_ET (was a hardcoded 8:30
+    floor — the gate that killed premarket day 1). Pure function: testable with synthetic times."""
+    minutes_et = now_et.hour * 60 + now_et.minute
+    cutoff_min = VWAP_ENTRY_TIMEOUT * 60 + VWAP_ENTRY_TIMEOUT_MIN
+    return (WAKE_H * 60 + WAKE_M) <= minutes_et <= cutoff_min
+
+
+def detect_gate(now_et):
+    """Gate 3 (watch loop): 'idle' before the 4:00 premarket bell (nothing prints), 'detect'
+    from 4:00 until the 3:30 cutoff (detection + shadow logging; the ENTRY_OPEN_ET choke gate
+    separately blocks trades before 9:30), 'closed' after. Was a hardcoded sleep-to-9:30.
+    Pure function: testable with synthetic times."""
+    m = now_et.hour * 60 + now_et.minute
+    if m < 4 * 60:
+        return "idle"
+    if m >= VWAP_ENTRY_TIMEOUT * 60 + VWAP_ENTRY_TIMEOUT_MIN:
+        return "closed"
+    return "detect"
 
 
 def next_trading_open(now_et):

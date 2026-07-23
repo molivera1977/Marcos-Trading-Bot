@@ -1,0 +1,166 @@
+CURL FORENSIC — 2026-07-23  (Curl Mechanic)
+WHY did the curl lanes (kev_reclaim_step + kev_zoneflip_step) fire ZERO times live today,
+despite the #89 guard-order fix (7a72c83 + 6028079) shipped this morning?
+READ-ONLY run. Machines imported via rig/loader.load_bot() — byte-identical production logic.
+
+================================================================================
+VERDICT:  (A) MACHINES FIRE IN REPLAY, ZERO LIVE  ->  the live FEED is broken.
+          The machines are NOT logic-broken and today is NOT setup-less.
+          The bot's curl machines are STARVED of their input bars.
+================================================================================
+
+--------------------------------------------------------------------------------
+1. SIM-INTEGRITY: per-name 10s bar-count distribution (a name <50 bars = cannot judge)
+   (recorder~10s = separate recorder service stream;  ~ALP10S = Alpaca capture stream.
+    Both are DIFFERENT streams from the bot's own in-memory _shadow_bars — see sec.4.)
+--------------------------------------------------------------------------------
+  NAME     recorder~10s   Alpaca~ALP10S    judgeable?
+  ADVB        1286           1518           yes (both)
+  SKYQ         438            585           yes
+  NEUP         384            651           yes
+  PN           547           1186           yes
+  JEM          503            686           yes
+  WBUY         544            715           yes
+  EHGO        2174           2156           yes
+  NIKI         110            675           yes
+  WLDS         394            697           yes
+  AEHL        2001           2174           yes
+  XLO            0             51           ALP only (rec empty)
+  ZYBT        2068           2201           yes
+  TCRT           0             33           NO — both <50, un-judgeable
+  CDIO           0             71           ALP only
+  POM            0             18           NO — both <50, un-judgeable
+  (recorder counts still rising during the run — recorder flushes intraday.)
+
+--------------------------------------------------------------------------------
+2. REPLAY FIRE COUNTS — both machines, both sources, today's real tape
+   Machine calls are faithful to live: state reset per name, bars fed in time order,
+   reclaim fed one 10s bar at a time against a RUNNING reconstructed VWAP.
+   [APPROX] VWAP = premarket-anchored cumulative typical-price ((h+l+c)/3) VWAP built
+   from the same 10s bars. This is NOT the live recorder/ALP tick-VWAP line; it sits
+   ~1pt below the live line on ADVB (see sec.3) — reclaim gating is VWAP-line sensitive.
+--------------------------------------------------------------------------------
+  NAME     recorder: reclaim / zoneflip     Alpaca: reclaim / zoneflip
+  ADVB           2  /  0                          4  /  0
+  SKYQ           1  /  0                          2  /  0
+  NEUP           0  /  0                          1  /  0
+  PN             0  /  0                          1  /  0
+  JEM            0  /  0                          2  /  2   (zone pm_shelf3 @4.88)
+  WBUY           0  /  0                          0  /  0
+  EHGO           2  /  0                          0  /  0
+  NIKI           0  /  0                          1  /  0
+  WLDS           2  /  0                          2  /  0
+  AEHL           2  /  0                          2  /  0
+  XLO           (skip)                            0  /  0
+  ZYBT           2  /  1   (zone pm_shelf3)        6  /  1   (zone pm_shelf3 @1.55)
+  TCRT          (skip)                           (skip)
+  CDIO          (skip)                            0  /  0
+  POM           (skip)                           (skip)
+  ------------------------------------------------------------------
+  TOTALS   recorder~10s : reclaim=11  zoneflip=1
+           Alpaca~ALP10S: reclaim=21  zoneflip=3
+
+  => The 3-gate reclaim grammar and the zone-flip machine FIRE ABUNDANTLY on today's
+     archived tape (mirrors the 7/22 result: 31 replay fires vs 0 live). Rules out
+     verdict (B) gates-too-tight and verdict (C) no-clean-setup. Multiple watched
+     names (ADVB, SKYQ, JEM, ZYBT, WLDS, AEHL...) presented full flush->reclaim->curl
+     sequences today.
+
+--------------------------------------------------------------------------------
+3. ADVB RECLAIM HAND-TRACE  (Alpaca source — has real per-bar volume)
+   Marcos's live example: ADVB reclaimed VWAP ~10:20-10:32 ET, ran 15.84 -> 18.78
+   back over VWAP ~17.65 — a reclaim the bot did NOT take.
+--------------------------------------------------------------------------------
+  Machine fired 4 reclaims on ADVB today (all BEFORE Marcos's window):
+     04:52:30 c11.55 seq0 | 06:02:50 c11.38 seq1 | 07:10:50 c14.36 seq2 | 08:59:30 c15.327 seq3
+  The big 07:10 and 08:59 fires ARE the run-up over VWAP that carried ADVB into the teens.
+
+  Gate-by-gate through Marcos's 10:20-10:32 window (why it did NOT fire a NEW seq there):
+     Gate-1 (seek): needs prev_close<=VWAP AND close>VWAP on >=2x rolling-10s vol  = a fresh
+                    BELOW->ABOVE cross of the line.
+     10:22:10 c17.68  vwap[APPROX]16.68  price already ABOVE line  -> phase stays 'seek'
+     10:25:xx c17.7-18.4  vwap ~16.74     price never dips below    -> phase stays 'seek'
+     10:30:xx c18.5-19.0  vwap ~16.78     price never dips below    -> phase stays 'seek'
+     10:32:xx c18.4-18.85 vwap ~16.85     price never dips below    -> phase stays 'seek'
+  STALL POINT: Gate-1 (seek/cross). Across the entire 10:20-10:32 window ADVB sat WHOLLY
+  above the VWAP line, so there was NO below->above cross to arm the machine. The reclaim
+  cross had already happened lower (the machine caught it at 08:59, seq3). By 10:20 this was
+  a CONTINUATION above VWAP, not a reclaim OF VWAP — Gate-1 correctly finds nothing.
+
+  [CAVEAT — VWAP-line approximation]: Marcos cited the live VWAP at 17.65; the reconstructed
+  premarket-anchored line here is ~16.7-16.85 (heavy low-priced premarket volume drags it
+  down ~1pt). On the LIVE 17.65 line, price (15.84->18.78) WOULD have crossed up through
+  17.65 around 10:20 — i.e. on the real line there likely WAS a genuine reclaim cross the
+  machine could have armed on. This does not change the verdict (the machine demonstrably
+  fires on this tape), but it flags that live reclaim eligibility hinges on the exact VWAP
+  line, and the reconstructed line cannot certify the 10:20 cross either way.
+
+--------------------------------------------------------------------------------
+4. WHY ZERO LIVE — the starvation point, named from source
+--------------------------------------------------------------------------------
+  Data-flow the LIVE machines depend on (marcos_trading_bot.py):
+     Webull SNAPSHOT stream --> PriceStream._on_msg (line 960, registered at line 892
+        client.on_quotes_message=self._on_msg) --> extracts price + cumulative volume
+        --> _shadow_ingest (line 748) --> populates the bot's IN-MEMORY _shadow_bars[10]
+     watch loop #89 block (lines 4571-4623):
+        _d10 = dict(_shadow_bars[10].get(t) or {})            (lines 4588 / 4610)
+        _nb  = bars with _last_k < _k < _now_cut               (cursor slice)
+        if _nb: kev_zoneflip_step / kev_reclaim_step(...)      (only steps if _nb non-empty)
+
+  KEY FACT: the curl machines read the bot's OWN _shadow_bars, populated ONLY by the bot's
+  OWN Webull snapshot stream. That store is in-process and invisible externally; it reaches
+  the dashboard ONLY via the SIGTERM/EOD flush (also namespace ~10s). The rich ~10s and
+  ~ALP10S archives used in the replay above come from the SEPARATE recorder service and the
+  SEPARATE Alpaca capture — DIFFERENT Webull/Alpaca streams that NEVER feed the bot's
+  machines. (Confirmed: recorder.py writes "{t}~10s"; alpaca_capture.py writes "{t}~ALP10S";
+  bot _shadow_flush_payload writes "{t}~10s". The bot's machines never read any of these
+  dashboard series — only in-memory _shadow_bars.)
+
+  Live evidence (given): 0 reclaim/zoneflip/shadow rows in decisions_archive all day, and
+  railway logs grep RECLAIM|ZONE-FLIP|shadow = 0 lines. Since the replay proves the machines
+  fire whenever real 10s bars are present, ZERO live fires => the bot's _shadow_bars[10] is
+  EMPTY (or volume-less) during RTH => every _nb is empty => the machines never step.
+
+  MOST LIKELY STARVATION POINT (single, highest confidence):
+     The bot's own SNAPSHOT stream is not delivering usable ticks into _shadow_ingest during
+     the session — so _shadow_bars[10] is empty/volume-less and the curl _nb slices are empty.
+     Either the bot's stream is silent (get_price then falls back to REST, which does NOT feed
+     _shadow_ingest — _shadow_ingest is called ONLY inside _on_msg), or its snapshots arrive
+     without the cumulative-volume field so the seek/arm gate (v>=2*avgv) can never trip even
+     if price bars exist. Both produce exactly the observed 0-fire, 0-shadow-row signature.
+
+  WHY #89 CHANGED NOTHING: #89 only re-ordered the loop (moved curl-stepping ABOVE the
+  no-data guard). It does not, and cannot, manufacture bars the bot's own stream never put
+  into _shadow_bars. Order was never the whole story once _shadow_bars is empty — the fix
+  addressed a real starvation (the pullback arm-wait `continue`) but not THIS one (an empty
+  source store). Rig-proven order + empty live source = still zero.
+
+--------------------------------------------------------------------------------
+5. THE ONE FIX THIS IMPLIES
+--------------------------------------------------------------------------------
+  Decouple curl DETECTION from the bot's fragile private in-memory stream: feed the machines
+  the SAME archived 10s bars the replay proved fire — pull recorder ~10s (or Alpaca ~ALP10S)
+  per watched name from the dashboard /api/bars each loop and step kev_reclaim_step /
+  kev_zoneflip_step on those, instead of relying solely on _shadow_bars[10]. The recorder is a
+  purpose-built, restart-surviving feed that clearly saw today's tape (1000-2200 bars/name);
+  the bot's private shadow store is the single point of failure.
+
+  IMMEDIATE (read-only) DIAGNOSTIC before any code change, to confirm which half of the
+  starvation it is: add a once-per-loop canary logging len(_shadow_bars[10]) and, per watched
+  name, len(_d10) and len(_nb) plus whether the last _shadow bar carried volume>0. That makes
+  "empty store" vs "volume-less store" vs "cursor slice empty" directly observable live instead
+  of inferred. Also verify PriceStream.connected + _last_tick_ts during RTH (is the bot on the
+  0.5s MQTT cadence or the REST fallback?) — REST fallback = no _shadow_ingest = guaranteed 0.
+
+  NOTE: this is a Fable-grade change (feed re-architecture / go-live path), not an Opus tweak.
+
+--------------------------------------------------------------------------------
+APPROXIMATIONS / CAVEATS TAGGED
+  [APPROX] Reconstructed premarket-anchored typical-price VWAP != live recorder/ALP tick-VWAP
+           line (differs ~1pt on ADVB). Reclaim gating is line-sensitive; fire COUNTS above are
+           lower/upper-bounded by this, not exact live-eligibility.
+  [SOURCE ] recorder~10s and Alpaca~ALP10S are DIFFERENT streams from each other and from the
+           bot's _shadow_bars; per-name counts and fires differ between them accordingly.
+  [SKIP  ] TCRT and POM un-judgeable (<50 bars in both sources); XLO/CDIO judgeable on ALP only.
+  [SCOPE ] This run proves machines-fire-on-tape + names the live starvation from source; it did
+           NOT (cannot, read-only/no-restart) directly inspect the running bot's _shadow_bars.

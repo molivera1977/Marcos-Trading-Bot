@@ -3510,6 +3510,25 @@ RECLAIM_LIVE_END   = os.environ.get("RECLAIM_LIVE_END", "11:00")
 _reclaim_st: dict = {}        # sym -> state machine (daily-keyed inside)
 _reclaim_cursor: dict = {}    # (day, sym) -> last processed 10s bucket epoch
 
+def _shadow_log_curl_leftovers(t, price, zf_fire, vr_fire, sv, why):
+    """#89: a curl-machine fire that lost entry priority (or hit a loop `continue`) is still
+    EVIDENCE — shadow-log it, never drop it. Called at every early-exit site in the watch loop."""
+    if not (zf_fire or vr_fire):
+        return
+    _hm = datetime.now(EASTERN).strftime("%H:%M")
+    try:
+        if zf_fire:
+            _log_decision(t, "zoneflip_shadow_fire", price=price, zone=zf_fire.get("zone"),
+                          zone_src=zf_fire.get("zone_src"), stop=zf_fire.get("stop"),
+                          time_hm=_hm, seq=zf_fire.get("seq", 0), why=why)
+        if vr_fire:
+            _log_decision(t, "reclaim_shadow_fire", price=price, vwap=sv,
+                          stop=vr_fire.get("stop"), time_hm=_hm,
+                          seq=vr_fire.get("seq", 0), why=why)
+    except Exception:
+        pass
+
+
 def kev_reclaim_step(sym, new_bars, vwap):
     """Advance sym's 3-gate machine over NEW completed 10s bars [(o,h,l,c,vol),...] against the
     current session line. Returns {'stop','wick_low'} exactly ONCE (on the curl), else None."""
@@ -4550,6 +4569,58 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 status_parts.append(f"{t}:no data")
                 continue
 
+            # ── #89 FIX (7/23): CURL DETECTORS ALWAYS STEP. The pullback arm-wait `continue`s below
+            # starved zone-flip/reclaim of bars on every armed pass — and movers are perpetually armed
+            # (813 arms 7/22), so 31 replay fires produced ZERO live rows ever. Integrator law:
+            # DETECTION is unconditional (the rocket-detector pattern); entry SELECTION below stays
+            # priority-ordered. Machines step HERE; fires are stashed; the branches below consume
+            # them; a fire that loses priority is shadow-logged via _shadow_log_curl_leftovers. ──
+            _zf_fire = None
+            _vr_fire = None
+            _vr_sv = 0.0
+            if ZONEFLIP_KEV:
+                _zf_nb = []
+                _cur_z = (datetime.now(EASTERN).strftime("%Y-%m-%d"), t)
+                _last_z = _zf_cursor.get(_cur_z, 0)
+                _cut_z = int(time.time()) // 10 * 10           # exclude the still-forming bucket
+                with _shadow_lock:
+                    _d10z = dict(_shadow_bars[10].get(t) or {})
+                for _k in sorted(_d10z):
+                    if _last_z < _k < _cut_z:
+                        _b = _d10z[_k]
+                        _zf_nb.append((_k, _b["o"], _b["h"], _b["l"], _b["c"],
+                                       max((_b.get("v1") or 0) - (_b.get("v0") or 0), 0)))
+                        _zf_cursor[_cur_z] = _k
+                if _zf_nb:
+                    _zf_fire = kev_zoneflip_step(t, _zf_nb)
+                    if _zf_fire:
+                        # evidence logged AT DETECTION — no downstream `continue` can ever drop it
+                        _shadow_log_curl_leftovers(t, price, _zf_fire, None, 0.0, "detected")
+            if RECLAIM_KEV:
+                # PATH-1 (#67) preserved: line = tick-VWAP when sane, else the bar line.
+                _tickv = _recorder_tick_vwap(t)
+                _vr_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap
+                if _vr_sv and _vr_sv > 0:
+                    _nb = []
+                    _cur_key = (datetime.now(EASTERN).strftime("%Y-%m-%d"), t)
+                    _last_k = _reclaim_cursor.get(_cur_key, 0)
+                    _now_cut = int(time.time()) // 10 * 10     # exclude the still-forming bucket
+                    with _shadow_lock:
+                        _d10 = dict(_shadow_bars[10].get(t) or {})
+                    _fed_k = 0
+                    for _k in sorted(_d10):
+                        if _last_k < _k < _now_cut:
+                            _b = _d10[_k]
+                            _nb.append((_b["o"], _b["h"], _b["l"], _b["c"],
+                                        max((_b.get("v1") or 0) - (_b.get("v0") or 0), 0)))
+                            _fed_k = _k
+                    if _nb:
+                        _vr_fire = kev_reclaim_step(t, _nb, _vr_sv)
+                        _reclaim_cursor[_cur_key] = _fed_k     # cursor advances ONLY on bars actually FED
+                                                               # (old code advanced it even when _sv<=0 dropped them)
+                        if _vr_fire:
+                            _shadow_log_curl_leftovers(t, price, None, _vr_fire, _vr_sv, "detected")
+
             # ── Entry type: IGNITION (7/4) — runs FIRST, BEFORE the 3-min-EMA warmup guard below, because it
             #    reads 1-MIN SESSION bars + the volume-acceleration surge and does NOT need the 3-min EMAs
             #    (not warm in the ignition window). The ONE entry NOT gated on above-VWAP (quiet base sits below
@@ -4902,107 +4973,70 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             #    LIVE fires only 09:30–11:00 ("this entry requires volume; volume is early" — Marcos);
             #    fires outside the window are SHADOW-LOGGED, no trade. Line = recorder session VWAP
             #    (premarket-anchored, repaired); bars = in-process 10s stream — the kill-test's inputs. ──
-            # ── ZONE-FLIP (7/20 Marcos: live slot; VWAP-reclaim demoted to shadow below) ──
-            if not found_entry and ZONEFLIP_KEV:
-                _zf_nb = []
-                _day_z = datetime.now(EASTERN).strftime("%Y-%m-%d")
-                _cur_z = (_day_z, t)
-                _last_z = _zf_cursor.get(_cur_z, 0)
-                _cut_z = int(time.time()) // 10 * 10           # exclude the still-forming bucket
-                with _shadow_lock:
-                    _d10z = dict(_shadow_bars[10].get(t) or {})
-                for _k in sorted(_d10z):
-                    if _last_z < _k < _cut_z:
-                        _b = _d10z[_k]
-                        _zf_nb.append((_k, _b["o"], _b["h"], _b["l"], _b["c"],
-                                       max((_b.get("v1") or 0) - (_b.get("v0") or 0), 0)))
-                        _zf_cursor[_cur_z] = _k
-                if _zf_nb:
-                    zf = kev_zoneflip_step(t, _zf_nb)
-                    if zf:
-                        zf_stop = zf["stop"]
-                        _hm = datetime.now(EASTERN).strftime("%H:%M")
-                        # LIVE = the day's FIRST fire, ALL DAY (Marcos 7/20: "I want the zone
-                        # flip all day live"); later fires (seq 1+) = shadow evidence.
-                        if zf.get("seq", 0) == 0:
-                            if "daily" not in cache[t]:
-                                cache[t]["daily"] = get_daily_levels(t)
-                            _daily = cache[t]["daily"]
-                            room = compute_room(price, zf_stop, cache[t].get("full_bars") or bars,
-                                                daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
-                            print(f"\n🟣 {t} ZONE-FLIP (Kev pm-shelf)! ${price:.2f} curl off "
-                                  f"{zf['zone_src']} ${zf['zone']:.2f} — stop ${zf_stop:.2f}")
-                            breakouts.append((t, price, zf["zone"], "zone_flip", {
-                                "zone_stop": zf_stop, "room": room, "ema90": round(ema90, 4),
-                                "front_side": ema9 > ema20 > 0, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
-                                "reclaim_subtype": "zone_flip",
-                                "zf_zone": zf["zone"], "zf_zone_src": zf["zone_src"],
-                                "zf_flush_low": zf["flush_low"],
-                            }))
-                            _log_decision(t, "triggered_zone_flip", price=price, zone=zf["zone"],
-                                          zone_src=zf["zone_src"], stop=zf_stop)
-                            found_entry = True
-                        else:
-                            _whyz = f"seq{zf.get('seq', 0)}"
-                            print(f"👥 {t} ZONE-FLIP fired {_hm} (seq{zf.get('seq', 0)}, {_whyz}) "
-                                  f"— SHADOW logged, no trade")
-                            _log_decision(t, "zoneflip_shadow_fire", price=price, zone=zf["zone"],
-                                          zone_src=zf["zone_src"], stop=zf_stop, time_hm=_hm,
-                                          seq=zf.get("seq", 0))
+            # ── ZONE-FLIP (7/20 Marcos: live slot) — #89: machine already stepped at loop top;
+            #    this branch only CONSUMES the stashed fire. ──
+            if _zf_fire and not found_entry:
+                zf = _zf_fire
+                _zf_fire = None                                # consumed — leftover logger must not re-log
+                zf_stop = zf["stop"]
+                _hm = datetime.now(EASTERN).strftime("%H:%M")
+                # LIVE = the day's FIRST fire, ALL DAY (Marcos 7/20: "I want the zone
+                # flip all day live"); later fires (seq 1+) = shadow evidence.
+                if zf.get("seq", 0) == 0:
+                    if "daily" not in cache[t]:
+                        cache[t]["daily"] = get_daily_levels(t)
+                    _daily = cache[t]["daily"]
+                    room = compute_room(price, zf_stop, cache[t].get("full_bars") or bars,
+                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                    print(f"\n🟣 {t} ZONE-FLIP (Kev pm-shelf)! ${price:.2f} curl off "
+                          f"{zf['zone_src']} ${zf['zone']:.2f} — stop ${zf_stop:.2f}")
+                    breakouts.append((t, price, zf["zone"], "zone_flip", {
+                        "zone_stop": zf_stop, "room": room, "ema90": round(ema90, 4),
+                        "front_side": ema9 > ema20 > 0, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
+                        "reclaim_subtype": "zone_flip",
+                        "zf_zone": zf["zone"], "zf_zone_src": zf["zone_src"],
+                        "zf_flush_low": zf["flush_low"],
+                    }))
+                    _log_decision(t, "triggered_zone_flip", price=price, zone=zf["zone"],
+                                  zone_src=zf["zone_src"], stop=zf_stop)
+                    found_entry = True
+                else:
+                    _whyz = f"seq{zf.get('seq', 0)}"
+                    print(f"👥 {t} ZONE-FLIP fired {_hm} (seq{zf.get('seq', 0)}, {_whyz}) "
+                          f"— shadow row already logged at detection, no trade")
 
-            if not found_entry and RECLAIM_KEV:
-                # PATH-1 FIX (7/21 #67): the tick-VWAP sanity gate used to be an entry KILL-SWITCH —
-                # tick missing/clamp-rejected → _nb never built → kev_reclaim_step never ran (reclaim
-                # blind on exactly the fast movers whose tick line diverges: CPHI/EXYN/AIFF 7/21).
-                # DECOUPLE: the machine always gets its bars; the VWAP line degrades gracefully —
-                # tick when sane, else the bar line (pre+RTH session VWAP, the known-good −0.7% anchor).
-                _tickv = _recorder_tick_vwap(t)
-                _sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap
-                _nb = []
-                if _sv and _sv > 0:
-                    _day_k = datetime.now(EASTERN).strftime("%Y-%m-%d")
-                    _cur_key = (_day_k, t)
-                    _last_k = _reclaim_cursor.get(_cur_key, 0)
-                    _now_cut = int(time.time()) // 10 * 10          # exclude the still-forming bucket
-                    with _shadow_lock:
-                        _d10 = dict(_shadow_bars[10].get(t) or {})
-                    for _k in sorted(_d10):
-                        if _last_k < _k < _now_cut:
-                            _b = _d10[_k]
-                            _nb.append((_b["o"], _b["h"], _b["l"], _b["c"],
-                                        max((_b.get("v1") or 0) - (_b.get("v0") or 0), 0)))
-                            _reclaim_cursor[_cur_key] = _k
-                if _nb:
-                    vr = kev_reclaim_step(t, _nb, _sv)
-                    if vr:
-                        vr_stop = vr["stop"]
-                        _hm = datetime.now(EASTERN).strftime("%H:%M")
-                        # 7/20 FINAL: BOTH machines live — this one first-fire in 09:30–11:00
-                        # (its verified window), shadow otherwise. RECLAIM_LIVE=0 re-demotes.
-                        if RECLAIM_LIVE and vr.get("seq", 0) == 0 and RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
-                            if "daily" not in cache[t]:
-                                cache[t]["daily"] = get_daily_levels(t)
-                            _daily = cache[t]["daily"]
-                            room = compute_room(price, vr_stop, cache[t].get("full_bars") or bars,
-                                                daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
-                            print(f"\n🔵 {t} KEV RECLAIM (3-gate)! ${price:.2f} wick-confirmed off session "
-                                  f"VWAP ${_sv:.2f} — stop ${vr_stop:.2f}")
-                            breakouts.append((t, price, _sv, "vwap_reclaim", {
-                                "zone_stop": vr_stop, "room": room, "ema90": round(ema90, 4),
-                                "front_side": ema9 > ema20 > 0, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
-                                "reclaim_subtype": "kev3gate",
-                                "entry_vs_session_vwap_pct": round((price - _sv) / _sv * 100, 2),
-                            }))
-                            _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv)
-                            found_entry = True
-                        else:
-                            _why = ("demoted-to-shadow" if not RECLAIM_LIVE
-                                    else "late-window" if not (RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END)
-                                    else f"seq{vr.get('seq', 0)}")
-                            print(f"👥 {t} KEV RECLAIM fired {_hm} (seq{vr.get('seq', 0)}, {_why}) "
-                                  f"— SHADOW logged, no trade")
-                            _log_decision(t, "reclaim_shadow_fire", price=price, vwap=_sv,
-                                          stop=vr_stop, time_hm=_hm, seq=vr.get("seq", 0))
+            # ── VWAP RECLAIM (KEV 3-GATE) — #89: machine already stepped at loop top (with the
+            #    #67 PATH-1 line: tick when sane, else bar); this branch only CONSUMES the fire. ──
+            if _vr_fire and not found_entry:
+                vr = _vr_fire
+                _vr_fire = None                                # consumed — leftover logger must not re-log
+                _sv = _vr_sv
+                vr_stop = vr["stop"]
+                _hm = datetime.now(EASTERN).strftime("%H:%M")
+                # 7/20 FINAL: BOTH machines live — this one first-fire in 09:30–11:00
+                # (its verified window), shadow otherwise. RECLAIM_LIVE=0 re-demotes.
+                if RECLAIM_LIVE and vr.get("seq", 0) == 0 and RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
+                    if "daily" not in cache[t]:
+                        cache[t]["daily"] = get_daily_levels(t)
+                    _daily = cache[t]["daily"]
+                    room = compute_room(price, vr_stop, cache[t].get("full_bars") or bars,
+                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                    print(f"\n🔵 {t} KEV RECLAIM (3-gate)! ${price:.2f} wick-confirmed off session "
+                          f"VWAP ${_sv:.2f} — stop ${vr_stop:.2f}")
+                    breakouts.append((t, price, _sv, "vwap_reclaim", {
+                        "zone_stop": vr_stop, "room": room, "ema90": round(ema90, 4),
+                        "front_side": ema9 > ema20 > 0, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
+                        "reclaim_subtype": "kev3gate",
+                        "entry_vs_session_vwap_pct": round((price - _sv) / _sv * 100, 2),
+                    }))
+                    _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv)
+                    found_entry = True
+                else:
+                    _why = ("demoted-to-shadow" if not RECLAIM_LIVE
+                            else "late-window" if not (RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END)
+                            else f"seq{vr.get('seq', 0)}")
+                    print(f"👥 {t} KEV RECLAIM fired {_hm} (seq{vr.get('seq', 0)}, {_why}) "
+                          f"— shadow row already logged at detection, no trade")
 
             if not found_entry and t not in [s.split(":")[0] for s in status_parts]:
                 status_parts.append(f"{t}:${price:.2f} EMA9:${ema9:.2f}{vwap_tag}")

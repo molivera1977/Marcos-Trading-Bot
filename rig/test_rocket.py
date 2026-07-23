@@ -96,6 +96,21 @@ check("T22b #87 sanity clamps unchanged: _tick_vwap_ok still gates BOTH call sit
       SRC.count("_tick_vwap_ok(") >= 3 and "def _fetch_series_last_vwap" in SRC
       and "for _sfx in _TICKVWAP_SUFFIXES" in SRC)
 
+check("T23 #89 curl detectors ALWAYS step: early block sits BEFORE the pullback arm site",
+      "CURL DETECTORS ALWAYS STEP" in SRC
+      and SRC.index("CURL DETECTORS ALWAYS STEP") < SRC.index('_log_decision(t, "break_armed"'))
+check("T23b #89 single-step: exactly one call site per machine (no double-feed)",
+      SRC.count("kev_zoneflip_step(t,") == 1 and SRC.count("kev_reclaim_step(t,") == 1)
+check("T23c #89 evidence at DETECTION (no continue can drop a fire) + consumers consume stash",
+      SRC.count('"detected"') == 2 and "def _shadow_log_curl_leftovers" in SRC
+      and "if _zf_fire and not found_entry:" in SRC and "if _vr_fire and not found_entry:" in SRC
+      and "_zf_fire = None" in SRC and "_vr_fire = None" in SRC)
+check("T23d #89 old starved branches GONE (fail-without-fix)",
+      "if not found_entry and ZONEFLIP_KEV:" not in SRC
+      and "if not found_entry and RECLAIM_KEV:" not in SRC)
+check("T23e #89 reclaim cursor advances only on FED bars (no consume-and-drop when line missing)",
+      "_reclaim_cursor[_cur_key] = _fed_k" in SRC and "_fed_k = 0" in SRC)
+
 check("T14 path-1: reclaim VWAP degrades gracefully (tick if sane else bar), not a kill-switch",
       "_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap" in SRC
       and "if _sv and _tick_vwap_ok(_sv, vwap, price):\n                    _day_k" not in SRC)

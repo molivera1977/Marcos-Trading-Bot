@@ -1825,6 +1825,93 @@ def tale_of_the_ticker(ticker):
             + tk + "'>chart ↗</a></div>"
             "</body></html>")
 
+@app.route("/premarket")
+def premarket_dashboard():
+    """PREMARKET — TALE OF THE TAPES (Marcos 7/23: 'can we add a pre-market dashboard with tale
+    of the tapes'). One page for the 3:55-9:30 shadow session: every watched name's latest tape
+    read, the shadow fires as they land, Kev's levels, and a Tale link per name. Read-only,
+    renders from in-process stores, auto-refreshes every 30s."""
+    now = datetime.now(EASTERN)
+    today = now.strftime("%Y-%m-%d")
+    hm = now.strftime("%H:%M:%S")
+    # roster = Kev sheet ∪ today's persisted watch union ∪ live snapshot
+    kev = [str(t).upper() for t in _kev_wl.get(today, [])]
+    lv = _kev_wl.get("_levels", {}).get(today, {}) or {}
+    names = sorted({*kev, *(_watch_hist.get(today, []) or []),
+                    *(str(t).upper() for t in (_watching.get("tickers") or []))})
+    # today's decisions, newest last in store — index per ticker + collect shadow fires
+    SHADOW = ("premarket_shadow_entry", "reclaim_shadow_fire", "zoneflip_shadow_fire")
+    last_row, fire_count, fires = {}, {}, []
+    for r in _decisions:
+        if r.get("date") != today:
+            continue
+        t = str(r.get("ticker") or "").upper()
+        if t:
+            last_row[t] = r
+        st = r.get("status") or ""
+        if st in SHADOW:
+            fires.append(r)
+            fire_count[t] = fire_count.get(t, 0) + 1
+    fires = fires[-60:][::-1]
+
+    def esc(x):
+        return (str(x).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+    def fmt(x):
+        try: return "$%.2f" % float(x)
+        except (TypeError, ValueError): return "—"
+
+    entries_open = now.strftime("%H:%M") >= "09:30"
+    banner = ("ENTRIES OPEN — live trading" if entries_open
+              else "SHADOW SESSION — watching + logging, entries open 09:30")
+    bcol = "#3fb950" if entries_open else "#d29922"
+    rows_html = []
+    for t in names:
+        r = last_row.get(t) or {}
+        d = lv.get(t) or {}
+        kevcell = (fmt(d.get("break")) + (" → " + "/".join(fmt(x) for x in d.get("targets", [])) if d.get("targets") else "")) if d else "—"
+        seen = esc(r.get("time") or (str(r.get("recorded_at") or "")[11:19]) or "—")
+        rows_html.append(
+            "<tr><td><a href='/tale/" + esc(t) + "' style='color:#58a6ff'>" + esc(t) + "</a>"
+            + (" ⭐" if t in kev else "") + "</td>"
+            "<td>" + fmt(r.get("price")) + "</td>"
+            "<td class='st'>" + esc(r.get("status") or "no rows yet") + "</td>"
+            "<td>" + seen + "</td>"
+            "<td>" + kevcell + "</td>"
+            "<td>" + (("<b style='color:#d29922'>" + str(fire_count.get(t, 0)) + "</b>") if fire_count.get(t) else "0") + "</td></tr>")
+    fires_html = []
+    for r in fires:
+        st = r.get("status")
+        col = "#d29922" if st == "premarket_shadow_entry" else "#a371f7"
+        fires_html.append(
+            "<tr><td>" + esc(r.get("time_hm") or r.get("time") or str(r.get("recorded_at") or "")[11:16]) + "</td>"
+            "<td><a href='/tale/" + esc(r.get("ticker")) + "' style='color:#58a6ff'>" + esc(r.get("ticker")) + "</a></td>"
+            "<td style='color:" + col + "'>" + esc(r.get("entry_type") or st) + "</td>"
+            "<td>" + fmt(r.get("price")) + "</td>"
+            "<td>" + fmt(r.get("stop")) + "</td>"
+            "<td class='st'>" + esc(st) + "</td></tr>")
+    html = ("<html><head><title>Premarket — Tale of the Tapes</title>"
+            "<meta http-equiv='refresh' content='30'>"
+            "<style>body{background:#0d1117;color:#c9d1d9;font-family:monospace;margin:20px}"
+            "h1{color:#e6edf3;font-size:20px} h2{color:#8b949e;font-size:14px;margin-top:24px}"
+            "table{border-collapse:collapse;width:100%;font-size:13px}"
+            "td,th{border-bottom:1px solid #21262d;padding:6px 10px;text-align:left}"
+            "th{color:#8b949e} .st{color:#8b949e;font-size:12px}"
+            ".banner{padding:8px 12px;border-radius:6px;border:1px solid " + bcol + ";color:" + bcol + ";display:inline-block}"
+            "</style></head><body>"
+            "<h1>🌅 PREMARKET — TALE OF THE TAPES <span style='color:#8b949e;font-size:13px'>" + today + " " + hm + " ET · auto-refresh 30s</span></h1>"
+            "<div class='banner'>" + banner + "</div>"
+            "<h2>SHADOW FIRES (" + str(len(fires)) + " today — the scorecard rows)</h2>"
+            "<table><tr><th>time</th><th>ticker</th><th>lane</th><th>price</th><th>stop</th><th>row</th></tr>"
+            + ("".join(fires_html) or "<tr><td colspan=6 class='st'>none yet — machines watching</td></tr>")
+            + "</table>"
+            "<h2>THE TAPES (" + str(len(names)) + " names · ⭐ = Kev sheet · click for full Tale)</h2>"
+            "<table><tr><th>ticker</th><th>last px seen</th><th>latest read</th><th>at</th><th>Kev level → targets</th><th>fires</th></tr>"
+            + ("".join(rows_html) or "<tr><td colspan=6 class='st'>roster empty — bot not awake yet</td></tr>")
+            + "</table></body></html>")
+    return html
+
+
 @app.route("/api/room_stats", methods=["GET"])
 def get_room_stats():
     """Audit view: trades taken (with their room) vs entries the gate rejected, by supply source."""

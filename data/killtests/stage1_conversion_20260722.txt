@@ -1,0 +1,619 @@
+#88 STAGE-1 v2 EPISODE-CORRECT — 2026-07-22
+episodes=491 scored=334
+a_no_pullback 199
+b1_curl_gate_missed 69
+b2_no_curl_correct_skip 66
+skip_nolevel 0
+skip_nobars 157
+
+[b1]
+  OMH 12:25->12:29 low 0.371 level 0.3725
+  OMH 12:32->12:44 low 0.372 level 0.38
+  OMH 14:18->14:26 low 0.35 level 0.36
+  KUST 12:02->12:06 low 1.25 level 1.27
+  KUST 13:19->13:24 low 1.33 level 1.33
+  KUST 13:52->13:56 low 1.43 level 1.45
+  KUST 14:13->14:17 low 1.42 level 1.455
+  AEHL 11:16->11:23 low 0.656 level 0.6672
+  AEHL 11:25->11:29 low 0.68 level 0.6925
+  AEHL 11:55->12:01 low 0.64 level 0.6469
+  AEHL 12:36->12:40 low 0.6066 level 0.6156
+  AEHL 13:06->13:10 low 0.6077 level 0.6141
+  AEHL 13:37->13:42 low 0.58 level 0.58
+  AEHL 14:06->14:18 low 0.5746 level 0.5899
+  AEHL 14:20->14:26 low 0.5999 level 0.6049
+  INM 11:18->11:23 low 1.89 level 1.905
+  INM 11:23->11:27 low 1.9 level 1.925
+  INM 12:28->12:33 low 1.76 level 1.775
+  INM 13:24->13:29 low 1.8 level 1.8
+  INM 14:05->14:43 low 1.64 level 1.695
+  INM 14:48->14:52 low 1.72 level 1.725
+  INM 14:54->14:59 low 1.72 level 1.74
+  MSS 10:39->12:15 low 2.4 level 2.465
+  MSS 12:40->12:44 low 2.6 level 2.62
+  MSS 12:59->13:17 low 2.62 level 2.65
+  MSS 13:25->13:29 low 2.64 level 2.6728
+  MSS 14:39->14:44 low 2.625 level 2.6263
+  MSS 14:50->14:54 low 2.7099 level 2.71
+  MSS 14:55->15:15 low 2.741 level 2.76
+  MTEN 12:24->12:29 low 1.28 level 1.28
+  SLGB 14:00->14:16 low 0.6799 level 0.69
+  SLGB 14:59->15:03 low 0.7101 level 0.7096
+  JTAI 11:08->11:13 low 2.65 level 2.68
+  JTAI 13:16->13:25 low 2.54 level 2.565
+  CJMB 10:53->11:39 low 1.3273 level 1.48
+  DRIO 11:50->13:33 low 7.4 level 7.42
+  SLNG 13:56->14:03 low 4.55 level 4.59
+  LHSW 10:59->11:13 low 2.495 level 2.5555
+  LHSW 13:00->13:07 low 2.386 level 2.4293
+  LHSW 13:19->13:27 low 2.4941 level 2.685
+  LHSW 14:27->14:37 low 2.1601 level 2.34
+  HKIT 11:33->11:38 low 3.505 level 3.5299
+  HKIT 14:03->14:16 low 3.5601 level 3.5999
+  HKIT 14:16->14:21 low 3.6 level 3.5999
+  HKIT 14:22->14:26 low 3.56 level 3.6
+  MF 13:47->13:56 low 5.13 level 5.1657
+  FTFT 11:33->11:41 low 1.5499 level 1.5569
+  CLIK 11:43->12:10 low 1.57 level 1.58
+  GDC 12:25->12:33 low 1.8 level 1.83
+  GDC 12:34->12:41 low 1.8399 level 1.8891
+  GDC 13:00->13:06 low 1.82 level 1.8153
+  GDC 13:29->13:35 low 1.94 level 1.9499
+  GDC 14:16->14:21 low 1.94 level 1.95
+  GDC 14:21->14:27 low 1.9602 level 1.9999
+  GDC 14:28->14:37 low 1.9622 level 2.05
+  EZGO 13:58->14:03 low 1.0701 level 1.075
+  NEGG 12:19->12:23 low 15.0 level 15.0311
+  NEGG 13:17->13:22 low 15.4 level 15.49
+  NEGG 13:24->13:29 low 15.325 level 15.6
+  NEGG 13:29->13:35 low 15.615 level 15.7699
+  NEGG 14:42->14:46 low 15.5205 level 15.46
+  NEGG 14:46->14:51 low 15.56 level 15.5
+  VSME 13:22->13:27 low 1.38 level 1.39
+  VSME 14:52->14:57 low 1.33 level 1.33
+  VSME 14:57->15:03 low 1.29 level 1.35
+  UK 14:50->14:56 low 2.1548 level 2.15
+  LVLU 13:56->14:37 low 17.665 level 18.33
+  LVLU 14:58->15:03 low 18.12 level 18.6564
+  PN 13:21->13:25 low 5.0001 level 5.01
+
+[a]
+  KUST 12:42->12:46 low 1.29 level 1.265
+  PAPL 12:57->13:42 low 0.9615 level 0.8387
+  PAPL 13:42->13:46 low 0.9701 level 0.8387
+  PAPL 13:58->14:03 low 0.9709 level 0.8387
+  MSS 12:27->12:31 low 2.5 level 2.47
+  MTEN 10:51->11:08 low 1.27 level 1.09
+  SLGB 13:07->13:12 low 0.6886 level 0.6824
+  SLGB 13:35->13:40 low 0.6889 level 0.6799
+  JTAI 10:39->10:51 low 2.57 level 2.41
+  JTAI 11:32->11:36 low 2.59 level 2.41
+  JTAI 11:37->11:41 low 2.6459 level 2.41
+  JTAI 11:43->11:47 low 2.645 level 2.41
+  JTAI 11:48->11:58 low 2.61 level 2.41
+  JTAI 11:58->12:03 low 2.61 level 2.41
+  JTAI 12:04->12:08 low 2.61 level 2.41
+  JTAI 12:53->12:57 low 2.5 level 2.41
+  JTAI 12:58->13:06 low 2.54 level 2.41
+  JTAI 13:11->13:16 low 2.54 level 2.41
+  JTAI 13:38->13:42 low 2.54 level 2.41
+  JTAI 13:54->13:58 low 2.54 level 2.41
+  JTAI 14:00->14:28 low 2.51 level 2.41
+  CJMB 10:43->10:51 low 1.66 level 1.56
+  CJMB 13:10->13:15 low 1.64 level 1.56
+  CJMB 13:16->13:20 low 1.6404 level 1.56
+  CJMB 13:21->13:25 low 1.645 level 1.56
+  CJMB 13:26->13:31 low 1.6 level 1.56
+  CJMB 13:32->13:47 low 1.6207 level 1.56
+  DRIO 11:08->11:13 low 7.8555 level 7.55
+  DRIO 11:23->11:27 low 7.5 level 7.42
+  DRIO 11:28->11:33 low 7.5 level 7.42
+  DRIO 13:56->14:00 low 7.59 level 7.42
+  DRIO 14:00->14:26 low 7.59 level 7.42
+  SLNG 11:58->12:03 low 4.39 level 3.9153
+  SLNG 12:04->12:08 low 4.5001 level 3.9153
+  SLNG 12:10->12:15 low 4.505 level 3.9153
+  SLNG 12:15->12:20 low 4.5601 level 3.9153
+  SLNG 12:33->12:40 low 4.51 level 3.9153
+  SLNG 13:02->13:06 low 4.6386 level 3.9153
+  SLNG 13:07->13:11 low 4.62 level 3.9153
+  SLNG 13:12->13:16 low 4.64 level 3.9153
+  SLNG 13:17->13:22 low 4.49 level 3.9153
+  SLNG 13:46->13:51 low 4.48 level 3.9153
+  SLNG 14:03->14:16 low 4.58 level 3.9153
+  SLNG 14:22->14:26 low 4.7327 level 3.9153
+  SLNG 14:27->14:37 low 4.73 level 3.9153
+  SLNG 14:37->14:42 low 4.715 level 3.9153
+  SLNG 14:42->14:47 low 4.69 level 3.9153
+  SLNG 14:47->14:52 low 4.6801 level 3.9153
+  SLNG 15:00->15:04 low 4.6301 level 3.9153
+  SLNG 15:05->15:15 low 4.63 level 3.9153
+  LHSW 11:18->11:23 low 2.6 level 2.34
+  LHSW 11:23->11:27 low 2.66 level 2.34
+  LHSW 11:28->11:33 low 2.608 level 2.34
+  LHSW 11:33->11:38 low 2.641 level 2.34
+  LHSW 11:39->11:43 low 2.54 level 2.34
+  LHSW 11:49->11:58 low 2.52 level 2.34
+  LHSW 11:58->12:03 low 2.41 level 2.34
+  LHSW 13:08->13:12 low 2.46 level 2.44
+  LHSW 13:12->13:18 low 2.49 level 2.46
+  LHSW 13:29->13:33 low 2.56 level 2.34
+  LHSW 13:34->13:38 low 2.61 level 2.34
+  LHSW 13:39->13:43 low 2.56 level 2.34
+  LHSW 13:44->13:48 low 2.586 level 2.34
+  LHSW 14:00->14:16 low 2.59 level 2.34
+  LHSW 14:37->15:15 low 2.46 level 2.34
+  LHSW 15:15->15:20 low 2.488 level 2.34
+  HKIT 11:05->11:13 low 3.31 level 3.105
+  HKIT 11:13->11:27 low 3.35 level 3.105
+  HKIT 11:27->11:32 low 3.451 level 3.105
+  HKIT 11:48->11:58 low 3.5032 level 3.105
+  HKIT 12:06->12:10 low 3.55 level 3.105
+  HKIT 12:11->12:15 low 3.44 level 3.105
+  HKIT 12:25->12:29 low 3.47 level 3.105
+  HKIT 12:36->12:40 low 3.535 level 3.105
+  HKIT 12:41->12:46 low 3.575 level 3.55
+  HKIT 12:53->12:57 low 3.48 level 3.105
+  HKIT 13:07->13:24 low 3.49 level 3.105
+  HKIT 13:26->13:31 low 3.548 level 3.105
+  HKIT 13:31->13:38 low 3.5136 level 3.105
+  HKIT 13:39->13:43 low 3.5189 level 3.105
+  HKIT 13:44->13:48 low 3.55 level 3.105
+  HKIT 13:50->13:54 low 3.5565 level 3.105
+  HKIT 13:55->14:00 low 3.58 level 3.56
+  HKIT 14:26->14:37 low 3.605 level 3.105
+  HKIT 14:37->14:42 low 3.595 level 3.105
+  HKIT 14:42->14:47 low 3.595 level 3.105
+  HKIT 14:47->14:52 low 3.6499 level 3.105
+  HKIT 14:52->14:57 low 3.7 level 3.65
+  HKIT 14:57->15:03 low 3.6501 level 3.105
+  HKIT 15:04->15:15 low 3.69 level 3.105
+  HKIT 15:15->15:20 low 3.55 level 3.105
+  GELS 11:10->11:15 low 0.6607 level 0.6257
+  GELS 11:23->11:27 low 0.6491 level 0.6257
+  GELS 11:33->11:38 low 0.649 level 0.6257
+  MF 11:13->11:23 low 5.16 level 3.875
+  MF 11:23->11:27 low 5.41 level 3.875
+  MF 11:28->11:33 low 5.21 level 3.875
+  MF 11:33->11:38 low 5.21 level 3.875
+  MF 11:44->11:49 low 5.34 level 3.875
+  MF 11:50->12:48 low 5.0501 level 3.875
+  MF 12:49->12:53 low 5.14 level 3.875
+  MF 12:59->13:42 low 5.115 level 3.875
+  MF 13:42->13:46 low 5.13 level 3.875
+  MF 13:56->14:00 low 5.335 level 5.2
+  MF 14:00->15:00 low 5.1 level 3.875
+  MGRX 11:25->11:29 low 0.53 level 0.5
+  ADVB 11:23->11:27 low 10.8001 level 9.27
+  ADVB 11:27->11:32 low 10.75 level 9.27
+  ADVB 11:33->11:39 low 10.1101 level 9.27
+  ADVB 11:40->11:44 low 10.0 level 9.27
+  ADVB 11:45->11:50 low 10.7101 level 9.27
+  ADVB 11:51->11:58 low 10.23 level 9.27
+  ADVB 11:58->12:03 low 10.79 level 9.27
+  ADVB 12:04->12:08 low 11.1 level 9.27
+  ADVB 12:19->12:24 low 10.7 level 9.27
+  ADVB 12:24->12:28 low 11.29 level 9.27
+  ADVB 12:29->12:33 low 11.2901 level 9.27
+  ADVB 14:56->15:03 low 12.52 level 9.27
+  ADVB 15:05->15:19 low 12.05 level 9.27
+  QMLS 11:23->11:27 low 8.0 level 6.6799
+  QMLS 11:27->11:32 low 7.55 level 6.6799
+  QMLS 11:33->11:38 low 7.7101 level 6.6799
+  QMLS 11:39->11:43 low 7.9 level 6.6799
+  QMLS 11:44->11:49 low 7.8 level 6.6799
+  FTFT 11:47->12:06 low 1.529 level 1.5001
+  FTFT 12:32->12:40 low 1.53 level 1.5001
+  CDTG 11:31->11:36 low 1.14 level 1.07
+  GDC 11:47->11:58 low 1.73 level 1.55
+  GDC 11:58->12:03 low 1.74 level 1.55
+  GDC 12:04->12:08 low 1.752 level 1.55
+  GDC 12:10->12:15 low 1.7789 level 1.55
+  GDC 12:15->12:19 low 1.8 level 1.55
+  GDC 12:20->12:24 low 1.785 level 1.55
+  GDC 12:42->12:46 low 1.81 level 1.55
+  GDC 12:46->12:59 low 1.7 level 1.55
+  GDC 13:06->13:11 low 1.87 level 1.85
+  GDC 13:12->13:16 low 1.88 level 1.55
+  GDC 13:17->13:22 low 1.885 level 1.55
+  GDC 13:22->13:27 low 1.91 level 1.55
+  GDC 13:35->13:40 low 1.93 level 1.55
+  GDC 13:41->13:46 low 1.93 level 1.55
+  GDC 13:46->13:50 low 1.86 level 1.55
+  GDC 13:51->13:56 low 1.87 level 1.55
+  GDC 13:56->14:00 low 1.8721 level 1.55
+  GDC 14:03->14:16 low 1.8832 level 1.55
+  GDC 14:46->14:50 low 1.93 level 1.55
+  GDC 14:51->14:56 low 1.93 level 1.55
+  GDC 14:56->15:03 low 1.95 level 1.55
+  GDC 15:04->15:15 low 1.9701 level 1.55
+  GDC 15:15->15:20 low 1.957 level 1.55
+  EZGO 11:49->11:58 low 1.07 level 0.961
+  EZGO 11:58->12:10 low 1.07 level 0.961
+  EZGO 12:11->12:15 low 1.0868 level 0.961
+  EZGO 12:16->12:20 low 1.085 level 0.961
+  EZGO 12:33->12:50 low 1.06 level 0.961
+  ZCMD 12:01->12:05 low 8.8 level 2.88
+  ZCMD 12:06->12:10 low 8.61 level 2.88
+  ZCMD 12:11->12:15 low 8.8 level 2.88
+  ZCMD 12:16->12:20 low 9.01 level 2.88
+  ZCMD 12:21->12:25 low 9.35 level 2.88
+  ZCMD 12:27->12:31 low 8.78 level 2.88
+  ZCMD 12:32->12:40 low 7.51 level 2.88
+  ZCMD 12:41->12:45 low 6.5 level 2.88
+  ZCMD 12:46->12:53 low 6.34 level 2.88
+  NEGG 12:01->12:06 low 14.895 level 13.61
+  NEGG 12:06->12:10 low 14.9302 level 13.61
+  NEGG 12:23->12:27 low 14.8439 level 13.61
+  NEGG 12:33->13:06 low 14.905 level 13.61
+  NEGG 13:07->13:11 low 15.17 level 13.61
+  NEGG 13:12->13:16 low 15.355 level 13.61
+  NEGG 13:35->13:40 low 15.1718 level 13.61
+  NEGG 13:42->13:46 low 15.2917 level 13.61
+  NEGG 13:46->13:51 low 15.54 level 13.61
+  NEGG 13:51->13:56 low 15.385 level 13.61
+  NEGG 14:52->14:57 low 15.55 level 13.61
+  NEGG 14:57->15:03 low 15.54 level 13.61
+  SORA 12:15->12:19 low 2.02 level 1.79
+  SORA 12:20->12:24 low 2.06 level 1.79
+  SORA 12:29->12:33 low 1.9914 level 1.79
+  UK 12:40->12:45 low 2.21 level 2.04
+  UK 12:46->12:50 low 2.192 level 2.04
+  UK 12:57->13:06 low 2.1577 level 2.04
+  UK 14:46->14:50 low 2.15 level 2.13
+  TOPS 12:46->12:50 low 0.8502 level 0.7901
+  TOPS 12:51->12:55 low 0.8453 level 0.7901
+  TOPS 12:57->13:42 low 0.831 level 0.7901
+  LZMH 12:53->12:58 low 1.35 level 1.23
+  LZMH 13:07->13:11 low 1.42 level 1.23
+  LZMH 13:12->13:16 low 1.439 level 1.23
+  LZMH 13:17->13:22 low 1.4 level 1.23
+  LZMH 13:22->13:27 low 1.36 level 1.23
+  LZMH 13:34->13:38 low 1.395 level 1.23
+  LVLU 12:53->12:58 low 18.94 level 16.51
+  LVLU 12:59->13:08 low 18.59 level 16.51
+  LVLU 13:09->13:15 low 18.12 level 16.51
+  BAOS 13:59->14:03 low 1.9 level 1.81
+  VSA 13:54->13:58 low 3.655 level 3.23
+  VSA 14:27->15:15 low 3.565 level 3.23
+  CHSN 14:20->14:26 low 1.14 level 1.09
+
+[b2]
+  OMH 11:51->12:08 low 0.3699 level 0.39
+  OMH 12:46->12:51 low 0.3711 level 0.3909
+  OMH 13:33->13:37 low 0.36 level 0.3624
+  OMH 13:55->13:59 low 0.3516 level 0.3597
+  KUST 13:44->13:48 low 1.4 level 1.42
+  KUST 14:20->14:50 low 1.35 level 1.42
+  KUST 14:51->14:56 low 1.43 level 1.44
+  AEHL 14:31->14:37 low 0.6126 level 0.6099
+  INLF 10:39->12:01 low 3.32 level 3.4992
+  INLF 12:02->12:06 low 3.36 level 3.55
+  INLF 12:16->12:20 low 3.47 level 3.4999
+  INLF 12:48->12:53 low 3.37 level 3.42
+  INLF 13:07->13:11 low 3.38 level 3.44
+  INLF 13:16->13:21 low 3.46 level 3.53
+  INLF 14:00->15:00 low 3.3501 level 3.55
+  INM 12:02->12:07 low 1.76 level 1.8
+  INM 13:07->13:12 low 1.75 level 1.7799
+  INM 15:00->15:04 low 1.71 level 1.7501
+  MSS 13:33->13:37 low 2.68 level 2.73
+  MSS 13:50->13:55 low 2.6809 level 2.725
+  MSS 15:15->15:20 low 2.74 level 2.76
+  MTEN 12:16->12:20 low 1.24 level 1.27
+  MTEN 13:29->13:34 low 1.28 level 1.31
+  MTEN 13:52->13:56 low 1.3 level 1.31
+  SLGB 10:53->11:59 low 0.657 level 0.6887
+  SLGB 12:37->12:42 low 0.6754 level 0.6755
+  SLGB 12:53->12:58 low 0.67 level 0.6808
+  SLGB 13:12->13:17 low 0.6885 level 0.6899
+  SLGB 14:20->14:26 low 0.6896 level 0.7119
+  BIYA 10:39->11:38 low 3.235 level 3.4
+  JTAI 12:10->12:33 low 2.4 level 2.47
+  JTAI 13:25->13:31 low 2.53 level 2.58
+  JTAI 14:50->14:59 low 2.53 level 2.58
+  DRIO 13:34->13:40 low 7.56 level 7.55
+  LABT 10:48->11:14 low 3.68 level 3.9099
+  LABT 11:17->11:23 low 3.83 level 3.9591
+  LABT 11:48->12:27 low 3.29 level 3.5
+  LABT 13:46->13:50 low 3.1701 level 3.23
+  SLNG 11:53->11:58 low 4.5 level 4.5725
+  SLNG 12:20->12:27 low 4.3458 level 4.5752
+  SLNG 14:52->14:59 low 4.65 level 4.8106
+  LHSW 12:04->12:44 low 2.35 level 2.4631
+  LHSW 13:50->13:54 low 2.63 level 2.68
+  HKIT 11:39->11:47 low 3.49 level 3.5999
+  HKIT 11:58->12:05 low 3.54 level 3.66
+  ENRD 11:17->11:23 low 5.17 level 5.298
+  MGRX 11:14->11:24 low 0.5293 level 0.5372
+  MGRX 11:31->11:36 low 0.5006 level 0.54
+  ADVB 12:10->12:19 low 10.7 level 11.7999
+  CDTG 11:37->13:37 low 0.9901 level 1.118
+  GDC 14:38->14:45 low 1.98 level 2.085
+  EZGO 12:51->13:18 low 1.03 level 1.07
+  NEGG 12:11->12:17 low 15.06 level 15.0311
+  NEGG 13:56->14:41 low 15.12 level 15.44
+  VSME 12:19->12:53 low 1.34 level 1.52
+  VSME 13:34->13:38 low 1.39 level 1.41
+  VSME 13:43->13:47 low 1.4195 level 1.42
+  SORA 12:24->12:29 low 1.9901 level 2.166
+  SORA 12:33->15:19 low 2.03 level 2.14
+  OCG 12:31->13:24 low 1.6266 level 1.64
+  PCSA 12:33->13:06 low 2.485 level 2.53
+  PCSA 14:45->14:50 low 2.57 level 2.59
+  UK 12:34->12:40 low 2.212 level 2.25
+  UK 13:12->14:16 low 2.0 level 2.1
+  UK 14:57->15:03 low 2.17 level 2.16
+  PN 13:50->13:54 low 5.01 level 5.0164
+
+
+PHASE 2 forward returns (60min, stop-first):
+a: n=199 win=48% avgR=-0.095 medR=-0.025
+  KUST 12:46 entry 1.33 stop 1.265 R=-1.00 maxR=0.62
+  PAPL 13:42 entry 1.0 stop 0.8387 R=+0.01 maxR=0.12
+  PAPL 13:46 entry 0.9701 stop 0.8387 R=+0.18 maxR=0.38
+  PAPL 14:03 entry 0.99 stop 0.8387 R=+0.17 maxR=0.26
+  MSS 12:31 entry 2.58 stop 2.47 R=+0.18 maxR=1.97
+  MTEN 11:08 entry 1.5601 stop 1.09 R=-1.00 maxR=0.83
+  SLGB 13:12 entry 0.6995 stop 0.6824 R=-1.00 maxR=0.01
+  SLGB 13:40 entry 0.6889 stop 0.6799 R=-1.00 maxR=1.16
+  JTAI 10:51 entry 2.63 stop 2.41 R=-0.09 maxR=0.59
+  JTAI 11:36 entry 2.665 stop 2.41 R=-1.00 maxR=0.14
+  JTAI 11:41 entry 2.665 stop 2.41 R=-1.00 maxR=0.10
+  JTAI 11:47 entry 2.645 stop 2.41 R=-1.00 maxR=0.08
+  JTAI 11:58 entry 2.6561 stop 2.41 R=-1.00 maxR=0.00
+  JTAI 12:03 entry 2.62 stop 2.41 R=-1.00 maxR=0.14
+  JTAI 12:08 entry 2.64 stop 2.41 R=-1.00 maxR=0.00
+  JTAI 12:57 entry 2.535 stop 2.41 R=+0.28 maxR=0.52
+  JTAI 13:06 entry 2.555 stop 2.41 R=+0.10 maxR=0.31
+  JTAI 13:16 entry 2.555 stop 2.41 R=+0.31 maxR=0.31
+  JTAI 13:42 entry 2.56 stop 2.41 R=-1.00 maxR=0.27
+  JTAI 13:58 entry 2.54 stop 2.41 R=-1.00 maxR=0.46
+  JTAI 14:28 entry 2.56 stop 2.41 R=-1.00 maxR=0.27
+  CJMB 10:51 entry 1.7099 stop 1.56 R=-1.00 maxR=0.00
+  CJMB 13:15 entry 1.65 stop 1.56 R=-1.00 maxR=0.33
+  CJMB 13:20 entry 1.66 stop 1.56 R=-1.00 maxR=0.20
+  CJMB 13:25 entry 1.6499 stop 1.56 R=-1.00 maxR=0.22
+  CJMB 13:31 entry 1.6465 stop 1.56 R=-1.00 maxR=0.27
+  CJMB 13:47 entry 1.66 stop 1.56 R=-1.00 maxR=0.10
+  DRIO 11:13 entry 7.88 stop 7.55 R=-1.00 maxR=0.00
+  DRIO 11:27 entry 7.5 stop 7.42 R=-1.00 maxR=4.75
+  DRIO 11:33 entry 7.5 stop 7.42 R=-1.00 maxR=0.00
+  DRIO 14:00 entry 7.59 stop 7.42 R=+2.35 maxR=2.35
+  DRIO 14:26 entry 7.72 stop 7.42 R=+0.90 maxR=0.90
+  SLNG 12:03 entry 4.545 stop 3.9153 R=+0.45 maxR=0.47
+  SLNG 12:08 entry 4.55 stop 3.9153 R=+0.32 maxR=0.46
+  SLNG 12:15 entry 4.5752 stop 3.9153 R=+0.25 maxR=0.40
+  SLNG 12:20 entry 4.5601 stop 3.9153 R=+0.32 maxR=0.43
+  SLNG 12:40 entry 4.52 stop 3.9153 R=+0.26 maxR=0.53
+  SLNG 13:06 entry 4.72 stop 3.9153 R=-0.11 maxR=0.15
+  SLNG 13:11 entry 4.71 stop 3.9153 R=-0.03 maxR=0.16
+  SLNG 13:16 entry 4.72 stop 3.9153 R=+0.01 maxR=0.15
+  SLNG 13:22 entry 4.52 stop 3.9153 R=+0.53 maxR=0.53
+  SLNG 13:51 entry 4.59 stop 3.9153 R=+0.12 maxR=0.37
+  SLNG 14:16 entry 4.68 stop 3.9153 R=+0.04 maxR=0.21
+  SLNG 14:26 entry 4.7377 stop 3.9153 R=-0.03 maxR=0.12
+  SLNG 14:37 entry 4.82 stop 3.9153 R=-0.17 maxR=0.02
+  SLNG 14:42 entry 4.715 stop 3.9153 R=-0.03 maxR=0.16
+  SLNG 14:47 entry 4.69 stop 3.9153 R=+0.05 maxR=0.19
+  SLNG 14:52 entry 4.6801 stop 3.9153 R=-0.01 maxR=0.21
+  SLNG 15:04 entry 4.6301 stop 3.9153 R=+0.09 maxR=0.29
+  SLNG 15:15 entry 4.69 stop 3.9153 R=-0.06 maxR=0.19
+  LHSW 11:23 entry 2.68 stop 2.34 R=-1.00 maxR=0.21
+  LHSW 11:27 entry 2.7049 stop 2.34 R=-1.00 maxR=0.04
+  LHSW 11:33 entry 2.6314 stop 2.34 R=-1.00 maxR=0.23
+  LHSW 11:38 entry 2.6994 stop 2.34 R=-1.00 maxR=0.00
+  LHSW 11:43 entry 2.5676 stop 2.34 R=-1.00 maxR=0.25
+  LHSW 11:58 entry 2.53 stop 2.34 R=-1.00 maxR=0.00
+  LHSW 12:03 entry 2.5 stop 2.34 R=-1.00 maxR=0.06
+  LHSW 13:12 entry 2.49 stop 2.44 R=-1.00 maxR=4.98
+  LHSW 13:18 entry 2.61 stop 2.46 R=-1.00 maxR=0.86
+  LHSW 13:33 entry 2.62 stop 2.34 R=-1.00 maxR=0.43
+  LHSW 13:38 entry 2.61 stop 2.34 R=-1.00 maxR=0.48
+  LHSW 13:43 entry 2.61 stop 2.34 R=-1.00 maxR=0.48
+  LHSW 13:48 entry 2.63 stop 2.34 R=-1.00 maxR=0.28
+  LHSW 14:16 entry 2.66 stop 2.34 R=-1.00 maxR=0.00
+  LHSW 15:15 entry 2.585 stop 2.34 R=-1.00 maxR=0.35
+  LHSW 15:20 entry 2.53 stop 2.34 R=-1.00 maxR=0.74
+  HKIT 11:13 entry 3.455 stop 3.105 R=+0.24 maxR=0.70
+  HKIT 11:27 entry 3.43 stop 3.105 R=+0.70 maxR=0.83
+  HKIT 11:32 entry 3.46 stop 3.105 R=+0.08 maxR=0.68
+  HKIT 11:58 entry 3.605 stop 3.105 R=+0.00 maxR=0.19
+  HKIT 12:10 entry 3.656 stop 3.105 R=-0.01 maxR=0.17
+  HKIT 12:15 entry 3.555 stop 3.105 R=+0.30 maxR=0.43
+  HKIT 12:29 entry 3.516 stop 3.105 R=+0.40 maxR=0.57
+  HKIT 12:40 entry 3.54 stop 3.105 R=+0.41 maxR=0.48
+  HKIT 12:46 entry 3.67 stop 3.55 R=-1.00 maxR=0.00
+  HKIT 12:57 entry 3.6589 stop 3.105 R=+0.02 maxR=0.20
+  HKIT 13:24 entry 3.56 stop 3.105 R=+0.31 maxR=0.46
+  HKIT 13:31 entry 3.63 stop 3.105 R=+0.13 maxR=0.27
+  HKIT 13:38 entry 3.62 stop 3.105 R=+0.02 maxR=0.29
+  HKIT 13:43 entry 3.56 stop 3.105 R=+0.15 maxR=0.46
+  HKIT 13:48 entry 3.55 stop 3.105 R=+0.02 maxR=0.49
+  HKIT 13:54 entry 3.5565 stop 3.105 R=+0.10 maxR=0.47
+  HKIT 14:00 entry 3.58 stop 3.56 R=-1.00 maxR=1.50
+  HKIT 14:37 entry 3.61 stop 3.105 R=+0.14 maxR=0.32
+  HKIT 14:42 entry 3.65 stop 3.105 R=+0.01 maxR=0.22
+  HKIT 14:47 entry 3.595 stop 3.105 R=+0.01 maxR=0.36
+  HKIT 14:52 entry 3.6499 stop 3.105 R=-0.09 maxR=0.22
+  HKIT 14:57 entry 3.75 stop 3.65 R=-1.00 maxR=0.00
+  HKIT 15:03 entry 3.6957 stop 3.105 R=-0.31 maxR=0.13
+  HKIT 15:15 entry 3.7022 stop 3.105 R=-0.29 maxR=0.11
+  HKIT 15:20 entry 3.64 stop 3.105 R=+0.19 maxR=0.24
+  GELS 11:15 entry 0.6607 stop 0.6257 R=+0.76 maxR=0.82
+  GELS 11:27 entry 0.6501 stop 0.6257 R=+1.18 maxR=1.61
+  GELS 11:38 entry 0.6691 stop 0.6257 R=+0.02 maxR=0.47
+  MF 11:23 entry 5.57 stop 3.875 R=-0.27 maxR=0.01
+  MF 11:27 entry 5.41 stop 3.875 R=-0.17 maxR=0.11
+  MF 11:33 entry 5.46 stop 3.875 R=-0.03 maxR=0.08
+  MF 11:38 entry 5.21 stop 3.875 R=-0.06 maxR=0.28
+  MF 11:49 entry 5.4 stop 3.875 R=-0.07 maxR=0.12
+  MF 12:48 entry 5.17 stop 3.875 R=+0.32 maxR=0.56
+  MF 12:53 entry 5.14 stop 3.875 R=+0.36 maxR=0.59
+  MF 13:42 entry 5.1575 stop 3.875 R=+0.29 maxR=0.57
+  MF 13:46 entry 5.13 stop 3.875 R=+0.05 maxR=0.61
+  MF 14:00 entry 5.41 stop 5.2 R=-1.00 maxR=0.00
+  MF 15:00 entry 5.2199 stop 3.875 R=+0.03 maxR=0.50
+  MGRX 11:29 entry 0.5397 stop 0.5 R=+0.08 maxR=0.71
+  ADVB 11:27 entry 11.25 stop 9.27 R=+0.13 maxR=0.41
+  ADVB 11:32 entry 11.38 stop 9.27 R=+0.58 maxR=0.58
+  ADVB 11:39 entry 10.3 stop 9.27 R=+3.63 maxR=3.75
+  ADVB 11:44 entry 10.758 stop 9.27 R=+0.88 maxR=2.45
+  ADVB 11:50 entry 11.09 stop 9.27 R=+0.70 maxR=1.82
+  ADVB 11:58 entry 11.2701 stop 9.27 R=+2.09 maxR=2.24
+  ADVB 12:03 entry 11.39 stop 9.27 R=+1.87 maxR=2.24
+  ADVB 12:08 entry 11.4714 stop 9.27 R=+2.26 maxR=2.40
+  ADVB 12:24 entry 11.48 stop 9.27 R=+2.44 maxR=2.65
+  ADVB 12:28 entry 11.545 stop 9.27 R=+2.43 maxR=2.62
+  ADVB 12:33 entry 12.645 stop 9.27 R=+1.07 maxR=1.44
+  ADVB 15:03 entry 12.81 stop 9.27 R=-0.30 maxR=0.25
+  ADVB 15:19 entry 12.9279 stop 9.27 R=-0.68 maxR=0.21
+  QMLS 11:27 entry 8.36 stop 6.6799 R=-0.24 maxR=0.06
+  QMLS 11:32 entry 7.915 stop 6.6799 R=+0.24 maxR=0.44
+  QMLS 11:38 entry 8.1 stop 6.6799 R=+0.09 maxR=0.25
+  QMLS 11:43 entry 7.93 stop 6.6799 R=+0.08 maxR=0.42
+  QMLS 11:49 entry 7.81 stop 6.6799 R=+0.21 maxR=0.57
+  FTFT 12:06 entry 1.529 stop 1.5001 R=-1.00 maxR=1.42
+  FTFT 12:40 entry 1.53 stop 1.5001 R=-1.00 maxR=0.33
+  CDTG 11:36 entry 1.22 stop 1.07 R=-1.00 maxR=0.07
+  GDC 11:58 entry 1.7802 stop 1.55 R=+0.06 maxR=1.30
+  GDC 12:03 entry 1.8207 stop 1.55 R=+0.18 maxR=0.96
+  GDC 12:08 entry 1.78 stop 1.55 R=+0.74 maxR=1.30
+  GDC 12:15 entry 1.8233 stop 1.55 R=+0.43 maxR=0.94
+  GDC 12:19 entry 1.8 stop 1.55 R=+0.48 maxR=1.12
+  GDC 12:24 entry 1.8113 stop 1.55 R=+0.49 maxR=1.03
+  GDC 12:46 entry 1.835 stop 1.55 R=+0.44 maxR=0.89
+  GDC 12:59 entry 1.815 stop 1.55 R=+0.51 maxR=1.04
+  GDC 13:11 entry 1.96 stop 1.85 R=-0.13 maxR=1.18
+  GDC 13:16 entry 1.929 stop 1.55 R=+0.19 maxR=0.42
+  GDC 13:22 entry 1.9 stop 1.55 R=+0.29 maxR=0.54
+  GDC 13:27 entry 1.9399 stop 1.55 R=+0.26 maxR=0.38
+  GDC 13:40 entry 1.971 stop 1.55 R=+0.19 maxR=0.31
+  GDC 13:46 entry 1.9601 stop 1.55 R=-0.05 maxR=0.34
+  GDC 13:50 entry 1.9 stop 1.55 R=+0.19 maxR=0.57
+  GDC 13:56 entry 1.9 stop 1.55 R=+0.29 maxR=0.57
+  GDC 14:00 entry 1.9483 stop 1.55 R=+0.23 maxR=0.38
+  GDC 14:16 entry 1.9477 stop 1.55 R=+0.14 maxR=0.38
+  GDC 14:50 entry 1.94 stop 1.55 R=-0.05 maxR=0.26
+  GDC 14:56 entry 2.0 stop 1.55 R=-0.29 maxR=0.09
+  GDC 15:03 entry 2.0 stop 1.55 R=-0.38 maxR=0.08
+  GDC 15:15 entry 1.99 stop 1.55 R=-0.13 maxR=0.05
+  GDC 15:20 entry 1.98 stop 1.55 R=-0.09 maxR=0.07
+  EZGO 11:58 entry 1.1198 stop 0.961 R=-0.06 maxR=0.00
+  EZGO 12:10 entry 1.12 stop 0.961 R=-0.19 maxR=0.00
+  EZGO 12:15 entry 1.12 stop 0.961 R=-0.41 maxR=0.00
+  EZGO 12:20 entry 1.11 stop 0.961 R=-0.27 maxR=0.07
+  EZGO 12:50 entry 1.1095 stop 0.961 R=-0.60 maxR=0.07
+  ZCMD 12:05 entry 9.03 stop 2.88 R=-0.62 maxR=0.29
+  ZCMD 12:10 entry 9.3883 stop 2.88 R=-0.58 maxR=0.22
+  ZCMD 12:15 entry 9.1199 stop 2.88 R=-0.65 maxR=0.28
+  ZCMD 12:20 entry 10.11 stop 2.88 R=-0.71 maxR=0.10
+  ZCMD 12:25 entry 9.56 stop 2.88 R=-0.64 maxR=0.01
+  ZCMD 12:31 entry 9.15 stop 2.88 R=-0.62 maxR=0.08
+  ZCMD 12:40 entry 7.51 stop 2.88 R=-0.50 maxR=0.10
+  ZCMD 12:45 entry 7.1516 stop 2.88 R=-0.44 maxR=0.12
+  ZCMD 12:53 entry 6.98 stop 2.88 R=-0.40 maxR=0.05
+  NEGG 12:06 entry 14.895 stop 13.61 R=+0.44 maxR=0.84
+  NEGG 12:10 entry 15.02 stop 13.61 R=+0.34 maxR=0.67
+  NEGG 12:27 entry 14.95 stop 13.61 R=+0.45 maxR=0.76
+  NEGG 13:06 entry 15.33 stop 13.61 R=+0.33 maxR=0.37
+  NEGG 13:11 entry 15.33 stop 13.61 R=+0.35 maxR=0.37
+  NEGG 13:16 entry 15.435 stop 13.61 R=+0.35 maxR=0.35
+  NEGG 13:40 entry 15.1718 stop 13.61 R=+0.35 maxR=0.59
+  NEGG 13:46 entry 15.54 stop 13.61 R=+0.07 maxR=0.28
+  NEGG 13:51 entry 15.54 stop 13.61 R=+0.07 maxR=0.28
+  NEGG 13:56 entry 15.52 stop 13.61 R=-0.05 maxR=0.30
+  NEGG 14:57 entry 15.6761 stop 13.61 R=-0.01 maxR=0.20
+  NEGG 15:03 entry 15.54 stop 13.61 R=+0.06 maxR=0.28
+  SORA 12:19 entry 2.03 stop 1.79 R=+0.17 maxR=0.71
+  SORA 12:24 entry 2.1498 stop 1.79 R=-0.22 maxR=0.14
+  SORA 12:33 entry 2.03 stop 1.79 R=+0.17 maxR=0.71
+  UK 12:45 entry 2.225 stop 2.04 R=-1.00 maxR=0.19
+  UK 12:50 entry 2.235 stop 2.04 R=-1.00 maxR=0.00
+  UK 13:06 entry 2.185 stop 2.04 R=-1.00 maxR=0.00
+  UK 14:50 entry 2.16 stop 2.13 R=+1.33 maxR=2.29
+  TOPS 12:50 entry 0.8502 stop 0.7901 R=-0.15 maxR=0.33
+  TOPS 12:55 entry 0.8472 stop 0.7901 R=-0.11 maxR=0.40
+  TOPS 13:42 entry 0.8407 stop 0.7901 R=+0.01 maxR=0.24
+  LZMH 12:58 entry 1.3501 stop 1.23 R=+0.27 maxR=0.92
+  LZMH 13:11 entry 1.44 stop 1.23 R=-0.27 maxR=0.00
+  LZMH 13:16 entry 1.44 stop 1.23 R=-0.27 maxR=0.00
+  LZMH 13:22 entry 1.4 stop 1.23 R=-0.10 maxR=0.24
+  LZMH 13:27 entry 1.36 stop 1.23 R=+0.18 maxR=0.62
+  LZMH 13:38 entry 1.395 stop 1.23 R=-0.07 maxR=0.21
+  LVLU 12:58 entry 18.94 stop 16.51 R=-0.14 maxR=0.52
+  LVLU 13:08 entry 18.96 stop 16.51 R=-0.32 maxR=0.51
+  LVLU 13:15 entry 18.96 stop 16.51 R=-0.30 maxR=0.51
+  BAOS 14:03 entry 1.9 stop 1.81 R=-0.11 maxR=0.33
+  VSA 13:58 entry 3.655 stop 3.23 R=+0.10 maxR=0.20
+  VSA 15:15 entry 3.6778 stop 3.23 R=+0.05 maxR=0.05
+  CHSN 14:26 entry 1.14 stop 1.09 R=-0.10 maxR=0.20
+b1: n=68 win=16% avgR=-0.631 medR=-1.000
+  OMH 12:29 entry 0.3749 stop 0.371 R=-1.00 maxR=5.10
+  OMH 12:37 entry 0.3828 stop 0.372 R=-1.00 maxR=1.11
+  OMH 14:22 entry 0.3667 stop 0.35 R=-0.03 maxR=0.00
+  KUST 12:05 entry 1.2797 stop 1.25 R=-1.00 maxR=0.01
+  KUST 13:20 entry 1.375 stop 1.33 R=-1.00 maxR=1.67
+  KUST 13:56 entry 1.46 stop 1.43 R=-1.00 maxR=0.67
+  KUST 14:15 entry 1.4603 stop 1.42 R=-1.00 maxR=2.23
+  AEHL 11:17 entry 0.6751 stop 0.656 R=-1.00 maxR=2.34
+  AEHL 11:26 entry 0.6961 stop 0.68 R=-1.00 maxR=1.47
+  AEHL 11:56 entry 0.6549 stop 0.64 R=-1.00 maxR=0.00
+  AEHL 13:08 entry 0.6149 stop 0.6077 R=-1.00 maxR=0.00
+  AEHL 13:38 entry 0.6002 stop 0.58 R=-1.00 maxR=0.33
+  AEHL 14:13 entry 0.59 stop 0.5746 R=+1.02 maxR=2.24
+  AEHL 14:21 entry 0.6068 stop 0.5999 R=+0.03 maxR=2.57
+  INM 11:19 entry 1.91 stop 1.89 R=-1.00 maxR=2.00
+  INM 11:27 entry 1.9399 stop 1.9 R=-1.00 maxR=0.25
+  INM 12:29 entry 1.7999 stop 1.76 R=-1.00 maxR=0.25
+  INM 13:25 entry 1.827 stop 1.8 R=-1.00 maxR=0.48
+  INM 14:18 entry 1.705 stop 1.64 R=+0.07 maxR=1.31
+  INM 14:50 entry 1.74 stop 1.72 R=-1.00 maxR=0.50
+  INM 14:59 entry 1.785 stop 1.72 R=-1.00 maxR=0.08
+  MSS 11:00 entry 2.51 stop 2.4 R=+1.09 maxR=1.64
+  MSS 12:44 entry 2.63 stop 2.6 R=-1.00 maxR=0.00
+  MSS 13:12 entry 2.6728 stop 2.62 R=-1.00 maxR=2.34
+  MSS 13:28 entry 2.7 stop 2.64 R=-1.00 maxR=1.60
+  MSS 14:40 entry 2.71 stop 2.625 R=+0.12 maxR=2.24
+  MSS 14:51 entry 2.76 stop 2.7099 R=-1.00 maxR=2.79
+  MSS 15:06 entry 2.8 stop 2.741 R=-1.00 maxR=1.02
+  MTEN 12:26 entry 1.355 stop 1.28 R=-1.00 maxR=0.60
+  SLGB 14:09 entry 0.6997 stop 0.6799 R=+0.77 maxR=0.77
+  SLGB 15:03 entry 0.7149 stop 0.7101 R=-1.00 maxR=0.00
+  JTAI 11:13 entry 2.7 stop 2.65 R=-1.00 maxR=0.00
+  JTAI 13:20 entry 2.58 stop 2.54 R=-1.00 maxR=0.48
+  CJMB 11:15 entry 1.49 stop 1.3273 R=+0.45 maxR=0.54
+  DRIO 12:23 entry 7.4993 stop 7.4 R=+1.01 maxR=3.83
+  SLNG 14:02 entry 4.65 stop 4.55 R=+1.20 maxR=1.90
+  LHSW 11:06 entry 2.56 stop 2.495 R=-1.00 maxR=5.94
+  LHSW 13:03 entry 2.445 stop 2.386 R=-1.00 maxR=4.98
+  LHSW 13:27 entry 2.7 stop 2.4941 R=-1.00 maxR=0.19
+  LHSW 14:36 entry 2.58 stop 2.1601 R=-0.38 maxR=0.33
+  HKIT 11:36 entry 3.555 stop 3.505 R=-1.00 maxR=2.10
+  HKIT 14:11 entry 3.6 stop 3.5601 R=-1.00 maxR=0.25
+  HKIT 14:19 entry 3.61 stop 3.6 R=-1.00 maxR=0.00
+  HKIT 14:24 entry 3.6339 stop 3.56 R=-1.00 maxR=1.57
+  MF 13:54 entry 5.23 stop 5.13 R=-1.00 maxR=1.80
+  FTFT 11:38 entry 1.5594 stop 1.5499 R=-1.00 maxR=0.00
+  CLIK 12:00 entry 1.66 stop 1.57 R=-1.00 maxR=0.44
+  GDC 12:29 entry 1.84 stop 1.8 R=-1.00 maxR=6.00
+  GDC 12:36 entry 1.89 stop 1.8399 R=-1.00 maxR=3.79
+  GDC 13:02 entry 1.84 stop 1.82 R=+4.25 maxR=12.50
+  GDC 13:30 entry 1.97 stop 1.94 R=-1.00 maxR=4.00
+  GDC 14:20 entry 1.9998 stop 1.94 R=-1.00 maxR=1.68
+  GDC 14:22 entry 2.0 stop 1.9602 R=-1.00 maxR=2.51
+  GDC 14:33 entry 2.08 stop 1.9622 R=-1.00 maxR=0.17
+  EZGO 14:02 entry 1.09 stop 1.0701 R=-1.00 maxR=1.51
+  NEGG 12:23 entry 15.06 stop 15.0 R=-1.00 maxR=0.00
+  NEGG 13:21 entry 15.7699 stop 15.4 R=-1.00 maxR=0.00
+  NEGG 13:29 entry 15.615 stop 15.325 R=-1.00 maxR=1.22
+  NEGG 13:30 entry 15.815 stop 15.615 R=-1.00 maxR=0.00
+  NEGG 14:46 entry 15.69 stop 15.5205 R=-1.00 maxR=2.36
+  NEGG 14:47 entry 15.635 stop 15.56 R=-1.00 maxR=1.00
+  VSME 13:23 entry 1.39 stop 1.38 R=-1.00 maxR=2.00
+  VSME 14:53 entry 1.3499 stop 1.33 R=-1.00 maxR=0.51
+  VSME 15:03 entry 1.37 stop 1.29 R=+1.25 maxR=1.25
+  UK 14:56 entry 2.219 stop 2.1548 R=-0.30 maxR=0.15
+  LVLU 14:24 entry 18.6564 stop 17.665 R=-0.44 maxR=1.56
+  LVLU 15:01 entry 18.83 stop 18.12 R=-1.00 maxR=0.13
+  PN 13:23 entry 5.11 stop 5.0001 R=-1.00 maxR=0.00

@@ -46,3 +46,16 @@ supersede it with a new one._
 - Mean vs median divergence → report both; find the outlier rows.
 - Bucket definitions → state the boundary and what it conflates.
 - Scratchpad is EPHEMERAL — results die with the session unless copied here.
+
+## 7/23 — #97 Alpaca migration BUILD (not a kill-test: a rig acceptance record)
+- Scope: A1 capture hot endpoint (read-only, n<=720, auth, IPv6) + A3 REST VWAP seed on
+  mid-session subscribes + T2 curl choke-point _curl_feed (3 consumers: reclaim step, zoneflip
+  step, zone floor — the 3rd was CAUGHT BY RIG P3, would have shipped zone-flip starvation) +
+  T3 Alpaca 1-min parity + T6 daily levels + A2 stop-path pin (NOT switchable).
+- Evidence: rig/test_alpaca_migration.py 25/25 (incl. M7 E2E: Alpaca-sourced tape FIRES
+  kev_reclaim_step; M7b fail-without-fix: zero-vol conversion cannot fire); full regression
+  155/155; local HTTP smoke 200/401/health on a real socket. Commit local, NOT pushed.
+- Defaults: all switches webull → deploy flips per-line via env. Caveats: Alpaca REST
+  headroom UNMEASURED (alp_429 counters ship with it); hot n-bound 720 = zone computable
+  until ~11:00 for late adds (open-native lane, acceptable); live acceptance = FIRE COUNT,
+  not rig green (Curl Mechanic law).

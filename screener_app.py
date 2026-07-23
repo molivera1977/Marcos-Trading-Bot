@@ -1892,23 +1892,27 @@ def premarket_dashboard():
             "<td class='st'>" + esc(st) + "</td></tr>")
     html = ("<html><head><title>Premarket — Tale of the Tapes</title>"
             "<meta http-equiv='refresh' content='30'>"
-            "<style>body{background:#0d1117;color:#c9d1d9;font-family:monospace;margin:20px}"
-            "h1{color:#e6edf3;font-size:20px} h2{color:#8b949e;font-size:14px;margin-top:24px}"
-            "table{border-collapse:collapse;width:100%;font-size:13px}"
-            "td,th{border-bottom:1px solid #21262d;padding:6px 10px;text-align:left}"
-            "th{color:#8b949e} .st{color:#8b949e;font-size:12px}"
+            "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+            "<style>body{background:#0d1117;color:#c9d1d9;font-family:monospace;margin:12px}"
+            "h1{color:#e6edf3;font-size:18px;line-height:1.3} h2{color:#8b949e;font-size:13px;margin-top:20px}"
+            ".tw{overflow-x:auto;-webkit-overflow-scrolling:touch}"
+            "table{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}"
+            "td,th{border-bottom:1px solid #21262d;padding:6px 8px;text-align:left;white-space:nowrap}"
+            "th{color:#8b949e} .st{color:#8b949e;font-size:12px} a{text-decoration:none}"
+            "@media (max-width:700px){body{margin:8px} h1{font-size:15px} h1 span{display:block;margin-top:4px}"
+            "table{font-size:12px;min-width:480px} td,th{padding:5px 6px} .banner{font-size:12px}}"
             ".banner{padding:8px 12px;border-radius:6px;border:1px solid " + bcol + ";color:" + bcol + ";display:inline-block}"
             "</style></head><body>"
             "<h1>🌅 PREMARKET — TALE OF THE TAPES <span style='color:#8b949e;font-size:13px'>" + today + " " + hm + " ET · auto-refresh 30s</span></h1>"
             "<div class='banner'>" + banner + "</div>"
             "<h2>SHADOW FIRES (" + str(len(fires)) + " today — the scorecard rows)</h2>"
-            "<table><tr><th>time</th><th>ticker</th><th>lane</th><th>price</th><th>stop</th><th>row</th></tr>"
+            "<div class='tw'><table><tr><th>time</th><th>ticker</th><th>lane</th><th>price</th><th>stop</th><th>row</th></tr>"
             + ("".join(fires_html) or "<tr><td colspan=6 class='st'>none yet — machines watching</td></tr>")
-            + "</table>"
+            + "</table></div>"
             "<h2>THE TAPES (" + str(len(names)) + " names · ⭐ = Kev sheet · click for full Tale)</h2>"
-            "<table><tr><th>ticker</th><th>last px seen</th><th>latest read</th><th>at</th><th>Kev level → targets</th><th>fires</th></tr>"
+            "<div class='tw'><table><tr><th>ticker</th><th>last px</th><th>latest read</th><th>at</th><th>Kev level → tgts</th><th>🔥</th></tr>"
             + ("".join(rows_html) or "<tr><td colspan=6 class='st'>roster empty — bot not awake yet</td></tr>")
-            + "</table></body></html>")
+            + "</table></div></body></html>")
     return html
 
 

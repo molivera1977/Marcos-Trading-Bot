@@ -763,6 +763,138 @@ def _shadow_ingest(sym, price, cumvol, ts):
     except Exception:
         pass
 
+# ── #97 ALPACA MIGRATION (7/23, Fable review §8 of ALPACA_MIGRATION_PLAN.md) ─────────────
+# Per-line source switches, ALL defaulting to today's behavior (webull) — the deploy flips
+# them one at a time via Railway env, and any single line reverts without touching the rest.
+# A2 (Fable): the STOP/monitor price path is deliberately NOT switchable — stops never read
+# a 90s-stale trades-only feed; get_price/_get_price_rest stay Webull until the Alpaca
+# quote-headroom check runs.
+CURL_SOURCE     = os.environ.get("CURL_SOURCE", "webull")       # T2: curl-lane 10s feed
+BARS_SOURCE     = os.environ.get("BARS_SOURCE", "webull")       # T3: 1-min intraday bars
+DAILY_SOURCE    = os.environ.get("DAILY_SOURCE", "webull")      # T6: daily levels / prior close
+ALP_CAPTURE_URL = os.environ.get("ALP_CAPTURE_URL", "").rstrip("/")   # A1 hot endpoint (unset → dashboard fallback)
+ALP_HOT_SECRET  = os.environ.get("ALP_HOT_SECRET", os.environ.get("DASHBOARD_SECRET", "marcos2026"))
+_ALP_KEY        = os.environ.get("ALPACA_KEY", "")
+_ALP_SECRET     = os.environ.get("ALPACA_SECRET", "")
+_ALP_FEED       = os.environ.get("ALPACA_FEED", "sip")
+
+def _alpaca_rest_get(url, params, timeout=8):
+    """Alpaca REST with rate-limit evidence (Feed Engineer condition: headroom is UNVERIFIED —
+    count 429s so live measures it instead of anyone asserting it). Returns parsed JSON or None."""
+    try:
+        r = requests.get(url, params=params, timeout=timeout,
+                         headers={"APCA-API-KEY-ID": _ALP_KEY, "APCA-API-SECRET-KEY": _ALP_SECRET})
+        if r.status_code == 429:
+            _bump("alp_429")
+            return None
+        if r.status_code != 200:
+            _bump("alp_rest_err")
+            return None
+        return r.json()
+    except Exception:
+        _bump("alp_rest_err")
+        return None
+
+def _alp10_bars(t, n=90):
+    """A1 choke-point fetch for Alpaca 10s bars (Integrator: consumers NEVER know the source).
+    Priority: capture hot endpoint (fresh to the last closed bucket) → dashboard ~ALP10S
+    (0–90s persist staleness — today's behavior, and the rig-exercised fallback).
+    Returns (dict in _shadow_bars shape {bucket:{o,h,l,c,v0,v1}}, source_str)."""
+    # hot path
+    if ALP_CAPTURE_URL:
+        try:
+            r = requests.get(ALP_CAPTURE_URL + "/hot", params={"sym": t, "n": n},
+                             headers={"X-Hot-Secret": ALP_HOT_SECRET}, timeout=2.5)
+            if r.status_code == 200:
+                d = {}
+                for k, o, h, l, c, v in (r.json().get("bars") or []):
+                    # v0=0/v1=v → consumers' (v1-v0) yields the true per-bar volume
+                    d[int(k)] = {"o": float(o), "h": float(h), "l": float(l), "c": float(c),
+                                 "v0": 0, "v1": float(v)}
+                return d, "alp-hot"
+            _bump("alp_hot_err")
+        except Exception:
+            _bump("alp_hot_err")
+    # dashboard fallback (archive read — stale up to persist cadence, but never blind)
+    try:
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        if url:
+            r = requests.get(f"{url}/api/bars", params={"ticker": f"{t}~ALP10S",
+                             "date": datetime.now(EASTERN).strftime("%Y-%m-%d")}, timeout=5)
+            if r.status_code == 200:
+                d = {}
+                for b in (r.json().get("bars") or [])[-n:]:
+                    try:
+                        ts = datetime.strptime(str(b["time"])[:19], "%Y-%m-%dT%H:%M:%S")
+                        k = int(ts.replace(tzinfo=timezone.utc).timestamp())
+                        d[k] = {"o": float(b["open"]), "h": float(b["high"]), "l": float(b["low"]),
+                                "c": float(b["close"]), "v0": 0, "v1": float(b["volume"])}
+                    except Exception:
+                        continue
+                return d, "alp-dash"
+    except Exception:
+        pass
+    return {}, "alp-none"
+
+_curl_canary_t = {}   # ticker -> last canary log ts (throttle)
+
+def _curl_feed(t, n=90):
+    """T2 choke-point: the ONE place the curl lanes get their 10s bars. CURL_SOURCE=webull →
+    bot's own _shadow_bars (today's behavior); =alpaca → _alp10_bars. Canary logs fed-bar
+    AGE per name (Curl Mechanic condition: 'stale' vs 'absent' must be visible in the log —
+    never again a week of guessing which starved the lanes). n: zone computation passes 720
+    (2h — the hot bound) to reach the 9:00–9:29 window; step consumers use the 15-min default."""
+    if CURL_SOURCE == "alpaca":
+        d10, src = _alp10_bars(t, n)
+    else:
+        with _shadow_lock:
+            d10 = dict(_shadow_bars[10].get(t) or {})
+        src = "webull-shadow"
+    now = time.time()
+    if now - _curl_canary_t.get(t, 0) >= 120:
+        _curl_canary_t[t] = now
+        age = (now - max(d10)) if d10 else -1
+        print(f"🧵 curl-feed {t}: src={src} bars={len(d10)} last_bar_age={age:.0f}s")
+    return d10, src
+
+def _alpaca_intraday_bars(ticker, count=30, sessions=None):
+    """T3: Alpaca REST 1-min bars in the EXACT Webull shape get_intraday_bars returns
+    (chronological dicts w/ UTC 'time' strings — the :1942 sampler contract). sessions=None →
+    RTH-only filter (Webull default semantics); pass e.g. ["RTH","PRE"] to include extended.
+    Full-day fetch then tail-slice, so intraday adds get complete history (Fable A3 for 1-min)."""
+    day0 = datetime.now(EASTERN).replace(hour=4, minute=0, second=0, microsecond=0)
+    j = _alpaca_rest_get(f"https://data.alpaca.markets/v2/stocks/{ticker}/bars",
+                         {"timeframe": "1Min", "start": day0.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                          "limit": 10000, "feed": "sip" if _ALP_FEED == "sip" else "iex",
+                          "adjustment": "raw"})
+    if not j:
+        return []
+    out = []
+    for b in j.get("bars") or []:
+        try:
+            ts = str(b["t"])[:19]                  # "2026-07-23T13:30:00" UTC
+            if sessions is None:                   # RTH-only (Webull default semantics)
+                hm = ts[11:16]
+                if not ("13:30" <= hm < "20:00"):  # 9:30–16:00 ET in EDT
+                    continue
+            out.append({"time": ts + ".000+0000", "open": str(b["o"]), "high": str(b["h"]),
+                        "low": str(b["l"]), "close": str(b["c"]), "volume": str(b["v"])})
+        except Exception:
+            continue
+    return out[-count:] if count else out
+
+def _alpaca_daily_items(ticker):
+    """T6: Alpaca REST daily bars → the Webull items shape get_daily_levels parses
+    ({'high','close','time'}). None → caller falls through to Webull (per-line degrade)."""
+    j = _alpaca_rest_get(f"https://data.alpaca.markets/v2/stocks/{ticker}/bars",
+                         {"timeframe": "1Day", "limit": 250,
+                          "start": (datetime.now(EASTERN) - timedelta(days=400)).strftime("%Y-%m-%dT00:00:00Z"),
+                          "feed": "sip" if _ALP_FEED == "sip" else "iex", "adjustment": "raw"})
+    if not j or not j.get("bars"):
+        return None
+    return [{"high": b.get("h"), "close": b.get("c"), "time": str(b.get("t"))[:10]}
+            for b in j["bars"]]
+
 def _shadow_flush_payload(min_buckets=50):
     """Build the SIGTERM bulk-flush payload from the in-memory 10s store (pure; rig-tested).
     Lower bucket floor than EOD (50 vs 200): a mid-day flush should keep almost everything —
@@ -2952,6 +3084,11 @@ def get_intraday_bars(ticker, count=30, executor=None, sessions=None):
     try:
         if executor is _aux_executor and time.time() < _rest_cool[0]:
             return []   # 429 cooldown: optional consumers (day-2/sweep/session-vwap refresh) yield to monitors
+        if BARS_SOURCE == "alpaca":               # #97 T3: same shape, full-day REST (A3 for 1-min)
+            _ab = _alpaca_intraday_bars(ticker, count, sessions)
+            if _ab:
+                return _ab
+            _bump("alp_bars_miss")                # empty → fall through to Webull (per-line degrade)
         dc = _get_data_client()
         if not dc:
             return []
@@ -3268,30 +3405,34 @@ def get_daily_levels(ticker):
     daily swing-(reaction)-highs, prior-day high. Returns None on any failure → caller FAILS OPEN
     (a data hiccup must never block a trade — [[feedback_kev_is_the_bible]] verify code, never halt on a bug)."""
     try:
-        dc = _get_data_client()
-        if not dc:
-            return None
-        resp = None
-        for _attempt in range(3):          # retry on 429 — daily is fetched for ~15 names; bursts rate-limit
-            resp = dc.market_data.get_history_bar(symbol=ticker, category="US_STOCK", timespan="D", count="200")
-            if resp.status_code == 200:
-                break
-            if resp.status_code == 429:
-                _bump("api_429")
-                time.sleep(0.6 * (_attempt + 1))
-                continue
-            return None
-        if not resp or resp.status_code != 200:
-            return None
-        raw = resp.json()
-        # Webull get_history_bar returns {"data": {"items": [...]}} OR {"data": [...]} OR a top-level
-        # list — match the two existing parsers in this file (M15 ~1787, M1 ~2059) so the daily feed
-        # can't silently parse to [] and disable the gate.
-        if isinstance(raw, list):
-            items = raw
-        else:
-            data = raw.get("data", {}) if isinstance(raw, dict) else {}
-            items = data.get("items", data) if isinstance(data, dict) else data
+        items = None
+        if DAILY_SOURCE == "alpaca":       # #97 T6: Alpaca daily; None → Webull fallthrough (per-line degrade)
+            items = _alpaca_daily_items(ticker)
+        if items is None:
+            dc = _get_data_client()
+            if not dc:
+                return None
+            resp = None
+            for _attempt in range(3):      # retry on 429 — daily is fetched for ~15 names; bursts rate-limit
+                resp = dc.market_data.get_history_bar(symbol=ticker, category="US_STOCK", timespan="D", count="200")
+                if resp.status_code == 200:
+                    break
+                if resp.status_code == 429:
+                    _bump("api_429")
+                    time.sleep(0.6 * (_attempt + 1))
+                    continue
+                return None
+            if not resp or resp.status_code != 200:
+                return None
+            raw = resp.json()
+            # Webull get_history_bar returns {"data": {"items": [...]}} OR {"data": [...]} OR a top-level
+            # list — match the two existing parsers in this file (M15 ~1787, M1 ~2059) so the daily feed
+            # can't silently parse to [] and disable the gate.
+            if isinstance(raw, list):
+                items = raw
+            else:
+                data = raw.get("data", {}) if isinstance(raw, dict) else {}
+                items = data.get("items", data) if isinstance(data, dict) else data
         bars = []
         for b in (items or []):
             try:
@@ -3605,8 +3746,11 @@ def _zf_pm_floor(sym):
     cached = _zf_zone.get(key)
     if cached is not None:
         return None if cached == "none" else cached
-    with _shadow_lock:
-        d10 = dict(_shadow_bars[10].get(sym) or {})
+    # #97: rig P3 caught this third consumer — on Alpaca mode an empty Webull store would leave
+    # the zone-flip permanently ZONELESS (same #89 starvation, one level deeper). n=720 (the hot
+    # bound, 2h) reaches 9:00–9:29 from any compute before ~11:00; later adds behave as today
+    # (no zone → machine idles), which the open-native zone-flip never needs anyway.
+    d10, _zf_feed_src = _curl_feed(sym, n=720)
     if not d10:
         return None                              # no bars yet — retry next loop
     mins, open930 = {}, None
@@ -4584,8 +4728,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 _cur_z = (datetime.now(EASTERN).strftime("%Y-%m-%d"), t)
                 _last_z = _zf_cursor.get(_cur_z, 0)
                 _cut_z = int(time.time()) // 10 * 10           # exclude the still-forming bucket
-                with _shadow_lock:
-                    _d10z = dict(_shadow_bars[10].get(t) or {})
+                _d10z, _zf_src = _curl_feed(t)                 # #97 choke-point (CURL_SOURCE env)
                 for _k in sorted(_d10z):
                     if _last_z < _k < _cut_z:
                         _b = _d10z[_k]
@@ -4606,8 +4749,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     _cur_key = (datetime.now(EASTERN).strftime("%Y-%m-%d"), t)
                     _last_k = _reclaim_cursor.get(_cur_key, 0)
                     _now_cut = int(time.time()) // 10 * 10     # exclude the still-forming bucket
-                    with _shadow_lock:
-                        _d10 = dict(_shadow_bars[10].get(t) or {})
+                    _d10, _vr_src = _curl_feed(t)              # #97 choke-point (CURL_SOURCE env)
                     _fed_k = 0
                     for _k in sorted(_d10):
                         if _last_k < _k < _now_cut:
@@ -7330,6 +7472,11 @@ if __name__ == "__main__":
     except Exception:
         pass
     print("🤖 Marcos Trading Bot — always-on worker mode")
+    # #97: one boot line states every data-source switch — the deploy acceptance reads THIS,
+    # never assumes an env stuck. (stops/monitor price path: webull by design — Fable A2)
+    print(f"🔀 DATA SOURCES: curl={CURL_SOURCE} bars={BARS_SOURCE} daily={DAILY_SOURCE} "
+          f"vwap={DATA_PRIMARY} capture_hot={'SET' if ALP_CAPTURE_URL else 'unset(dash-fallback)'} "
+          f"alp_keys={'yes' if (_ALP_KEY and _ALP_SECRET) else 'NO'}")
 
     # 7/15: SIGTERM → bulk-flush the in-memory 10s collection before Railway swaps the container.
     # Deploys must never be data events. (Main thread only — signal module requirement.)

@@ -24,8 +24,20 @@ DESIGN NOTES vs recorder.py (deliberately mirrored / deliberately different):
              F1 class of v0/v1 re-baseline bugs on recorder can't exist here), and VWAP is
              exact Σ(p*s)/Σ(s), no midpoint approximation needed.
 
-Runs on its own Railway service (railway.alpacacap.toml). DO NOT point any bot code at
-these series — Phase 0 is capture + grading only.
+Runs on its own Railway service (railway.alpacacap.toml).
+
+PHASE 2 (7/23, Marcos mandate + Fable review §8 of ALPACA_MIGRATION_PLAN.md): the Phase-0
+"DO NOT point any bot code at these series" rule is SUPERSEDED for the ~ALP* series — the
+bot now reads Alpaca data as its decision feed (Webull keeps execution + premarket
+discovery). Two additions, both read-only wrt capture state:
+  A1 HOT ENDPOINT — a bounded, read-only HTTP snapshot of the in-memory 10s bars + VWAP,
+     so the bot's hot path (curl lanes) skips the 90s persist→dashboard→poll round-trip
+     (measured 0–90s+ staleness, Fable F1). Serves from lock-snapshots; can never block
+     or crash the websocket loop. The dashboard persist is unchanged (archive duty).
+  A3 BACKFILL — intraday roster adds start blind (NVVE 7/23: first bar 11:35 ET for an
+     11:43 entry) and stream-anchored VWAP would be WRONG for them. On every mid-session
+     subscribe, seed the VWAP accumulator from Alpaca REST 1-min bars (Σ vw*v / Σ v back
+     to the 4:00 open) so ~ALPVWAP is premarket-anchored even for late adds (Fable F3).
 """
 import os, sys, time, json, signal, threading, gzip, re
 from datetime import datetime, timezone, timedelta
@@ -202,6 +214,8 @@ def sync_roster(ws):
     except Exception as e:
         log("roster sync send failed: %s" % e)
         raise                                      # a dead socket must reach the supervisor
+    for s in new:                                  # A3: seed premarket-anchored VWAP for mid-session
+        _backfill_new_symbol(s)                    # adds (never raises; boot-window adds no-op)
 
 # ── persistence (mirrors recorder.persist: gzip bars_bulk, watermark-on-200) ─
 _shipped    = {}    # sym -> last bar bucket persisted
@@ -281,6 +295,137 @@ def health_line():
         % (_disconnects[0], int(_msg_n[0] / mins), len(_subscribed), ALPACA_FEED,
            SYMBOL_CAP, ", PROBE" if SYMBOL_PROBE else ""))
     _msg_n[0] = 0
+
+# ── A1: hot endpoint (read-only, bounded — Fable F1) ─────────────────────────
+HOT_PORT   = int(os.environ.get("HOT_PORT", os.environ.get("PORT", "8090")))
+HOT_SECRET = os.environ.get("HOT_SECRET", DASH_SECRET)   # dedicated secret; falls back to dash secret
+HOT_MAX_N  = 720          # hard bound: 720 × 10s = 2 hours — no query can be made expensive (PCC condition)
+_SYM_RE    = re.compile(r"^[A-Z][A-Z0-9.\-]{0,9}$")
+
+def hot_snapshot(sym, n):
+    """Pure-ish builder (rig-tested without a socket): last n CLOSED 10s buckets + live VWAP
+    for one symbol, from a lock-snapshot. Bars as [bucket_epoch,o,h,l,c,v] — the bot converts
+    to its shadow shape. Retention contract [VERIFIED 7/23]: _bars holds the FULL day (persist
+    ships by watermark, never clears), so 'last n' is a tail of the whole session."""
+    n = max(1, min(int(n), HOT_MAX_N))
+    cut = int(time.time()) // 10 * 10              # exclude the still-forming bucket (consumer contract)
+    with _lock:
+        bk = _bars.get(sym) or {}
+        items = sorted((k, b) for k, b in bk.items() if k + 10 <= cut)[-n:]
+        total = len(bk)
+        v = _vwap.get(sym)
+        vw = (v["num"] / v["den"]) if (v and v["den"] > 0) else None
+        subbed = sym in _subscribed
+    return {"sym": sym,
+            "bars": [[k, b["o"], b["h"], b["l"], b["c"], b["v"]] for k, b in items],
+            "vwap": vw, "day_bars": total, "subscribed": subbed,
+            "server_ts": time.time()}
+
+def _hot_route(path, params, auth_ok):
+    """Pure router (rig-tested): (path, {param:value}, auth_ok) -> (status, payload_dict).
+    GET-only by construction — the handler below never wires POST."""
+    if not auth_ok:
+        return 401, {"error": "auth"}
+    if path == "/health":
+        return 200, {"ok": True, "symbols": len(_subscribed), "disconnects": _disconnects[0],
+                     "server_ts": time.time()}
+    if path == "/hot":
+        sym = (params.get("sym") or "").upper()
+        if not _SYM_RE.match(sym):
+            return 400, {"error": "bad sym"}
+        try:
+            n = int(params.get("n", "90"))
+        except Exception:
+            n = 90
+        return 200, hot_snapshot(sym, n)
+    return 404, {"error": "unknown"}
+
+def _start_hot_server():
+    """Daemon-thread stdlib HTTP server. Serving is snapshot-based (hot_snapshot holds _lock
+    only to copy) so it can never block the ws ingest for long; a server crash never touches
+    the capture loop (daemon thread, all exceptions swallowed to the log)."""
+    import http.server, urllib.parse
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            try:
+                u = urllib.parse.urlparse(self.path)
+                q = dict(urllib.parse.parse_qsl(u.query))
+                auth_ok = self.headers.get("X-Hot-Secret", "") == HOT_SECRET
+                code, payload = _hot_route(u.path, q, auth_ok)
+                body = json.dumps(payload).encode()
+                self.send_response(code)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception:
+                try: self.send_error(500)
+                except Exception: pass
+        def log_message(self, *a):                 # silence per-request stderr spam
+            pass
+    def _serve():
+        try:
+            try:
+                class S6(http.server.ThreadingHTTPServer):
+                    address_family = __import__("socket").AF_INET6
+                srv = S6(("::", HOT_PORT), H)      # IPv6 dual-stack — Railway private networking
+            except Exception:
+                srv = http.server.ThreadingHTTPServer(("0.0.0.0", HOT_PORT), H)
+            log("hot endpoint up on :%d (read-only, bounded n<=%d)" % (HOT_PORT, HOT_MAX_N))
+            srv.serve_forever()
+        except Exception as e:
+            log("hot endpoint DOWN (capture unaffected): %s" % e)
+    threading.Thread(target=_serve, daemon=True, name="hot-http").start()
+
+# ── A3: mid-session subscribe backfill (Fable F3 — the NVVE class) ───────────
+_seeded = set()     # syms whose VWAP was REST-seeded today (cleared in _reset_day)
+
+def _vwap_seed_from_rest_bars(items):
+    """Pure (rig-tested): Alpaca REST 1-min bars [{'vw':..,'v':..,'c':..},...] -> (num, den)
+    for the VWAP accumulator. Uses per-bar vw (Alpaca's own bar VWAP) weighted by volume;
+    falls back to close when vw is absent. Skips zero-volume bars."""
+    num = den = 0.0
+    for b in items or []:
+        try:
+            v = float(b.get("v") or 0)
+            if v <= 0: continue
+            p = float(b.get("vw") or b.get("c") or 0)
+            if p <= 0: continue
+            num += p * v; den += v
+        except Exception:
+            continue
+    return num, den
+
+def _backfill_new_symbol(sym):
+    """Seed sym's VWAP accumulator from REST history (4:00 ET → now) so a mid-session add
+    gets a premarket-anchored line instead of a subscribe-time anchor. Bars are NOT seeded —
+    10s bars can't be reconstructed from 1-min, and the hot path only needs recent bars
+    (pre-subscribe 1-min history is the bot's T3 REST job). Never raises."""
+    try:
+        if sym in _seeded: return
+        day0 = et_now().replace(hour=4, minute=0, second=0, microsecond=0)
+        if (et_now() - day0).total_seconds() < 600:
+            _seeded.add(sym); return               # boot-window adds have no meaningful history
+        start = day0.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        r = requests.get("https://data.alpaca.markets/v2/stocks/%s/bars" % sym,
+                         params={"timeframe": "1Min", "start": start, "limit": 10000,
+                                 "feed": ALPACA_FEED if ALPACA_FEED == "sip" else "iex",
+                                 "adjustment": "raw"},
+                         headers={"APCA-API-KEY-ID": ALPACA_KEY,
+                                  "APCA-API-SECRET-KEY": ALPACA_SECRET}, timeout=10)
+        if r.status_code != 200:
+            log("backfill %s: HTTP %d (skipping seed)" % (sym, r.status_code)); return
+        num, den = _vwap_seed_from_rest_bars((r.json() or {}).get("bars"))
+        if den <= 0:
+            _seeded.add(sym); return               # no history (true new listing / halted all day)
+        with _lock:
+            v = _vwap.setdefault(sym, {"num": 0.0, "den": 0.0, "series": []})
+            if v["den"] < den:                     # only seed if stream has LESS than history
+                v["num"] += num; v["den"] += den
+        _seeded.add(sym)
+        log("backfill %s: VWAP seeded from %d shares of REST history (anchor=4:00 ET)" % (sym, int(den)))
+    except Exception as e:
+        log("backfill %s failed (non-fatal): %s" % (sym, e))
 
 # ── websocket (websocket-client, synchronous — one loop, no callback threads) ─
 def connect_and_auth():
@@ -401,6 +546,7 @@ def _reset_day():
     with _lock:
         _bars.clear(); _vwap.clear(); _shipped.clear(); _vw_shipped.clear()
     _subscribed.clear()
+    _seeded.clear()                                # A3: next day's adds re-seed fresh
     _actives["ts"] = 0.0; _actives["names"] = []
 
 def _on_sigterm(signum, frame):
@@ -428,6 +574,7 @@ def main():
     log("alpaca_capture up — gate %02d:%02d-%02d:%02d ET weekdays, feed=%s cap=%d probe=%s"
         % (SESSION_START_ET[0], SESSION_START_ET[1], SESSION_END_ET[0], SESSION_END_ET[1],
            ALPACA_FEED, SYMBOL_CAP, SYMBOL_PROBE))
+    _start_hot_server()                            # A1: read-only hot endpoint (daemon thread)
     backoff = 10
     while not _stop.is_set():
         if in_session():

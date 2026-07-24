@@ -59,3 +59,20 @@ supersede it with a new one._
   headroom UNMEASURED (alp_429 counters ship with it); hot n-bound 720 = zone computable
   until ~11:00 for late adds (open-native lane, acceptable); live acceptance = FIRE COUNT,
   not rig green (Curl Mechanic law).
+
+## 7/23 — #83 VENDOR COMPLETENESS VERDICT (the migration gate) [MEASURED, 2 runs stable]
+- **Webull recorder: median 10.6% / mean 42.5% of official daily volume (n=38).**
+- **Alpaca SIP capture: median 94.7% / mean 71.8% (n=38).** ~9× the recorder.
+- Bar-count: Alpaca has MORE bars than Webull on EVERY one of 79 mismatched names, no exceptions
+  (ZCMD wb57→alp3128, NVVE 410→1872, JEM 1529→3144, CPHI 1470→3920, BIYA 126→2071). There is
+  no name where Webull is more complete. Strictly-better everywhere.
+- STRICT ≥98% GATE: NOT cleanly cleared. Alpaca median 94.7%; 20 names <98% incl. real movers
+  (JEM 47.0%, NIKI 19.6%, ZYBT 90.5%, PAVS 75.0%). CAVEATS contaminating the number (all push it
+  DOWN, so 94.7% is a FLOOR): (a) official /api/daily unsettled at 19:45 — first run showed >100%
+  values (NBP 197.8%, YOUL 192.9%) = noisy denominator; (b) evening silence-fuse churn (8 discon-
+  nects 19:26→19:42, thin-AH-tail, RTH intact per EHGO 5133 bars through 19:26); (c) late-subscribe
+  names have partial history (roster-lag class, #68/A3).
+- VERDICT: migration thesis EMPIRICALLY PROVEN (recorder captures a tenth of the tape — the #71
+  problem quantified board-wide). Strict 98% not met on this noisy eve measurement → clean re-grade
+  needed (settled volume, churn excluded, leader-name filter) to get the true number. File:
+  data/killtests/vendor_grade_20260723.txt

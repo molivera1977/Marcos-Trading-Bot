@@ -455,7 +455,12 @@ def process_once(dry=False, out_rows=None):
     if _rl:
         todo = [tk for tk in _rl if tk not in seen and not tk.startswith("_")]   # Move%-ordered, biggest first
     else:
-        todo = [tk for _tm, tk in sorted((tm, tk) for tk, tm in roster.items() if tk not in seen)]
+        # #99 fail-soft (Marcos 7/24): read_list empty/unreachable → read ONLY Kev's flagged names
+        # (the always-safe minimal set), NEVER the full unbounded roster. Kev tickers come from the
+        # same /api/kev_watchlist the sheet uses; if the dashboard is fully down this is empty too —
+        # then nothing reads this cycle and we retry next 90s poll (fail-CLOSED, never balloon load).
+        _kev = _today_watchlist()[1] or []
+        todo = [str(t).upper() for t in _kev if str(t).upper() not in seen and not str(t).startswith("_")]
     print(f"[{dt.datetime.now(ET):%H:%M:%S}] read-list={len(todo)} (strict top-20 by Move%+Kev) "
           f"already-read={len(seen)}{'  (DRY — no posts)' if dry else ''}", flush=True)
     for tk in todo:

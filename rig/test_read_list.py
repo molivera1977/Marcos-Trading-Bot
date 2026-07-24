@@ -73,8 +73,10 @@ check("P4 reader: reads STRICTLY the read-list in ORDER (Marcos 'strictly top 20
 check("P5 reader: bounded — NO additive roster union; todo is the read-list ONLY (fewer reads, not more)",
       'roster[_tk] = ""' not in RDR and "for tk in todo:" in RDR
       and "hard CAP" in RDR)
-check("P6 reader: fail-soft — no read_list → full active roster in time-order (never zeroes reads)",
-      "if _rl:" in RDR and "else:\n        todo = [tk for _tm, tk in sorted(" in RDR)
+check("P6 reader: fail-soft = KEV-ONLY (Marcos 7/24), NOT the full roster — never balloons load; fail-closed",
+      "_kev = _today_watchlist()[1] or []" in RDR
+      and "todo = [str(t).upper() for t in _kev" in RDR
+      and "todo = [tk for _tm, tk in sorted(" not in RDR)   # old full-roster fallback is GONE
 
 print(f"\n{'='*60}\n#99 READ-LIST RIG: {len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

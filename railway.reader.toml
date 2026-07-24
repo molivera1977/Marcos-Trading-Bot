@@ -2,15 +2,19 @@
 # on their own through the Anthropic API"). Point the reader service's Config-as-code
 # (Settings → Config-as-code) at THIS file so it doesn't inherit the bot's railway.toml.
 #
-# Pattern = the bot's own: CRON-started each weekday at 12:50 UTC = 8:50am ET during EDT
-# (Marcos 7/18: "morning reads should happen around 8:50 so there's enough time"; adjust to
-# 13:50 when DST ends in November, same as the bot's 12:45). Reads in three waves:
+# Pattern = the bot's/recorder's: ALWAYS-ON WORKER (7/24 #53-for-reader, Marcos: "why do we
+# still have crons???? put in the time like other services. Too unreliable they are"). The
+# process runs all day and gates on the clock INTERNALLY (in_read_window, START_HHMM=08:50 ET,
+# STOP_HHMM=15:30 ET) — ET-native, so no more DST UTC shift. Reads in three waves:
 #   8:50  — Kev-sheet SHADOW reads (his levels canonical, ours stored beside for grading)
 #   ~8:55 — morning scanner batch (the bot's watching list, read before the open)
 #   all day — every newcomer that joins the scanner (trickle, ~90s poll)
-# Exits at NEWCOMER_STOP_HHMM (15:30 ET). restart=never: the daily exit is NORMAL — the
-# next cron re-arms tomorrow. Known limit: a mid-day crash stays down until the next cron
-# (the bot is unaffected — it fails closed to already-marked names).
+# At STOP it idles until the next weekday 08:50, then os.execv re-execs a FRESH process (clean
+# DAY + per-day caches — identical to the old cron's daily fresh boot). restart=always → a
+# push simply restarts the worker in-window; NO cron → NO build-without-start dead reader
+# (the 7/24 failure: a mid-day push staged the new image but the cron wouldn't fire till the
+# next morning, leaving the reader dark all afternoon). The bot is unaffected either way — it
+# fails closed to already-marked names; the only coupling is the dashboard store.
 #
 # Env needed on THIS service: ANTHROPIC_API_KEY, SCREENER_URL,
 # START_APP=newcomer_vision_reader.py, NEWCOMER_VISION_MODEL=<bake-off winner>.
@@ -22,8 +26,7 @@ watchPatterns = ["newcomer_vision_reader.py", "railway.reader.toml"]
 
 [deploy]
 startCommand = "python newcomer_vision_reader.py"
-restartPolicyType = "never"
-# VERIFIED schema (7/18): cronSchedule lives under [deploy] — a "[cron] schedule" table is
-# silently IGNORED by config-as-code (found live: manifest showed cronSchedule null; the bot's
-# own cron comes from its UI settings, not the root toml's decorative [cron] block).
-cronSchedule = "50 12 * * 1-5"
+# CRON→WORKER (mirrors railway.bot.toml): no cronSchedule; the code's __main__ sleeps to 08:50,
+# runs the session to 15:30, sleeps to the next open. always-on + restart=always → a push
+# restarts the reader, no Run-now clicks, no build-without-start dead afternoon.
+restartPolicyType = "always"

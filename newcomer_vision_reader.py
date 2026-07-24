@@ -39,6 +39,7 @@ SECRET = os.environ.get("DASHBOARD_SECRET", "marcos2026")
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 MODEL   = os.environ.get("NEWCOMER_VISION_MODEL", "claude-sonnet-4-6")   # Sonnet: chart-read sweet spot
 POLL_SECS = int(os.environ.get("NEWCOMER_POLL_SECS", "90"))
+START_HHMM = os.environ.get("NEWCOMER_START_HHMM", "08:50")   # #53-style worker gate (was the cron's 8:50)
 STOP_HHMM = os.environ.get("NEWCOMER_STOP_HHMM", "15:30")
 DAY = os.environ.get("NEWCOMER_DAY") or dt.datetime.now(ET).strftime("%Y-%m-%d")
 
@@ -657,6 +658,49 @@ def reread_check():
     except Exception as e:
         print(f"[reread] fire error: {e}", flush=True)
 
+# ── ALWAYS-ON WORKER GATES (#53 pattern — no cron; the process runs all day, gates on the
+# clock itself, and a push simply restarts it in-window). Pure functions: testable with
+# synthetic times (mirror the bot's in_trading_window/next_trading_open, verified 7/21). ──
+def in_read_window(now):
+    """True if the reader should be actively reading right now (weekday, START ≤ hh:mm < STOP)."""
+    if now.weekday() >= 5:
+        return False
+    hhmm = now.strftime("%H:%M")
+    return START_HHMM <= hhmm < STOP_HHMM
+
+def next_read_open(now):
+    """The next weekday START (08:50 ET) datetime at or after `now`+1 tick."""
+    h, m = (int(x) for x in START_HHMM.split(":"))
+    cand = now.replace(hour=h, minute=m, second=0, microsecond=0)
+    if now >= cand:
+        cand += dt.timedelta(days=1)
+    while cand.weekday() >= 5:
+        cand += dt.timedelta(days=1)
+    return cand
+
+def _run_session():
+    """One trading day's read loop — UNCHANGED behavior, exits at STOP. process_once() and
+    reread_check() self-dedupe (one shadow/read per name per day), so repeat calls are safe."""
+    while True:
+        now = dt.datetime.now(ET)
+        if now.strftime("%H:%M") >= STOP_HHMM:
+            print(f"[vision-reader] {now:%H:%M} reached {STOP_HHMM} — session done.", flush=True); return
+        try: process_once()
+        except Exception as e: print(f"[loop] error: {e}", flush=True)
+        try: reread_check()                                  # #77 part 2 — exhausted-map re-reads
+        except Exception as e: print(f"[reread] loop error: {e}", flush=True)
+        time.sleep(POLL_SECS)
+
+def _sleep_then_reexec(now, why):
+    """Idle until the next read window, then re-exec a FRESH process so DAY + per-day caches
+    reset exactly as the old cron's daily fresh boot did (execv keeps PID 1; Railway sees no exit)."""
+    wake = next_read_open(now)
+    secs = max(1.0, (wake - now).total_seconds())
+    print(f"[vision-reader] 💤 {why} — sleeping until {wake:%a %b %d} {START_HHMM} ET "
+          f"({secs/3600:.1f}h away), then re-exec fresh.", flush=True)
+    time.sleep(secs)
+    os.execv(sys.executable, [sys.executable] + sys.argv)     # new day → clean import (DAY, _rfail, _rr_state…)
+
 def main():
     once = "--once" in sys.argv
     dry  = "--dry" in sys.argv                 # read+validate+PRINT, never post (bake-off / live-call proof)
@@ -664,8 +708,8 @@ def main():
     if "--out" in sys.argv:
         try: out = os.path.expanduser(sys.argv[sys.argv.index("--out") + 1])
         except IndexError: out = None
-    print(f"[vision-reader] day={DAY} model={MODEL} once={once} dry={dry} stop={STOP_HHMM} "
-          f"key={'set' if API_KEY else 'MISSING'}", flush=True)
+    print(f"[vision-reader] day={DAY} model={MODEL} once={once} dry={dry} start={START_HHMM} "
+          f"stop={STOP_HHMM} key={'set' if API_KEY else 'MISSING'}", flush=True)
     out_rows = [] if out else None
     if once or dry:
         process_once(dry=dry, out_rows=out_rows)
@@ -674,15 +718,13 @@ def main():
                 json.dump({r["ticker"]: r for r in out_rows}, f, indent=1)
             print(f"[vision-reader] wrote {len(out_rows)} reads → {out}", flush=True)
         return
-    while True:
-        now = dt.datetime.now(ET)
-        if now.strftime("%H:%M") >= STOP_HHMM:
-            print(f"[vision-reader] {now:%H:%M} reached {STOP_HHMM} — done.", flush=True); break
-        try: process_once()
-        except Exception as e: print(f"[loop] error: {e}", flush=True)
-        try: reread_check()                                  # #77 part 2 — exhausted-map re-reads
-        except Exception as e: print(f"[reread] loop error: {e}", flush=True)
-        time.sleep(POLL_SECS)
+    # ALWAYS-ON WORKER: if a push lands mid-session we boot straight into the day; if it lands
+    # off-hours we idle until 08:50 ET. No cron → no build-without-start dead reader (7/24 wipe).
+    now = dt.datetime.now(ET)
+    if not in_read_window(now):
+        _sleep_then_reexec(now, f"outside read window ({now:%H:%M} ET)")   # never returns
+    _run_session()
+    _sleep_then_reexec(dt.datetime.now(ET), "session complete")            # never returns
 
 if __name__ == "__main__":
     main()

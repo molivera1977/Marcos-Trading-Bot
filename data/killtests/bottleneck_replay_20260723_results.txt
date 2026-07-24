@@ -1,0 +1,21 @@
+roster: 27 names (watching 27 ∪ gappers 20)
+data: 27 names with >=30 bars
+
+DETECTION: 17 live-eligible curl fires (reclaim seq-0 + first zone-flip per name)
+fires by hour (ET): [('04', 4), ('07', 1), ('09', 9), ('10', 1), ('11', 1), ('12', 1)]
+fires by lane:      Counter({'reclaim': 14, 'zoneflip': 3})
+
+SIM TRADES (one-at-a-time, RTH entries, kev25 exits): 5
+ time sym   lane        entry    stop  sh    exit  exit_why                pnl
+09:31 SKYQ  reclaim      4.79  4.6304 187    5.22  prev-bar-low trail    49.95
+09:43 ZYBT  zoneflip   1.6402    1.55 332   1.765  prev-bar-low trail    40.30
+10:25 NEUP  reclaim    3.9582  3.9293 252  3.9582  stop                   7.28
+11:26 XLO   reclaim      8.77   8.755 114    8.61  stop                 -18.24
+12:31 NVVE  reclaim      9.28    9.08 107    9.28  stop                  21.40
+
+══ VERDICT ══
+curl-lane sim P&L (7/23, full Alpaca tape): +100.69  (4W/1L of 5)
+live curl-lane P&L that day:                +0.00  (ZERO fires — the starved bottleneck)
+live day actual (other lanes):              -55.78  (ADVB +29.37 / PN -30.75 / NVVE -54.40)
+NOTE: sim number carries the fidelity ledger above — health-trail omitted (runner-optimistic),
+velocity-ride omitted (monster-conservative). Treat as ORDER OF MAGNITUDE, not gospel.

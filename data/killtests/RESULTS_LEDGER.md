@@ -76,3 +76,18 @@ supersede it with a new one._
   problem quantified board-wide). Strict 98% not met on this noisy eve measurement → clean re-grade
   needed (settled volume, churn excluded, leader-name filter) to get the true number. File:
   data/killtests/vendor_grade_20260723.txt
+
+## 7/24 ~1am — BOTTLENECK REPLAY 7/23 (Marcos: "how badly did our bottlenecks affect us")
+- Harness: bottleneck_replay.py — bot's OWN imported curl machines (kev_reclaim_step/kev_zoneflip_step,
+  _curl_feed monkeypatched to replay), full-day ~ALP10S+~ALPVWAP archive, kev25 exits (50%@+1R,
+  25%@+2R, BE-after-scale-2, prev-1min-low runner trail, 3:45 flat), next-bar-open fills,
+  stop-first-on-spanning-bar, halt-gap stop fills, one-position-at-a-time, RTH entries only.
+- DETECTION: 17 live-eligible curl fires (14 reclaim seq-0, 3 zoneflip; 4 premarket=shadow-only).
+  Consistent order with the 7/23 forensic (21+3 all-seq).
+- SIM: 5 trades → **+$100.69 (4W/1L)**: SKYQ +49.95 trail, ZYBT +40.30 trail, NVVE +21.40 (banked
+  2 tiers pre-halt, BE stop — hand-traced vs chart's 12:32 spike to ~9.86), NEUP +7.28 BE stop,
+  XLO −18.24 (1.5c wick-stop artifact, gap-fill open).
+- LIVE that day: curl lanes +$0.00 (ZERO fires — starved). Other lanes −$55.78.
+- READ: the data bottleneck cost ≈ the difference between a −$56 day and a ~+$45-100 day. CAVEATS
+  (fidelity ledger in script): health-trail omitted (runner-OPTIMISTIC), velocity-ride omitted
+  (monster-conservative), n=1 day, order-of-magnitude only. NOT a promise of Friday.

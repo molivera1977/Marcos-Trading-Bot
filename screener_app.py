@@ -2539,6 +2539,20 @@ function loadData(){
     .catch(()=>{ document.getElementById('lastUpdate').textContent = 'Error loading data'; });
 }
 
+// #tale-reads (Marcos 7/24): load the reader's vision maps into window._readMaps so readMapHTML can
+// render them on the tale cards. Self-contained on /dashboard (loadKev/_readMaps live on a different page).
+window._readMaps=window._readMaps||{};
+function loadReadMaps(){
+  return fetch('/api/kev_watchlist').then(function(r){return r.json()}).then(function(d){
+    if(!d) return;
+    var dts=Object.keys(d).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k)});
+    if(!dts.length) return;
+    var lv=(d._levels&&d._levels[dts.sort()[dts.length-1]])||{};
+    Object.keys(lv).forEach(function(t){ window._readMaps[String(t).toUpperCase()]=lv[t]; });
+  }).catch(function(){});
+}
+loadReadMaps(); setInterval(loadReadMaps, 120000);
+
 function renderTodayStats(trades){
   // Today's P&L + win rate, computed client-side from the trade log (ET calendar day).
   const todayET = new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});  // YYYY-MM-DD
@@ -2866,7 +2880,7 @@ function exitStory(r){ for(const [re,s] of EXIT_STORIES){ if(re.test(r||'')) ret
 // The reader's vision MAP (break/confirm/supply/targets/stop) for this ticker — shown on the tale
 // card so the trade sits next to the read's plan (Marcos 7/24). Graceful: '' when no read exists.
 function readMapHTML(tk){
-  var m=_readMaps[String(tk).toUpperCase()];
+  var m=(window._readMaps||{})[String(tk).toUpperCase()];   // window-guarded: never throws if not loaded
   if(!m) return '';
   var esc=function(s){return String(s).replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];});};
   var f=function(x){return (x==null||x==='')?'—':'$'+Number(x).toFixed(2);};

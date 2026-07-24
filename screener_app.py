@@ -871,7 +871,7 @@ function renderResults(d){
 }
 
 // Kev's picks — highest-signal names, marked distinctly (backed by his stored levels)
-var _kevSet=new Set(), _kevLevels={};
+var _kevSet=new Set(), _kevLevels={}, _readMaps={};
 function loadKev(){
   return fetch('/api/kev_watchlist').then(function(r){return r.json()}).then(function(d){
     if(!d||typeof d!=='object') return;
@@ -886,6 +886,7 @@ function loadKev(){
       if(x.confirm) parts.push('confirm '+x.confirm);
       if(x.targets&&x.targets.length) parts.push('targets '+x.targets.join(', '));
       _kevLevels[String(t).toUpperCase()]='KEV — '+(parts.join(' / ')||'watchlist pick');
+      _readMaps[String(t).toUpperCase()]=x;   // structured read for the position tale cards (Marcos 7/24)
     });
   }).catch(function(){});
 }
@@ -2862,6 +2863,23 @@ const EXIT_STORIES=[
 function exitStory(r){ for(const [re,s] of EXIT_STORIES){ if(re.test(r||'')) return s; } return r||'—'; }
 
 // Live position story: what we're in for, what's banked, the sell-half point, what to look for.
+// The reader's vision MAP (break/confirm/supply/targets/stop) for this ticker — shown on the tale
+// card so the trade sits next to the read's plan (Marcos 7/24). Graceful: '' when no read exists.
+function readMapHTML(tk){
+  var m=_readMaps[String(tk).toUpperCase()];
+  if(!m) return '';
+  var esc=function(s){return String(s).replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];});};
+  var f=function(x){return (x==null||x==='')?'—':'$'+Number(x).toFixed(2);};
+  var tg=(m.targets&&m.targets.length)?m.targets.map(function(x){return '$'+Number(x).toFixed(2);}).join(' / '):'—';
+  var note=m.note?esc(String(m.note).replace(/^vision\s+\S+\s+\(levels-only\):\s*/i,'')).slice(0,150):'';
+  var chip=function(l,v){return '<span style="display:inline-block;background:rgba(127,127,127,.12);border-radius:6px;padding:2px 8px;margin:2px 4px 2px 0;font-variant-numeric:tabular-nums">'+l+' <b>'+v+'</b></span>';};
+  return '<div style="margin-top:10px;padding:10px;border:1px solid rgba(127,127,127,.25);border-radius:8px">'
+    +'<div style="font-size:11px;letter-spacing:.04em;opacity:.7;margin-bottom:6px">📕 READER MAP'+(m.setup?' · '+esc(m.setup):'')+(m.confidence?' · '+esc(m.confidence):'')+(m.src?' · '+esc(m.src):'')+'</div>'
+    +'<div>'+chip('break',f(m.break))+chip('confirm',f(m.confirm))+chip('stop',f(m.stop))+chip('supply',f(m.next_supply))+chip('targets',tg)+(m.room_rr?chip('room',esc(m.room_rr)+':1'):'')+'</div>'
+    +(note?'<div style="margin-top:6px;font-size:12px;opacity:.75;font-style:italic">“'+note+'”</div>':'')
+    +'</div>';
+}
+
 function taleLiveHTML(t){
   const entry=Number(t.entry_price??t.entry??0), price=Number(t.last_price??t.price??entry);
   const stop=Number(t.stop||0), init=Number(t.initial_shares||0), rem=Number(t.remaining_shares||0);
@@ -2890,7 +2908,7 @@ function taleLiveHTML(t){
   else if(Math.abs(stop-entry)<=0.004) li.push(`The stop sits at <b>breakeven</b> ($${stop.toFixed(2)}) — the remaining ${rem} shares can't lose money.`);
   else                           li.push(`Safety net: a close below <b>$${stop.toFixed(2)}</b> ends it for ≈ −$${Math.abs((stop-entry)*rem).toFixed(2)} — the planned ~1%-of-account risk.`);
   li.push(`<b>What to look for:</b> higher lows, holding above VWAP${t.vwap?` ($${Number(t.vwap).toFixed(2)})`:''}. High so far $${high.toFixed(2)}${entry>0?` (+${((high-entry)/entry*100).toFixed(1)}%)`:''}. Right now: ${openPnl>=0?'+':'−'}$${Math.abs(openPnl).toFixed(2)} open${b.banked>0.5?` on top of the $${b.banked.toFixed(2)} banked`:''}.`);
-  return `<div class="verdict ${vCls}">${vTxt}</div><ul>${li.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  return `<div class="verdict ${vCls}">${vTxt}</div><ul>${li.map(x=>`<li>${x}</li>`).join('')}</ul>${readMapHTML(t.ticker)}`;
 }
 
 // Booked trade story: same tale, told in retrospect.

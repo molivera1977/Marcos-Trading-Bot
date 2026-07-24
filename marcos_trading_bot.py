@@ -1669,8 +1669,10 @@ def scan_morning_gappers():
     return results
 
 
-def _post_watching_to_screener(tickers: list, status: str = "watching"):
-    """Push the live watch list to screener_app so the dashboard shows what the bot is monitoring."""
+def _post_watching_to_screener(tickers: list, status: str = "watching", quiet: bool = False):
+    """Push the live watch list to screener_app so the dashboard shows what the bot is monitoring.
+    quiet=True → one short log line (used by the intraday roster heartbeat, #101 — a 110-name
+    list every couple of minutes would drown the log)."""
     screener_url = os.environ.get("SCREENER_URL", "").rstrip("/")
     if not screener_url:
         return
@@ -1680,7 +1682,10 @@ def _post_watching_to_screener(tickers: list, status: str = "watching"):
                             "started_at": datetime.now(EASTERN).isoformat()},
                       headers={"X-Dashboard-Secret": DASHBOARD_SECRET},
                       timeout=5)
-        print(f"📡 Watch list posted to dashboard: {tickers}")
+        if quiet:
+            print(f"📡 Watch roster → dashboard: {len(tickers)} names")
+        else:
+            print(f"📡 Watch list posted to dashboard: {tickers}")
     except Exception as e:
         print(f"⚠️  Could not post watch list to screener_app: {e}")
 
@@ -4649,8 +4654,20 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
           + (f" | ⚠️  FAILED → daily gate fails OPEN for: {', '.join(_daily_miss)}"
              if _daily_miss else " (full daily-gate coverage)"))
 
+    # #101 (Marcos 7/24: "I want the panel to constantly be updated — that is what I can watch
+    # when away from my laptop"): keep the dashboard's CURRENTLY WATCHING panel identical to this
+    # loop's LIVE roster. Re-post on every roster change and on a 120s heartbeat. Safe to repeat:
+    # the dashboard POST replaces only the live snapshot and UNIONS into the day's history.
+    _wl_posted: set = set()
+    _wl_posted_ts: float = 0.0
+
     while True:
         now = datetime.now(EASTERN)
+
+        _wl_now = set(candidates)
+        if _wl_now != _wl_posted or time.time() - _wl_posted_ts >= 120:
+            _post_watching_to_screener(sorted(_wl_now), quiet=True)
+            _wl_posted, _wl_posted_ts = _wl_now, time.time()
 
         # No time-of-day entry wall: a bot doesn't fatigue, so it trades the SETUP, not the clock.
         # (The old 11:00am cutoff was a human-discipline guard + a DRY_RUN/live parity gap — removed.

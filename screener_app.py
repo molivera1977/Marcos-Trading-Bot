@@ -1740,6 +1740,33 @@ if KEV_WL_FILE.exists():
     try:    _kev_wl = json.loads(KEV_WL_FILE.read_text())
     except Exception: _kev_wl = {}
 
+def _merge_kev_levels(existing, incoming, remove=None):
+    """7/24 (Marcos, after the 09:25 open-window wipe): the levels store is MERGE-ONLY.
+    A write can never delete a name it doesn't mention — deletion ONLY via the explicit
+    `remove` list. Per-ticker: incoming replaces that ticker's entry, EXCEPT an existing
+    src='kev' entry (Kev's own posted level = the Bible) which a non-kev write can never
+    clobber — the non-kev read is tucked under its 'vision_shadow' instead, exactly the
+    post_shadow contract, enforced server-side for EVERY writer. A src='kev' incoming
+    (morning-update ritual / Marcos) replaces freely, kev-over-kev included."""
+    merged = dict(existing or {})
+    for tk in (remove or []):
+        merged.pop(str(tk).upper().strip(), None)
+    for tk, inc in (incoming or {}).items():
+        tk = str(tk).upper().strip()
+        if not isinstance(inc, dict):
+            continue
+        ex = merged.get(tk)
+        if isinstance(ex, dict) and ex.get("src") == "kev" and inc.get("src") != "kev":
+            kept = dict(ex)
+            shadow = {k: v for k, v in inc.items() if k != "vision_shadow"}
+            if shadow:
+                kept["vision_shadow"] = shadow
+            merged[tk] = kept
+        else:
+            merged[tk] = inc
+    return merged
+
+
 @app.route("/api/kev_watchlist", methods=["POST"])
 def set_kev_watchlist():
     if request.headers.get("X-Dashboard-Secret") != API_SECRET:
@@ -1748,11 +1775,16 @@ def set_kev_watchlist():
     date = d.get("date") or datetime.now(EASTERN).strftime("%Y-%m-%d")
     tickers = sorted({str(t).upper().strip() for t in (d.get("tickers") or []) if str(t).strip()})
     _kev_wl[date] = tickers
-    # 7/13 Kev-level anchoring: optionally carry his STATED levels per ticker ({T: {break, confirm,
-    # targets}}) so the bot can record each pick-trade's entry distance from his level (study: 3/3
-    # days so far, closest-to-level = best outcome). Stored under a reserved "_levels" key.
-    if isinstance(d.get("levels"), dict):
-        _kev_wl.setdefault("_levels", {})[date] = d["levels"]
+    # 7/13 Kev-level anchoring: carry his STATED levels per ticker ({T: {break, confirm, targets}})
+    # so the bot can record each pick-trade's entry distance from his level (study: 3/3 days,
+    # closest-to-level = best outcome). Stored under a reserved "_levels" key.
+    # 7/24 MERGE-ONLY (the 09:25 wipe): a POST updates only the tickers it mentions and can
+    # never drop the rest; explicit deletions via "levels_remove"; src='kev' entries are
+    # clobber-protected (see _merge_kev_levels).
+    if isinstance(d.get("levels"), dict) or d.get("levels_remove"):
+        cur = _kev_wl.setdefault("_levels", {}).get(date) or {}
+        _kev_wl["_levels"][date] = _merge_kev_levels(cur, d.get("levels") or {},
+                                                     remove=d.get("levels_remove") or [])
     try:    KEV_WL_FILE.write_text(json.dumps(_kev_wl, indent=2))
     except Exception as e: print(f"⚠️  Could not save kev_watchlist: {e}")
     return jsonify({"status": "ok", "date": date, "tickers": tickers,

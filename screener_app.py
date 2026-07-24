@@ -1081,6 +1081,25 @@ def get_watching():
     return jsonify({**_watching, "trade_state": (ts if fresh else None)})
 
 
+# ── #99 READ LIST — the bot posts its Move%-ranked top-20 gappers (+Kev, first) each scan; the
+#    newcomer reader consumes this IN ORDER so the biggest movers get read first (Marcos 7/23). ──
+_read_list = {"tickers": [], "updated": None}
+
+@app.route("/api/read_list", methods=["POST"])
+def set_read_list():
+    global _read_list
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    _read_list = {"tickers": [str(t).upper().strip() for t in (data.get("tickers") or []) if str(t).strip()],
+                  "updated": datetime.now(EASTERN).isoformat()}
+    return jsonify({"status": "ok", "n": len(_read_list["tickers"])})
+
+@app.route("/api/read_list", methods=["GET"])
+def get_read_list():
+    return jsonify(_read_list)
+
+
 @app.route("/api/trade_state", methods=["POST"])
 def set_trade_state():
     """Live state of the active trade, posted fire-and-forget by the bot each monitor loop."""

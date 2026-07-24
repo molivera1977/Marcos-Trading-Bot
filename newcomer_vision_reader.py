@@ -444,8 +444,21 @@ def process_once(dry=False, out_rows=None):
     # dry (bake-off / live-proof): read + validate + PRINT every active newcomer, never post.
     seen = set() if dry else already_read()
     roster, pxmap = active_newcomers()
+    # #99 (Marcos 7/23): read the bot's MOVE%-ranked list FIRST, in order (biggest mover first) —
+    # so if we run out of time before 9:30 we still got the top movers. The bot posts top-20 by
+    # change_pct + Kev to /api/read_list each scan. Add any read-list name missing from the roster
+    # (a top gapper the archive/watching pass hasn't seen yet MUST still be read); archive-only
+    # actives fall to the end by time. Fail-soft: no read_list → old time-order behavior.
+    try:
+        _rl = [str(t).upper() for t in (_get(f"{U}/api/read_list").get("tickers") or [])]
+    except Exception:
+        _rl = []
+    _rank = {tk: i for i, tk in enumerate(_rl)}
+    for _tk in _rl:
+        if _tk and _tk not in roster and _tk not in seen and not _tk.startswith("_"):
+            roster[_tk] = ""     # top mover not yet in the archive roster — read it anyway
     todo = [(tm,tk) for tk,tm in roster.items() if tk not in seen]
-    todo.sort()
+    todo.sort(key=lambda x: (_rank.get(x[1], 9999), x[0]))   # Move%-rank first, then first-seen time
     print(f"[{dt.datetime.now(ET):%H:%M:%S}] active={len(roster)} already-read={len(seen)} "
           f"to-read={len(todo)}{'  (DRY — no posts)' if dry else ''}", flush=True)
     for tm,tk in todo:

@@ -1663,6 +1663,9 @@ def scan_morning_gappers():
         if (r.get("relative_volume") or 1.0) >= 2.0:          tags.append(f"{r['relative_volume']:.0f}×vol")
         print(f"   {r['select_score']:>7.1f}  {r['symbol']:<6} +{r['change_pct']:.0f}% | "
               f"{r.get('float_label','float N/A')}{'  ' + ' '.join(tags) if tags else ''}")
+    # #99: hand the reader its Move%-ranked roster (top-20 by change_pct + Kev). Drawn from the FULL
+    # Kev-filtered candidate set (float_checked), ranked by Move% — not the select_score order above.
+    _post_read_list(float_checked)
     return results
 
 
@@ -2307,6 +2310,27 @@ def _premarket_starter_set(n=PREMARKET_STARTER_N):
         print(f"⚠️  Premarket starter fetch failed (non-fatal): {e}")
     kev = [str(k).upper().strip() for k in _fetch_kev_watchlist()]
     return list(dict.fromkeys(kev + starter))   # Kev first, dedup, order-stable
+
+
+def _post_read_list(gappers):
+    """#99 (Marcos 7/23): post the READER's roster — top-20 by MOVE % (change_pct, the exact
+    dashboard column — NOT the internal select_score) + Kev's names FIRST — so the newcomer reader
+    reads biggest-movers-first and, if it runs out of time before 9:30, still got the top movers.
+    Called at the END of every scan (session start + each 3-min rescan) so it's fresh at 8:50.
+    Never raises — a read-list hiccup must not break the scan."""
+    try:
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        if not url:
+            return
+        ranked = sorted([g for g in (gappers or []) if g.get("symbol")],
+                        key=lambda g: float(g.get("change_pct") or 0), reverse=True)
+        top = [str(g["symbol"]).upper().strip() for g in ranked[:20]]
+        kev = [str(k).upper().strip() for k in _fetch_kev_watchlist()]
+        tickers = list(dict.fromkeys(kev + top))   # Kev FIRST, then Move%-desc, dedup order-stable
+        requests.post(f"{url}/api/read_list", json={"tickers": tickers},
+                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
+    except Exception as e:
+        print(f"⚠️  read-list post failed (non-fatal): {e}")
 
 
 _kev_levels_cache = {"date": None, "levels": {}, "ts": 0.0}

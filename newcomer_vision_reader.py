@@ -616,13 +616,17 @@ def reread_check():
             except (TypeError, ValueError): lastT = 0.0
             if lastT <= 0: continue
             try:
-                rows = _get_retry(f"{U}/api/minute_ext?ticker={_q(tk)}&count=8").get("bars") or []
+                # #77 (7/24 Marcos "move it"): detect past-map via ALPACA 10s store bars (~ALP10S),
+                # NOT Webull /api/minute_ext. minute_ext's 429s blinded this detection all morning
+                # (median 77-min re-read lag — the store is Alpaca-captured, rate-limit-free). Latest
+                # bar close = current px. minute_ext still renders the chart (lower-volume, #102-safe).
+                rows = _get_retry(f"{U}/api/bars?date={DAY}&ticker={_q(tk)}~ALP10S").get("bars") or []
             except Exception:
                 continue                    # one name's bars failing must not kill the sweep
             px = 0.0
-            for r in rows:
-                if str(r.get("time","")).startswith(DAY) and r.get("session")=="RTH":
-                    px = float(r.get("close") or 0)
+            if rows:
+                try: px = float(rows[-1].get("close") or rows[-1].get("c") or 0)
+                except (TypeError, ValueError): px = 0.0
             if px > lastT:
                 want.append((tk, "past_map"))
     except Exception as e:

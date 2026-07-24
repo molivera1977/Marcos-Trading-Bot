@@ -1888,51 +1888,98 @@ def premarket_dashboard():
     for t in names:
         r = last_row.get(t) or {}
         d = lv.get(t) or {}
-        kevcell = (fmt(d.get("break")) + (" → " + "/".join(fmt(x) for x in d.get("targets", [])) if d.get("targets") else "")) if d else "—"
+        kevcell = (fmt(d.get("break")) + (" <span class='muted'>→</span> " + "/".join(fmt(x) for x in d.get("targets", [])) if d.get("targets") else "")) if d else "—"
         seen = esc(r.get("time") or (str(r.get("recorded_at") or "")[11:19]) or "—")
         rows_html.append(
-            "<tr><td><a href='/tale/" + esc(t) + "' style='color:#58a6ff'>" + esc(t) + "</a>"
-            + (" ⭐" if t in kev else "") + "</td>"
-            "<td>" + fmt(r.get("price")) + "</td>"
-            "<td class='st'>" + esc(r.get("status") or "no rows yet") + "</td>"
-            "<td>" + seen + "</td>"
-            "<td>" + kevcell + "</td>"
-            "<td>" + (("<b style='color:#d29922'>" + str(fire_count.get(t, 0)) + "</b>") if fire_count.get(t) else "0") + "</td></tr>")
+            "<tr><td><a class='tk' href='/tale/" + esc(t) + "'>" + esc(t) + "</a>"
+            + (" <span class='kev-badge'>★ KEV</span>" if t in kev else "") + "</td>"
+            "<td class='num'>" + fmt(r.get("price")) + "</td>"
+            "<td class='muted'>" + esc(r.get("status") or "no rows yet") + "</td>"
+            "<td class='muted num'>" + seen + "</td>"
+            "<td class='num'>" + kevcell + "</td>"
+            "<td class='num'>" + (("<b class='yellow'>" + str(fire_count.get(t, 0)) + "</b>") if fire_count.get(t) else "<span class='muted'>0</span>") + "</td></tr>")
     fires_html = []
     for r in fires:
         st = r.get("status")
-        col = "#d29922" if st == "premarket_shadow_entry" else "#a371f7"
+        lane_cls = "yellow" if st == "premarket_shadow_entry" else "purple"
         fires_html.append(
-            "<tr><td>" + esc(r.get("time_hm") or r.get("time") or str(r.get("recorded_at") or "")[11:16]) + "</td>"
-            "<td><a href='/tale/" + esc(r.get("ticker")) + "' style='color:#58a6ff'>" + esc(r.get("ticker")) + "</a></td>"
-            "<td style='color:" + col + "'>" + esc(r.get("entry_type") or st) + "</td>"
-            "<td>" + fmt(r.get("price")) + "</td>"
-            "<td>" + fmt(r.get("stop")) + "</td>"
-            "<td class='st'>" + esc(st) + "</td></tr>")
-    html = ("<html><head><title>Premarket — Tale of the Tapes</title>"
+            "<tr><td class='num'>" + esc(r.get("time_hm") or r.get("time") or str(r.get("recorded_at") or "")[11:16]) + "</td>"
+            "<td><a class='tk' href='/tale/" + esc(r.get("ticker")) + "'>" + esc(r.get("ticker")) + "</a></td>"
+            "<td class='" + lane_cls + "'>" + esc(r.get("entry_type") or st) + "</td>"
+            "<td class='num'>" + fmt(r.get("price")) + "</td>"
+            "<td class='num'>" + fmt(r.get("stop")) + "</td>"
+            "<td class='muted'>" + esc(st) + "</td></tr>")
+    kev_n = sum(1 for t in names if t in kev)
+    state_cls = "green" if entries_open else "yellow"
+    # Dashboard-styled shell (Marcos 7/24: match the scanner/dashboard look + its dark/light
+    # switch) — same Inter face, header bar, stat cards, card tables, and THEME_SNIPPET button.
+    html = ("<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'>"
+            "<title>Premarket — Tale of the Tapes</title>"
             "<meta http-equiv='refresh' content='30'>"
             "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-            "<style>body{background:#0d1117;color:#c9d1d9;font-family:monospace;margin:12px}"
-            "h1{color:#e6edf3;font-size:18px;line-height:1.3} h2{color:#8b949e;font-size:13px;margin-top:20px}"
+            "<link rel='preconnect' href='https://fonts.googleapis.com'>"
+            "<link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' rel='stylesheet'>"
+            "<style>"
+            "*{box-sizing:border-box;margin:0;padding:0}"
+            "body{font-family:'Inter',system-ui,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}"
+            ".header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;"
+            "background:#161b22;border-bottom:1px solid #21262d;flex-wrap:wrap;gap:8px}"
+            ".logo{display:flex;align-items:center;gap:10px}"
+            ".logo-icon{width:34px;height:34px;border-radius:8px;background:#3a2e1a;"
+            "display:flex;align-items:center;justify-content:center;font-size:18px}"
+            ".logo h1{font-size:16px;font-weight:600;color:#e6edf3}"
+            ".logo sub{font-size:11px;color:#8b949e;display:block;margin-top:1px;font-weight:400}"
+            ".ts{font-size:12px;color:#8b949e}"
+            ".stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px 24px 0}"
+            ".stat{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:14px 18px}"
+            ".stat-label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}"
+            ".stat-value{font-size:22px;font-weight:600}"
+            ".green{color:#3fb950}.yellow{color:#d29922}.purple{color:#a371f7}.muted{color:#8b949e}"
+            ".section{padding:20px 24px 0}"
+            ".card{background:#161b22;border:1px solid #21262d;border-radius:10px;overflow:hidden}"
+            ".card h2{font-size:13px;font-weight:600;color:#e6edf3;padding:12px 18px;border-bottom:1px solid #21262d}"
+            ".card h2 span{color:#8b949e;font-weight:400}"
             ".tw{overflow-x:auto;-webkit-overflow-scrolling:touch}"
-            "table{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}"
-            "td,th{border-bottom:1px solid #21262d;padding:6px 8px;text-align:left;white-space:nowrap}"
-            "th{color:#8b949e} .st{color:#8b949e;font-size:12px} a{text-decoration:none}"
-            "@media (max-width:700px){body{margin:8px} h1{font-size:15px} h1 span{display:block;margin-top:4px}"
-            "table{font-size:12px;min-width:480px} td,th{padding:5px 6px} .banner{font-size:12px}}"
-            ".banner{padding:8px 12px;border-radius:6px;border:1px solid " + bcol + ";color:" + bcol + ";display:inline-block}"
+            "table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}"
+            "td,th{border-bottom:1px solid #21262d;padding:9px 18px;text-align:left;white-space:nowrap}"
+            "tr:last-child td{border-bottom:none}"
+            "th{color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:500}"
+            "tr:hover td{background:#1c2129}"
+            ".num{font-variant-numeric:tabular-nums}"
+            ".tk{color:#58a6ff;text-decoration:none;font-weight:600}.tk:hover{text-decoration:underline}"
+            ".kev-badge{font-size:10px;color:#d29922;border:1px solid #d2992255;border-radius:6px;"
+            "padding:1px 6px;margin-left:6px;vertical-align:1px}"
+            ".footer{padding:16px 24px;color:#484f58;font-size:11px}"
+            "@media (max-width:700px){.stats{grid-template-columns:repeat(2,1fr);padding:14px 12px 0}"
+            ".section{padding:14px 12px 0}.header{padding:12px}table{font-size:12px}td,th{padding:8px 12px}}"
             "</style></head><body>"
-            "<h1>🌅 PREMARKET — TALE OF THE TAPES <span style='color:#8b949e;font-size:13px'>" + today + " " + hm + " ET · auto-refresh 30s</span></h1>"
-            "<div class='banner'>" + banner + "</div>"
-            "<h2>SHADOW FIRES (" + str(len(fires)) + " today — the scorecard rows)</h2>"
+            "<div class='header'><div class='logo'><div class='logo-icon'>🌅</div>"
+            "<div><h1>Premarket — Tale of the Tapes</h1><sub>" + banner + "</sub></div></div>"
+            "<div class='ts'>" + today + " " + hm + " ET · auto-refresh 30s</div></div>"
+            "<div class='stats'>"
+            "<div class='stat'><div class='stat-label'>Session</div><div class='stat-value " + state_cls + "'>"
+            + ("LIVE" if entries_open else "SHADOW") + "</div></div>"
+            "<div class='stat'><div class='stat-label'>Shadow fires today</div><div class='stat-value "
+            + ("yellow" if fires else "muted") + "'>" + str(len(fires)) + "</div></div>"
+            "<div class='stat'><div class='stat-label'>Names watched</div><div class='stat-value'>" + str(len(names)) + "</div></div>"
+            "<div class='stat'><div class='stat-label'>Kev sheet</div><div class='stat-value yellow'>" + str(kev_n) + "</div></div>"
+            "</div>"
+            "<div class='section'><div class='card'>"
+            "<h2>Shadow fires <span>— the scorecard rows</span></h2>"
             "<div class='tw'><table><tr><th>time</th><th>ticker</th><th>lane</th><th>price</th><th>stop</th><th>row</th></tr>"
-            + ("".join(fires_html) or "<tr><td colspan=6 class='st'>none yet — machines watching</td></tr>")
-            + "</table></div>"
-            "<h2>THE TAPES (" + str(len(names)) + " names · ⭐ = Kev sheet · click for full Tale)</h2>"
-            "<div class='tw'><table><tr><th>ticker</th><th>last px</th><th>latest read</th><th>at</th><th>Kev level → tgts</th><th>🔥</th></tr>"
-            + ("".join(rows_html) or "<tr><td colspan=6 class='st'>roster empty — bot not awake yet</td></tr>")
-            + "</table></div></body></html>")
-    return html
+            + ("".join(fires_html) or "<tr><td colspan=6 class='muted'>none yet — machines watching</td></tr>")
+            + "</table></div></div></div>"
+            "<div class='section'><div class='card'>"
+            "<h2>The tapes <span>— ★ = Kev sheet · click a ticker for its full Tale</span></h2>"
+            "<div class='tw'><table><tr><th>ticker</th><th>last px</th><th>latest read</th><th>at</th><th>Kev level → tgts</th><th>fires</th></tr>"
+            + ("".join(rows_html) or "<tr><td colspan=6 class='muted'>roster empty — bot not awake yet</td></tr>")
+            + "</table></div></div></div>"
+            "<div class='footer'>Entries hard-gated until 09:30 · shadow rows land here as the machines fire</div>"
+            "</body></html>")
+    # plain string return (NOT render_template_string — this HTML is dynamically built from
+    # decision rows; no Jinja pass wanted over data-derived text)
+    return html.replace("</head>", THEME_SNIPPET + "</head>"), 200, {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"}
 
 
 @app.route("/api/room_stats", methods=["GET"])

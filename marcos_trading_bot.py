@@ -4711,7 +4711,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         if calc_vwap > 0:
                             cache[t]["vwap"] = calc_vwap
                         else:
-                            print(f"⚠️  {t} VWAP=0 — Webull bars had no volume data")
+                            print(f"⚠️  {t} VWAP=0 — bars had no volume ({BARS_SOURCE} primary + webull fallback)")
                     elif time.time() - cache[t].get("vwap_fetched", 0) >= VWAP_SESSION_CACHE_SECS:
                         # Chart-matching = session-anchored INCLUDING pre-market. Dedicated pre+RTH fetch (slower TTL to
                         # limit API load); keep full_bars RTH-only so room/3-min setups don't move.
@@ -4738,7 +4738,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 print(f"   🔍 {t} VWAP pre+RTH ${_fullvw:.3f} vs RTH-only ${_rthvw:.3f} "
                                       f"({(_fullvw - _rthvw) / _rthvw * 100:+.0f}% pre-market gap)")
                         else:
-                            print(f"⚠️  {t} VWAP=0 — Webull bars had no volume data")
+                            print(f"⚠️  {t} VWAP=0 — bars had no volume ({BARS_SOURCE} primary + webull fallback)")
                         # RECORDER TICK-VWAP overlay (7/16): when fresh + sane, the tick line IS the
                         # gate value; the bar line above remains fallback + divergence reference. Every
                         # replacement is dual-logged — that log is the tick-vs-bar comparison record.
@@ -4756,7 +4756,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 print(f"   ⚠️ {t} tick-VWAP ${_tick:.4f} REJECTED by sanity "
                                       f"(bar ${_fullvw:.4f}, px ${_px_now}) — bar line holds")
                 else:
-                    print(f"⚠️  {t} VWAP unavailable — no Webull bars returned")
+                    print(f"⚠️  {t} VWAP unavailable — no bars ({BARS_SOURCE} primary + webull fallback both empty)")
                 cache[t]["fetched"] = time.time()
 
         # Check each ticker for flat top breakout OR EMA bounce

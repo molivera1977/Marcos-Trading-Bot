@@ -2281,6 +2281,34 @@ def _fetch_kev_watchlist():
     return []
 
 
+PREMARKET_STARTER_N = int(os.environ.get("PREMARKET_STARTER_N", "25"))
+
+def _premarket_starter_set(n=PREMARKET_STARTER_N):
+    """#98 PREMARKET STARTER NAMES. At the 4:00 wake the live screener is near-empty (nothing has
+    cleared the +8% premarket bar yet), so the candidate pool comes up empty and the session aborts
+    before it starts (main() ~'No candidates from screener'). Seed it: the top-n of the most-recent
+    completed session's gappers (ranked by that day's change_pct) UNION Kev's flagged names — so
+    premarket detection has a backbone, and scan_morning_gappers auto-adds fresh gappers on top as
+    the morning develops (same as intraday). Ranked+capped by design (Handicapper: no 350-name dump;
+    Feed Engineer: stay inside the sub budget). Kev names first so a cap never strands them. Returns
+    [] on any error (fail-safe — a seed hiccup must never break the morning)."""
+    starter = []
+    try:
+        url = os.environ.get("SCREENER_URL", "").rstrip("/")
+        if url:
+            r = requests.get(f"{url}/api/day2", timeout=8)
+            if r.status_code == 200:
+                dg = (r.json() or {}).get("daily_gappers") or {}
+                if dg:
+                    rows = [x for x in (dg[max(dg.keys())] or []) if x.get("symbol")]   # most-recent day
+                    rows.sort(key=lambda x: float(x.get("change_pct") or 0), reverse=True)
+                    starter = [str(x["symbol"]).upper().strip() for x in rows[:max(0, int(n))]]
+    except Exception as e:
+        print(f"⚠️  Premarket starter fetch failed (non-fatal): {e}")
+    kev = [str(k).upper().strip() for k in _fetch_kev_watchlist()]
+    return list(dict.fromkeys(kev + starter))   # Kev first, dedup, order-stable
+
+
 _kev_levels_cache = {"date": None, "levels": {}, "ts": 0.0}
 KEV_LEVELS_TTL_SECS = int(os.environ.get("KEV_LEVELS_TTL_SECS", "90"))
 
@@ -2414,6 +2442,11 @@ def _seed_day2_from_gappers(gappers: list):
     if not url or not gappers:
         return
     try:
+        # #98: never re-carry the premarket STARTER seed as if it were a fresh day-1 gapper
+        # (they carry change_pct=0 and are already in day2 from their real gap day).
+        gappers = [g for g in gappers if g.get("source") != "premarket_starter"]
+        if not gappers:
+            return
         syms = [g.get("symbol") for g in gappers if g.get("symbol")]
         requests.post(f"{url}/api/gappers",
                       json={"date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
@@ -6759,6 +6792,20 @@ def main():
     # ── Step 1: Scan Webull screener for RVOL + momentum candidates ──
     gappers = scan_morning_gappers()
 
+    # ── #98 PREMARKET STARTER SEED (premarket ONLY — RTH path byte-identical) ──
+    # The 4am screener is near-empty (nothing's cleared +8% yet), so without a seed the abort
+    # below ends the premarket session before it starts (the 7/22+7/23 blind window). Seed the
+    # pool with today's ranked movers + Kev so the machines have names to watch from 4:00.
+    _now_seed = datetime.now(EASTERN)
+    if (_now_seed.hour * 60 + _now_seed.minute) < (9 * 60 + 30):   # strictly premarket
+        _starter = _premarket_starter_set()
+        _have = {g.get("symbol") for g in gappers}
+        _added = [s for s in _starter if s and s not in _have]
+        gappers = gappers + [{"symbol": s, "change_pct": 0.0, "price": 0.0,
+                              "source": "premarket_starter"} for s in _added]
+        print(f"🌅 Premarket starter seed: +{len(_added)} names "
+              f"({len(_have)} from live screener) → {len(gappers)} watching")
+
     if not gappers:
         print("📋 No candidates from screener — ending session.")
         return
@@ -6812,6 +6859,9 @@ def main():
     _seed_day2_from_gappers(gappers)   # carry today's hard gappers into tomorrow's day-2 observation
 
     stream_tickers = list(dict.fromkeys(gapper_syms))
+    if len(stream_tickers) > 40:   # #98 Feed Engineer canary: Webull PRICE stream (T1 stops, A2) kicks
+        print(f"⚠️  WEBULL-SUB CANARY: {len(stream_tickers)} names on the price stream (>40 kick line) "
+              f"— get_price will lean on REST for the overflow. Watch for kick/429s; trim seed if chronic.")
     stream         = WebullStream(stream_tickers)
     analysis       = None
 

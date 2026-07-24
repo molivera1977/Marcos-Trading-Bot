@@ -3713,6 +3713,25 @@ RECLAIM_LIVE_END   = os.environ.get("RECLAIM_LIVE_END", "11:00")
 _reclaim_st: dict = {}        # sym -> state machine (daily-keyed inside)
 _reclaim_cursor: dict = {}    # (day, sym) -> last processed 10s bucket epoch
 
+# ── 7/24 CURL LIVE-SLOT FIX (Marcos: "we were shadowing for premarket NOT RTH") ──
+# The old rule was seq==0 = the day's first fire gets the live slot — but the premarket seed (#98)
+# started the machines at 4am, so premarket fires BURNED the slot before trades could even open
+# (the code's own "KNOWN LIMITATION"). New rule: the live slot belongs to the FIRST fire AT/AFTER
+# 09:30, consumed only when a trade is actually QUEUED. Premarket fires are evidence, never burners.
+_curl_rth_n: dict = {}        # (day, sym, lane) -> live conversions taken
+
+def _curl_rth_slot(sym, lane, hm):
+    """True exactly once per (day, sym, lane): for the first RTH fire that CONVERTS to a trade.
+    hm < 09:30 is never eligible and never consumes. Call ONLY when about to queue the entry."""
+    if hm < "09:30":
+        return False
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    k = (day, sym, lane)
+    if _curl_rth_n.get(k, 0) > 0:
+        return False
+    _curl_rth_n[k] = 1
+    return True
+
 def _shadow_log_curl_leftovers(t, price, zf_fire, vr_fire, sv, why):
     """#89: a curl-machine fire that lost entry priority (or hit a loop `continue`) is still
     EVIDENCE — shadow-log it, never drop it. Called at every early-exit site in the watch loop."""
@@ -4838,6 +4857,63 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         if _vr_fire:
                             _shadow_log_curl_leftovers(t, price, None, _vr_fire, _vr_sv, "detected")
 
+            # ── 7/24 CONVERT-AT-DETECTION (Marcos: "we see it triggered but now do nothing!!").
+            # The consume branches used to sit BELOW the 3-min-EMA warmup guard + 8 other `continue`s,
+            # so a curl fire was detected, shadow-logged, then DROPPED before the trade branch ever ran
+            # (7/24: 26 RTH fires, zero conversions, zero 🔵/🟣 prints all day). The 10s curl machines
+            # need NONE of that machinery — convert eligible fires to entries RIGHT HERE, before any
+            # legacy guard can eat them. EMAs are best-effort informational (ignition's own pattern). ──
+            if (_zf_fire or _vr_fire) and price and price > 0:
+                _hm_curl = datetime.now(EASTERN).strftime("%H:%M")
+                _cc = aggregate_bars(cache[t].get("full_bars") or bars or [], SETUP_TF_MIN)[:-1]
+                if len(_cc) >= EMA20_PERIOD + 2:
+                    _ce9, _ce20, _ce90 = calculate_ema9(_cc), calculate_ema20(_cc), calculate_ema90(_cc)
+                else:
+                    _ce9 = _ce20 = _ce90 = 0.0
+                # ZONE-FLIP first (its original priority) — live all RTH (Marcos 7/20).
+                if _zf_fire and _curl_rth_slot(t, "zf", _hm_curl):
+                    zf = _zf_fire
+                    _zf_fire = None                            # consumed
+                    if "daily" not in cache[t]:
+                        cache[t]["daily"] = get_daily_levels(t)
+                    _daily = cache[t]["daily"]
+                    room = compute_room(price, zf["stop"], cache[t].get("full_bars") or bars,
+                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                    print(f"\n🟣 {t} ZONE-FLIP (Kev pm-shelf)! ${price:.2f} curl off "
+                          f"{zf['zone_src']} ${zf['zone']:.2f} — stop ${zf['stop']:.2f}")
+                    breakouts.append((t, price, zf["zone"], "zone_flip", {
+                        "zone_stop": zf["stop"], "room": room, "ema90": round(_ce90, 4),
+                        "front_side": _ce9 > _ce20 > 0, "ema9": round(_ce9, 4), "ema20": round(_ce20, 4),
+                        "reclaim_subtype": "zone_flip",
+                        "zf_zone": zf["zone"], "zf_zone_src": zf["zone_src"],
+                        "zf_flush_low": zf["flush_low"],
+                    }))
+                    _log_decision(t, "triggered_zone_flip", price=price, zone=zf["zone"],
+                                  zone_src=zf["zone_src"], stop=zf["stop"])
+                    continue                                   # captured — skip other detectors for t
+                # KEV RECLAIM — live in its verified 09:30-11:00 window.
+                if (_vr_fire and RECLAIM_LIVE
+                        and RECLAIM_LIVE_START <= _hm_curl < RECLAIM_LIVE_END
+                        and _curl_rth_slot(t, "vr", _hm_curl)):
+                    vr = _vr_fire
+                    _vr_fire = None                            # consumed
+                    _sv = _vr_sv
+                    if "daily" not in cache[t]:
+                        cache[t]["daily"] = get_daily_levels(t)
+                    _daily = cache[t]["daily"]
+                    room = compute_room(price, vr["stop"], cache[t].get("full_bars") or bars,
+                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                    print(f"\n🔵 {t} KEV RECLAIM (3-gate)! ${price:.2f} wick-confirmed off session "
+                          f"VWAP ${_sv:.2f} — stop ${vr['stop']:.2f}")
+                    breakouts.append((t, price, _sv, "vwap_reclaim", {
+                        "zone_stop": vr["stop"], "room": room, "ema90": round(_ce90, 4),
+                        "front_side": _ce9 > _ce20 > 0, "ema9": round(_ce9, 4), "ema20": round(_ce20, 4),
+                        "reclaim_subtype": "kev3gate",
+                        "entry_vs_session_vwap_pct": round((price - _sv) / _sv * 100, 2),
+                    }))
+                    _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv)
+                    continue                                   # captured — skip other detectors for t
+
             if not bars or price <= 0:
                 status_parts.append(f"{t}:no data")
                 continue
@@ -5190,74 +5266,11 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     _log_decision(t, "triggered_bounce", price=price, kind=bnc["kind"])
                     found_entry = True
 
-            # ── Entry type 5: VWAP RECLAIM — KEV 3-GATE (7/19; naive 1-gate RETIRED, era −$228.81/32).
-            #    LIVE fires only 09:30–11:00 ("this entry requires volume; volume is early" — Marcos);
-            #    fires outside the window are SHADOW-LOGGED, no trade. Line = recorder session VWAP
-            #    (premarket-anchored, repaired); bars = in-process 10s stream — the kill-test's inputs. ──
-            # ── ZONE-FLIP (7/20 Marcos: live slot) — #89: machine already stepped at loop top;
-            #    this branch only CONSUMES the stashed fire. ──
-            if _zf_fire and not found_entry:
-                zf = _zf_fire
-                _zf_fire = None                                # consumed — leftover logger must not re-log
-                zf_stop = zf["stop"]
-                _hm = datetime.now(EASTERN).strftime("%H:%M")
-                # LIVE = the day's FIRST fire, ALL DAY (Marcos 7/20: "I want the zone
-                # flip all day live"); later fires (seq 1+) = shadow evidence.
-                if zf.get("seq", 0) == 0:
-                    if "daily" not in cache[t]:
-                        cache[t]["daily"] = get_daily_levels(t)
-                    _daily = cache[t]["daily"]
-                    room = compute_room(price, zf_stop, cache[t].get("full_bars") or bars,
-                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
-                    print(f"\n🟣 {t} ZONE-FLIP (Kev pm-shelf)! ${price:.2f} curl off "
-                          f"{zf['zone_src']} ${zf['zone']:.2f} — stop ${zf_stop:.2f}")
-                    breakouts.append((t, price, zf["zone"], "zone_flip", {
-                        "zone_stop": zf_stop, "room": room, "ema90": round(ema90, 4),
-                        "front_side": ema9 > ema20 > 0, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
-                        "reclaim_subtype": "zone_flip",
-                        "zf_zone": zf["zone"], "zf_zone_src": zf["zone_src"],
-                        "zf_flush_low": zf["flush_low"],
-                    }))
-                    _log_decision(t, "triggered_zone_flip", price=price, zone=zf["zone"],
-                                  zone_src=zf["zone_src"], stop=zf_stop)
-                    found_entry = True
-                else:
-                    _whyz = f"seq{zf.get('seq', 0)}"
-                    print(f"👥 {t} ZONE-FLIP fired {_hm} (seq{zf.get('seq', 0)}, {_whyz}) "
-                          f"— shadow row already logged at detection, no trade")
-
-            # ── VWAP RECLAIM (KEV 3-GATE) — #89: machine already stepped at loop top (with the
-            #    #67 PATH-1 line: tick when sane, else bar); this branch only CONSUMES the fire. ──
-            if _vr_fire and not found_entry:
-                vr = _vr_fire
-                _vr_fire = None                                # consumed — leftover logger must not re-log
-                _sv = _vr_sv
-                vr_stop = vr["stop"]
-                _hm = datetime.now(EASTERN).strftime("%H:%M")
-                # 7/20 FINAL: BOTH machines live — this one first-fire in 09:30–11:00
-                # (its verified window), shadow otherwise. RECLAIM_LIVE=0 re-demotes.
-                if RECLAIM_LIVE and vr.get("seq", 0) == 0 and RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END:
-                    if "daily" not in cache[t]:
-                        cache[t]["daily"] = get_daily_levels(t)
-                    _daily = cache[t]["daily"]
-                    room = compute_room(price, vr_stop, cache[t].get("full_bars") or bars,
-                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
-                    print(f"\n🔵 {t} KEV RECLAIM (3-gate)! ${price:.2f} wick-confirmed off session "
-                          f"VWAP ${_sv:.2f} — stop ${vr_stop:.2f}")
-                    breakouts.append((t, price, _sv, "vwap_reclaim", {
-                        "zone_stop": vr_stop, "room": room, "ema90": round(ema90, 4),
-                        "front_side": ema9 > ema20 > 0, "ema9": round(ema9, 4), "ema20": round(ema20, 4),
-                        "reclaim_subtype": "kev3gate",
-                        "entry_vs_session_vwap_pct": round((price - _sv) / _sv * 100, 2),
-                    }))
-                    _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv)
-                    found_entry = True
-                else:
-                    _why = ("demoted-to-shadow" if not RECLAIM_LIVE
-                            else "late-window" if not (RECLAIM_LIVE_START <= _hm < RECLAIM_LIVE_END)
-                            else f"seq{vr.get('seq', 0)}")
-                    print(f"👥 {t} KEV RECLAIM fired {_hm} (seq{vr.get('seq', 0)}, {_why}) "
-                          f"— shadow row already logged at detection, no trade")
+            # ── CURL LANES (zone-flip + Kev reclaim): converted AT DETECTION since 7/24 — see the
+            #    CONVERT-AT-DETECTION block at the top of this loop. The old consume branches lived
+            #    here, BELOW the 3-min warmup guard, so fires were detected then dropped before the
+            #    trade branch ever ran (7/24: 26 RTH fires, 0 conversions). Non-converted fires are
+            #    already shadow-logged at detection; nothing to do here. ──
 
             if not found_entry and t not in [s.split(":")[0] for s in status_parts]:
                 status_parts.append(f"{t}:${price:.2f} EMA9:${ema9:.2f}{vwap_tag}")

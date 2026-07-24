@@ -175,7 +175,19 @@ def _silence_webull_sdk_logs():
     for n in names:
         logging.getLogger(n).setLevel(logging.CRITICAL)
 
-def _make_data_client():
+# ── #102 (Marcos 7/24): reuse ONE Webull client instead of rebuilding it — and re-verifying the
+# token with Webull's server — on EVERY request. That per-request re-verify was the 429 root: this
+# week's read volume (read-list + seed, 20-28 lookups/cycle) turned it into a storm that rate-limited
+# the scanner AND starved the bot's scan. The token was always cached on disk (14d valid); we just
+# stopped throwing away the verified CLIENT. Singleton + freshness TTL + thread lock.
+# WEBULL_CLIENT_SINGLETON=0 = instant revert to the original build-every-call behavior. ──
+_DC_SINGLETON = _os.environ.get("WEBULL_CLIENT_SINGLETON", "1") == "1"
+_DC_TTL_SECS  = int(_os.environ.get("WEBULL_CLIENT_TTL_SECS", "120"))   # rebuild (refresh) at most this often
+_dc_cache     = {"client": None, "built": 0.0, "next_try": 0.0}
+_dc_lock      = _threading.Lock()
+
+def _build_data_client():
+    """The expensive path: construct a fresh Webull client = ONE token re-verify with Webull."""
     if not WEBULL_SDK_AVAILABLE or not WebullDataClient:
         return None
     try:
@@ -191,6 +203,33 @@ def _make_data_client():
     except Exception as e:
         print(f"DataClient error: {e}")
         return None
+
+def _make_data_client():
+    """#102: return a REUSED Webull client (built once, refreshed every _DC_TTL_SECS) instead of a
+    fresh build + token-reverify on every request. Thread-safe. On a build failure, keep serving any
+    still-good client (its token is valid 14d) and back off before retrying, so a Webull outage can
+    never re-create the per-request rebuild storm. Same signature — call sites are unchanged."""
+    if not _DC_SINGLETON:
+        return _build_data_client()                       # instant-revert = original behavior
+    c = _dc_cache
+    now = time.time()
+    # fast path: a fresh cached client — NO rebuild, NO token re-verify (this is the 429 fix)
+    if c["client"] is not None and (now - c["built"]) < _DC_TTL_SECS:
+        return c["client"]
+    with _dc_lock:
+        now = time.time()
+        if c["client"] is not None and (now - c["built"]) < _DC_TTL_SECS:
+            return c["client"]                            # another thread just (re)built it
+        if now < c["next_try"]:
+            return c["client"]                            # in build-failure backoff: serve what we have (may be None)
+        client = _build_data_client()
+        if client is not None:
+            c["client"], c["built"], c["next_try"] = client, now, 0.0
+        elif c["client"] is not None:
+            c["built"] = now                              # refresh failed, but old token valid 14d — keep serving, recheck in TTL
+        else:
+            c["next_try"] = now + 20                      # no client yet + build failing → back off, don't storm rebuilds
+        return c["client"]
 
 # ── Market state ───────────────────────────────────────────────────────────────
 

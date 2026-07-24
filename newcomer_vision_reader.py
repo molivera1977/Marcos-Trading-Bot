@@ -443,25 +443,22 @@ def process_once(dry=False, out_rows=None):
     sheet_shadow_pass(dry=dry, out_rows=out_rows)   # the Kev-sheet exam runs FIRST (8:50, pre-open)
     # dry (bake-off / live-proof): read + validate + PRINT every active newcomer, never post.
     seen = set() if dry else already_read()
-    roster, pxmap = active_newcomers()
-    # #99 (Marcos 7/23): read the bot's MOVE%-ranked list FIRST, in order (biggest mover first) —
-    # so if we run out of time before 9:30 we still got the top movers. The bot posts top-20 by
-    # change_pct + Kev to /api/read_list each scan. Add any read-list name missing from the roster
-    # (a top gapper the archive/watching pass hasn't seen yet MUST still be read); archive-only
-    # actives fall to the end by time. Fail-soft: no read_list → old time-order behavior.
+    roster, pxmap = active_newcomers()   # kept for pxmap (last-price map for the reads)
+    # #99 (Marcos 7/23): read STRICTLY the bot's Move%-ranked top-20 + Kev, IN ORDER (biggest mover
+    # first). This is a hard CAP (≤23) — FEWER reads than the old full-roster union, not more, and
+    # the reads that matter (the biggest movers) are done first. Fail-soft: no read_list → fall back
+    # to the full active roster in time-order, so a dashboard blip never zeroes the morning's reads.
     try:
         _rl = [str(t).upper() for t in (_get(f"{U}/api/read_list").get("tickers") or [])]
     except Exception:
         _rl = []
-    _rank = {tk: i for i, tk in enumerate(_rl)}
-    for _tk in _rl:
-        if _tk and _tk not in roster and _tk not in seen and not _tk.startswith("_"):
-            roster[_tk] = ""     # top mover not yet in the archive roster — read it anyway
-    todo = [(tm,tk) for tk,tm in roster.items() if tk not in seen]
-    todo.sort(key=lambda x: (_rank.get(x[1], 9999), x[0]))   # Move%-rank first, then first-seen time
-    print(f"[{dt.datetime.now(ET):%H:%M:%S}] active={len(roster)} already-read={len(seen)} "
-          f"to-read={len(todo)}{'  (DRY — no posts)' if dry else ''}", flush=True)
-    for tm,tk in todo:
+    if _rl:
+        todo = [tk for tk in _rl if tk not in seen and not tk.startswith("_")]   # Move%-ordered, biggest first
+    else:
+        todo = [tk for _tm, tk in sorted((tm, tk) for tk, tm in roster.items() if tk not in seen)]
+    print(f"[{dt.datetime.now(ET):%H:%M:%S}] read-list={len(todo)} (strict top-20 by Move%+Kev) "
+          f"already-read={len(seen)}{'  (DRY — no posts)' if dry else ''}", flush=True)
+    for tk in todo:
         if _attempts.get(tk, 0) >= MAX_ATTEMPTS or _rfail.get(tk, 0) >= MAX_RENDER_FAILS:
             continue                       # gave up on this name today (cost guard) → stays unarmed
         time.sleep(SPACING)                # pace Webull-backed daily GETs + vision calls

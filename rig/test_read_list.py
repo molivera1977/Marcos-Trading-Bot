@@ -66,14 +66,15 @@ check("P3 dash: /api/read_list POST is auth-gated + GET serves it",
       and '@app.route("/api/read_list", methods=["GET"])' in DASH
       and DASH.count('X-Dashboard-Secret') >= 1 and "_read_list" in DASH)
 
-# READER: reads /api/read_list, orders todo by Move%-rank, adds missing top movers, fail-soft
-check("P4 reader: fetches /api/read_list and ranks todo by it (Move% order, then time)",
+# READER: reads STRICTLY the read-list (top-20+Kev) in Move% order — a hard cap, fail-soft
+check("P4 reader: reads STRICTLY the read-list in ORDER (Marcos 'strictly top 20' — biggest first, no re-sort)",
       "/api/read_list" in RDR
-      and "todo.sort(key=lambda x: (_rank.get(x[1], 9999), x[0]))" in RDR)
-check("P5 reader: top movers missing from the archive roster are STILL read (added to roster)",
-      "roster[_tk] = \"\"" in RDR and "_rank = {tk: i for i, tk in enumerate(_rl)}" in RDR)
-check("P6 reader: fail-soft — no read_list → falls back to old time-order (never crashes)",
-      "except Exception:\n        _rl = []" in RDR)
+      and "todo = [tk for tk in _rl if tk not in seen" in RDR)
+check("P5 reader: bounded — NO additive roster union; todo is the read-list ONLY (fewer reads, not more)",
+      'roster[_tk] = ""' not in RDR and "for tk in todo:" in RDR
+      and "hard CAP" in RDR)
+check("P6 reader: fail-soft — no read_list → full active roster in time-order (never zeroes reads)",
+      "if _rl:" in RDR and "else:\n        todo = [tk for _tm, tk in sorted(" in RDR)
 
 print(f"\n{'='*60}\n#99 READ-LIST RIG: {len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

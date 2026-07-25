@@ -2391,6 +2391,14 @@ def _fetch_kev_levels():
 #   'skip' (no marked level, or a do-not-trade veto on the sheet).
 # ============================================================
 CHART_GATE_ENFORCE = os.environ.get("CHART_GATE_ENFORCE", "0") == "1"
+# #109 BAND (Marcos-approved 7/24 night): entries within CHART_GATE_BAND below the marked break
+# level are ALLOWED — Kev buys confirmed pullbacks UNDER the level to ride through the break
+# (EHGO 3.81/3.95 under the highs, VIVK 2.22). Kill-test band_killtest.py on all 70 blocked
+# under-level entries 7/22-7/24 replayed w/ capped-loss exit: 0-2% below = +0.66R/trade (n=16,
+# 50% win) vs 2-5% = -0.31, >10% = -0.69 (gate RIGHT to block deep). Monotonic depth gradient.
+# CHART_GATE_BAND=0 restores the hard no-break-no-trade gate. Band allows log reason
+# "band_below_level" so live grading is free.
+CHART_GATE_BAND = float(os.environ.get("CHART_GATE_BAND", "0.02"))
 
 def _blended_pnl(entry_price, total_shares, partial_fills, exit_price):
     """Whole-trade P&L: every scale-out leg plus the runner leg. The runner quantity is
@@ -2460,6 +2468,9 @@ def _chart_break_gate(ticker, entry_price, entry_type=None):
                     pass
         if float(entry_price) >= brk:
             return ("allow", "broke_level", brk, "sheet")                    # price broke the mark
+        if CHART_GATE_BAND > 0 and float(entry_price) >= brk * (1.0 - CHART_GATE_BAND):
+            # #109: pullback-under-the-level entry (Kev's own class) — within the tested band
+            return ("allow", "band_below_level", brk, "sheet")
         return ("block", "no_break_below_level", brk, "sheet")               # entered under the mark
     except Exception:
         return ("skip", "gate_error", None, "none")

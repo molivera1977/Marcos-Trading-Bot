@@ -84,11 +84,16 @@ def _alp_min1_rows(ticker):
             continue
     return out if len(out) >= 10 else None
 
+_chart_src = {"alp": 0, "wb": 0}                     # CANARY: which vendor actually served the charts
+
 def _min1(ticker):
-    """Alpaca-first 1-min rows (minute_ext schema); Webull dashboard fallback."""
+    """Alpaca-first 1-min rows (minute_ext schema); Webull dashboard fallback (LOUD)."""
     rows = _alp_min1_rows(ticker)
     if rows is not None:
+        _chart_src["alp"] += 1
         return rows
+    _chart_src["wb"] += 1
+    print(f"  [charts] {ticker}: min1 WEBULL-FALLBACK (capture miss)", flush=True)
     return _get(f"{U}/api/minute_ext?ticker={_q(ticker)}&count=1200", timeout=45).get("bars") or []
 
 def _daily_rows(ticker):
@@ -103,7 +108,10 @@ def _daily_rows(ticker):
             except Exception:
                 continue
         if len(out) >= 2:
+            _chart_src["alp"] += 1
             return out
+    _chart_src["wb"] += 1
+    print(f"  [charts] {ticker}: daily WEBULL-FALLBACK (capture miss)", flush=True)
     return _get(f"{U}/api/daily?ticker={_q(ticker)}&count=45").get("bars") or []
 
 MAX_ATTEMPTS = int(os.environ.get("NEWCOMER_MAX_ATTEMPTS", "3"))    # per-name BILLED vision calls (cost guard)
@@ -745,7 +753,10 @@ def _run_session():
         now = dt.datetime.now(ET)
         if now.strftime("%H:%M") >= STOP_HHMM:
             print(f"[vision-reader] {now:%H:%M} reached {STOP_HHMM} — session done.", flush=True); return
-        try: process_once()
+        try:
+            process_once()
+            if _chart_src["alp"] or _chart_src["wb"]:
+                print(f"[charts] source tally: alpaca={_chart_src['alp']} webull-fallback={_chart_src['wb']}", flush=True)
         except Exception as e: print(f"[loop] error: {e}", flush=True)
         try: reread_check()                                  # #77 part 2 — exhausted-map re-reads
         except Exception as e: print(f"[reread] loop error: {e}", flush=True)

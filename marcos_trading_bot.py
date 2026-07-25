@@ -5779,6 +5779,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     # ── Kev's R-based exits (SUPPLY_EXIT_DESIGN.md): R = entry − initial stop. Sell HALF at +1R
     # (risk-free → stop to break-even), trim to a ~1/4 runner at the next supply (or +2R if open room),
     # then the 1/4 runner trails the PREVIOUS-BAR LOW. Replaces the made-up +8/12/20% tiers + TRAIL_PCT. ──
+    _entered_premkt = datetime.now(EASTERN).strftime("%H:%M") < "09:30"   # 7/25: 9:25 flatten flag
     R = max(entry_price - stop_loss, 0.01)
     if entry_type in ("rocket_catcher", "hidden_entry"):   # ROCKET scale-out ladder (Fable 7/21): %-of-entry, NOT R —
         # a parabola round-trips, so bank 1/3 @ +50%, 1/3 @ +100% on the way up; runner health-trails.
@@ -5815,6 +5816,19 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         _hb = _active_monitors.get(ticker)
         if _hb is not None:
             _hb["heartbeat"] = time.time()
+
+        # ── PREMARKET 9:25 FLATTEN (Marcos 7/25: "time stop the premarket trades at 9:25 —
+        # I don't want it affecting RTH"): any trade ENTERED before 09:30 is force-closed at
+        # PRE_FLAT_HHMM so premarket practice never carries a position into the open. ──
+        if _entered_premkt and now.strftime("%H:%M") >= PRE_FLAT_HHMM and now.strftime("%H:%M") < "10:00":
+            print(f"⏰ {PRE_FLAT_HHMM} — premarket flatten: closing {ticker} before the open")
+            current_price = stream.get_price(ticker)
+            if remaining_shares > 0:
+                cancel_order(placed_stop_id)
+                close_position(ticker, remaining_shares)
+            result["exit_price"]  = current_price
+            result["exit_reason"] = f"{PRE_FLAT_HHMM} premarket time stop"
+            break
 
         # ── Hard close at 3:45pm ───────────────────────
         past_end = (now.hour > TRADE_WINDOW_END_HOUR or
@@ -7704,8 +7718,9 @@ PRE_LANES = set((os.environ.get("PRE_LANES", "hidden_entry,vwap_reclaim")).split
 # 7/25 calibrated on Friday's 27 premarket fires: the 2 thinnest (NEUP $12k, LGCL $131k cum
 # $vol) were the untradeable ones; every real candidate cleared $200k+. Floor does the quality
 # gating -> cap loosened 2->4. Homegrown numbers (n=1 day) — registry, recalibrate weekly.
-PRE_MAX_TRADES = int(os.environ.get("PRE_MAX_TRADES", "4"))
+PRE_MAX_TRADES = int(os.environ.get("PRE_MAX_TRADES", "6"))   # Marcos 7/25: 6
 PRE_MIN_DVOL = float(os.environ.get("PRE_MIN_DVOL", "250000"))   # cum session $ volume floor
+PRE_FLAT_HHMM = os.environ.get("PRE_FLAT_HHMM", "09:25")             # Marcos 7/25: flatten PRE trades before the open
 _pre_day = {"d": None, "n": 0}
 
 

@@ -48,8 +48,8 @@ check("P7 captured fire skips other detectors (ignition-capture pattern)",
       BOT[i_conv:i_conv+5000].count("continue                                   # captured") == 2)
 
 # ═══ SAFETY PINS: nothing else regressed ══════════════════════════════════════
-check("G1 chart-gate exemption for curl tags unchanged",
-      '_STALE_EXEMPT = ("rocket_catcher", "vwap_reclaim", "zone_flip")' in BOT)
+check("G1 chart-gate exemption for curl tags unchanged (7/24: + hidden_entry)",
+      '_STALE_EXEMPT = ("rocket_catcher", "vwap_reclaim", "zone_flip", "hidden_entry")' in BOT)
 check("G2 detection still shadow-logs every fire (evidence never lost)",
       BOT.count('_shadow_log_curl_leftovers(t, price, _zf_fire, None, 0.0, "detected")') == 1
       and BOT.count('_shadow_log_curl_leftovers(t, price, None, _vr_fire, _vr_sv, "detected")') == 1)

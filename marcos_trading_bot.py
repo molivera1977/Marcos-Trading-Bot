@@ -2437,7 +2437,11 @@ def _chart_break_gate(ticker, entry_price, entry_type=None):
     vwap_reclaim / zone_flip) are EXEMPT — they trade live structure, not the stale level, and the
     CPHI dip-buy at $5+ must not be blocked by a $1 map. Classifier replayed on all 96 priced 7/21
     gate rows: flips exactly the 19 stale allows (all ma_pullback), touches none of the day's trades."""
-    _STALE_EXEMPT = ("rocket_catcher", "vwap_reclaim", "zone_flip")
+    _STALE_EXEMPT = ("rocket_catcher", "vwap_reclaim", "zone_flip", "hidden_entry")
+    if entry_type == "hidden_entry":
+        # HIDDEN ENTRY trades live 10s structure (Kev wick off VWAP/90MA) — a reader map is
+        # irrelevant and unmapped intraday adds must not die on no_marked_level (#72 class).
+        return ("allow", "hidden_live_structure", None, "none")
     try:
         lv = (_fetch_kev_levels() or {}).get(ticker) or {}
         note = str(lv.get("note") or "").lower()
@@ -3886,6 +3890,64 @@ def _zf_pm_floor(sym):
     _zf_zone[key] = z
     return z
 
+# ── HIDDEN ENTRY (7/24 night, Marcos: "I want winners... enough timid"). Kev's 10-second rocket
+# playbook, expert fidelity-audited against his own words (shorts k27fptelI8Y + XFSPUI5YJsE +
+# ZCMD checklist 3UboKEl7-Oc):
+#   KEV-VERBATIM: 10s timeframe ("I use the 10-second time frame to find pullback entries that
+#     nobody else sees"); price above VWAP (checklist box #1); pullback tests VWAP+90MA and
+#     "wicks off the low to confirm"; entry at wick-confirm, "risking these wick lows".
+#   KEV-TRANSLATED (registry): anchor = max(10s-90EMA, session VWAP) [his confluence]; wick =
+#     close in top half of range; ARM vel 25%/5min [his "rocketing up", our number].
+#   OURS (governance): caps 3/day + 2/name, 5% min-risk floor, HIDDEN_ENTRY=0 kill switch.
+# REPLACES the 1-min rocket_catcher (default flipped OFF below): the 1-min 20-EMA anchor is
+# structurally untouchable by a true parabola (STAK 7/24 + ZCMD 7/22 armed-never-fired) and
+# adversely selected. Exit v1 = the tested rocket %-ladder; weak-resumption exit = week-2
+# change-set; 2:1-bank + weak-resumption counterfactuals gradeable from stamped records.
+HIDDEN_ENTRY      = os.environ.get("HIDDEN_ENTRY", "1") == "1"
+HIDDEN_VEL_PCT    = float(os.environ.get("HIDDEN_VEL_PCT", "25"))   # ARM: trailing 5-min velocity
+HIDDEN_VEL_BARS   = int(os.environ.get("HIDDEN_VEL_BARS", "30"))    # 30 x 10s = 5 min
+HIDDEN_DAILY_CAP  = int(os.environ.get("HIDDEN_DAILY_CAP", "3"))
+HIDDEN_NAME_CAP   = int(os.environ.get("HIDDEN_NAME_CAP", "2"))
+_he_st: dict = {}                 # sym -> machine state (module-level: survives rescans, no #81 amnesia)
+_he_day = {"d": None, "n": 0}     # daily conversion counter
+_he_name: dict = {}               # (day, sym) -> conversions
+
+def hidden_entry_step(sym, new_bars, vwap):
+    """Advance sym's HIDDEN-ENTRY machine over NEW completed 10s bars [(o,h,l,c,vol),...].
+    ARM on trailing 5-min velocity >= HIDDEN_VEL_PCT; FIRE on the Kev wick: bar low tags
+    max(10s-90EMA, VWAP) FROM ABOVE (close holds >= anchor and >= VWAP), bottoming wick
+    (close in top half), green-ish body. Returns fire dict once per qualifying bar, else None.
+    Stays armed after a fire — Kev re-enters fresh structure; caps enforced at conversion."""
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    st = _he_st.get(sym)
+    if not st or st.get("day") != day:
+        st = {"day": day, "closes": [], "e90": None, "armed": False, "n": 0}
+        _he_st[sym] = st
+    if not vwap or vwap <= 0:
+        return None
+    fired = None
+    for o, h, l, c, v in new_bars:
+        st["e90"] = c if st["e90"] is None else c * (2.0 / 91.0) + st["e90"] * (89.0 / 91.0)
+        st["closes"].append(c)
+        if len(st["closes"]) > HIDDEN_VEL_BARS + 1:
+            st["closes"].pop(0)
+        if not st["armed"]:
+            if len(st["closes"]) > HIDDEN_VEL_BARS:
+                _ca = st["closes"][0]
+                if _ca > 0 and (c - _ca) / _ca * 100.0 >= HIDDEN_VEL_PCT:
+                    st["armed"] = True
+            continue
+        anchor = max(st["e90"], vwap)
+        rng = h - l
+        if (fired is None and l <= anchor and c >= anchor and c >= vwap
+                and rng > 0 and (c - l) / rng >= 0.5 and c > o * 0.995):
+            stop = min(l - 0.01, c * 0.95)               # wick low, floored at 5% risk (fake-risk guard)
+            fired = {"stop": round(stop, 4), "wick": l, "anchor": round(anchor, 4),
+                     "ext_vwap": round((c - vwap) / vwap * 100.0, 2), "seq": st["n"]}
+            st["n"] += 1
+    return fired
+
+
 def kev_zoneflip_step(sym, new_bars):
     """Advance sym's Z1–Z3 machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
     Z1 arm: 9:30–9:45 flush ≥ZONEFLIP_FLUSH from the 9:30 open, low inside zone±band, vol ≥2×
@@ -3964,7 +4026,7 @@ def detect_vwap_reclaim(completed, price, vwap):
 #    NOT trail20 — Fable: detection+trail20 = +1.5% noise, detection+scale-out = +32%). rocket_catcher
 #    is EXEMPT from the extension guard by design (it deliberately catches extension); NO blanket
 #    gate-inversion for the legacy machines. See [[project_rocket_catcher_package.md]] Fable verdict.
-ROCKET_CATCHER   = os.environ.get("ROCKET_CATCHER", "1") == "1"    # ACTIVE in DRY_RUN (Fable shadow verdict 7/21: replays+hand-trace passed; env=0 = kill-switch)
+ROCKET_CATCHER   = os.environ.get("ROCKET_CATCHER", "0") == "1"    # SUPERSEDED 7/24 by HIDDEN_ENTRY (10s Kev spec): 1-min 20-EMA anchor structurally untouchable by true parabolas (STAK+ZCMD armed-never-fired) + adverse selection. env=1 resurrects.
 # ── DAY-GAIN FLOOR (7/22, Marcos: "if a stock isn't jumping 30% or more, we shouldn't be wasting
 #    time" — Kev's own hunting ground is the top of the gainers board). Kill-test daygain_floor_killtest
 #    (124 matched trades): floor on LEGACY machines improves −$94.16 → +$70.79 (+$164.95), sweep-robust
@@ -4826,6 +4888,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # them; a fire that loses priority is shadow-logged via _shadow_log_curl_leftovers. ──
             _zf_fire = None
             _vr_fire = None
+            _he_fire = None
             _vr_sv = 0.0
             if ZONEFLIP_KEV:
                 _zf_nb = []
@@ -4867,6 +4930,17 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                                # (old code advanced it even when _sv<=0 dropped them)
                         if _vr_fire:
                             _shadow_log_curl_leftovers(t, price, None, _vr_fire, _vr_sv, "detected")
+                        # HIDDEN ENTRY rides the same fed 10s bars + session line (evidence AT detection)
+                        if HIDDEN_ENTRY:
+                            _he_fire = hidden_entry_step(t, _nb, _vr_sv)
+                            if _he_fire:
+                                try:
+                                    _log_decision(t, "hidden_shadow_fire", price=price,
+                                                  stop=_he_fire["stop"], anchor=_he_fire["anchor"],
+                                                  ext_vwap=_he_fire["ext_vwap"], seq=_he_fire["seq"],
+                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"))
+                                except Exception:
+                                    pass
 
             # ── 7/24 CONVERT-AT-DETECTION (Marcos: "we see it triggered but now do nothing!!").
             # The consume branches used to sit BELOW the 3-min-EMA warmup guard + 8 other `continue`s,
@@ -4874,7 +4948,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # (7/24: 26 RTH fires, zero conversions, zero 🔵/🟣 prints all day). The 10s curl machines
             # need NONE of that machinery — convert eligible fires to entries RIGHT HERE, before any
             # legacy guard can eat them. EMAs are best-effort informational (ignition's own pattern). ──
-            if (_zf_fire or _vr_fire) and price and price > 0:
+            if (_zf_fire or _vr_fire or _he_fire) and price and price > 0:
                 _hm_curl = datetime.now(EASTERN).strftime("%H:%M")
                 _cc = aggregate_bars(cache[t].get("full_bars") or bars or [], SETUP_TF_MIN)[:-1]
                 if len(_cc) >= EMA20_PERIOD + 2:
@@ -4924,6 +4998,33 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     }))
                     _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv)
                     continue                                   # captured — skip other detectors for t
+                # HIDDEN ENTRY (Kev 10s rocket wick) — live all RTH, own caps, replaces rocket_catcher.
+                if _he_fire and HIDDEN_ENTRY and _hm_curl >= "09:30":
+                    _heday = datetime.now(EASTERN).strftime("%Y-%m-%d")
+                    if _he_day["d"] != _heday:
+                        _he_day["d"] = _heday; _he_day["n"] = 0
+                    _k_he = (_heday, t)
+                    if _he_day["n"] >= HIDDEN_DAILY_CAP or _he_name.get(_k_he, 0) >= HIDDEN_NAME_CAP:
+                        _log_decision(t, "hidden_capped", price=price, day_n=_he_day["n"],
+                                      name_n=_he_name.get(_k_he, 0))
+                    else:
+                        he = _he_fire
+                        _he_fire = None                        # consumed
+                        print(f"\n🫥 {t} HIDDEN ENTRY! ${price:.2f} — Kev 10s wick off "
+                              f"${he['anchor']:.2f} (VWAP+90MA), stop ${he['stop']:.2f} (wick low) "
+                              f"[#{_he_day['n'] + 1}/{HIDDEN_DAILY_CAP} today]")
+                        breakouts.append((t, price, he["anchor"], "hidden_entry", {
+                            "zone_stop": he["stop"], "wick": he["wick"], "anchor": he["anchor"],
+                            "ext_vwap": he["ext_vwap"], "he_seq": he["seq"],
+                            "ema90": round(_ce90, 4), "front_side": _ce9 > _ce20 > 0,
+                            "ema9": round(_ce9, 4), "ema20": round(_ce20, 4),
+                            "two_r_level": round(price + 2.0 * (price - he["stop"]), 4),
+                        }))
+                        _log_decision(t, "triggered_hidden_entry", price=price, stop=he["stop"],
+                                      anchor=he["anchor"], ext_vwap=he["ext_vwap"], seq=he["seq"])
+                        _he_day["n"] += 1
+                        _he_name[_k_he] = _he_name.get(_k_he, 0) + 1
+                        continue                               # captured — skip other detectors for t
 
             if not bars or price <= 0:
                 status_parts.append(f"{t}:no data")
@@ -5290,7 +5391,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         # bounce = observe-only (dropped; its backtest read was clearly −0.40, needs reversal-regime data).
         # Others active per BREAKOUT_ENTRIES: True → full bag; False → pullback + VWAP-reclaim only.
         breakouts = [b for b in breakouts
-                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition", "zone_flip", "rocket_catcher"))]
+                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition", "zone_flip", "rocket_catcher", "hidden_entry"))]
         # EXTENSION GUARD — don't chase a name too far above its 90-EMA (7/3 data; Kev "don't chase extended").
         # ── ENTRY-VELOCITY INSTRUMENTATION (7/21 #49-class, LOG-ONLY per sim-integrity/n=8) —
         # kill-test found both 7/21 big losers (IQMX/CJMB) entered with NEGATIVE trailing 5-min
@@ -5355,8 +5456,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             _kept = []
             for b in breakouts:
                 _e90 = (b[4].get("ema90") or 0)
-                if b[3] == "rocket_catcher":
-                    _kept.append(b)   # ROCKET CATCHER is EXEMPT — it catches extension by design (Fable 7/21)
+                if b[3] in ("rocket_catcher", "hidden_entry"):
+                    _kept.append(b)   # rocket-class EXEMPT — catches extension by design (Fable 7/21); hidden entry fires AT the anchor (structurally non-extended, ext logged per fire)
                 elif _e90 > 0 and (b[1] - _e90) / _e90 > EXTENSION_MAX_PCT:
                     _shadow_keep.add(b[0]); _log_decision(b[0], "extension_reject", price=b[1], ext_pct=round((b[1] - _e90) / _e90 * 100, 1))
                 else:
@@ -5671,7 +5772,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     # (risk-free → stop to break-even), trim to a ~1/4 runner at the next supply (or +2R if open room),
     # then the 1/4 runner trails the PREVIOUS-BAR LOW. Replaces the made-up +8/12/20% tiers + TRAIL_PCT. ──
     R = max(entry_price - stop_loss, 0.01)
-    if entry_type == "rocket_catcher":                 # ROCKET scale-out ladder (Fable 7/21): %-of-entry, NOT R —
+    if entry_type in ("rocket_catcher", "hidden_entry"):   # ROCKET scale-out ladder (Fable 7/21): %-of-entry, NOT R —
         # a parabola round-trips, so bank 1/3 @ +50%, 1/3 @ +100% on the way up; runner health-trails.
         # Fable evidence: detection-entry + scale-out = +32% mean vs trail20 = +1.5% noise. Runner trail
         # kept as health-trail (hold-above-9EMA) for v1; trail30 vs health-trail = a replay calibration.
@@ -7053,6 +7154,10 @@ def main():
                 elif _pe == "rocket_catcher":
                     _session_cache.get(_pt, {}).pop("rocket_fired", None)
                     _rocket_day["n"] = max(0, _rocket_day["n"] - 1)
+                elif _pe == "hidden_entry":
+                    _he_day["n"] = max(0, _he_day["n"] - 1)
+                    _k_he = (datetime.now(EASTERN).strftime("%Y-%m-%d"), _pt)
+                    _he_name[_k_he] = max(0, _he_name.get(_k_he, 0) - 1)
                 # KNOWN LIMITATION (weekend fix queued): a premarket seq-0 reclaim/zone-flip fire
                 # consumes that lane's daily live slot — fails toward MORE shadow, never more risk.
             continue
@@ -7209,7 +7314,7 @@ def main():
 
             # Reversal setups (VWAP reclaim / bounce) reclaim from BELOW → low peak-relative volume by nature;
             # they carry their OWN volume confirmation in the detector, so they bypass the front-side momentum gate.
-            if entry_type in ("vwap_reclaim", "bounce", "ignition"):
+            if entry_type in ("vwap_reclaim", "bounce", "ignition", "hidden_entry"):
                 mom_ok, mom_details = True, {"exempt": entry_type}
                 # ── UNIVERSAL GATES (7/10 un-bundle): topping-tail + liquidity are NOT momentum rules — they were
                 # only skipped here because they live inside check_momentum (a bundling accident; KUST/ZCMD). When

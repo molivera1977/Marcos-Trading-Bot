@@ -3811,7 +3811,7 @@ def kev_reclaim_step(sym, new_bars, vwap):
                     # (Marcos 7/19: "data for and against it the whole day"). seq 0 = the day's
                     # first fire (the only live-eligible one); seq 1+ = shadow evidence.
                     fired = {"stop": round(max(min(st["wick"][1], vwap), c * 0.93), 4),
-                             "wick_low": st["wick"][1], "seq": st["n"]}
+                             "wick_low": st["wick"][1], "seq": st["n"], "px": round(c, 4)}
                     st["n"] += 1
                     st["phase"] = "seek"; st["ext"] = False; st["wick"] = None
         prev_c = c
@@ -3951,7 +3951,7 @@ def hidden_entry_step(sym, new_bars, vwap):
                 and rng > 0 and (c - l) / rng >= 0.5 and c > o * 0.995):
             stop = min(l - 0.01, c * 0.95)               # wick low, floored at 5% risk (fake-risk guard)
             fired = {"stop": round(stop, 4), "wick": l, "anchor": round(anchor, 4),
-                     "ext_vwap": round((c - vwap) / vwap * 100.0, 2), "seq": st["n"]}
+                     "ext_vwap": round((c - vwap) / vwap * 100.0, 2), "seq": st["n"], "px": round(c, 4)}
             st["n"] += 1
     return fired
 
@@ -3994,7 +3994,7 @@ def kev_zoneflip_step(sym, new_bars):
             # stop = flush low − 1 tick (tested), floored at c×0.93 (7% cap, reclaim-style)
             fired = {"stop": round(max(st["flush_low"] - 0.01, c * 0.93), 4),
                      "wick_high": st["wick"][0], "flush_low": st["flush_low"],
-                     "zone": zone, "zone_src": z["src"], "seq": st["n"]}
+                     "zone": zone, "zone_src": z["src"], "seq": st["n"], "px": round(c, 4)}
             st["n"] += 1
             st["armed"] = False; st["wick"] = None; st["flush_low"] = None
             continue
@@ -4958,6 +4958,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # legacy guard can eat them. EMAs are best-effort informational (ignition's own pattern). ──
             if (_zf_fire or _vr_fire or _he_fire) and price and price > 0:
                 _hm_curl = datetime.now(EASTERN).strftime("%H:%M")
+                _fire_px = None
+                for _f in (_zf_fire, _vr_fire, _he_fire):
+                    if _f and _f.get("px"):
+                        _fire_px = _f["px"]; break
+                if _fire_px and _fire_px > 0 and abs(price - _fire_px) / _fire_px > 0.02:
+                    _log_decision(t, "stale_price_fix", stream_px=round(price, 4), bar_px=_fire_px,
+                                  time_hm=_hm_curl)
+                    print(f"   🩹 {t}: stream price ${price:.2f} stale vs fire bar ${_fire_px:.2f} — using bar price")
+                    price = _fire_px
                 _cc = aggregate_bars(cache[t].get("full_bars") or bars or [], SETUP_TF_MIN)[:-1]
                 if len(_cc) >= EMA20_PERIOD + 2:
                     _ce9, _ce20, _ce90 = calculate_ema9(_cc), calculate_ema20(_cc), calculate_ema90(_cc)

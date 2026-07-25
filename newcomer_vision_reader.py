@@ -46,6 +46,66 @@ DAY = os.environ.get("NEWCOMER_DAY") or dt.datetime.now(ET).strftime("%Y-%m-%d")
 # Names that ALREADY have a level today (night sheet OR an earlier vision read) are excluded
 # DYNAMICALLY in active_newcomers() — never re-read, never overwrite the human-marked sheet.
 # (Was a hardcoded 7/17 sheet list — stale by the very next session; Fable audit 7/18.)
+CAP_URL    = (os.environ.get("ALP_CAPTURE_URL") or "").rstrip("/")
+CAP_SECRET = os.environ.get("HOT_SECRET") or SECRET   # capture falls back to DASHBOARD_SECRET (alpaca_capture.py:301) — reader already holds it
+
+def _cap_get(path, sym):
+    """Capture-service chart fetch (Alpaca). Returns list of raw alpaca bars or None on ANY
+    problem (caller falls back to the Webull path)."""
+    if not CAP_URL or not CAP_SECRET:
+        return None
+    try:
+        req = urllib.request.Request(f"{CAP_URL}{path}?sym={_q(sym)}",
+                                     headers={"X-Hot-Secret": CAP_SECRET})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return (json.load(r) or {}).get("bars")
+    except Exception:
+        return None
+
+def _alp_min1_rows(ticker):
+    """Capture /min1 -> minute_ext-SCHEMA rows ({time,'YYYY-MM-DD HH:MM',session,open,...})
+    so every downstream renderer is unchanged. Session from ET clock: 4:00-9:30 PRE,
+    9:30-16:00 RTH, 16:00-20:00 ATH. None on any failure -> Webull fallback."""
+    raw = _cap_get("/min1", ticker)
+    if not raw:
+        return None
+    out = []
+    for b in raw:
+        try:
+            t_utc = dt.datetime.strptime(str(b["t"])[:16], "%Y-%m-%dT%H:%M").replace(tzinfo=dt.timezone.utc)
+            t_et = t_utc.astimezone(ET)
+            m = t_et.hour * 60 + t_et.minute
+            if m < 4*60 or m >= 20*60: continue
+            sess = "PRE" if m < 9*60+30 else ("RTH" if m < 16*60 else "ATH")
+            out.append({"time": t_et.strftime("%Y-%m-%d %H:%M"), "session": sess,
+                        "open": float(b["o"]), "high": float(b["h"]), "low": float(b["l"]),
+                        "close": float(b["c"]), "volume": float(b.get("v") or 0)})
+        except Exception:
+            continue
+    return out if len(out) >= 10 else None
+
+def _min1(ticker):
+    """Alpaca-first 1-min rows (minute_ext schema); Webull dashboard fallback."""
+    rows = _alp_min1_rows(ticker)
+    if rows is not None:
+        return rows
+    return _get(f"{U}/api/minute_ext?ticker={_q(ticker)}&count=1200", timeout=45).get("bars") or []
+
+def _daily_rows(ticker):
+    """Alpaca-first daily candles ({date,open,high,low,close}); Webull fallback."""
+    raw = _cap_get("/daily", ticker)
+    if raw:
+        out = []
+        for b in raw:
+            try:
+                out.append({"date": str(b["t"])[:10], "open": float(b["o"]), "high": float(b["h"]),
+                            "low": float(b["l"]), "close": float(b["c"])})
+            except Exception:
+                continue
+        if len(out) >= 2:
+            return out
+    return _get(f"{U}/api/daily?ticker={_q(ticker)}&count=45").get("bars") or []
+
 MAX_ATTEMPTS = int(os.environ.get("NEWCOMER_MAX_ATTEMPTS", "3"))    # per-name BILLED vision calls (cost guard)
 MAX_RENDER_FAILS = int(os.environ.get("NEWCOMER_MAX_RENDER_FAILS", "10"))  # per-name chart-fetch fails —
 #   /api/daily hits Webull LIVE (429-able); a failed render is free + retryable, so it gets its OWN,
@@ -157,7 +217,7 @@ def _fetch_ext_bars(ticker):
     exam 0/3 within-2% of Kev — his levels live in the extended sessions our reads never saw).
     Fail-SOFT: any error returns [] and the read proceeds gap-blind (a blind read beats no read)."""
     try:
-        rows = _get(f"{U}/api/minute_ext?ticker={_q(ticker)}&count=1200", timeout=45).get("bars") or []
+        rows = _min1(ticker)
         out = []
         for b in rows:
             s = b.get("session") or ""
@@ -193,7 +253,7 @@ def _fetch_ext_bars(ticker):
 
 def render_daily_png(ticker):
     try:
-        bars = _get(f"{U}/api/daily?ticker={_q(ticker)}&count=45").get("bars") or []
+        bars = _daily_rows(ticker)
     except Exception:
         return None, None
     b=[]
@@ -513,7 +573,7 @@ def render_intraday_png(ticker):
     try:
         import matplotlib; matplotlib.use("Agg")
         import matplotlib.pyplot as plt
-        rows = _get(f"{U}/api/minute_ext?ticker={_q(ticker)}&count=1200", timeout=45).get("bars") or []
+        rows = _min1(ticker)
         b = sorted([r for r in rows if str(r.get("time","")).startswith(DAY) and r.get("session")=="RTH"],
                    key=lambda r: str(r["time"]))
         if len(b) < 10:

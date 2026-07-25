@@ -321,6 +321,35 @@ def hot_snapshot(sym, n):
             "vwap": vw, "day_bars": total, "subscribed": subbed,
             "server_ts": time.time()}
 
+_chart_cache = {}   # (kind, sym) -> (ts, payload)  — 600s TTL, reader-burst shield
+def _rest_chart(kind, sym, limit):
+    """Alpaca REST bars for the reader's charts. kind: 'daily' (1Day) | 'min1' (1Min, incl.
+    extended sessions — SIP covers 4:00-20:00). Returns (code, payload). Never raises."""
+    try:
+        k = (kind, sym); now = time.time()
+        hit = _chart_cache.get(k)
+        if hit and now - hit[0] < 600:
+            return 200, hit[1]
+        if kind == "daily":
+            start = (et_now() - timedelta(days=90)).strftime("%Y-%m-%d")
+            tf = "1Day"
+        else:
+            start = (et_now() - timedelta(hours=30)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            tf = "1Min"
+        r = requests.get("https://data.alpaca.markets/v2/stocks/%s/bars" % sym,
+                         params={"timeframe": tf, "start": start, "limit": limit,
+                                 "feed": ALPACA_FEED if ALPACA_FEED == "sip" else "iex",
+                                 "adjustment": "raw"},
+                         headers={"APCA-API-KEY-ID": ALPACA_KEY,
+                                  "APCA-API-SECRET-KEY": ALPACA_SECRET}, timeout=12)
+        if r.status_code != 200:
+            return 502, {"error": "alpaca HTTP %d" % r.status_code}
+        payload = {"bars": (r.json() or {}).get("bars") or []}
+        _chart_cache[k] = (now, payload)
+        return 200, payload
+    except Exception as e:
+        return 500, {"error": str(e)}
+
 def _hot_route(path, params, auth_ok):
     """Pure router (rig-tested): (path, {param:value}, auth_ok) -> (status, payload_dict).
     GET-only by construction — the handler below never wires POST."""
@@ -338,6 +367,12 @@ def _hot_route(path, params, auth_ok):
         except Exception:
             n = 90
         return 200, hot_snapshot(sym, n)
+    if path in ("/daily", "/min1"):
+        sym = (params.get("sym") or "").upper()
+        if not _SYM_RE.match(sym):
+            return 400, {"error": "bad sym"}
+        return _rest_chart("daily" if path == "/daily" else "min1", sym,
+                           10000 if path == "/min1" else 120)
     return 404, {"error": "unknown"}
 
 def _start_hot_server():

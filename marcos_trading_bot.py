@@ -3743,9 +3743,10 @@ _reclaim_cursor: dict = {}    # (day, sym) -> last processed 10s bucket epoch
 _curl_rth_n: dict = {}        # (day, sym, lane) -> live conversions taken
 
 def _curl_rth_slot(sym, lane, hm):
-    """True exactly once per (day, sym, lane): for the first RTH fire that CONVERTS to a trade.
-    hm < 09:30 is never eligible and never consumes. Call ONLY when about to queue the entry."""
-    if hm < "09:30":
+    """True exactly once per (day, sym, lane): for the first fire AT/AFTER ENTRY_OPEN_ET that
+    CONVERTS to a trade (7/25 Marcos premarket-paper: floor = ENTRY_OPEN_ET, not hard 09:30 —
+    'the more practice for our entries and exits, the better'). Earlier fires never consume."""
+    if hm < ENTRY_OPEN_ET:
         return False
     day = datetime.now(EASTERN).strftime("%Y-%m-%d")
     k = (day, sym, lane)
@@ -5006,7 +5007,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv)
                     continue                                   # captured — skip other detectors for t
                 # HIDDEN ENTRY (Kev 10s rocket wick) — live all RTH, own caps, replaces rocket_catcher.
-                if _he_fire and HIDDEN_ENTRY and _hm_curl >= "09:30":
+                if _he_fire and HIDDEN_ENTRY and _hm_curl >= ENTRY_OPEN_ET:
                     _heday = datetime.now(EASTERN).strftime("%Y-%m-%d")
                     if _he_day["d"] != _heday:
                         _he_day["d"] = _heday; _he_day["n"] = 0
@@ -7516,6 +7517,7 @@ def main():
                 "entry_l1_spread":    l2_details.get("spread"),
                 # Room to next supply at entry (Kev's master filter — taken trades should be ≥2:1)
                 "entry_vel5":         extra.get("entry_vel5"),   # trailing 5-min velocity at entry (LOG-ONLY candidate gate)
+                "entry_session":      ("PRE" if datetime.now(EASTERN).strftime("%H:%M") < "09:30" else "RTH"),  # 7/25 premarket-paper: PRE trades grade SEPARATELY
                 "day_gain_at_entry":  extra.get("day_gain"),     # DAY-GAIN FLOOR column (7/22): % vs prior close at entry
                 "entry_room_rr":      (extra.get("room") or {}).get("rr_to_supply"),
                 "entry_room_pct":     (extra.get("room") or {}).get("room_pct"),

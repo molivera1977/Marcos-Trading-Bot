@@ -16,7 +16,7 @@ def check(n, cond, d=""):
 
 # ═══ FUNCTIONAL: the RTH slot rule (fix for failure B) ════════════════════════
 bot._curl_rth_n.clear()
-check("S1 premarket fire NEVER gets the slot", bot._curl_rth_slot("ADVB", "vr", "08:15") is False)
+check("S1 pre-ENTRY_OPEN fire never gets the slot (default 09:30)", bot.ENTRY_OPEN_ET == "09:30" and bot._curl_rth_slot("ADVB", "vr", "08:15") is False)
 check("S2 premarket fire did NOT burn it (the #98-seed bug, dead)",
       bot._curl_rth_slot("ADVB", "vr", "09:32") is True)
 check("S3 second RTH conversion refused (one live per lane per day)",
@@ -25,6 +25,11 @@ check("S4 lanes independent (zf slot untouched by vr)",
       bot._curl_rth_slot("ADVB", "zf", "09:41") is True)
 check("S5 symbols independent", bot._curl_rth_slot("PN", "vr", "09:59") is True)
 check("S6 exactly 09:30 is RTH", bot._curl_rth_slot("JEM", "vr", "09:30") is True)
+# 7/25 premarket-paper: with ENTRY_OPEN_ET=04:00 the slot opens premarket
+bot.ENTRY_OPEN_ET = "04:00"
+check("S7 ENTRY_OPEN_ET=04:00 -> premarket fire converts", bot._curl_rth_slot("PMKT", "vr", "07:15") is True)
+check("S8 ...and pre-4:00 still never", bot._curl_rth_slot("PMKT2", "vr", "03:59") is False)
+bot.ENTRY_OPEN_ET = "09:30"
 bot._curl_rth_n.clear()
 
 # ═══ POSITIONAL PINS: conversion sits ABOVE every legacy guard (fix for failure A) ═══

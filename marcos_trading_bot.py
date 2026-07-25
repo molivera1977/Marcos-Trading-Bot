@@ -294,6 +294,10 @@ TARGET_PCT            = 0.20   # 20% full profit target (fallback target only)
 # percentages — the old EXIT_TIERS_AM/PM (+8/12/20%, +4/6%) and TRAIL_PCT (5%) were made-up and are removed.
 
 # ── Selection-weighting parameters (Kev's pick criteria — [[project_kev_lessons]]) ──
+# Marcos 7/24 (#108): bot float eligibility raised to the scanner's 50M Kev-watch band —
+# OMH (21.3M, Kev's best 7/24 trade, textbook curl) was blocked by the old 20M line. The 20M
+# "Kev gospel" number stays the RANKING tilt (gap%/float); 20-50M band trades get graded live.
+BOT_MAX_FLOAT = float(os.environ.get("BOT_MAX_FLOAT_M", "50")) * 1_000_000
 # Base rank = gap% / float_m (big gap on a small float). These tilt it toward Kev's other
 # selection signals that the scan already fetches but used to discard:
 HTB_SQUEEZE_MULT   = 1.5    # Hard-to-borrow = heavy short interest = squeeze fuel (Kev, FCHL "97% short → squeeze")
@@ -1614,7 +1618,7 @@ def scan_morning_gappers():
             if not float_shares:
                 g["float_label"] = "float N/A"
                 float_checked.append(g)
-            elif float_shares <= 20_000_000:   # Kev gospel: float < 20M (was 50M)
+            elif float_shares <= BOT_MAX_FLOAT:   # Marcos 7/24: 50M = the scanner's Kev-watch band (OMH 21.3M receipt; was 20M "Kev gospel" core) — #108 grades the 20-50M band live
                 g["float_label"] = f"{float_m:.1f}M float"
                 float_checked.append(g)
                 print(f"   ✅ {sym}: +{g['change_pct']}% | {g['float_label']} ← SMALL FLOAT")
@@ -2438,10 +2442,13 @@ def _chart_break_gate(ticker, entry_price, entry_type=None):
     CPHI dip-buy at $5+ must not be blocked by a $1 map. Classifier replayed on all 96 priced 7/21
     gate rows: flips exactly the 19 stale allows (all ma_pullback), touches none of the day's trades."""
     _STALE_EXEMPT = ("rocket_catcher", "vwap_reclaim", "zone_flip", "hidden_entry")
-    if entry_type == "hidden_entry":
-        # HIDDEN ENTRY trades live 10s structure (Kev wick off VWAP/90MA) — a reader map is
-        # irrelevant and unmapped intraday adds must not die on no_marked_level (#72 class).
-        return ("allow", "hidden_live_structure", None, "none")
+    if entry_type in ("hidden_entry", "vwap_reclaim", "zone_flip"):
+        # LIVE-STRUCTURE lanes (Marcos 7/24: "switch the reclaim and zone flip"): these trade
+        # live 10s structure (VWAP/90MA wick, session VWAP 3-gate, premarket shelf) — a reader
+        # map is irrelevant and unmapped intraday adds must not die on no_marked_level (#72:
+        # DFNS/NIPG/JZXN rockets gate-skipped all day 7/22). Legacy lanes stay gated (13
+        # no-map blocks graded −0.17R/tr this week — the gate is RIGHT for them).
+        return ("allow", "live_structure", None, "none")
     try:
         lv = (_fetch_kev_levels() or {}).get(ticker) or {}
         note = str(lv.get("note") or "").lower()

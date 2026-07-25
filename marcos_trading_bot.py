@@ -7145,10 +7145,48 @@ def main():
             print(f"⏰ No entry detected ({', '.join(remaining_candidates)}). Cash preserved.")
             break
 
-        # ── PREMARKET SHADOW GATE (7/23): before ENTRY_OPEN_ET nothing converts to a trade —
-        # the fire is logged with its full payload (the premarket scorecard) and one-shot
-        # ammunition is restored so RTH keeps its full bag. Entries open at ENTRY_OPEN_ET sharp.
+        # ── PREMARKET GATE v2 (7/25 Marcos: "Pre-market should be treated DIFFERENTLY than RTH"):
+        # before ENTRY_OPEN_ET nothing converts (unchanged). Between ENTRY_OPEN_ET and 09:30 —
+        # the PREMARKET PAPER window — ONLY the 10s live-structure lanes (PRE_LANES: hidden_entry,
+        # vwap_reclaim — Kev's own premarket classes, STAK 7/17 ran entirely premarket on wick
+        # pullbacks) convert, capped at PRE_MAX_TRADES for the whole premarket; the legacy 3-min
+        # machines stay SHADOW premarket (thin 5am tape has no 3-min structure worth trusting).
+        # Every conversion carries entry_session=PRE → separate ledger, separate grading.
         _hm_pm = datetime.now(EASTERN).strftime("%H:%M")
+        _in_premkt = ENTRY_OPEN_ET <= _hm_pm < "09:30"
+        if _in_premkt:
+            _pmday = datetime.now(EASTERN).strftime("%Y-%m-%d")
+            if _pre_day["d"] != _pmday:
+                _pre_day["d"] = _pmday; _pre_day["n"] = 0
+            _kept_pm = []
+            _shadow_pm = []
+            for entry in breakouts:
+                if entry[3] in PRE_LANES and _pre_day["n"] < PRE_MAX_TRADES:
+                    _pre_day["n"] += 1
+                    _kept_pm.append(entry)
+                else:
+                    _shadow_pm.append(entry)
+            breakouts = _kept_pm
+            if _shadow_pm:
+                for entry in _shadow_pm:
+                    _pt, _pp, _pe = entry[0], entry[1], entry[3]
+                    _px2 = entry[4] if len(entry) > 4 else {}
+                    _why_pm = "lane_not_premkt" if _pe not in PRE_LANES else "premkt_capped"
+                    _log_decision(_pt, "premarket_shadow_entry", price=_pp, entry_type=_pe,
+                                  stop=(_px2 or {}).get("zone_stop"), time_hm=_hm_pm, why=_why_pm,
+                                  day_gain=(_px2 or {}).get("day_gain"))
+                    print(f"👥 {_pt} {_pe} fired {_hm_pm} — premarket SHADOW ({_why_pm})")
+                    if _pe == "ignition":
+                        _session_cache.get(_pt, {}).pop("ignition_fired", None)
+                    elif _pe == "rocket_catcher":
+                        _session_cache.get(_pt, {}).pop("rocket_fired", None)
+                        _rocket_day["n"] = max(0, _rocket_day["n"] - 1)
+                    elif _pe == "hidden_entry":
+                        _he_day["n"] = max(0, _he_day["n"] - 1)
+                        _k_he = (_pmday, _pt)
+                        _he_name[_k_he] = max(0, _he_name.get(_k_he, 0) - 1)
+            if not breakouts:
+                continue
         if _hm_pm < ENTRY_OPEN_ET:
             for entry in breakouts:
                 _pt, _pp, _pe = entry[0], entry[1], entry[3]
@@ -7649,6 +7687,10 @@ try:
 except Exception:
     WAKE_H, WAKE_M = 3, 55
 ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "09:30").strip()
+# 7/25 premarket-paper profile (Marcos: premarket != RTH): only 10s live-structure lanes, tiny cap.
+PRE_LANES = set((os.environ.get("PRE_LANES", "hidden_entry,vwap_reclaim")).split(","))
+PRE_MAX_TRADES = int(os.environ.get("PRE_MAX_TRADES", "2"))
+_pre_day = {"d": None, "n": 0}
 
 
 def run_window_ok(now_et):

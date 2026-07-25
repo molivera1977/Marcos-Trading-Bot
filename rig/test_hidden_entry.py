@@ -56,7 +56,7 @@ check("W3 chart-gate bypass (hidden)", bot._chart_break_gate("ZZZZ", 9.99, "hidd
 check("W3b bypass extends to reclaim (Marcos 7/24)", bot._chart_break_gate("ZZZZ", 9.99, "vwap_reclaim")[0] == "allow")
 check("W3c bypass extends to zone_flip", bot._chart_break_gate("ZZZZ", 9.99, "zone_flip")[0] == "allow")
 check("W3d legacy flat_top STILL gated on no-map", bot._chart_break_gate("ZZZZ", 9.99, "flat_top")[0] == "skip")
-check("W15 float cap = 50M Kev-watch band (env-tunable)", abs(bot.BOT_MAX_FLOAT - 50_000_000) < 1 and 'BOT_MAX_FLOAT_M' in BOT)
+check("W15 float cap = 30M (Marcos 7/24, OMH+margin; env-tunable)", abs(bot.BOT_MAX_FLOAT - 30_000_000) < 1 and 'BOT_MAX_FLOAT_M' in BOT)
 check("W16 OMH-class (21.3M float) now bot-eligible", 21_300_000 <= bot.BOT_MAX_FLOAT)
 check("W4 stale-exempt includes hidden_entry", '"zone_flip", "hidden_entry")' in BOT)
 check("W5 allowed-types includes hidden_entry", '"rocket_catcher", "hidden_entry")' in BOT.split("BREAKOUT_ENTRIES or b[3] in ")[1][:120])

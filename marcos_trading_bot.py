@@ -297,7 +297,7 @@ TARGET_PCT            = 0.20   # 20% full profit target (fallback target only)
 # Marcos 7/24 (#108): bot float eligibility raised to the scanner's 50M Kev-watch band —
 # OMH (21.3M, Kev's best 7/24 trade, textbook curl) was blocked by the old 20M line. The 20M
 # "Kev gospel" number stays the RANKING tilt (gap%/float); 20-50M band trades get graded live.
-BOT_MAX_FLOAT = float(os.environ.get("BOT_MAX_FLOAT_M", "50")) * 1_000_000
+BOT_MAX_FLOAT = float(os.environ.get("BOT_MAX_FLOAT_M", "30")) * 1_000_000  # Marcos 7/24: 30M — covers every documented Kev exception (OMH 21.3M) w/ margin; ZERO corpus receipts for 30-50M; scanner still SHOWS to 50M so a missed 30-50M ripper = logged counterfactual to revisit
 # Base rank = gap% / float_m (big gap on a small float). These tilt it toward Kev's other
 # selection signals that the scan already fetches but used to discard:
 HTB_SQUEEZE_MULT   = 1.5    # Hard-to-borrow = heavy short interest = squeeze fuel (Kev, FCHL "97% short → squeeze")

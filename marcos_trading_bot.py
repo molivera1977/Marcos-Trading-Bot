@@ -7161,19 +7161,31 @@ def main():
             _kept_pm = []
             _shadow_pm = []
             for entry in breakouts:
-                if entry[3] in PRE_LANES and _pre_day["n"] < PRE_MAX_TRADES:
+                _pm_dvol = 0.0
+                try:                                   # cum session $vol from the bot's own 10s store
+                    _d10pm, _src_pm = _curl_feed(entry[0])
+                    _pm_dvol = sum((b.get("c") or 0) * max((b.get("v1") or 0) - (b.get("v0") or 0), 0)
+                                   for b in _d10pm.values())
+                except Exception:
+                    pass
+                if (entry[3] in PRE_LANES and _pre_day["n"] < PRE_MAX_TRADES
+                        and _pm_dvol >= PRE_MIN_DVOL):
                     _pre_day["n"] += 1
                     _kept_pm.append(entry)
                 else:
+                    entry[4]["_pm_why"] = ("lane_not_premkt" if entry[3] not in PRE_LANES
+                                           else ("premkt_thin" if _pm_dvol < PRE_MIN_DVOL else "premkt_capped"))
+                    entry[4]["_pm_dvol"] = round(_pm_dvol)
                     _shadow_pm.append(entry)
             breakouts = _kept_pm
             if _shadow_pm:
                 for entry in _shadow_pm:
                     _pt, _pp, _pe = entry[0], entry[1], entry[3]
                     _px2 = entry[4] if len(entry) > 4 else {}
-                    _why_pm = "lane_not_premkt" if _pe not in PRE_LANES else "premkt_capped"
+                    _why_pm = (_px2 or {}).get("_pm_why") or "premkt"
                     _log_decision(_pt, "premarket_shadow_entry", price=_pp, entry_type=_pe,
                                   stop=(_px2 or {}).get("zone_stop"), time_hm=_hm_pm, why=_why_pm,
+                                  dvol=(_px2 or {}).get("_pm_dvol"),
                                   day_gain=(_px2 or {}).get("day_gain"))
                     print(f"👥 {_pt} {_pe} fired {_hm_pm} — premarket SHADOW ({_why_pm})")
                     if _pe == "ignition":
@@ -7689,7 +7701,11 @@ except Exception:
 ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "09:30").strip()
 # 7/25 premarket-paper profile (Marcos: premarket != RTH): only 10s live-structure lanes, tiny cap.
 PRE_LANES = set((os.environ.get("PRE_LANES", "hidden_entry,vwap_reclaim")).split(","))
-PRE_MAX_TRADES = int(os.environ.get("PRE_MAX_TRADES", "2"))
+# 7/25 calibrated on Friday's 27 premarket fires: the 2 thinnest (NEUP $12k, LGCL $131k cum
+# $vol) were the untradeable ones; every real candidate cleared $200k+. Floor does the quality
+# gating -> cap loosened 2->4. Homegrown numbers (n=1 day) — registry, recalibrate weekly.
+PRE_MAX_TRADES = int(os.environ.get("PRE_MAX_TRADES", "4"))
+PRE_MIN_DVOL = float(os.environ.get("PRE_MIN_DVOL", "250000"))   # cum session $ volume floor
 _pre_day = {"d": None, "n": 0}
 
 

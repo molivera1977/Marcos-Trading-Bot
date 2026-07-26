@@ -33,9 +33,9 @@ bot.ROCKET_CATCHER = False   # restore the shipped default after detector exerci
 
 # ── wiring touchpoints (Integrator: every site the machine must hit) ──
 check("T8 touchpoint: entry allowlist has rocket_catcher", '"zone_flip", "rocket_catcher"' in SRC)
-check("T9 touchpoint: EXEMPT from extension guard (rocket-class + slow retest lanes 7/26)",
-      '("rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback"):' in SRC
-      and "catches extension by design" in SRC)
+check("T9 touchpoint: EXEMPT from extension guard (rocket-class + slow lanes + curls 7/26 — guard now gates ignition only)",
+      '"rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback",' in SRC
+      and '"vwap_reclaim", "zone_flip"' in SRC and "catches extension by design" in SRC)
 check("T10 touchpoint: KEV-SPEC 3-phase entry wired (arm/touch/curl)",
       "rocket_armed" in SRC and "rocket_touched" in SRC and "rocket_plow" in SRC
       and "triggered_rocket" in SRC and "detect_rocket(_rs1" in SRC)
@@ -52,8 +52,9 @@ check("T15 entry_vel5 instrumentation (LOG-ONLY, no gate)",
       '"entry_vel5"' in SRC and 'b[4]["entry_vel5"]' in SRC
       and "vel5>=0 floor" in SRC and "NOT" in SRC)   # candidate rule documented, not enforced
 
-check("T16 vel5 floor: hard gate on legacy machines, curl-machines exempt, fails open on None",
-      "vel5_reject" in SRC and '"ignition", "flat_top", "ma_pullback", "orb", "ema_bounce"' in SRC
+check("T16 vel5 floor: hard gate on SLOW retest lanes only (ignition exempt 7/26 — 10s resolution mismatch)",
+      "vel5_reject" in SRC and '("flat_top", "ma_pullback", "orb", "ema_bounce")' in SRC
+      and '"ignition", "flat_top", "ma_pullback", "orb", "ema_bounce"' not in SRC.split("vel5_reject")[0].split("VEL5 FLOOR")[-1]
       and "_v5 is not None and _v5 < 0" in SRC)
 
 check("T17 read-staleness: OBSERVE-ONLY (hard skip REFUTED by 7/20 killtest: would block ZYBT/BIYA winners)",

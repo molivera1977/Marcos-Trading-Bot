@@ -62,8 +62,9 @@ check("W15 float cap = 30M (Marcos 7/24, OMH+margin; env-tunable)", abs(bot.BOT_
 check("W16 OMH-class (21.3M float) now bot-eligible", 21_300_000 <= bot.BOT_MAX_FLOAT)
 check("W4 stale-exempt includes hidden_entry", '"zone_flip", "hidden_entry")' in BOT)
 check("W5 allowed-types includes hidden_entry", '"rocket_catcher", "hidden_entry")' in BOT.split("BREAKOUT_ENTRIES or b[3] in ")[1][:120])
-check("W6 extension-guard exempt: rocket-class + slow retest lanes (Marcos 7/26)",
-      '("rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback"):' in BOT)
+check("W6 extension-guard exempt: rocket-class + slow lanes + curls (Marcos 7/26)",
+      '"rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback",' in BOT
+      and '"vwap_reclaim", "zone_flip"' in BOT)
 check("W7 monitor ladder covers hidden_entry", 'entry_type in ("rocket_catcher", "hidden_entry"):   # ROCKET scale-out ladder' in BOT)
 check("W8 momentum exemption: EVERY live lane (Marcos 7/26 'no point keeping it for one'); universal gates still apply",
       '"hidden_entry", "orb",' in BOT and '"flat_top", "ma_pullback", "zone_flip")' in BOT
@@ -79,7 +80,7 @@ check("W19 premkt gate v2 reasons", "lane_not_premkt" in BOT and "premkt_capped"
 check("W20 entry_session stamped on records", '"entry_session":' in BOT)
 check("W12 2R counterfactual stamped", 'two_r_level' in BOT)
 check("W13 premarket shadow un-counts hidden", '_pe == "hidden_entry"' in BOT)
-check("W14 vel5/daygain legacy lists exclude hidden (passes)", '"hidden_entry"' not in BOT.split('b[3] in ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")')[0][-200:])
+check("W14 vel5/daygain legacy lists exclude hidden (passes)", '"hidden_entry"' not in BOT.split('b[3] in ("flat_top", "ma_pullback", "orb", "ema_bounce")')[0][-200:])
 
 print(f"\n{'GREEN' if not FAIL else 'RED'} — {len(PASS)} pass / {len(FAIL)} fail")
 sys.exit(1 if FAIL else 0)

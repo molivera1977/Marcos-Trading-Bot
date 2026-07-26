@@ -3768,13 +3768,17 @@ _reclaim_cursor: dict = {}    # (day, sym) -> last processed 10s bucket epoch
 _curl_rth_n: dict = {}        # (day, sym, lane) -> live conversions taken
 
 def _curl_rth_slot(sym, lane, hm):
-    """True exactly once per (day, sym, lane): for the first fire AT/AFTER ENTRY_OPEN_ET that
-    CONVERTS to a trade (7/25 Marcos premarket-paper: floor = ENTRY_OPEN_ET, not hard 09:30 —
-    'the more practice for our entries and exits, the better'). Earlier fires never consume."""
+    """True exactly once per (day, sym, lane, SESSION): first converting fire per session.
+    SESSION SPLIT 7/26 (Marcos "ship all 4" — was the code's own 'KNOWN LIMITATION, weekend fix
+    queued'): with ENTRY_OPEN_ET=04:00 (premarket paper), a 5am practice fire was consuming the
+    name's ONLY RTH slot — the 9:45 real flush-reclaim then couldn't convert. Premarket practice
+    now spends PRE tickets; the real session spends RTH tickets. Earlier-than-floor fires never
+    consume."""
     if hm < ENTRY_OPEN_ET:
         return False
+    sess = "PRE" if hm < "09:30" else "RTH"
     day = datetime.now(EASTERN).strftime("%Y-%m-%d")
-    k = (day, sym, lane)
+    k = (day, sym, lane, sess)
     if _curl_rth_n.get(k, 0) > 0:
         return False
     _curl_rth_n[k] = 1
@@ -4788,8 +4792,16 @@ def _tick_vwap_ok(tick, bar, price):
 # ── 7/10 ENTRY-GATE + WIDE-STOP FIX STACK (all DEFAULT OFF until the 9-day completion grade ranks them) ──
 # check_momentum BUNDLES three gates; the reversal exemption (vwap_reclaim/ignition/bounce) was meant only for the
 # momentum gate but silently skipped the UNIVERSAL rules too (the 7/10 audit: flagged fills −$14.95 vs clean +$19.65).
-ENTRY_GATE_TOPPING_TAIL = False  # un-bundled Kev rule: NO entry into a candle rejected at the high — ALL entry types
-ENTRY_GATE_LIQUIDITY    = False  # un-bundled liquidity floor (MOMENTUM_MIN_AVG_VOL) — ALL entry types (⚠️ KUST won 7/10; grade first)
+# ── 7/26 (Marcos "ship all 4"): BOTH FLAGS ON. The 7/26 momentum retirement silently removed these
+#    from the slow lanes (they were bundled inside check_momentum — the exact accident the 7/10
+#    un-bundle anticipated; the flags were just never flipped). With every live lane momentum-exempt,
+#    these flags are now the ONLY liquidity/topping-tail protection. Topping tail = Kev verbatim
+#    ("don't enter into a candle rejected at the high"); liquidity floor validated 7/7 (thin n=2 —
+#    both dead money, zero winners flagged). Carve-out: ignition skips the LIQUIDITY window only —
+#    it measures the 3 completed 1-min bars = ignition's QUIET BASE (quiet by design); the machine
+#    already floors volume on the SURGE bar itself (_IG10_MIN_ABS_VOL), the bar that matters. ──
+ENTRY_GATE_TOPPING_TAIL = os.environ.get("ENTRY_GATE_TOPPING_TAIL", "1") == "1"
+ENTRY_GATE_LIQUIDITY    = os.environ.get("ENTRY_GATE_LIQUIDITY", "1") == "1"
 # Wide-stop fixes — THREE contenders, ranked head-to-head in the harness (the −7% was a MADE-UP number; do not inherit it):
 STOP_MAX_PCT            = 0.0    # A: clamp the structural stop to entry×(1−X) for ALL types. 0=off; calibrate from data, don't assume 7%
 MAX_STOP_DIST_PCT       = 0.0    # C: Kev tight-setup gate — SKIP entries whose structural stop is >X% away (wide base ≠ Kev setup). 0=off
@@ -5582,7 +5594,11 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         _kept_v = []
         for b in breakouts:
             _v5 = b[4].get("entry_vel5")
-            if (b[3] in ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
+            if (b[3] in ("flat_top", "ma_pullback", "orb", "ema_bounce")
+                    # ignition removed 7/26: its 10s fire is definitionally rising (green+strong+break)
+                    # but the 1-MIN vel5 window often hasn't printed the surge yet — resolution mismatch
+                    # (era n=2 rejects incl. BYRN 7/24, fire graded 1.06-1.38R). Same rationale as the
+                    # curl-machine exemption below. Slow lanes stay gated (VINDICATED: blocked = 0.41R).
                     and _v5 is not None and _v5 < 0):
                 _log_decision(b[0], "vel5_reject", price=b[1], entry_vel5=_v5, machine=b[3],
                               day_gain=b[4].get("day_gain"))
@@ -5611,7 +5627,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             _kept = []
             for b in breakouts:
                 _e90 = (b[4].get("ema90") or 0)
-                if b[3] in ("rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback"):
+                if b[3] in ("rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback",
+                            "vwap_reclaim", "zone_flip"):   # curls added 7/26: fire AT vwap/shelf — same
+                                                            # structurally-non-extended claim as hidden (era hits: 0)
                     _kept.append(b)   # rocket-class EXEMPT — catches extension by design (Fable 7/21); hidden entry fires AT the anchor (structurally non-extended, ext logged per fire).
                                       # SLOW RETEST LANES exempt 7/26 (Marcos: "turn off the guard for the slow entries"): the 90-EMA
                                       # anchors in YESTERDAY's prices on gappers, so the guard + day-gain floor squeezed from both
@@ -7382,8 +7400,8 @@ def main():
                     _he_day["n"] = max(0, _he_day["n"] - 1)
                     _k_he = (datetime.now(EASTERN).strftime("%Y-%m-%d"), _pt)
                     _he_name[_k_he] = max(0, _he_name.get(_k_he, 0) - 1)
-                # KNOWN LIMITATION (weekend fix queued): a premarket seq-0 reclaim/zone-flip fire
-                # consumes that lane's daily live slot — fails toward MORE shadow, never more risk.
+                # (7/26: the old premarket-consumes-RTH-slot limitation is FIXED — _curl_rth_slot
+                # keys tickets by session, so practice fires can no longer spend real-session slots.)
             continue
 
         # Mark all breakout tickers as traded before threads start
@@ -7568,7 +7586,8 @@ def main():
                     _gb = _fresh_session(get_intraday_bars(ticker, count=30))   # B16
                     if ENTRY_GATE_TOPPING_TAIL and len(_gb) >= 2 and is_topping_tail(_gb[-2]):
                         mom_ok, mom_details = False, {"reason": "topping tail on last bar (universal gate) — rejection at the high, skip"}
-                    elif ENTRY_GATE_LIQUIDITY and len(_gb) >= 3:
+                    elif ENTRY_GATE_LIQUIDITY and entry_type != "ignition" and len(_gb) >= 3:
+                        # (ignition carve-out 7/26: the 3-bar window IS its quiet base — see flag note)
                         _g3 = _gb[-4:-1]
                         _gav = sum(float(b.get("volume") or b.get("v") or 0) for b in _g3) / max(len(_g3), 1)
                         if _gav < MOMENTUM_MIN_AVG_VOL:

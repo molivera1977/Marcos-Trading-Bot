@@ -1670,6 +1670,13 @@ def scan_morning_gappers():
     # #99: hand the reader its Move%-ranked roster (top-20 by change_pct + Kev). Drawn from the FULL
     # Kev-filtered candidate set (float_checked), ranked by Move% — not the select_score order above.
     _post_read_list(float_checked)
+    # CAPITAL-PRIORITY (7/26): refresh the Move% map from the SAME rows the scanner column shows —
+    # every scanned candidate, not just the returned top slice (a below-cut name can still fire a lane).
+    try:
+        _move_pct.update({c["symbol"]: float(c.get("change_pct") or 0)
+                          for c in (float_checked or []) if c.get("symbol")})
+    except Exception:
+        pass
     return results
 
 
@@ -2417,16 +2424,22 @@ def _blended_pnl(entry_price, total_shares, partial_fills, exit_price):
     return (exit_price - entry_price) * total_shares
 
 
+_move_pct: dict = {}   # sym -> the scanner's Move % (vendor change_ratio x100) — refreshed each gapper scan
+
 def _entry_priority(b):
     """CAPITAL-PRIORITY key (Marcos 7/26: "I want Kev's list and the ranked movers list in the
-    scanner to determine level of priority"). Capital (~3 x $1000 slots on the $3k frame) is the
-    binding constraint after the 7/26 gate purge multiplied candidate flow — arrival order must
-    never outrank the Bible. Sort ascending: (tier, -day_gain) →
+    scanner to determine level of priority" ... "not the internal scoring, but the actual column
+    labeled move %" ... "I want to run after the big boys — those names are always the ones more
+    in play"). Sort ascending: (tier, -rank) →
       tier 0 = Kev-sheet names (src != vision; same helper as the day-gain exemption),
-      tier 1 = everyone else, ranked by day_gain (the scanner's mover ranking, stamped on every
-               candidate pre-gates; unstamped names sink to the bottom)."""
-    _dg = b[4].get("day_gain")
-    return (0 if _kev_sheet_name(b[0]) else 1, -(_dg if _dg is not None else -999.0))
+      tier 1 = everyone else, ranked by the SCANNER'S Move % column — the vendor change_ratio the
+               board displays (same field, same number), refreshed each gapper scan. Fallback for
+               names not on the scan (e.g. intraday Kev adds): the internal day_gain stamp.
+               Nothing known sinks below everything unknown (-999 sentinel)."""
+    _mv = _move_pct.get(b[0])
+    if _mv is None:
+        _mv = b[4].get("day_gain")
+    return (0 if _kev_sheet_name(b[0]) else 1, -(_mv if _mv is not None else -999.0))
 
 
 def _kev_sheet_name(ticker):
@@ -7384,7 +7397,8 @@ def main():
         breakouts.sort(key=_entry_priority)
         if len(breakouts) > 1:
             print("🎖️ entry priority: " + "  >  ".join(
-                f"{b[0]}{'*KEV' if _kev_sheet_name(b[0]) else ''}(dg {b[4].get('day_gain')})" for b in breakouts))
+                f"{b[0]}{'*KEV' if _kev_sheet_name(b[0]) else ''}(mv {_move_pct.get(b[0], b[4].get('day_gain'))})"
+                for b in breakouts))
         for entry in breakouts:
             _t = entry[0]
             traded_tickers.add(_t)

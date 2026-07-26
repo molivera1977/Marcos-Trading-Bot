@@ -13,17 +13,24 @@ def check(n, cond, d=""):
 
 B = lambda t, dg: (t, 1.0, 1.0, "flat_top", ({"day_gain": dg} if dg is not None else {}))
 
-# ── functional: monkeypatch the sheet lookup, sort with the REAL key ──
+# ── functional: monkeypatch sheet lookup + scanner Move% map, sort with the REAL key ──
 _orig = bot._kev_sheet_name
 bot._kev_sheet_name = lambda t: t in ("KEVA", "KEVB")
-rows = [B("JUNK", 45.0), B("KEVA", 8.0), B("MID", 22.0), B("KEVB", 60.0), B("NOSTAMP", None)]
+bot._move_pct.clear()
+bot._move_pct.update({"JUNK": 45.0, "KEVA": 8.0, "MID": 22.0, "KEVB": 60.0, "STALE": 90.0})
+# STALE: scanner says 90 but internal day_gain says 5 — SCANNER COLUMN MUST WIN (Marcos: "the actual
+# column labeled move %"); FALLBK: not on the scan at all -> internal day_gain fallback (30).
+rows = [B("JUNK", 1.0), B("KEVA", 1.0), B("MID", 1.0), B("KEVB", 1.0),
+        B("STALE", 5.0), B("FALLBK", 30.0), B("NOSTAMP", None)]
 rows.sort(key=bot._entry_priority)
 order = [r[0] for r in rows]
-check("P1 Kev-sheet names outrank ALL non-Kev (even a +45% mover)", order[0:2] == ["KEVB", "KEVA"])
-check("P2 within-Kev ordered by day_gain desc", order[0] == "KEVB")
-check("P3 non-Kev ranked by day_gain desc (scanner movers rank)", order[2:4] == ["JUNK", "MID"])
-check("P4 unstamped day_gain sinks to the bottom (never jumps the queue)", order[-1] == "NOSTAMP")
-bot._kev_sheet_name = _orig
+check("P1 Kev-sheet names outrank ALL non-Kev (even a +90% mover)", order[0:2] == ["KEVB", "KEVA"])
+check("P2 within-Kev ordered by scanner Move% desc", order[0] == "KEVB")
+check("P3 non-Kev ranked by the SCANNER Move% column, not internal day_gain", order[2] == "STALE" and order[3] == "JUNK")
+check("P3b name absent from the scan falls back to day_gain (30 slots between JUNK 45 and MID 22)",
+      order.index("FALLBK") == 4)
+check("P4 no rank at all sinks to the bottom (never jumps the queue)", order[-1] == "NOSTAMP")
+bot._kev_sheet_name = _orig; bot._move_pct.clear()
 
 # ── wiring pins ──
 i_warm  = SRC.find("pre-warm the chart-gate levels cache ONCE")
@@ -33,9 +40,11 @@ check("P5 sort exists exactly once, AFTER the cache pre-warm, BEFORE worker spaw
       SRC.count("breakouts.sort(key=_entry_priority)") == 1 and 0 < i_warm < i_sort < i_spawn)
 check("P6 priority order printed when >1 candidate (log-visible for Friday attribution)",
       "entry priority:" in SRC and "'*KEV'" in SRC)
-check("P7 key defn: tier-0 kev-sheet + day_gain rank, unstamped -999 sentinel",
+check("P7 key defn: tier-0 kev-sheet + SCANNER Move% rank (day_gain fallback), -999 sentinel",
       "def _entry_priority(b):" in SRC and "0 if _kev_sheet_name(b[0]) else 1" in SRC
-      and "-999.0" in SRC)
+      and "_move_pct.get(b[0])" in SRC and "-999.0" in SRC)
+check("P8 Move% map refreshed from the FULL scanned set each gapper scan",
+      "_move_pct.update({c[\"symbol\"]" in SRC and "float_checked or []" in SRC)
 
 print(f"\n{'GREEN' if not FAIL else 'RED'} — {len(PASS)} pass / {len(FAIL)} fail")
 sys.exit(1 if FAIL else 0)

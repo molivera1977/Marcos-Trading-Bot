@@ -33,8 +33,9 @@ bot.ROCKET_CATCHER = False   # restore the shipped default after detector exerci
 
 # ── wiring touchpoints (Integrator: every site the machine must hit) ──
 check("T8 touchpoint: entry allowlist has rocket_catcher", '"zone_flip", "rocket_catcher"' in SRC)
-check("T9 touchpoint: EXEMPT from extension guard (shared with hidden_entry since 7/24)",
-      '("rocket_catcher", "hidden_entry"):' in SRC and "catches extension by design" in SRC)
+check("T9 touchpoint: EXEMPT from extension guard (rocket-class + slow retest lanes 7/26)",
+      '("rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback"):' in SRC
+      and "catches extension by design" in SRC)
 check("T10 touchpoint: KEV-SPEC 3-phase entry wired (arm/touch/curl)",
       "rocket_armed" in SRC and "rocket_touched" in SRC and "rocket_plow" in SRC
       and "triggered_rocket" in SRC and "detect_rocket(_rs1" in SRC)

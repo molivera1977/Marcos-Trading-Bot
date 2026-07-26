@@ -5584,8 +5584,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             _kept = []
             for b in breakouts:
                 _e90 = (b[4].get("ema90") or 0)
-                if b[3] in ("rocket_catcher", "hidden_entry"):
-                    _kept.append(b)   # rocket-class EXEMPT — catches extension by design (Fable 7/21); hidden entry fires AT the anchor (structurally non-extended, ext logged per fire)
+                if b[3] in ("rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback"):
+                    _kept.append(b)   # rocket-class EXEMPT — catches extension by design (Fable 7/21); hidden entry fires AT the anchor (structurally non-extended, ext logged per fire).
+                                      # SLOW RETEST LANES exempt 7/26 (Marcos: "turn off the guard for the slow entries"): the 90-EMA
+                                      # anchors in YESTERDAY's prices on gappers, so the guard + day-gain floor squeezed from both
+                                      # sides ("must be a mover, can't look extended"). Kill-test: the 17 gradeable extension-rejected
+                                      # slow triggers ran 1.69R medMFE / 65% >=1R — ABOVE the kept benchmark (RESULTS_LEDGER 7/26).
+                                      # A confirmed retest at a level is not a chase; chart gate still owns level sanity.
                 elif _e90 > 0 and (b[1] - _e90) / _e90 > EXTENSION_MAX_PCT:
                     _shadow_keep.add(b[0]); _log_decision(b[0], "extension_reject", price=b[1], ext_pct=round((b[1] - _e90) / _e90 * 100, 1))
                 else:

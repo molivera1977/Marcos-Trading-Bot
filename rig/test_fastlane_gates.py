@@ -66,5 +66,20 @@ check("PM4 premarket shadow un-counts hit the PRE counters with session-keyed na
 check("PM5 per-bar liquidity floor is RTH-only (premarket owned by PRE_MIN_DVOL)",
       'and datetime.now(EASTERN).strftime("%H:%M") >= "09:30")' in SRC
       and "PRE_MIN_DVOL" in SRC)
-print(f"\n{'GREEN' if not FAIL else 'RED'} — {len(PASS)} pass / {len(FAIL)} fail (with PM pins)")
+# ── 7/26 EXIT-REVIEW FINISHERS (F1 flatten-window collision + F3 zero-quote exit price) ──
+check("E1 F1a: no PRE conversions in the [PRE_FLAT_HHMM, 09:30) dead window + reason logged",
+      "_hm_pm < PRE_FLAT_HHMM" in SRC and '"premkt_flatten_window"' in SRC)
+check("E2 F1b: PRE-ness decided at conversion (_pre_convert) and threaded into monitor + record",
+      '"_pre_convert"' in SRC and "entered_premkt=None" in SRC
+      and 'entered_premkt=(True if (extra or {}).get("_pre_convert") else None)' in SRC
+      and '(extra or {}).get("_pre_convert")' in SRC)
+check("E3 F1b: monitor uses the stamp, wall-clock only as fallback",
+      "_entered_premkt = (entered_premkt if entered_premkt is not None" in SRC)
+check("E4 F3: BOTH time stops guard exit_price against dead quotes (last_good_price fallback)",
+      SRC.count("current_price = last_good_price   # F3") == 2)
+import inspect as _insp
+_sig = _insp.signature(bot.monitor_trade)
+check("E5 monitor_trade signature carries entered_premkt (default None = clock fallback)",
+      "entered_premkt" in _sig.parameters and _sig.parameters["entered_premkt"].default is None)
+print(f"\n{'GREEN' if not FAIL else 'RED'} — {len(PASS)} pass / {len(FAIL)} fail (with E pins)")
 sys.exit(1 if FAIL else 0)

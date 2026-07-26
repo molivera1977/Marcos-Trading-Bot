@@ -41,8 +41,8 @@ check("T10 touchpoint: KEV-SPEC 3-phase entry wired (arm/touch/curl)",
       and "triggered_rocket" in SRC and "detect_rocket(_rs1" in SRC)
 check("T10b curl condition + pullback-low stop present",
       "_cl > _bar_high(_pb)" in SRC and 'cache[t].get("rocket_plow")' in SRC)
-check("T11 touchpoint: monitor_trade %-tier branch (shared with hidden_entry since 7/24)",
-      'entry_type="flat_top")' in SRC and 'entry_type in ("rocket_catcher", "hidden_entry"):' in SRC
+check("T11 touchpoint: monitor_trade %-tier branch (shared with hidden_entry since 7/24; sig grew entered_premkt 7/26)",
+      'entry_type="flat_top",' in SRC and 'entry_type in ("rocket_catcher", "hidden_entry"):' in SRC
       and "entry_price * 1.50" in SRC and "entry_price * 2.00" in SRC)
 check("T12 touchpoint: call site threads entry_type", "entry_type=entry_type," in SRC)
 check("T13 touchpoint: daily cap + reset wired", "_rocket_day" in SRC and "rocket_capped" in SRC)

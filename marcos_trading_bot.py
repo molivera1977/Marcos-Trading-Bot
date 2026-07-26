@@ -5919,7 +5919,8 @@ def _vride_defer(ticker, tier_idx):
     return False
 
 def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
-                  stream: WebullStream, stop_order_id, vwap=0, next_supply=None, entry_type="flat_top"):
+                  stream: WebullStream, stop_order_id, vwap=0, next_supply=None, entry_type="flat_top",
+                  entered_premkt=None):
     """
     Monitors the trade using the real-time stream.
     All stop levels are kept as live orders on Webull — not just in memory.
@@ -5959,7 +5960,10 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     # ── Kev's R-based exits (SUPPLY_EXIT_DESIGN.md): R = entry − initial stop. Sell HALF at +1R
     # (risk-free → stop to break-even), trim to a ~1/4 runner at the next supply (or +2R if open room),
     # then the 1/4 runner trails the PREVIOUS-BAR LOW. Replaces the made-up +8/12/20% tiers + TRAIL_PCT. ──
-    _entered_premkt = datetime.now(EASTERN).strftime("%H:%M") < "09:30"   # 7/25: 9:25 flatten flag
+    # F1b (7/26): PRE-ness comes from the CONVERSION stamp when provided — a worker that crosses
+    # 09:30 between fill and monitor start must not let a PRE trade escape the 9:25... next-day flatten.
+    _entered_premkt = (entered_premkt if entered_premkt is not None
+                       else datetime.now(EASTERN).strftime("%H:%M") < "09:30")
     R = max(entry_price - stop_loss, 0.01)
     if entry_type in ("rocket_catcher", "hidden_entry"):   # ROCKET scale-out ladder (Fable 7/21): %-of-entry, NOT R —
         # a parabola round-trips, so bank 1/3 @ +50%, 1/3 @ +100% on the way up; runner health-trails.
@@ -6003,6 +6007,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if _entered_premkt and now.strftime("%H:%M") >= PRE_FLAT_HHMM and now.strftime("%H:%M") < "10:00":
             print(f"⏰ {PRE_FLAT_HHMM} — premarket flatten: closing {ticker} before the open")
             current_price = stream.get_price(ticker)
+            if not current_price or current_price <= 0:
+                current_price = last_good_price   # F3 (7/26): a dead quote at flatten must not book the runner as a $0 total loss
             if remaining_shares > 0:
                 cancel_order(placed_stop_id)
                 close_position(ticker, remaining_shares)
@@ -6016,6 +6022,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if past_end:
             print("⏰ 3:45pm — Force closing all positions")
             current_price = stream.get_price(ticker)
+            if not current_price or current_price <= 0:
+                current_price = last_good_price   # F3 (7/26): same guard as the premarket flatten
             if remaining_shares > 0:
                 cancel_order(placed_stop_id)
                 close_position(ticker, remaining_shares)
@@ -7373,12 +7381,19 @@ def main():
                 except Exception:
                     pass
                 if (entry[3] in PRE_LANES and _pre_day["n"] < PRE_MAX_TRADES
-                        and _pm_dvol >= PRE_MIN_DVOL):
+                        and _pm_dvol >= PRE_MIN_DVOL and _hm_pm < PRE_FLAT_HHMM):
+                    # F1a (7/26 exit review): NO conversions in [PRE_FLAT_HHMM, 09:30) — a 9:26 fire
+                    # would convert and be flattened on the monitor's FIRST iteration (minted spread-
+                    # loss + burned PRE ticket/cap slot). Fires in the dead window shadow instead.
                     _pre_day["n"] += 1
-                    _kept_pm.append(entry)
+                    entry[4]["_pre_convert"] = True   # F1b: PRE-ness decided AT CONVERSION, not by
+                    _kept_pm.append(entry)            # the monitor/record wall-clock (worker latency
+                                                      # across 09:30 must not turn a PRE trade RTH).
                 else:
                     entry[4]["_pm_why"] = ("lane_not_premkt" if entry[3] not in PRE_LANES
-                                           else ("premkt_thin" if _pm_dvol < PRE_MIN_DVOL else "premkt_capped"))
+                                           else ("premkt_thin" if _pm_dvol < PRE_MIN_DVOL
+                                                 else ("premkt_flatten_window" if _hm_pm >= PRE_FLAT_HHMM
+                                                       else "premkt_capped")))
                     entry[4]["_pm_dvol"] = round(_pm_dvol)
                     _shadow_pm.append(entry)
             breakouts = _kept_pm
@@ -7696,6 +7711,7 @@ def main():
                 stream, stop_order_id, vwap=vwap,
                 next_supply=((extra or {}).get("room") or {}).get("next_supply"),
                 entry_type=entry_type,               # rocket_catcher → %-based scale-out ladder in monitor_trade
+                entered_premkt=(True if (extra or {}).get("_pre_convert") else None),   # F1b: None → clock fallback
             )
             _active_monitors.pop(ticker, None)   # monitor returned — deregister from watchdog
 
@@ -7794,7 +7810,9 @@ def main():
                 "entry_l1_spread":    l2_details.get("spread"),
                 # Room to next supply at entry (Kev's master filter — taken trades should be ≥2:1)
                 "entry_vel5":         extra.get("entry_vel5"),   # trailing 5-min velocity at entry (LOG-ONLY candidate gate)
-                "entry_session":      ("PRE" if datetime.now(EASTERN).strftime("%H:%M") < "09:30" else "RTH"),  # 7/25 premarket-paper: PRE trades grade SEPARATELY
+                "entry_session":      ("PRE" if ((extra or {}).get("_pre_convert")
+                                                or datetime.now(EASTERN).strftime("%H:%M") < "09:30")
+                                        else "RTH"),  # 7/25 premarket-paper; F1b 7/26: conversion stamp wins over the clock
                 "day_gain_at_entry":  extra.get("day_gain"),     # DAY-GAIN FLOOR column (7/22): % vs prior close at entry
                 "entry_room_rr":      (extra.get("room") or {}).get("rr_to_supply"),
                 "entry_room_pct":     (extra.get("room") or {}).get("room_pct"),

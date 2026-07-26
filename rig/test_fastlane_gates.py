@@ -81,5 +81,15 @@ import inspect as _insp
 _sig = _insp.signature(bot.monitor_trade)
 check("E5 monitor_trade signature carries entered_premkt (default None = clock fallback)",
       "entered_premkt" in _sig.parameters and _sig.parameters["entered_premkt"].default is None)
-print(f"\n{'GREEN' if not FAIL else 'RED'} — {len(PASS)} pass / {len(FAIL)} fail (with E pins)")
+# ── 7/26 CLAMP-CHAIN LOGGING (log-only; sizing behavior must be UNCHANGED) ──
+check("C1 binder computed for both formula arms + volume override + fail-open witness",
+      '_clamp = ("min_1_share"' in SRC and '_clamp = "volume"' in SRC
+      and 'volguard_failopen' in SRC and '"size_clamp":' in SRC)
+check("C2 ZERO behavior change: shares formula byte-identical (max(1, min(int(..))) preserved)",
+      "shares = max(1, min(_sh_risk, _sh_notional))" in SRC
+      and "_sh_risk = int(RISK_PER_TRADE / (entry_price - stop_loss))" in SRC
+      and "_sh_notional = int(pos_size / entry_price)" in SRC)
+check("C3 stamp lands on the trade record beside trade_id",
+      SRC.split('"size_clamp":')[0].rstrip().endswith('"trade_id":           trade_id,'))
+print(f"\n{'GREEN' if not FAIL else 'RED'} — {len(PASS)} pass / {len(FAIL)} fail (with C pins)")
 sys.exit(1 if FAIL else 0)

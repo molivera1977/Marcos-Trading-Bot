@@ -7526,10 +7526,18 @@ def main():
                 return
             # B: Kev short-003 sizing (LIVE 7/11) — shares = max-loss ÷ risk-per-share; notional-capped. Wide stop →
             # fewer shares, tight stop → more; every full stop-out costs the same RISK_PER_TRADE.
+            _clamp = "none"   # CLAMP-CHAIN LOGGING (7/26, log-only — the 7/25 exec-expert rec, built at
+                              # last): WHICH constraint decided the size, so Friday reads binders off the
+                              # record instead of inferring them from planned_risk arithmetic.
             if RISK_BASED_SIZING and entry_price > stop_loss:
-                shares = max(1, min(int(RISK_PER_TRADE / (entry_price - stop_loss)), int(pos_size / entry_price)))
+                _sh_risk = int(RISK_PER_TRADE / (entry_price - stop_loss))
+                _sh_notional = int(pos_size / entry_price)
+                shares = max(1, min(_sh_risk, _sh_notional))
+                _clamp = ("min_1_share" if min(_sh_risk, _sh_notional) < 1
+                          else ("risk" if _sh_risk <= _sh_notional else "notional"))
             else:
                 shares = max(1, int(pos_size / entry_price))
+                _clamp = "notional"
 
             # ── VOLUME GUARD (7/11, the KUST lesson): size must fit the tape. Cap shares at MAX_POS_VOL_PCT of the
             # avg recent 1-min volume — the risk formula on a tight-stop illiquid name demands size the market
@@ -7546,7 +7554,9 @@ def main():
                             print(f"   💧 {ticker} volume guard: {shares} → {_vol_cap} shares "
                                   f"({MAX_POS_VOL_PCT*100:.0f}% of {int(_vav):,}/min avg tape)")
                             shares = _vol_cap
+                            _clamp = "volume"          # tape, not risk, decided this size
                 except Exception:
+                    _clamp = _clamp + "+volguard_failopen"   # F4 witness: the guard was BLIND here
                     pass   # guard is best-effort; never blocks an entry on a data hiccup
 
             # ── DOLLAR-TRACKED CAPITAL (7/11): reserve the ACTUAL notional against the sim account (margin
@@ -7803,6 +7813,7 @@ def main():
                 "entry_ema90":        round(entry_ema90, 4) if entry_ema90 > 0 else None,
                 "entry_vs_ema90_pct": entry_vs_ema90_pct,
                 "trade_id":           trade_id,
+                "size_clamp":         _clamp,   # 7/26 log-only: which constraint bound the size (risk/notional/volume/min_1_share; +volguard_failopen = guard was blind)
                 # L1 order-book at entry (study: do adverse book conditions predict losers?)
                 "entry_l1_ratio":     l2_details.get("ratio"),
                 "entry_ask_size":     l2_details.get("ask_size"),

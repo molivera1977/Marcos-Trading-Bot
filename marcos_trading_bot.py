@@ -5345,10 +5345,11 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             cache[t]["daily"] = get_daily_levels(t)
                         _daily = cache[t]["daily"]
                         if _daily and not daily_first_ok(price, _daily):
-                            print(f"🚫 {t}: DAILY BAD — ${price:.2f} below daily 20/50 MA "
-                                  f"({_daily.get('m20')}/{_daily.get('m50')}) — skip (Kev: bad daily = no trade)")
-                            _log_decision(t, "broke_daily_bad", price=price)
-                            continue
+                            # OBSERVE-MODE 7/26 (Marcos: "exempt it on the slow lanes despite being contrary to
+                            # Kev. The data at the end of the week will decide") — row kept, block removed.
+                            # Era cohort n=285: blocked ≈ kept (0.98R vs 1.30R), non-discriminating (ledger 7/26).
+                            print(f"📎 {t}: DAILY BAD (observed, not blocked) — ${price:.2f} below daily 20/50 MA")
+                            _log_decision(t, "broke_daily_bad", price=price, enforced=False)
                         room = compute_room(price, _stop, cache[t].get("full_bars") or bars,
                                             daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
                         rr = room["rr_to_supply"]
@@ -5432,10 +5433,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             rr = room["rr_to_supply"]
                             _daily_bad = bool(_daily) and not daily_first_ok(price, _daily)
                             if _daily_bad:
-                                _log_decision(t, "orb_daily_bad", price=price, room_rr=rr, orb_high=orb_hi)
-                                cache[t]["orb_fired"] = True   # daily bad — don't chase later re-breaks
-                                cache[t]["pb_orb"] = None
-                            else:
+                                # OBSERVE-MODE 7/26 — row kept, block removed (see broke_daily_bad note).
+                                _log_decision(t, "orb_daily_bad", price=price, room_rr=rr, orb_high=orb_hi,
+                                              enforced=False)
+                            if True:
                                 if rr is not None and rr < MIN_ROOM_RR:   # room DE-INVERTED — observe only (momentum gates)
                                     _log_decision(t, "orb_low_room_soft", price=price, room_rr=rr, orb_high=orb_hi)
                                 _front = ema9 > ema20 > 0
@@ -5466,9 +5467,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     rr_room = room["rr_to_supply"]
                     _daily_bad = bool(_daily) and not daily_first_ok(price, _daily)
                     if _daily_bad:
-                        print(f"🚫 {t} {ma_pb['ma_name']} pullback — DAILY BAD (below daily 20/50 MA) — skip")
-                        _log_decision(t, "ma_daily_bad", price=price, room_rr=rr_room)
-                    else:
+                        # OBSERVE-MODE 7/26 — row kept, block removed (see broke_daily_bad note).
+                        print(f"📎 {t} {ma_pb['ma_name']} pullback — DAILY BAD (observed, not blocked)")
+                        _log_decision(t, "ma_daily_bad", price=price, room_rr=rr_room, enforced=False)
+                    if True:
                         if rr_room is not None and rr_room < MIN_ROOM_RR:   # room DE-INVERTED — observe only (momentum gates)
                             _log_decision(t, "ma_low_room_soft", price=price, room_rr=rr_room)
                         target = room.get("next_supply") or round(price * (1 + TARGET_PCT), 4)

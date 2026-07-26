@@ -13,10 +13,13 @@ def bars(closes, lows=None):
     lows = lows or [c * 0.99 for c in closes]
     return [{"close": c, "low": l, "open": c, "high": c * 1.01, "volume": 1000} for c, l in zip(closes, lows)]
 
-# ── ships DISABLED by default (safe until 6-tape replay); rig enables to exercise the detector ──
-check("T0 ACTIVE by default in DRY_RUN (Fable shadow verdict 7/21; env ROCKET_CATCHER=0 is the kill-switch)", bot.ROCKET_CATCHER is True)
+# ── SUPERSEDED 7/24 by HIDDEN_ENTRY (10s Kev spec): default OFF, env ROCKET_CATCHER=1 resurrects ──
+check("T0 SUPERSEDED: default OFF (hidden_entry replaces it 7/24), resurrect documented",
+      bot.ROCKET_CATCHER is False and 'os.environ.get("ROCKET_CATCHER", "0")' in SRC
+      and "env=1 resurrects" in SRC)
 
-# ── detector ──
+# ── detector (rig resurrects the flag to exercise the machine; restored below) ──
+bot.ROCKET_CATCHER = True
 r = bot.detect_rocket(bars([1.00, 1.00, 1.05, 1.12, 1.22, 1.30]), 1.30)
 check("T1 fires on +30%/5-bar velocity", r is not None and r["vel"] >= 25, f"got {r}")
 check("T2 silent on flat tape", bot.detect_rocket(bars([1.0] * 6), 1.0) is None)
@@ -26,16 +29,20 @@ check("T4 stop bounds risk <=25%", r4 and r4["stop"] >= 1.30 * 0.75 - 1e-9, f"go
 check("T5 config T=25 / cap 3 / 5 bars", bot.ROCKET_VEL_PCT == 25 and bot.ROCKET_DAILY_CAP == 3 and bot.ROCKET_VEL_BARS == 5)
 check("T6 kill-switch ROCKET_CATCHER exists", hasattr(bot, "ROCKET_CATCHER"))
 check("T7 too-few-bars -> None", bot.detect_rocket(bars([1.0, 1.3]), 1.3) is None)
+bot.ROCKET_CATCHER = False   # restore the shipped default after detector exercises
 
 # ── wiring touchpoints (Integrator: every site the machine must hit) ──
 check("T8 touchpoint: entry allowlist has rocket_catcher", '"zone_flip", "rocket_catcher"' in SRC)
-check("T9 touchpoint: EXEMPT from extension guard", 'b[3] == "rocket_catcher"' in SRC and "catches extension by design" in SRC)
+check("T9 touchpoint: EXEMPT from extension guard (shared with hidden_entry since 7/24)",
+      '("rocket_catcher", "hidden_entry"):' in SRC and "catches extension by design" in SRC)
 check("T10 touchpoint: KEV-SPEC 3-phase entry wired (arm/touch/curl)",
       "rocket_armed" in SRC and "rocket_touched" in SRC and "rocket_plow" in SRC
       and "triggered_rocket" in SRC and "detect_rocket(_rs1" in SRC)
 check("T10b curl condition + pullback-low stop present",
       "_cl > _bar_high(_pb)" in SRC and 'cache[t].get("rocket_plow")' in SRC)
-check("T11 touchpoint: monitor_trade %-tier branch", 'entry_type="flat_top")' in SRC and 'entry_type == "rocket_catcher"' in SRC and "entry_price * 1.50" in SRC and "entry_price * 2.00" in SRC)
+check("T11 touchpoint: monitor_trade %-tier branch (shared with hidden_entry since 7/24)",
+      'entry_type="flat_top")' in SRC and 'entry_type in ("rocket_catcher", "hidden_entry"):' in SRC
+      and "entry_price * 1.50" in SRC and "entry_price * 2.00" in SRC)
 check("T12 touchpoint: call site threads entry_type", "entry_type=entry_type," in SRC)
 check("T13 touchpoint: daily cap + reset wired", "_rocket_day" in SRC and "rocket_capped" in SRC)
 
@@ -55,8 +62,8 @@ check("T17 read-staleness: OBSERVE-ONLY (hard skip REFUTED by 7/20 killtest: wou
 check("T18 wick-aware dip (#73): helper exists + wired at BOTH parallel sites (flat-top + ORB)",
       "_recent_low_dip" in SRC and SRC.count("_recent_low_dip(cache[t]") == 2)
 
-check("T19 day-gain floor config: T=30 default, legacy-machine scope exact, env kill-switch",
-      bot.DAYGAIN_FLOOR_PCT == 30.0
+check("T19 day-gain floor config: T=15 default (Marcos 7/26 data-collection), legacy scope exact, env kill-switch",
+      bot.DAYGAIN_FLOOR_PCT == 15.0
       and bot.DAYGAIN_LEGACY == ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
       and 'os.environ.get("DAYGAIN_FLOOR"' in SRC and "if DAYGAIN_FLOOR_PCT > 0:" in SRC)
 check("T19b floor wired: reject row + threshold compare + KEV-SHEET exemption call",
@@ -101,9 +108,8 @@ check("T23 #89 curl detectors ALWAYS step: early block sits BEFORE the pullback 
       and SRC.index("CURL DETECTORS ALWAYS STEP") < SRC.index('_log_decision(t, "break_armed"'))
 check("T23b #89 single-step: exactly one call site per machine (no double-feed)",
       SRC.count("kev_zoneflip_step(t,") == 1 and SRC.count("kev_reclaim_step(t,") == 1)
-check("T23c #89 evidence at DETECTION (no continue can drop a fire) + consumers consume stash",
+check("T23c #89 evidence at DETECTION (no continue can drop a fire) + convert-at-detection consumers (7/24 rework; see test_curl_live.py)",
       SRC.count('"detected"') == 2 and "def _shadow_log_curl_leftovers" in SRC
-      and "if _zf_fire and not found_entry:" in SRC and "if _vr_fire and not found_entry:" in SRC
       and "_zf_fire = None" in SRC and "_vr_fire = None" in SRC)
 check("T23d #89 old starved branches GONE (fail-without-fix)",
       "if not found_entry and ZONEFLIP_KEV:" not in SRC

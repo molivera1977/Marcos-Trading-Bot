@@ -4042,8 +4042,13 @@ ROCKET_CATCHER   = os.environ.get("ROCKET_CATCHER", "0") == "1"    # SUPERSEDED 
 #    day-gains — SOBR +$93.56 reclaim was DOWN 23% at entry) and KEV-SHEET names (his explicit levels
 #    outrank this homegrown filter — AEHL "over 1.00" must fire regardless of day-gain). T=30 is a
 #    HOMEGROWN number (Kev never quantifies) → translation registry; recalibrate from the stamped
-#    day_gain column as live n accrues. env DAYGAIN_FLOOR=0 = kill-switch. ──
-DAYGAIN_FLOOR_PCT = float(os.environ.get("DAYGAIN_FLOOR", "30"))
+#    day_gain column as live n accrues. env DAYGAIN_FLOOR=0 = kill-switch.
+#    30→15 (Marcos 7/26, DRY_RUN-learning doctrine): 7/26 corrected-P&L re-sweep kept the floor's
+#    EDGE (every T∈[15,40] positive) but the forward blocked-cohort (n=17, 7/22-24) showed blocked
+#    fires ≈ kept fires (1.51R vs 1.30R median MFE) — the 15-30 band needs REAL trade outcomes, not
+#    canaries: "we need to test this fucker and can't if we don't collect real data." Floor 15 =
+#    bottom of the corrected sweep's positive plateau (+$92.56). Revisit Friday 7/31 w/ forward n. ──
+DAYGAIN_FLOOR_PCT = float(os.environ.get("DAYGAIN_FLOOR", "15"))
 DAYGAIN_LEGACY    = ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
 ROCKET_VEL_PCT   = float(os.environ.get("ROCKET_VEL_PCT", "25"))    # % over the window (Fable T=25 = 0 false-pos/95 fades)
 ROCKET_VEL_BARS  = int(os.environ.get("ROCKET_VEL_BARS", "5"))      # trailing 1-min bars = a 5-minute velocity window

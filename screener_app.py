@@ -1814,7 +1814,12 @@ def set_kev_watchlist():
     d = request.get_json(silent=True) or {}
     date = d.get("date") or datetime.now(EASTERN).strftime("%Y-%m-%d")
     tickers = sorted({str(t).upper().strip() for t in (d.get("tickers") or []) if str(t).strip()})
-    _kev_wl[date] = tickers
+    # 7/26 (discovery review F1): the TICKERS list gets the same merge-only protection the
+    # _levels store got on 7/24 — a POST that omits "tickers" (or sends an empty list) can no
+    # longer wipe the day's Kev roster (the 09:25 scar class, one layer up). Writers that DO
+    # send tickers merge-union; explicit removal is not a thing this endpoint does.
+    if tickers:
+        _kev_wl[date] = sorted(set(_kev_wl.get(date) or []) | set(tickers))
     # 7/13 Kev-level anchoring: carry his STATED levels per ticker ({T: {break, confirm, targets}})
     # so the bot can record each pick-trade's entry distance from his level (study: 3/3 days,
     # closest-to-level = best outcome). Stored under a reserved "_levels" key.

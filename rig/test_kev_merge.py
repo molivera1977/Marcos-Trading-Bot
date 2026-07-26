@@ -67,6 +67,13 @@ check("P1 route: levels go through _merge_kev_levels", "_merge_kev_levels(cur" i
 check("P2 route: levels_remove wired", 'd.get("levels_remove")' in SRC)
 check("P3 old wholesale replace is GONE", '_kev_wl.setdefault("_levels", {})[date] = d["levels"]' not in SRC)
 
+
+# ── 7/26 discovery-review F1: the TICKERS list is merge-only too (the 09:25 scar class, one layer up) ──
+SS = (pathlib.Path(__file__).resolve().parent.parent / "screener_app.py").read_text()
+check("K14 tickers-wipe guard: empty/absent tickers can NEVER wipe the day's roster; non-empty UNIONS",
+      "if tickers:" in SS and "_kev_wl[date] = sorted(set(_kev_wl.get(date) or []) | set(tickers))" in SS
+      and "_kev_wl[date] = tickers" not in SS)
+
 print(f"\n{'='*60}\nKEV MERGE-ONLY RIG: {len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:
     print("FAILED:", *FAIL, sep="\n  ")

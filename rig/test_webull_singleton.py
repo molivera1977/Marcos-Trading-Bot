@@ -77,6 +77,14 @@ check("P2 singleton default-ON, flippable OFF", 'WEBULL_CLIENT_SINGLETON", "1"' 
 check("P3 call sites unchanged (still call _make_data_client())", SRC.count("_make_data_client()") >= 4)
 check("P4 build path split into _build_data_client (fast-path reuses, never rebuilds)", "def _build_data_client" in SRC)
 
+
+# ── 7/26 discovery-review F2: bot subscribe is CHUNKED with per-symbol isolation (recorder's FGMC fix propagated) ──
+_BOTSRC = (ROOT / "marcos_trading_bot.py").read_text()
+check("S14 chunked subscribe: 20-name chunks + individual retry + symbol-class checked BEFORE 417-session-class",
+      "range(0, len(new), 20)" in _BOTSRC and "retrying {len(_chunk)} names individually" in _BOTSRC
+      and '"INVALID_SYMBOL" not in str(_ce) and ("INVALID_SESSION" in str(_ce) or "417" in str(_ce))' in _BOTSRC
+      and "skip bad symbol" in _BOTSRC)
+
 print(f"\n{'='*60}\n#102 WEBULL SINGLETON RIG: {len(PASS)} passed, {len(FAIL)} failed")
 if FAIL: print("FAILED:", *FAIL, sep="\n  ")
 sys.exit(1 if FAIL else 0)

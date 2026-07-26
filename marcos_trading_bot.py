@@ -1047,10 +1047,33 @@ class WebullStream:
             return
         with self._sub_lock:
             self._attempted.update(new)                          # mark attempted BEFORE the call → tried once, no storm
+        # 7/26 (discovery review F2): CHUNKED subscribe with per-symbol isolation — the recorder's
+        # proven 7/17-FGMC fix, finally propagated to the bot (the parallel-logic-registry class:
+        # one bad hand-typed Kev symbol used to zero the ENTIRE batch, permanently). One rotten
+        # name now costs exactly one name.
         try:
-            self.client.subscribe(new, "US_STOCK", ["SNAPSHOT"])
-            with self._sub_lock:
-                self.subscribed.update(new)
+            for _i in range(0, len(new), 20):
+                _chunk = new[_i:_i + 20]
+                try:
+                    self.client.subscribe(_chunk, "US_STOCK", ["SNAPSHOT"])
+                    with self._sub_lock:
+                        self.subscribed.update(_chunk)
+                except Exception as _ce:
+                    # ORDER MATTERS: the 7/17 FGMC error string was "417 INVALID_SYMBOL" — symbol-class
+                    # must be recognized BEFORE the "417" session check or the bad-symbol path would
+                    # trigger endless session rebuilds on the same poisoned book (the old bug, renamed).
+                    if "INVALID_SYMBOL" not in str(_ce) and ("INVALID_SESSION" in str(_ce) or "417" in str(_ce)):
+                        raise                                    # true session-class → outer handler rebuilds
+                    print(f"⚠️  subscribe chunk error ({_ce}) — retrying {len(_chunk)} names individually")
+                    for _s in _chunk:
+                        try:
+                            self.client.subscribe([_s], "US_STOCK", ["SNAPSHOT"])
+                            with self._sub_lock:
+                                self.subscribed.add(_s)
+                        except Exception as _se:
+                            if "INVALID_SYMBOL" not in str(_se) and ("INVALID_SESSION" in str(_se) or "417" in str(_se)):
+                                raise
+                            print(f"   ⛔ skip bad symbol {_s}: {_se}")
         except Exception as e:
             print(f"⚠️  Stream subscribe error {new}: {e}")
             # #86 (7/22): the server can drop our session MID-DAY (live ~12:27 — every new subscribe

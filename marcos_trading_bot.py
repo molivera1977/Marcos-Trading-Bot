@@ -2417,6 +2417,18 @@ def _blended_pnl(entry_price, total_shares, partial_fills, exit_price):
     return (exit_price - entry_price) * total_shares
 
 
+def _entry_priority(b):
+    """CAPITAL-PRIORITY key (Marcos 7/26: "I want Kev's list and the ranked movers list in the
+    scanner to determine level of priority"). Capital (~3 x $1000 slots on the $3k frame) is the
+    binding constraint after the 7/26 gate purge multiplied candidate flow — arrival order must
+    never outrank the Bible. Sort ascending: (tier, -day_gain) →
+      tier 0 = Kev-sheet names (src != vision; same helper as the day-gain exemption),
+      tier 1 = everyone else, ranked by day_gain (the scanner's mover ranking, stamped on every
+               candidate pre-gates; unstamped names sink to the bottom)."""
+    _dg = b[4].get("day_gain")
+    return (0 if _kev_sheet_name(b[0]) else 1, -(_dg if _dg is not None else -999.0))
+
+
 def _kev_sheet_name(ticker):
     """DAY-GAIN FLOOR exemption (7/22): True when today's levels carry a NON-vision (sheet/manual)
     entry for this ticker — Kev's explicit picks trade his LEVELS and may sit flat/red at pick time
@@ -7365,6 +7377,14 @@ def main():
         _fetch_kev_levels()   # pre-warm the chart-gate levels cache ONCE in the main thread, so the
                               # per-worker gate check hits a warm cache instead of N parallel cold
                               # GETs (≤10s each) on the trade path (Fable interaction audit 7/18)
+        # ── CAPITAL-PRIORITY ORDER (Marcos 7/26): Kev-sheet names first, then the day's ranked
+        # movers. Workers spawn in this order so capital reservations follow it (near-priority —
+        # spawn order under the shared lock, not a hard preemptive queue; a Kev name arriving in a
+        # LATER scan cycle still can't evict an already-open position). Cache is warm ⇒ cheap key. ──
+        breakouts.sort(key=_entry_priority)
+        if len(breakouts) > 1:
+            print("🎖️ entry priority: " + "  >  ".join(
+                f"{b[0]}{'*KEV' if _kev_sheet_name(b[0]) else ''}(dg {b[4].get('day_gain')})" for b in breakouts))
         for entry in breakouts:
             _t = entry[0]
             traded_tickers.add(_t)

@@ -7506,7 +7506,11 @@ def main():
 
             # Reversal setups (VWAP reclaim / bounce) reclaim from BELOW → low peak-relative volume by nature;
             # they carry their OWN volume confirmation in the detector, so they bypass the front-side momentum gate.
-            if entry_type in ("vwap_reclaim", "bounce", "ignition", "hidden_entry"):
+            # ORB added 7/26 (Marcos: "momentum gate was an added feature but MISTAKENLY added to ORB") — its
+            # confirmed-retest trigger IS its confirmation, and the gate had strangled the lane to 0 fills ever
+            # (33 era triggers; the 14 measurable momentum-rejected ones = 2.76R medMFE / 43% stopped, the best
+            # cohort of the 7/26 forensics). Universal gates (topping tail + liquidity) still apply below.
+            if entry_type in ("vwap_reclaim", "bounce", "ignition", "hidden_entry", "orb"):
                 mom_ok, mom_details = True, {"exempt": entry_type}
                 # ── UNIVERSAL GATES (7/10 un-bundle): topping-tail + liquidity are NOT momentum rules — they were
                 # only skipped here because they live inside check_momentum (a bundling accident; KUST/ZCMD). When

@@ -7510,7 +7510,11 @@ def main():
             # confirmed-retest trigger IS its confirmation, and the gate had strangled the lane to 0 fills ever
             # (33 era triggers; the 14 measurable momentum-rejected ones = 2.76R medMFE / 43% stopped, the best
             # cohort of the 7/26 forensics). Universal gates (topping tail + liquidity) still apply below.
-            if entry_type in ("vwap_reclaim", "bounce", "ignition", "hidden_entry", "orb"):
+            # flat_top + ma_pullback added same day (Marcos: "exempt all of the slow entries from momentum")
+            # — same inversion on the same metric: rejected 0.81R/1.06R medMFE beats filled 0.56R/0.65R.
+            # Third chase-tuned gate found inverted on retest entries (room 7/2, day-gain 7/26, momentum 7/26).
+            if entry_type in ("vwap_reclaim", "bounce", "ignition", "hidden_entry", "orb",
+                              "flat_top", "ma_pullback"):
                 mom_ok, mom_details = True, {"exempt": entry_type}
                 # ── UNIVERSAL GATES (7/10 un-bundle): topping-tail + liquidity are NOT momentum rules — they were
                 # only skipped here because they live inside check_momentum (a bundling accident; KUST/ZCMD). When

@@ -4050,6 +4050,77 @@ ROCKET_CATCHER   = os.environ.get("ROCKET_CATCHER", "0") == "1"    # SUPERSEDED 
 #    bottom of the corrected sweep's positive plateau (+$92.56). Revisit Friday 7/31 w/ forward n. ──
 DAYGAIN_FLOOR_PCT = float(os.environ.get("DAYGAIN_FLOOR", "15"))
 DAYGAIN_LEGACY    = ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
+
+# ── IGNITION-10S (7/26, Marcos: "Move it to 10 second bars. The idea of knowingly being blind is dumb.")
+#    Same detector thesis as detect_ignition (quiet base → volume-accel bar breaks it, not-yet-extended),
+#    ported to the 10s stream. Two-arm kill-test (n=26 paired fires 7/23-24, RESULTS_LEDGER 7/26): the 10s
+#    surge-bar entry beats the 1-min fill 17/26, medMFE 0.90→1.06R, ≥2R 5→9, at the SAME price (−0.05%)
+#    — the 1-min close is a median 49s late and 96% of fills land after the intraminute peak. Downstream
+#    is UNCHANGED: fires feed the same "ignition" lane (vel5 floor, day-gain floor, extension guard,
+#    chart gate, momentum, sizing all still apply — this changes the EYES, not the gates).
+#    env IGNITION_10S=0 falls back to the 1-min detector (detect_ignition stays intact below).
+IGNITION_10S      = os.environ.get("IGNITION_10S", "1") == "1"
+_IG10_BASE_BARS   = IGNITION_BASE_LOOKBACK * 6     # base window: the same 4 minutes, in 10s bars
+_IG10_MIN_ABS_VOL = IGNITION_MIN_ABS_VOL / 6.0     # per-10s-bar translation of the 1-min liquidity floor
+_ig_cursor: dict = {}   # (day, sym) -> last processed 10s bucket epoch (ignition feed)
+_ig10_st:   dict = {}   # sym -> {"d": date, "bars": [(epoch,o,h,l,c,v)...], "openp": session open}
+
+def ignition_10s_step(sym, new_bars):
+    """Step the 10s ignition machine with newly COMPLETED 10s bars [(epoch,o,h,l,c,v),...].
+    Mirrors detect_ignition condition-for-condition on the finer series: RTH-only state, session
+    open = first RTH 10s bar's open, base = prior 4 min of 10s bars (max CLOSE = wick-robust ref),
+    candidate = just-closed bar with vol ≥ IGNITION_VOL_MULT × base avg + green + strong close +
+    close over base_hi + ext within [−5%,+15%] of the open. The live-price no-chase re-check and
+    the once-per-ticker cap live at the CONSUME branch (they need the stream price / cache).
+    Returns {stop, base_hi, base_lo, volx, ext_pct, px, openp, bar_epoch} or None. Never raises."""
+    try:
+        if not new_bars:
+            return None
+        today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        st = _ig10_st.get(sym)
+        if st is None or st["d"] != today:
+            st = {"d": today, "bars": [], "openp": 0.0}
+            _ig10_st[sym] = st
+        fire = None
+        for k, o, h, l, c, v in new_bars:
+            et = datetime.fromtimestamp(k, EASTERN)
+            m = et.hour * 60 + et.minute
+            if m < 570 or c <= 0:
+                continue                                   # premarket / bad bar: not this machine's regime
+            if st["openp"] <= 0 and o > 0:
+                st["openp"] = o                            # first RTH 10s bar's open = session open
+            base = st["bars"][-_IG10_BASE_BARS:]
+            st["bars"].append((k, o, h, l, c, v))
+            if len(st["bars"]) > _IG10_BASE_BARS * 3:
+                st["bars"] = st["bars"][-_IG10_BASE_BARS * 2:]
+            if m > 570 + IGNITION_WINDOW_MIN:
+                continue                                   # same 90-min envelope as the 1-min detector
+            if len(base) < IGNITION_BASE_MIN * 6 or st["openp"] <= 0:
+                continue
+            base_hi_c = max(b[4] for b in base)            # max CLOSE = wick-robust breakout reference
+            _lows = [b[3] for b in base if b[3] > 0]
+            if not _lows:
+                continue
+            base_lo  = min(_lows)
+            base_vol = (sum(b[5] for b in base) / len(base)) or 1
+            rng = (h - l) or 1e-9
+            strong = (c - l) / rng
+            ext_bar = (c - st["openp"]) / st["openp"]
+            if (v >= IGNITION_VOL_MULT * base_vol          # volume ACCELERATION — the tell
+                    and v >= _IG10_MIN_ABS_VOL             # liquidity floor (per-bar scaled)
+                    and c > o                              # green ignition bar
+                    and strong >= IGNITION_STRONG          # strong close (buyers won the bar)
+                    and c >= base_hi_c                     # breaks the quiet base (by close)
+                    and IGNITION_MIN_EXT <= ext_bar <= IGNITION_MAX_EXT):
+                fire = {"stop": round(base_lo * (1 - ZONE_STOP_BUFFER), 4),
+                        "base_hi": round(base_hi_c, 4), "base_lo": round(base_lo, 4),
+                        "volx": round(v / base_vol, 1), "ext_pct": round(ext_bar * 100, 1),
+                        "px": round(c, 4), "openp": round(st["openp"], 4), "bar_epoch": k}
+        return fire                                        # latest qualifying bar in the fed batch
+    except Exception as e:
+        print(f"⚠️  ignition_10s_step error ({e}) — no entry this pass")
+        return None
+
 ROCKET_VEL_PCT   = float(os.environ.get("ROCKET_VEL_PCT", "25"))    # % over the window (Fable T=25 = 0 false-pos/95 fades)
 ROCKET_VEL_BARS  = int(os.environ.get("ROCKET_VEL_BARS", "5"))      # trailing 1-min bars = a 5-minute velocity window
 ROCKET_DAILY_CAP = int(os.environ.get("ROCKET_DAILY_CAP", "3"))     # max rocket entries/day (Fable: cap 2-3)
@@ -4955,6 +5026,25 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 except Exception:
                                     pass
 
+            # ── IGNITION-10S feed (7/26): VWAP-INDEPENDENT (the quiet base sits below VWAP by thesis),
+            #    so it must NOT live inside the reclaim block's _vr_sv>0 gate. Own cursor; fire is
+            #    consumed by the legacy ignition branch below (keeps ALL its gates — this is eyes-only). ──
+            _ig_fire = None
+            if IGNITION_10S and IGNITION_ENABLED and not cache[t].get("ignition_fired"):
+                _ig_nb = []
+                _cur_i = (datetime.now(EASTERN).strftime("%Y-%m-%d"), t)
+                _last_i = _ig_cursor.get(_cur_i, 0)
+                _cut_i = int(time.time()) // 10 * 10       # exclude the still-forming bucket
+                _d10i, _ig_src = _curl_feed(t)             # #97 choke-point (CURL_SOURCE env)
+                for _k in sorted(_d10i):
+                    if _last_i < _k < _cut_i:
+                        _b = _d10i[_k]
+                        _ig_nb.append((_k, _b["o"], _b["h"], _b["l"], _b["c"],
+                                       max((_b.get("v1") or 0) - (_b.get("v0") or 0), 0)))
+                        _ig_cursor[_cur_i] = _k
+                if _ig_nb:
+                    _ig_fire = ignition_10s_step(t, _ig_nb)
+
             # ── 7/24 CONVERT-AT-DETECTION (Marcos: "we see it triggered but now do nothing!!").
             # The consume branches used to sit BELOW the 3-min-EMA warmup guard + 8 other `continue`s,
             # so a curl fire was detected, shadow-logged, then DROPPED before the trade branch ever ran
@@ -5057,8 +5147,23 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             #    (not warm in the ignition window). The ONE entry NOT gated on above-VWAP (quiet base sits below
             #    VWAP). Surge breaking the quiet base = the trigger; tight stop at base low. Fires ONCE per ticker. ──
             if IGNITION_ENABLED and not cache[t].get("ignition_fired"):
-                _sess1 = _latest_session(cache[t].get("full_bars") or bars)
-                ign = detect_ignition(_sess1, price)
+                if IGNITION_10S:
+                    # 10s machine's fire (7/26) — same dict shape; re-apply the 1-min detector's two
+                    # consume-time clauses here: the live-price no-chase cap + the stale-price fix (a4fe777).
+                    ign = _ig_fire
+                    if ign and ign.get("openp", 0) > 0 and price > 0 \
+                            and (price - ign["openp"]) / ign["openp"] > IGNITION_MAX_EXT:
+                        _log_decision(t, "ignition_ext_live_skip", price=price,
+                                      ext_pct=ign["ext_pct"], openp=ign["openp"])
+                        ign = None
+                    elif ign and ign.get("px") and price > 0 and abs(price - ign["px"]) / ign["px"] > 0.02:
+                        print(f"   🩹 {t}: stream price ${price:.2f} stale vs ignition 10s bar "
+                              f"${ign['px']:.2f} — using bar price")
+                        _log_decision(t, "stale_price_fix", stream_px=round(price, 4), bar_px=ign["px"])
+                        price = ign["px"]
+                else:
+                    _sess1 = _latest_session(cache[t].get("full_bars") or bars)
+                    ign = detect_ignition(_sess1, price)
                 if ign:
                     _istop = ign["stop"]
                     if "daily" not in cache[t]:
@@ -5088,7 +5193,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                            "ema90": round(_e90, 4), "front_side": _front,
                                            "ema9": round(_e9, 4), "ema20": round(_e20, 4)}))
                         _log_decision(t, "triggered_ignition", price=price, room_rr=rr,
-                                      volx=ign["volx"], base_hi=ign["base_hi"], ext_pct=ign["ext_pct"], front_side=_front)
+                                      volx=ign["volx"], base_hi=ign["base_hi"], ext_pct=ign["ext_pct"], front_side=_front,
+                                      src=("10s" if IGNITION_10S else "1min"))
                         cache[t]["ignition_fired"] = True
                         continue                              # ignition captured (in `breakouts`) — skip other detectors for t
 

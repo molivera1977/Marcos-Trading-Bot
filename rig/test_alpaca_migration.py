@@ -163,8 +163,8 @@ check("P1 defaults: all three switches default webull (deploy flips per-line via
 check("P2 A2 pin: NO source switch on the stop/price path (get_price/_get_price_rest untouched)",
       "PRICE_SOURCE" not in SRC and "STOP_SOURCE" not in SRC
       and "stops never read" in SRC)
-check("P3 ALL THREE consumers via choke-point (step x2 + zone floor); one direct read left = inside _curl_feed itself",
-      SRC.count("_curl_feed(t)") == 2
+check("P3 ALL consumers via choke-point (zf + reclaim/hidden + ignition-10s 7/26); one direct read left = inside _curl_feed itself",
+      SRC.count("_curl_feed(t)") == 3
       and "_curl_feed(sym, n=720)" in SRC
       and SRC.count("dict(_shadow_bars[10].get(") == 1)
 check("P4 fed-bar-age canary present (Curl Mechanic: stale vs absent must be visible)",

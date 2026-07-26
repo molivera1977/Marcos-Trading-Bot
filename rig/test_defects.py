@@ -284,9 +284,10 @@ check("T13b BOTH live (Marcos 7/20 final): reclaim restored in-window, zone-flip
       bot.RECLAIM_LIVE is True and bot.RECLAIM_KEV is True
       and bot.RECLAIM_LIVE_START == "09:30" and bot.RECLAIM_LIVE_END == "11:00")
 _src_t13 = (HERE.parent / "marcos_trading_bot.py").read_text()
-check("T13b2 zone-flip live branch has NO clock window (all-day, first-fire only)",
-      'if zf.get("seq", 0) == 0:' in _src_t13
-      and 'zf.get("seq", 0) == 0 and RECLAIM_LIVE_START' not in _src_t13)
+check("T13b2 zone-flip converts all-day: no clock window, no seq-0 restriction (7/24 convert-at-detection form; pin repaired 7/26 — was stale since the rework)",
+      'if _zf_fire and _curl_rth_slot(t, "zf", _hm_curl):' in _src_t13
+      and 'zf.get("seq", 0) == 0 and RECLAIM_LIVE_START' not in _src_t13
+      and '_zf_fire and RECLAIM_LIVE_START' not in _src_t13)
 check("T13c zone_flip is in the entry allowlist",
       "zone_flip" in (HERE.parent / "marcos_trading_bot.py").read_text()
                      .split("BREAKOUT_ENTRIES or b[3] in")[1][:120])

@@ -7401,6 +7401,12 @@ def main():
                         _he_day["PRE"] = max(0, _he_day["PRE"] - 1)
                         _k_he = (_pmday, _pt, "PRE")
                         _he_name[_k_he] = max(0, _he_name.get(_k_he, 0) - 1)
+                    elif _pe == "vwap_reclaim":
+                        # 7/26 review finding: a shadowed premarket conversion must REFUND its PRE
+                        # ticket, or a thin 5am fire permanently blocks the name's thick 8am reclaim.
+                        _curl_rth_n.pop((_pmday, _pt, "vr", "PRE"), None)
+                    elif _pe == "zone_flip":
+                        _curl_rth_n.pop((_pmday, _pt, "zf", "PRE"), None)
             if not breakouts:
                 continue
         if _hm_pm < ENTRY_OPEN_ET:
@@ -7420,8 +7426,8 @@ def main():
                     _he_day["PRE"] = max(0, _he_day["PRE"] - 1)
                     _k_he = (datetime.now(EASTERN).strftime("%Y-%m-%d"), _pt, "PRE")
                     _he_name[_k_he] = max(0, _he_name.get(_k_he, 0) - 1)
-                # (7/26: the old premarket-consumes-RTH-slot limitation is FIXED — _curl_rth_slot
-                # keys tickets by session, so practice fires can no longer spend real-session slots.)
+                # (7/26: session-keyed tickets stop practice fires spending RTH slots, and shadowed
+                # premarket reclaim/zone-flip conversions refund their PRE ticket — see the block above.)
             continue
 
         # Mark all breakout tickers as traded before threads start

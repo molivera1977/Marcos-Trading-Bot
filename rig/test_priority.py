@@ -33,11 +33,11 @@ check("P4 no rank at all sinks to the bottom (never jumps the queue)", order[-1]
 bot._kev_sheet_name = _orig; bot._move_pct.clear()
 
 # ── wiring pins ──
-i_warm  = SRC.find("pre-warm the chart-gate levels cache ONCE")
 i_sort  = SRC.find("breakouts.sort(key=_entry_priority)")
+i_pmkt  = SRC.find('_in_premkt = ENTRY_OPEN_ET <= _hm_pm < "09:30"')
 i_spawn = SRC.find("_trade_worker_safe, args=entry")
-check("P5 sort exists exactly once, AFTER the cache pre-warm, BEFORE worker spawn",
-      SRC.count("breakouts.sort(key=_entry_priority)") == 1 and 0 < i_warm < i_sort < i_spawn)
+check("P5 sort exactly once, BEFORE the premarket gate (cap keeps the BEST 6) and BEFORE spawn",
+      SRC.count("breakouts.sort(key=_entry_priority)") == 1 and 0 < i_sort < i_pmkt < i_spawn)
 check("P6 priority order printed when >1 candidate (log-visible for Friday attribution)",
       "entry priority:" in SRC and "'*KEV'" in SRC)
 check("P7 key defn: tier-0 kev-sheet + SCANNER Move% rank (day_gain fallback), -999 sentinel",

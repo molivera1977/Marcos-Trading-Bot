@@ -49,8 +49,8 @@ check("P5 conversion consumes the slot ONLY when queueing (call sites inside con
 check("P6 old seq==0 consume logic is GONE (no double-trade path)",
       'if zf.get("seq", 0) == 0:' not in BOT
       and 'vr.get("seq", 0) == 0 and RECLAIM_LIVE_START' not in BOT)
-check("P7 captured fire skips other detectors (ignition-capture pattern)",
-      BOT[i_conv:i_conv+5000].count("continue                                   # captured") == 2)
+check("P7 captured fire skips other detectors (ignition-capture pattern; window widened 7/26 for the premarket-reclaim comment block)",
+      BOT[i_conv:i_conv+7000].count("continue                                   # captured") == 2)
 
 # ═══ SAFETY PINS: nothing else regressed ══════════════════════════════════════
 check("G1 chart-gate exemption for curl tags unchanged (7/24: + hidden_entry)",

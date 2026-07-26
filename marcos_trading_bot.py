@@ -3946,8 +3946,10 @@ HIDDEN_VEL_BARS   = int(os.environ.get("HIDDEN_VEL_BARS", "30"))    # 30 x 10s =
 HIDDEN_DAILY_CAP  = int(os.environ.get("HIDDEN_DAILY_CAP", "3"))
 HIDDEN_NAME_CAP   = int(os.environ.get("HIDDEN_NAME_CAP", "2"))
 _he_st: dict = {}                 # sym -> machine state (module-level: survives rescans, no #81 amnesia)
-_he_day = {"d": None, "n": 0}     # daily conversion counter
-_he_name: dict = {}               # (day, sym) -> conversions
+_he_day = {"d": None, "PRE": 0, "RTH": 0}   # SESSION-KEYED 7/26 (mirror of the _curl_rth_slot fix):
+_he_name: dict = {}                          # (day, sym, sess) -> conversions. Premarket practice must
+                                             # never exhaust the RTH caps (3 pre-9:30 paper trades used
+                                             # to zero out the lane for the whole real session).
 
 def hidden_entry_step(sym, new_bars, vwap):
     """Advance sym's HIDDEN-ENTRY machine over NEW completed 10s bars [(o,h,l,c,vol),...].
@@ -5127,7 +5129,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     continue                                   # captured — skip other detectors for t
                 # KEV RECLAIM — live in its verified 09:30-11:00 window.
                 if (_vr_fire and RECLAIM_LIVE
-                        and RECLAIM_LIVE_START <= _hm_curl < RECLAIM_LIVE_END
+                        and (RECLAIM_LIVE_START <= _hm_curl < RECLAIM_LIVE_END
+                             # PREMARKET FIX 7/26 ("ship all 4"): PRE_LANES promised premarket reclaim
+                             # but this window (09:30+) killed every premarket fire BEFORE the premkt
+                             # gate could see it — the regime could only ever trade hidden_entry.
+                             # Premarket fires now pass through; premarket gate v2 (PRE_LANES/cap/
+                             # dvol/9:25 flatten) governs them downstream.
+                             or (ENTRY_OPEN_ET <= _hm_curl < "09:30" and "vwap_reclaim" in PRE_LANES))
                         and _curl_rth_slot(t, "vr", _hm_curl)):
                     vr = _vr_fire
                     _vr_fire = None                            # consumed
@@ -5150,18 +5158,20 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 # HIDDEN ENTRY (Kev 10s rocket wick) — live all RTH, own caps, replaces rocket_catcher.
                 if _he_fire and HIDDEN_ENTRY and _hm_curl >= ENTRY_OPEN_ET:
                     _heday = datetime.now(EASTERN).strftime("%Y-%m-%d")
+                    _sess_he = "PRE" if _hm_curl < "09:30" else "RTH"
                     if _he_day["d"] != _heday:
-                        _he_day["d"] = _heday; _he_day["n"] = 0
+                        _he_day["d"] = _heday; _he_day["PRE"] = 0; _he_day["RTH"] = 0
                     _k_he = (_heday, t)
-                    if _he_day["n"] >= HIDDEN_DAILY_CAP or _he_name.get(_k_he, 0) >= HIDDEN_NAME_CAP:
-                        _log_decision(t, "hidden_capped", price=price, day_n=_he_day["n"],
-                                      name_n=_he_name.get(_k_he, 0))
+                    _k_he = _k_he + (_sess_he,)
+                    if _he_day[_sess_he] >= HIDDEN_DAILY_CAP or _he_name.get(_k_he, 0) >= HIDDEN_NAME_CAP:
+                        _log_decision(t, "hidden_capped", price=price, day_n=_he_day[_sess_he],
+                                      name_n=_he_name.get(_k_he, 0), sess=_sess_he)
                     else:
                         he = _he_fire
                         _he_fire = None                        # consumed
                         print(f"\n🫥 {t} HIDDEN ENTRY! ${price:.2f} — Kev 10s wick off "
                               f"${he['anchor']:.2f} (VWAP+90MA), stop ${he['stop']:.2f} (wick low) "
-                              f"[#{_he_day['n'] + 1}/{HIDDEN_DAILY_CAP} today]")
+                              f"[#{_he_day[_sess_he] + 1}/{HIDDEN_DAILY_CAP} {_sess_he}]")
                         breakouts.append((t, price, he["anchor"], "hidden_entry", {
                             "zone_stop": he["stop"], "wick": he["wick"], "anchor": he["anchor"],
                             "ext_vwap": he["ext_vwap"], "he_seq": he["seq"],
@@ -5171,7 +5181,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         }))
                         _log_decision(t, "triggered_hidden_entry", price=price, stop=he["stop"],
                                       anchor=he["anchor"], ext_vwap=he["ext_vwap"], seq=he["seq"])
-                        _he_day["n"] += 1
+                        _he_day[_sess_he] += 1
                         _he_name[_k_he] = _he_name.get(_k_he, 0) + 1
                         continue                               # captured — skip other detectors for t
 
@@ -7336,6 +7346,16 @@ def main():
         # pullbacks) convert, capped at PRE_MAX_TRADES for the whole premarket; the legacy 3-min
         # machines stay SHADOW premarket (thin 5am tape has no 3-min structure worth trusting).
         # Every conversion carries entry_session=PRE → separate ledger, separate grading.
+        # ── CAPITAL-PRIORITY ORDER (Marcos 7/26): Kev-sheet names first, then the day's ranked
+        # movers (the scanner's Move % column). MOVED ABOVE the premarket gate 7/26 ("ship all 4"):
+        # the premarket 6-cap used to keep the FIRST six in arrival order — premarket is exactly
+        # where the big boys gap, so the cap must keep the BEST six. Workers later spawn in this
+        # order too, so capital reservations follow it all day (near-priority, no preemption). ──
+        breakouts.sort(key=_entry_priority)
+        if len(breakouts) > 1:
+            print("🎖️ entry priority: " + "  >  ".join(
+                f"{b[0]}{'*KEV' if _kev_sheet_name(b[0]) else ''}(mv {_move_pct.get(b[0], b[4].get('day_gain'))})"
+                for b in breakouts))
         _hm_pm = datetime.now(EASTERN).strftime("%H:%M")
         _in_premkt = ENTRY_OPEN_ET <= _hm_pm < "09:30"
         if _in_premkt:
@@ -7378,8 +7398,8 @@ def main():
                         _session_cache.get(_pt, {}).pop("rocket_fired", None)
                         _rocket_day["n"] = max(0, _rocket_day["n"] - 1)
                     elif _pe == "hidden_entry":
-                        _he_day["n"] = max(0, _he_day["n"] - 1)
-                        _k_he = (_pmday, _pt)
+                        _he_day["PRE"] = max(0, _he_day["PRE"] - 1)
+                        _k_he = (_pmday, _pt, "PRE")
                         _he_name[_k_he] = max(0, _he_name.get(_k_he, 0) - 1)
             if not breakouts:
                 continue
@@ -7397,8 +7417,8 @@ def main():
                     _session_cache.get(_pt, {}).pop("rocket_fired", None)
                     _rocket_day["n"] = max(0, _rocket_day["n"] - 1)
                 elif _pe == "hidden_entry":
-                    _he_day["n"] = max(0, _he_day["n"] - 1)
-                    _k_he = (datetime.now(EASTERN).strftime("%Y-%m-%d"), _pt)
+                    _he_day["PRE"] = max(0, _he_day["PRE"] - 1)
+                    _k_he = (datetime.now(EASTERN).strftime("%Y-%m-%d"), _pt, "PRE")
                     _he_name[_k_he] = max(0, _he_name.get(_k_he, 0) - 1)
                 # (7/26: the old premarket-consumes-RTH-slot limitation is FIXED — _curl_rth_slot
                 # keys tickets by session, so practice fires can no longer spend real-session slots.)
@@ -7408,15 +7428,6 @@ def main():
         _fetch_kev_levels()   # pre-warm the chart-gate levels cache ONCE in the main thread, so the
                               # per-worker gate check hits a warm cache instead of N parallel cold
                               # GETs (≤10s each) on the trade path (Fable interaction audit 7/18)
-        # ── CAPITAL-PRIORITY ORDER (Marcos 7/26): Kev-sheet names first, then the day's ranked
-        # movers. Workers spawn in this order so capital reservations follow it (near-priority —
-        # spawn order under the shared lock, not a hard preemptive queue; a Kev name arriving in a
-        # LATER scan cycle still can't evict an already-open position). Cache is warm ⇒ cheap key. ──
-        breakouts.sort(key=_entry_priority)
-        if len(breakouts) > 1:
-            print("🎖️ entry priority: " + "  >  ".join(
-                f"{b[0]}{'*KEV' if _kev_sheet_name(b[0]) else ''}(mv {_move_pct.get(b[0], b[4].get('day_gain'))})"
-                for b in breakouts))
         for entry in breakouts:
             _t = entry[0]
             traded_tickers.add(_t)
@@ -7586,8 +7597,12 @@ def main():
                     _gb = _fresh_session(get_intraday_bars(ticker, count=30))   # B16
                     if ENTRY_GATE_TOPPING_TAIL and len(_gb) >= 2 and is_topping_tail(_gb[-2]):
                         mom_ok, mom_details = False, {"reason": "topping tail on last bar (universal gate) — rejection at the high, skip"}
-                    elif ENTRY_GATE_LIQUIDITY and entry_type != "ignition" and len(_gb) >= 3:
+                    elif (ENTRY_GATE_LIQUIDITY and entry_type != "ignition" and len(_gb) >= 3
+                          and datetime.now(EASTERN).strftime("%H:%M") >= "09:30"):
                         # (ignition carve-out 7/26: the 3-bar window IS its quiet base — see flag note)
+                        # (premarket carve-out 7/26: pre-9:30 tape is thin per-minute BY NATURE even on
+                        #  names the regime approved — PRE_MIN_DVOL ($250k cumulative) owns premarket
+                        #  liquidity; this 10k/bar floor is RTH-calibrated and applies RTH only.)
                         _g3 = _gb[-4:-1]
                         _gav = sum(float(b.get("volume") or b.get("v") or 0) for b in _g3) / max(len(_g3), 1)
                         if _gav < MOMENTUM_MIN_AVG_VOL:

@@ -51,5 +51,20 @@ check("X1 extension exempt tuple includes vwap_reclaim + zone_flip",
 check("X2 ignition is now the ONLY lane the extension guard gates",
       '"ignition"' not in SRC.split("EXTENSION_MAX_PCT and EXTENSION_MAX_PCT < 9")[1][:900])
 
-print(f"\n{'GREEN' if not FAIL else 'RED'} — {len(PASS)} pass / {len(FAIL)} fail")
+# ── 7/26 PREMARKET FIXES (Marcos: "ship all 4 and make they are live") ──
+check("PM1 premarket reclaim reachable: convert window accepts the paper window, gated on PRE_LANES",
+      'or (ENTRY_OPEN_ET <= _hm_curl < "09:30" and "vwap_reclaim" in PRE_LANES)' in SRC)
+check("PM2 hidden caps SESSION-KEYED: init has PRE/RTH counters, no day-only counter remains",
+      '"PRE": 0, "RTH": 0' in SRC and '_he_day["n"]' not in SRC
+      and "_k_he = _k_he + (_sess_he,)" in SRC)
+check("PM3 hidden cap check + increment + capped-log all use the session counter",
+      "_he_day[_sess_he] >= HIDDEN_DAILY_CAP" in SRC and "_he_day[_sess_he] += 1" in SRC
+      and "sess=_sess_he" in SRC)
+check("PM4 premarket shadow un-counts hit the PRE counters with session-keyed name",
+      SRC.count('_he_day["PRE"] = max(0, _he_day["PRE"] - 1)') == 2
+      and SRC.count('(_pmday, _pt, "PRE")') == 1)
+check("PM5 per-bar liquidity floor is RTH-only (premarket owned by PRE_MIN_DVOL)",
+      'and datetime.now(EASTERN).strftime("%H:%M") >= "09:30")' in SRC
+      and "PRE_MIN_DVOL" in SRC)
+print(f"\n{'GREEN' if not FAIL else 'RED'} — {len(PASS)} pass / {len(FAIL)} fail (with PM pins)")
 sys.exit(1 if FAIL else 0)

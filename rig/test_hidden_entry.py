@@ -64,9 +64,9 @@ check("W4 stale-exempt includes hidden_entry", '"zone_flip", "hidden_entry")' in
 check("W5 allowed-types includes hidden_entry", '"rocket_catcher", "hidden_entry")' in BOT.split("BREAKOUT_ENTRIES or b[3] in ")[1][:120])
 check("W6 extension-guard exempt", '("rocket_catcher", "hidden_entry"):\n                    _kept.append(b)' in BOT)
 check("W7 monitor ladder covers hidden_entry", 'entry_type in ("rocket_catcher", "hidden_entry"):   # ROCKET scale-out ladder' in BOT)
-check("W8 momentum exemption: reversal lanes + ALL slow retest lanes (Marcos 7/26; universal gates still apply)",
-      '"hidden_entry", "orb",' in BOT and '"flat_top", "ma_pullback")' in BOT
-      and 'check_momentum(ticker)' in BOT)   # gate function retained for any future lane
+check("W8 momentum exemption: EVERY live lane (Marcos 7/26 'no point keeping it for one'); universal gates still apply",
+      '"hidden_entry", "orb",' in BOT and '"flat_top", "ma_pullback", "zone_flip")' in BOT
+      and 'check_momentum(ticker)' in BOT)   # gate function retained (guards resurrected rocket_catcher)
 check("W9 conversion branch exists + capped", 'triggered_hidden_entry' in BOT and 'hidden_capped' in BOT)
 check("W10 detection evidence logged", 'hidden_shadow_fire' in BOT)
 check("W11 conversion floored at ENTRY_OPEN_ET", "_he_fire and HIDDEN_ENTRY and _hm_curl >= ENTRY_OPEN_ET" in BOT)

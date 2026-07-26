@@ -7513,8 +7513,12 @@ def main():
             # flat_top + ma_pullback added same day (Marcos: "exempt all of the slow entries from momentum")
             # — same inversion on the same metric: rejected 0.81R/1.06R medMFE beats filled 0.56R/0.65R.
             # Third chase-tuned gate found inverted on retest entries (room 7/2, day-gain 7/26, momentum 7/26).
+            # zone_flip added 7/26 (Marcos: "No point keeping it for one and not the others") — its Z1 arm
+            # already requires flush vol >=2x rolling avg + Z2 bottoming wick + Z3 curl-over-wick; and the
+            # peak-relative gate is anti-matched post-flush (the flush IS the session peak, so every valid
+            # curl reads "5% of peak"). Front-side momentum gate now guards only a resurrected rocket_catcher.
             if entry_type in ("vwap_reclaim", "bounce", "ignition", "hidden_entry", "orb",
-                              "flat_top", "ma_pullback"):
+                              "flat_top", "ma_pullback", "zone_flip"):
                 mom_ok, mom_details = True, {"exempt": entry_type}
                 # ── UNIVERSAL GATES (7/10 un-bundle): topping-tail + liquidity are NOT momentum rules — they were
                 # only skipped here because they live inside check_momentum (a bundling accident; KUST/ZCMD). When

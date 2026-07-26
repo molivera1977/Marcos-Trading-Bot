@@ -131,3 +131,10 @@ supersede it with a new one._
 - **vel5:** ignition exempt (1-min velocity hasn't printed the 10s surge; era n=2, BYRN 1.06-1.38R). Slow lanes stay gated (vindicated).
 - **Extension guard:** curls exempt (fire AT anchor, same as hidden; era hits 0) — guard now gates ignition only.
 - Friday checks: liquidity/topping rejects now log per lane (watch for over-blocking, esp. topping-tail on flush lanes — UNMEASURED); slot fix = watch same-name PRE+RTH conversions actually both occur.
+
+## 7/26 — PREMARKET GATE REVIEW: 4 fixes shipped (7d706b1, Marcos "ship all 4")
+- **Reclaim reachable premarket** (was structurally impossible — the 09:30-11:00 convert window killed fires before the premkt gate saw them; PRE_LANES promised 2 lanes, delivered 1).
+- **Hidden caps session-keyed** PRE/RTH (premarket practice could exhaust the 3/day+2/name RTH caps — same genus as the slot bug).
+- **Priority sort moved above the premarket 6-cap** (cap now keeps the BEST six by Kev-tier + Move%, was first-come).
+- **Per-bar 10k liquidity floor = RTH-only** (PRE_MIN_DVOL $250k cumulative owns premarket).
+- Cleared: zone_flip exclusion (needs 9:30 anchor), ignition exclusion (−$468 counterfactual), 9:25 flatten + session tickets, pre-4:00 shadow path. Friday: first-ever live premarket rows — grade PRE-stamped fills separately; watch reclaim premarket conversions actually occur.

@@ -2658,10 +2658,15 @@ loadReadMaps(); setInterval(loadReadMaps, 120000);
 function renderTodayStats(trades){
   // Today's P&L + win rate, computed client-side from the trade log (ET calendar day).
   const todayET = new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});  // YYYY-MM-DD
-  const todayAll = (trades||[]).filter(t=>String(t.date||'').slice(0,10)===todayET);
+  const _isPre=t=>String(t.entry_session||'')==='PRE';   // 7/27: PRE grades on /premarket only
+  const _todayPre=(trades||[]).filter(t=>String(t.date||'').slice(0,10)===todayET && _isPre(t));
+  const todayAll = (trades||[]).filter(t=>String(t.date||'').slice(0,10)===todayET && !_isPre(t));
   // Same rule as the era stats: bookkeeping prints (forced recovery closes) count in MONEY, never in QUALITY.
   const today = todayAll.filter(t=>!/RECOVER/i.test(String(t.exit_reason||'')));
   const pEl = document.getElementById('todayPnl'), wEl = document.getElementById('todayWr');
+  if(_todayPre.length){ const pp=_todayPre.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
+    const lbl=document.querySelector('#todayPnl')?.previousElementSibling;
+    if(lbl) lbl.innerHTML='TODAY P&L <span style="font-weight:400;opacity:.75">(RTH · <a href="/premarket" style="color:inherit">PRE '+_todayPre.length+': $'+(pp>=0?'+':'')+pp.toFixed(2)+'</a>)</span>'; }
   if(!todayAll.length){
     pEl.textContent='—'; pEl.className='white'; wEl.textContent='—'; wEl.className='gray';
     // 7/16 fix: a long-lived tab crosses midnight — reset ALL today-tiles, not just two, or
@@ -2709,6 +2714,7 @@ function renderCalendar(trades){
   window._calTrades = trades || [];
   const byDay={};
   (trades||[]).forEach(function(t){
+    if(String(t.entry_session||'')==='PRE') return;   // 7/27: PRE grades on /premarket only
     const d=String(t.date||'').slice(0,10); if(d.length!==10) return;
     const o=byDay[d]||(byDay[d]={pnl:0,ct:0,w:0,r:0,rn:0});
     const p=parseFloat(t.pnl)||0; o.pnl+=p; o.ct++; if(p>0)o.w++;
@@ -2759,7 +2765,10 @@ function renderStats(s, acct, trades){
   // Era-true overrides: the server stats span ALL history (mixed $100-buy + $30-R eras) and the
   // balance is a DAILY frame ($3,000 + today) — mixing them made a fictional "return since inception".
   if(trades && trades.length){
-    const era=trades.filter(t=>String(t.date||'')>=ERA_START);
+    // 7/27 (Marcos: "I want premarket kept separately from my regular dashboard"): PRE-session
+    // trades are EXCLUDED from every regular-dashboard number — they grade on /premarket only.
+    const isPre=t=>String(t.entry_session||'')==='PRE';
+    const era=trades.filter(t=>String(t.date||'')>=ERA_START && !isPre(t));
     if(era.length){
       const isBook=t=>/RECOVER/i.test(String(t.exit_reason||''));   // bookkeeping prints ≠ strategy trades
       const graded=era.filter(t=>!isBook(t));

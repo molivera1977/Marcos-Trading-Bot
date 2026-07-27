@@ -88,6 +88,8 @@ def _save_trades():
         except Exception as e:
             print(f"⚠️  Could not save trades: {e}")
 
+# (build-bump 7/26b: the correction JSON below ships with the image — this comment exists to
+#  trigger the dashboard watchPattern in the same commit that finally TRACKS the artifacts.)
 # ── 7/26 DISPLAY CORRECTION (dashboard review F1): the store is append-only by ruling, but the
 #    GLASS must not keep showing the 37 runner-leg-corrupted pnl values Marcos formally superseded.
 #    Correction merges AT RENDER (store untouched): data/killtests/pnl_runner_leg_correction_20260726.json

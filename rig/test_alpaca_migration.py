@@ -44,8 +44,9 @@ check("M2c route: /health 200 + /hot 200 + unknown 404",
 num, den = cap._vwap_seed_from_rest_bars([{"vw": 2.0, "v": 100}, {"c": 3.0, "v": 50}, {"vw": 9.0, "v": 0}])
 check("M3 A3 seed: sum(vw*v) w/ close fallback, zero-vol skipped",
       abs(num - 350.0) < 1e-9 and abs(den - 150.0) < 1e-9, f"got {num}/{den}")
-check("M3b A3 wired: sync_roster seeds every NEW symbol; _reset_day clears _seeded",
-      "_backfill_new_symbol(s)" in CSRC and "_seeded.clear()" in CSRC)
+check("M3b A3 wired (7/26 seed-worker form): sync_roster ENQUEUES new symbols; worker seeds w/ retry; _reset_day clears _seeded",
+      "_seed_enqueue(sorted(new))" in CSRC and "_backfill_new_symbol(sym)" in CSRC
+      and "target=_seed_worker" in CSRC and "_seeded.clear()" in CSRC)
 check("M3c A1 wired: main() CALLS _start_hot_server (indented call, not just the def)",
       "\n    _start_hot_server()" in CSRC
       and CSRC.index("\n    _start_hot_server()") > CSRC.index("def main"))

@@ -2591,7 +2591,7 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="section-title">P&amp;L Calendar</div>
   <div id="pnlCalendar" class="cal-wrap"></div>
 
-  <div class="section-title">Trade History</div>
+  <div class="section-title">Trade History <span style="font-size:12px;font-weight:400;color:#8b949e">(RTH)</span><span id="preLedgerLink" style="font-size:12px;font-weight:400"></span></div>
   <div class="table-wrap">
     <table>
       <thead>
@@ -2852,7 +2852,13 @@ function renderStats(s, acct, trades){
   }
 }
 
-function renderTable(trades){
+function renderTable(allTrades){
+  // 7/27 (Marcos: "I want these erased from RTH ledger too"): the Trade History table is the RTH
+  // ledger — PRE trades render on /premarket only. Same separation as the stats/balance/calendar.
+  const _preN=(allTrades||[]).filter(t=>String(t.entry_session||'')==='PRE').length;
+  const trades=(allTrades||[]).filter(t=>String(t.entry_session||'')!=='PRE');
+  const _pl=document.getElementById('preLedgerLink');
+  if(_pl) _pl.innerHTML = _preN ? ' · <a href="/premarket" style="color:#8b949e">'+_preN+' premarket trade(s) on the premarket board ↗</a>' : '';
   const tbody = document.getElementById('tradeTable');
   if(!trades || trades.length===0){
     tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state">

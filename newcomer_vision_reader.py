@@ -509,7 +509,11 @@ def already_read():
         return set()
 
 def process_once(dry=False, out_rows=None):
-    sheet_shadow_pass(dry=dry, out_rows=out_rows)   # the Kev-sheet exam runs FIRST (8:50, pre-open)
+    # 7/26 gate-review F4: FIRST READS RUN FIRST. The Kev-sheet shadow exam is GRADING material
+    # (no trading value) and used to run ahead of the movers' first reads — a full sheet + 20
+    # movers pushed the tail of the read list 10-25 min out, i.e. the entire 9:30-9:45 window
+    # for late-list names (the GMM 31.6R no_marked_level class). Shadows now run AFTER the todo
+    # loop; on quiet cycles (todo empty) behavior is identical.
     # dry (bake-off / live-proof): read + validate + PRINT every active newcomer, never post.
     seen = set() if dry else already_read()
     roster, pxmap = active_newcomers()   # kept for pxmap (last-price map for the reads)
@@ -561,6 +565,7 @@ def process_once(dry=False, out_rows=None):
         print(f"  {tk}: {rd.get('verdict')}/{rd.get('confidence')} [{rd.get('setup')}] "
               f"break={rd.get('break_level')} supply={rd.get('next_supply')} stop={rd.get('stop_level')} "
               f"→ {'posted' if ok else 'POST FAILED'}  ({str(rd.get('reason',''))[:55]})", flush=True)
+    sheet_shadow_pass(dry=dry, out_rows=out_rows)   # grading exam runs AFTER first reads (F4, 7/26)
     return len(todo)
 
 
@@ -679,6 +684,11 @@ def reread_check():
         lv = _get_retry(f"{U}/api/kev_watchlist?date={DAY}").get("levels") or {}
         for tk, rec in lv.items():
             if not isinstance(rec, dict): continue
+            # 7/26 gate-review F1: a vision v2 must NEVER overwrite a HUMAN entry. The server
+            # clobber-protects src=="kev" only, but Kev-tier in the bot is src != "vision" —
+            # a re-read over a manual/unstamped entry would silently demote the name from
+            # tier-0 + its exemptions and swap the human's level for the model's.
+            if str(rec.get("src") or "") != "vision": continue
             if _rr_state["per_name"].get(tk, 0) >= REREAD_MAX_PER_NAME: continue
             tg = rec.get("targets") or []
             try: lastT = float(tg[-1]) if tg else 0.0
@@ -746,6 +756,8 @@ def next_read_open(now):
         cand += dt.timedelta(days=1)
     return cand
 
+_hb = {"n": 0}
+
 def _run_session():
     """One trading day's read loop — UNCHANGED behavior, exits at STOP. process_once() and
     reread_check() self-dedupe (one shadow/read per name per day), so repeat calls are safe."""
@@ -760,6 +772,17 @@ def _run_session():
         except Exception as e: print(f"[loop] error: {e}", flush=True)
         try: reread_check()                                  # #77 part 2 — exhausted-map re-reads
         except Exception as e: print(f"[reread] loop error: {e}", flush=True)
+        # 7/26 gate-review F3: HEARTBEAT every ~15 min — the chart gate is the only remaining
+        # selection gate, and a dead reader was a SILENT blackout of every non-Kev legacy name.
+        # A ZZREADERBEAT observation row makes "is the reader alive?" a store query.
+        _hb["n"] += 1
+        if _hb["n"] % 10 == 0:
+            try:
+                requests.post(f"{U}/api/observe", headers=HDRS, timeout=8,
+                              json={"ticker": "ZZREADERBEAT", "note": f"reader alive cycle={_hb['n']}",
+                                    "price": 0})
+            except Exception:
+                pass
         time.sleep(POLL_SECS)
 
 def _sleep_then_reexec(now, why):

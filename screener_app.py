@@ -1101,8 +1101,17 @@ def save_watching():
     # persist the day's watched tickers as a UNION across the session (the list grows via 5-min rescans)
     try:
         _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
-        prev = set(_watch_hist.get(_today, []))
-        _watch_hist[_today] = sorted(prev | {str(t).upper().strip() for t in (_watching["tickers"] or []) if str(t).strip()})
+        # 7/26 (data-layer review F2): union preserves FIRST-SEEN ORDER (was sorted() —
+        # alphabetical order fed the capture roster's cap-150 trim, so the alphabet decided
+        # which names kept their 10s series on busy days). The bot posts in ranked order;
+        # that order now survives to every roster consumer.
+        _prev = list(_watch_hist.get(_today, []))
+        _seen = set(_prev)
+        for t in (_watching["tickers"] or []):
+            u = str(t).upper().strip()
+            if u and u not in _seen:
+                _seen.add(u); _prev.append(u)
+        _watch_hist[_today] = _prev
         with _store_lock: _atomic_write_text(WATCH_HIST_FILE, json.dumps(_watch_hist, indent=2))
     except Exception as e:
         print(f"⚠️  watch-history persist skipped: {e}")

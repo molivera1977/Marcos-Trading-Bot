@@ -45,8 +45,11 @@ check("P4 boot-time full post unchanged (session start still announces)",
 
 # ═══ DASHBOARD SEMANTICS (why repeating is safe — must not regress) ═══════════
 check("D1 POST replaces only the live snapshot (roster semantics)", "_watching = {" in DASH)
-check("D2 history is a UNION across the session — repeats can never shrink it",
-      "prev | {str(t).upper().strip()" in DASH)
+check("D2 history is a UNION across the session — repeats can never shrink it (7/26: insertion-ordered, append-only)",
+      "if u and u not in _seen:" in DASH and "_seen.add(u); _prev.append(u)" in DASH
+      and "_watch_hist[_today] = _prev" in DASH)
+check("D2b union is FIRST-SEEN ordered, not alphabetical (7/26 F2: alphabet no longer decides cap-150 evictions)",
+      "FIRST-SEEN ORDER" in DASH and "sorted(prev | {str(t).upper().strip()" not in DASH)
 
 print(f"\n{'='*60}\n#101 WATCH-PANEL RIG: {len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

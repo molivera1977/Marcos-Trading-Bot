@@ -94,6 +94,22 @@ check("A23 grader compares both feeds vs /api/daily truth + 98% flag",
       and "statistics.median" in GRADE)
 check("A24 grader verifies per-feed bar counts", "wb_bars" in GRADE and "alp_bars" in GRADE)
 
+
+# ── 7/26 data-layer review fixes (F1 rehydrate, boot sentinel, F2 roster, F4 seed worker) ──
+check("R1 F1: rehydrate reloads today's archived ~ALP10S at session start, once/day, watermark-advancing",
+      "def _rehydrate_from_archive" in SRC and "_rehydrated" in SRC
+      and "_shipped[sym] = max(_shipped.get(sym, -1), mx)" in SRC
+      and "threading.Thread(target=_rehydrate_from_archive, daemon=True).start()" in SRC)
+check("R2 boot sentinel: ZZALPBOOT bucket ships with the next persist (restart = a fact in the store)",
+      '_bars.setdefault("ZZALPBOOT", {})' in SRC)
+check("R3 F2: open positions pinned into the roster right after Kev, None-safe",
+      '"/api/open_trades"' in SRC and SRC.index("open_trades") < SRC.index('"/api/watching?date=" + today'))
+check("R4 F4: seeds run on a dedicated worker with 3-attempt retry + loud give-up; recv thread only enqueues",
+      "def _seed_worker" in SRC and "_seed_enqueue(sorted(new))" in SRC
+      and "GIVING UP after 3 attempts" in SRC and "_backfill_new_symbol(s)" not in SRC
+      and "target=_seed_worker, daemon=True" in SRC)
+check("R5 day reset clears the rehydrate latch", '_rehydrated["d"] = None' in SRC)
+
 print("\n%d passed, %d failed" % (len(PASS), len(FAIL)))
 if FAIL:
     print("RED:", ", ".join(FAIL))

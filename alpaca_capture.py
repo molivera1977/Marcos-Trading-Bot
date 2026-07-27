@@ -150,6 +150,10 @@ def roster_targets():
                 seen.add(u); out.append(u)
     d = _get_json("/api/kev_watchlist?date=" + today)
     if isinstance(d, dict): add(d.get("tickers"))
+    # 7/26 (data-layer review F2): OPEN POSITIONS pinned right after Kev — the cap-150 trim
+    # must never evict the series of a name the bot is actually holding.
+    d = _get_json("/api/open_trades")
+    if isinstance(d, dict): add([x for x in ((t or {}).get("ticker") for t in d.get("open_trades") or []) if x])
     d = _get_json("/api/watching?date=" + today)
     if isinstance(d, dict): add(d.get("tickers"))
     if SYMBOL_PROBE:
@@ -214,8 +218,8 @@ def sync_roster(ws):
     except Exception as e:
         log("roster sync send failed: %s" % e)
         raise                                      # a dead socket must reach the supervisor
-    for s in new:                                  # A3: seed premarket-anchored VWAP for mid-session
-        _backfill_new_symbol(s)                    # adds (never raises; boot-window adds no-op)
+    if new:                                        # A3 seeds now run on the seed worker (F4):
+        _seed_enqueue(sorted(new))                 # never on this recv thread, retried on 429
 
 # ── persistence (mirrors recorder.persist: gzip bars_bulk, watermark-on-200) ─
 _shipped    = {}    # sym -> last bar bucket persisted
@@ -449,7 +453,7 @@ def _backfill_new_symbol(sym):
                          headers={"APCA-API-KEY-ID": ALPACA_KEY,
                                   "APCA-API-SECRET-KEY": ALPACA_SECRET}, timeout=10)
         if r.status_code != 200:
-            log("backfill %s: HTTP %d (skipping seed)" % (sym, r.status_code)); return
+            log("backfill %s: HTTP %d (will retry)" % (sym, r.status_code)); return "retry"
         num, den = _vwap_seed_from_rest_bars((r.json() or {}).get("bars"))
         if den <= 0:
             _seeded.add(sym); return               # no history (true new listing / halted all day)
@@ -460,7 +464,37 @@ def _backfill_new_symbol(sym):
         _seeded.add(sym)
         log("backfill %s: VWAP seeded from %d shares of REST history (anchor=4:00 ET)" % (sym, int(den)))
     except Exception as e:
-        log("backfill %s failed (non-fatal): %s" % (sym, e))
+        log("backfill %s failed (will retry): %s" % (sym, e)); return "retry"
+
+# ── SEED QUEUE (7/26, data-layer review F4): backfills run on their OWN worker thread —
+#    the old inline loop ran serial 10s-timeout REST calls on the RECV thread (a 150-name
+#    restart could trip the silence fuse), and a single 429 skipped the seed FOREVER
+#    (never re-tried: the name was no longer "new"). Now: queued, retried 3x w/ backoff,
+#    loud give-up (marked seeded to stop churn — the giveup line is the Friday witness). ──
+_seed_q: list = []
+_seed_lock = threading.Lock()
+
+def _seed_enqueue(names):
+    with _seed_lock:
+        _seed_q.extend(n for n in names if n not in _seed_q)
+
+def _seed_worker():
+    attempts = {}
+    while not _stop.is_set():
+        sym = None
+        with _seed_lock:
+            if _seed_q: sym = _seed_q.pop(0)
+        if sym is None:
+            _stop.wait(5); continue
+        r = _backfill_new_symbol(sym)
+        if r == "retry":
+            attempts[sym] = attempts.get(sym, 0) + 1
+            if attempts[sym] < 3:
+                _stop.wait(20)
+                with _seed_lock: _seed_q.append(sym)
+            else:
+                _seeded.add(sym)
+                log("backfill %s: GIVING UP after 3 attempts — VWAP anchored at subscribe time (NVVE class)" % sym)
 
 # ── websocket (websocket-client, synchronous — one loop, no callback threads) ─
 def connect_and_auth():
@@ -542,6 +576,11 @@ def run_session():
     try:
         if SYMBOL_PROBE: _refresh_actives_bg()
         sync_roster(ws)
+        # 7/26 boot sentinel (data-layer review): a restart becomes a FACT in the store —
+        # one ZZALPBOOT bucket ships with the next persist; the shakedown reads it as a column.
+        with _lock:
+            _bars.setdefault("ZZALPBOOT", {})[int(time.time()) // 10 * 10] = {"o": 1, "h": 1, "l": 1, "c": 1, "v": 1}
+        threading.Thread(target=_rehydrate_from_archive, daemon=True).start()   # F1 amnesia fix
         _last_trade[0] = time.time()
         last_roster = time.time()
         last_persist = last_snap = last_health = 0.0
@@ -577,11 +616,55 @@ def run_session():
         try: ws.close()                                  # no half-dead sockets left behind
         except Exception: pass
 
+_rehydrated = {"d": None}
+
+def _rehydrate_from_archive():
+    """F1 fix (7/26, data-layer review): reload today's ALREADY-PERSISTED ~ALP10S buckets into
+    memory at session start, so /hot stays truthful across redeploys — a restart now costs at
+    most the last ~90s of bars (one flush window) instead of the whole day, and the bot's
+    200-with-short-history trap can't trigger. Watermarks advance to the loaded max so the
+    reloaded day is never re-egressed (the recorder's 2GB lesson). Once per ET day; non-fatal."""
+    try:
+        today = et_now().strftime("%Y-%m-%d")
+        if _rehydrated["d"] == today:
+            return
+        _rehydrated["d"] = today
+        loaded, names = 0, list(_subscribed) or roster_targets()
+        for sym in names:
+            d = _get_json("/api/bars?date=%s&ticker=%s~ALP10S" % (today, sym), timeout=15)
+            rows = (d or {}).get("bars") or []
+            if not rows:
+                continue
+            with _lock:
+                dd = _bars.setdefault(sym, {})
+                if len(dd) > 60:
+                    continue                      # live memory already rich — never stomp it
+                mx = _shipped.get(sym, -1)
+                for b in rows:
+                    try:
+                        k = int(datetime.strptime(str(b.get("time"))[:19], "%Y-%m-%dT%H:%M:%S")
+                                .replace(tzinfo=timezone.utc).timestamp()) // 10 * 10
+                        if k not in dd:
+                            dd[k] = {"o": float(b["open"]), "h": float(b["high"]),
+                                     "l": float(b["low"]), "c": float(b["close"]),
+                                     "v": float(b.get("volume") or 0)}
+                            loaded += 1
+                        if k > mx: mx = k
+                    except Exception:
+                        continue
+                if mx >= 0:
+                    _shipped[sym] = max(_shipped.get(sym, -1), mx)
+        if loaded:
+            log("rehydrate: %d archived 10s buckets reloaded across %d names (restart-amnesia fix)" % (loaded, len(names)))
+    except Exception as e:
+        log("rehydrate failed (non-fatal): %s" % e)
+
 def _reset_day():
     with _lock:
         _bars.clear(); _vwap.clear(); _shipped.clear(); _vw_shipped.clear()
     _subscribed.clear()
     _seeded.clear()                                # A3: next day's adds re-seed fresh
+    _rehydrated["d"] = None
     _actives["ts"] = 0.0; _actives["names"] = []
 
 def _on_sigterm(signum, frame):
@@ -611,6 +694,7 @@ def main():
            ALPACA_FEED, SYMBOL_CAP, SYMBOL_PROBE))
     _start_hot_server()                            # A1: read-only hot endpoint (daemon thread)
     backoff = 10
+    threading.Thread(target=_seed_worker, daemon=True).start()   # F4: A3 seeds off the recv thread
     while not _stop.is_set():
         if in_session():
             try:

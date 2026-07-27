@@ -120,8 +120,8 @@ def _compute_stats():
     losses    = [t for t in _trades if _cpnl(t) < 0]
     breakeven = [t for t in _trades if _cpnl(t) == 0]   # $0 scratches are their OWN bucket, not losses
     total_pnl = sum(_cpnl(t) for t in _trades)
-    best  = max(_trades, key=lambda t: _cpnl(t))
-    worst = min(_trades, key=lambda t: _cpnl(t))
+    best  = max(_trades, key=_cpnl)
+    worst = min(_trades, key=_cpnl)
     running, curve = 0.0, []
     for t in sorted(_trades, key=lambda t: t.get("date", "")):
         running += _cpnl(t)
@@ -135,9 +135,9 @@ def _compute_stats():
         "total_pnl":    round(total_pnl, 2),
         "avg_gain":     round(sum(t.get("pnl_pct", 0) for t in wins)  / max(len(wins), 1), 1),
         "avg_loss":     round(sum(t.get("pnl_pct", 0) for t in losses) / max(len(losses), 1), 1),
-        "best_pnl":     round(bes_cpnl(t), 2),
+        "best_pnl":     round(_cpnl(best), 2),
         "best_ticker":  best.get("ticker", "—"),
-        "worst_pnl":    round(wors_cpnl(t), 2),
+        "worst_pnl":    round(_cpnl(worst), 2),
         "worst_ticker": worst.get("ticker", "—"),
         "equity_curve": curve,
     }

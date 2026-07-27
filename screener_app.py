@@ -2807,11 +2807,14 @@ function renderStats(s, acct, trades){
     // HEADLINE = the ERA ACCOUNT VALUE: what a real $3,000 account funded at era start would hold now
     // (every print, compounded). The SIZING frame still resets to $3,000 daily by design (R constant at
     // $30 for clean calibration stats) — that lives in the subline, and the capital meter uses the frame.
-    const eraPnl=trades.filter(t=>String(t.date||'')>=ERA_START)
+    // 7/27 (Marcos "still..."): PRE excluded HERE TOO — the first pass missed this block, so the
+    // balance + friction subline kept carrying the premarket blackout losses. PRE grades on /premarket.
+    const _notPre=t=>String(t.entry_session||'')!=='PRE';
+    const eraPnl=trades.filter(t=>String(t.date||'')>=ERA_START && _notPre(t))
                        .reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
     bal = 3000 + eraPnl;
     const todayET=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
-    const tp=trades.filter(t=>String(t.date||'').slice(0,10)===todayET)
+    const tp=trades.filter(t=>String(t.date||'').slice(0,10)===todayET && _notPre(t))
                    .reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
     window._acctBal = 3000 + tp;   // capital meter budget = the daily sizing frame
   } else {

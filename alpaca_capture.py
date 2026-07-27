@@ -154,6 +154,11 @@ def roster_targets():
     # must never evict the series of a name the bot is actually holding.
     d = _get_json("/api/open_trades")
     if isinstance(d, dict): add([x for x in ((t or {}).get("ticker") for t in d.get("open_trades") or []) if x])
+    # 7/26 (F2 completion): the LIVE watchlist (what the bot watches RIGHT NOW, ranked) outranks
+    # the day's historical union — under cap pressure the trim eats names that were only hot at
+    # 9:40am, never the currently-hot ones. (First-seen union order alone still preferred stale.)
+    d = _get_json("/api/watching")
+    if isinstance(d, dict): add(d.get("tickers"))
     d = _get_json("/api/watching?date=" + today)
     if isinstance(d, dict): add(d.get("tickers"))
     if SYMBOL_PROBE:

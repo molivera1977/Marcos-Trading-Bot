@@ -102,8 +102,10 @@ check("R1 F1: rehydrate reloads today's archived ~ALP10S at session start, once/
       and "threading.Thread(target=_rehydrate_from_archive, daemon=True).start()" in SRC)
 check("R2 boot sentinel: ZZALPBOOT bucket ships with the next persist (restart = a fact in the store)",
       '_bars.setdefault("ZZALPBOOT", {})' in SRC)
-check("R3 F2: open positions pinned into the roster right after Kev, None-safe",
-      '"/api/open_trades"' in SRC and SRC.index("open_trades") < SRC.index('"/api/watching?date=" + today'))
+check("R3 F2: roster priority = Kev > open positions > LIVE watchlist > day union (trim eats the stale tail)",
+      '"/api/open_trades"' in SRC
+      and SRC.index("open_trades") < SRC.index('_get_json("/api/watching")')
+      and SRC.index('_get_json("/api/watching")') < SRC.index('"/api/watching?date=" + today'))
 check("R4 F4: seeds run on a dedicated worker with 3-attempt retry + loud give-up; recv thread only enqueues",
       "def _seed_worker" in SRC and "_seed_enqueue(sorted(new))" in SRC
       and "GIVING UP after 3 attempts" in SRC and "_backfill_new_symbol(s)" not in SRC

@@ -19,8 +19,6 @@ check("R4 #84 per-name bar failure continues the sweep (no cycle kill)",
 check("R5 #77 ledger pass-through intact (read_version/trigger/read_at/history)",
       '"read_version", "trigger", "read_at", "history"' in SRC)
 check("R6 verdict enum unchanged (TAKE|MARGINAL|SKIP)", "TAKE" in SRC and "MARGINAL" in SRC)
-print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
-if FAIL: 
 # ── 7/26 gate-review reader fixes ──
 _i_loop = SRC.index("for tk in todo:")
 _i_shadow = SRC.index("sheet_shadow_pass(dry=dry, out_rows=out_rows)")
@@ -31,5 +29,7 @@ check("G2 F1: re-reads never post over a NON-vision (human) entry",
 check("G3 F3: heartbeat every ~10 cycles -> ZZREADERBEAT observation (dead reader = store-visible)",
       'ZZREADERBEAT' in SRC and '_hb["n"] % 10 == 0' in SRC)
 
-print("RED:", ", ".join(FAIL))
+print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
+if FAIL:
+    print("RED:", ", ".join(FAIL))
 sys.exit(1 if FAIL else 0)

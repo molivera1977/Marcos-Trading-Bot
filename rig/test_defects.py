@@ -271,8 +271,10 @@ if hasattr(bot, "kev_reclaim_step"):
 print("T10 exit profile pins (Kev25 default; grid10 = env revert)")
 check("T10a default EXIT_PROFILE is kev25", bot.EXIT_PROFILE == "kev25")
 check("T10b tiers = 50%@1R, 75%@2R → 25% RUNNER", bot.SCALE_TIERS == [(1, 0.50), (2, 0.75)])
-check("T10c BE floor only after scale #2 (structure holds the +1R retest)",
-      bot.BE_FLOOR_AFTER_SCALE == 2)
+# 7/27: floor moved to scale #1. The 7/19 structure-hold was coherent but produced
+# banked-then-red trades (n=4, −$7.98) — Marcos's law is that a banked trade cannot finish red.
+check("T10c BE floor after scale #1 (a banked trade can never finish red — 7/27)",
+      bot.BE_FLOOR_AFTER_SCALE == 1)
 
 
 # ── T13: zone-flip machine + 7/20 role swap (Marcos: "I want this to go in") ─

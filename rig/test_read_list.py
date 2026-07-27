@@ -58,7 +58,10 @@ check("P1 bot: _post_read_list CALLED at scan end, from float_checked (Move% ran
       and BOT.index("_post_read_list(float_checked)") < BOT.index("    return results"))
 check("P2 bot: ranks by change_pct desc, top-20, Kev-first",
       'key=lambda g: float(g.get("change_pct") or 0), reverse=True' in BOT
-      and "ranked[:20]" in BOT and "dict.fromkeys(kev + top)" in BOT)
+      # 7/27: the top-20 slice became a liquidity-filtered walk (READ_LIST_PROBE_CAP), so the
+      # roster is still 20 Move%-ranked names — just never one the entry gate would refuse.
+      and "ranked[:READ_LIST_PROBE_CAP]" in BOT and "_read_list_liquid_enough(sym)" in BOT
+      and "dict.fromkeys(kev + top)" in BOT)
 
 # DASHBOARD: read_list POST (auth) + GET
 check("P3 dash: /api/read_list POST is auth-gated + GET serves it",

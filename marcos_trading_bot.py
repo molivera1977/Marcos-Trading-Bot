@@ -312,6 +312,34 @@ EXITS_ON_3MIN      = True   # ⚠️ 7/2 THE TIMEFRAME FIX: manage the TRADE on 
                             # Winner test: 1-min mgmt −0.4R vs 3-min mgmt +4.4R on the 35 winners (they hold &
                             # capture instead of getting wick-sniped). Only the −7% catastrophe cap stays intrabar.
                             # Disables the sub-minute failed-breakout + early-VWAP-fade cuts. [[project_kev_grounding]]
+# ── TRUE INTRABAR STOP (7/27, Marcos 3× reaffirmed "tired of −3R, −2R, −1.5R"). EXITS_ON_3MIN left
+#    the stop evaluable ONLY on a 3-min close, and the docstring's "resting broker stop" does not
+#    exist (place_stop_order always returns None — Webull rejects stop types), so a healthy-feed
+#    crater rode free: LGHL 7/27 −3.3R on a −1R plan; 36/51 era stop-exits (71%) exited BELOW their
+#    stop, $441.54 beyond plan. Measured cost of the fix = the wick-shakeout class, n=2 ≈ $57
+#    (LVWR 7/24 −$0.26, DFNS 7/27 −$2.29 → both become ~−1R), resolution-limited to 1-min.
+#    BOUNDARY (stated, not claimed away): this caps DECISION lag, not gaps/slippage — fast tape can
+#    still print −1.1..−1.2R. Exact −1R needs the resting broker stop = its own night.
+#    ⚠️ ONE PRIOR REFUTATION ON RECORD, and it is of THIS mechanism: the accidental "breach-mode"
+#    live 7/14 (B11 firing intrabar on a 20s-sustained stream breach) cost −2.08R net and the note at
+#    _blind_stop_should_fire says hair-trigger stops "kill the YYGH-class winners". That refutation is
+#    in the CODE but never made the ledger, so the 7/27 verdict was rendered without it. Tonight ships
+#    with ZERO confirm (Marcos 3× reaffirmed, and the 7/27 numbers are the newer evidence: $441.54
+#    blow-through excess over 36 trades vs ≈$57 measured shakeout cost) — but the dial below exists so
+#    the answer to a shakeout day is one env var, not a redeploy of new logic.
+INTRABAR_STOP      = os.environ.get("INTRABAR_STOP", "1") == "1"   # kill switch → back to close-only
+INTRABAR_CONFIRM_SECS = float(os.environ.get("INTRABAR_CONFIRM_SECS", "0"))  # 0 = exit on the FIRST print
+                            # at/below the stop (as approved). Raise it (e.g. 3) to require the breach to
+                            # persist that long — filters single bad prints at the cost of that much lag.
+CRATER_FLOOR_R     = float(os.environ.get("CRATER_FLOOR_R", "2.0"))  # backstop at this many R of loss.
+                            # ⚠️ HONEST SCOPE (7/27 review F2): the floor sits BENEATH the stop by
+                            # construction — entry−2R is always below both the structure stop (entry−R)
+                            # and the BE stop (entry) — and the intrabar branch is checked first. So with
+                            # INTRABAR_STOP=1 this is UNREACHABLE. It is the backstop for the intrabar
+                            # stop being OFF or killed, NOT a broken-feed failsafe: every feed condition
+                            # that blanks one blanks the other (both read the same `current_price`).
+                            # A real feed-independent failsafe would key off last_good_price age or a
+                            # REST quote — not built tonight, not claimed. 0 disables.
 RUNNER_HEALTH_EXIT = True   # 7/3 PULLBACK HEALTH-TRAIL (the day's find — [[persona_trade_manager]]). Replaces the
                             # twitchy soft exits (instant-exit / prev-bar-low / topping-tail) with a STRUCTURE read:
                             # HOLD the runner while price is above VWAP OR the 9-EMA (healthy pullback), FOLD only
@@ -398,7 +426,19 @@ if EXIT_PROFILE == "grid10":
     BE_FLOOR_AFTER_SCALE = 1                                    # BE after the FIRST partial
 else:
     SCALE_TIERS          = [(1, 0.50), (2, 0.75)]               # Kev legs: 25% RUNNER
-    BE_FLOOR_AFTER_SCALE = 2                                    # structure stop holds until scale #2
+    BE_FLOOR_AFTER_SCALE = int(os.environ.get("BE_FLOOR_AFTER_SCALE", "1"))   # 7/27: FIRST partial —
+                            # Marcos's law is "once you've banked, the trade cannot go red." Holding STRUCTURE
+                            # through scale #2 was coherent-but-wrong: measured harm 4 banked-then-red trades,
+                            # −$7.98 (the previously-circulated $63.75 was not reproduced). Cost is small; the
+                            # law is the reason. Revert = 2, and it is now an ENV var so the revert costs a
+                            # restart, not a deploy.
+                            # ⚠️ COMPOUNDING RISK, UNMEASURED (7/27 review F1): this was measured while the BE
+                            # stop was only evaluable on a 3-MIN CLOSE. Item 1 makes that same stop tick-level,
+                            # so after the first partial ANY wick touching entry now ends the trade — which is
+                            # the behavior the 7/19 kill-test refuted (12 BE-scratches → 0 when the floor moved
+                            # to scale #2). The PRODUCT of the two changes was never replayed; era replay needs
+                            # the entry timestamps that only start accruing tonight. BE_FLOOR_AFTER_SCALE=2 for
+                            # one session isolates item 1 at zero code cost.
 # ── VELOCITY-AWARE RIDE (7/5) — don't sell into strength. At each scale tier, if the move is STILL accelerating
 #    hard (gained >=VELO_RIDE_PCT over the last VELO_BARS 1-min bars — the "ff3" 3-bar-follow-through signature
 #    that separated verticals from chop in the feature study), DEFER the scale and let the full position ride;
@@ -861,6 +901,34 @@ def _curl_feed(t, n=90):
         print(f"🧵 curl-feed {t}: src={src} bars={len(d10)} last_bar_age={age:.0f}s")
     return d10, src
 
+def _et_session_of_utc(ts_utc: str):
+    """Which US-equity session a UTC bar stamp ("2026-07-23T13:30:00") falls in, in EASTERN local
+    time: PRE 04:00–09:30 · RTH 09:30–16:00 · ATH 16:00–20:00 · None outside. Converts through the
+    tz database instead of the old hardcoded "13:30<=hm<20:00" UTC window, which is EDT-only and
+    silently shifts an hour at the November DST change (7/27 fix queue item 2)."""
+    try:
+        et = datetime.strptime(ts_utc[:19], "%Y-%m-%dT%H:%M:%S").replace(
+            tzinfo=timezone.utc).astimezone(EASTERN)
+    except Exception:
+        return None
+    hm = et.strftime("%H:%M")
+    if "04:00" <= hm < "09:30":
+        return "PRE"
+    if "09:30" <= hm < "16:00":
+        return "RTH"
+    if "16:00" <= hm < "20:00":
+        return "ATH"
+    return None
+
+def _live_sessions(is_premkt=None):
+    """Session list for a LIVE bar fetch (monitor/scan). Before 09:30 ET — or for a position stamped
+    PRE — the RTH-only default returns [] (7/27 blackout: every premarket monitor went blind and the
+    5 PRE trades blind-stopped for −$624.50). Returns None (= RTH-only, unchanged behavior) once the
+    bell has rung on an RTH position, so nothing about the RTH path moves."""
+    if is_premkt is None:
+        is_premkt = datetime.now(EASTERN).strftime("%H:%M") < "09:30"
+    return ["PRE", "RTH"] if is_premkt else None
+
 def _alpaca_intraday_bars(ticker, count=30, sessions=None):
     """T3: Alpaca REST 1-min bars in the EXACT Webull shape get_intraday_bars returns
     (chronological dicts w/ UTC 'time' strings — the :1942 sampler contract). sessions=None →
@@ -881,10 +949,14 @@ def _alpaca_intraday_bars(ticker, count=30, sessions=None):
     for b in j.get("bars") or []:
         try:
             ts = str(b["t"])[:19]                  # "2026-07-23T13:30:00" UTC
+            _sess = _et_session_of_utc(ts)         # DST-correct, via the tz database
             if sessions is None:                   # RTH-only (Webull default semantics)
-                hm = ts[11:16]
-                if not ("13:30" <= hm < "20:00"):  # 9:30–16:00 ET in EDT
+                if _sess != "RTH":
                     continue
+            elif {str(s).upper() for s in sessions} >= {"PRE", "RTH", "ATH"}:
+                pass                               # "the whole extended day" — archive callers, unfiltered
+            elif _sess not in {str(s).upper() for s in sessions}:
+                continue                           # honor the requested session set (PRE/RTH/ATH)
             out.append({"time": ts + ".000+0000", "open": str(b["o"]), "high": str(b["h"]),
                         "low": str(b["l"]), "close": str(b["c"]), "volume": str(b["v"])})
         except Exception:
@@ -2208,6 +2280,7 @@ def _watchdog_force_record(ctx: dict):
         "position_size": ctx.get("position_size", 0),
         "account_balance": (SIM_ACCOUNT_BALANCE if DRY_RUN else get_account_balance()), "trade_id": ctx.get("trade_id"),   # F3
         "partial_fills": partials, "highest": ctx.get("highest"),
+        "entry_ts_utc": ctx.get("entry_ts_utc"),   # 7/27: the watchdog path stamps it too
     })
     send_alert_email(f"🛟 Watchdog recovered: {ticker} {pnl_pct:+.1f}%",
                      f"{ticker}'s monitor froze (heartbeat stalled). Force-recorded at ${px:.2f} "
@@ -2288,6 +2361,7 @@ def _recover_orphaned_trades():
                 "position_size":   o.get("position_size", 0),
                 "account_balance": (SIM_ACCOUNT_BALANCE if DRY_RUN else get_account_balance()),   # F3
                 "trade_id":        o.get("trade_id"),
+                "entry_ts_utc":    o.get("entry_ts_utc"),   # 7/27: carried through durable state
                 "partial_fills":   partials, "highest": o.get("highest"),
             })
             send_alert_email(f"♻️ Recovered trade: {ticker} {pnl_pct:+.1f}%",
@@ -2355,6 +2429,52 @@ def _premarket_starter_set(n=PREMARKET_STARTER_N):
     return list(dict.fromkeys(kev + starter))   # Kev first, dedup, order-stable
 
 
+READ_LIST_LIQ_FLOOR = float(os.environ.get("READ_LIST_LIQ_FLOOR", "0")) or None  # None → track MOMENTUM_MIN_AVG_VOL
+READ_LIST_PROBE_CAP = int(os.environ.get("READ_LIST_PROBE_CAP", "40"))  # most names we'll probe to fill 20 slots
+_read_liq_cache = {}   # sym → (bucket_key, verdict) — one probe per name per 3-min scan cycle
+
+def _read_list_liquid_enough(sym):
+    """Does `sym` clear the same avg-volume floor the entry path enforces (MOMENTUM_MIN_AVG_VOL,
+    completed bars only)? FAIL-OPEN: no bars / any error → True, because a data miss must never be
+    read as illiquidity (that's how a fail-closed gate quietly empties a roster). Cached per name per
+    3-min bucket so a rescan doesn't re-probe. Runs on the AUX executor — never the trade pool."""
+    floor = READ_LIST_LIQ_FLOOR or MOMENTUM_MIN_AVG_VOL
+    try:
+        _n = datetime.now(EASTERN)
+        bucket = (_n.date(), _n.hour, _n.minute - _n.minute % 3)
+        hit = _read_liq_cache.get(sym)
+        if hit and hit[0] == bucket:
+            return hit[1]
+        raw = get_intraday_bars(sym, count=MOMENTUM_BARS + 3, executor=_aux_executor,
+                                sessions=_live_sessions())
+        if not raw:
+            # The FETCH told us nothing (miss, 429 cooldown, error) → fail-open, and say so, because
+            # a silent fail-open during a 429 storm is indistinguishable from "everything is liquid".
+            print(f"   ⚪ read-list: {sym} liquidity unknown (no bar data) — keeping (fail-open)")
+            return True
+        bars = _fresh_session(raw)
+        if not bars:
+            # The fetch SUCCEEDED and still produced no fresh session bars: the name has not printed
+            # recently. That is the DCOY/DBGI/TGL signature (20/6/7 traded minutes in 30h) and it is
+            # the strongest evidence of thinness there is — routing it to fail-open, as the first cut
+            # of this fix did, would have let through exactly the names the fix exists to exclude.
+            # Same staleness standard the ENTRY path applies via _fresh_session, so nothing is
+            # refused here that would have been allowed to trade.
+            print(f"   🚫 read-list: {sym} skipped — no fresh bars (last print stale; entry would refuse it too)")
+            _read_liq_cache[sym] = (bucket, False)
+            return False
+        if len(bars) < MOMENTUM_BARS + 1:
+            return True                                   # too few to average — no evidence either way
+        vols = [float(b.get("volume") or b.get("v") or 0) for b in bars[:-1]][-MOMENTUM_BARS:]
+        avg = sum(vols) / len(vols) if vols else 0
+        ok = avg >= floor
+        _read_liq_cache[sym] = (bucket, ok)
+        if not ok:
+            print(f"   🚫 read-list: {sym} skipped — {int(avg):,}/bar < {int(floor):,} floor (entry would refuse it)")
+        return ok
+    except Exception:
+        return True                                       # fail-open on any error
+
 def _post_read_list(gappers):
     """#99 (Marcos 7/23): post the READER's roster — top-20 by MOVE % (change_pct, the exact
     dashboard column — NOT the internal select_score) + Kev's names FIRST — so the newcomer reader
@@ -2367,7 +2487,20 @@ def _post_read_list(gappers):
             return
         ranked = sorted([g for g in (gappers or []) if g.get("symbol")],
                         key=lambda g: float(g.get("change_pct") or 0), reverse=True)
-        top = [str(g["symbol"]).upper().strip() for g in ranked[:20]]
+        # 7/27 READ-LIST LIQUIDITY FLOOR (Marcos: "make sure that fix is high priority"). Move% alone
+        # put names the UNIVERSAL LIQUIDITY GATE will refuse at entry onto the reader's roster — we
+        # paid an API call plus 15–50s of reader cycle to chart stock we can never buy (7/27: DCOY /
+        # DBGI / TGL had 20 / 6 / 7 traded minutes in 30h and ate 3 of ~78 morning reads). Same floor
+        # here as at entry. The SCANNER's wide net is deliberately unchanged — that's the counterfactual
+        # log. Fail-OPEN on missing bars (a data miss must never silently shrink the roster), and Kev's
+        # own names are never filtered ("Kev is the bible" at the watch layer).
+        top = []
+        for g in ranked[:READ_LIST_PROBE_CAP]:
+            if len(top) >= 20:
+                break
+            sym = str(g["symbol"]).upper().strip()
+            if _read_list_liquid_enough(sym):
+                top.append(sym)
         kev = [str(k).upper().strip() for k in _fetch_kev_watchlist()]
         tickers = list(dict.fromkeys(kev + top))   # Kev FIRST, then Move%-desc, dedup order-stable
         requests.post(f"{url}/api/read_list", json={"tickers": tickers},
@@ -3070,7 +3203,7 @@ def check_momentum(ticker) -> tuple[bool, dict]:
     """
     details = {"passed": False, "reason": ""}
     try:
-        full = get_intraday_bars(ticker, count=390)
+        full = get_intraday_bars(ticker, count=390, sessions=_live_sessions())
         sess = _fresh_session(full) if full else []   # B16: decision gate — today-only
         if len(sess) < MOMENTUM_BARS:
             details["reason"] = f"only {len(sess)} session bars available (need {MOMENTUM_BARS})"
@@ -3970,6 +4103,8 @@ def _zf_pm_floor(sym):
 HIDDEN_ENTRY      = os.environ.get("HIDDEN_ENTRY", "1") == "1"
 HIDDEN_VEL_PCT    = float(os.environ.get("HIDDEN_VEL_PCT", "25"))   # ARM: trailing 5-min velocity
 HIDDEN_VEL_BARS   = int(os.environ.get("HIDDEN_VEL_BARS", "30"))    # 30 x 10s = 5 min
+HIDDEN_TRIM_R     = float(os.environ.get("HIDDEN_TRIM_R", "1.0"))   # 7/27: R-based FIRST trim on the hidden
+                            # ladder (the inherited ×1.50 trigger sat above both closed peaks = unreachable).
 HIDDEN_DAILY_CAP  = int(os.environ.get("HIDDEN_DAILY_CAP", "3"))
 HIDDEN_NAME_CAP   = int(os.environ.get("HIDDEN_NAME_CAP", "2"))
 _he_st: dict = {}                 # sym -> machine state (module-level: survives rescans, no #81 amnesia)
@@ -4958,10 +5093,11 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 # detector (EMA9/20/90, base, ignition, room, triggers, VWAP) then sees only
                 # TODAY's fresh bars. Prior-day/stale fetches (first minutes of RTH, thin names)
                 # leave the cache un-refreshed → detectors skip → NO entry decisions on stale data.
-                fresh = _fresh_session(get_intraday_bars(t, count=max(EMA_BOUNCE_LOOKBACK + EMA20_PERIOD + 5, 50)))
+                fresh = _fresh_session(get_intraday_bars(t, count=max(EMA_BOUNCE_LOOKBACK + EMA20_PERIOD + 5, 50),
+                                                        sessions=_live_sessions()))
                 if fresh:
                     cache[t]["bars"] = fresh
-                full_bars = _fresh_session(get_intraday_bars(t, count=390))
+                full_bars = _fresh_session(get_intraday_bars(t, count=390, sessions=_live_sessions()))
                 if full_bars:
                     cache[t]["full_bars"] = full_bars   # RTH 1-min, TODAY-only — room + 3-min agg
                     if not ENTRY_VWAP_PREMARKET:
@@ -5932,7 +6068,7 @@ def _vride_defer(ticker, tier_idx):
     if not VELOCITY_RIDE:
         return False
     try:
-        rb = _fresh_session(get_intraday_bars(ticker, count=VELO_BARS + 2))   # B16
+        rb = _fresh_session(get_intraday_bars(ticker, count=VELO_BARS + 2, sessions=_live_sessions()))   # B16
         if not rb or len(rb) <= VELO_BARS:
             return False
         c_now = float(rb[-1].get("close") or rb[-1].get("c") or 0)
@@ -5979,6 +6115,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
     _last_bars_ok  = time.time()   # B11: when the stop logic last actually SAW a completed bar
     _below_since   = None          # B11: first moment the stream printed below the current stop
+    _ib_below_since = None         # intrabar-confirm ledger: first print AT OR BELOW the stop (<=, not <)
     _fetch_fail_n  = 0             # B15: consecutive bar-fetch failures — blindness requires FAILURES, not idle time
     _entry_ts_utc  = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")  # B14: stop closes must post-date entry
 
@@ -5996,8 +6133,22 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         # a parabola round-trips, so bank 1/3 @ +50%, 1/3 @ +100% on the way up; runner health-trails.
         # Fable evidence: detection-entry + scale-out = +32% mean vs trail20 = +1.5% noise. Runner trail
         # kept as health-trail (hold-above-9EMA) for v1; trail30 vs health-trail = a replay calibration.
-        kev_tiers = [(round(entry_price * 1.50, 4), 0.33),
-                     (round(entry_price * 2.00, 4), 0.67)]
+        # 7/27 R-TRIM (Fable verdict #3, reversed and reinstated): the inherited ×1.50 first trigger is
+        # UNREACHABLE for what this lane actually catches — hidden's closed record is 2/2 peaked-then-red
+        # with $0 banked (VEEE 6.9R peak → −$25.33; LVWR 1.62R → −$39.29). Add an R-based FIRST trim
+        # beneath the %-ladder; the % tiers are retained above it, runner still ~25%.
+        kev_tiers = [(round(entry_price + HIDDEN_TRIM_R * R, 4), 0.33),
+                     (round(entry_price * 1.50, 4), 0.55),
+                     (round(entry_price * 2.00, 4), 0.75)]
+        # Monotonic by construction check: a very wide stop could push the R trim above the ×1.50 tier.
+        # Sort by price and keep cumulative non-decreasing so the ladder can never sell out of order.
+        _ordered, _cum = [], 0.0
+        for _p, _c in sorted(kev_tiers, key=lambda t: t[0]):
+            if _c <= _cum:
+                continue          # no incremental share to sell — a 1-share order, not a scale-out
+            _cum = _c
+            _ordered.append((_p, _cum))
+        kev_tiers = _ordered
     elif SCALE_TIERS:                                  # reimagined R-grid scale-out (7/5 exit study — beats supply grid)
         kev_tiers = [(round(entry_price + rm * R, 4), cum) for rm, cum in SCALE_TIERS]
     else:
@@ -6196,7 +6347,10 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         # otherwise, and the synchronized REST burst is what trips Webull's limiter.
         _ema_iv = EMA_CHECK_INTERVAL + (hash(ticker) % 25) - 12
         if remaining_shares > 0 and time.time() - last_ema_check >= _ema_iv:
-            bars = get_intraday_bars(ticker, count=(EMA_PERIOD + 6) * SETUP_TF_MIN if EXITS_ON_3MIN else EMA_PERIOD + 5)
+            # 7/27 BLACKOUT FIX: a PRE position (or any fetch before the bell) must ask for PRE bars —
+            # the RTH-only default returns [] premarket, which is exactly how 5 trades went unmonitored.
+            bars = get_intraday_bars(ticker, count=(EMA_PERIOD + 6) * SETUP_TF_MIN if EXITS_ON_3MIN else EMA_PERIOD + 5,
+                                     sessions=_live_sessions(_entered_premkt or None))
             # B14/B16 (7/15): route EVERYTHING through the fresh-session choke point. In the first
             # minutes of RTH a fetch can return ONLY prior-day bars (XCUR 9:33 — yesterday's close
             # instantly "hit" a fresh stop ×2). Stale/prior-day data → NO exit decision this cycle,
@@ -6364,6 +6518,45 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 result["exit_reason"] = "BLIND-STOP FAILSAFE 🛟"
                 remaining_shares = 0
                 break
+
+        # ── TRUE INTRABAR STOP (7/27) — the stream/10s price TOUCHING the stop exits NOW, at the stop
+        #    level, instead of waiting for a 3-min close that may print 2–4R lower. Runs on every
+        #    iteration (0.5s streaming / 15s polling). Structural 3-min exits above are untouched: they
+        #    still govern trailing/health/topping decisions ABOVE the stop. Beneath it sits the crater
+        #    floor, which fires even if the stop itself was never actionable. ──
+        if remaining_shares > 0 and current_price > 0 and current_price <= current_stop:
+            if _ib_below_since is None:
+                _ib_below_since = time.time()
+        else:
+            _ib_below_since = None
+
+        if (INTRABAR_STOP and remaining_shares > 0 and current_price > 0
+                and current_price <= current_stop
+                # _below_since is maintained by the blind-stop ledger just above: the first moment the
+                # stream printed below this stop. At the default 0s this is a no-op (fires on the first
+                # print); raise INTRABAR_CONFIRM_SECS to demand the breach persist.
+                and (INTRABAR_CONFIRM_SECS <= 0
+                     or (_ib_below_since and time.time() - _ib_below_since >= INTRABAR_CONFIRM_SECS))):
+            label = "Trailing stop 📉" if partial_taken else "Stop loss 🛑"
+            print(f"🛑 INTRABAR {label} — {ticker} traded ${current_price:.2f} ≤ stop ${current_stop:.2f}; "
+                  f"selling {remaining_shares} sh now (no 3-min-close wait).")
+            cancel_order(placed_stop_id)
+            close_position(ticker, remaining_shares)
+            result["exit_price"]  = current_price
+            result["exit_reason"] = label
+            remaining_shares = 0
+            break
+
+        if (CRATER_FLOOR_R > 0 and remaining_shares > 0 and current_price > 0
+                and current_price <= entry_price - CRATER_FLOOR_R * R):
+            print(f"🕳️  {ticker} CRATER FLOOR: ${current_price:.2f} ≤ entry ${entry_price:.2f} − "
+                  f"{CRATER_FLOOR_R:.1f}R (${CRATER_FLOOR_R * R:.2f}) — force exit (stop was not actionable).")
+            cancel_order(placed_stop_id)
+            close_position(ticker, remaining_shares)
+            result["exit_price"]  = current_price
+            result["exit_reason"] = "CRATER FLOOR 🕳️"
+            remaining_shares = 0
+            break
 
         # ── Software stop detection. When EXITS_ON_3MIN there is NO intrabar %-stop — the exit is the 3-min
         #    CLOSE below the structural stop (above); a fixed −7% is non-Kev and just snipes the trade before
@@ -7572,7 +7765,7 @@ def main():
             _vol_cap = None
             if MAX_POS_VOL_PCT:
                 try:
-                    _vgb = _fresh_session(get_intraday_bars(ticker, count=6))   # B16
+                    _vgb = _fresh_session(get_intraday_bars(ticker, count=6, sessions=_live_sessions()))   # B16
                     _vcomp = _vgb[:-1] if len(_vgb) >= 2 else _vgb
                     _vav = (sum(float(b.get("volume") or b.get("v") or 0) for b in _vcomp[-3:]) / min(3, len(_vcomp))) if _vcomp else 0
                     if _vav > 0:
@@ -7652,7 +7845,7 @@ def main():
                 # only skipped here because they live inside check_momentum (a bundling accident; KUST/ZCMD). When
                 # flagged on, exempt types get the SAME universal checks the other entries get via check_momentum. ──
                 if ENTRY_GATE_TOPPING_TAIL or ENTRY_GATE_LIQUIDITY:
-                    _gb = _fresh_session(get_intraday_bars(ticker, count=30))   # B16
+                    _gb = _fresh_session(get_intraday_bars(ticker, count=30, sessions=_live_sessions()))   # B16
                     if ENTRY_GATE_TOPPING_TAIL and len(_gb) >= 2 and is_topping_tail(_gb[-2]):
                         mom_ok, mom_details = False, {"reason": "topping tail on last bar (universal gate) — rejection at the high, skip"}
                     elif (ENTRY_GATE_LIQUIDITY and entry_type != "ignition" and len(_gb) >= 3
@@ -7720,6 +7913,11 @@ def main():
             # Persist the static context SYNCHRONOUSLY (confirmed) BEFORE monitoring, so a
             # crash anywhere after this still records a proper exit. trade_id = idempotency key.
             trade_id = uuid.uuid4().hex
+            # 7/27: the trade store had NO entry timestamp on any of 149 era rows (`recorded_at` is the
+            # EXIT time), which blocked every bar-replay query outside the 5-day decision-log window.
+            # Stamped once here, at the fill, and carried through the durable state, the watchdog ctx,
+            # and the exit record so all three paths agree.
+            _entry_ts_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             _shadow_keep.add(ticker)   # B12: this trade's 10s anatomy persists tonight no matter its tick rank
             _save_open_trade_sync({
                 "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
@@ -7729,6 +7927,7 @@ def main():
                 "position_size": _reserved, "vwap": round(vwap, 4) if vwap else 0,
                 "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
                 "entry_time": datetime.now(EASTERN).strftime("%I:%M %p"),
+                "entry_ts_utc": _entry_ts_iso,
                 "risk_per_share": round(entry_price - stop_loss, 4),
                 "planned_risk": round(shares * (entry_price - stop_loss), 2),
             })
@@ -7740,7 +7939,7 @@ def main():
                 "stop": round(stop_loss, 4), "initial_shares": shares, "remaining_shares": shares,
                 "tier_idx": 0, "partial_fills": [], "entry_type": entry_type, "confidence": confidence,
                 "position_size": _reserved, "entry_date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
-                "last_price": round(entry_price, 4)}}
+                "entry_ts_utc": _entry_ts_iso, "last_price": round(entry_price, 4)}}
             _note_positions(len(_active_monitors))   # track peak concurrent positions (capacity signal)
 
             trade_result = monitor_trade(
@@ -7840,6 +8039,7 @@ def main():
                 "entry_ema90":        round(entry_ema90, 4) if entry_ema90 > 0 else None,
                 "entry_vs_ema90_pct": entry_vs_ema90_pct,
                 "trade_id":           trade_id,
+                "entry_ts_utc":       _entry_ts_iso,   # 7/27: fill time (UTC ISO) — recorded_at is the EXIT time
                 "size_clamp":         _clamp,   # 7/26 log-only: which constraint bound the size (risk/notional/volume/min_1_share; +volguard_failopen = guard was blind)
                 # L1 order-book at entry (study: do adverse book conditions predict losers?)
                 "entry_l1_ratio":     l2_details.get("ratio"),

@@ -136,9 +136,18 @@ try:
           len(ab) == 2 and ab[0]["time"] == "2026-07-23T13:30:00.000+0000"
           and ab[0]["close"] == "2.1" and ab[1]["volume"] == "30"
           and set(ab[0]) == {"time", "open", "high", "low", "close", "volume"}, f"got {ab}")
+    # 7/27: `sessions` is now HONORED rather than treated as "keep everything". ["RTH","PRE"]
+    # keeps premarket and RTH and DROPS after-hours; ["RTH","PRE","ATH"] (the archive callers)
+    # still keeps all three. Behavior change declared in tonight's change-set, item 2.
     ab2 = bot._alpaca_intraday_bars("TESTF", count=1, sessions=["RTH", "PRE"])
-    check("M8b T3: sessions incl. PRE keeps extended bars; count slices the tail",
-          len(ab2) == 1 and ab2[0]["time"].startswith("2026-07-23T20:05"), f"got {ab2}")
+    check("M8b T3: sessions=['RTH','PRE'] keeps PRE+RTH, drops after-hours; count slices the tail",
+          len(ab2) == 1 and ab2[0]["time"].startswith("2026-07-23T13:31"), f"got {ab2}")
+    ab2p = bot._alpaca_intraday_bars("TESTF", count=30, sessions=["RTH", "PRE"])
+    check("M8b2 T3: the 8:00 ET premarket bar IS kept when PRE is requested (the 7/27 blackout fix)",
+          len(ab2p) == 3 and ab2p[0]["time"].startswith("2026-07-23T12:00"), f"got {ab2p}")
+    ab2a = bot._alpaca_intraday_bars("TESTF", count=30, sessions=["RTH", "PRE", "ATH"])
+    check("M8b3 T3: archive callers asking for ATH still get all four bars",
+          len(ab2a) == 4, f"got {ab2a}")
 
     # M9: T6 daily via the real get_daily_levels (DAILY_SOURCE=alpaca) — prior close correct
     _today = bot.datetime.now(bot.EASTERN).strftime("%Y-%m-%d")

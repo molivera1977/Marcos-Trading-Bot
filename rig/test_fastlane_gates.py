@@ -90,6 +90,8 @@ check("C2 ZERO behavior change: shares formula byte-identical (max(1, min(int(..
       and "_sh_risk = int(RISK_PER_TRADE / (entry_price - stop_loss))" in SRC
       and "_sh_notional = int(pos_size / entry_price)" in SRC)
 check("C3 stamp lands on the trade record beside trade_id",
-      SRC.split('"size_clamp":')[0].rstrip().endswith('"trade_id":           trade_id,'))
+      # 7/27: entry_ts_utc now sits between trade_id and size_clamp — adjacency intent preserved.
+      '"trade_id":           trade_id,' in SRC.split('"size_clamp":')[0]
+      and '"entry_ts_utc":       _entry_ts_iso' in SRC)
 print(f"\n{'GREEN' if not FAIL else 'RED'} — {len(PASS)} pass / {len(FAIL)} fail (with C pins)")
 sys.exit(1 if FAIL else 0)

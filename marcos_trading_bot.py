@@ -866,7 +866,11 @@ def _alpaca_intraday_bars(ticker, count=30, sessions=None):
     (chronological dicts w/ UTC 'time' strings — the :1942 sampler contract). sessions=None →
     RTH-only filter (Webull default semantics); pass e.g. ["RTH","PRE"] to include extended.
     Full-day fetch then tail-slice, so intraday adds get complete history (Fable A3 for 1-min)."""
-    day0 = datetime.now(EASTERN).replace(hour=4, minute=0, second=0, microsecond=0)
+    # 7/27 OPEN-BLINDNESS FIX (proven on 7/23-24 rows: first legacy-lane row 10:37/10:56 — the
+    # today-only fetch starved the 3-min EMA warmup ~66 min; Webull's multi-day semantics are the
+    # contract this shim was supposed to mirror). 7 calendar days ≈ 5 trading days ≈ 4,800 1-min
+    # bars incl. extended — single page (limit 10000), no pagination. RTH filter below unchanged.
+    day0 = (datetime.now(EASTERN) - timedelta(days=7)).replace(hour=4, minute=0, second=0, microsecond=0)
     j = _alpaca_rest_get(f"https://data.alpaca.markets/v2/stocks/{ticker}/bars",
                          {"timeframe": "1Min", "start": day0.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                           "limit": 10000, "feed": "sip" if _ALP_FEED == "sip" else "iex",

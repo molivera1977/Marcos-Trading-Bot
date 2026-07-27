@@ -1,0 +1,23 @@
+Q1b/Q1c COHORT: decision-log 'filled' rows 7/23-7/27 (only window where ENTRY TIME exists).
+RESOLUTION: 1-min bars. Alpaca REST rejects 10Sec/30Sec timeframes; 10s bars live only on the
+internal capture service (ALP_CAPTURE_URL = private Railway network, unreachable locally).
+=> ALL sub-3-min timing below is TAGGED resolution-limited.
+
+TKR    lane             entry     stop     exit   held  bars  1st breach    exit@ lag_min       P&L
+LVWR   flat_top        1.6100   1.5019   1.5000     27    27       15:51    11:58       7     -0.26
+JEM    flat_top        6.8000   6.3229   6.3800     11    11       16:57    13:01       4    -26.38
+BIYA   ignition        3.1900   2.7118   3.2400    350   350       08:12    10:01     349     32.04
+LGHL   zone_flip       1.9800   1.8700   1.5500    336   336       08:21    09:49     328   -119.70
+VEEE   vwap_reclaim   16.4000  15.3988  12.9700      3     3        none    04:57            -99.47
+MTNB   vwap_reclaim    0.4300   0.4179   0.2400      5     5        none    05:25            -14.26
+JZXN   vwap_reclaim    1.4700   1.3671   1.1900      4     4       11:04    07:06       2    -81.48
+DFNS   zone_flip       6.7100   6.4400   6.3400     25    25       13:36    09:56      20     -2.29
+LVWR   hidden_entry    2.8800   2.7200   2.6700     22    22       14:00    10:19      19    -39.29
+KIDZ   vwap_reclaim    0.5400   0.5245   0.5200      7     7       14:40    10:46       6    -36.71
+
+Q1c WICK-SHAKEOUT (stop touched intrabar but trade did NOT exit on stop):
+  LVWR   2026-07-24 flat_top      stop 1.5019 touched at 15:51Z low 1.4800 -> actual exit HEALTH FOLD (lost VWAP+EMA) $-0.26
+  BIYA   2026-07-27 ignition      stop 2.7118 touched at 08:12Z low 2.5300 -> actual exit HEALTH FOLD (lost VWAP+EMA) $32.04
+  JZXN   2026-07-27 vwap_reclaim  stop 1.3671 touched at 11:04Z low 1.3300 -> actual exit BLIND-STOP FAILSAFE 🛟 $-81.48
+  DFNS   2026-07-27 zone_flip     stop 6.4400 touched at 13:36Z low 6.2600 -> actual exit Trailing stop 📉 $-2.29
+  n=4  <-- trades a naive intrabar stop would have killed (1-min resolution)

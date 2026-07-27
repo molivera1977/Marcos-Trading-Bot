@@ -1,0 +1,24 @@
+Q1a COHORT: era 7/13+ ex-PRE, exit_reason='Stop loss', has stop_loss+planned_risk: n=51
+  excluded: 0 stop-exits missing stop_loss/planned_risk
+
+  exited BELOW stop price: 36/51 = 71%
+  total price-excess dollars (stop-exit)*shares : $441.54
+  realized loss WORSE than planned_risk: 37/51 = 73%
+  total dollars beyond plan                     : $440.84
+  median R realized (stop cohort): 1.26R
+
+  WORST 5 by dollars-beyond-plan:
+   LGHL   2026-07-27 zone_flip     entry 1.9800 stop 1.8700 exit 1.5500 sh   285 | planned -$29.92 realized $-119.70 = 4.00R | beyond plan $89.78
+   HPAI   2026-07-17 vwap_reclaim  entry 0.6200 stop 0.5925 exit 0.5400 sh  1167 | planned -$29.99 realized $-91.26 = 3.04R | beyond plan $61.27
+   NVVE   2026-07-23 ma_pullback   entry 9.4300 stop 7.7320 exit 6.2300 sh    17 | planned -$28.87 realized $-54.40 = 1.88R | beyond plan $25.53
+   YHC    2026-07-22 ignition      entry 2.1900 stop 2.0838 exit 2.0000 sh   296 | planned -$29.96 realized $-54.76 = 1.83R | beyond plan $24.80
+   SLND   2026-07-17 ignition      entry 1.1000 stop 0.9970 exit 0.9300 sh   288 | planned -$29.92 realized $-48.07 = 1.61R | beyond plan $18.15
+
+  BY LANE (n / blew-through / $ beyond plan):
+   ignition       n= 29  blew= 22  beyond=$  186.61
+   vwap_reclaim   n= 10  blew=  7  beyond=$  102.79
+   zone_flip      n=  1  blew=  1  beyond=$   89.78
+   unstamped      n=  6  blew=  4  beyond=$   26.76
+   ma_pullback    n=  1  blew=  1  beyond=$   25.53
+   hidden_entry   n=  1  blew=  1  beyond=$    9.37
+   flat_top       n=  3  blew=  0  beyond=$    0.00

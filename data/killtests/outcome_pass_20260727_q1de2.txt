@@ -1,0 +1,20 @@
+VEEE in closed store? [('2026-07-10', None, -4.64), ('2026-07-17', 'ignition', 52.2), ('2026-07-17', 'ignition', -28.17), ('2026-07-17', 'ignition', 23.38), ('2026-07-27', 'vwap_reclaim', -99.47)]
+
+Q1d ADDENDUM — dollars SURRENDERED from peak (all 50 banked trades):
+  n=50  total peak-to-realized surrender: $2083.42
+   ZYBT   2026-07-20 ignition      peak +$ 511.21 realized $ 164.79 surrendered $ 346.42
+   CPHI   2026-07-16 flat_top      peak +$ 352.35 realized $  62.89 surrendered $ 289.46
+   BIYA   2026-07-20 ignition      peak +$ 139.56 realized $  23.69 surrendered $ 115.87
+   JLHL   2026-07-15 vwap_reclaim  peak +$ 153.56 realized $  50.18 surrendered $ 103.38
+   YYGH   2026-07-14 ignition      peak +$ 123.41 realized $  39.12 surrendered $  84.29
+   ADVB   2026-07-23 ignition      peak +$ 112.08 realized $  29.37 surrendered $  82.71
+   VEEE   2026-07-17 ignition      peak +$ 129.30 realized $  52.20 surrendered $  77.10
+   LEDS   2026-07-17 flat_top      peak +$ 123.47 realized $  46.89 surrendered $  76.58
+
+Q1e ADDENDUM — relax to >=1.5R and >=1.0R MFE, zero partials:
+   >=2.0R : n=  0  peak=$    0.00  realized=$    0.00
+   >=1.5R : n=  1  peak=$   48.60  realized=$  -39.29
+        LVWR   2026-07-27 hidden_entry  peak +$ 48.60 (1.62R) realized $ -39.29 Stop loss 🛑
+   >=1.0R : n=  2  peak=$   56.98  realized=$  -49.29
+        LVWR   2026-07-27 hidden_entry  peak +$ 48.60 (1.62R) realized $ -39.29 Stop loss 🛑
+        VRAX   2026-07-16 ignition      peak +$  8.38 (1.09R) realized $ -10.00 Stop loss 🛑

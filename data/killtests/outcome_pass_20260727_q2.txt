@@ -1,0 +1,39 @@
+Q2a CLAMP-BINDING CENSUS
+  cohort: era ex-PRE with size_clamp stamped: n=5/144  <-- field shipped 7/26, so n is small by construction
+   risk             n=  4  P&L=$ -129.24  median planned_risk=$29.92
+        LGHL   2026-07-27 zone_flip     $-119.70  planned -$29.92  sh 285
+        DFNS   2026-07-27 zone_flip     $  -2.29  planned -$29.97  sh 111
+        BIYA   2026-07-27 ignition      $  32.04  planned -$29.65  sh 62
+        LVWR   2026-07-27 hidden_entry  $ -39.29  planned -$29.92  sh 187
+   notional         n=  1  P&L=$  -36.71  median planned_risk=$27.07
+        KIDZ   2026-07-27 vwap_reclaim  $ -36.71  planned -$27.07  sh 1854
+
+Q2b TIGHT-STOP PATHOLOGY (risk_per_share < 1% of entry)
+  cohort n=138; tight n=2
+  tight P&L $-22.79  |  rest P&L $-179.90
+  tight winners 1/2  | rest winners 73/136
+   VMAR   2026-07-20 ignition      entry 1.0800 rps 0.0084 (0.78%) spread 1.85% | $ -23.25
+   INUV   2026-07-13 ?             entry 1.2800 rps 0.0088 (0.69%) spread 3.91% | $   0.46
+
+  STOP-INSIDE-SPREAD (risk_per_share < L1 spread):
+   n=23  P&L $-95.33  winners 12/23
+    HPAI   2026-07-17 vwap_reclaim  rps 0.0257 spread 0.0350 $ -91.26
+    KIDZ   2026-07-27 vwap_reclaim  rps 0.0146 spread 0.0276 $ -36.71
+    VMAR   2026-07-20 ignition      rps 0.0084 spread 0.0200 $ -23.25
+    QNCX   2026-07-16 vwap_reclaim  rps 0.4736 spread 0.7300 $ -15.07
+    INBS   2026-07-13 ?             rps 0.0823 spread 0.0900 $ -12.17
+    VRAX   2026-07-16 ignition      rps 0.0456 spread 0.0600 $ -10.00
+    CRMT   2026-07-13 ?             rps 0.1573 spread 0.1700 $  -8.17
+    LEDS   2026-07-15 ignition      rps 0.0469 spread 0.0500 $  -6.72
+
+Q2c SLIPPAGE TAX
+  n=138  total est_slippage $1206.19  vs era P&L $-205.34
+  slippage EXCEEDED planned_risk: n=23
+   KIDZ   2026-07-27 vwap_reclaim  slip $51.17 vs planned risk $27.07 | P&L $ -36.71
+   HPAI   2026-07-17 vwap_reclaim  slip $40.85 vs planned risk $29.99 | P&L $ -91.26
+   VTAK   2026-07-15 ignition      slip $34.10 vs planned risk $29.97 | P&L $  21.83
+   SMX    2026-07-15 vwap_reclaim  slip $34.00 vs planned risk $29.30 | P&L $   0.00
+   LEDS   2026-07-15 ignition      slip $33.52 vs planned risk $29.96 | P&L $  27.21
+   NYC    2026-07-16 vwap_reclaim  slip $33.35 vs planned risk $19.03 | P&L $  20.99
+   TJGC   2026-07-15 vwap_reclaim  slip $29.52 vs planned risk $19.48 | P&L $   4.92
+   INDP   2026-07-15 vwap_reclaim  slip $25.28 vs planned risk $12.67 | P&L $   4.74

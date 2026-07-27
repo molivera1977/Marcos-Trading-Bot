@@ -1,0 +1,31 @@
+Q5b DEDUPE CORRECTION (prev subtotal double-counted multi-lane allows on same ticker/day):
+  distinct (date,ticker) with src=none allow: 21; found in store: 8
+  deduped P&L of those trades: $-361.16
+    of which PRE (quarantined): n=3 $-195.21
+    RTH: n=5 $-165.95  -> [('BIYA', 32.04), ('DFNS', -2.29), ('KIDZ', -36.71), ('LGHL', -119.7), ('LVWR', -39.29)]
+  bypass fires by DATE: {'2026-07-27': 26}
+  'broke_level'/sheet allows by DATE: {'2026-07-23': 3, '2026-07-24': 16, '2026-07-27': 3}
+
+Q4a/Q4b DAY-GAIN FLOOR — what it blocked (window 7/23-7/27)
+  daygain_reject n=78  by machine: {'flat_top': 29, 'ma_pullback': 25, 'orb': 2, 'ignition': 22}
+  by date: {'2026-07-23': 10, '2026-07-24': 49, '2026-07-27': 19}
+  blocked day_gain distribution: min -64.8  p25 -7.6  med 7.5  p75 12.3  max 21.6
+  blocked in 0..15 band (the part floor=15 still blocks): n=44
+  blocked with NEGATIVE day gain: n=24  tickers ['AEHL', 'BIRD', 'BNAI', 'DCOY', 'EXYN', 'GOVX', 'HCAI', 'HTCO', 'HTCR', 'JLHL', 'KIDZ', 'MOBX']
+
+  distinct blocked names + their worst day_gain:
+    KIDZ   2026-07-27 dg   -64.77%  |  also TRADED that day by an exempt lane: True
+    BIRD   2026-07-24 dg   -54.59%  |  also TRADED that day by an exempt lane: False
+    JLHL   2026-07-27 dg   -48.42%  |  also TRADED that day by an exempt lane: False
+    QH     2026-07-24 dg   -45.96%  |  also TRADED that day by an exempt lane: False
+    GOVX   2026-07-27 dg   -42.16%  |  also TRADED that day by an exempt lane: False
+    AEHL   2026-07-27 dg   -39.69%  |  also TRADED that day by an exempt lane: False
+    BNAI   2026-07-27 dg   -38.04%  |  also TRADED that day by an exempt lane: False
+    VGAS   2026-07-27 dg   -32.90%  |  also TRADED that day by an exempt lane: False
+    DCOY   2026-07-27 dg   -30.15%  |  also TRADED that day by an exempt lane: False
+    HCAI   2026-07-27 dg   -29.60%  |  also TRADED that day by an exempt lane: False
+    HTCR   2026-07-24 dg   -26.71%  |  also TRADED that day by an exempt lane: False
+    HTCO   2026-07-27 dg   -17.05%  |  also TRADED that day by an exempt lane: False
+    SLXN   2026-07-27 dg   -13.55%  |  also TRADED that day by an exempt lane: False
+    NCTY   2026-07-27 dg    -7.58%  |  also TRADED that day by an exempt lane: False
+    OCG    2026-07-24 dg    -5.74%  |  also TRADED that day by an exempt lane: False

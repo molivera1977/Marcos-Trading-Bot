@@ -1,0 +1,80 @@
+Q5 COHORT LIMIT: decision log is capped at 8000 rows = 2026-07-23 -> 2026-07-27 ONLY (5 sessions).
+  All Q5/Q6 results below are that window, NOT the full era. Earlier decision rows are not retrievable via this endpoint.
+
+Q5b BYPASS AUDIT — chart_gate_allow by reason/src
+  chart_gate_allow n=48
+  by (reason, src):
+    ('live_structure', 'none')               26
+    ('broke_level', 'sheet')                 22
+
+  src='none' (ALLOWED WITH NO CHART READ): n=26
+    BIYA   2026-07-27 04:12:16 AM vwap_reclaim  reason=live_structure enforced=True day_gain=534.84
+    LGHL   2026-07-27 04:14:10 AM vwap_reclaim  reason=live_structure enforced=True day_gain=140.53
+    VEEE   2026-07-27 04:55:17 AM vwap_reclaim  reason=live_structure enforced=True day_gain=188.22
+    GMEX   2026-07-27 04:59:21 AM vwap_reclaim  reason=live_structure enforced=True day_gain=144.23
+    MTNB   2026-07-27 05:21:51 AM vwap_reclaim  reason=live_structure enforced=True day_gain=-28.49
+    JZXN   2026-07-27 07:03:41 AM vwap_reclaim  reason=live_structure enforced=True day_gain=8.89
+    DFNS   2026-07-27 09:31:56 AM zone_flip     reason=live_structure enforced=True day_gain=3190.83
+    RACC   2026-07-27 09:33:23 AM zone_flip     reason=live_structure enforced=True day_gain=17.97
+    BNAI   2026-07-27 09:41:06 AM vwap_reclaim  reason=live_structure enforced=True day_gain=-38.19
+    LGHL   2026-07-27 09:42:07 AM zone_flip     reason=live_structure enforced=True day_gain=218.75
+    VEEE   2026-07-27 09:50:05 AM hidden_entry  reason=live_structure enforced=True day_gain=204.13
+    GMEX   2026-07-27 09:50:05 AM vwap_reclaim  reason=live_structure enforced=True day_gain=162.87
+    SDOT   2026-07-27 09:50:05 AM vwap_reclaim  reason=live_structure enforced=True day_gain=22.06
+    SLMT   2026-07-27 09:50:05 AM vwap_reclaim  reason=live_structure enforced=True day_gain=-27.0
+    JLHL   2026-07-27 09:52:49 AM vwap_reclaim  reason=live_structure enforced=True day_gain=-46.33
+    NIPG   2026-07-27 09:55:15 AM hidden_entry  reason=live_structure enforced=True day_gain=7569.04
+    HIHO   2026-07-27 09:56:50 AM vwap_reclaim  reason=live_structure enforced=True day_gain=50.45
+    LVWR   2026-07-27 09:58:06 AM hidden_entry  reason=live_structure enforced=True day_gain=154.87
+    BIYA   2026-07-27 10:02:16 AM vwap_reclaim  reason=live_structure enforced=True day_gain=714.15
+    CJMB   2026-07-27 10:03:59 AM vwap_reclaim  reason=live_structure enforced=True day_gain=309.08
+    AEHL   2026-07-27 10:14:34 AM vwap_reclaim  reason=live_structure enforced=True day_gain=-35.71
+    ZNB    2026-07-27 10:14:34 AM vwap_reclaim  reason=live_structure enforced=True day_gain=279.57
+    NXTC   2026-07-27 10:27:28 AM vwap_reclaim  reason=live_structure enforced=True day_gain=138.61
+    WSHP   2026-07-27 10:38:42 AM vwap_reclaim  reason=live_structure enforced=True day_gain=14.63
+    KIDZ   2026-07-27 10:40:54 AM vwap_reclaim  reason=live_structure enforced=True day_gain=-63.82
+    JZXN   2026-07-27 10:47:43 AM vwap_reclaim  reason=live_structure enforced=True day_gain=8.88
+
+  filled rows in window: n=17
+  src='none' allows that produced a FILL same day: n=13
+    BIYA   2026-07-27 vwap_reclaim  -> trade P&L $32.04
+    LGHL   2026-07-27 vwap_reclaim  -> trade P&L $-119.70
+    VEEE   2026-07-27 vwap_reclaim  -> trade P&L $-99.47
+    MTNB   2026-07-27 vwap_reclaim  -> trade P&L $-14.26
+    JZXN   2026-07-27 vwap_reclaim  -> trade P&L $-81.48
+    DFNS   2026-07-27 zone_flip     -> trade P&L $-2.29
+    LGHL   2026-07-27 zone_flip     -> trade P&L $-119.70
+    VEEE   2026-07-27 hidden_entry  -> trade P&L $-99.47
+    LVWR   2026-07-27 hidden_entry  -> trade P&L $-39.29
+    BIYA   2026-07-27 vwap_reclaim  -> trade P&L $32.04
+    NXTC   2026-07-27 vwap_reclaim  -> trade P&L NOT IN STORE (open or unrecorded)
+    KIDZ   2026-07-27 vwap_reclaim  -> trade P&L $-36.71
+    JZXN   2026-07-27 vwap_reclaim  -> trade P&L $-81.48
+    subtotal of matched fills: $-629.77
+
+Q5a CHART-GATE SCORECARD (window 7/23-7/27)
+  chart_gate_allow           n= 48  tickers=27
+  chart_gate_block           n= 21  tickers=15
+      SKYQ   2026-07-23 ma_pullback   reason=no_break_below_level why=None
+      ZYBT   2026-07-23 flat_top      reason=no_break_below_level why=None
+      WLDS   2026-07-23 flat_top      reason=no_break_below_level why=None
+      PN     2026-07-24 ignition      reason=no_break_below_level why=None
+      PN     2026-07-24 ignition      reason=no_break_below_level why=None
+      MSS    2026-07-24 ignition      reason=no_break_below_level why=None
+  chart_gate_blocked_trade   n= 28  tickers=21
+      SKYQ   2026-07-23 ?             reason=no_break_below_level why=None
+      ZYBT   2026-07-23 ?             reason=no_break_below_level why=None
+      WLDS   2026-07-23 ?             reason=no_break_below_level why=None
+      PN     2026-07-24 ?             reason=no_break_below_level why=None
+      ZYBT   2026-07-24 ?             reason=no_marked_level why=None
+      PN     2026-07-24 ?             reason=no_break_below_level why=None
+  chart_gate_skip            n=  7  tickers=7
+      ZYBT   2026-07-24 ignition      reason=no_marked_level why=None
+      AMIX   2026-07-24 ignition      reason=no_marked_level why=None
+      PAPL   2026-07-24 flat_top      reason=no_marked_level why=None
+      SDOT   2026-07-27 ignition      reason=no_marked_level why=None
+      EHGO   2026-07-27 ignition      reason=no_marked_level why=None
+      NXTC   2026-07-27 ignition      reason=no_marked_level why=None
+
+  ALLOWED->FILLED P&L (window):
+    n=10 distinct allowed+filled trades in store, P&L $-387.80

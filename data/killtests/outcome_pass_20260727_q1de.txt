@@ -1,0 +1,19 @@
+Q1d/Q1e COHORT: era ex-PRE with partial_fills field present: n=112  (excluded 32 pre-field rows)
+
+Q1d BANKED-THEN-RED
+  trades that banked >=1 partial: 50
+  of those, finished NET RED: 4  ($-7.98)
+   CLRO   2026-07-15 vwap_reclaim  entry 8.5300 exit 7.7100 high 9.8000 | banked 1 leg(s) | net $-0.31 | Trailing stop 📉
+        leg: [17, 9.38]
+   JLHL   2026-07-17 ignition      entry 10.1200 exit 9.6400 high 10.6299 | banked 1 leg(s) | net $-5.12 | Trailing stop 📉
+        leg: [43, 10.48]
+   LVWR   2026-07-24 flat_top      entry 1.6100 exit 1.5000 high 1.7650 | banked 1 leg(s) | net $-0.26 | HEALTH FOLD (lost VWAP+EMA)
+        leg: [132, 1.7287]
+   DFNS   2026-07-27 zone_flip     entry 6.7100 exit 6.3400 high 7.1899 | banked 1 leg(s) | net $-2.29 | Trailing stop 📉
+        leg: [55, 7.04]
+
+Q1e UNBANKED PEAK (>=2R MFE, zero partials)
+  n=0  total unbanked peak dollars: $0.00
+  their realized total: $0.00
+
+  BY LANE (n / peak$ / realized$):

@@ -1,0 +1,14 @@
+TICKER/DAY WITH >1 TRADE in the Q1b/Q1c window (join ambiguity):
+  BIYA   2026-07-27  n=2
+  LGHL   2026-07-27  n=2
+
+  => of the 10 rows in the Q1b/Q1c table, these are AMBIGUOUS: ['BIYA', 'LGHL']
+  => Q1c candidates LVWR(7/24) and DFNS(7/27) are unambiguous; BIYA/JZXN(7/27) are CONTAMINATED
+
+  BIYA 2026-07-27 legs:
+     vwap_reclaim  sess=PRE entry 2.6200 stop 2.5706 exit 1.9300 $ -262.89 BLIND-STOP FAILSAFE 🛟
+     ignition      sess=RTH entry 3.1900 stop 2.7118 exit 3.2400 $   32.04 HEALTH FOLD (lost VWAP+EMA)
+
+  LGHL 2026-07-27 legs:
+     vwap_reclaim  sess=PRE entry 1.4900 stop 1.386 exit 0.9100 $ -166.40 BLIND-STOP FAILSAFE 🛟
+     zone_flip     sess=RTH entry 1.9800 stop 1.87 exit 1.5500 $ -119.70 Stop loss 🛑

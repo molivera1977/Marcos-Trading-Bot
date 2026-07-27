@@ -51,6 +51,26 @@ check("D2 history is a UNION across the session — repeats can never shrink it 
 check("D2b union is FIRST-SEEN ordered, not alphabetical (7/26 F2: alphabet no longer decides cap-150 evictions)",
       "FIRST-SEEN ORDER" in DASH and "sorted(prev | {str(t).upper().strip()" not in DASH)
 
+
+# ── 7/26 dashboard display fixes (review #9) ──
+check("V1 P&L correction merges AT RENDER (store untouched): loader + _cpnl + corrected serve",
+      "_PNL_CORR" in DASH and "def _cpnl(t):" in DASH and '"pnl_corrected"' in DASH
+      and "pnl_runner_leg_correction_20260726.json" in DASH)
+check("V2 premarket exit story ABOVE the eod matcher (9:25 flatten no longer narrates as end-of-day)",
+      DASH.index("/premarket time stop/i") < DASH.index("/eod|close|time/i"))
+check("V3 strategy card = current truth (retired gates named, hidden entry + PRE regime + floor 15 present)",
+      "Retired 7/26" in DASH and "hidden entry" in DASH and "Day-gain floor" in DASH
+      and "Momentum: HARD gate" not in DASH and "ROCKET CATCHER (vel" not in DASH)
+check("V4 BOT badge mirrors 30M + float-N/A-kept (both sites)",
+      DASH.count("(r.float_shares<=0)||(r.float_shares<30000000)") == 2
+      and "float_shares<20000000" not in DASH)
+check("V5 day2 filters ZZ* sentinels from the observations table",
+      "startsWith('ZZ')" in DASH)
+check("V6 premarket board shows REAL PRE conversions + PRE ledger + health line",
+      '"_converted"' in DASH and "CONVERTED — real PRE trade" in DASH
+      and "Premarket trades <span>— the PRE ledger" in DASH and "ZZREADERBEAT" in DASH
+      and "PREMARKET REGIME LIVE" in DASH)
+
 print(f"\n{'='*60}\n#101 WATCH-PANEL RIG: {len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:
     print("FAILED:", *FAIL, sep="\n  ")

@@ -88,6 +88,26 @@ def _save_trades():
         except Exception as e:
             print(f"⚠️  Could not save trades: {e}")
 
+# ── 7/26 DISPLAY CORRECTION (dashboard review F1): the store is append-only by ruling, but the
+#    GLASS must not keep showing the 37 runner-leg-corrupted pnl values Marcos formally superseded.
+#    Correction merges AT RENDER (store untouched): data/killtests/pnl_runner_leg_correction_20260726.json
+_PNL_CORR, _PNL_CORR_N = {}, 0
+try:
+    with open(str(pathlib.Path(__file__).parent / "data/killtests/pnl_runner_leg_correction_20260726.json")) as _cf:
+        for _row in json.load(_cf):
+            _tid = str(_row.get("trade_id") or "")
+            if _tid and _row.get("corrected") is not None:
+                _PNL_CORR[_tid] = float(_row["corrected"])
+                if abs(float(_row.get("delta") or 0)) > 0.005:
+                    _PNL_CORR_N += 1
+    print(f"🩹 P&L display correction loaded: {_PNL_CORR_N} materially-corrected records (runner-leg ledger)")
+except Exception as _e:
+    print(f"⚠️  P&L correction ledger not loaded ({_e}) — dashboard shows STORED pnl")
+
+def _cpnl(t):
+    """Corrected pnl for display; stored value untouched in the store."""
+    return _PNL_CORR.get(str(t.get("trade_id") or ""), t.get("pnl", 0) or 0)
+
 def _compute_stats():
     if not _trades:
         return {
@@ -96,15 +116,15 @@ def _compute_stats():
             "best_pnl": 0, "best_ticker": "—", "worst_pnl": 0, "worst_ticker": "—",
             "equity_curve": [],
         }
-    wins      = [t for t in _trades if t.get("pnl", 0) > 0]
-    losses    = [t for t in _trades if t.get("pnl", 0) < 0]
-    breakeven = [t for t in _trades if t.get("pnl", 0) == 0]   # $0 scratches are their OWN bucket, not losses
-    total_pnl = sum(t.get("pnl", 0) for t in _trades)
-    best  = max(_trades, key=lambda t: t.get("pnl", 0))
-    worst = min(_trades, key=lambda t: t.get("pnl", 0))
+    wins      = [t for t in _trades if _cpnl(t) > 0]
+    losses    = [t for t in _trades if _cpnl(t) < 0]
+    breakeven = [t for t in _trades if _cpnl(t) == 0]   # $0 scratches are their OWN bucket, not losses
+    total_pnl = sum(_cpnl(t) for t in _trades)
+    best  = max(_trades, key=lambda t: _cpnl(t))
+    worst = min(_trades, key=lambda t: _cpnl(t))
     running, curve = 0.0, []
     for t in sorted(_trades, key=lambda t: t.get("date", "")):
-        running += t.get("pnl", 0)
+        running += _cpnl(t)
         curve.append({"date": t["date"], "equity": round(running, 2)})
     return {
         "total_trades": len(_trades),
@@ -115,9 +135,9 @@ def _compute_stats():
         "total_pnl":    round(total_pnl, 2),
         "avg_gain":     round(sum(t.get("pnl_pct", 0) for t in wins)  / max(len(wins), 1), 1),
         "avg_loss":     round(sum(t.get("pnl_pct", 0) for t in losses) / max(len(losses), 1), 1),
-        "best_pnl":     round(best.get("pnl", 0), 2),
+        "best_pnl":     round(bes_cpnl(t), 2),
         "best_ticker":  best.get("ticker", "—"),
-        "worst_pnl":    round(worst.get("pnl", 0), 2),
+        "worst_pnl":    round(wors_cpnl(t), 2),
         "worst_ticker": worst.get("ticker", "—"),
         "equity_curve": curve,
     }
@@ -739,7 +759,7 @@ function renderRows(rows){
     kb=(b.kev===true||_kevSet.has((b.symbol||'').toUpperCase()))?1:0; return kb-ka});   // stable: Kev pins top
   var tbody=document.getElementById('tbody');
   tbody.innerHTML=sorted.map(function(r){
-    var isBot=(r.price<=20)&&(r.float_shares>0)&&(r.float_shares<20000000);  // mirrors the BOT: price<$20 + known float<20M
+    var isBot=(r.price<=20)&&((r.float_shares<=0)||(r.float_shares<30000000));  // mirrors the BOT 7/26: price<$20 + float<30M, float-N/A KEPT
     var gapClass=r.change_pct>=10?'gap-hot':'gap-warm';
     var floatClass=r.float_tier==='small'?'float-small':r.float_tier==='medium'?'float-med':'float-na';
     var relVol=r.relative_volume?r.relative_volume.toFixed(1)+'×':'—';
@@ -859,7 +879,7 @@ function renderResults(d){
     tbody.innerHTML='<tr><td colspan="'+colSpan+'" class="empty">No candidates found. Markets may be closed or pre-market data unavailable.</td></tr>';
     return;
   }
-  var botCount=rows.filter(function(r){return (r.price<=20)&&(r.float_shares>0)&&(r.float_shares<20000000);}).length;
+  var botCount=rows.filter(function(r){return (r.price<=20)&&((r.float_shares<=0)||(r.float_shares<30000000));}).length;
   document.getElementById('s-bot-count').textContent=botCount?botCount+' bot candidates':'';
   renderRows(rows);
 
@@ -1063,7 +1083,16 @@ def get_account_balance_api():
 
 @app.route("/api/trades")
 def api_trades():
-    return jsonify({"trades": _trades, "stats": _compute_stats(), "account": _account})
+    out = []
+    for t in _trades:
+        c = _cpnl(t)
+        if abs(c - (t.get("pnl", 0) or 0)) > 0.005:
+            t2 = dict(t); t2["pnl_stored"] = t.get("pnl"); t2["pnl"] = c; t2["pnl_corrected"] = True
+            out.append(t2)
+        else:
+            out.append(t)
+    return jsonify({"trades": out, "stats": _compute_stats(), "account": _account,
+                    "pnl_correction_applied": _PNL_CORR_N})
 
 @app.route("/api/trades/clear", methods=["POST"])
 def clear_trades():
@@ -1954,10 +1983,27 @@ def premarket_dashboard():
         if t:
             last_row[t] = r
         st = r.get("status") or ""
+        # 7/26 (dashboard review F6 — Marcos: "Will I be able to watch those trades there?"):
+        # REAL premarket conversions now land in the fires table too, tagged CONVERTED.
+        _rec_hm = str(r.get("recorded_at") or "")[11:16]
         if st in SHADOW:
             fires.append(r)
             fire_count[t] = fire_count.get(t, 0) + 1
+        elif st == "filled" and _rec_hm and _rec_hm < "09:30":
+            r = dict(r); r["_converted"] = True
+            fires.append(r)
+            fire_count[t] = fire_count.get(t, 0) + 1
     fires = fires[-60:][::-1]
+    # PRE ledger: today's completed premarket trades (corrected pnl) + open PRE positions
+    pre_trades = [t for t in _trades if t.get("date") == today and t.get("entry_session") == "PRE"]
+    pre_pnl = round(sum(_cpnl(t) for t in pre_trades), 2)
+    open_pre = []
+    try:
+        for _ot in (_open_trades or {}).values():
+            if isinstance(_ot, dict) and str(_ot.get("entry_session") or "") == "PRE":
+                open_pre.append(_ot)
+    except Exception:
+        pass
 
     def esc(x):
         return (str(x).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
@@ -1967,9 +2013,24 @@ def premarket_dashboard():
         except (TypeError, ValueError): return "—"
 
     entries_open = now.strftime("%H:%M") >= "09:30"
-    banner = ("ENTRIES OPEN — live trading" if entries_open
-              else "SHADOW SESSION — watching + logging, entries open 09:30")
+    _in_pre_regime = "04:00" <= now.strftime("%H:%M") < "09:25"
+    banner = ("ENTRIES OPEN — RTH live trading" if entries_open
+              else ("PREMARKET REGIME LIVE — hidden-entry + reclaim convert FOR REAL (cap 6 · ≥$250k dvol · 9:25 flatten) · legacy lanes shadow"
+                    if _in_pre_regime else "9:25–9:30 dead window — no new PRE entries (flatten rule); RTH opens 09:30"))
     bcol = "#3fb950" if entries_open else "#d29922"
+    # system-health witnesses (7/26): reader heartbeat + capture/recorder boots, from the store
+    _hw = []
+    try:
+        _beats = [o for o in (_obs.get("observations") or []) if str(o.get("ticker")) == "ZZREADERBEAT"]
+        _hw.append("reader beat " + (str(_beats[-1].get("time") or "?") if _beats else "— none yet"))
+    except Exception: pass
+    try:
+        _bd = BARS_DIR / today
+        _cap_f = _bd / "ZZALPBOOT~ALP10S.json"
+        _hw.append("capture boots " + (str(len(json.loads(_cap_f.read_text()))) if _cap_f.exists() else "0"))
+        _hw.append("recorder " + ("up" if (_bd / "ZZRECBOOT~10S.json").exists() else "no boot row"))
+    except Exception: pass
+    health_line = " · ".join(_hw)
     rows_html = []
     for t in names:
         r = last_row.get(t) or {}
@@ -1987,14 +2048,16 @@ def premarket_dashboard():
     fires_html = []
     for r in fires:
         st = r.get("status")
-        lane_cls = "yellow" if st == "premarket_shadow_entry" else "purple"
+        lane_cls = ("green" if r.get("_converted") else ("yellow" if st == "premarket_shadow_entry" else "purple"))
         fires_html.append(
             "<tr><td class='num'>" + esc(r.get("time_hm") or r.get("time") or str(r.get("recorded_at") or "")[11:16]) + "</td>"
             "<td><a class='tk' href='/tale/" + esc(r.get("ticker")) + "'>" + esc(r.get("ticker")) + "</a></td>"
             "<td class='" + lane_cls + "'>" + esc(r.get("entry_type") or st) + "</td>"
             "<td class='num'>" + fmt(r.get("price")) + "</td>"
             "<td class='num'>" + fmt(r.get("stop")) + "</td>"
-            "<td class='muted'>" + esc(st) + "</td></tr>")
+            "<td class='" + ("green" if r.get("_converted") else "muted") + "'>"
+            + ("✅ CONVERTED — real PRE trade" if r.get("_converted")
+               else esc((r.get("why") or st))) + "</td></tr>")
     kev_n = sum(1 for t in names if t in kev)
     state_cls = "green" if entries_open else "yellow"
     # Dashboard-styled shell (Marcos 7/24: match the scanner/dashboard look + its dark/light
@@ -2041,17 +2104,40 @@ def premarket_dashboard():
             "</style></head><body>"
             "<div class='header'><div class='logo'><div class='logo-icon'>🌅</div>"
             "<div><h1>Premarket — Tale of the Tapes</h1><sub>" + banner + "</sub></div></div>"
-            "<div class='ts'>" + today + " " + hm + " ET · auto-refresh 30s</div></div>"
+            "<div class='ts'>" + today + " " + hm + " ET · auto-refresh 30s<br><span style='font-size:10px'>" + esc(health_line) + "</span></div></div>"
             "<div class='stats'>"
             "<div class='stat'><div class='stat-label'>Session</div><div class='stat-value " + state_cls + "'>"
             + ("LIVE" if entries_open else "SHADOW") + "</div></div>"
-            "<div class='stat'><div class='stat-label'>Shadow fires today</div><div class='stat-value "
+            "<div class='stat'><div class='stat-label'>Fires today (✅ converted + shadow)</div><div class='stat-value "
             + ("yellow" if fires else "muted") + "'>" + str(len(fires)) + "</div></div>"
+            "<div class='stat'><div class='stat-label'>PRE trades · P&L</div><div class='stat-value "
+            + ("green" if pre_pnl >= 0 else "yellow") + "'>" + str(len(pre_trades) + len(open_pre))
+            + " · $" + ("%+.2f" % pre_pnl) + "</div></div>"
             "<div class='stat'><div class='stat-label'>Names watched</div><div class='stat-value'>" + str(len(names)) + "</div></div>"
             "<div class='stat'><div class='stat-label'>Kev sheet</div><div class='stat-value yellow'>" + str(kev_n) + "</div></div>"
             "</div>"
             "<div class='section'><div class='card'>"
-            "<h2>Shadow fires <span>— the scorecard rows</span></h2>"
+            "<h2>Premarket trades <span>— the PRE ledger (real entries, 9:25-flattened; graded separately)</span></h2>"
+            "<div class='tw'><table><tr><th>ticker</th><th>lane</th><th>entry</th><th>exit</th><th>P&L</th><th>how it ended</th></tr>"
+            + ("".join(
+                "<tr><td><a class='tk' href='/tale/" + esc(t.get("ticker")) + "'>" + esc(t.get("ticker")) + "</a></td>"
+                "<td class='purple'>" + esc(t.get("entry_type") or "—") + "</td>"
+                "<td class='num'>" + fmt(t.get("entry")) + "</td>"
+                "<td class='num'>" + fmt(t.get("exit")) + "</td>"
+                "<td class='num " + ("green" if _cpnl(t) >= 0 else "yellow") + "'>$" + ("%+.2f" % _cpnl(t)) + "</td>"
+                "<td class='muted'>" + esc(t.get("exit_reason") or "") + "</td></tr>"
+                for t in pre_trades)
+               + "".join(
+                "<tr><td><a class='tk' href='/tale/" + esc(o.get("ticker")) + "'>" + esc(o.get("ticker")) + "</a></td>"
+                "<td class='purple'>" + esc(o.get("entry_type") or "—") + "</td>"
+                "<td class='num'>" + fmt(o.get("entry") or o.get("entry_price")) + "</td>"
+                "<td class='green'>OPEN</td><td class='muted'>—</td>"
+                "<td class='green'>live — flattens 9:25</td></tr>"
+                for o in open_pre)
+               or "<tr><td colspan=6 class='muted'>none yet — PRE conversions land here as they fire (hidden + reclaim only)</td></tr>")
+            + "</table></div></div></div>"
+            "<div class='section'><div class='card'>"
+            "<h2>Fires <span>— ✅ converted = real PRE trade · 👥 shadow rows show WHY they didn't convert</span></h2>"
             "<div class='tw'><table><tr><th>time</th><th>ticker</th><th>lane</th><th>price</th><th>stop</th><th>row</th></tr>"
             + ("".join(fires_html) or "<tr><td colspan=6 class='muted'>none yet — machines watching</td></tr>")
             + "</table></div></div></div>"
@@ -2060,7 +2146,7 @@ def premarket_dashboard():
             "<div class='tw'><table><tr><th>ticker</th><th>last px</th><th>latest read</th><th>at</th><th>Kev level → tgts</th><th>fires</th></tr>"
             + ("".join(rows_html) or "<tr><td colspan=6 class='muted'>roster empty — bot not awake yet</td></tr>")
             + "</table></div></div></div>"
-            "<div class='footer'>Entries hard-gated until 09:30 · shadow rows land here as the machines fire</div>"
+            "<div class='footer'>PRE regime: real hidden/reclaim entries 4:00–9:25 (cap 6, $250k dvol) · flatten 9:25 · dead window 9:25–9:30 · legacy lanes shadow until 9:30</div>"
             "</body></html>")
     # plain string return (NOT render_template_string — this HTML is dynamically built from
     # decision rows; no Jinja pass wanted over data-derived text)
@@ -2185,7 +2271,7 @@ function money(n){return n==null?'—':'$'+Number(n).toFixed(3);}
 fetch('/api/day2').then(r=>r.json()).then(d=>{
   document.getElementById('watch').innerHTML = '<b>Watching for day-2:</b> ' +
     ((d.day2_watch||[]).map(t=>'<span class="chip">'+t+'</span>').join('') || '<span class="sub">none seeded yet</span>');
-  const obs=(d.observations||[]).slice().reverse();
+  const obs=(d.observations||[]).filter(o=>!String(o.ticker||'').startsWith('ZZ')).slice().reverse();  // ZZ* = system health sentinels, not market rows
   const tb=document.getElementById('rows');
   if(!obs.length){tb.innerHTML='<tr><td colspan="9"><div class="empty">No day-2 observations yet — they\\'ll appear here during market hours.</div></td></tr>';return;}
   tb.innerHTML=obs.map(o=>`<tr>
@@ -2458,22 +2544,22 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="panel-card">
     <div class="panel-title">v10 Strategy Parameters</div>
     <div class="param-grid">
-      <div class="param-pill"><span>Qualify</span><strong>price &lt;$20 · float &lt;20M · gap÷float rank · volume-ignition (2× RVOL, flat OK)</strong></div>
-      <div class="param-pill"><span>Setup TF</span><strong>3-min chart — setups AND trade management</strong></div>
-      <div class="param-pill"><span>Entries</span><strong>ignition (1-min) · flat-top · ORB · MA-pullback · VWAP-reclaim 3-gate (10s) · zone-flip (10s) · 🚀 ROCKET CATCHER (vel ≥25%/5min → 20-EMA pullback → curl, cap 3/day)</strong></div>
-      <div class="param-pill"><span>Chart Gate</span><strong>ENFORCE — no break of the vision read's level, no trade · exhausted maps auto RE-READ intraday (v2+ maps)</strong></div>
-      <div class="param-pill"><span>Vel5 Floor</span><strong>no legacy breakout entry on NEGATIVE 5-min velocity (knife-catch guard) · curl machines exempt</strong></div>
-      <div class="param-pill"><span>Base</span><strong>≤12% chase-guard (room:risk is the real filter)</strong></div>
-      <div class="param-pill"><span>Daily-first</span><strong>above daily 20/50 MA + has room, else no trade</strong></div>
-      <div class="param-pill"><span>Room gate</span><strong>≥2:1 to next DAILY significant level</strong></div>
-      <div class="param-pill"><span>VWAP</span><strong>above VWAP (front-side); reversal setups reclaim it from below</strong></div>
-      <div class="param-pill"><span>Front-side</span><strong>9&gt;20 EMA — gated on pullback, observed on breakout</strong></div>
-      <div class="param-pill"><span>Momentum</span><strong>HARD gate — building vol + ≥30% of peak · reversal setups exempt · topping-tail = hard skip</strong></div>
-      <div class="param-pill"><span>Stop</span><strong>structural at the level (base/OR/MA low) · NO −7% · managed on the 3-min close</strong></div>
-      <div class="param-pill"><span>Exits</span><strong>kev25 on the 3-MIN CLOSE — 50%@+1R→BE · 25%@+2R · runner health-trail (VWAP/9-EMA) · 3:45 time stop · rockets: ⅓@+50% · ⅓@+100% · runner trails</strong></div>
-      <div class="param-pill"><span>Re-entry</span><strong>after exit → re-gated · topping-tail / consec-loss give-up</strong></div>
-      <div class="param-pill"><span>Entry Cutoff</span><strong>3:30pm ET</strong></div>
-      <div class="param-pill"><span>Quality logs</span><strong>entry_vel5 · read-confidence · L1 book · vol-trajectory — logged (study)</strong></div>
+      <div class="param-pill"><span>Qualify</span><strong>price &lt;$20 · float &lt;30M (N/A kept) · Move% rank · scanner 50M band = Kev-watch</strong></div>
+      <div class="param-pill"><span>Entries — fast (10s)</span><strong>ignition-10s (surge off quiet base) · 🫥 hidden entry (rocket wick @VWAP/90MA, 3/day/sess) · VWAP-reclaim 3-gate (9:30–11) · zone-flip (all RTH)</strong></div>
+      <div class="param-pill"><span>Entries — slow (3-min)</span><strong>flat-top · ORB · MA-pullback — break → retest ≤240s → confirm candle</strong></div>
+      <div class="param-pill"><span>Premarket (7/25)</span><strong>REAL PRE entries: hidden + reclaim only · cap 6 · ≥$250k dvol · 9:25 hard flatten · PRE ledger grades separately</strong></div>
+      <div class="param-pill"><span>Chart Gate</span><strong>ENFORCE (the ONE proven gate) — no break of the read's level (±2% band) · tape lanes trade live structure (Marcos 7/26: chart gates chart-trades, tape gates tape-trades)</strong></div>
+      <div class="param-pill"><span>Priority</span><strong>capital slots: Kev sheet → open positions → scanner Move% (🎖️ lines in log)</strong></div>
+      <div class="param-pill"><span>Day-gain floor</span><strong>≥15% (was 30 — collecting the 15-30 band this week) · curls + Kev names exempt</strong></div>
+      <div class="param-pill"><span>Vel5 Floor</span><strong>slow lanes only (vindicated 0.41R blocked) · ignition + curls exempt</strong></div>
+      <div class="param-pill"><span>Retired 7/26</span><strong>momentum gate (inverted on retests) · extension guard (slow+curl exempt; ignition-only) · daily-veto → OBSERVE · room ≥2:1 → observe (since 7/2)</strong></div>
+      <div class="param-pill"><span>Universal</span><strong>topping-tail (all lanes) · 10k/bar liquidity floor (RTH; ignition + premkt exempt)</strong></div>
+      <div class="param-pill"><span>Stop</span><strong>structural (base/OR/MA/wick low) · hidden 5% floor · flat-top/ORB 7% cap · managed on the 3-min close</strong></div>
+      <div class="param-pill"><span>Exits</span><strong>kev25 on 3-MIN CLOSE — 50%@+1R→BE · 25%@+2R · runner health-trail · 3:45 stop · rockets/hidden: ⅓@+50% ⅓@+100% · VERIFIED best-of-5 doctrines 7/26</strong></div>
+      <div class="param-pill"><span>Sizing</span><strong>$30 risk → shares · $1000 notional cap (halt-gap bound) · 5%-of-tape volume clamp · size_clamp logged per trade</strong></div>
+      <div class="param-pill"><span>P&L display</span><strong>runner-leg correction merged at render (store append-only by ruling)</strong></div>
+      <div class="param-pill"><span>Entry Cutoff</span><strong>3:30pm ET · re-entry re-gated</strong></div>
+      <div class="param-pill"><span>Quality logs</span><strong>size_clamp · entry_session · src=10s · enforced flags · vel5 · L1 book — Friday reads columns, not archaeology</strong></div>
     </div>
   </div>
   <div class="panel-card">
@@ -2886,6 +2972,7 @@ const EXIT_STORIES=[
  [/topping tail/i,'Rejected hard at the high (a topping tail) — the "this one is done" signal. Sold, and the ticker is benched for the day.'],
  [/target/i,'Hit the full profit target. 🎯'],
  [/recovered|watchdog/i,'Bookkeeping exit — the bot restarted (or a monitor froze), so the trade was closed at the last known price to keep the books honest.'],
+ [/premarket time stop/i,'Premarket practice trade — flattened at 9:25 by rule so nothing carries into the open.'],
  [/eod|close|time/i,'Closed at end of day — the bot never holds positions overnight.'],
 ];
 function exitStory(r){ for(const [re,s] of EXIT_STORIES){ if(re.test(r||'')) return s; } return r||'—'; }

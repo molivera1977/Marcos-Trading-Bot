@@ -366,3 +366,16 @@ the floor returns Friday, the MIN_STOP_EXEMPT list is THE decision point for thi
 REVISED IMPROVEMENT ORDER (all HYPOTHESIS, none shipped): (1) stop construction for this lane —
 wick-low is right but needs a volatility-aware floor; (2) per-lane exit ladder; (3) time-of-day;
 (4) slot rule (downgraded). All need the 234 fires replayed through the ACTUAL ladder in dollars.
+
+### 7/28 FABLE RULING — the reclaim fork (script: reclaim_widestop_counterfactual.py)
+Same 234 fires, same entries, stop floored at 6% (stop'=min(wick,entry*0.94)), tape re-walked,
+stop before high on every bar. reach-+6%-first / stopped-first / flat:
+  tight 36/183/15  ->  6%-floored 71/75/88.  Lower-bound expectancy −$21.15 -> −$5.06/fire
+  (winners credited $15 FLAT, all tails ignored — DFNS +133% books $15 here; true lower bound).
+RULINGS: (1) The 6% floor is confirmed a THIRD independent way — it kills a bad IMPLEMENTATION
+(tight stops), not a bad setup; readings A and B compose, no conflict. (2) NO reclaim exemption,
+NO stop change ships this week. (3) FRIDAY SHIP/KILL ITEM (pre-registered): the 234 fires through
+the ACTUAL exit ladder in dollars, tight vs 6%-floored, tails included, flats priced at the 15:45
+bar, slippage noted. Positive floored number -> fix stop construction (floored stop satisfies the
+floor by construction, exemption never needed); negative -> lane to shadow. (4) The 88 flats are
+tonight's soft spot — $0 both columns here, MUST be priced in the Friday replay. (5) Docket unchanged.

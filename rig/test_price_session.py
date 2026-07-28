@@ -66,3 +66,34 @@ if fails:
     print(f"RED — {len(fails)} failing: {fails}")
     sys.exit(1)
 print("GREEN — fix A: premarket serves live-or-nothing, RTH untouched, trap pinned, lens inherits")
+
+# ── 7/28 07:2x additions: the day-gain stale-base fix + zero-price fire suppression ──
+print("== P0-2: stale daily base -> day_gain must NOT stamp ==")
+src3 = pathlib.Path(bot.__file__).read_text()
+check("Alpaca daily limit raised (truncation killed)", '"limit": 10000' in src3
+      and src3.count('"timeframe": "1Day", "limit": 10000') == 1)
+check("staleness guard drops prior-day refs past 5 days", "_pdh = _pdc = None" in src3
+      and "daily series STALE" in src3)
+i_g = src3.find('if _age > 5:')
+i_r = src3.find('"prior_day_close": _pdc')
+check("guard runs BEFORE the return that feeds day_gain", 0 < i_g < i_r)
+
+print("== zero-price fire rows suppressed ==")
+check("curl shadow fires substitute the fire's own bar px",
+      '(zf_fire or {}).get("px") or (vr_fire or {}).get("px")' in src3)
+check("hidden fires substitute too", '_hpx = price if price and price > 0 else _he_fire.get("px")' in src3)
+# behavioral: a no-price call with no fire px logs NOTHING
+logged3 = []
+_ol3 = bot._log_decision
+bot._log_decision = lambda t, s, **kw: logged3.append((t, s, kw))
+try:
+    bot._shadow_log_curl_leftovers("ZZT", 0, {"px": 0}, None, 0, "test")
+    check("no price + no fire px -> no row at all", logged3 == [], f"got {logged3}")
+    bot._shadow_log_curl_leftovers("ZZT", 0, {"px": 3.33, "zone": 3.2, "stop": 3.1, "seq": 0}, None, 0, "test")
+    check("no price + fire px 3.33 -> row carries 3.33 not 0.0",
+          logged3 and logged3[0][2].get("price") == 3.33, f"got {logged3}")
+finally:
+    bot._log_decision = _ol3
+if fails:
+    print(f"RED after additions — {fails}"); sys.exit(1)
+print("GREEN including day-gain staleness + zero-price suppression")

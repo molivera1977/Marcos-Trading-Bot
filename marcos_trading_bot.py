@@ -1000,8 +1000,14 @@ def _alpaca_intraday_bars(ticker, count=30, sessions=None):
 def _alpaca_daily_items(ticker):
     """T6: Alpaca REST daily bars → the Webull items shape get_daily_levels parses
     ({'high','close','time'}). None → caller falls through to Webull (per-line degrade)."""
+    # 7/28 P0-2 (Marcos's 8357% DFNS day-gain): 400 calendar days ≈ 276 TRADING days, and Alpaca
+    # returns OLDEST-FIRST with `limit` capping the page — limit 250 cut the NEWEST ~26 bars for
+    # any name with a long history, so prior_day_close was ~a month stale (LVWR base 1.06 = its
+    # mid-June close → day_gain +146% on a +7% morning; every day-gain floor/exemption decision on
+    # long-history runners was computed against ancient bases). limit 10000 = the whole window in
+    # one page. get_daily_levels adds the staleness guard for any future vendor gap.
     j = _alpaca_rest_get(f"https://data.alpaca.markets/v2/stocks/{ticker}/bars",
-                         {"timeframe": "1Day", "limit": 250,
+                         {"timeframe": "1Day", "limit": 10000,
                           "start": (datetime.now(EASTERN) - timedelta(days=400)).strftime("%Y-%m-%dT00:00:00Z"),
                           "feed": "sip" if _ALP_FEED == "sip" else "iex", "adjustment": "raw"})
     if not j or not j.get("bars"):
@@ -3837,6 +3843,15 @@ def get_daily_levels(ticker):
         _prior = [b for b in bars if b["t"] and b["t"] < _today]
         _pdh = _prior[-1]["h"] if _prior else (bars[-2]["h"] if len(bars) >= 2 else None)
         _pdc = _prior[-1]["c"] if _prior else (bars[-2]["c"] if len(bars) >= 2 else None)
+        # 7/28 P0-2 STALENESS GUARD: a "prior day" older than 5 calendar days is a vendor gap
+        # (the truncation class, or a future one) — a stale base makes day_gain FICTION (DFNS
+        # 8357%). No data beats wrong data (B16): drop the prior-day refs, keep the SMAs/highs.
+        if _prior:
+            _age = (datetime.strptime(_today, "%Y-%m-%d") - datetime.strptime(_prior[-1]["t"], "%Y-%m-%d")).days
+            if _age > 5:
+                print(f"⚠️  {ticker} daily series STALE — last completed day {_prior[-1]['t']} "
+                      f"({_age}d old): prior-day close/high dropped (day_gain will not stamp)")
+                _pdh = _pdc = None
         return {"m20": _sma(20), "m50": _sma(50), "m200": _sma(200),
                 "reaction_highs": reaction,
                 "prior_day_high": _pdh,
@@ -4175,6 +4190,12 @@ def _shadow_log_curl_leftovers(t, price, zf_fire, vr_fire, sv, why):
     EVIDENCE — shadow-log it, never drop it. Called at every early-exit site in the watch loop."""
     if not (zf_fire or vr_fire):
         return
+    # 7/28: a no-price cycle (session-aware quote returned 0) must not log a 0.0-price fire row —
+    # the fire's own bar price is the honest value (it came from real 10s bars).
+    if not price or price <= 0:
+        price = (zf_fire or {}).get("px") or (vr_fire or {}).get("px") or 0
+        if not price:
+            return
     _hm = datetime.now(EASTERN).strftime("%H:%M")
     try:
         _gap, _bp = _level_gap(t, price)   # 7/27 ballpark stamp — Friday's dollar-grade column
@@ -5488,8 +5509,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             _he_fire = hidden_entry_step(t, _nb, _vr_sv)
                             if _he_fire:
                                 try:
-                                    _hg, _hbp = _level_gap(t, price)   # 7/27 ballpark stamp
-                                    _log_decision(t, "hidden_shadow_fire", price=price,
+                                    _hpx = price if price and price > 0 else _he_fire.get("px") or 0
+                                    _hg, _hbp = _level_gap(t, _hpx)   # 7/27 ballpark stamp
+                                    _log_decision(t, "hidden_shadow_fire", price=_hpx,
                                                   stop=_he_fire["stop"], anchor=_he_fire["anchor"],
                                                   ext_vwap=_he_fire["ext_vwap"], seq=_he_fire["seq"],
                                                   time_hm=datetime.now(EASTERN).strftime("%H:%M"),

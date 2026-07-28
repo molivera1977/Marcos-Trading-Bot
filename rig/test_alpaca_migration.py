@@ -152,7 +152,10 @@ try:
     # M9: T6 daily via the real get_daily_levels (DAILY_SOURCE=alpaca) — prior close correct
     _today = bot.datetime.now(bot.EASTERN).strftime("%Y-%m-%d")
     _days = [{"high": 1.0 + i * 0.01, "close": 1.0 + i * 0.01, "time": f"2026-06-{i:02d}"} for i in range(1, 26)]
-    _days += [{"high": 5.55, "close": 5.5, "time": "2026-07-22"}, {"high": 6.0, "close": 6.2, "time": _today}]
+    # 7/28: prior day must be DYNAMIC — the hardcoded 2026-07-22 aged past the new 5-day staleness
+    # guard (which correctly dropped it; the failure was the guard working on a stale fixture).
+    _yday = (bot.datetime.now(bot.EASTERN) - bot.timedelta(days=1)).strftime("%Y-%m-%d")
+    _days += [{"high": 5.55, "close": 5.5, "time": _yday}, {"high": 6.0, "close": 6.2, "time": _today}]
     bot.DAILY_SOURCE = "alpaca"
     _orig_daily = bot._alpaca_daily_items
     bot._alpaca_daily_items = lambda tk: list(_days)

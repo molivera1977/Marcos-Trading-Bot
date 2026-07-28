@@ -4016,6 +4016,75 @@ def _level_gap(ticker, price):
         return None, None
 
 
+# ── THE LEVEL LENS, STAGE 1 (7/28 pre-open; Marcos: "the bot is blind to where it is... arm the
+#    bot with this information not as a gate but as a lens from which to find its target").
+#    v1 = ATTENTION ONLY: a name whose price is near ANY of its marked prices (confirm / break /
+#    targets) is IN FOCUS — it moves to the FRONT of every watch cycle, and focus transitions are
+#    decision-logged. The lens never blocks, never resizes, never vetoes — it decides where the bot
+#    LOOKS first, nothing else. Stage 2 (detectors anchored to zones) is Friday-8/1-gated:
+#    LEVEL_AWARENESS_DESIGN.md. Focus band ±15% — deliberately wider than the ±10% outcome ballpark
+#    (attention should arrive BEFORE the outcome zone). LENS_FOCUS_PCT=0 disables.
+LENS_FOCUS_PCT = float(os.environ.get("LENS_FOCUS_PCT", "15"))   # percent; 0 = lens off
+_lens_state = {}   # ticker -> last in_focus bool (transition logging only)
+
+def _level_lens(ticker, price):
+    """(in_focus, nearest_zone_name, zone_px, dist_pct) vs the day's marked prices. Compare on the
+    ROUNDED distance (the minstop boundary lesson: raw float division rejects exact boundaries).
+    Fail-open: no levels / no price / any error → (False, None, None, None) — an unmapped name is
+    simply never in focus; it is NOT excluded from anything."""
+    try:
+        if not LENS_FOCUS_PCT or not price or price <= 0:
+            return False, None, None, None
+        lv = (_fetch_kev_levels() or {}).get(ticker) or {}
+        zones = []
+        for name in ("confirm", "break"):
+            try:
+                z = float(lv.get(name) or 0)
+                if z > 0:
+                    zones.append((name, z))
+            except (TypeError, ValueError):
+                pass
+        for i, tgt in enumerate(lv.get("targets") or []):
+            try:
+                z = float(tgt)
+                if z > 0:
+                    zones.append((f"target{i+1}", z))
+            except (TypeError, ValueError):
+                pass
+        if not zones:
+            return False, None, None, None
+        name, z = min(zones, key=lambda nz: abs(price - nz[1]))
+        dist_pct = round((price - z) / z * 100.0, 1)
+        return abs(dist_pct) <= LENS_FOCUS_PCT, name, z, dist_pct
+    except Exception:
+        return False, None, None, None
+
+
+def _lens_pass(candidates, stream):
+    """One watch cycle through the lens: compute focus per name from the live stream price, log
+    transitions, return candidates FOCUS-FIRST (sorted() is stable — scanner rank is preserved as
+    the tiebreak inside each group). Pure attention: every name still runs every cycle; a lens
+    error must never break the scan (fail-open to the incoming order)."""
+    try:
+        focus = {}
+        for t in candidates:
+            try:
+                infocus, zn, zpx, dist = _level_lens(t, stream.get_price(t) or 0)
+            except Exception:
+                infocus = False; zn = zpx = dist = None
+            focus[t] = infocus
+            prev = _lens_state.get(t)
+            if (prev is not None and prev != infocus) or (prev is None and infocus):
+                _log_decision(t, "lens_focus" if infocus else "lens_unfocus",
+                              zone=zn, zone_px=zpx, dist_pct=dist)
+                if infocus:
+                    print(f"🔎 {t} IN FOCUS — {dist:+.1f}% from {zn} {zpx} (lens: front of the cycle)")
+            _lens_state[t] = infocus
+        return sorted(candidates, key=lambda s: 0 if focus.get(s) else 1)
+    except Exception:
+        return candidates
+
+
 def _shadow_log_curl_leftovers(t, price, zf_fire, vr_fire, sv, why):
     """#89: a curl-machine fire that lost entry priority (or hit a loop `continue`) is still
     EVIDENCE — shadow-log it, never drop it. Called at every early-exit site in the watch loop."""
@@ -5194,6 +5263,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     cache.setdefault(t, {"bars": [], "vwap": 0.0, "fetched": 0.0})
                     print(f"   🔁 Re-admitted {t} for re-entry (Kev: fresh reclaim/pullback) "
                           f"— attempt #{reentry['count'].get(t, 0) + 1}")
+
+        # ── THE LENS (stage 1, 7/28): names near their marked levels go to the FRONT of the cycle.
+        #    Attention only — same names, same checks, focus-first order. LENS_FOCUS_PCT=0 = off.
+        candidates = _lens_pass(candidates, stream)
 
         # Refresh bars for each ticker every 30s
         for t in candidates:

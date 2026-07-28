@@ -278,3 +278,16 @@ CAVEATS: under-the-wall cut is post hoc, n=8; sheet coverage real only from 7/20
 FRIDAY 7/31 (pre-registered): grade UNDER-A-MARKED-WALL (<0.5R to first level above) as the runway
 question — not the naive band story. Separately: what distinguishes blue-sky wins from chases
 (candidates: leg position, volume state) — NEEDS the stamps now live. NO GATE SHIPS ON THIS.
+
+### 7/28 addendum — CLEAN-VISION CUT (Marcos: "these were the two days with least issues, most vision")
+7/27+7/28 RTH only, n=29 (working sheet + working custody; blind-stops excluded):
+  under wall <0.5R  0/3  −$115.29 | ROAD 0.5-2R  8/13  +$172.22 (p=0.0063) | >=2R 4/9 −$29.21
+  above-all-levels  0/4  −$125.28 (LVWR x3 + EGG — every one a chase; blue-sky winners all pre-7/27,
+  off thin 3-name sheets — "above all levels" may be time-split by sheet density: HYPOTHESIS)
+Reading artifacts: >=2R "13R/25R runways" = microscopic reclaim-lane stops, not long roads —
+runway-in-R degrades as stop width shrinks.
+CIRCULARITY CAVEAT (why this does NOT ship): band boundaries were chosen on the era table and
+these 29 fills ARE most of that table; p=0.0063 is largely in-sample.
+PRE-REGISTERED, BOUNDARIES FROZEN TONIGHT: Friday 7/31 grades ROAD 0.5-2R out-of-sample on
+Wed-Thu fills only, using the bot's own marked_runway_rr stamps (live since cf97981/c85cc73).
+under-wall <0.5R | road 0.5-2R | above_all_levels = own state. NO GATE BEFORE THAT GRADE.

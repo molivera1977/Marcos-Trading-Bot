@@ -260,3 +260,21 @@ winner) excluded, <5 prior 1-min bars. n=5 winners, one day.
 ACTION unchanged: stamp the detector's own reading on the trade record for every lane
 (currently ZERO volume fields persist - verified by key scan on /api/trades 7/28),
 plus window B as a second column. Grade Friday. NOT a gate.
+
+## 2026-07-28 — MARKED RUNWAY, ERA REVIEW (Marcos: "enough runway to travel on")
+Population: 62 clean RTH fills 7/13+ with sheet coverage (5 blind-stop 7/27 PRE rows excluded —
+custody-defect exits cannot grade entries). Runway = (first sheet target above entry − entry)/R.
+Bands NOT monotonic, low band NOT significant (p=0.1666, 20k shuffles):
+  <0.5R 6/18 −$152.89 | 0.5-1R 3/7 −$2.38 | 1-2R 6/11 +$140.41 | >=2R 11/26 −$40.67
+THE FINDING IS A SPLIT OF THE LOW BAND — two animals were fused:
+  UNDER A MARKED WALL (0<rr<0.5R): 1/8 wins, −$239.13 (NVVE, WBUY, LGHL, BIYA, JEM, SKYQ, CJMB / NIKI)
+    = bought within pennies of known supply and died there. Marcos's sentence, verbatim, in data.
+  ABOVE ALL MARKED LEVELS: 5/10, ~flat — BIMODAL: blue-sky winners (ZYBT 7/20 +$164.79 canonical,
+    ADVB, PN, MTEN, BIYA) fused with exhausted chases (EGG 7/28, LVWR 7/27 ×3, SKYQ). Nothing on
+    the sheet separates them; big marked runway also buys nothing (>=2R: 11/26, −$41).
+STAMP FIXED (c85cc73): above-all-levels now stamps the STATE "above_all_levels", not 0.0 — a 0.0
+would average ZYBT with EGG and Friday would learn nothing.
+CAVEATS: under-the-wall cut is post hoc, n=8; sheet coverage real only from 7/20 (vision reader).
+FRIDAY 7/31 (pre-registered): grade UNDER-A-MARKED-WALL (<0.5R to first level above) as the runway
+question — not the naive band story. Separately: what distinguishes blue-sky wins from chases
+(candidates: leg position, volume state) — NEEDS the stamps now live. NO GATE SHIPS ON THIS.

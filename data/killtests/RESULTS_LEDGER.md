@@ -291,3 +291,30 @@ these 29 fills ARE most of that table; p=0.0063 is largely in-sample.
 PRE-REGISTERED, BOUNDARIES FROZEN TONIGHT: Friday 7/31 grades ROAD 0.5-2R out-of-sample on
 Wed-Thu fills only, using the bot's own marked_runway_rr stamps (live since cf97981/c85cc73).
 under-wall <0.5R | road 0.5-2R | above_all_levels = own state. NO GATE BEFORE THAT GRADE.
+
+## 2026-07-28 — REFUTED: "the reclaim 3-gate confirmation costs the leg"
+My hypothesis, tested and KILLED. Script: data/killtests/reclaim_leg_cost_replay.py (re-runnable).
+Method: the BOT'S OWN kev_reclaim_step walked over real captured 10s tape (7/27 ALP10S, 6 names,
+~13k RTH bars), bars fed one at a time, session VWAP accumulated progressively, no lookahead.
+Compared entering at the FIRE (extend->retest->curl, as built) vs at the seek->extend VWAP CROSS
+(~2% and ~60s earlier), same structural stop, stop checked on EVERY bar BEFORE crediting the high.
+                       FIRE (as built)     CROSS (no confirmation)
+  median peak                  11.30%               0.00%
+  total peak $                $942.37               $8.18
+  stopped out                    5/6                 6/6
+  cross beat fire in DOLLARS on 0/6 fires.
+MECHANISM: the curl's WICK DEFINES THE STOP. Entering ~2% earlier puts that same stop directly
+underneath the entry, so the retest the sequence exists to survive sweeps you instead. VEEE fire
+peaked +37.7%; cross entry same name/stop = 0.00%. KIDZ seq1 fire +51.97% never stopped; cross
+swept immediately. This is Kev's pullback checklist verbatim (bottoming wick that fails to break
+below, ENTRY RISKING THE WICK LOW) — the tape agrees with him.
+TWO ERRORS I MADE IN THE FIRST RUN (both caught pre-publication, both would have inverted the
+verdict): (1) compared in R, but a lower entry with the SAME stop shrinks risk-per-share and
+mechanically inflates R (KIDZ read 66R — arithmetic, not edge); (2) measured peak-after-entry with
+NO stop-hit check, counting moves the trade was never alive for. Dollars + forward walk fixed both.
+WHERE RECLAIM'S INERTNESS ACTUALLY LIVES (redirected, not answered): confirmation converts only
+6 of 18 VWAP crosses (33%). The lane fires RARELY, not late (LGHL: 1 cross, 0 fires all day).
+With 34% of reclaims dying at the 3:45 flat and only 24% ever scaling, the live suspects are
+SELECTION (which crosses get taken) and EXIT HANDLING — entry timing is cleared.
+CAVEATS: n=6 fires, one day. Failed crosses are UNPRICED by construction (no curl -> no wick ->
+no stop defined), so this bounds what confirmation COSTS, never what removing it would EARN.

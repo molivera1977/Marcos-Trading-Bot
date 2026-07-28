@@ -1,0 +1,9 @@
+# secrets — never commit (7/27: token.txt was caught staged pre-push)
+conf/
+*.env
+# runtime noise
+*.log
+*.log.*
+.DS_Store
+data/.DS_Store
+webull_*_sdk.log*

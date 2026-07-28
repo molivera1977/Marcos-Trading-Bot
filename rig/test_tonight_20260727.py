@@ -197,7 +197,9 @@ check("2j ENTRY_OPEN_ET NOT reverted tonight (04:00 only after this is rig-green
 
 # ══ ITEM 3 — BE floor ═════════════════════════════════════════════════════════
 print("\nITEM 3  BE floor after the FIRST partial")
-check("3a kev25 profile floors at scale #1", bot.BE_FLOOR_AFTER_SCALE == 1)
+# 7/28 pre-open REVERT (Marcos): BE@1 had governed zero trades; BE@2 is the 7/19 kill-tested
+# setting and makes Friday's BE@1-counterfactual exact. Friday decides permanently, in dollars.
+check("3a kev25 profile floors at scale #2 (7/28 revert; BE@1 graded Friday)", bot.BE_FLOOR_AFTER_SCALE == 2)
 # Functional: bank the first tier at +1R, then round-trip. The stop must be entry, not structure.
 be = replay([10.0, 11.0, 10.6, 10.1, 9.99, 9.5], 10.0, 9.0)
 check("3b banked-then-red is impossible: after the +1R trim the trade cannot finish red",

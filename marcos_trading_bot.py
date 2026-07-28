@@ -426,7 +426,11 @@ if EXIT_PROFILE == "grid10":
     BE_FLOOR_AFTER_SCALE = 1                                    # BE after the FIRST partial
 else:
     SCALE_TIERS          = [(1, 0.50), (2, 0.75)]               # Kev legs: 25% RUNNER
-    BE_FLOOR_AFTER_SCALE = int(os.environ.get("BE_FLOOR_AFTER_SCALE", "1"))   # 7/27: FIRST partial —
+    BE_FLOOR_AFTER_SCALE = int(os.environ.get("BE_FLOOR_AFTER_SCALE", "2"))   # 7/28 REVERTED to 2 (Marcos,
+                            # pre-open — "the new change hasn't run yet"): BE@1 had governed ZERO trades, BE@2
+                            # is the 7/19 KILL-TESTED setting, and with BE@2 live the BE@1 counterfactual is
+                            # EXACT (contained inside every observed trade; the reverse needs simulated exits).
+                            # Friday grades BE@1 vs BE@2 in dollars; the law ships permanently if it's cheap.
                             # Marcos's law is "once you've banked, the trade cannot go red." Holding STRUCTURE
                             # through scale #2 was coherent-but-wrong: measured harm 4 banked-then-red trades,
                             # −$7.98 (the previously-circulated $63.75 was not reproduced). Cost is small; the

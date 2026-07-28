@@ -2928,6 +2928,13 @@ def _get_price_rest(ticker) -> float:
     px = q.get("last_price", 0) or 0
     with _rest_price_lock:
         _rest_price_cache[t] = (time.time(), px)
+    # 7/28 lens stage-1 review fix: the registry's ONLY writer was the streaming tick handler
+    # (:1241), so with a silent stream the lens went DARK (no price → nothing in focus) exactly
+    # in degraded mode. REST prices the loop already paid for now feed the registry too — the
+    # lens rides existing acquisition, still zero calls of its own. Real prices only (px>0).
+    if px and px > 0:
+        with _price_lock:
+            _price_registry[t] = {"p": px, "t": time.time()}
     return px
 
 
@@ -4026,6 +4033,7 @@ def _level_gap(ticker, price):
 #    (attention should arrive BEFORE the outcome zone). LENS_FOCUS_PCT=0 disables.
 LENS_FOCUS_PCT = float(os.environ.get("LENS_FOCUS_PCT", "15"))   # percent; 0 = lens off
 _lens_state = {}   # ticker -> last in_focus bool (transition logging only)
+_lens_dark_t = 0.0   # last darkness-canary print (curl-feed lesson: absent-vs-stale must be VISIBLE)
 
 def _level_lens(ticker, price):
     """(in_focus, nearest_zone_name, zone_px, dist_pct) vs the day's marked prices. Compare on the
@@ -4097,6 +4105,16 @@ def _lens_pass(candidates, stream):
                 if infocus:
                     print(f"🔎 {t} IN FOCUS — {dist:+.1f}% from {zn} {zpx} (lens: front of the cycle)")
             _lens_state[t] = infocus
+        # DARKNESS CANARY (7/28 review): if the lens can see levels but NO candidate has a price
+        # (registry unfed — stream silent AND rest not yet cycled), say so every ~5 min instead of
+        # silently doing nothing. Absent-vs-stale must be visible — the curl-feed lesson.
+        global _lens_dark_t
+        if candidates and LENS_FOCUS_PCT and not any(_lens_px(t) > 0 for t in candidates):
+            if time.time() - _lens_dark_t >= 300:
+                _lens_dark_t = time.time()
+                print(f"🕶️  LENS DARK — no cached price for any of {len(candidates)} candidates "
+                      f"(stream silent + REST not yet cycled); focus ordering inactive this stretch")
+                _log_decision("__LENS__", "lens_dark", n=len(candidates))
         return sorted(candidates, key=lambda s: 0 if focus.get(s) else 1)
     except Exception:
         return candidates

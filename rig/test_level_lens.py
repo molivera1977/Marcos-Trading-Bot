@@ -134,3 +134,39 @@ if fails:
     print(f"RED — {len(fails)} failing: {fails}")
     sys.exit(1)
 print("GREEN — lens stage 1: focus verdicts exact, ordering stable, transitions-only logging, no vote on outcomes")
+
+# ── 7/28 review additions: registry feeding + darkness canary ──
+print("== registry feeding: REST prices the loop already paid for reach the lens ==")
+src2 = pathlib.Path(bot.__file__).read_text()
+check("_get_price_rest writes real prices into the registry",
+      '_price_registry[t] = {"p": px, "t": time.time()}' in src2)
+i_guard = src2.find("if px and px > 0:")
+check("REST write-back guarded px>0 (a failed quote must not poison the registry)",
+      0 < i_guard < src2.find('_price_registry[t] = {"p": px'))
+
+print("== darkness canary: a dark lens says so ==")
+bot._lens_state.clear()
+logged2 = []
+_ol = bot._log_decision
+bot._log_decision = lambda t, s, **kw: logged2.append((t, s))
+try:
+    with bot._price_lock:
+        bot._price_registry.clear()                      # nobody has a price
+    bot._lens_dark_t = 0.0
+    out = bot._lens_pass(["LVWR", "INLF", "AAA"], _FakeStream())
+    check("dark lens logs lens_dark", ("__LENS__", "lens_dark") in logged2, f"got {logged2}")
+    check("dark lens keeps scanner order untouched", out == ["LVWR", "INLF", "AAA"])
+    logged2.clear()
+    out = bot._lens_pass(["LVWR", "INLF", "AAA"], _FakeStream())
+    check("canary throttled (~5 min)", ("__LENS__", "lens_dark") not in logged2)
+    _seed({"LVWR": 2.88})                                # one price arrives -> not dark
+    bot._lens_dark_t = 0.0
+    logged2.clear()
+    out = bot._lens_pass(["LVWR", "INLF", "AAA"], _FakeStream())
+    check("one cached price ends darkness (LVWR back in focus, first)",
+          ("__LENS__", "lens_dark") not in logged2 and out[0] == "LVWR", f"out={out} log={logged2}")
+finally:
+    bot._log_decision = _ol
+if fails:
+    print(f"RED after additions — {fails}"); sys.exit(1)
+print("GREEN including registry-feed + darkness canary")

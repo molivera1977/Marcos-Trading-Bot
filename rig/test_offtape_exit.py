@@ -74,13 +74,26 @@ booked, raw, ok, why = bot._verify_exit_px(9.99, 1.00, 2.00)
 check("print far above the seen tape is caught", (not ok) and why == "above_tape" and booked == 2.0,
       f"booked={booked} why={why}")
 
+print("\n== FABLE F1: TOTAL blindness — the actual 7/27 conditions (bars empty EVERY cycle) ==")
+# In the true incident the monitor never saw a bar, so there is no seen tape at all. The guard must
+# NOT invent a price (no proven print exists) and must NOT stamp 'verified' either: book the raw
+# print, flag it. This is what lets the analysis layer quarantine what 7/27 could not.
+for tk, px in [("BIYA", 1.93), ("LGHL", 0.91), ("VEEE", 12.97), ("MTNB", 0.24), ("JZXN", 1.19)]:
+    booked, raw, ok, why = bot._verify_exit_px(px, None, None)
+    check(f"{tk} blind exit {px}: booked RAW but flagged no_tape_seen",
+          (not ok) and why == "no_tape_seen" and booked == px, f"ok={ok} why={why} booked={booked}")
+
 print("\n== fail-open: never break the exit path ==")
-for args, lbl in [((None, 1.0, 2.0), "px None"), ((0, 1.0, 2.0), "px 0"),
-                  ((1.5, None, None), "no tape seen yet"), ((1.5, 0, 0), "tape zeros")]:
+for args, lbl in [((None, 1.0, 2.0), "px None"), ((0, 1.0, 2.0), "px 0")]:
     booked, raw, ok, why = bot._verify_exit_px(*args)
     check(f"{lbl} -> passes through untouched", ok and booked == args[0])
+booked, raw, ok, why = bot._verify_exit_px(1.5, 0, 0)
+check("tape zeros -> raw booking, flagged (not silently verified)",
+      (not ok) and why == "no_tape_seen" and booked == 1.5, f"ok={ok} why={why}")
 booked, raw, ok, why = bot._verify_exit_px(0.50, 1.00, 2.00, tol=0)
 check("EXIT_PX_TAPE_TOL=0 disables the guard", ok, f"ok={ok}")
+booked, raw, ok, why = bot._verify_exit_px(0.50, None, None, tol=0)
+check("kill switch also silences no_tape_seen", ok, f"ok={ok}")
 
 print("\n== wiring: one choke point covers all exit paths ==")
 src = pathlib.Path(bot.__file__).read_text()
@@ -96,6 +109,13 @@ check("trade record carries exit_px_unverified + exit_px_raw",
 _seg = src[src.find("_verify_exit_px(result["):src.find('result["profit_loss"] = _blended_pnl')]
 check("guard never returns/continues (does not veto the exit itself)",
       "return" not in _seg and "continue" not in _seg)
+
+print("\n== FABLE F2: the watchdog path books through the guard too ==")
+check("watchdog verifies its exit print", "_verify_exit_px(px, ctx.get(\"tape_lo\")" in src)
+check("watchdog record carries the honesty columns",
+      src.count('"exit_px_unverified"') >= 3)   # verdict fn ref + main record + watchdog record
+check("monitor shares its seen tape with the watchdog ctx",
+      '"tape_lo": _tape_lo, "tape_hi": _tape_hi' in src)
 
 print()
 if fails:

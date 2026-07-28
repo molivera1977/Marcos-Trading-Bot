@@ -938,8 +938,15 @@ def _verify_exit_px(px, tape_lo, tape_hi, tol=EXIT_PX_TAPE_TOL):
     Never silently: the caller logs it and stamps `exit_px_unverified` + `exit_px_raw` on the trade.
     Deliberately does NOT veto the exit itself — a blind, alive position must still be closed (the
     BOXL freeze). It vetoes booking FICTION, not the decision to get out."""
-    if not tol or not px or px <= 0 or not tape_lo or tape_lo <= 0:
+    if not tol or not px or px <= 0:
         return px, px, True, None
+    if not tape_lo or tape_lo <= 0:
+        # FABLE F1 (7/27 review): NO tape seen at all = the TRUE blind scenario — the monitor's bars
+        # came back empty every cycle (exactly the 7/27 incident conditions; the seen-tape check
+        # above only helps a PARTIAL feed hole). We hold no proven price, so inventing one would
+        # fabricate in the other direction: book the RAW print but REFUSE the verified label. The
+        # analysis layer quarantines on the flag, as it should have been able to do on 7/27.
+        return px, px, False, "no_tape_seen"
     if px < tape_lo * (1 - tol):
         return round(tape_lo, 4), px, False, "below_tape"
     if tape_hi and tape_hi > 0 and px > tape_hi * (1 + tol):
@@ -2291,6 +2298,19 @@ def _watchdog_force_record(ctx: dict):
     partials  = ctx.get("partial_fills") or []
     q  = _get_webull_quote(ticker)
     px = float(q.get("last_price") or 0) or float(ctx.get("last_price") or entry)
+    # FABLE F2 (7/27 review): the watchdog books a stream/quote print too — same phantom class as
+    # the blind-stop incident, and it was bypassing the off-tape guard entirely. The monitor now
+    # shares its seen tape via ctx; verify here exactly like the main exit choke point.
+    _wd_bk, _wd_raw, _wd_ok, _wd_why = _verify_exit_px(px, ctx.get("tape_lo"), ctx.get("tape_hi"))
+    if not _wd_ok:
+        print(f"🚩 WATCHDOG {ticker}: exit print ${_wd_raw:.4f} unverified ({_wd_why}) — booking ${_wd_bk:.4f}")
+        try:
+            _log_decision(ticker, "off_tape_exit", raw_px=round(float(_wd_raw), 4), booked_px=_wd_bk,
+                          tape_lo=ctx.get("tape_lo"), tape_hi=ctx.get("tape_hi"), why=_wd_why,
+                          exit_reason="WATCHDOG")
+        except Exception:
+            pass
+        px = _wd_bk
     pnl = sum((float(p[1]) - entry) * float(p[0])
               for p in partials if isinstance(p, (list, tuple)) and len(p) >= 2)
     pnl += (px - entry) * remaining
@@ -2308,6 +2328,8 @@ def _watchdog_force_record(ctx: dict):
         "account_balance": (SIM_ACCOUNT_BALANCE if DRY_RUN else get_account_balance()), "trade_id": ctx.get("trade_id"),   # F3
         "partial_fills": partials, "highest": ctx.get("highest"),
         "entry_ts_utc": ctx.get("entry_ts_utc"),   # 7/27: the watchdog path stamps it too
+        "exit_px_unverified": (not _wd_ok) or None,               # F2: same honesty columns as
+        "exit_px_raw": (round(float(_wd_raw), 4) if not _wd_ok else None),   # the main exit path
     })
     send_alert_email(f"🛟 Watchdog recovered: {ticker} {pnl_pct:+.1f}%",
                      f"{ticker}'s monitor froze (heartbeat stalled). Force-recorded at ${px:.2f} "
@@ -6388,7 +6410,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if _m is not None:
             _m["ctx"].update({"remaining_shares": remaining_shares, "partial_fills": partial_fills,
                               "tier_idx": tier_idx, "highest": round(highest_price, 4),
-                              "stop": round(current_stop, 4), "last_price": round(current_price, 4)})
+                              "stop": round(current_stop, 4), "last_price": round(current_price, 4),
+                              "tape_lo": _tape_lo, "tape_hi": _tape_hi})   # F2: watchdog books through the guard too
 
         # ── Kev R-based scale-outs: 50% @ +1R (→ risk-free), 25% @ supply/+2R (→ a 1/4 runner) ──
         if tier_idx < len(kev_tiers) and remaining_shares > 0:
@@ -6684,9 +6707,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     result["exit_px_unverified"] = (not _px_ok) or None
     result["exit_px_raw"] = (round(float(_raw_px), 4) if not _px_ok else None)
     if not _px_ok:
-        print(f"🚩 {ticker} OFF-TAPE EXIT PRICE: ${_raw_px:.4f} is {_px_why.replace('_', ' ')} "
-              f"(seen tape ${_tape_lo:.4f}–${(_tape_hi or 0):.4f}) — booking ${_bk_px:.4f}, "
-              f"the nearest price actually seen. Raw print kept on the record. [{result.get('exit_reason')}]")
+        _tape_str = (f"seen tape ${_tape_lo:.4f}–${(_tape_hi or 0):.4f}" if _tape_lo
+                     else "NO tape seen this trade — total feed blindness (F1)")
+        print(f"🚩 {ticker} UNVERIFIED EXIT PRICE: ${_raw_px:.4f} is {_px_why.replace('_', ' ')} "
+              f"({_tape_str}) — booking ${_bk_px:.4f}. Raw print kept on the record. "
+              f"[{result.get('exit_reason')}]")
         try:
             _log_decision(ticker, "off_tape_exit", raw_px=round(float(_raw_px), 4), booked_px=_bk_px,
                           tape_lo=_tape_lo, tape_hi=_tape_hi, why=_px_why,

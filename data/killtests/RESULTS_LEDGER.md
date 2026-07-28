@@ -344,3 +344,25 @@ HARD CAVEAT: peak-$ is an UPPER BOUND assuming a perfect exit at the high. It ca
 rule discards better fires; it CANNOT show any policy is profitable. No exit ladder simulated.
 NOT recommending killing the lane: entry mechanics cleared same evening (see the confirmation
 refutation above), problem is a selection rule WE wrote, value lives in a tail we excluded ourselves from.
+
+### 7/28 CORRECTION + the actual answer on why vwap_reclaim does poorly
+CORRECTION to the entry above ("the slot rule hands us the worst ticket") — OVERCLAIMED.
+Controlling for time of day, seq0 and seq1+ are nearly the SAME: stop rate 89% vs 85%,
+median peak 0.84% vs 1.07%. The mean-dollar gap ($27 vs $52) was driven by 2-3 tail outliers
+(DFNS +133%, FIEE +165%), not by systematically better later fires. The slot rule is a real
+but SECOND-ORDER issue. Candidate #1 downgraded accordingly.
+THE ACTUAL DEFECT — THE STOP IS INSIDE THE NOISE:
+  median stop distance 2.11% below entry | median peak reached 0.84% | 89% stopped out
+  <2% stops: 109/234 fires (47%), 100 of them stopped, median peak 0.44%
+The curl-wick stop is STRUCTURALLY right (entering earlier was refuted 6/6 same evening) but
+2% is inside ordinary noise on names that travel 20-100% a day. The trade doesn't need to be
+wrong to lose — it needs to breathe.
+*** LIVE CONSEQUENCE, UNINTENDED, FOUND TONIGHT ***
+The 6% MIN_STOP floor shipped 7/27 exempts zone_flip/hidden_entry/flat_top — NOT vwap_reclaim.
+218 of 234 reclaim fires (93%) would be REJECTED by it. The lane is effectively SWITCHED OFF as
+of last night's ship, and that was never a decision. Surviving fires carry only $1,045 of $8,815
+peak dollars. Self-resolving this week (MIN_STOP_PCT=0 is docket item 2, Fable-ruled) — but when
+the floor returns Friday, the MIN_STOP_EXEMPT list is THE decision point for this lane.
+REVISED IMPROVEMENT ORDER (all HYPOTHESIS, none shipped): (1) stop construction for this lane —
+wick-low is right but needs a volatility-aware floor; (2) per-lane exit ladder; (3) time-of-day;
+(4) slot rule (downgraded). All need the 234 fires replayed through the ACTUAL ladder in dollars.

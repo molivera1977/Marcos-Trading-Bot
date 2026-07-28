@@ -39,11 +39,11 @@ i_warm  = BOT.index("need more 3-min bars")
 check("P1 conversion block ABOVE the no-data guard", i_conv < i_nodata)
 check("P2 conversion block ABOVE the 3-min warmup guard (today's killer)", i_conv < i_warm)
 check("P3 zone-flip queues a real entry at detection",
-      '"reclaim_subtype": "zone_flip"' in BOT[i_conv:i_conv+4000]
-      and 'breakouts.append((t, price, zf["zone"], "zone_flip"' in BOT[i_conv:i_conv+4000])
+      '"reclaim_subtype": "zone_flip"' in BOT[i_conv:i_conv+6000]
+      and 'breakouts.append((t, price, zf["zone"], "zone_flip"' in BOT[i_conv:i_conv+6000])
 check("P4 reclaim queues a real entry at detection, in its 09:30-11:00 window",
-      'RECLAIM_LIVE_START <= _hm_curl < RECLAIM_LIVE_END' in BOT[i_conv:i_conv+5000]
-      and 'breakouts.append((t, price, _sv, "vwap_reclaim"' in BOT[i_conv:i_conv+5000])
+      'RECLAIM_LIVE_START <= _hm_curl < RECLAIM_LIVE_END' in BOT[i_conv:i_conv+7000]
+      and 'breakouts.append((t, price, _sv, "vwap_reclaim"' in BOT[i_conv:i_conv+7000])
 check("P5 conversion consumes the slot ONLY when queueing (call sites inside conversion)",
       BOT.count("_curl_rth_slot(t,") == 2)
 check("P6 old seq==0 consume logic is GONE (no double-trade path)",

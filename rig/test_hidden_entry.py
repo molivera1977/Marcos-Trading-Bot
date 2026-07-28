@@ -12,7 +12,12 @@ def check(n, cond, d=""):
     (PASS if cond else FAIL).append(n)
     print(("  ok  " if cond else "  XX  ") + n + ((" — " + d) if d and not cond else ""))
 
-B = lambda o,h,l,c,v=1000: (o,h,l,c,v)
+import time as _t
+_B_N = [0]
+def B(o, h, l, c, v=1000):
+    # 7/28: bars carry the 10s bucket epoch (stale-fire guard); monotonic fresh buckets
+    _B_N[0] += 1
+    return (_t.time() - 2 + _B_N[0] * 0.001, o, h, l, c, v)
 VWAP = 2.00
 
 # ── M1: machine arms on +25%/5min then fires on the Kev wick ──
@@ -28,9 +33,9 @@ e90 = bot._he_st["BBB"]["e90"]; anchor = max(e90, VWAP)
 wick = B(anchor*1.02, anchor*1.10, anchor*0.995, anchor*1.09)               # low tags, closes high
 r = bot.hidden_entry_step("BBB", [wick], VWAP)
 check("M3 fires on wick at anchor from above", r is not None)
-check("M4 stop = wick low floored 5%", r and abs(r["stop"] - round(min(wick[2]-0.01, wick[3]*0.95), 4)) < 1e-3)
+check("M4 stop = wick low floored 5%", r and abs(r["stop"] - round(min(wick[3]-0.01, wick[4]*0.95), 4)) < 1e-3)
 check("M5 ext_vwap stamped", r and isinstance(r["ext_vwap"], float))
-check("M9 fire-bar close stamped (stale-price guard)", r and abs(r["px"] - round(wick[3], 4)) < 1e-6)
+check("M9 fire-bar close stamped (stale-price guard)", r and abs(r["px"] - round(wick[4], 4)) < 1e-6)
 check("M10 conversion stale guard wired", "stale_price_fix" in BOT and "using bar price" in BOT)
 check("M8 stays armed post-fire (Kev re-enters)", bot._he_st["BBB"]["armed"] is True)
 

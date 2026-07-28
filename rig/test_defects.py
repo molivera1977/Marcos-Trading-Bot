@@ -248,11 +248,15 @@ if hasattr(bot, "kev_reclaim_step"):
     VW = 1.00
     bot._reclaim_st.pop("RIGRC", None)
     # G1 cross w/ 10x vol -> extend >=1% -> G2 retest wick (close upper half) -> G3 curl fires
-    seq = ([(0.98, 0.99, 0.97, 0.98, 100)] * 10 +          # below the line, builds vol baseline
+    # 7/28 stale-fire guard: bars now carry the 10s bucket epoch; fresh buckets so the fire is live
+    import time as _t
+    _now = _t.time()
+    _raw = ([(0.98, 0.99, 0.97, 0.98, 100)] * 10 +         # below the line, builds vol baseline
            [(0.98, 1.02, 0.98, 1.02, 1000)] +              # G1: cross on 10x volume
            [(1.02, 1.06, 1.02, 1.055, 300)] +              # extension >= 1.01*vwap
            [(1.05, 1.05, 1.000, 1.04, 200)] +              # G2: tags the line, closes upper half (wick)
            [(1.04, 1.06, 1.03, 1.055, 250)])               # G3: closes above wick high 1.05 -> FIRE
+    seq = [(_now - (len(_raw) - i) * 10,) + b for i, b in enumerate(_raw)]
     fire = bot.kev_reclaim_step("RIGRC", seq, VW)
     check("T11b full grammar fires on the curl, seq 0 (the live-eligible fire)",
           bool(fire) and fire["stop"] <= 1.0 and fire.get("seq") == 0, f"fire={fire}")
@@ -262,7 +266,7 @@ if hasattr(bot, "kev_reclaim_step"):
     check("T11c later setups keep firing as SHADOW evidence (seq 1)",
           bool(refire) and refire.get("seq") == 1, f"refire={refire}")
     bot._reclaim_st.pop("RIGRC2", None)
-    seq_novol = [(s[0], s[1], s[2], s[3], 100) for s in seq]     # same shape, NO volume expansion
+    seq_novol = [(s[0], s[1], s[2], s[3], s[4], 100) for s in seq]   # 7/28: bucket kept, NO volume expansion
     check("T11d no volume on the break → NEVER fires",
           bot.kev_reclaim_step("RIGRC2", seq_novol, VW) is None)
     check("T11e pins: RECLAIM_KEV on, live window 09:30–11:00",

@@ -4046,6 +4046,34 @@ RECLAIM_LIVE_START = os.environ.get("RECLAIM_LIVE_START", "09:30")
 RECLAIM_LIVE_END   = os.environ.get("RECLAIM_LIVE_END", "11:00")
 _reclaim_st: dict = {}        # sym -> state machine (daily-keyed inside)
 _reclaim_cursor: dict = {}    # (day, sym) -> last processed 10s bucket epoch
+# ── STALE-FIRE GUARD (7/28, Fable-ruled after the LVWR 07:27 trace): a restart (ours or
+#    RAILWAY'S) or a newly-admitted ticker replays up to 15 min of 10s bars into the curl
+#    machines. Replay is GOOD — the state machines need history to find in-progress setups —
+#    but FIRING on an old bar converts a finished event into a live entry at a price the setup
+#    no longer supports (LVWR: fired 07:27 on a ~15-min-old reclaim, logged 2.79 vs a 2.92
+#    signal). Rule: detect on any bar, FIRE only on a fresh one. 90s (not 60) — the scan cycle
+#    itself runs 48–72s jittered (B15), so 60 could suppress legit fires in a slow cycle.
+#    Suppressions are consumed (state resets exactly as a fire would) + LOGGED — the guard's
+#    cost must be visible from day one. Cursor seeding was considered and REJECTED (it would
+#    skip state-building and lose in-progress setups for every newcomer).
+CURL_FIRE_MAX_AGE_SECS = float(os.environ.get("CURL_FIRE_MAX_AGE_SECS", "90"))
+
+def _bucket_fresh(k):
+    """True when 10s bucket epoch `k` is recent enough to ACT on (fire). 0/None never fresh."""
+    try:
+        return bool(k) and (time.time() - float(k)) <= CURL_FIRE_MAX_AGE_SECS
+    except Exception:
+        return False
+
+def _log_stale_fire(sym, lane, k, px):
+    """Visible-cost canary for every suppressed stale fire. Never raises."""
+    try:
+        _age = round(time.time() - float(k), 1) if k else None
+        print(f"⏳ {sym} {lane} fire SUPPRESSED — bar {_age}s old > {CURL_FIRE_MAX_AGE_SECS:.0f}s "
+              f"(replay after restart/admission); setup consumed, not traded")
+        _log_decision(sym, "stale_fire_suppressed", lane=lane, bar_age_s=_age, px=px)
+    except Exception:
+        pass
 
 # ── 7/24 CURL LIVE-SLOT FIX (Marcos: "we were shadowing for premarket NOT RTH") ──
 # The old rule was seq==0 = the day's first fire gets the live slot — but the premarket seed (#98)
@@ -4214,8 +4242,10 @@ def _shadow_log_curl_leftovers(t, price, zf_fire, vr_fire, sv, why):
 
 
 def kev_reclaim_step(sym, new_bars, vwap):
-    """Advance sym's 3-gate machine over NEW completed 10s bars [(o,h,l,c,vol),...] against the
-    current session line. Returns {'stop','wick_low'} exactly ONCE (on the curl), else None."""
+    """Advance sym's 3-gate machine over NEW completed 10s bars [(k,o,h,l,c,vol),...] against the
+    current session line (k = 10s bucket epoch — 7/28 stale-fire guard). Returns {'stop','wick_low'}
+    exactly ONCE (on the curl), else None. A fire on a bar older than CURL_FIRE_MAX_AGE_SECS is
+    SUPPRESSED-and-consumed: detection replays history freely, action never does."""
     day = datetime.now(EASTERN).strftime("%Y-%m-%d")
     st = _reclaim_st.get(sym)
     if not st or st.get("day") != day:
@@ -4225,7 +4255,7 @@ def kev_reclaim_step(sym, new_bars, vwap):
         return None
     prev_c = st["prev_c"]
     fired = None
-    for o, h, l, c, v in new_bars:
+    for k, o, h, l, c, v in new_bars:
         st["vols"].append(v)
         if len(st["vols"]) > 30: st["vols"].pop(0)
         avgv = (sum(st["vols"][:-1]) / max(len(st["vols"]) - 1, 1)) if len(st["vols"]) > 1 else 0
@@ -4249,8 +4279,15 @@ def kev_reclaim_step(sym, new_bars, vwap):
                     # fire — then RESET to seek so later setups keep getting DETECTED all day
                     # (Marcos 7/19: "data for and against it the whole day"). seq 0 = the day's
                     # first fire (the only live-eligible one); seq 1+ = shadow evidence.
+                    # 7/28 stale-fire guard: an OLD bar consumes the setup but never fires.
+                    if not _bucket_fresh(k):
+                        _log_stale_fire(sym, "vwap_reclaim", k, round(c, 4))
+                        st["n"] += 1
+                        st["phase"] = "seek"; st["ext"] = False; st["wick"] = None
+                        prev_c = c
+                        continue
                     fired = {"stop": round(max(min(st["wick"][1], vwap), c * 0.93), 4),
-                             "wick_low": st["wick"][1], "seq": st["n"], "px": round(c, 4)}
+                             "wick_low": st["wick"][1], "seq": st["n"], "px": round(c, 4), "k": k}
                     st["n"] += 1
                     st["phase"] = "seek"; st["ext"] = False; st["wick"] = None
         prev_c = c
@@ -4377,7 +4414,7 @@ def hidden_entry_step(sym, new_bars, vwap):
     if not vwap or vwap <= 0:
         return None
     fired = None
-    for o, h, l, c, v in new_bars:
+    for k, o, h, l, c, v in new_bars:   # 7/28: k = bucket epoch (stale-fire guard)
         st["e90"] = c if st["e90"] is None else c * (2.0 / 91.0) + st["e90"] * (89.0 / 91.0)
         st["closes"].append(c)
         if len(st["closes"]) > HIDDEN_VEL_BARS + 1:
@@ -4392,9 +4429,13 @@ def hidden_entry_step(sym, new_bars, vwap):
         rng = h - l
         if (fired is None and l <= anchor and c >= anchor and c >= vwap
                 and rng > 0 and (c - l) / rng >= 0.5 and c > o * 0.995):
+            if not _bucket_fresh(k):                     # 7/28 stale-fire guard: old bar never fires
+                _log_stale_fire(sym, "hidden_entry", k, round(c, 4))
+                st["n"] += 1                             # consumed (mirror of a fire's seq advance)
+                continue
             stop = min(l - 0.01, c * 0.95)               # wick low, floored at 5% risk (fake-risk guard)
             fired = {"stop": round(stop, 4), "wick": l, "anchor": round(anchor, 4),
-                     "ext_vwap": round((c - vwap) / vwap * 100.0, 2), "seq": st["n"], "px": round(c, 4)}
+                     "ext_vwap": round((c - vwap) / vwap * 100.0, 2), "seq": st["n"], "px": round(c, 4), "k": k}
             st["n"] += 1
     return fired
 
@@ -4434,10 +4475,15 @@ def kev_zoneflip_step(sym, new_bars):
             continue
         st["flush_low"] = min(st["flush_low"], l) if st["flush_low"] else l
         if st["wick"] and c > st["wick"][0] and fired is None:
+            if not _bucket_fresh(k):                     # 7/28 stale-fire guard: consume, never fire
+                _log_stale_fire(sym, "zone_flip", k, round(c, 4))
+                st["n"] += 1
+                st["armed"] = False; st["wick"] = None; st["flush_low"] = None
+                continue
             # stop = flush low − 1 tick (tested), floored at c×0.93 (7% cap, reclaim-style)
             fired = {"stop": round(max(st["flush_low"] - 0.01, c * 0.93), 4),
                      "wick_high": st["wick"][0], "flush_low": st["flush_low"],
-                     "zone": zone, "zone_src": z["src"], "seq": st["n"], "px": round(c, 4)}
+                     "zone": zone, "zone_src": z["src"], "seq": st["n"], "px": round(c, 4), "k": k}
             st["n"] += 1
             st["armed"] = False; st["wick"] = None; st["flush_low"] = None
             continue
@@ -4555,6 +4601,9 @@ def ignition_10s_step(sym, new_bars):
                     and strong >= IGNITION_STRONG          # strong close (buyers won the bar)
                     and c >= base_hi_c                     # breaks the quiet base (by close)
                     and IGNITION_MIN_EXT <= ext_bar <= IGNITION_MAX_EXT):
+                if not _bucket_fresh(k):                   # 7/28 stale-fire guard (replay never fires)
+                    _log_stale_fire(sym, "ignition10s", k, round(c, 4))
+                    continue
                 fire = {"stop": round(base_lo * (1 - ZONE_STOP_BUFFER), 4),
                         "base_hi": round(base_hi_c, 4), "base_lo": round(base_lo, 4),
                         "volx": round(v / base_vol, 1), "ext_pct": round(ext_bar * 100, 1),
@@ -5495,7 +5544,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     for _k in sorted(_d10):
                         if _last_k < _k < _now_cut:
                             _b = _d10[_k]
-                            _nb.append((_b["o"], _b["h"], _b["l"], _b["c"],
+                            _nb.append((_k, _b["o"], _b["h"], _b["l"], _b["c"],
                                         max((_b.get("v1") or 0) - (_b.get("v0") or 0), 0)))
                             _fed_k = _k
                     if _nb:
@@ -5579,6 +5628,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         "zf_flush_low": zf["flush_low"],
                     }))
                     _log_decision(t, "triggered_zone_flip", price=price, zone=zf["zone"],
+                                  fire_px=zf.get("px"), fire_age_s=(round(time.time() - zf["k"], 1) if zf.get("k") else None),
+                                  drift_pct=(round((price - zf["px"]) / zf["px"] * 100, 2) if zf.get("px") else None),
                                   zone_src=zf["zone_src"], stop=zf["stop"])
                     continue                                   # captured — skip other detectors for t
                 # KEV RECLAIM — live in its verified 09:30-11:00 window.
@@ -5607,7 +5658,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         "reclaim_subtype": "kev3gate",
                         "entry_vs_session_vwap_pct": round((price - _sv) / _sv * 100, 2),
                     }))
-                    _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv)
+                    _log_decision(t, "triggered_vwap_reclaim_kev3gate", price=price, vwap=_sv,
+                                  fire_px=vr.get("px"), fire_age_s=(round(time.time() - vr["k"], 1) if vr.get("k") else None),
+                                  drift_pct=(round((price - vr["px"]) / vr["px"] * 100, 2) if vr.get("px") else None))
                     continue                                   # captured — skip other detectors for t
                 # HIDDEN ENTRY (Kev 10s rocket wick) — live all RTH, own caps, replaces rocket_catcher.
                 if _he_fire and HIDDEN_ENTRY and _hm_curl >= ENTRY_OPEN_ET:
@@ -5634,6 +5687,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             "two_r_level": round(price + 2.0 * (price - he["stop"]), 4),
                         }))
                         _log_decision(t, "triggered_hidden_entry", price=price, stop=he["stop"],
+                                      fire_px=he.get("px"), fire_age_s=(round(time.time() - he["k"], 1) if he.get("k") else None),
+                                      drift_pct=(round((price - he["px"]) / he["px"] * 100, 2) if he.get("px") else None),
                                       anchor=he["anchor"], ext_vwap=he["ext_vwap"], seq=he["seq"])
                         _he_day[_sess_he] += 1
                         _he_name[_k_he] = _he_name.get(_k_he, 0) + 1

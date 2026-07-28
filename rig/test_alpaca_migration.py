@@ -110,7 +110,7 @@ try:
             [now10 - 20, 1.009, 1.02, 1.008, 1.015, 200]]
     hot_payload = {"bars": tape}
     d3, s3 = bot._curl_feed("TESTD")
-    nb = [(b["o"], b["h"], b["l"], b["c"], max(b["v1"] - b["v0"], 0)) for _, b in sorted(d3.items())]
+    nb = [(k, b["o"], b["h"], b["l"], b["c"], max(b["v1"] - b["v0"], 0)) for k, b in sorted(d3.items())]  # 7/28: bucket threaded (stale-fire guard)
     fire = bot.kev_reclaim_step("TESTD", nb, 1.00)
     check("M7 E2E: Alpaca-sourced bars FIRE kev_reclaim_step (stop/wick_low returned)",
           s3 == "alp-hot" and fire is not None and fire.get("wick_low") == 1.004,
@@ -118,7 +118,7 @@ try:
     # fail-without-fix proof: same tape with volumes ZEROED (a broken conversion) must NOT fire
     hot_payload = {"bars": [[k, o, h, l, c, 0] for k, o, h, l, c, v in tape]}
     d4, _ = bot._curl_feed("TESTE")
-    nb0 = [(b["o"], b["h"], b["l"], b["c"], max(b["v1"] - b["v0"], 0)) for _, b in sorted(d4.items())]
+    nb0 = [(k, b["o"], b["h"], b["l"], b["c"], max(b["v1"] - b["v0"], 0)) for k, b in sorted(d4.items())]
     check("M7b fail-without-fix: zero-volume conversion cannot fire (2x-vol gate holds)",
           bot.kev_reclaim_step("TESTE", nb0, 1.00) is None)
 

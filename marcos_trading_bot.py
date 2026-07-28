@@ -8429,7 +8429,10 @@ def main():
                     if _runway_tgt:
                         _runway_rr = round((_runway_tgt - entry_price) / _rps, 2)
                     elif _lvd.get("targets") or _ns:
-                        _runway_rr = 0.0   # sheet HAD levels and entry is above them all — the EGG case
+                        # Above ALL marked levels. 7/28 era review: this cohort is BIMODAL — blue-sky
+                        # breakouts (ZYBT 7/20 +$164.79, nothing overhead) AND exhausted chases
+                        # (EGG 7/28). A 0.0 stamp would average opposites; stamp the state, not a number.
+                        _runway_rr = "above_all_levels"
             except Exception:
                 _kev_lv = None
             _rec_ok = post_trade_record_reliably({

@@ -24,7 +24,8 @@ check("stamp block present in _trade_worker", seg_i > 0)
 seg = src[seg_i:seg_i + 1200]
 check("record carries marked_runway_rr", '"marked_runway_rr":   _runway_rr' in src)
 check("record carries marked_runway_tgt", '"marked_runway_tgt":  _runway_tgt' in src)
-check("EGG case: above-all-levels stamps 0.0 (not None)", "_runway_rr = 0.0" in seg)
+check("above-all-levels stamps the STATE (bimodal: ZYBT blue-sky vs EGG chase)",
+      '_runway_rr = "above_all_levels"' in seg)
 check("targets filtered ABOVE entry", "if float(x) > entry_price" in seg)
 check("next_supply fallback guarded above entry", "_ns > entry_price" in seg)
 check("division by risk-per-share, guarded > 0", "_rps > 0" in seg and "/ _rps" in seg)
@@ -42,7 +43,7 @@ def mirror(entry, stop, lvd):
         if tgt:
             rr = round((tgt - entry) / rps, 2)
         elif lvd.get("targets") or ns:
-            rr = 0.0
+            rr = "above_all_levels"
     return rr, tgt
 
 print("== arithmetic against the 7/28 book (hand-verified rows) ==")
@@ -51,7 +52,7 @@ rr, tgt = mirror(0.97, 0.9054, {"targets": [0.98, 1.0], "next_supply": 1.0})
 check("WBUY = 0.15R @ .98", rr == 0.15 and tgt == 0.98, f"got {rr}@{tgt}")
 # EGG: entry 5.30, targets [4.3, 4.5] all below -> 0.0, no tgt
 rr, tgt = mirror(5.30, 4.929, {"targets": [4.3, 4.5], "next_supply": 4.5})
-check("EGG = 0.0 (above all levels)", rr == 0.0 and tgt is None, f"got {rr}@{tgt}")
+check("EGG/ZYBT shape = 'above_all_levels'", rr == "above_all_levels" and tgt is None, f"got {rr}@{tgt}")
 # KVAC: entry 15.40 stop 14.222 (7.65%), targets [17.32, 18.5] -> 1.63R
 rr, tgt = mirror(15.40, 14.222, {"targets": [17.32, 18.5], "next_supply": 17.32})
 check("KVAC = 1.63R @ 17.32", rr == 1.63 and tgt == 17.32, f"got {rr}@{tgt}")

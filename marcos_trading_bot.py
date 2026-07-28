@@ -2633,7 +2633,13 @@ def _chart_break_gate(ticker, entry_price, entry_type=None):
         # map is irrelevant and unmapped intraday adds must not die on no_marked_level (#72:
         # DFNS/NIPG/JZXN rockets gate-skipped all day 7/22). Legacy lanes stay gated (13
         # no-map blocks graded −0.17R/tr this week — the gate is RIGHT for them).
-        return ("allow", "live_structure", None, "none")
+        # 7/27: carry the marked level in the allow row (was None) — LGHL/DFNS/VEEE entered below
+        # fresh marked breaks invisibly; the level rides along as EVIDENCE, still never a veto here.
+        try:
+            _blv = float(((_fetch_kev_levels() or {}).get(ticker) or {}).get("break") or 0) or None
+        except Exception:
+            _blv = None
+        return ("allow", "live_structure", _blv, "none")
     try:
         lv = (_fetch_kev_levels() or {}).get(ticker) or {}
         note = str(lv.get("note") or "").lower()
@@ -3944,6 +3950,23 @@ def _curl_rth_slot(sym, lane, hm):
     _curl_rth_n[k] = 1
     return True
 
+def _level_gap(ticker, price):
+    """BALLPARK STAMP (7/27, Marcos: tape lanes 'deserve some structure from the charts' — measured
+    first, gated never tonight). Signed distance from the day's marked break (+above/−below) and the
+    ±10% ballpark verdict. 135-fire study (killtest_overhead_level.py): inside ±10% wins 54%, outside
+    29% — but the far-above cell is the momentum class the 7/21 staleness test refuted blocking, so
+    this STAMPS ONLY. Friday 7/31 dollar-grades it. Fail-open: no level / any error → (None, None)."""
+    try:
+        lv = (_fetch_kev_levels() or {}).get(ticker) or {}
+        brk = float(lv.get("break") or 0)
+        if brk <= 0 or not price or price <= 0:
+            return None, None
+        gap = round((float(price) - brk) / brk * 100.0, 1)
+        return gap, ("in" if abs(gap) <= 10.0 else "out")
+    except Exception:
+        return None, None
+
+
 def _shadow_log_curl_leftovers(t, price, zf_fire, vr_fire, sv, why):
     """#89: a curl-machine fire that lost entry priority (or hit a loop `continue`) is still
     EVIDENCE — shadow-log it, never drop it. Called at every early-exit site in the watch loop."""
@@ -3951,14 +3974,17 @@ def _shadow_log_curl_leftovers(t, price, zf_fire, vr_fire, sv, why):
         return
     _hm = datetime.now(EASTERN).strftime("%H:%M")
     try:
+        _gap, _bp = _level_gap(t, price)   # 7/27 ballpark stamp — Friday's dollar-grade column
         if zf_fire:
             _log_decision(t, "zoneflip_shadow_fire", price=price, zone=zf_fire.get("zone"),
                           zone_src=zf_fire.get("zone_src"), stop=zf_fire.get("stop"),
-                          time_hm=_hm, seq=zf_fire.get("seq", 0), why=why)
+                          time_hm=_hm, seq=zf_fire.get("seq", 0), why=why,
+                          level_gap_pct=_gap, ballpark=_bp)
         if vr_fire:
             _log_decision(t, "reclaim_shadow_fire", price=price, vwap=sv,
                           stop=vr_fire.get("stop"), time_hm=_hm,
-                          seq=vr_fire.get("seq", 0), why=why)
+                          seq=vr_fire.get("seq", 0), why=why,
+                          level_gap_pct=_gap, ballpark=_bp)
     except Exception:
         pass
 
@@ -4978,18 +5004,30 @@ MAX_STOP_DIST_PCT       = 0.0    # C: Kev tight-setup gate — SKIP entries whos
 #    band so the 4–5% and 5–6% rejects are a live shadow cohort (graded Friday 7/31 vs real bars).
 #    MIN_STOP_PCT=0 env = kill switch.
 MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "6.0")) / 100.0
+# 7/27 LANE AGREEMENT (Marcos, settled after the lane/design pass): the floor governs lanes whose
+# tight stop is an ACCIDENT of a noisy base — ignition (1-min base low; 43 era rejects −$276.73) and
+# vwap_reclaim (−$180.56) — plus ma_pullback/orb where it never binds. EXEMPT = lanes where tight
+# risk IS the thesis or measured positive: zone_flip + hidden_entry (10s structure; Kev's canonical
+# ZYBT-0720-A specimen is a 5.5% stop — a 6% floor refuses the lane's own founding trade) and
+# flat_top (3-min 4-bar base; its sub-6% era cohort is +$98.75 — the floor was taxing winners).
+# Env-overridable: MIN_STOP_EXEMPT="zone_flip,hidden_entry,flat_top" (empty string = nothing exempt).
+MIN_STOP_EXEMPT = set(filter(None, (s.strip() for s in os.environ.get(
+    "MIN_STOP_EXEMPT", "zone_flip,hidden_entry,flat_top").split(","))))
 
-def _min_stop_verdict(entry_price, stop_loss):
+def _min_stop_verdict(entry_price, stop_loss, entry_type=None):
     """Pure predicate for the minimum-stop-width gate (rig-tested). Returns (reject, width_pct, band):
     band buckets the SHADOW cohorts — '<4', '4-5', '5-6' are rejected under the 6% floor and graded
-    forward as counterfactuals; '>=6' passes. Fail-open on degenerate inputs (the bad-stop skip
-    upstream owns those)."""
+    forward as counterfactuals; '>=6' passes. Exempt lanes (MIN_STOP_EXEMPT) NEVER reject but still
+    return width+band so their records carry the same shadow columns. Fail-open on degenerate inputs
+    (the bad-stop skip upstream owns those)."""
     if not MIN_STOP_DIST_PCT or not entry_price or entry_price <= 0 or stop_loss is None:
         return False, None, None
     # Round FIRST, then compare — raw float division rejects an exactly-6% stop
     # ((10−9.40)/10 → 5.999999999999998 < 6.0; the rig's boundary case caught it).
     w = round((entry_price - stop_loss) / entry_price * 100.0, 2)
     band = "<4" if w < 4.0 else ("4-5" if w < 5.0 else ("5-6" if w < 6.0 else ">=6"))
+    if entry_type in MIN_STOP_EXEMPT:
+        return False, w, band
     return w < MIN_STOP_DIST_PCT * 100.0, w, band
 
 # ── REALISTIC-SIZING DRY_RUN (7/11, user-directed): trade the INTENDED live amounts on paper so every number is
@@ -5243,10 +5281,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             _he_fire = hidden_entry_step(t, _nb, _vr_sv)
                             if _he_fire:
                                 try:
+                                    _hg, _hbp = _level_gap(t, price)   # 7/27 ballpark stamp
                                     _log_decision(t, "hidden_shadow_fire", price=price,
                                                   stop=_he_fire["stop"], anchor=_he_fire["anchor"],
                                                   ext_vwap=_he_fire["ext_vwap"], seq=_he_fire["seq"],
-                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"))
+                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"),
+                                                  level_gap_pct=_hg, ballpark=_hbp)
                                 except Exception:
                                     pass
 
@@ -7772,7 +7812,7 @@ def main():
             # STOP_MAX_PCT clamp), pre-fill only (the post-fill re-derivation owns a position and cannot
             # skip — F1). The reject row IS the shadow log: width + band ('<4','4-5','5-6') let Friday
             # grade the 4–5%/5–6% cohorts as counterfactuals against real bars.
-            _ms_rej, _ms_w, _ms_band = _min_stop_verdict(entry_price, stop_loss)
+            _ms_rej, _ms_w, _ms_band = _min_stop_verdict(entry_price, stop_loss, entry_type)
             if _ms_rej:
                 print(f"📏 {ticker} stop {_ms_w:.2f}% of entry < {MIN_STOP_DIST_PCT*100:.0f}% minimum "
                       f"(band {_ms_band}) — stop is inside the noise, skipping [minstop gate]")

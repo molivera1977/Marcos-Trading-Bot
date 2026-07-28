@@ -318,3 +318,29 @@ With 34% of reclaims dying at the 3:45 flat and only 24% ever scaling, the live 
 SELECTION (which crosses get taken) and EXIT HANDLING — entry timing is cleared.
 CAVEATS: n=6 fires, one day. Failed crosses are UNPRICED by construction (no curl -> no wick ->
 no stop defined), so this bounds what confirmation COSTS, never what removing it would EARN.
+
+## 2026-07-28 — RECLAIM IS A TAIL LANE, AND THE SLOT RULE HANDS US THE WORST TICKET
+Script: data/killtests/reclaim_slot_replay.py (re-runnable). Bot's own kev_reclaim_step over real
+ALP10S tape, 7/27+7/28, 384 names scanned / 136 fired / 234 fires, RTH only, bars walked IN ORDER,
+session VWAP accumulated progressively, stop checked on EVERY bar BEFORE crediting the high.
+DISTRIBUTION: 89% stopped out (208/234) | 43% never gained 0.5% | 9% reached +10% and those
+20 fires carry 64% of ALL peak dollars ($5,630 of $8,815). Convexity lane — judging it on win
+rate is the wrong instrument ([[persona_convexity_trader]]).
+THE SLOT RULE IS ANTI-SELECTED. _curl_rth_slot() (:4088) grants the live slot to the day's FIRST
+converting RTH fire; seq1+ are shadow-only. Mean peak $ by seq:
+  seq0 (ONLY live-eligible) n=136 $27.17 | seq1 n=53 $44.89 | seq2 n=24 $99.47 | seq>=1 n=98 $52.24
+The first fire is the WORST cohort in the population. 29 of 53 multi-fire names had a later fire
+beat the first by >50% (DFNS 7/27: seq0 10:59 +2.08% -> seq2 12:05 +133.24%, untradeable).
+=> the lane's −$256 era verdict was rendered on a sample the SLOT RULE forced on us.
+TIME OF DAY (new, this lane): 10-11am mean $61.28 | 11-12 $15.77 (31/32 stopped) | 2-4pm $10.41.
+THREE IMPROVEMENT CANDIDATES — ALL HYPOTHESIS, none shipped:
+  1. lift the one-slot cap: per-entry peak $27.17 -> $37.67, BUT 98 extra entries / 83 extra stops
+     ~= −$2,500 real losses vs +$5,120 PEAK (unrealized). KILL-TEST: replay all 234 through the
+     ACTUAL exit ladder in dollars first.
+  2. per-lane exit ladder: 1R/2R scaling may be wrong where 9% of fires carry 64% of the money
+     (reclaim scales on only 24% of trades because it rarely reaches 1R). KILL-TEST: same 234.
+  3. time-of-day gate for THIS lane only (cheapest to test).
+HARD CAVEAT: peak-$ is an UPPER BOUND assuming a perfect exit at the high. It can show the slot
+rule discards better fires; it CANNOT show any policy is profitable. No exit ladder simulated.
+NOT recommending killing the lane: entry mechanics cleared same evening (see the confirmation
+refutation above), problem is a selection rule WE wrote, value lives in a tail we excluded ourselves from.

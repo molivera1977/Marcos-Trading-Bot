@@ -4969,6 +4969,28 @@ ENTRY_GATE_LIQUIDITY    = os.environ.get("ENTRY_GATE_LIQUIDITY", "1") == "1"
 # Wide-stop fixes — THREE contenders, ranked head-to-head in the harness (the −7% was a MADE-UP number; do not inherit it):
 STOP_MAX_PCT            = 0.0    # A: clamp the structural stop to entry×(1−X) for ALL types. 0=off; calibrate from data, don't assume 7%
 MAX_STOP_DIST_PCT       = 0.0    # C: Kev tight-setup gate — SKIP entries whose structural stop is >X% away (wide base ≠ Kev setup). 0=off
+# ── MINIMUM STOP WIDTH (7/27, Marcos's management call) — the mirror of the wide-stop gate: a stop
+#    <X% of entry on these names sits inside normal wiggle → the risk definition is fiction and
+#    risk-sizing inflates the share count until noise = −2R (KIDZ: 1.5% stop → 1,854 sh → −$36.71).
+#    Era evidence: permutation p=0.0047, out-of-sample +$385.16, 15/15 thresholds help the unseen
+#    half, 8/2 days (killtest_minstop.py + RESULTS_LEDGER 7/27). Set at 6% (the era optimum) BY
+#    MARCOS'S DECISION over the pre-registered 5%; every reject is decision-logged with its width
+#    band so the 4–5% and 5–6% rejects are a live shadow cohort (graded Friday 7/31 vs real bars).
+#    MIN_STOP_PCT=0 env = kill switch.
+MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "6.0")) / 100.0
+
+def _min_stop_verdict(entry_price, stop_loss):
+    """Pure predicate for the minimum-stop-width gate (rig-tested). Returns (reject, width_pct, band):
+    band buckets the SHADOW cohorts — '<4', '4-5', '5-6' are rejected under the 6% floor and graded
+    forward as counterfactuals; '>=6' passes. Fail-open on degenerate inputs (the bad-stop skip
+    upstream owns those)."""
+    if not MIN_STOP_DIST_PCT or not entry_price or entry_price <= 0 or stop_loss is None:
+        return False, None, None
+    # Round FIRST, then compare — raw float division rejects an exactly-6% stop
+    # ((10−9.40)/10 → 5.999999999999998 < 6.0; the rig's boundary case caught it).
+    w = round((entry_price - stop_loss) / entry_price * 100.0, 2)
+    band = "<4" if w < 4.0 else ("4-5" if w < 5.0 else ("5-6" if w < 6.0 else ">=6"))
+    return w < MIN_STOP_DIST_PCT * 100.0, w, band
 
 # ── REALISTIC-SIZING DRY_RUN (7/11, user-directed): trade the INTENDED live amounts on paper so every number is
 # real-scale. Kev short-003 sizing: max loss ≤1% of account; shares = max_loss ÷ risk-per-share; size down = smaller
@@ -7744,6 +7766,21 @@ def main():
                 with trade_lock:
                     reentry["held"].discard(ticker)   # pre-reservation: nothing to refund
                 return
+            # ── MINIMUM STOP WIDTH gate (7/27, Marcos) — reject when the structural stop is closer than
+            # MIN_STOP_DIST_PCT to entry: a stop inside the name's own noise is not a risk definition,
+            # and risk-sizing turns it into an outsized share count. Runs on the FINAL stop (after any
+            # STOP_MAX_PCT clamp), pre-fill only (the post-fill re-derivation owns a position and cannot
+            # skip — F1). The reject row IS the shadow log: width + band ('<4','4-5','5-6') let Friday
+            # grade the 4–5%/5–6% cohorts as counterfactuals against real bars.
+            _ms_rej, _ms_w, _ms_band = _min_stop_verdict(entry_price, stop_loss)
+            if _ms_rej:
+                print(f"📏 {ticker} stop {_ms_w:.2f}% of entry < {MIN_STOP_DIST_PCT*100:.0f}% minimum "
+                      f"(band {_ms_band}) — stop is inside the noise, skipping [minstop gate]")
+                _log_decision(ticker, "minstop_reject", price=entry_price, stop=round(stop_loss, 4),
+                              stop_width_pct=_ms_w, band=_ms_band, machine=entry_type)
+                with trade_lock:
+                    reentry["held"].discard(ticker)   # pre-reservation: nothing to refund (mirror bad_stop_skip)
+                return
             # B: Kev short-003 sizing (LIVE 7/11) — shares = max-loss ÷ risk-per-share; notional-capped. Wide stop →
             # fewer shares, tight stop → more; every full stop-out costs the same RISK_PER_TRADE.
             _clamp = "none"   # CLAMP-CHAIN LOGGING (7/26, log-only — the 7/25 exec-expert rec, built at
@@ -8035,6 +8072,8 @@ def main():
                 "stop_loss":       round(stop_loss, 4),                              # initial structural stop
                 "risk_per_share":  round(entry_price - stop_loss, 4),
                 "planned_risk":    round(shares * (entry_price - stop_loss), 2),     # ≈ RISK_PER_TRADE unless capped
+                "stop_width_pct":  (round((entry_price - stop_loss) / entry_price * 100, 2)
+                                    if entry_price > 0 else None),   # 7/27 minstop gate — kept-side column for the Friday grade
                 "est_slippage":    round(shares * float(l2_details.get("spread") or 0), 2),  # shares × L1 spread @ entry
                 "entry_ema90":        round(entry_ema90, 4) if entry_ema90 > 0 else None,
                 "entry_vs_ema90_pct": entry_vs_ema90_pct,

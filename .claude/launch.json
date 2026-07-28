@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "screener-local",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/marcosolivera/Desktop/Marcos-Trading-Bot && PORT=5599 python3 screener_app.py"],
+      "port": 5599
+    }
+  ]
+}

@@ -241,3 +241,22 @@ all failed). Contradicts the momentum gate's shape: EXPANSION_MIN=1.5 is a FLOOR
 STATUS: SHADOW ONLY. n=4 in the losing band, one day, my own base-window definition, same shape
 as 5 refuted hypotheses. Action = stamp vol_expansion_5m on every fire; grade Friday 7/31 with
 the leg-position thesis. NOT a gate.
+
+### 7/28 CORRECTION to the entry above — figures NOT trustworthy, direction is
+Re-run with a corrected 1-min aggregation moved individual values materially
+(WLDS 10:03: 1.88x -> 23.19x on the same trade). The specific volx numbers in the
+entry above are VOID; do not quote them. What replicated across BOTH computations
+AND across two independent windows:
+  window A = BOT'S OWN (fire bar / prior 4 bars, IGNITION_BASE_LOOKBACK=4)
+     winners median 0.64x (range 0.04-1.73)   losers median 1.47x (range 1.02-5.15)
+  window B = mine (5-min mean / prior 15-min mean)
+     winners median 1.57x    losers median 4.73x
+Every 7/28 winner entered on a bar at/below its own recent average; the loser list
+is led by BIYA 09:33 5.15x and LGHL 2.45x.
+KNOWN HOLES: (1) KVAC fired as ignition but reconstructs to 0.14x on window A, which
+is below the 2.0x the detector REQUIRES (:4602) -> almost certainly fired on the 10s
+path vs a 10s base; window A is therefore NOT yet "what the bot saw". (2) CNET (a
+winner) excluded, <5 prior 1-min bars. n=5 winners, one day.
+ACTION unchanged: stamp the detector's own reading on the trade record for every lane
+(currently ZERO volume fields persist - verified by key scan on /api/trades 7/28),
+plus window B as a second column. Grade Friday. NOT a gate.

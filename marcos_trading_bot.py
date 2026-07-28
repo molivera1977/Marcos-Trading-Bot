@@ -920,6 +920,33 @@ def _et_session_of_utc(ts_utc: str):
         return "ATH"
     return None
 
+EXIT_PX_TAPE_TOL = float(os.environ.get("EXIT_PX_TAPE_TOL", "5")) / 100.0   # 0 = guard off
+
+def _verify_exit_px(px, tape_lo, tape_hi, tol=EXIT_PX_TAPE_TOL):
+    """OFF-TAPE EXIT GUARD (7/27). Returns (booked_px, raw_px, ok, why).
+
+    7/27 forensics: all 5 premarket BLIND-STOP exits booked prices BELOW the day's low on BOTH
+    independent 10s feeds — BIYA 1.93 vs low 2.42 · LGHL 0.91 vs 0.95 · VEEE 12.97 vs 13.70 ·
+    MTNB 0.24 vs 0.311 · JZXN 1.19 vs 1.22 — totalling exactly −$624.50, i.e. the whole incident
+    was booked at prices that never traded. All 17 RTH exits that day were on-tape.
+
+    Same defect class the ENTRY path already solved (`stale_price_fix`, :5324/:5431 — a stream
+    quote 2%+ off the fire bar is discarded in favour of the bar). This is that idea at the exit.
+
+    Policy: a print outside the tape this monitor has actually SEEN, by more than `tol`, cannot be
+    verified — so book the nearest price we can PROVE traded and keep the raw print for the record.
+    Never silently: the caller logs it and stamps `exit_px_unverified` + `exit_px_raw` on the trade.
+    Deliberately does NOT veto the exit itself — a blind, alive position must still be closed (the
+    BOXL freeze). It vetoes booking FICTION, not the decision to get out."""
+    if not tol or not px or px <= 0 or not tape_lo or tape_lo <= 0:
+        return px, px, True, None
+    if px < tape_lo * (1 - tol):
+        return round(tape_lo, 4), px, False, "below_tape"
+    if tape_hi and tape_hi > 0 and px > tape_hi * (1 + tol):
+        return round(tape_hi, 4), px, False, "above_tape"
+    return px, px, True, None
+
+
 def _live_sessions(is_premkt=None):
     """Session list for a LIVE bar fetch (monitor/scan). Before 09:30 ET — or for a position stamped
     PRE — the RTH-only default returns [] (7/27 blackout: every premarket monitor went blind and the
@@ -6175,6 +6202,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     _status_px         = 0.0           # throttle the 💰 status print (streaming's 0.5s loop floods it otherwise)
     _status_t          = 0.0           # print only on a ≥0.3% move OR every ≥STATUS_PRINT_SECS — keeps real events visible
 
+    _tape_lo = _tape_hi = None     # 7/27 off-tape guard: the price range this monitor has SEEN in bars
     _last_bars_ok  = time.time()   # B11: when the stop logic last actually SAW a completed bar
     _below_since   = None          # B11: first moment the stream printed below the current stop
     _ib_below_since = None         # intrabar-confirm ledger: first print AT OR BELOW the stop (<=, not <)
@@ -6418,6 +6446,19 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             # instantly "hit" a fresh stop ×2). Stale/prior-day data → NO exit decision this cycle,
             # and it counts as a SIGHT FAILURE for the B11 blindness ledger.
             bars = _fresh_session(bars)
+            # OFF-TAPE EXIT GUARD (7/27): remember the tape this monitor has actually SEEN, from the
+            # bars it already fetches — no extra API call. This is the evidence the exit price is
+            # checked against at the bottom of the loop.
+            for _tb in (bars or []):
+                try:
+                    _tl = float(_tb.get("low") or _tb.get("l") or 0)
+                    _th = float(_tb.get("high") or _tb.get("h") or 0)
+                    if _tl > 0:
+                        _tape_lo = _tl if _tape_lo is None else min(_tape_lo, _tl)
+                    if _th > 0:
+                        _tape_hi = _th if _tape_hi is None else max(_tape_hi, _th)
+                except Exception:
+                    pass
             if not bars:
                 _fetch_fail_n += 1
             _cbars = aggregate_bars(bars, SETUP_TF_MIN) if (EXITS_ON_3MIN and bars) else bars
@@ -6634,6 +6675,25 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             break
 
         time.sleep(sleep_secs)
+
+    # ── OFF-TAPE EXIT GUARD (7/27) — the single choke point every one of the 15 exit paths funnels
+    #    through, so no exit can book a price this monitor never saw trade. See _verify_exit_px:
+    #    all 5 premarket blind-stops on 7/27 booked below the day's low on both 10s feeds (−$624.50).
+    #    Booking is corrected to the nearest PROVEN price; the raw print is preserved on the record.
+    _bk_px, _raw_px, _px_ok, _px_why = _verify_exit_px(result["exit_price"], _tape_lo, _tape_hi)
+    result["exit_px_unverified"] = (not _px_ok) or None
+    result["exit_px_raw"] = (round(float(_raw_px), 4) if not _px_ok else None)
+    if not _px_ok:
+        print(f"🚩 {ticker} OFF-TAPE EXIT PRICE: ${_raw_px:.4f} is {_px_why.replace('_', ' ')} "
+              f"(seen tape ${_tape_lo:.4f}–${(_tape_hi or 0):.4f}) — booking ${_bk_px:.4f}, "
+              f"the nearest price actually seen. Raw print kept on the record. [{result.get('exit_reason')}]")
+        try:
+            _log_decision(ticker, "off_tape_exit", raw_px=round(float(_raw_px), 4), booked_px=_bk_px,
+                          tape_lo=_tape_lo, tape_hi=_tape_hi, why=_px_why,
+                          exit_reason=str(result.get("exit_reason"))[:40])
+        except Exception:
+            pass
+        result["exit_price"] = _bk_px
 
     # ── Blended P&L (sum across all tier fills + remaining) ──
     result["profit_loss"] = _blended_pnl(entry_price, total_shares, partial_fills,
@@ -8114,6 +8174,10 @@ def main():
                 "planned_risk":    round(shares * (entry_price - stop_loss), 2),     # ≈ RISK_PER_TRADE unless capped
                 "stop_width_pct":  (round((entry_price - stop_loss) / entry_price * 100, 2)
                                     if entry_price > 0 else None),   # 7/27 minstop gate — kept-side column for the Friday grade
+                # 7/27 off-tape guard: set only when the exit print could not be verified against
+                # the tape this monitor saw. exit_px_raw = what the stream claimed; `exit` = booked.
+                "exit_px_unverified": trade_result.get("exit_px_unverified"),
+                "exit_px_raw":        trade_result.get("exit_px_raw"),
                 "est_slippage":    round(shares * float(l2_details.get("spread") or 0), 2),  # shares × L1 spread @ entry
                 "entry_ema90":        round(entry_ema90, 4) if entry_ema90 > 0 else None,
                 "entry_vs_ema90_pct": entry_vs_ema90_pct,

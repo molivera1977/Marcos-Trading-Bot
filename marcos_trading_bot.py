@@ -8413,9 +8413,23 @@ def main():
                 float_shares = float_shares,
             )
             _kev_lv = None
+            _runway_rr = _runway_tgt = None
             try:
                 _lvd = (_fetch_kev_levels() or {}).get(ticker) or {}
                 _kev_lv = float(_lvd.get("break") or 0) or None
+                # ── MARKED RUNWAY (7/28, Marcos: "we don't need the absolute beginning but we need
+                # enough runway to travel on"). Distance from fill to the sheet's first target ABOVE
+                # entry (fallback: next_supply), in R. LOG-ONLY — the 7/28 four worst losers all read
+                # <0.5R (EGG entered above ALL targets); Friday grades it on era scale. NOT a gate.
+                _rps = entry_price - stop_loss
+                if _rps > 0:
+                    _tgts = sorted(float(x) for x in (_lvd.get("targets") or []) if float(x) > entry_price)
+                    _ns = float(_lvd.get("next_supply") or 0)
+                    _runway_tgt = (_tgts[0] if _tgts else (_ns if _ns > entry_price else None))
+                    if _runway_tgt:
+                        _runway_rr = round((_runway_tgt - entry_price) / _rps, 2)
+                    elif _lvd.get("targets") or _ns:
+                        _runway_rr = 0.0   # sheet HAD levels and entry is above them all — the EGG case
             except Exception:
                 _kev_lv = None
             _rec_ok = post_trade_record_reliably({
@@ -8459,6 +8473,11 @@ def main():
                                                 or datetime.now(EASTERN).strftime("%H:%M") < "09:30")
                                         else "RTH"),  # 7/25 premarket-paper; F1b 7/26: conversion stamp wins over the clock
                 "day_gain_at_entry":  extra.get("day_gain"),     # DAY-GAIN FLOOR column (7/22): % vs prior close at entry
+                # 7/28 MARKED RUNWAY (sheet-level room, distinct from mechanical entry_room_rr below):
+                # RR from fill to the sheet's first target above entry; 0.0 = entered above ALL marked
+                # levels (EGG 7/28); None = no sheet levels for the name. LOG-ONLY, Friday grades.
+                "marked_runway_rr":   _runway_rr,
+                "marked_runway_tgt":  _runway_tgt,
                 "entry_room_rr":      (extra.get("room") or {}).get("rr_to_supply"),
                 "entry_room_pct":     (extra.get("room") or {}).get("room_pct"),
                 "entry_next_supply":  (extra.get("room") or {}).get("next_supply"),

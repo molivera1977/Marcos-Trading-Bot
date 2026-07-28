@@ -20,6 +20,11 @@ def ep(hh, mm, ss=0):
 
 def B(k, o, h, l, c, v): return (k, o, h, l, c, v)
 
+# 7/28: the stale-fire guard (own suite: test_stale_fire_guard.py, real epochs) would suppress
+# these wall-time fixtures whenever the rig runs after 09:31 ET. Neutralize it HERE ONLY so this
+# suite tests detector logic at fixed wall-times regardless of run time-of-day.
+bot.CURL_FIRE_MAX_AGE_SECS = 10 ** 9
+
 def quiet_base(start_hh, start_mm, n=30, px=2.00, vol=200):
     """n flat low-vol 10s bars from the given ET time."""
     t0 = ep(start_hh, start_mm)

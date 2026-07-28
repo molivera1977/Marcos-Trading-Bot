@@ -285,6 +285,9 @@ check("T10c BE floor after scale #1 (a banked trade can never finish red — 7/2
 
 
 # ── T13: zone-flip machine + 7/20 role swap (Marcos: "I want this to go in") ─
+# 7/28: neutralize the stale-fire guard for these wall-time fixtures (guard has its own
+# suite with real epochs: test_stale_fire_guard.py) — otherwise T13d reds after 09:31 ET.
+bot.CURL_FIRE_MAX_AGE_SECS = 10 ** 9
 print("T13 zone-flip Z-gates + role-swap pins")
 check("T13a pins: ZONEFLIP_KEV on, tested primary cell (flush 4%, band 2%)",
       bot.ZONEFLIP_KEV is True and abs(bot.ZONEFLIP_FLUSH - 0.04) < 1e-9

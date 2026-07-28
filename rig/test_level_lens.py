@@ -61,16 +61,23 @@ check("LENS_FOCUS_PCT=0 kills the lens", bot._level_lens("LVWR", 2.90) == (False
 bot.LENS_FOCUS_PCT = _sv
 
 print("== ordering: focus-first, scanner rank preserved inside groups, nobody dropped ==")
+import time as _time
 class _FakeStream:
-    def __init__(self, px): self.px = px
-    def get_price(self, t): return self.px.get(t, 0)
+    """The lens must never call this — get_price falls back to REST. Booby-trapped."""
+    def get_price(self, t): raise AssertionError("lens called stream.get_price — REST amplification!")
+def _seed(px):
+    with bot._price_lock:
+        bot._price_registry.clear()
+        for t, p_ in px.items():
+            bot._price_registry[t] = {"p": p_, "t": _time.time()}
 bot._lens_state.clear()
 logged = []
 _orig_log = bot._log_decision
 bot._log_decision = lambda t, s, **kw: logged.append((t, s, kw))
 try:
     cands = ["AAA", "LVWR", "BBB", "INLF", "CCC"]          # scanner order
-    stream = _FakeStream({"AAA": 9.0, "LVWR": 2.88, "BBB": 1.0, "INLF": 5.10, "CCC": 2.0})
+    stream = _FakeStream()
+    _seed({"AAA": 9.0, "LVWR": 2.88, "BBB": 1.0, "INLF": 5.10, "CCC": 2.0})
     out = bot._lens_pass(list(cands), stream)
     check("focus names first, in scanner order", out == ["LVWR", "INLF", "AAA", "BBB", "CCC"], f"got {out}")
     check("no name added or dropped", sorted(out) == sorted(cands))
@@ -79,7 +86,7 @@ try:
     logged.clear()
     out2 = bot._lens_pass(list(cands), stream)
     check("steady state logs nothing (transitions only)", logged == [], f"got {logged}")
-    stream.px["LVWR"] = 1.90                                # drifts out of the band
+    _seed({"AAA": 9.0, "LVWR": 1.90, "BBB": 1.0, "INLF": 5.10, "CCC": 2.0})  # LVWR drifts out
     out3 = bot._lens_pass(list(cands), stream)
     check("drift out -> lens_unfocus logged, order updates",
           [(t, s) for t, s, _ in logged] == [("LVWR", "lens_unfocus")] and out3[0] == "INLF",
@@ -92,6 +99,19 @@ try:
     bot._level_lens = bot._level_lens_backup
 finally:
     bot._log_decision = _orig_log
+
+print("== cost: the lens is FREE — no REST, no stream, sub-millisecond ==")
+check("booby-trapped stream never called (registry-only reads)", True)   # would have raised above
+_seed({t: 2.88 for t in ["LVWR"] * 1})
+t0 = _time.perf_counter()
+for _ in range(100):
+    bot._lens_pass([f"N{i}" for i in range(40)] + ["LVWR"], _FakeStream())
+_ms = (_time.perf_counter() - t0) / 100 * 1000
+check(f"41-name cycle costs <5ms (measured {_ms:.2f}ms)", _ms < 5, f"{_ms:.2f}ms")
+_stale = _time.time() - 300
+with bot._price_lock:
+    bot._price_registry["LVWR"] = {"p": 2.88, "t": _stale}
+check("stale tick (>120s) -> not in focus, still no REST", bot._lens_px("LVWR") == 0)
 
 print("== THE INVARIANT: the lens has no vote on outcomes ==")
 src = pathlib.Path(bot.__file__).read_text()

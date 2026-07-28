@@ -4060,16 +4060,33 @@ def _level_lens(ticker, price):
         return False, None, None, None
 
 
+def _lens_px(ticker):
+    """FREE price read for the lens — cached stream tick only, NEVER REST. get_price() falls back
+    to a REST quote when the stream is stale, and the lens polls every candidate every cycle: in
+    degraded mode (premarket / silent stream — exactly when 429s bite) that would roughly DOUBLE
+    quote traffic. Attention must cost nothing: stale-tolerant registry peek (120s — fine for a
+    ±15% band), else 0 → the name simply isn't in focus this cycle (fail-open)."""
+    try:
+        with _price_lock:
+            rec = _price_registry.get(ticker.upper())
+        if isinstance(rec, dict) and rec.get("p", 0) > 0 and (time.time() - rec.get("t", 0)) <= 120:
+            return rec["p"]
+    except Exception:
+        pass
+    return 0
+
+
 def _lens_pass(candidates, stream):
-    """One watch cycle through the lens: compute focus per name from the live stream price, log
+    """One watch cycle through the lens: compute focus per name from the CACHED stream price, log
     transitions, return candidates FOCUS-FIRST (sorted() is stable — scanner rank is preserved as
     the tiebreak inside each group). Pure attention: every name still runs every cycle; a lens
-    error must never break the scan (fail-open to the incoming order)."""
+    error must never break the scan (fail-open to the incoming order); a lens read must never
+    leave process memory except the one shared 90s-TTL levels cache refresh."""
     try:
         focus = {}
         for t in candidates:
             try:
-                infocus, zn, zpx, dist = _level_lens(t, stream.get_price(t) or 0)
+                infocus, zn, zpx, dist = _level_lens(t, _lens_px(t))
             except Exception:
                 infocus = False; zn = zpx = dist = None
             focus[t] = infocus

@@ -395,3 +395,20 @@ FRIDAY SHIP/KILL NOW HAS THREE ARMS (same 234-fire tape, same harness, real ladd
   C. KEV-FAITHFUL: tight wick stop + re-enter on next reclaim while front_side holds, halt on
      the front->back flip (spec keystone; front_side already stamped at entry). Campaign P&L
      per NAME, not per fire — capped attempts noted, slippage per attempt.
+
+## 2026-07-28 — THREE-ARM RECLAIM SHIP/KILL RUN EARLY (Marcos: "run the test now") — ALL ARMS NEGATIVE
+Script: data/killtests/reclaim_three_arm_killtest.py (re-runnable). Same 7/27+7/28 ALP10S tape,
+bot's own detector, identical ladder (50%@1R, 25%@2R, BE after scale 1, 3-min-low runner trail,
+15:45 flat, stop-before-target every bar, ZERO slippage — generous), $30/$1k sizing chain.
+  A tight/one-shot   136 entries  −$958.69  −$7.05/entry
+  B 6%-floored       136 entries  −$305.50  −$2.25/entry
+  C Kev campaign     179 entries  −$980.49  −$5.48/entry     (negative BOTH days, every arm)
+FIDELITY ANCHOR: arm A −$7.05/entry vs the live book −$7.30/trade — the harness recovers reality.
+ARM C AUTOPSY: persistence pays on the right name (FIEE re-entry +$127.96 after a stop — Kev's
+script verbatim) and burns on the wrong one (ZNB 3 stops/14 min −$79.16). Kev's edge is WHICH
+names deserve the attack, not the re-entry rule; EMA9>20 is not that judgment. Hands, not eyes.
+VERDICT (per pre-registration 10e9e0d, "negative -> shadow"): vwap_reclaim -> SHADOW via
+RECLAIM_LIVE=0 (the 7/20 role-swap switch; detection + stamped shadow fires continue, live
+entries stop). Earns its way back with evidence. AWAITING MARCOS'S GO on the env flip — live
+config on Kev's most-used tool = management call. Caveats: 2 days, one regime, ladder proxy
+not the live health-fold, zero slippage (real is worse — strengthens, not weakens, the verdict).

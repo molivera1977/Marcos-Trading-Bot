@@ -379,3 +379,19 @@ the ACTUAL exit ladder in dollars, tight vs 6%-floored, tails included, flats pr
 bar, slippage noted. Positive floored number -> fix stop construction (floored stop satisfies the
 floor by construction, exemption never needed); negative -> lane to shadow. (4) The 88 flats are
 tonight's soft spot — $0 both columns here, MUST be priced in the Friday replay. (5) Docket unchanged.
+
+### 7/28 late — MARCOS: "isn't this a favorite of Kev?" — YES, and it re-frames the fork
+Spec check (project_kev_system_spec 115-131): VWAP reclaim is Kev's RE-ENTRY weapon inside a
+front-side CAMPAIGN — "keep attacking it", small wick-stop per attempt, RESUME on the next
+reclaim, stop only on the front->back-side flip. His tight stop works BECAUSE he gets multiple
+attempts; several 1R stops then the runner is the design. WE kept his tight stop but deleted his
+persistence (one live slot/name/day) — the worst half of each. This UPGRADES the slot rule from
+"second-order" to "the exact spec departure," and revises my earlier demotion of it: the seq0-vs-
+seq1 comparison tested fires as ISOLATED one-shots, which is precisely the wrong frame for a
+campaign tool.
+FRIDAY SHIP/KILL NOW HAS THREE ARMS (same 234-fire tape, same harness, real ladder, dollars):
+  A. tight stop, one shot        (as built — the baseline that measured −$256 era)
+  B. 6%-floored stop, one shot   (tonight's counterfactual, satisfies the floor)
+  C. KEV-FAITHFUL: tight wick stop + re-enter on next reclaim while front_side holds, halt on
+     the front->back flip (spec keystone; front_side already stamped at entry). Campaign P&L
+     per NAME, not per fire — capped attempts noted, slippage per attempt.

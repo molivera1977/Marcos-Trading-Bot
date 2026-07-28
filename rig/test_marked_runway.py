@@ -21,7 +21,7 @@ def check(name, cond, detail=""):
 # asserting the source matches, then exercising the arithmetic through a tiny local mirror.
 seg_i = src.find("MARKED RUNWAY (7/28")
 check("stamp block present in _trade_worker", seg_i > 0)
-seg = src[seg_i:seg_i + 1200]
+seg = src[seg_i:seg_i + 2000]
 check("record carries marked_runway_rr", '"marked_runway_rr":   _runway_rr' in src)
 check("record carries marked_runway_tgt", '"marked_runway_tgt":  _runway_tgt' in src)
 check("above-all-levels stamps the STATE (bimodal: ZYBT blue-sky vs EGG chase)",

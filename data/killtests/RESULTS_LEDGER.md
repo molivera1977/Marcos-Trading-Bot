@@ -412,3 +412,23 @@ RECLAIM_LIVE=0 (the 7/20 role-swap switch; detection + stamped shadow fires cont
 entries stop). Earns its way back with evidence. AWAITING MARCOS'S GO on the env flip — live
 config on Kev's most-used tool = management call. Caveats: 2 days, one regime, ladder proxy
 not the live health-fold, zero slippage (real is worse — strengthens, not weakens, the verdict).
+
+## 2026-07-28 FABLE — THE THREE HIDDEN_ENTRY TRADES ARE A CUSTODY SCANDAL, NOT A LANE VERDICT
+Records (store, authoritative): LVWR 7/27 peak +1.62R booked −$39.29 | VEEE 7/27 peak +6.96R
+($17.30->$23.29 WHILE HELD) booked −$25.33 | WLDS 7/28 exited 40s after entry at $3.77, BELOW its
+own $3.819 stop. partial_fills EMPTY on all three — the ladder never scaled once.
+ELIMINATED TONIGHT: (1) VELOCITY_RIDE — deferred only 2-3 min each name (VEEE sat above tier 1
+~an hour at low velocity, tape-verified); (2) DEAD MONITOR — refuted by the record itself:
+highest=$23.29 is written by the monitor loop (:6615), so the monitor was ALIVE watching $23.29
+while the scale branch three lines below (:6656, tier $18.16) never executed. 7/27 Railway logs
+UNRECOVERABLE (retention starts at tonight's 23:07 restart).
+OPEN SUSPECTS: (a) recurring exception/continue between highest-update and scale block;
+(b) close_position/cancel_order failing silently every attempt; (c) current_price vs highest_price
+fed by DIVERGENT price paths (7/27 = price-integrity day; family history).
+RULINGS: hidden_entry STAYS LIVE — entry vindicated (+6.96R/+1.62R found), losses are custody
+artifacts; earlier "worst lane 0/3" read corrected. zone_flip/hidden three-arm test demoted
+(premise mis-framed). TONIGHT: rig reproduction — synthetic stream crosses tier 1, assert the
+partial fires; repeat with stream/REST price paths desynced to hunt (c). PERMANENT: custody
+heartbeat decision row 1/min while holding (ticker, price, tier_idx, remaining) — an autopsy
+tonight, a query forever after. NOTE 7/28 custody graded A on its own trades — defect may be
+7/27-specific (price-session fixes shipped since); UNKNOWN until the rig says.

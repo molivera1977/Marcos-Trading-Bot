@@ -194,8 +194,11 @@ check("T9a contract: cache + silencer + exc-class + TTL pin exist",
 if hasattr(bot, "_rest_price_cache"):
     calls = {"n": 0}
     _orig_qt = bot._get_webull_quote
+    # 7/28 fix A: quotes are session-aware — premarket, a quote with NO premarket field serves
+    # no-price (that is the FIX, not a bug). T9b's subject is TTL caching, so feed a
+    # session-complete quote that serves 5.0 in any session.
     bot._get_webull_quote = lambda tk, executor=None: (calls.__setitem__("n", calls["n"] + 1)
-                                                       or {"last_price": 5.0})
+                                                       or {"last_price": 5.0, "pre_market_price_raw": 5.0})
     bot._rest_price_cache.clear()
     p1 = bot._get_price_rest("RIG9"); p2 = bot._get_price_rest("RIG9")
     check("T9b two calls within TTL → ONE underlying fetch", calls["n"] == 1 and p1 == p2 == 5.0,

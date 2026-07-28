@@ -2909,6 +2909,29 @@ def get_account_balance():
 _rest_price_cache = {}                  # {TICKER: (attempt_ts, price)} — see _get_price_rest
 _rest_price_lock = threading.Lock()
 REST_PRICE_TTL_SECS = float(os.environ.get("REST_PRICE_TTL_SECS", "3"))
+# ── 7/28 P0 FIX A (Marcos found it live: "the prices showing are the end of day prices... not the
+#    current live pre-market price"; DFNS 13.10 vs actual 16.02). Premarket, the snapshot's `close`
+#    is the PRIOR session's official close, and the parser takes it first — so every premarket
+#    price the loop saw was a day old. Session-aware serving: premarket → the RAW premarket field
+#    or NO PRICE (Fable ruling, B16: a wrong price fires detectors, a missing price skips a cycle
+#    — never fall back to yesterday's close). RTH path byte-identical. PRICE_SESSION_AWARE=0 kills.
+PRICE_SESSION_AWARE = os.environ.get("PRICE_SESSION_AWARE", "1") == "1"
+_px_canary_t = 0.0
+_pm_payload_t = 0.0
+
+def _session_price(q, hm=None):
+    """The price the trading loop should act on, by session. Premarket: the RAW premarket field
+    (None-safe) or 0 = no price. RTH and everything else: last_price, unchanged. `hm` injectable
+    for the rig; live callers omit it."""
+    if not PRICE_SESSION_AWARE:
+        return float(q.get("last_price") or 0)
+    try:
+        if (hm or datetime.now(EASTERN).strftime("%H:%M")) < "09:30":
+            raw = q.get("pre_market_price_raw")
+            return float(raw) if raw and raw > 0 else 0.0
+    except Exception:
+        pass
+    return float(q.get("last_price") or 0)
 
 def _get_price_rest(ticker) -> float:
     """REST fallback for current price when MQTT is unavailable. Uses SDK.
@@ -2925,7 +2948,13 @@ def _get_price_rest(ticker) -> float:
         if rec and now - rec[0] < REST_PRICE_TTL_SECS:
             return rec[1]
     q = _get_webull_quote(ticker)
-    px = q.get("last_price", 0) or 0
+    px = _session_price(q)                       # 7/28 P0 fix A — premarket serves the LIVE field or nothing
+    _lp = float(q.get("last_price") or 0)
+    global _px_canary_t
+    if px != _lp and time.time() - _px_canary_t > 120:   # substitution canary (wk-1 audit trail)
+        _px_canary_t = time.time()
+        print(f"🕐 SESSION PRICE {t}: serving {px if px else 'NO-PRICE (no live premarket field)'} "
+              f"instead of stale last {_lp} [premarket]")
     with _rest_price_lock:
         _rest_price_cache[t] = (time.time(), px)
     # 7/28 lens stage-1 review fix: the registry's ONLY writer was the streaming tick handler
@@ -2992,12 +3021,32 @@ def _get_webull_quote(ticker, executor=None) -> dict:
             else:
                 d = {}
 
+        # 7/28 P0 PAYLOAD LOGGER (Fable B-evidence): premarket, dump one raw payload every ~10 min
+        # so tonight's stream-field decision (fix B) runs on DATA, not inference. Throttled global.
+        global _pm_payload_t
+        try:
+            if datetime.now(EASTERN).strftime("%H:%M") < "09:30" and time.time() - _pm_payload_t > 600:
+                _pm_payload_t = time.time()
+                print(f"🔬 PM-PAYLOAD {ticker}: {json.dumps({k: d.get(k) for k in sorted(d)}, default=str)[:700]}")
+        except Exception:
+            pass
         last   = float(d.get("close")     or d.get("last_price")   or d.get("lastPrice")   or d.get("c") or 0)
         bid    = float(d.get("bid_price")  or d.get("bidPrice")     or d.get("bid")         or 0)
         ask    = float(d.get("ask_price")  or d.get("askPrice")     or d.get("ask")         or 0)
         vol    = float(d.get("volume")     or d.get("v")            or 0)
         pclose = float(d.get("pre_close")  or d.get("preClose")     or last                 or 0)
         chg_r  = float(d.get("change_ratio")  or d.get("changeRatio")   or 0)
+        # 7/28 P0 (Fable amendment): RAW premarket field — present vs defaulted MUST be
+        # distinguishable. The legacy pre_p below defaults to `last` (yesterday's close premarket),
+        # which is exactly the trap that would let a naive session-price fix pass the rig and stay
+        # stale in production. pre_market_price_raw is None when the payload has no real field.
+        _raw_pre = d.get("pre_market_price") or d.get("preMarketPrice")
+        try:
+            _raw_pre = float(_raw_pre) if _raw_pre not in (None, "", 0, "0") else None
+            if _raw_pre is not None and _raw_pre <= 0:
+                _raw_pre = None
+        except (TypeError, ValueError):
+            _raw_pre = None
         pre_p  = float(d.get("pre_market_price")        or d.get("preMarketPrice")        or last or 0)
         pre_r  = float(d.get("pre_market_change_ratio") or d.get("preMarketChangeRatio")  or chg_r or 0)
 
@@ -3022,6 +3071,7 @@ def _get_webull_quote(ticker, executor=None) -> dict:
             "prev_close":            pclose,
             "change_ratio":          round(chg_r * 100, 2),   # fraction → percent, unconditional (7/11 A10)
             "pre_market_price":      pre_p,
+            "pre_market_price_raw":  _raw_pre,   # 7/28 P0: None when the payload has NO real field
             "pre_market_change_pct": round(pre_r, 2),
             "vwap":                  vwap,
         }

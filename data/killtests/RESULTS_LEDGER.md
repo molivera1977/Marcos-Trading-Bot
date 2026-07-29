@@ -659,3 +659,16 @@ on the week's mission names convert. Suppressed setups were consumed — morning
 TONIGHT'S DOCKET: proper fix = CURSOR-AWARE freshness (stale = the feed cursor cold-jumped a
 batch, NOT the newest print being old) + rig test with a sparse-tape case + a premarket-sparse
 regression pin. The 90s default was tuned on RTH tape only — never exercised against 4am reality.
+
+### 7/29 08:25 — P0 #2 SHIPPED (Fable review): MONITOR BAR-PRICE FALLBACK (the NCRA flush)
+NCRA PRE: entry $2.65 stop $1.9184 -> quote field absent (session-aware NO-PRICE, correct) ->
+monitor counted "dead feed" 90s -> FORCE-CLOSED $2.21 MID-FLUSH (-$18.04) while curl-feed showed
+bars=90 age=17s. Flush low $2.03 NEVER touched the stop; +1.05R printed 4 min later. Marcos saw
+it live: "it went higher but we got flushed first."
+FIX (618197a, rig 31/31): quote-dead -> ride freshest 10s bar close (same _curl_feed choke point,
+age<=BARPX_MAX_AGE=60s, 5s-throttled, one-line canary). Structural stop decides. Safety exit now
+requires BOTH sources dead — BOXL protection intact, rig-pinned both branches.
+MORNING PATTERN NAMED: two P0s in 45 min, same disease — PREMARKET SPARSENESS MISREAD AS
+STALENESS (guard killed entries; monitor killed an exit). Third occurrence of the class in 30h
+counting the retracted frozen-price claim. Every staleness check in this codebase must ask
+"sparse or stale?" — tonight's cursor-aware guard rework applies the lesson at the last site.

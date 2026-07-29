@@ -485,3 +485,21 @@ Friday and now gets Wed-Thu LIVE fills (with runway/volume/heartbeat stamps) on 
 replay. Cost ceiling if the lane repeats its live rate: ~-$7/entry x ~2-3 entries/day, DRY_RUN.
 Friday inherits BOTH: the 234-fire three-arm replay AND the live week. The "what are we doing
 wrong vs Kev" study (campaign eyes, not hands) stays the standing question.
+
+## 2026-07-28 late — ARM D REFUTED: Kev's PRECONDITIONS alone do not fix reclaim
+Script: reclaim_arm_d_kev_preconditions.py. Same detector/ladder/slotting as arm A; only change =
+require at fire: 1m EMA9>EMA20 AND px>=VWAP*0.99 AND px within 15% of session high.
+  KEPT n=106: 35 wins, -$796.05, -$7.51/entry | DROPPED n=30: 12 wins, -$162.62, -$5.42/entry
+Filter does NOT separate. ALSO CORRECTED: zero fires occur below VWAP (the detector's retest
+anchors fires to the line) — my FIEE/LGHL "backside reclaim" claim conflated watch-status prices
+with fire prices. RETRACTED.
+RULED OUT tonight as the missing piece (all tested): earlier entry (6/6 stopped) · wider stop
+(-$2.25/e) · campaign persistence (-$5.48/e) · trend/front-side preconditions (-$7.51/e).
+REMAINING LIVE HYPOTHESES (Friday cuts, data flowing since 7/27-28 stamps):
+  1. HIS NAMES + HIS LEVELS: reclaim fires in ballpark (+-10%) of a MARKED level — the 135-fire
+     study (54% vs 29%) is the prior; shadow fires carry level_gap_pct/ballpark. THE top cut.
+  2. TAIL-SHAPED EXIT for this lane: 9% of fires carry 64% of peak $; ladder banks 1R/2R and
+     3-min-trails the runner; Kev "loosens it up" (STAK). Testable on the same 234 fires.
+  3. HIS "NOT SET UP YET" discretion: unencoded; shadow-fire context vs outcomes is the dataset.
+Marcos directive standing: lane stays LIVE through Friday; "we are not doing something right
+with it" — four wrong answers eliminated tonight is the progress.

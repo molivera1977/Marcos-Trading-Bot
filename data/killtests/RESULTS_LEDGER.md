@@ -557,3 +557,15 @@ the qualified cohort at ~2x tonight's n. Stacking additional filters (time-of-da
 FORBIDDEN in the grade — noted as the p-hacking trap. If positive OOS -> build the front-side
 health gate live (the entry-side mirror of the health fold, Marcos's design). If negative ->
 the maturity gradient joins the refuted pile and reclaim's answer is elsewhere.
+
+### 7/29 02:25 — MARCOS CATCHES THE CONFLICT: THE FLOOR VS THE QUALIFICATION GATE
+His question: "did these qualified fires use the floor gate?" Answer: 11 of 13 qualified fires
+have sub-6% stops — the floor REJECTS them, including ALL SEVEN WINNERS (POLA 2.89%, TTGT 1.80%,
+KVAC 1.59%, PIII 0.43%...). The only two floor-passers are the two -$30 losers (XPON, APUS 7.00%).
+  qualification alone: 13 trades +$4.04 | qualification + floor: 2 trades −$59.32
+THE TWO MECHANISMS ARE OPPOSED ON THIS LANE. Synthesis (HYPOTHESIS, for Friday): the floor's
+era evidence condemns UNQUALIFIED tight stops (noise-bait, 89% swept); the POLA trace shows a
+QUALIFIED tight stop is the prize (tight-because-earned = size). Coherent design = CONDITIONAL
+floor: names with streak>=6 & defenses>=2 keep their wick stop; unqualified names eat the 6%
+floor. Friday grades both arms on Wed-Thu data. Also noted: had both shipped live as-is they
+would have silently fought — the floor (reclaim non-exempt) would have blocked POLA regardless.

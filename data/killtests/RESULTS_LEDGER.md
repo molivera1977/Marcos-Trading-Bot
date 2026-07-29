@@ -532,3 +532,14 @@ intrabar VWAP touch that closed healthy):
 VERDICT: no gate ships. But this is the strongest discriminator of 6 filters tested tonight and
 needs NO live stamps (computable retroactively from archived tape). PRE-REGISTERED as Friday's
 third reclaim axis: defense-count x level-gap x top-ranked-names, on Mon-Thu fires.
+
+### 7/29 00:40 addendum — per-streak ladder (Marcos: "how about streak 3, 4, 5?")
+streak 0: −$5.40/e (36%) | 1: −$10.88 (25%, WORST — the fresh-cross chase) | 2: −$8.42 | 3: −$2.20
+(50% win, the bend) | 4-5: n=2/n=4 noise | 6: −$1.55 (60%) | 9+: +$8.99/e (60%, n=5) — first
+positive cell of the night. Cross: streak>=6 AND defenses>=2 = +$0.31/e (n=13), first
+non-negative composite with n>10. SHAPE: quality rises with trend MATURITY; the just-crossed
+reclaim is the worst trade in the lane. Matches Marcos's DBGI chart read independently.
+⚠️ MULTIPLE-COMPARISONS WARNING pinned: 136 fires / 10+ buckets — positive cells are n=5-13.
+Tonight's claim is THE SHAPE, not the cells. Friday re-runs on Mon-Thu fires (script + rows
+saved: /tmp/frontside_rows.json); if the maturity gradient survives at ~3x n, build the
+front-side health gate with a data-picked threshold.

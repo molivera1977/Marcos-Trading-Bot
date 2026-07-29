@@ -520,3 +520,15 @@ TWO CAVEATS THAT KEEP A NARROWER FORM ALIVE (flagged, not leaned on):
      not refuted. Pattern of the week: every crude mechanization of a Kev behavior loses.
 STATUS: hypothesis NOT confirmed on today's data. Friday's live-stamp cut (fires vs level_gap_pct
 with REAL entries and REAL exits) remains the decision evidence. Nothing ships on this.
+
+### 7/29 00:25 — FRONT-SIDE HEALTH CUT (Marcos's idea: mirror the health fold on the entry side)
+Marcos, from reading the DBGI chart: "the overall trend is going up despite the dips — does our
+bot know this?" -> "can't we give it a mechanism for the front side similar to the health fold?"
+Measured on 136 first-fires 7/27-28 (health = 3-min close >= EMA9 AND >= session VWAP; defense =
+intrabar VWAP touch that closed healthy):
+  streak 6+: 44% win −$3.99/e | defenses 2+: 46% win −$3.74/e  <- BEST CELLS OF THE NIGHT
+  (baseline 30% win −$7/e; middle cells worse: streak 1-2 −$10.25, defenses 1 −$10.93)
+  permutation p=0.31 — not significant on 2 days; every cell still negative.
+VERDICT: no gate ships. But this is the strongest discriminator of 6 filters tested tonight and
+needs NO live stamps (computable retroactively from archived tape). PRE-REGISTERED as Friday's
+third reclaim axis: defense-count x level-gap x top-ranked-names, on Mon-Thu fires.

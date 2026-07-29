@@ -634,3 +634,14 @@ THE COMPLETE TIMEFRAME RESPONSE CURVE (all four clocks Marcos-driven, same 136 f
   hours). ANTI-LUCK NOTE: mining artifacts do not produce an orderly peak with nulls on BOTH
   flanks; a real structure with a characteristic timescale does. This is the strongest
   circumstantial support yet for the 3/5-min cells. Friday three-arm registration unchanged.
+
+### 7/29 04:15 — 2-MIN & 4-MIN GRADED (Marcos: "why not try 2-min and 4-min") — THE PLATEAU
+Both ALIVE. 2-min: streak8+ +$6.59/e, def5+ +$2.02/e. 4-min: streak8+ +$16.43/e (4/4!),
+def5+ +$13.03/e. THE KEY RESULT — the frozen Gate A definition (streak>=6 & def>=2), UNCHANGED,
+is positive on every clock 2/3/4-min (+$5.70 n=8 / +$0.31 n=13 / +$4.75 n=10) with its scaled
+sibling +$1.72 n=26 on 5-min. FULL CURVE: 1min NULL | 2-5min ALIVE (plateau) | 10min DEAD.
+PARAMETER-STABILITY: a real edge tolerates parameter wiggle, an artifact peaks on one setting —
+Gate A passed four clocks wide with no retuning. Strongest cheap anti-overfit evidence available.
+DISCIPLINE: Friday remains THREE arms (no arm proliferation). 2/4-min enter as ROBUSTNESS
+COLUMNS: the winning arm must show the SAME SIGN on neighboring clocks or the win is suspect.
+Rows: /tmp/frontside_{2,4}min_rows.json. Timeframe sweep complete: 6 clocks, all Marcos-driven.

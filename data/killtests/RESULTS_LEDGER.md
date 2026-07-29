@@ -595,3 +595,16 @@ FRIDAY IS NOW A PRE-REGISTERED HEAD-TO-HEAD, both gates frozen tonight, Wed-Thu 
 Judgment: OOS $/entry + win rate, minimum 8 qualified fires to count, NO threshold moves.
 Winner becomes the front-side health gate's trigger condition. Gate B's claim: it is Kev's own
 textbook trend definition and the cleanest per-entry number of the night.
+
+### 7/29 03:30 — TIMEFRAME GRADED (Marcos: "who says it has to be three minute?") — 1-MIN NULL
+All four metrics re-run on 1-MINUTE bars, same 136 fires: streak gradient collapses (no positive
+pocket, 9-14 negative), defenses weakly survive (def2 −$2.69/e best) but never go positive,
+HH+HL and Kev-triple INVERT (deeper 1-min runs = WORSE: −$29.98/−$29.99 at depth). Both frozen
+gates on 1-min: n=0 to 1-of-4 negative. Rows: /tmp/frontside_1min_rows.json.
+READINGS: (1) 1-min structure on spiky small caps = noise (same jitter that broke the 1-min EMA
+runner exit); 3-min is the coarseness where a defended level becomes information. (2) The
+inversion is meaningful: a long 1-MIN run at fire = an unbroken SPRINT (the extended chase),
+not a defended trend — timeframe is part of the metric's definition. (3) Anti-luck evidence:
+re-slicing the same fires on a different clock produces NO new positive cells — if 3-min cells
+were mining artifacts, 1-min should have its own lucky crop. FRIDAY: head-to-head runs on 3-MIN
+as measured; 1-min null recorded as the reason the timeframe is now a TESTED choice.

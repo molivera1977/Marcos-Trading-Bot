@@ -645,3 +645,17 @@ Gate A passed four clocks wide with no retuning. Strongest cheap anti-overfit ev
 DISCIPLINE: Friday remains THREE arms (no arm proliferation). 2/4-min enter as ROBUSTNESS
 COLUMNS: the winning arm must show the SAME SIGN on neighboring clocks or the win is suspect.
 Rows: /tmp/frontside_{2,4}min_rows.json. Timeframe sweep complete: 6 clocks, all Marcos-driven.
+
+## 2026-07-29 07:45 — LIVE P0 (Fable): STALE-FIRE GUARD SUPPRESSED SPARSE PREMARKET FIRES
+Found on Marcos's "check systems" at 07:40: 17 premarket fires suppressed (13 STKH hidden_entry
++ AMIX/POLA/EDBL/VIVK reclaims), ages 93-193s, ZERO conversions. Root cause: the 7/28 guard
+measures BAR AGE, but sparse premarket tape prints every ~2 min — bar age = time-since-last-print,
+NOT feed staleness. Same error class as the retracted frozen-price claim: SPARSE MISREAD AS STALE
+(2nd time in 24h — named lesson).
+ACTION (Fable, 07:43, flat book, DRY_RUN): CURL_FIRE_MAX_AGE_SECS 90 -> 240 via env (no code
+change 107 min before open). Tradeoff stated: post-restart cold-batch bars up to 4 min old can
+now fire (Monday's LVWR replay was ~15 min — still blocked); in exchange sparse premarket fires
+on the week's mission names convert. Suppressed setups were consumed — morning fires lost.
+TONIGHT'S DOCKET: proper fix = CURSOR-AWARE freshness (stale = the feed cursor cold-jumped a
+batch, NOT the newest print being old) + rig test with a sparse-tape case + a premarket-sparse
+regression pin. The 90s default was tuned on RTH tape only — never exercised against 4am reality.

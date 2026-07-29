@@ -499,6 +499,50 @@ MOMENTUM_GREEN_BARS  = 2      # At least N of last 3 bars must close green (clos
 # every quote call, and force-exit if the feed goes dead so a position can never sit blind.
 QUOTE_TIMEOUT_SECS   = 8      # Max seconds to wait on a single Webull quote call
 STALE_FEED_EXIT_SECS = 90     # If no valid price for this long mid-trade, force-close for safety
+
+# ── HALT AWARENESS (7/28, docket #1 — evidence: DFNS 7/27) ────────────────────────────────────
+# DFNS ran +194% and printed: 15:35:40 (vol 3,243) -> ZERO BARS for 5 MINUTES -> 15:40:40 (vol
+# 115,361). A multi-minute zero-trade gap bracketed by heavy volume is the LULD volatility-halt
+# signature. The bot held straight through it and could not distinguish "halted" from "quiet".
+# We do NOT have a confirmed vendor halt field (the RTH payload dump above exists to answer that).
+# So this detector is VENDOR-INDEPENDENT: it reads the 10s tape we already collect.
+# LOG-ONLY by construction — it must never gate an entry or force an exit until graded. A halt
+# resolves UP as often as down (DFNS resumed +10% in 20s); acting on suspicion is an untested bet.
+HALT_GAP_SECS   = float(os.environ.get("HALT_GAP_SECS", "120"))   # zero-trade gap that looks like a halt
+_halt_state: dict = {}        # (day, sym) -> last logged gap start, so one halt logs once
+
+
+def _halt_suspect(sym, d10):
+    """Vendor-independent halt suspicion from the 10s tape. Returns (suspect, gap_secs, last_ts).
+    A gap only counts DURING RTH (premarket is legitimately sparse — that is not a halt).
+    Never raises: a detector bug must not touch the trade path."""
+    try:
+        if not d10:
+            return False, 0.0, None
+        hm = datetime.now(EASTERN).strftime("%H:%M")
+        if hm < "09:30" or hm >= "16:00":
+            return False, 0.0, None
+        last_k = max(d10)
+        gap = time.time() - (last_k + 10)          # +10: the bucket itself spans 10s
+        return (gap >= HALT_GAP_SECS), round(gap, 1), last_k
+    except Exception:
+        return False, 0.0, None
+
+
+def _log_halt_suspect(sym, gap, last_k, held=False):
+    """One row per halt episode per name per day (not per poll)."""
+    try:
+        day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        key = (day, sym)
+        if _halt_state.get(key) == last_k:
+            return                                  # same episode, already logged
+        _halt_state[key] = last_k
+        print(f"⏸️  {sym} HALT-SUSPECT: no 10s prints for {gap:.0f}s (>{HALT_GAP_SECS:.0f}s)"
+              f"{' — POSITION OPEN' if held else ''}")
+        _log_decision(sym, "halt_suspect", gap_secs=gap, held=bool(held),
+                      last_bar_ts=int(last_k) if last_k else None)
+    except Exception:
+        pass
 # Kev "topping tail / tail off the high" — a candle that spikes up then gets rejected,
 # printing a long upper wick at the highs. He treats it as BOTH an entry-skip ("shouldn't
 # have taken it, we had a tail off the high") AND his #1 exit ("topping tail off the high,
@@ -903,6 +947,17 @@ def _curl_feed(t, n=90):
         _curl_canary_t[t] = now
         age = (now - max(d10)) if d10 else -1
         print(f"🧵 curl-feed {t}: src={src} bars={len(d10)} last_bar_age={age:.0f}s")
+    # 7/28 HALT AWARENESS (docket #1): the tape is already in hand here — read it for the
+    # zero-trade-gap signature. LOG-ONLY, one row per episode. `held` marks the severe case
+    # (we are IN the name while it goes quiet) — the DFNS 7/27 situation.
+    try:
+        _susp, _gap, _lastk = _halt_suspect(t, d10)
+        if _susp:
+            # _reservations is the global ticker->notional registry, populated for the life of a
+            # trade (:8196 set, popped on exit) — the only module-level "are we in this name" view.
+            _log_halt_suspect(t, _gap, _lastk, held=(t in (_reservations or {})))
+    except Exception:
+        pass
     return d10, src
 
 def _et_session_of_utc(ts_utc: str):
@@ -3035,9 +3090,13 @@ def _get_webull_quote(ticker, executor=None) -> dict:
         # so tonight's stream-field decision (fix B) runs on DATA, not inference. Throttled global.
         global _pm_payload_t
         try:
-            if datetime.now(EASTERN).strftime("%H:%M") < "09:30" and time.time() - _pm_payload_t > 600:
+            # 7/28: extended into RTH (was premarket-only). Halt awareness (docket #1) needs to know
+            # whether this payload carries a trading-status field AT ALL — that question can only be
+            # answered by an RTH sample. Same 10-min throttle, one global.
+            if time.time() - _pm_payload_t > 600:
                 _pm_payload_t = time.time()
-                print(f"🔬 PM-PAYLOAD {ticker}: {json.dumps({k: d.get(k) for k in sorted(d)}, default=str)[:700]}")
+                _sess = "PM" if datetime.now(EASTERN).strftime("%H:%M") < "09:30" else "RTH"
+                print(f"🔬 {_sess}-PAYLOAD {ticker}: {json.dumps({k: d.get(k) for k in sorted(d)}, default=str)[:700]}")
         except Exception:
             pass
         last   = float(d.get("close")     or d.get("last_price")   or d.get("lastPrice")   or d.get("c") or 0)

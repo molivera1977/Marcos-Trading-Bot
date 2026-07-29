@@ -55,7 +55,12 @@ print("== wiring ==")
 src = pathlib.Path(bot.__file__).read_text()
 check("_get_price_rest serves _session_price", "px = _session_price(q)" in src)
 check("substitution canary present", "SESSION PRICE" in src)
-check("premarket payload logger present (fix-B evidence)", "PM-PAYLOAD" in src)
+# 7/28: the payload logger was EXTENDED from premarket-only to PM+RTH (halt awareness needs an
+# RTH sample to learn whether the vendor payload carries a trading-status field). The premarket
+# fix-B evidence it was built for is unchanged — premarket rows are still labelled PM.
+check("payload logger present (fix-B evidence)", "-PAYLOAD {ticker}" in src)
+check("premarket rows still labelled PM", '_sess = "PM" if' in src)
+check("logger now covers RTH too (halt-field discovery)", '"RTH"' in src.split("-PAYLOAD")[0][-400:])
 check("raw-field extraction guards absent/zero/garbage", "_raw_pre = None" in src)
 i_reg = src.find('_price_registry[t] = {"p": px, "t": time.time()}')
 i_srv = src.find("px = _session_price(q)")

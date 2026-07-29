@@ -89,7 +89,7 @@ check("W5 consume branch swaps eyes only: ign = _ig_fire, legacy detector retain
 check("W6 live no-chase cap re-applied at consume (ext_live clause)",
       "ignition_ext_live_skip" in SRC and '(price - ign["openp"]) / ign["openp"] > IGNITION_MAX_EXT' in SRC)
 check("W7 stale-price fix on the 10s fire (a4fe777 pattern)",
-      'bar_px=ign["px"]' in SRC and "stale vs ignition 10s bar" in SRC)
+      '_swap_price_ok(t, price, ign["px"]' in SRC and "stale_swap_refused" in SRC)
 check("W8 triggered_ignition stamps src=10s/1min",
       'src=("10s" if IGNITION_10S else "1min")' in SRC)
 check("W9 downstream gates UNTOUCHED: ignition still day-gain-floored + vel5-floored legacy",

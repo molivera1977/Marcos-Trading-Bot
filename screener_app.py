@@ -2597,7 +2597,7 @@ a.watch-chip:hover{filter:brightness(1.25)}
       <thead>
         <tr>
           <th>Date</th>
-          <th>Time</th>
+          <th title="entry time ET (hover a row for exit time)">Entry ⏱</th>
           <th>Ticker</th>
           <th>Entry</th>
           <th>Exit</th>
@@ -2624,6 +2624,10 @@ function fmt$(n){ return n===null||n===undefined?'—':'$'+Math.abs(n).toLocaleS
 function fmtPct(n){ return n===null||n===undefined?'—':(n>=0?'+':'')+n.toFixed(1)+'%'; }
 function fmtPnl$(n){ return (n>=0?'+':'')+fmt$(n); }
 function fmtTime(iso){ if(!iso) return '—'; const m=String(iso).match(/T(\d{2}):(\d{2})/); if(!m) return '—'; let h=+m[1]; const ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+m[2]+' '+ap; }
+/* 7/29: entry_ts_utc is UTC — convert to ET properly (fmtTime reads literal digits, fine for the
+   ET-stamped recorded_at but 4h wrong for UTC). Returns null when absent so callers can fall back. */
+function fmtTimeET(iso){ if(!iso) return null; const d=new Date(iso); if(isNaN(d)) return null;
+  return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'}); }
 
 function loadData(){
   document.getElementById('lastUpdate').textContent = 'Refreshing...';
@@ -2886,7 +2890,7 @@ function renderTable(allTrades){
     const sz = t.position_size ? fmt$(t.position_size) : '—';
     return `<tr onclick="toggleStory('${key}', event)" style="cursor:pointer" title="Click for the story of this trade">
       <td style="color:#8b949e">${t.date||'—'}</td>
-      <td style="color:#8b949e">${fmtTime(t.recorded_at)}</td>
+      <td style="color:#8b949e" title="exit ${fmtTime(t.recorded_at)}">${fmtTimeET(t.entry_ts_utc) || fmtTime(t.recorded_at)}</td>
       <td><a class="ticker-badge" href="https://www.tradingview.com/chart/?symbol=${t.ticker||''}" target="_blank" rel="noopener" title="Open chart">${t.ticker||'—'} ↗</a></td>
       <td>${t.entry?'$'+t.entry.toFixed(2):'—'}</td>
       <td>${t.exit?'$'+t.exit.toFixed(2):'—'}</td>

@@ -36,7 +36,8 @@ check("M3 fires on wick at anchor from above", r is not None)
 check("M4 stop = wick low floored 5%", r and abs(r["stop"] - round(min(wick[3]-0.01, wick[4]*0.95), 4)) < 1e-3)
 check("M5 ext_vwap stamped", r and isinstance(r["ext_vwap"], float))
 check("M9 fire-bar close stamped (stale-price guard)", r and abs(r["px"] - round(wick[4], 4)) < 1e-6)
-check("M10 conversion stale guard wired", "stale_price_fix" in BOT and "using bar price" in BOT)
+check("M10 conversion swap routes through the 7/29 guard (P0-B)",
+      "_swap_price_ok" in BOT and "stale_swap_refused" in BOT)
 check("M8 stays armed post-fire (Kev re-enters)", bot._he_st["BBB"]["armed"] is True)
 
 # ── M6: refuses fire when close is BELOW VWAP (box #1 — fader knife) ──

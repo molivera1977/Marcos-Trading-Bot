@@ -1999,15 +1999,34 @@ def _save_open_trade_sync(state: dict) -> bool:
 
 def _clear_open_trade(ticker: str):
     """Remove the open position from durable storage once it has a recorded exit. Blocking
-    (must complete before the run ends) but bounded."""
+    (must complete before the run ends) but bounded.
+    7/29 P1-F: VERIFIED clear — the old fire-and-forget version swallowed failures silently, which
+    left a ghost STFS row (all-null fields) behind the 7/29 midday restart. Now: check the status
+    code, re-read the store, retry once, and log LOUDLY if the row survives — a silent failure here
+    means the next boot's orphan recovery acts on a corpse."""
     url = os.environ.get("SCREENER_URL", "").rstrip("/")
     if not url:
         return
-    try:
-        requests.post(f"{url}/api/open_trade/clear", json={"ticker": ticker},
-                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
-    except Exception:
-        pass
+    for _attempt in (1, 2):
+        try:
+            r = requests.post(f"{url}/api/open_trade/clear", json={"ticker": ticker},
+                              headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
+            if r.status_code == 200:
+                try:
+                    still = [o.get("ticker") for o in
+                             (requests.get(f"{url}/api/open_trades", timeout=5)
+                              .json().get("open_trades") or [])]
+                except Exception:
+                    still = []
+                if ticker not in still:
+                    return                                     # verified gone
+            print(f"🧹 {ticker}: open-trade clear attempt {_attempt} NOT verified "
+                  f"(HTTP {r.status_code}) — {'retrying' if _attempt == 1 else 'GIVING UP'}")
+        except Exception as e:
+            print(f"🧹 {ticker}: open-trade clear attempt {_attempt} error {e} — "
+                  f"{'retrying' if _attempt == 1 else 'GIVING UP'}")
+    print(f"🚨 {ticker}: open-trade row may SURVIVE in the dashboard store — "
+          f"next boot's orphan recovery will see it. Manual: POST /api/open_trade/clear")
 
 
 def _load_open_trades_from_screener() -> list:
@@ -2448,6 +2467,16 @@ def _recover_orphaned_trades():
         ticker = (o.get("ticker") or "").upper()
         try:
             if not ticker:
+                continue
+            # 7/29 P1-F: HOLLOW-ROW GUARD — a row with NO entry price, NO entry date and NO trade_id
+            # is a half-written corpse (the ghost STFS row my midday restart left behind), not a
+            # position. "Recovering" it would book garbage. Discard loudly; a REAL position always
+            # carries at least an entry price (Fable: discard only when ALL identifiers are null).
+            if not (o.get("entry_price") or o.get("entry_date") or o.get("trade_id")):
+                print(f"🚨 {ticker}: orphan row has no entry/date/trade_id — HOLLOW, discarding "
+                      f"(not a position). Raw: {json.dumps(o, default=str)[:200]}")
+                _log_decision(ticker, "orphan_row_invalid")
+                _clear_open_trade(ticker)
                 continue
             entry     = float(o.get("entry_price") or 0)
             remaining = int(o.get("remaining_shares") or 0)
@@ -2984,6 +3013,11 @@ REST_PRICE_TTL_SECS = float(os.environ.get("REST_PRICE_TTL_SECS", "3"))
 #    or NO PRICE (Fable ruling, B16: a wrong price fires detectors, a missing price skips a cycle
 #    — never fall back to yesterday's close). RTH path byte-identical. PRICE_SESSION_AWARE=0 kills.
 PRICE_SESSION_AWARE = os.environ.get("PRICE_SESSION_AWARE", "1") == "1"
+# 7/29 FIX B (spec P0-C): accept `extend_hour_last_price` as the live premarket quote when its own
+# trade-time is fresh. PM_EXT_QUOTE=0 kills; the age cap keeps a halted name honest (trade_time
+# stops advancing → ages out → NO-PRICE again).
+PM_EXT_QUOTE           = os.environ.get("PM_EXT_QUOTE", "1") == "1"
+PM_EXT_QUOTE_MAX_AGE_S = float(os.environ.get("PM_EXT_QUOTE_MAX_AGE_S", "120"))
 _px_canary_t = 0.0
 _pm_payload_t = 0.0
 
@@ -3119,6 +3153,21 @@ def _get_webull_quote(ticker, executor=None) -> dict:
                 _raw_pre = None
         except (TypeError, ValueError):
             _raw_pre = None
+        # ── 7/29 FIX B (Fable-approved spec P0-C): Webull carries the LIVE premarket quote as
+        # `extend_hour_last_price` + `extend_hour_last_trade_time` (epoch ms) — `pre_market_price`
+        # is simply absent from these payloads (captured AMIX/INBS/TOPS dumps, 7/29 logs), which is
+        # why premarket served NO-PRICE all week. Accept the field ONLY when its own trade-time is
+        # fresh (≤ PM_EXT_QUOTE_MAX_AGE_S): a halted/dead name's trade_time stops advancing, ages
+        # out, and correctly returns to NO-PRICE. Never `close` (yesterday — the known trap).
+        # Kill switch: PM_EXT_QUOTE=0.
+        if _raw_pre is None and PM_EXT_QUOTE:
+            try:
+                _ehp = float(d.get("extend_hour_last_price") or 0)
+                _eht = float(d.get("extend_hour_last_trade_time") or 0) / 1000.0
+                if _ehp > 0 and _eht > 0 and (time.time() - _eht) <= PM_EXT_QUOTE_MAX_AGE_S:
+                    _raw_pre = _ehp
+            except (TypeError, ValueError):
+                pass
         pre_p  = float(d.get("pre_market_price")        or d.get("preMarketPrice")        or last or 0)
         pre_r  = float(d.get("pre_market_change_ratio") or d.get("preMarketChangeRatio")  or chg_r or 0)
 
@@ -4123,6 +4172,53 @@ _reclaim_cursor: dict = {}    # (day, sym) -> last processed 10s bucket epoch
 #    cost must be visible from day one. Cursor seeding was considered and REJECTED (it would
 #    skip state-building and lose in-progress setups for every newcomer).
 CURL_FIRE_MAX_AGE_SECS = float(os.environ.get("CURL_FIRE_MAX_AGE_SECS", "90"))
+
+# ── 7/29 P0-B (Fable-approved): the stale-price swap (a4fe777) is REBUILT. The old rule —
+# stream-vs-fire-bar divergence >2% ⇒ "stream is stale" ⇒ trade the bar price — is FALSE in RTH,
+# where that divergence is MOMENTUM (7/29: NCRA entered 2.3% and AMIX 8.2% above the live tape;
+# MSS swapped DOWNWARD −4.4% — it injects noise both ways). Divergence is not staleness.
+# New rule: substitution is allowed ONLY when (a) session is PREMARKET (RTH quote infrastructure
+# is live — get_price serves a fresh tick or a synchronous REST quote, both trustworthy), AND
+# (b) our OWN last stream tick for the symbol is old/absent (local arrival age — no vendor
+# timestamp trust), AND (c) the fire bar itself is fresh. SWAP_MODE=off disables all substitution;
+# =legacy restores the old divergence rule (rollback only). Independent of every lane flag —
+# verified 7/29: the swap block sits ABOVE the lane gates, so lane flags never disarm it.
+SWAP_MODE       = os.environ.get("SWAP_MODE", "pm_stale").strip().lower()   # off | pm_stale | legacy
+QUOTE_MAX_AGE_S = float(os.environ.get("QUOTE_MAX_AGE_S", "15"))
+
+def _stream_tick_age(sym):
+    """Seconds since the last stream tick we RECEIVED for sym (local arrival clock).
+    None = no tick ever arrived. Never raises."""
+    try:
+        with _price_lock:
+            rec = _price_registry.get(str(sym).upper())
+        if isinstance(rec, dict) and rec.get("t"):
+            return time.time() - float(rec["t"])
+    except Exception:
+        pass
+    return None
+
+def _swap_price_ok(sym, stream_px, bar_px, bar_k, hm=None):
+    """May the conversion substitute bar_px for stream_px? Returns (allowed, reason).
+    The caller logs either way — every substitution AND every refusal leaves a row."""
+    try:
+        if SWAP_MODE == "off":
+            return False, "swap_off"
+        if not (bar_px and bar_px > 0):
+            return False, "no_bar_px"
+        if SWAP_MODE == "legacy":
+            return True, "legacy"
+        _hm = hm or datetime.now(EASTERN).strftime("%H:%M")
+        if _hm >= "09:30":
+            return False, "rth_quote_trusted"
+        age = _stream_tick_age(sym)
+        if age is not None and age <= QUOTE_MAX_AGE_S:
+            return False, "tick_fresh"
+        if not _bucket_fresh(bar_k):
+            return False, "bar_stale_too"
+        return True, "pm_quote_stale"
+    except Exception:
+        return False, "swap_guard_error"
 
 def _bucket_fresh(k):
     """True when 10s bucket epoch `k` is recent enough to ACT on (fire). 0/None never fresh."""
@@ -5675,10 +5771,18 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     if _f and _f.get("px"):
                         _fire_px = _f["px"]; break
                 if _fire_px and _fire_px > 0 and abs(price - _fire_px) / _fire_px > 0.02:
-                    _log_decision(t, "stale_price_fix", stream_px=round(price, 4), bar_px=_fire_px,
-                                  time_hm=_hm_curl)
-                    print(f"   🩹 {t}: stream price ${price:.2f} stale vs fire bar ${_fire_px:.2f} — using bar price")
-                    price = _fire_px
+                    _fk = next((_f.get("k") for _f in (_zf_fire, _vr_fire, _he_fire)
+                                if _f and _f.get("px") == _fire_px), None)
+                    _ok, _why = _swap_price_ok(t, price, _fire_px, _fk, hm=_hm_curl)
+                    if _ok:
+                        _log_decision(t, "stale_price_fix", stream_px=round(price, 4), bar_px=_fire_px,
+                                      time_hm=_hm_curl, why=_why,
+                                      tick_age_s=(round(_stream_tick_age(t), 1) if _stream_tick_age(t) is not None else None))
+                        print(f"   🩹 {t}: quote dead ({_why}) — using fire-bar ${_fire_px:.2f} over ${price:.2f}")
+                        price = _fire_px
+                    else:
+                        _log_decision(t, "stale_swap_refused", stream_px=round(price, 4), bar_px=_fire_px,
+                                      time_hm=_hm_curl, why=_why)
                 _cc = aggregate_bars(cache[t].get("full_bars") or bars or [], SETUP_TF_MIN)[:-1]
                 if len(_cc) >= EMA20_PERIOD + 2:
                     _ce9, _ce20, _ce90 = calculate_ema9(_cc), calculate_ema20(_cc), calculate_ema90(_cc)
@@ -5788,10 +5892,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                       ext_pct=ign["ext_pct"], openp=ign["openp"])
                         ign = None
                     elif ign and ign.get("px") and price > 0 and abs(price - ign["px"]) / ign["px"] > 0.02:
-                        print(f"   🩹 {t}: stream price ${price:.2f} stale vs ignition 10s bar "
-                              f"${ign['px']:.2f} — using bar price")
-                        _log_decision(t, "stale_price_fix", stream_px=round(price, 4), bar_px=ign["px"])
-                        price = ign["px"]
+                        _ok, _why = _swap_price_ok(t, price, ign["px"], ign.get("bar_epoch"))
+                        if _ok:
+                            print(f"   🩹 {t}: quote dead ({_why}) — using ignition 10s bar "
+                                  f"${ign['px']:.2f} over ${price:.2f}")
+                            _log_decision(t, "stale_price_fix", stream_px=round(price, 4), bar_px=ign["px"], why=_why)
+                            price = ign["px"]
+                        else:
+                            _log_decision(t, "stale_swap_refused", stream_px=round(price, 4),
+                                          bar_px=ign["px"], why=_why)
                 else:
                     _sess1 = _latest_session(cache[t].get("full_bars") or bars)
                     ign = detect_ignition(_sess1, price)
@@ -7921,6 +8030,16 @@ def main():
         balance = SIM_ACCOUNT_BALANCE
     else:
         print(f"💰 Balance: ${balance:.2f}")
+    # 7/29 P2-G: LANE/GUARD STATE BANNER — every boot self-documents its own configuration, so a
+    # restart's behavior is readable from one log line instead of inferred from env vars + absences
+    # (the 7/29 midday disarm had to be verified by inference).
+    print("🎛️  BOOT CONFIG: "
+          f"HIDDEN_ENTRY={int(HIDDEN_ENTRY)} RECLAIM_LIVE={int(RECLAIM_LIVE)} "
+          f"ZONEFLIP_KEV={int(ZONEFLIP_KEV)} IGNITION_10S={int(IGNITION_10S)} | "
+          f"SWAP_MODE={SWAP_MODE} PM_EXT_QUOTE={int(PM_EXT_QUOTE)} | "
+          f"MIN_STOP_PCT={MIN_STOP_DIST_PCT} EXEMPT={sorted(MIN_STOP_EXEMPT)} | "
+          f"ENTRY_OPEN_ET={ENTRY_OPEN_ET} INTRABAR_STOP={int(INTRABAR_STOP)} "
+          f"BE_FLOOR_AFTER_SCALE={BE_FLOOR_AFTER_SCALE}")
     post_balance_to_dashboard(balance)
 
     # ── Morning watchlist email ───────────────────────────
@@ -8244,7 +8363,10 @@ def main():
                 print(f"   🔧 {ticker} stop clamped {_stop_dist*100:.1f}% → {STOP_MAX_PCT*100:.0f}% (${stop_loss:.2f})")
             # Degenerate stop (stale EMA / bad tick puts the stop AT/ABOVE entry): unsizeable, skip + log —
             # never fall through to full-notional sizing with a meaningless stop (7/11 review finding 4).
-            if RISK_BASED_SIZING and stop_loss >= entry_price:
+            # 7/29 P0-A (Fable): UNCONDITIONAL — a long ticket whose stop is at/above entry is never
+            # valid under ANY sizing mode (AMIX 7/29 09:32 fired with stop 4.6512 > price 4.62; only
+            # the now-fixed price swap made it look sizeable).
+            if stop_loss >= entry_price:
                 print(f"⚠️ {ticker} stop ${stop_loss:.2f} ≥ entry ${entry_price:.2f} — unsizeable, skipping")
                 _log_decision(ticker, "bad_stop_skip", price=entry_price, stop=round(stop_loss, 4))
                 with trade_lock:

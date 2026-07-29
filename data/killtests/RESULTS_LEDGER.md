@@ -623,3 +623,14 @@ FRIDAY HEAD-TO-HEAD IS NOW THREE ARMS, all frozen, no threshold moves, min 8 qua
   C: 5-min streak>=3 & def>=2   (26 fires, +$1.72/e)
 Winner takes the live front-side health gate. Same multiplicity caveat stamped on all three:
 discovered on the same 136 fires; OOS Wed-Thu data is the judge.
+
+### 7/29 04:00 — 10-MINUTE GRADED (Marcos: "I'm assuming worse but why not know instead of guess")
+10-min: DEAD. No positive cell on any metric; HH+HL inverts with depth (2+ = 22% win); all
+candidate gates negative (n=30-47). Rows: /tmp/frontside_10min_rows.json.
+THE COMPLETE TIMEFRAME RESPONSE CURVE (all four clocks Marcos-driven, same 136 fires):
+  1-min NULL/inverted -> 3-min SHARP (+$10.28/e pocket) -> 5-min BROAD (+$1.72/e, n=26) ->
+  10-min DEAD. A BAND-PASS centered on 3-5 minutes. Faster clocks see jitter; slower clocks
+  cannot complete a structure before the move ends (~39 bars/day; "mature" = afternoon = dead
+  hours). ANTI-LUCK NOTE: mining artifacts do not produce an orderly peak with nulls on BOTH
+  flanks; a real structure with a characteristic timescale does. This is the strongest
+  circumstantial support yet for the 3/5-min cells. Friday three-arm registration unchanged.

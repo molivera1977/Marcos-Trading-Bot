@@ -583,3 +583,15 @@ scripts in repo); PRIMARY DECISION AXIS remains the frozen streak>=6 & defenses>
 No further mining of the 7/27-28 fire population — anything else found in it is noise by
 construction. The night's law, five-times replicated: THE FIRST STEP OF A TREND IS THE WORST
 ENTRY IN THE RECLAIM LANE — zero is ignorance, one is a fight just started, many is a fight won.
+
+### 7/29 03:10 CORRECTION (Marcos: "so you just ignore this????") — TRIPLE 2+ PROMOTED TO CO-PRIMARY
+Wrong framing on my part: "reported axis" undersold the night's best cell. Why it is not CROWNED
+at n=5: ~40+ cells examined tonight; a random 5-fire cell posts 4/5 wins ~3% of the time even at
+the 30% base rate, so a search this wide EXPECTS 1-2 such cells by luck; one trade (AEHL sign
+flip) inverts the verdict. But not crowned ≠ buried:
+FRIDAY IS NOW A PRE-REGISTERED HEAD-TO-HEAD, both gates frozen tonight, Wed-Thu fires only:
+  GATE A: streak>=6 AND defenses>=2            (two-day: 13 fires, +$0.31/e)
+  GATE B: Kev triple >=2 (HH+HL+rising vol)    (two-day: 5 fires, +$10.28/e)
+Judgment: OOS $/entry + win rate, minimum 8 qualified fires to count, NO threshold moves.
+Winner becomes the front-side health gate's trigger condition. Gate B's claim: it is Kev's own
+textbook trend definition and the cleanest per-entry number of the night.

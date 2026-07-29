@@ -6532,6 +6532,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     last_good_price_t  = time.time()   # epoch of last valid price
     _status_px         = 0.0           # throttle the 💰 status print (streaming's 0.5s loop floods it otherwise)
     _status_t          = 0.0           # print only on a ≥0.3% move OR every ≥STATUS_PRINT_SECS — keeps real events visible
+    _hb_t              = 0.0           # custody heartbeat throttle (7/28) — first row fires on the first loop pass
+    _entry_hm          = datetime.now(EASTERN).strftime("%H:%M:%S")  # monitor start ≈ fill time (card display)
 
     _tape_lo = _tape_hi = None     # 7/27 off-tape guard: the price range this monitor has SEEN in bars
     _last_bars_ok  = time.time()   # B11: when the stop logic last actually SAW a completed bar
@@ -6697,12 +6699,30 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 or time.time() - _status_t >= 6):
             print(f"💰 {ticker}: ${current_price:.2f} ({profit_pct:+.1f}%) | Stop: ${current_stop:.2f} | Shares: {remaining_shares}")
             _status_px = current_price; _status_t = time.time()
+        # ── CUSTODY HEARTBEAT (7/28, Fable-ordered after the VEEE autopsy dead-ended on vanished
+        # console logs). One DURABLE decision row per minute while holding: what the monitor sees
+        # (price + its age), what it holds, where its stop/tier is. Turns the next "why didn't it
+        # scale" from an autopsy into a query. Non-fatal by construction; ~1 row/min/position.
+        if time.time() - _hb_t >= 60:
+            _hb_t = time.time()
+            try:
+                _log_decision(ticker, "custody_heartbeat",
+                              price=round(current_price, 4),
+                              price_age_s=round(time.time() - last_good_price_t, 1),
+                              rem=remaining_shares, stop=round(current_stop, 4),
+                              tier_idx=tier_idx, partials=len(partial_fills),
+                              highest=round(highest_price, 4),
+                              next_tier=(round(kev_tiers[tier_idx][0], 4)
+                                         if tier_idx < len(kev_tiers) else None))
+            except Exception:
+                pass
         _post_trade_state({
             "ticker": ticker, "entry": round(entry_price, 4), "price": round(current_price, 4),
             "pnl_pct": round(profit_pct, 2), "stop": round(current_stop, 4),
             "target": round(target_price, 4), "remaining_shares": remaining_shares,
             "initial_shares": initial_shares, "partials": len(partial_fills),
             "highest": round(highest_price, 4), "vwap": round(vwap, 4) if vwap else None,
+            "entry_hm": _entry_hm,   # 7/28 (Marcos: "i dont see entry time") — fill time on the card
         })
         # Durable recovery state — survives a crash/restart so this trade still gets a recorded exit.
         _save_open_trade({

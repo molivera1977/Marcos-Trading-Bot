@@ -2964,7 +2964,7 @@ function renderTradePanel(ts){
       <div class="pnl ${pnlCls}">${pnl>=0?'+':''}${pnl.toFixed(1)}%</div>
     </div>
     <div class="trade-grid">
-      <div class="cell"><div class="lbl">Entry</div><div class="val">$${Number(ts.entry).toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl">Entry${ts.entry_hm?' · '+ts.entry_hm+' ET':''}</div><div class="val">$${Number(ts.entry).toFixed(2)}</div></div>
       <div class="cell"><div class="lbl">Now</div><div class="val">$${Number(ts.price).toFixed(2)}</div></div>
       <div class="cell"><div class="lbl" title="Trigger, not the fill — sells on a 3-min CLOSE below this level, so the actual exit can be a bit lower (wick-snipe protection)">Stop ▾</div><div class="val" style="color:#f85149">$${Number(ts.stop).toFixed(2)}</div></div>
       <div class="cell"><div class="lbl">Target</div><div class="val" style="color:#3fb950">$${Number(ts.target).toFixed(2)}</div></div>

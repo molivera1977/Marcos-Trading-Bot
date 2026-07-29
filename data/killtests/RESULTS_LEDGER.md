@@ -453,3 +453,25 @@ CONSEQUENCE FOR TONIGHT: the custody heartbeat is promoted from observability to
 for a CONFIRMED defect, and needs one field I had not planned — THE AGE OF THE PRICE the monitor
 is acting on. A heartbeat that logs a stale price without flagging staleness reproduces the
 blindness in the record. Stale-price detection + a named remedy is now the top docket item.
+
+## 2026-07-28 *** RETRACTION: "FROZEN-PRICE EXIT MONITOR" IS FALSE — MY ERROR ***
+The entry above (`683d8fd`) claimed the exit monitor acts on a stale price. IT IS WRONG. Retracted
+in full. Do not cite it.
+WHAT I DID: took min/max of the tape across each "frozen" window and compared to the monitor's
+printed price. I never checked WHETHER BARS EXISTED inside the window.
+THE ACTUAL BARS (DFNS 7/27, the headline case):
+  15:35:20 c14.08 vol 115,584 | 15:35:30 c14.08 vol 47,388 | 15:35:40 c14.08 vol 3,243
+  ---- ZERO BARS 15:35:40 -> 15:40:40 (5 minutes, NO TRADES) ----
+  15:40:40 c14.38 vol 115,361 | 15:40:50 c14.90 | 15:41:00 c15.51
+The stock DID NOT TRADE. $14.08 was the correct last price. The monitor picked up the resumption
+at 15:40:48 ($14.16) and SCALED AT 15:40:55 ($15.15) — 8 SECONDS after the tape came back.
+PN likewise: the "different" prints were 1-, 6-, 8-, 20-SHARE ODD LOTS at 10.24-10.30 against a
+round-lot 10.10. Tracking 10.10 is defensible, not stale.
+=> THE EXIT MONITOR WAS ACCURATE AND RESPONSIVE. No feed defect. VEEE remains UNEXPLAINED.
+WHAT IS ACTUALLY THERE (the thing I dismissed): a 5-MINUTE ZERO-TRADE GAP bracketed by 115k-share
+bars on BOTH sides, on a name up +194% — the signature of an LULD VOLATILITY HALT. The bot held
+through it with no halt awareness. This is direct evidence FOR docket item 1 (halt awareness).
+LESSON (same failure as [[feedback_story_discipline]] + [[feedback_skepticism_needs_verification_too]]):
+I found a dramatic narrative, ran ONE shallow aggregate check, and published to ledger + memory +
+index. The cheap decisive check — print the bars with timestamps — took 60 seconds and killed it.
+Aggregate over a window is NOT a substitute for looking at the rows.

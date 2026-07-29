@@ -503,3 +503,20 @@ REMAINING LIVE HYPOTHESES (Friday cuts, data flowing since 7/27-28 stamps):
   3. HIS "NOT SET UP YET" discretion: unencoded; shadow-fire context vs outcomes is the dataset.
 Marcos directive standing: lane stays LIVE through Friday; "we are not doing something right
 with it" — four wrong answers eliminated tonight is the progress.
+
+### 7/28 ~23:55 — BALLPARK x TAIL 2x2 (Marcos: "run this theory on something from today"): HYPOTHESIS WOUNDED
+Script: reclaim_ballpark_tail_test.py. First-fires 7/27-28 joined to each day's sheet; ballpark =
+<=10% to any marked level; exits = live ladder vs loose runner (50%@1R->BE, runner to 1m EMA9<20 flip).
+  ballpark n=44: ladder -$6.36/e, loose -$7.67/e, 41% win | far n=16: -$7.03/-7.96, 38% |
+  no_sheet n=76: -$7.46/-7.35, 30%.  Permutation on ballpark split: p=0.48.
+VERDICT: win-rate gradient in the predicted direction (41/38/30) but NO expectancy separation —
+ballpark on THESE sheets does not rescue the lane.
+TWO CAVEATS THAT KEEP A NARROWER FORM ALIVE (flagged, not leaned on):
+  1. sheet = 83/85 VISION auto-reads, only 2/day are Kev's HAND levels — the 135-fire prior may
+     live in his levels specifically; n=2 names/day cannot power that test. Near-unfalsifiable
+     this week; accumulates only as his real picks accumulate.
+  2. the loose-runner proxy CLIPPED its own winners (POLA +41->+14, BIYA +26->+13, LZMH +22->+11):
+     1m EMA9<20 flips during ordinary pauses on spiky names. Exit half = INCONCLUSIVE (bad proxy),
+     not refuted. Pattern of the week: every crude mechanization of a Kev behavior loses.
+STATUS: hypothesis NOT confirmed on today's data. Friday's live-stamp cut (fires vs level_gap_pct
+with REAL entries and REAL exits) remains the decision evidence. Nothing ships on this.

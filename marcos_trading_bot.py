@@ -499,6 +499,7 @@ MOMENTUM_GREEN_BARS  = 2      # At least N of last 3 bars must close green (clos
 # every quote call, and force-exit if the feed goes dead so a position can never sit blind.
 QUOTE_TIMEOUT_SECS   = 8      # Max seconds to wait on a single Webull quote call
 STALE_FEED_EXIT_SECS = 90     # If no valid price for this long mid-trade, force-close for safety
+BARPX_MAX_AGE = float(os.environ.get("BARPX_MAX_AGE", "60"))   # 7/29: quote-dead monitor may ride 10s bar closes this fresh
 
 # ── HALT AWARENESS (7/28, docket #1 — evidence: DFNS 7/27) ────────────────────────────────────
 # DFNS ran +194% and printed: 15:35:40 (vol 3,243) -> ZERO BARS for 5 MINUTES -> 15:40:40 (vol
@@ -6533,6 +6534,9 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     _status_px         = 0.0           # throttle the 💰 status print (streaming's 0.5s loop floods it otherwise)
     _status_t          = 0.0           # print only on a ≥0.3% move OR every ≥STATUS_PRINT_SECS — keeps real events visible
     _hb_t              = 0.0           # custody heartbeat throttle (7/28) — first row fires on the first loop pass
+    _barpx_t           = 0.0           # 7/29 NCRA fix: throttle for quote-dead bar-price lookups
+    _barpx             = 0.0           # last bar-close fallback price
+    _barpx_on          = False         # currently riding bar closes? (one-line canary on switch)
     _entry_hm          = datetime.now(EASTERN).strftime("%H:%M:%S")  # monitor start ≈ fill time (card display)
 
     _tape_lo = _tape_hi = None     # 7/27 off-tape guard: the price range this monitor has SEEN in bars
@@ -6634,8 +6638,34 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
 
         current_price = stream.get_price(ticker)
         if current_price <= 0:
-            # No valid price. If the feed has been dead too long, a position must NOT sit
-            # blind/open (the BOXL freeze) — force-close at the last known price for safety.
+            # ── 7/29 NCRA FIX: quote-dead is NOT feed-dead. Premarket has no reliable quote field
+            # (session-aware pricing correctly serves NO-PRICE), but the 10s bar tape flows — NCRA
+            # was force-closed −$18 mid-flush at 08:06 with `bars=90 last_bar_age=17s` in the same
+            # log, then printed +1.05R four minutes later; its structural stop was NEVER touched.
+            # Fall back to the freshest 10s bar close (<= BARPX_MAX_AGE) so the STRUCTURAL stop
+            # keeps deciding exits. Throttled: one feed lookup per ~5s only while quote-dead.
+            if time.time() - _barpx_t >= 5.0:
+                _barpx_t = time.time()
+                _barpx = 0.0
+                try:
+                    _d10f, _ = _curl_feed(ticker)
+                    if _d10f:
+                        _kf = max(_d10f)
+                        if time.time() - _kf <= BARPX_MAX_AGE:
+                            _barpx = float(_d10f[_kf].get("c") or 0)
+                except Exception:
+                    _barpx = 0.0
+            if _barpx > 0:
+                if not _barpx_on:
+                    _barpx_on = True
+                    print(f"🩹 {ticker} monitor: quote dead — riding 10s BAR closes (${_barpx:.2f}) "
+                          f"until the quote returns")
+                current_price = _barpx
+            else:
+                _barpx_on = False
+        if current_price <= 0:
+            # No valid price FROM EITHER SOURCE. If the feed has been dead too long, a position
+            # must NOT sit blind/open (the BOXL freeze) — force-close at last known for safety.
             stale_secs = time.time() - last_good_price_t
             if remaining_shares > 0 and stale_secs > STALE_FEED_EXIT_SECS:
                 print(f"🛑 {ticker} price feed dead {stale_secs:.0f}s (> {STALE_FEED_EXIT_SECS}s) — "

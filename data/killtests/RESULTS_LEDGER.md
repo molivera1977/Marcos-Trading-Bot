@@ -475,3 +475,13 @@ LESSON (same failure as [[feedback_story_discipline]] + [[feedback_skepticism_ne
 I found a dramatic narrative, ran ONE shallow aggregate check, and published to ledger + memory +
 index. The cheap decisive check — print the bars with timestamps — took 60 seconds and killed it.
 Aggregate over a window is NOT a substitute for looking at the rows.
+
+### 7/28 23:20 — MANAGEMENT OVERRIDE: RECLAIM STAYS LIVE THROUGH FRIDAY (Marcos)
+His words: "let's keep reclaim live for both [PRE + RTH]. I can wait until Friday to make
+decisions. Let's keep collecting data and see if we can fix it. It is a favorite of Kev and we
+are not doing something right with it." RECLAIM_LIVE=1 restored (was 0 for ~3h, no session ran
+under it). The three-arm all-negative verdict STANDS as evidence; the SHIP decision moves to
+Friday and now gets Wed-Thu LIVE fills (with runway/volume/heartbeat stamps) on top of the
+replay. Cost ceiling if the lane repeats its live rate: ~-$7/entry x ~2-3 entries/day, DRY_RUN.
+Friday inherits BOTH: the 234-fire three-arm replay AND the live week. The "what are we doing
+wrong vs Kev" study (campaign eyes, not hands) stays the standing question.

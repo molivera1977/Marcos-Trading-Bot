@@ -92,13 +92,34 @@ check("row carries last_bar_ts", rows and rows[0][2].get("last_bar_ts") == k)
 print("== LOG-ONLY: no gate, no forced exit, anywhere ==")
 check("no halt-based reject", "halt_reject" not in src)
 check("no halt-based exit reason", "HALT EXIT" not in src and "halt_exit" not in src)
-check("detector never returns into a gate chain", "_halt_suspect(" in src
-      and "if _susp" in src and "return" not in src.split("if _susp")[1][:200])
+# The `if _susp:` branch must contain ONLY the log call — no return/continue/raise that could
+# gate the feed. Parse the branch body itself instead of a fixed char window.
+_branch = src.split("if _susp:")[1].split("except Exception:")[0]
+check("suspect branch is log-only (no return/continue/raise)",
+      "_log_halt_suspect" in _branch and not any(w in _branch for w in ("return", "continue", "raise")),
+      repr(_branch[:120]))
 
 print("== wiring: reads the tape already in hand (no extra fetch) ==")
 check("wired at the curl-feed choke point", "_halt_suspect(t, d10)" in src)
-check("held computed from the live reservation registry", "_reservations or {}" in src)
 check("guarded by try/except at the call site", "except Exception:\n        pass\n    return d10, src" in src)
+
+print("== held resolves by EXECUTION, not by grep (the NameError-swallowed-by-except trap) ==")
+# The first version of this feature referenced a function-local (`_reservations`) from module
+# scope: NameError inside the try -> except pass -> held rows silently never logged, and a
+# source-string assertion stayed green. This block runs the real path end to end instead.
+check("held mirror exists at module scope", isinstance(getattr(bot, "_halt_held_mirror", None), set))
+check("mirror has a writer in the session loop", "_halt_held_mirror.update(reentry" in src)
+logged.clear(); bot._halt_state.clear()
+bot._log_decision = lambda t, s, **kw: logged.append((t, s, kw))
+bot._halt_held_mirror.clear()
+bot._halt_held_mirror.add("HELDX")
+bot._log_halt_suspect("HELDX", 200.0, 111110, held=("HELDX" in bot._halt_held_mirror))
+bot._log_halt_suspect("FLATX", 200.0, 222220, held=("FLATX" in bot._halt_held_mirror))
+_hr = {r[0]: r[2].get("held") for r in logged if r[1] == "halt_suspect"}
+check("held name labels held=True through the mirror", _hr.get("HELDX") is True, f"got {_hr}")
+check("flat name labels held=False through the mirror", _hr.get("FLATX") is False, f"got {_hr}")
+bot._halt_held_mirror.clear()
+bot._log_decision = _orig
 
 print("== RTH payload dump extended (so Wednesday answers 'is there a vendor halt field?') ==")
 check("payload logger no longer premarket-only", '_sess = "PM" if' in src)

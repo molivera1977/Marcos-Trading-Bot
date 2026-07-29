@@ -510,6 +510,10 @@ STALE_FEED_EXIT_SECS = 90     # If no valid price for this long mid-trade, force
 # resolves UP as often as down (DFNS resumed +10% in 20s); acting on suspicion is an untested bet.
 HALT_GAP_SECS   = float(os.environ.get("HALT_GAP_SECS", "120"))   # zero-trade gap that looks like a halt
 _halt_state: dict = {}        # (day, sym) -> last logged gap start, so one halt logs once
+# Module-level mirror of the session's held names — the session loop's `reentry["held"]` and
+# `_reservations` are FUNCTION-LOCAL, unreachable from _curl_feed. The watch loop refreshes this
+# set each cycle; the halt logger reads it. A stale mirror mislabels `held` on one row, never trades.
+_halt_held_mirror: set = set()
 
 
 def _halt_suspect(sym, d10):
@@ -953,9 +957,7 @@ def _curl_feed(t, n=90):
     try:
         _susp, _gap, _lastk = _halt_suspect(t, d10)
         if _susp:
-            # _reservations is the global ticker->notional registry, populated for the life of a
-            # trade (:8196 set, popped on exit) — the only module-level "are we in this name" view.
-            _log_halt_suspect(t, _gap, _lastk, held=(t in (_reservations or {})))
+            _log_halt_suspect(t, _gap, _lastk, held=(t in _halt_held_mirror))
     except Exception:
         pass
     return d10, src
@@ -5470,6 +5472,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         #    the prompt reclaim (Kev re-enters the NEXT pullback after the stop). The full gate
         #    (room≥2:1 + daily-first + above-VWAP + fresh pullback) re-evaluates them; 'givenup' names
         #    (topping-tail / over-cap) never come back. ──
+        # 7/28 halt-awareness mirror: expose this cycle's held set at module level so the
+        # curl-feed halt logger (which cannot see the session-local `reentry`) can label rows.
+        try:
+            if reentry is not None:
+                with reentry["lock"]:
+                    _halt_held_mirror.clear()
+                    _halt_held_mirror.update(reentry["held"])
+        except Exception:
+            pass
         if REENTRY_ENABLED and reentry is not None:
             with reentry["lock"]:
                 _back = [t for t in reentry["eligible"]

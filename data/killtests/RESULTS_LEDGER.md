@@ -569,3 +569,17 @@ QUALIFIED tight stop is the prize (tight-because-earned = size). Coherent design
 floor: names with streak>=6 & defenses>=2 keep their wick stop; unqualified names eat the 6%
 floor. Friday grades both arms on Wed-Thu data. Also noted: had both shipped live as-is they
 would have silently fought — the floor (reclaim non-exempt) would have blocked POLA regardless.
+
+### 7/29 03:00 — FINAL NIGHT ADDENDUM: KEV'S FULL TREND TRIPLE + SAMPLE EXHAUSTION DECLARED
+Marcos's last cut: HH+HL+RISING VOLUME (= Kev's complete textbook trend), consecutive at fire:
+  0: −$7.20/e (n=114) | 1: −$11.16/e (n=17, one-step curse now 5-FOR-5 across all framings) |
+  2+: +$10.28/e (n=5, 4/5 wins) — best per-entry cell of the night.
+Wrinkles: (a) volume is REDUNDANT at maturity — all 7 HH+HL>=2 runs had rising vol (same
+phenomenon); (b) on ONE-step moves rising vol is WORSE than falling (−7.31 vs −3.07) — "loud =
+late" re-derived independently. SAMPLE EXHAUSTION DECLARED: 6 metrics mined from the same 136
+fires; top cells (defenses4+/streak9+/triple2+, all n=5-8, all positive) CANNOT be ranked at
+this n. FRIDAY REPORTS ALL SIX AXES at every level (rows saved: frontside/higherlow/hhhl in /tmp,
+scripts in repo); PRIMARY DECISION AXIS remains the frozen streak>=6 & defenses>=2 (aef8a1e).
+No further mining of the 7/27-28 fire population — anything else found in it is noise by
+construction. The night's law, five-times replicated: THE FIRST STEP OF A TREND IS THE WORST
+ENTRY IN THE RECLAIM LANE — zero is ignorance, one is a fight just started, many is a fight won.

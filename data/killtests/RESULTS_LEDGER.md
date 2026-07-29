@@ -432,3 +432,24 @@ partial fires; repeat with stream/REST price paths desynced to hunt (c). PERMANE
 heartbeat decision row 1/min while holding (ticker, price, tier_idx, remaining) — an autopsy
 tonight, a query forever after. NOTE 7/28 custody graded A on its own trades — defect may be
 7/27-specific (price-session fixes shipped since); UNKNOWN until the rig says.
+
+## 2026-07-28 — *** CONFIRMED DEFECT: THE EXIT MONITOR TRADES ON A FROZEN PRICE ***
+Source: Railway deployment logs 7/27 15:27-15:45 ET (Marcos pulled them from the dashboard).
+The monitor's own status prints repeat an IDENTICAL price for minutes while the position is open.
+Cross-checked against captured ALP10S tape for the same windows:
+  PN   15:31-15:37  monitor $10.10 frozen (6 min)  | tape $10.10-$10.30, 7 distinct closes
+  DFNS 15:35-15:40  monitor $14.08 frozen (5m20s)  | tape $13.98-$14.74 = 5.4% RANGE, moved
+  PN   15:29-15:31  monitor $10.20 frozen (2 min)  | tape $10.10-$10.28, 5 distinct closes
+WHY IT MATTERS: the scale ladder fires ONLY on `current_price >= tier_price` (:6658). A frozen
+price CANNOT CROSS A TIER. Every rung — 1R scale, 2R scale, BE floor — is gated on a feed that
+demonstrably stalls for minutes at a time while holding.
+THE LADDER ITSELF IS FINE (same log): "Scale 2/2: selling 4 of 8 shares at $15.15 (+41.5%)" then
+"Stop floored at ENTRY (risk-free) $10.71". Machinery correct; INPUT is broken.
+VEEE 7/27 (+6.96R peak, booked a full stop, zero partials) is now EXPLAINED-BY-HYPOTHESIS, not
+proven: that window's logs are gone. `highest`=23.29 proves the monitor saw *a* high print, NOT
+that it saw $18.16 on the way. Same code, same session, feed freeze measured -> plausible.
+ALSO IN THAT LOG: "A trade monitor did not finish within 600s — watchdog owns it" (15:40).
+CONSEQUENCE FOR TONIGHT: the custody heartbeat is promoted from observability to the instrument
+for a CONFIRMED defect, and needs one field I had not planned — THE AGE OF THE PRICE the monitor
+is acting on. A heartbeat that logs a stale price without flagging staleness reproduces the
+blindness in the record. Stale-price detection + a named remedy is now the top docket item.

@@ -608,3 +608,18 @@ not a defended trend — timeframe is part of the metric's definition. (3) Anti-
 re-slicing the same fires on a different clock produces NO new positive cells — if 3-min cells
 were mining artifacts, 1-min should have its own lucky crop. FRIDAY: head-to-head runs on 3-MIN
 as measured; 1-min null recorded as the reason the timeframe is now a TESTED choice.
+
+### 7/29 03:45 — 5-MINUTE GRADED (Marcos: "how about the 5 minute") — THIRD ARM ADDED
+5-min: signal survives, broader/shallower than 3-min. Streak 4-5: +$4.70/e (n=10). Defenses
+3+: −$0.74/e at n=20. HH+HL 2+: +$2.85/e. STANDOUT: streak>=3 & def>=2 on 5-min = n=26, 54%
+win, +$1.72/e, +$44.67 — the LARGEST positive cohort of the night (2x the 3-min gate's n).
+One-step curse replicates a SIXTH time (5-min def=1 = worst cell −$11.85), now on 3 timeframes.
+TIMEFRAME LADDER (all three clocks, Marcos-driven): 1-min null/inverted (jitter) -> 3-min
+sharpest pockets (thin) -> 5-min widest usable signal (diluted). Consistent with a real
+defended-trend structure living on a several-minute scale. Rows: /tmp/frontside_5min_rows.json.
+FRIDAY HEAD-TO-HEAD IS NOW THREE ARMS, all frozen, no threshold moves, min 8 qualified OOS fires:
+  A: 3-min streak>=6 & def>=2   (13 fires, +$0.31/e)
+  B: 3-min Kev triple >=2       (5 fires, +$10.28/e)
+  C: 5-min streak>=3 & def>=2   (26 fires, +$1.72/e)
+Winner takes the live front-side health gate. Same multiplicity caveat stamped on all three:
+discovered on the same 136 fires; OOS Wed-Thu data is the judge.

@@ -2136,7 +2136,7 @@ def premarket_dashboard():
                 "<td class='green'>OPEN</td><td class='muted'>—</td>"
                 "<td class='green'>live — flattens 9:25</td></tr>"
                 for o in open_pre)
-               or "<tr><td colspan=6 class='muted'>none yet — PRE conversions land here as they fire (hidden lane; reclaim = shadow since 7/28)</td></tr>")
+               or "<tr><td colspan=6 class='muted'>none yet — PRE conversions land here as they fire (hidden + reclaim — Marcos 7/28: reclaim stays LIVE through Friday's grade)</td></tr>")
             + "</table></div></div></div>"
             "<div class='section'><div class='card'>"
             "<h2>Fires <span>— ✅ converted = real PRE trade · 👥 shadow rows show WHY they didn't convert</span></h2>"
@@ -2547,9 +2547,9 @@ a.watch-chip:hover{filter:brightness(1.25)}
     <div class="panel-title">v10 Strategy Parameters</div>
     <div class="param-grid">
       <div class="param-pill"><span>Qualify</span><strong>price &lt;$20 · float &lt;30M (N/A kept) · Move% rank · scanner 50M band = Kev-watch</strong></div>
-      <div class="param-pill"><span>Entries — fast (10s)</span><strong>ignition-10s (surge off quiet base) · 🫥 hidden entry (rocket wick @VWAP/90MA, 3/day/sess) · zone-flip (all RTH) · VWAP-reclaim → SHADOW 7/28 (three-arm test all-negative)</strong></div>
+      <div class="param-pill"><span>Entries — fast (10s)</span><strong>ignition-10s (surge off quiet base) · 🫥 hidden entry (rocket wick @VWAP/90MA, 3/day/sess) · VWAP-reclaim 3-gate · zone-flip (all RTH) — reclaim LIVE through Friday (Marcos call; three-arm test pending live-week data)</strong></div>
       <div class="param-pill"><span>Entries — slow (3-min)</span><strong>flat-top · ORB · MA-pullback — break → retest ≤240s → confirm candle</strong></div>
-      <div class="param-pill"><span>Premarket (7/25)</span><strong>REAL PRE entries: hidden only (reclaim shadowed 7/28) · cap 6 · ≥$250k dvol · 9:25 hard flatten · re-enabled 7/29 with session-aware prices + PRE bars in exits</strong></div>
+      <div class="param-pill"><span>Premarket (7/25)</span><strong>REAL PRE entries: hidden + reclaim · cap 6 · ≥$250k dvol · 9:25 hard flatten · re-enabled 7/29 with session-aware prices + PRE bars in exits</strong></div>
       <div class="param-pill"><span>Chart Gate</span><strong>ENFORCE (the ONE proven gate) — no break of the read's level (±2% band) · tape lanes trade live structure (Marcos 7/26: chart gates chart-trades, tape gates tape-trades)</strong></div>
       <div class="param-pill"><span>Priority</span><strong>capital slots: Kev sheet → open positions → scanner Move% (🎖️ lines in log)</strong></div>
       <div class="param-pill"><span>Day-gain floor</span><strong>≥15% (was 30 — collecting the 15-30 band this week) · curls + Kev names exempt</strong></div>

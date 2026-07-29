@@ -543,3 +543,17 @@ reclaim is the worst trade in the lane. Matches Marcos's DBGI chart read indepen
 Tonight's claim is THE SHAPE, not the cells. Friday re-runs on Mon-Thu fires (script + rows
 saved: /tmp/frontside_rows.json); if the maturity gradient survives at ~3x n, build the
 front-side health gate with a data-picked threshold.
+
+### 7/29 02:05 — THE QUALIFICATION GATE, TWO-DAY RESULT (Marcos: "if we used this mechanism for
+### vwap reclaim the past two days, what would the results have been")
+Gate = convert only fires whose name is already front-side qualified at fire time.
+  no gate: 136 fires, 30% win, −$958.67 | streak>=6 & defenses>=2: 13 fires, 54% win, +$4.04
+  | streak>=9: 5 fires, 60%, +$44.96.  ~$960 of the improvement = REFUSING 123 of 136 fires.
+PER-DAY HONESTY: 7/27 qualified 1/5 −$47.38 (fires mostly dead-hours on Kev's "all halts" day);
+7/28 qualified 6/8 +$51.42 (POLA/TTGT/RPGL/ARTW/KVAC/PIII). ALL profit lives in one day.
+FROZEN FOR FRIDAY (no goalpost moves): threshold = streak>=6 AND defenses>=2, first-fire
+slotting, live ladder, scored by the saved script on Wed+Thu fires. Grade = sign and $/entry of
+the qualified cohort at ~2x tonight's n. Stacking additional filters (time-of-day etc.) on top is
+FORBIDDEN in the grade — noted as the p-hacking trap. If positive OOS -> build the front-side
+health gate live (the entry-side mirror of the health fold, Marcos's design). If negative ->
+the maturity gradient joins the refuted pile and reclaim's answer is elsewhere.

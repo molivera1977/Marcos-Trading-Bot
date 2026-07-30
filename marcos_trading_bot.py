@@ -548,6 +548,75 @@ def _log_halt_suspect(sym, gap, last_k, held=False):
                       last_bar_ts=int(last_k) if last_k else None)
     except Exception:
         pass
+# ── DIP AND RIP (7/30, Marcos: "go ahead and build it" / "Test it before you ship it") ──
+# Kev's 9-year halt strategy (uxdFKpYQC2o + Pj8fKT4lsaU), spec'd from his own AMIX 7/29 narration:
+# halt UP on a SHEET name -> never chase into the halt -> on resumption wait for the FLUSH to tag
+# the zone just over his marked level ("that 529 level... I watch for a dip over that level and see
+# if it holds") -> enter on the CONFIRM bar back up, stop just below the level ("<5c below").
+# 7/29 ground truth: our halt detector flagged AMIX 09:39:38; resumption flush bar 09:40:40
+# (o5.96 l5.50); level 5.29 was on our sheet; Kev bought 5.49 -> 7.25. Every ingredient existed —
+# this lane is the wiring. WRONG WHEN: the halt was the top and the level-bounce is a dead cat —
+# bounded by stop-below-level + width-proportional sizing; expired/broken watches log why.
+# Kill switch: DIP_RIP=0. TAG-then-CONFIRM (the flush knife bar itself is never bought).
+DIP_RIP         = os.environ.get("DIP_RIP", "1") == "1"
+DIPRIP_ZONE     = float(os.environ.get("DIPRIP_ZONE", "0.05"))      # tag zone: level .. level*(1+5%)
+DIPRIP_WINDOW_S = float(os.environ.get("DIPRIP_WINDOW_S", "600"))   # watch expires 10 min post-resume
+_dr_st: dict = {}     # sym -> {day, armed_k, level, r_k, tag, done, why}
+
+
+def dip_rip_arm(sym, last_k, level):
+    """Arm a resumption watch when a halt is suspected on a sheet name trading ABOVE its level."""
+    try:
+        day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        st = _dr_st.get(sym)
+        if st and st.get("day") == day and (st.get("done") or st.get("armed_k")):
+            return                                     # one watch per name per day
+        _dr_st[sym] = {"day": day, "armed_k": float(last_k or 0), "level": float(level),
+                       "r_k": None, "tag": None, "done": False, "why": None}
+        print(f"🪂 {sym} DIP-RIP ARMED — halt over sheet level ${level:.2f}; watching the resumption flush")
+        _log_decision(sym, "diprip_armed", level=round(float(level), 4))
+    except Exception:
+        pass
+
+
+def dip_rip_step(sym, new_bars, price_hint=0.0):
+    """Advance the resumption watch over NEW completed 10s bars [(k,o,h,l,c,v),...].
+    TAG: a post-resumption bar whose low enters [level, level*(1+DIPRIP_ZONE)] and closes >= level.
+    CONFIRM (the entry): a later bar closing up (c>o) and >= level -> fire, stop just under the
+    level. A decisive close below the level, or window expiry, retires the watch (logged)."""
+    try:
+        st = _dr_st.get(sym)
+        day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        if not st or st.get("day") != day or st.get("done") or not st.get("armed_k"):
+            return None
+        lvl = st["level"]
+        for k, o, h, l, c, v in new_bars:
+            if k <= st["armed_k"]:
+                continue
+            if st["r_k"] is None:
+                st["r_k"] = k                          # first print after the gap = resumption
+            if k - st["r_k"] > DIPRIP_WINDOW_S:
+                st["done"] = True; st["why"] = "window_expired"
+                _log_decision(sym, "diprip_expired", level=round(lvl, 4))
+                return None
+            if c < lvl * 0.99:                         # decisive break below the level: thesis dead
+                st["done"] = True; st["why"] = "level_lost"
+                _log_decision(sym, "diprip_level_lost", level=round(lvl, 4), close=round(c, 4))
+                return None
+            if st["tag"] is None:
+                if l <= lvl * (1 + DIPRIP_ZONE) and c >= lvl:
+                    st["tag"] = {"low": l, "k": k}
+                    _log_decision(sym, "diprip_tag", level=round(lvl, 4), tag_low=round(l, 4))
+            else:
+                if c > o and c >= lvl:                 # CONFIRM — the entry bar
+                    st["done"] = True; st["why"] = "fired"
+                    return {"px": round(c, 4), "stop": round(lvl * (1 - 0.003), 4),
+                            "level": lvl, "tag_low": st["tag"]["low"], "k": k}
+        return None
+    except Exception:
+        return None
+
+
 # Kev "topping tail / tail off the high" — a candle that spikes up then gets rejected,
 # printing a long upper wick at the highs. He treats it as BOTH an entry-skip ("shouldn't
 # have taken it, we had a tail off the high") AND his #1 exit ("topping tail off the high,
@@ -959,6 +1028,18 @@ def _curl_feed(t, n=90):
         _susp, _gap, _lastk = _halt_suspect(t, d10)
         if _susp:
             _log_halt_suspect(t, _gap, _lastk, held=(t in _halt_held_mirror))
+            # DIP-RIP arm (7/30): a halt on a SHEET name trading over its marked level arms the
+            # resumption watch. Sheet-only + above-level = the false-positive guard (thin-tape
+            # halt suspects on quiet names never arm — 325 suspects fired 7/29, ~5 were real).
+            if DIP_RIP:
+                try:
+                    _lv_dr = (_fetch_kev_levels() or {}).get(t) or {}
+                    _lvl_dr = float(_lv_dr.get("break") or 0)
+                    _lc_dr = d10[max(d10)]["c"] if d10 else 0
+                    if _lvl_dr > 0 and _lc_dr and float(_lc_dr) > _lvl_dr:
+                        dip_rip_arm(t, _lastk, _lvl_dr)
+                except Exception:
+                    pass
     except Exception:
         pass
     return d10, src
@@ -4272,7 +4353,7 @@ def _slot_refund(sym, entry_type):
         now = datetime.now(EASTERN)
         day, hm = now.strftime("%Y-%m-%d"), now.strftime("%H:%M")
         sess = "PRE" if hm < "09:30" else "RTH"
-        lane = {"zone_flip": "zf", "vwap_reclaim": "vr"}.get(entry_type)
+        lane = {"zone_flip": "zf", "vwap_reclaim": "vr", "dip_rip": "dr"}.get(entry_type)
         if lane:
             _curl_rth_n.pop((day, sym, lane, sess), None)
         elif entry_type == "hidden_entry":
@@ -5759,6 +5840,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             _zf_fire = None
             _vr_fire = None
             _he_fire = None
+            _dr_fire = None
             _vr_sv = 0.0
             if ZONEFLIP_KEV:
                 _zf_nb = []
@@ -5834,16 +5916,28 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 if _ig_nb:
                     _ig_fire = ignition_10s_step(t, _ig_nb)
 
+            # ── DIP-RIP feed (7/30): only runs while a halt-armed watch exists for t (rare), so the
+            #    extra _curl_feed call costs nothing in the common case. Own cursor via armed_k/r_k
+            #    inside the state — bars are re-scanned from the halt bar, fed monotonically. ──
+            if DIP_RIP and _dr_st.get(t) and not _dr_st[t].get("done"):
+                _d10r, _ = _curl_feed(t)
+                _cut_r = int(time.time()) // 10 * 10
+                _nb_r = [( _k, _d10r[_k]["o"], _d10r[_k]["h"], _d10r[_k]["l"], _d10r[_k]["c"],
+                           max((_d10r[_k].get("v1") or 0) - (_d10r[_k].get("v0") or 0), 0))
+                         for _k in sorted(_d10r) if _k < _cut_r]
+                if _nb_r:
+                    _dr_fire = dip_rip_step(t, _nb_r)
+
             # ── 7/24 CONVERT-AT-DETECTION (Marcos: "we see it triggered but now do nothing!!").
             # The consume branches used to sit BELOW the 3-min-EMA warmup guard + 8 other `continue`s,
             # so a curl fire was detected, shadow-logged, then DROPPED before the trade branch ever ran
             # (7/24: 26 RTH fires, zero conversions, zero 🔵/🟣 prints all day). The 10s curl machines
             # need NONE of that machinery — convert eligible fires to entries RIGHT HERE, before any
             # legacy guard can eat them. EMAs are best-effort informational (ignition's own pattern). ──
-            if (_zf_fire or _vr_fire or _he_fire) and price and price > 0:
+            if (_zf_fire or _vr_fire or _he_fire or _dr_fire) and price and price > 0:
                 _hm_curl = datetime.now(EASTERN).strftime("%H:%M")
                 _fire_px = None
-                for _f in (_zf_fire, _vr_fire, _he_fire):
+                for _f in (_zf_fire, _vr_fire, _he_fire, _dr_fire):
                     if _f and _f.get("px"):
                         _fire_px = _f["px"]; break
                 if _fire_px and _fire_px > 0 and abs(price - _fire_px) / _fire_px > 0.02:
@@ -5864,6 +5958,27 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     _ce9, _ce20, _ce90 = calculate_ema9(_cc), calculate_ema20(_cc), calculate_ema90(_cc)
                 else:
                     _ce9 = _ce20 = _ce90 = 0.0
+                # DIP-RIP first (7/30): rarest and most specific — a halt-resumption confirm over
+                # Kev's own level. RTH only (halts only flag in RTH), one watch per name per day.
+                if _dr_fire and DIP_RIP and _hm_curl >= "09:30" and _curl_rth_slot(t, "dr", _hm_curl):
+                    dr = _dr_fire
+                    _dr_fire = None                            # consumed
+                    if "daily" not in cache[t]:
+                        cache[t]["daily"] = get_daily_levels(t)
+                    _daily = cache[t]["daily"]
+                    room = compute_room(price, dr["stop"], cache[t].get("full_bars") or bars,
+                                        daily=_daily, prior_day_high=(_daily or {}).get("prior_day_high"))
+                    print(f"\n🪂 {t} DIP AND RIP! ${price:.2f} — halt-resumption flush held Kev's "
+                          f"${dr['level']:.2f} (tag low ${dr['tag_low']:.2f}) — stop ${dr['stop']:.2f}")
+                    breakouts.append((t, price, dr["level"], "dip_rip", {
+                        "zone_stop": dr["stop"], "room": room, "ema90": round(_ce90, 4),
+                        "front_side": _ce9 > _ce20 > 0, "ema9": round(_ce9, 4), "ema20": round(_ce20, 4),
+                        "dr_level": dr["level"], "dr_tag_low": dr["tag_low"],
+                    }))
+                    _log_decision(t, "triggered_dip_rip", price=price, level=dr["level"],
+                                  tag_low=dr["tag_low"], stop=dr["stop"],
+                                  fire_px=dr.get("px"), fire_age_s=(round(time.time() - dr["k"], 1) if dr.get("k") else None))
+                    continue                                   # captured — skip other detectors for t
                 # ZONE-FLIP first (its original priority) — live all RTH (Marcos 7/20).
                 if _zf_fire and _curl_rth_slot(t, "zf", _hm_curl):
                     zf = _zf_fire
@@ -8135,7 +8250,7 @@ def main():
     print("🎛️  BOOT CONFIG: "
           f"HIDDEN_ENTRY={int(HIDDEN_ENTRY)} RECLAIM_LIVE={int(RECLAIM_LIVE)} "
           f"ZONEFLIP_KEV={int(ZONEFLIP_KEV)} IGNITION_10S={int(IGNITION_10S)} | "
-          f"SWAP_MODE={SWAP_MODE} PM_EXT_QUOTE={int(PM_EXT_QUOTE)} | "
+          f"SWAP_MODE={SWAP_MODE} PM_EXT_QUOTE={int(PM_EXT_QUOTE)} DIP_RIP={int(DIP_RIP)} | "
           f"MIN_STOP_PCT={MIN_STOP_DIST_PCT} EXEMPT={sorted(MIN_STOP_EXEMPT)} | "
           f"ENTRY_OPEN_ET={ENTRY_OPEN_ET} INTRABAR_STOP={int(INTRABAR_STOP)} "
           f"BE_FLOOR_AFTER_SCALE={BE_FLOOR_AFTER_SCALE}")

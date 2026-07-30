@@ -42,10 +42,10 @@ check("P3 zone-flip queues a real entry at detection",
       '"reclaim_subtype": "zone_flip"' in BOT[i_conv:i_conv+6000]
       and 'breakouts.append((t, price, zf["zone"], "zone_flip"' in BOT[i_conv:i_conv+6000])
 check("P4 reclaim queues a real entry at detection, in its 09:30-11:00 window",
-      'RECLAIM_LIVE_START <= _hm_curl < RECLAIM_LIVE_END' in BOT[i_conv:i_conv+7000]
-      and 'breakouts.append((t, price, _sv, "vwap_reclaim"' in BOT[i_conv:i_conv+7000])
-check("P5 conversion consumes the slot ONLY when queueing (call sites inside conversion)",
-      BOT.count("_curl_rth_slot(t,") == 2)
+      'RECLAIM_LIVE_START <= _hm_curl < RECLAIM_LIVE_END' in BOT[i_conv:i_conv+9500]
+      and 'breakouts.append((t, price, _sv, "vwap_reclaim"' in BOT[i_conv:i_conv+9500])
+check("P5 conversion consumes the slot ONLY when queueing (call sites inside conversion; +dip-rip 7/30)",
+      BOT.count("_curl_rth_slot(t,") == 3)
 check("P6 old seq==0 consume logic is GONE (no double-trade path)",
       'if zf.get("seq", 0) == 0:' not in BOT
       and 'vr.get("seq", 0) == 0 and RECLAIM_LIVE_START' not in BOT)

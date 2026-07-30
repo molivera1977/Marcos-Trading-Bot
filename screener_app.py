@@ -31,6 +31,14 @@ WEBULL_ACCESS_TOKEN = os.environ.get("WEBULL_ACCESS_TOKEN", "")
 TRADING_HOST        = "api.webull.com"
 WEBULL_TOKEN_DIR    = "/tmp/webull_token_screener"
 EASTERN             = pytz.timezone("America/New_York")
+
+def _hm_et(ts):
+    """UTC ISO timestamp -> 'HH:MM' ET for table cells; em-dash when absent (pre-7/28 records)."""
+    try:
+        dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00")).astimezone(EASTERN)
+        return dt.strftime("%H:%M")
+    except Exception:
+        return "—"
 TRADES_FILE         = pathlib.Path("/data/marcos_trades.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/marcos_trades.json")
 API_SECRET          = os.environ.get("DASHBOARD_SECRET", "marcos2026")
 
@@ -2120,11 +2128,13 @@ def premarket_dashboard():
             "</div>"
             "<div class='section'><div class='card'>"
             "<h2>Premarket trades <span>— the PRE ledger (real entries, 9:25-flattened; graded separately)</span></h2>"
-            "<div class='tw'><table><tr><th>ticker</th><th>lane</th><th>entry</th><th>exit</th><th>P&L</th><th>how it ended</th></tr>"
+            "<div class='tw'><table><tr><th>ticker</th><th>lane</th><th>in ⏱</th><th>entry</th><th>out ⏱</th><th>exit</th><th>P&L</th><th>how it ended</th></tr>"
             + ("".join(
                 "<tr><td><a class='tk' href='/tale/" + esc(t.get("ticker")) + "'>" + esc(t.get("ticker")) + "</a></td>"
                 "<td class='purple'>" + esc(t.get("entry_type") or "—") + "</td>"
+                "<td class='num muted'>" + _hm_et(t.get("entry_ts_utc")) + "</td>"
                 "<td class='num'>" + fmt(t.get("entry")) + "</td>"
+                "<td class='num muted'>" + (str(t.get("recorded_at") or "")[11:16] or "—") + "</td>"
                 "<td class='num'>" + fmt(t.get("exit")) + "</td>"
                 "<td class='num " + ("green" if _cpnl(t) >= 0 else "yellow") + "'>$" + ("%+.2f" % _cpnl(t)) + "</td>"
                 "<td class='muted'>" + esc(t.get("exit_reason") or "") + "</td></tr>"
@@ -2132,11 +2142,13 @@ def premarket_dashboard():
                + "".join(
                 "<tr><td><a class='tk' href='/tale/" + esc(o.get("ticker")) + "'>" + esc(o.get("ticker")) + "</a></td>"
                 "<td class='purple'>" + esc(o.get("entry_type") or "—") + "</td>"
+                "<td class='num muted'>" + _hm_et(o.get("entry_ts_utc")) + "</td>"
                 "<td class='num'>" + fmt(o.get("entry") or o.get("entry_price")) + "</td>"
+                "<td class='muted'>—</td>"
                 "<td class='green'>OPEN</td><td class='muted'>—</td>"
                 "<td class='green'>live — flattens 9:25</td></tr>"
                 for o in open_pre)
-               or "<tr><td colspan=6 class='muted'>none yet — PRE conversions land here as they fire (hidden + reclaim — Marcos 7/28: reclaim stays LIVE through Friday's grade)</td></tr>")
+               or "<tr><td colspan=8 class='muted'>none yet — PRE conversions land here as they fire (hidden + reclaim — Marcos 7/28: reclaim stays LIVE through Friday's grade)</td></tr>")
             + "</table></div></div></div>"
             "<div class='section'><div class='card'>"
             "<h2>Fires <span>— ✅ converted = real PRE trade · 👥 shadow rows show WHY they didn't convert</span></h2>"

@@ -94,7 +94,7 @@ def size(entry, stop, b, i0):
 
 
 def replay(tk, date, entry, stop, i0=None, entry_hm=None, shares=None, slip_pct=SLIP_PCT,
-           be_after=BE_AFTER):
+           be_after=BE_AFTER, runner="trail", tiers=((1, 0.50), (2, 0.25))):
     """Walk one trade through the real ladder on the real tape. Provide i0 (bar index) or entry_hm.
     shares=None => size through the real chain; pass recorded shares for acceptance runs.
     Returns dict with pnl, shares, clamp, events — or None when untradeable/no tape."""
@@ -115,12 +115,36 @@ def replay(tk, date, entry, stop, i0=None, entry_hm=None, shares=None, slip_pct=
     else:
         sh, clamp, det = int(shares), "recorded", {}
     rps = entry - stop
-    t1, t2 = entry + rps, entry + 2 * rps
+    tier_px = [(entry + m * rps, frac) for m, frac in tiers]
     rem, real, cur = sh, 0.0, stop
     scales = 0
     m1, events = {}, []
+    # runner="health" state: premarket-anchored session VWAP + EMA9 of completed 3-min closes
+    pv = vv = 0.0
+    for x in b[:i0 + 1]:
+        pv += ((x[2] + x[3] + x[4]) / 3.0) * x[5]; vv += x[5]
+    e9 = None; last_b3 = None
+    b3 = {}
+    for x in b[:i0 + 1]:
+        b3[x[0] // 180] = x[4]
+    for _k3 in sorted(b3):
+        e9 = b3[_k3] if e9 is None else b3[_k3] * 0.2 + e9 * 0.8
+        last_b3 = _k3
     for j in range(i0 + 1, len(b)):
         k, o, h, l, c, v, hm = b[j]
+        pv += ((h + l + c) / 3.0) * v; vv += v
+        vwap = pv / vv if vv > 0 else c
+        k3 = k // 180
+        if last_b3 is not None and k3 > last_b3:
+            # 3-min bucket(s) completed at the close we last saw
+            _prev_close = b[j - 1][4]
+            e9 = _prev_close if e9 is None else _prev_close * 0.2 + e9 * 0.8
+            if runner == "health" and scales >= 1 and _prev_close < e9 and _prev_close < vwap:
+                events.append((hm, f"HEALTH FOLD {_prev_close:.4f} < ema9 {e9:.4f} & vwap {vwap:.4f}"))
+                return {"tk": tk, "date": date, "pnl": round(real + rem * (_prev_close - entry), 2),
+                        "shares": sh, "clamp": clamp, "events": events, "refused": False, **det}
+        if last_b3 is None or k3 > last_b3:
+            last_b3 = k3
         key = k // 60
         d = m1.setdefault(key, [l, c]); d[0] = min(d[0], l); d[1] = c
         if hm >= FLAT_HM:
@@ -132,15 +156,12 @@ def replay(tk, date, entry, stop, i0=None, entry_hm=None, shares=None, slip_pct=
             events.append((hm, f"stop {cur:.4f} -> fill {fill:.4f}"))
             return {"tk": tk, "date": date, "pnl": round(real + rem * (fill - entry), 2), "shares": sh,
                     "clamp": clamp, "events": events, "refused": False, **det}
-        if scales == 0 and h >= t1:
-            q = int(sh * 0.50); real += q * (t1 - entry); rem -= q; scales = 1
-            events.append((hm, f"scale1 {q}@{t1:.4f}"))
-            if be_after <= 1: cur = max(cur, entry)
-        if scales == 1 and h >= t2:
-            q = int(sh * 0.25); real += q * (t2 - entry); rem -= q; scales = 2
-            events.append((hm, f"scale2 {q}@{t2:.4f}"))
-            if be_after <= 2: cur = max(cur, entry)
-        if scales >= 2:
+        while scales < len(tier_px) and h >= tier_px[scales][0]:
+            _px, _fr = tier_px[scales]
+            q = int(sh * _fr); real += q * (_px - entry); rem -= q; scales += 1
+            events.append((hm, f"scale{scales} {q}@{_px:.4f}"))
+            if be_after <= scales: cur = max(cur, entry)
+        if scales >= len(tier_px) and runner == "trail":
             lows = [m1[x][0] for x in (key - 3, key - 2, key - 1) if x in m1]
             if lows:
                 cur = max(cur, min(lows))

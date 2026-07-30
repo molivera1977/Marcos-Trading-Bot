@@ -2606,12 +2606,13 @@ a.watch-chip:hover{filter:brightness(1.25)}
           <th>P&amp;L $</th>
           <th>P&amp;L %</th>
           <th title="R-multiple: P&amp;L ÷ planned risk ($30 = 1R). Winners: target avg ≥ +0.85R. Losers: planned −1R; deeper = stop overshoot.">R</th>
+          <th title="Marked runway at ENTRY: R-multiples of room to the next Kev level. Stamped before the trade — no hindsight. '∞' = above all marked levels (blue sky).">Road</th>
           <th>Exit Reason</th>
           <th>Float</th>
         </tr>
       </thead>
       <tbody id="tradeTable">
-        <tr><td colspan="12"><div class="empty-state"><div class="icon">📊</div><p>Loading trade history...</p></div></td></tr>
+        <tr><td colspan="13"><div class="empty-state"><div class="icon">📊</div><p>Loading trade history...</p></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -2865,7 +2866,7 @@ function renderTable(allTrades){
   if(_pl) _pl.innerHTML = _preN ? ' · <a href="/premarket" style="color:#8b949e">'+_preN+' premarket trade(s) on the premarket board ↗</a>' : '';
   const tbody = document.getElementById('tradeTable');
   if(!trades || trades.length===0){
-    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state">
+    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state">
       <div class="icon">📊</div>
       <p>No trades recorded yet</p>
       <small>The bot will log results here automatically after each session</small>
@@ -2899,6 +2900,7 @@ function renderTable(allTrades){
       <td class="${pnlCls}">${pnlSign}$${Math.abs(t.pnl).toFixed(2)}</td>
       <td class="${pnlCls}">${pctSign}${t.pnl_pct.toFixed(1)}%</td>
       <td class="${pnlCls}" style="font-weight:700">${rTxt}</td>
+      <td style="color:#8b949e">${(t.marked_runway_rr==='above_all_levels')?'∞':(typeof t.marked_runway_rr==='number'?t.marked_runway_rr.toFixed(1)+'R':'—')}</td>
       <td class="exit-tag" title="${t.exit_reason||''}">${isBookRow?'📋 ':''}${t.exit_reason||'—'}</td>
       <td style="color:#8b949e;font-size:12px">${fl}</td>
     </tr>`
@@ -2968,7 +2970,7 @@ function renderTradePanel(ts){
       <div class="pnl ${pnlCls}">${pnl>=0?'+':''}${pnl.toFixed(1)}%</div>
     </div>
     <div class="trade-grid">
-      <div class="cell"><div class="lbl">Entry${ts.entry_hm?' · '+ts.entry_hm+' ET':''}</div><div class="val">$${Number(ts.entry).toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl">Entry${ts.entry_hm?' · '+ts.entry_hm+' ET':''}${ts.runway!=null?(' · 🛣️ '+(ts.runway==='above_all_levels'?'blue sky':Number(ts.runway).toFixed(1)+'R road')):''}</div><div class="val">$${Number(ts.entry).toFixed(2)}</div></div>
       <div class="cell"><div class="lbl">Now</div><div class="val">$${Number(ts.price).toFixed(2)}</div></div>
       <div class="cell"><div class="lbl" title="Trigger, not the fill — sells on a 3-min CLOSE below this level, so the actual exit can be a bit lower (wick-snipe protection)">Stop ▾</div><div class="val" style="color:#f85149">$${Number(ts.stop).toFixed(2)}</div></div>
       <div class="cell"><div class="lbl">Target</div><div class="val" style="color:#3fb950">$${Number(ts.target).toFixed(2)}</div></div>
@@ -3065,6 +3067,8 @@ function storyClosedHTML(t){
   else vTxt=`➖ SCRATCH — in and out around breakeven. No harm done.`;
   const li=[];
   li.push(`Was in for <b>$${inFor.toFixed(0)}</b> — ${shares} shares at <b>$${entry.toFixed(2)}</b>${t.entry_type?`, entry signal: <b>${t.entry_type}</b>`:''}${t.stop_loss?`, safety net at $${Number(t.stop_loss).toFixed(2)} (≈$${risk.toFixed(0)} at risk)`:''}.`);
+  if(t.marked_runway_rr==='above_all_levels') li.push(`🛣️ <b>Road at entry:</b> above ALL marked levels — blue sky, no ceiling on the map (and no support from it either).`);
+  else if(typeof t.marked_runway_rr==='number') li.push(`🛣️ <b>Road at entry:</b> ${t.marked_runway_rr.toFixed(1)}R of runway to the next marked level${t.marked_runway_tgt?` ($${Number(t.marked_runway_tgt).toFixed(2)})`:''} — known BEFORE the trade.`);
   if(b.lines.length){ b.lines.forEach(x=>li.push(x)); li.push(`The last ${Math.max(0,shares-b.sold)} shares went out at <b>$${exit.toFixed(2)}</b>.`); }
   else li.push(`Sold everything at <b>$${exit.toFixed(2)}</b> in one piece.`);
   li.push(`<b>Why it ended:</b> ${exitStory(t.exit_reason)}`);

@@ -17,18 +17,27 @@ def check(name, cond, detail=""):
     if not cond:
         fails.append(name)
 
-# The stamp logic lives inline in _trade_worker; test it by re-implementing the spec and
-# asserting the source matches, then exercising the arithmetic through a tiny local mirror.
-seg_i = src.find("MARKED RUNWAY (7/28")
-check("stamp block present in _trade_worker", seg_i > 0)
-seg = src[seg_i:seg_i + 2000]
+# 7/29: the stamp logic moved to the _marked_runway() HELPER (single source of truth — entry-time
+# live card + record-time stamp). Pins upgraded from source-matching to FUNCTIONAL: monkeypatch the
+# sheet and exercise the real helper. Mutant direction: break the helper's guards and these go red.
 check("record carries marked_runway_rr", '"marked_runway_rr":   _runway_rr' in src)
 check("record carries marked_runway_tgt", '"marked_runway_tgt":  _runway_tgt' in src)
+check("record stamp + live card share ONE source", src.count("_marked_runway(ticker, entry_price, stop_loss)") >= 2)
+_saved_fetch = bot._fetch_kev_levels
+bot._fetch_kev_levels = lambda: {"TST": {"targets": [5.0, 7.0], "next_supply": 9.0}}
+rr, tgt = bot._marked_runway("TST", 4.0, 3.5)          # rps 0.5; first target above = 5.0
+check("runway = (tgt-entry)/rps", rr == 2.0 and tgt == 5.0, f"{rr},{tgt}")
+rr, tgt = bot._marked_runway("TST", 8.0, 7.0)          # targets below; next_supply 9.0 above
+check("next_supply fallback guarded above entry", rr == 1.0 and tgt == 9.0, f"{rr},{tgt}")
+rr, tgt = bot._marked_runway("TST", 10.0, 9.0)         # above ALL marked levels
 check("above-all-levels stamps the STATE (bimodal: ZYBT blue-sky vs EGG chase)",
-      '_runway_rr = "above_all_levels"' in seg)
-check("targets filtered ABOVE entry", "if float(x) > entry_price" in seg)
-check("next_supply fallback guarded above entry", "_ns > entry_price" in seg)
-check("division by risk-per-share, guarded > 0", "_rps > 0" in seg and "/ _rps" in seg)
+      rr == "above_all_levels" and tgt is None, f"{rr},{tgt}")
+rr, tgt = bot._marked_runway("TST", 4.0, 4.0)          # rps 0 — guarded
+check("division by risk-per-share, guarded > 0", rr is None and tgt is None, f"{rr},{tgt}")
+bot._fetch_kev_levels = lambda: {}
+rr, tgt = bot._marked_runway("TST", 4.0, 3.5)          # no sheet entry
+check("no sheet -> stamps None (never fabricates)", rr is None and tgt is None, f"{rr},{tgt}")
+bot._fetch_kev_levels = _saved_fetch
 check("LOG-ONLY: no gate/reject on runway anywhere", "runway_reject" not in src
       and "RUNWAY_MIN" not in src)
 

@@ -6659,9 +6659,31 @@ def _vride_defer(ticker, tier_idx):
         return False
     return False
 
+def _marked_runway(ticker, entry_price, stop_loss):
+    """MARKED RUNWAY (Marcos's thesis): R-multiples of room from entry to the sheet's first target
+    above (fallback next_supply). Fully knowable at entry. Returns (rr|'above_all_levels'|None, tgt).
+    7/29: extracted so the LIVE card shows the road DURING the trade, not only in the post-mortem —
+    identical inputs at entry and at record time, so the two stamps always agree."""
+    try:
+        _lvd = (_fetch_kev_levels() or {}).get(ticker) or {}
+        _rps = entry_price - stop_loss
+        if _rps <= 0:
+            return None, None
+        _tgts = sorted(float(x) for x in (_lvd.get("targets") or []) if float(x) > entry_price)
+        _ns = float(_lvd.get("next_supply") or 0)
+        _tgt = (_tgts[0] if _tgts else (_ns if _ns > entry_price else None))
+        if _tgt:
+            return round((_tgt - entry_price) / _rps, 2), _tgt
+        if _lvd.get("targets") or _ns:
+            return "above_all_levels", None
+    except Exception:
+        pass
+    return None, None
+
+
 def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                   stream: WebullStream, stop_order_id, vwap=0, next_supply=None, entry_type="flat_top",
-                  entered_premkt=None):
+                  entered_premkt=None, runway=None):
     """
     Monitors the trade using the real-time stream.
     All stop levels are kept as live orders on Webull — not just in memory.
@@ -6910,6 +6932,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             "initial_shares": initial_shares, "partials": len(partial_fills),
             "highest": round(highest_price, 4), "vwap": round(vwap, 4) if vwap else None,
             "entry_hm": _entry_hm,   # 7/28 (Marcos: "i dont see entry time") — fill time on the card
+            "runway": runway,        # 7/29 (Marcos: "can it be read on the tale of the tape") — road at entry, live
         })
         # Durable recovery state — survives a crash/restart so this trade still gets a recorded exit.
         _save_open_trade({
@@ -8642,12 +8665,14 @@ def main():
                 "entry_ts_utc": _entry_ts_iso, "last_price": round(entry_price, 4)}}
             _note_positions(len(_active_monitors))   # track peak concurrent positions (capacity signal)
 
+            _rw_rr, _rw_tgt = _marked_runway(ticker, entry_price, stop_loss)   # road at entry, for the live card
             trade_result = monitor_trade(
                 ticker, shares, entry_price, target_price, stop_loss,
                 stream, stop_order_id, vwap=vwap,
                 next_supply=((extra or {}).get("room") or {}).get("next_supply"),
                 entry_type=entry_type,               # rocket_catcher → %-based scale-out ladder in monitor_trade
                 entered_premkt=(True if (extra or {}).get("_pre_convert") else None),   # F1b: None → clock fallback
+                runway=_rw_rr,
             )
             _active_monitors.pop(ticker, None)   # monitor returned — deregister from watchdog
 
@@ -8712,26 +8737,13 @@ def main():
                 float_shares = float_shares,
             )
             _kev_lv = None
-            _runway_rr = _runway_tgt = None
+            _runway_rr, _runway_tgt = _marked_runway(ticker, entry_price, stop_loss)
             try:
                 _lvd = (_fetch_kev_levels() or {}).get(ticker) or {}
                 _kev_lv = float(_lvd.get("break") or 0) or None
-                # ── MARKED RUNWAY (7/28, Marcos: "we don't need the absolute beginning but we need
-                # enough runway to travel on"). Distance from fill to the sheet's first target ABOVE
-                # entry (fallback: next_supply), in R. LOG-ONLY — the 7/28 four worst losers all read
-                # <0.5R (EGG entered above ALL targets); Friday grades it on era scale. NOT a gate.
-                _rps = entry_price - stop_loss
-                if _rps > 0:
-                    _tgts = sorted(float(x) for x in (_lvd.get("targets") or []) if float(x) > entry_price)
-                    _ns = float(_lvd.get("next_supply") or 0)
-                    _runway_tgt = (_tgts[0] if _tgts else (_ns if _ns > entry_price else None))
-                    if _runway_tgt:
-                        _runway_rr = round((_runway_tgt - entry_price) / _rps, 2)
-                    elif _lvd.get("targets") or _ns:
-                        # Above ALL marked levels. 7/28 era review: this cohort is BIMODAL — blue-sky
-                        # breakouts (ZYBT 7/20 +$164.79, nothing overhead) AND exhausted chases
-                        # (EGG 7/28). A 0.0 stamp would average opposites; stamp the state, not a number.
-                        _runway_rr = "above_all_levels"
+                # MARKED RUNWAY now lives in _marked_runway() (7/29) — computed at entry for the
+                # live card AND here for the record, from identical inputs (history + doctrine,
+                # incl. the bimodal 'above_all_levels' stamp, documented on the helper).
             except Exception:
                 _kev_lv = None
             _rec_ok = post_trade_record_reliably({

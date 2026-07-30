@@ -4261,6 +4261,34 @@ def _curl_rth_slot(sym, lane, hm):
     _curl_rth_n[k] = 1
     return True
 
+def _slot_refund(sym, entry_type):
+    """7/29 (Marcos: "we have to move fast and not be clipped every morning like today"):
+    a session slot is spent by a TRADE, not an ATTEMPT. The 7/29 AMIX clip: the 09:32 ticket
+    consumed reclaim's RTH slot, died at the sizing guards, and the REAL flush entry 8 minutes
+    later — Kev's dip-and-rip moment, 5.49 -> 7.25 — had no slot left to convert. Every refusal
+    path between conversion and BUY now refunds the lane slot so the detector's next fire can
+    convert. (Ignition's once-per-ticker cache flag is out of this scope — queued.)"""
+    try:
+        now = datetime.now(EASTERN)
+        day, hm = now.strftime("%Y-%m-%d"), now.strftime("%H:%M")
+        sess = "PRE" if hm < "09:30" else "RTH"
+        lane = {"zone_flip": "zf", "vwap_reclaim": "vr"}.get(entry_type)
+        if lane:
+            _curl_rth_n.pop((day, sym, lane, sess), None)
+        elif entry_type == "hidden_entry":
+            if _he_day.get("d") == day and _he_day.get(sess, 0) > 0:
+                _he_day[sess] -= 1
+            _k = (day, sym, sess)
+            if _he_name.get(_k, 0) > 0:
+                _he_name[_k] -= 1
+        else:
+            return
+        _log_decision(sym, "slot_refunded", machine=entry_type)
+        print(f"   ♻️ {sym} {entry_type}: session slot REFUNDED — an attempt is not a trade; the lane can re-fire")
+    except Exception:
+        pass
+
+
 def _level_gap(ticker, price):
     """BALLPARK STAMP (7/27, Marcos: tape lanes 'deserve some structure from the charts' — measured
     first, gated never tonight). Signed distance from the day's marked break (+above/−below) and the
@@ -8397,6 +8425,7 @@ def main():
                 _log_decision(ticker, "chart_gate_blocked_trade",
                               entry=round(float(entry_price), 4), break_level=_cg_level, reason=_cg_reason)
                 print(f"   ⛔ CHART-GATE BLOCKED {ticker} entry (no break of marked level) — no trade")
+                _slot_refund(ticker, entry_type)
                 return   # ENFORCE mode only: Kev's No-Break-No-Trade blocks this entry
 
             # DATA-ONLY: capture where price sat vs the 90 EMA at entry, so we can later study
@@ -8440,6 +8469,7 @@ def main():
             if stop_loss >= entry_price:
                 print(f"⚠️ {ticker} stop ${stop_loss:.2f} ≥ entry ${entry_price:.2f} — unsizeable, skipping")
                 _log_decision(ticker, "bad_stop_skip", price=entry_price, stop=round(stop_loss, 4))
+                _slot_refund(ticker, entry_type)
                 with trade_lock:
                     reentry["held"].discard(ticker)   # pre-reservation: nothing to refund
                 return
@@ -8455,6 +8485,7 @@ def main():
                       f"(band {_ms_band}) — stop is inside the noise, skipping [minstop gate]")
                 _log_decision(ticker, "minstop_reject", price=entry_price, stop=round(stop_loss, 4),
                               stop_width_pct=_ms_w, band=_ms_band, machine=entry_type)
+                _slot_refund(ticker, entry_type)
                 with trade_lock:
                     reentry["held"].discard(ticker)   # pre-reservation: nothing to refund (mirror bad_stop_skip)
                 return
@@ -8532,6 +8563,7 @@ def main():
             if not spread_ok:
                 print(f"⚠️ {ticker} spread {spread_pct*100:.2f}% too wide — skipping")
                 _log_decision(ticker, "spread_reject", price=entry_price, spread_pct=round(spread_pct*100, 2))
+                _slot_refund(ticker, entry_type)
                 with trade_lock:
                     settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)

@@ -28,10 +28,23 @@ check("M1 no arm on flat tape", r is None and not bot._he_st["AAA"]["armed"])
 rocket = [B(2.5+i*0.045, 2.56+i*0.045, 2.46+i*0.045, 2.55+i*0.045) for i in range(31)]  # +~55%/31 bars
 r = bot.hidden_entry_step("BBB", rocket, VWAP)
 check("M2 arms on velocity", bot._he_st["BBB"]["armed"] and r is None)     # no wick at anchor yet
-# wick: e90 lags ~ well below price; drop a bar whose low tags anchor and closes top-half above vwap
+# ── 7/29 ANCHOR-MATURITY GATE: with only 31 bars the 90MA is fiction — a perfect wick must be
+# REFUSED (this exact degenerate class went 0-for-9 live) and shadow-consumed (seq advances).
 e90 = bot._he_st["BBB"]["e90"]; anchor = max(e90, VWAP)
 wick = B(anchor*1.02, anchor*1.10, anchor*0.995, anchor*1.09)               # low tags, closes high
+_seq0 = bot._he_st["BBB"]["n"]
 r = bot.hidden_entry_step("BBB", [wick], VWAP)
+check("G1 IMMATURE anchor (31 bars) -> wick REFUSED", r is None)
+check("G2 refusal consumes the setup (seq advances)", bot._he_st["BBB"]["n"] == _seq0 + 1)
+check("G3 gate wired to shadow row", "hidden_anchor_immature" in BOT)
+check("G4 kill switch exists (default ON, 90 bars)",
+      bot.HIDDEN_ANCHOR_REQ is True and bot.HIDDEN_ANCHOR_MIN_BARS == 90)
+# mature the machine: pad flat bars to >=90 total, then the SAME wick must fire (mutant direction:
+# delete the gate and G1 goes red; break nbars accounting and M3 goes red).
+pad = [B(anchor*1.03, anchor*1.05, anchor*1.02, anchor*1.04) for _ in range(70)]
+bot.hidden_entry_step("BBB", pad, VWAP)
+wick2 = B(anchor*1.02, anchor*1.10, anchor*0.995, anchor*1.09)
+r = bot.hidden_entry_step("BBB", [wick2], VWAP)
 check("M3 fires on wick at anchor from above", r is not None)
 check("M4 stop = wick low floored 5%", r and abs(r["stop"] - round(min(wick[3]-0.01, wick[4]*0.95), 4)) < 1e-3)
 check("M5 ext_vwap stamped", r and isinstance(r["ext_vwap"], float))

@@ -4555,6 +4555,15 @@ HIDDEN_VEL_BARS   = int(os.environ.get("HIDDEN_VEL_BARS", "30"))    # 30 x 10s =
 HIDDEN_TRIM_R     = float(os.environ.get("HIDDEN_TRIM_R", "1.0"))   # 7/27: R-based FIRST trim on the hidden
                             # ladder (the inherited ×1.50 trigger sat above both closed peaks = unreachable).
 HIDDEN_DAILY_CAP  = int(os.environ.get("HIDDEN_DAILY_CAP", "3"))
+# 7/29 ANCHOR-MATURITY GATE (gauntleted): the lane is Kev's wick off the VWAP+90MA CONFLUENCE, but
+# the detector's 10s-EMA90 is seeded from its first bar — on fresh gappers it is an unconverged
+# echo of recent closes, so `anchor=max(e90,vwap)` degenerates to plain VWAP. Every one of the
+# lane's 9 lifetime trades (0 wins, −$282) fired in that degenerate state (entry_vs_ema90_pct null
+# on ALL). Fire only after >= HIDDEN_ANCHOR_MIN_BARS 10s bars so the 90MA is real. WRONG WHEN: a
+# genuine wick forms on <15 min of tape — refused fires log `hidden_anchor_immature` shadow rows so
+# that cost is MEASURED. Kill switch: HIDDEN_ANCHOR_REQ=0.
+HIDDEN_ANCHOR_REQ      = os.environ.get("HIDDEN_ANCHOR_REQ", "1") == "1"
+HIDDEN_ANCHOR_MIN_BARS = int(os.environ.get("HIDDEN_ANCHOR_MIN_BARS", "90"))
 HIDDEN_NAME_CAP   = int(os.environ.get("HIDDEN_NAME_CAP", "2"))
 _he_st: dict = {}                 # sym -> machine state (module-level: survives rescans, no #81 amnesia)
 _he_day = {"d": None, "PRE": 0, "RTH": 0}   # SESSION-KEYED 7/26 (mirror of the _curl_rth_slot fix):
@@ -4571,12 +4580,13 @@ def hidden_entry_step(sym, new_bars, vwap):
     day = datetime.now(EASTERN).strftime("%Y-%m-%d")
     st = _he_st.get(sym)
     if not st or st.get("day") != day:
-        st = {"day": day, "closes": [], "e90": None, "armed": False, "n": 0}
+        st = {"day": day, "closes": [], "e90": None, "armed": False, "n": 0, "nbars": 0}
         _he_st[sym] = st
     if not vwap or vwap <= 0:
         return None
     fired = None
     for k, o, h, l, c, v in new_bars:   # 7/28: k = bucket epoch (stale-fire guard)
+        st["nbars"] = st.get("nbars", 0) + 1
         st["e90"] = c if st["e90"] is None else c * (2.0 / 91.0) + st["e90"] * (89.0 / 91.0)
         st["closes"].append(c)
         if len(st["closes"]) > HIDDEN_VEL_BARS + 1:
@@ -4591,6 +4601,16 @@ def hidden_entry_step(sym, new_bars, vwap):
         rng = h - l
         if (fired is None and l <= anchor and c >= anchor and c >= vwap
                 and rng > 0 and (c - l) / rng >= 0.5 and c > o * 0.995):
+            # 7/29 ANCHOR-MATURITY GATE: without >=90 bars the "90MA" is fiction and this is a bare
+            # VWAP-touch buy — the shape that went 0-for-9. Shadow-log the refusal (measured cost).
+            if HIDDEN_ANCHOR_REQ and st.get("nbars", 0) < HIDDEN_ANCHOR_MIN_BARS:
+                try:
+                    _log_decision(sym, "hidden_anchor_immature", price=round(c, 4),
+                                  nbars=st.get("nbars", 0), anchor=round(anchor, 4))
+                except Exception:
+                    pass
+                st["n"] += 1                             # consumed, not traded
+                continue
             if not _bucket_fresh(k):                     # 7/28 stale-fire guard: old bar never fires
                 _log_stale_fire(sym, "hidden_entry", k, round(c, 4))
                 st["n"] += 1                             # consumed (mirror of a fire's seq advance)

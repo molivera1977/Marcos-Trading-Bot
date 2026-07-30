@@ -78,7 +78,7 @@ check("guard is UNCONDITIONAL (no RISK_BASED_SIZING qualifier)",
       "RISK_BASED_SIZING and stop_loss >= entry_price" not in src
       and "if stop_loss >= entry_price:" in src)
 check("guard still refuses BEFORE any share computation",
-      src.find("if stop_loss >= entry_price:") < src.find("_sh_risk = int(RISK_PER_TRADE"))
+      src.find("if stop_loss >= entry_price:") < src.find("_sh_risk = int(_risk_i"))
 
 # ══ P0-C: fix B ═════════════════════════════════════════════════════════════════════════════════
 print("== P0-C fix B: extend_hour_last_price with trade-time freshness ==")

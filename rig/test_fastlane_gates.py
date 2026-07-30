@@ -87,7 +87,7 @@ check("C1 binder computed for both formula arms + volume override + fail-open wi
       and 'volguard_failopen' in SRC and '"size_clamp":' in SRC)
 check("C2 ZERO behavior change: shares formula byte-identical (max(1, min(int(..))) preserved)",
       "shares = max(1, min(_sh_risk, _sh_notional))" in SRC
-      and "_sh_risk = int(RISK_PER_TRADE / (entry_price - stop_loss))" in SRC
+      and "_sh_risk = int(_risk_i / (entry_price - stop_loss))" in SRC
       and "_sh_notional = int(pos_size / entry_price)" in SRC)
 check("C3 stamp lands on the trade record beside trade_id",
       # 7/27: entry_ts_utc now sits between trade_id and size_clamp — adjacency intent preserved.

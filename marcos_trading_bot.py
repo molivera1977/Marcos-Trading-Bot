@@ -5488,8 +5488,36 @@ def _min_stop_verdict(entry_price, stop_loss, entry_type=None):
 # ── REALISTIC-SIZING DRY_RUN (7/11, user-directed): trade the INTENDED live amounts on paper so every number is
 # real-scale. Kev short-003 sizing: max loss ≤1% of account; shares = max_loss ÷ risk-per-share; size down = smaller
 # risk. Changes SIZE only — never WHICH trades fire (gates/exits untouched) → the learning stream continues unimpeded.
-RISK_BASED_SIZING       = True   # shares = RISK_PER_TRADE ÷ (entry−stop), capped by notional + volume guards
-RISK_PER_TRADE          = 30.0   # 1% of the intended $3,000 account — every trade risks exactly this
+RISK_BASED_SIZING       = True   # shares = risk ÷ (entry−stop), capped by notional + volume guards
+RISK_PER_TRADE          = 30.0   # 1% of the intended $3,000 account — the CEILING, not a target
+# ── 7/29 WIDTH-PROPORTIONAL RISK (Marcos's design; Fable-ruled; shipped same night) ──
+# Kev's 1% is a ceiling he trades UNDER on choppy tape; ours was a target hit on every trade.
+# Marcos: "Why risk $30 and give only 3 cents of wiggle room?" — the tight structural stop IS the
+# chart reporting chop, so the bet scales to the wiggle room: risk = $30 × min(1, width/6%).
+# Slippage calibration (7/29, 59 clean era stop fills: median slip ≈1.477% of entry, ~constant
+# across widths) makes it decisive: expected slip tax = slip%×risk/width — $7.40 at 6% width but
+# $44 at 1% (more than the whole plan); proportional risk caps the tax ~constant by construction.
+# Era counterfactual (exact method, 182 trades, defects excised): −$1,007.55 → −$678.84, ZERO
+# winners forfeited. Property: below REF width, notional collapses to a constant ~$500 — the
+# $1,000-cap collision class is eliminated, not patched. WRONG WHEN a tight-stop setup carried
+# real edge deserving full size — every scaled entry logs `risk_scaled` so that cost is MEASURED
+# (forfeited-winner ledger = the kill trigger). Kill switch: RISK_PROP=0 (flat $30 exactly).
+RISK_PROP     = os.environ.get("RISK_PROP", "1") == "1"
+RISK_PROP_REF = float(os.environ.get("RISK_PROP_REF", "0.06"))     # stop width earning full risk
+
+def _scaled_risk(entry_price, stop_loss):
+    """Dollar risk for this ticket: full RISK_PER_TRADE at/above RISK_PROP_REF stop width,
+    linearly less below. Never more than RISK_PER_TRADE. Invalid tickets are refused upstream
+    (P0-A); this returns the ceiling for them so it can never widen anything."""
+    if not RISK_PROP:
+        return RISK_PER_TRADE
+    try:
+        w = (entry_price - stop_loss) / entry_price
+        if w <= 0:
+            return RISK_PER_TRADE
+        return RISK_PER_TRADE * min(1.0, w / RISK_PROP_REF)
+    except Exception:
+        return RISK_PER_TRADE
 SIM_ACCOUNT_BALANCE     = 3000.0 # DRY_RUN virtual account (the intended go-live funding of the margin acct …9AGA)
 MAX_POS_VOL_PCT         = 0.05   # share cap = 5% of the avg recent 1-min volume (KUST lesson: the formula wanted
                                  # 750 shares of a 3k-shares/min tape = unfillable; size must fit the market)
@@ -8413,7 +8441,14 @@ def main():
                               # last): WHICH constraint decided the size, so Friday reads binders off the
                               # record instead of inferring them from planned_risk arithmetic.
             if RISK_BASED_SIZING and entry_price > stop_loss:
-                _sh_risk = int(RISK_PER_TRADE / (entry_price - stop_loss))
+                _risk_i = _scaled_risk(entry_price, stop_loss)     # 7/29 width-proportional
+                if _risk_i < RISK_PER_TRADE - 0.005:
+                    _w_pct = (entry_price - stop_loss) / entry_price * 100.0
+                    print(f"   ⚖️ {ticker} width-prop risk: stop {_w_pct:.2f}% < "
+                          f"{RISK_PROP_REF*100:.0f}% → risking ${_risk_i:.2f} (not ${RISK_PER_TRADE:.0f})")
+                    _log_decision(ticker, "risk_scaled", price=entry_price, stop=round(stop_loss, 4),
+                                  width_pct=round(_w_pct, 2), risk=round(_risk_i, 2))
+                _sh_risk = int(_risk_i / (entry_price - stop_loss))
                 _sh_notional = int(pos_size / entry_price)
                 shares = max(1, min(_sh_risk, _sh_notional))
                 _clamp = ("min_1_share" if min(_sh_risk, _sh_notional) < 1
@@ -8558,8 +8593,10 @@ def main():
                     print(f"🚨 {ticker}: fill ${entry_price:.2f} at/below the structural stop — "
                           f"stop floored to ${stop_loss:.2f} ({STOP_LOSS_PCT*100:.0f}% below fill)")
                 # Re-size on the real fill with the SAME risk formula (7/11) — not the old notional formula.
+                # 7/29: SAME includes width-proportional — without it a tight-stop trade would re-inflate here.
                 if RISK_BASED_SIZING and entry_price > stop_loss:
-                    shares = max(1, min(int(RISK_PER_TRADE / (entry_price - stop_loss)), int(pos_size / entry_price)))
+                    shares = max(1, min(int(_scaled_risk(entry_price, stop_loss) / (entry_price - stop_loss)),
+                                        int(pos_size / entry_price)))
                 else:
                     shares = max(1, int(pos_size / entry_price))
                 if _vol_cap:

@@ -92,7 +92,7 @@ check("_trade_worker calls _min_stop_verdict with the lane",
 check("reject logs 'minstop_reject' with band", '"minstop_reject"' in src and "band=_ms_band" in src)
 check("kept trades record stop_width_pct", '"stop_width_pct"' in src)
 i_gate = src.find("_min_stop_verdict(entry_price, stop_loss, entry_type)")
-i_size = src.find("_sh_risk = int(RISK_PER_TRADE")
+i_size = src.find("_sh_risk = int(_risk_i")
 check("gate runs BEFORE risk sizing", 0 < i_gate < i_size)
 
 print("== ballpark stamp wired (7/27: tape lanes owe the chart EVIDENCE, not obedience) ==")

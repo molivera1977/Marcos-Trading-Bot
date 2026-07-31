@@ -540,3 +540,54 @@ terminal.
 work, W3, or explicitly POST-LAUNCH; (c) interim — does anything change about the caps BEFORE I3
 returns, or do they hold as-is; (d) if adds are post-launch, should re-entry (Gap A) ship first as
 the cheaper half, since it needs no position-management changes at all.
+
+---
+
+## J · PINNED SPECIMEN — MGRX 7/31: SAME LANE, SAME NAME, SAME DAY, OPPOSITE OUTCOMES
+### (Marcos: "pin that pairing")
+
+The cleanest natural experiment we have on LEVEL PROXIMITY. Both trades are `vwap_reclaim`, both
+on MGRX, 105 minutes apart, both under the SAME shipped code (7/30 change-set + RECLAIM_FIREVOL).
+The only material difference is WHERE the entry sat relative to Kev's marked level.
+
+**KEV'S LEVEL (his 7/31 09:36 morning update, video SBO7Zueg-mI):** *"If price can break trend back
+to the upside, buyers step in back over **70 cents**. We look for pullbacks to confirm some higher
+lows over VWAP, **over 60 cents**. Range back to a dollar."* (Merged to the sheet `src=kev` at
+~09:38 — AFTER trade B fired, so it influenced neither.)
+
+| | **A — 07:46:52 PRE** | **B — 09:32:41 RTH** |
+|---|---|---|
+| entry | **$0.56** | **$0.79** |
+| vs Kev's 0.70 break | **−20%** (at his 0.60 confirm) | **+13% ABOVE** |
+| stop | 0.546 | 0.651 |
+| **stop width** | **3.09%** | **17.59%** |
+| shares / size | 887 / $499.74 | 215 / $169.85 |
+| partials | **2 banked** (443@0.5808, 222@0.5982) | **NONE** |
+| exit | trailing stop 0.60 | **stop loss 0.65** |
+| **P&L** | **+$23.31 (+4.67%)** | **−$30.16 (−17.76%, −1.01R)** |
+
+**WHAT THIS ISOLATES (and what it does NOT):**
+- NOT the detector — same lane, same grammar, same day.
+- NOT participation — the new fire-bar gate REFUSED an earlier MGRX fire at 06:44 (volmult 1.49)
+  and PASSED both A and B. Volume was real on the loser.
+- NOT stop width — B had a **17.59%** stop, nearly 6× A's, and still got taken. Yesterday's lesson
+  was tight stops get knifed; this is the inverse and it still failed. **Width was not the defect.**
+- NOT the exit ladder — A banked twice on a 4.67% move; B never reached tier 1.
+- **WHAT'S LEFT: entry price relative to the marked level.** A entered at Kev's confirm zone and
+  compounded; B chased 13% above his break, two minutes after the bell, and round-tripped.
+
+**CORROBORATION ALREADY ON FILE:** §G3's chart-gate replay (OOS n=559) found entries ABOVE the
+marked break are reclaim's worst cohort (ALLOW −$10.34/fire, keeping only 27 of 175 movers) while
+BELOW-level entries hold 108 of them at −$4.16. The 7/30 band cut found four consecutive negative
+cells above the level (n=71). The 7/27 ballpark study found inside-±10% wins 54% vs 29% outside.
+**MGRX is the same finding at n=2, but with every other variable held constant** — which is what
+makes it worth pinning rather than averaging away.
+
+**THE SHAKEOUT DETAIL (why B is not merely 'a loss'):** B's stop at 0.65 was taken on the 09:41
+flush that bottomed at **0.604 with a bottoming wick on VWAP** — i.e. the stop-out price WAS Kev's
+stated entry (*"higher lows over VWAP, over 60 cents"*). We supplied the liquidity for the setup he
+described. Then four `hidden_capped` blocks (§I1) locked the lane out while MGRX ran 0.75 → 0.90.
+
+**FOR FRIDAY:** this pairing is the motivating case for the ±10% ballpark dollar-grade (already
+registered) — recommend the grade report the ABOVE-level cohort SEPARATELY rather than folding it
+into a single band statistic, since every study to date says the sign flips at the level.

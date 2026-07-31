@@ -38,8 +38,15 @@ bot._fetch_kev_levels = lambda: {}
 rr, tgt = bot._marked_runway("TST", 4.0, 3.5)          # no sheet entry
 check("no sheet -> stamps None (never fabricates)", rr is None and tgt is None, f"{rr},{tgt}")
 bot._fetch_kev_levels = _saved_fetch
-check("LOG-ONLY: no gate/reject on runway anywhere", "runway_reject" not in src
-      and "RUNWAY_MIN" not in src)
+# RE-PINNED 7/31 (Marcos: "Not enough runway, we should block" — doctrine change, approved).
+# Runway was LOG-ONLY from 7/29; it is now a TRADEABILITY FLOOR (MIN_RUNWAY_RR, default 1.0R).
+# Evidence in the gate comment: TEST 7/30+7/31 <1R n=12 −$270.04 (17% win) vs >=1R n=22 +$213.02.
+# The pin now protects the FAIL-OPEN contract, which is the part that can silently starve the bot.
+check("runway is now a GATE with an env kill switch", "runway_reject" in src
+      and 'os.environ.get("MIN_RUNWAY_RR"' in src)
+check("FAIL-OPEN: only a NUMERIC runway can block (None / 'above_all_levels' pass)",
+      "isinstance(_rw_v, (int, float)) and _rw_v < MIN_RUNWAY_RR" in src)
+check("gate is skippable entirely (MIN_RUNWAY_RR=0)", "if MIN_RUNWAY_RR > 0:" in src)
 
 # Arithmetic mirror (the exact expressions from the block):
 def mirror(entry, stop, lvd):

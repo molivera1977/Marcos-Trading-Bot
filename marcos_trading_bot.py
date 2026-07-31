@@ -5641,6 +5641,10 @@ MAX_STOP_DIST_PCT       = 0.0    # C: Kev tight-setup gate — SKIP entries whos
 #    band so the 4–5% and 5–6% rejects are a live shadow cohort (graded Friday 7/31 vs real bars).
 #    MIN_STOP_PCT=0 env = kill switch.
 MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "6.0")) / 100.0
+# 7/31 MINIMUM MARKED RUNWAY (Marcos): refuse a trade whose road to the next MARKED level is under
+# this many R. Risking a full R to reach 0.1R of reward is a bad bet regardless of setup quality.
+# 0 = gate off. Fail-open: only a NUMERIC runway can block (see the gate site for the evidence).
+MIN_RUNWAY_RR           = float(os.environ.get("MIN_RUNWAY_RR", "1.0"))
 # 7/27 LANE AGREEMENT (Marcos, settled after the lane/design pass): the floor governs lanes whose
 # tight stop is an ACCIDENT of a noisy base — ignition (1-min base low; 43 era rejects −$276.73) and
 # vwap_reclaim (−$180.56) — plus ma_pullback/orb where it never binds. EXEMPT = lanes where tight
@@ -8446,7 +8450,7 @@ def main():
           f"HIDDEN_SCALEBAR_STOP={int(HIDDEN_SCALEBAR_STOP)} VRIDE_EXEMPT={sorted(VRIDE_EXEMPT)} "
           f"RESTING_BANK={int(RESTING_BANK)} IGNITION_CONVERT_MULT={IGNITION_CONVERT_MULT} "
           f"IGNITION_CHART_BYPASS={int(IGNITION_CHART_BYPASS)} ZONEFLIP_CONVERT={int(ZONEFLIP_CONVERT)} "
-          f"RECLAIM_FIREVOL={RECLAIM_FIREVOL}")
+          f"RECLAIM_FIREVOL={RECLAIM_FIREVOL} MIN_RUNWAY_RR={MIN_RUNWAY_RR}")
     post_balance_to_dashboard(balance)
 
     # ── Morning watchlist email ───────────────────────────
@@ -8797,6 +8801,33 @@ def main():
                 with trade_lock:
                     reentry["held"].discard(ticker)   # pre-reservation: nothing to refund (mirror bad_stop_skip)
                 return
+            # ── MINIMUM MARKED RUNWAY gate (7/31, Marcos: "why risk $30 for minimal reward???" +
+            # "Not enough runway, we should block"). A TRADEABILITY floor, same class as the min-stop
+            # width and liquidity floors — NOT a setup-quality scalar. Distance from entry to the
+            # NEXT MARKED LEVEL (Kev's sheet, human-read, known before the trade), expressed in R.
+            # NOT the refuted 7/2 room gate: that measured MECHANICAL supply and inverted (it rejected
+            # the movers). This reads the marked map.
+            # EVIDENCE (pre-registered split, in-session): TRAIN 7/29 <1R n=2 −$70.20 (0% win) vs
+            # >=1R n=12 −$136.13. TEST 7/30+7/31 <1R n=12 −$270.04 (17% win) vs >=1R n=22 +$213.02
+            # (64%). Blocking sub-1R on TEST forfeits $18.51 of winners to avoid $288.55 of losses.
+            # Specimens: AEMD 0.03R (entry 0.72 = the level itself) −$31.35 · MGRX 0.07R −$30.16 ·
+            # PN 0.28R/0.67R −$78.00 · TGHL 0.38R −$32.47.
+            # FAIL-OPEN BY DESIGN: only a NUMERIC runway blocks. None (no marked level) and
+            # 'above_all_levels' (infinite runway) both PASS — never repeat the 7/22 no_marked_level
+            # starvation. Kill switch: MIN_RUNWAY_RR=0.
+            # FAILURE CONDITION (pre-registered): wrong if the blocked cohort's forward counterfactual
+            # (`runway_reject` rows) out-earns the trades that were allowed.
+            if MIN_RUNWAY_RR > 0:
+                _rw_v, _rw_t = _marked_runway(ticker, entry_price, stop_loss)
+                if isinstance(_rw_v, (int, float)) and _rw_v < MIN_RUNWAY_RR:
+                    print(f"🛣️  {ticker} runway {_rw_v:.2f}R to ${_rw_t} < {MIN_RUNWAY_RR}R minimum "
+                          f"— risking a full R for {_rw_v:.2f}R of road, skipping [runway gate]")
+                    _log_decision(ticker, "runway_reject", price=entry_price, stop=round(stop_loss, 4),
+                                  runway_rr=_rw_v, target=_rw_t, need=MIN_RUNWAY_RR, machine=entry_type)
+                    _slot_refund(ticker, entry_type)
+                    with trade_lock:
+                        reentry["held"].discard(ticker)
+                    return
             # B: Kev short-003 sizing (LIVE 7/11) — shares = max-loss ÷ risk-per-share; notional-capped. Wide stop →
             # fewer shares, tight stop → more; every full stop-out costs the same RISK_PER_TRADE.
             _clamp = "none"   # CLAMP-CHAIN LOGGING (7/26, log-only — the 7/25 exec-expert rec, built at

@@ -1,0 +1,1065 @@
+[
+ {
+  "tk": "FCUV",
+  "tm": "01:00:33 PM",
+  "lab": "FIRST",
+  "ext": 17.84,
+  "entry": 12.955,
+  "stop": 12.4807,
+  "pnl": 38.2,
+  "shares": 63
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:01:25 PM",
+  "lab": "RE-ARM",
+  "ext": 17.51,
+  "entry": 13.25,
+  "stop": 12.4451,
+  "pnl": 39.88,
+  "shares": 37
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:02:05 PM",
+  "lab": "RE-ARM",
+  "ext": 19.3,
+  "entry": 13.345,
+  "stop": 12.635,
+  "pnl": 40.06,
+  "shares": 42
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:04:29 PM",
+  "lab": "RE-ARM",
+  "ext": 18.98,
+  "entry": 13.189,
+  "stop": 12.6099,
+  "pnl": 34.13,
+  "shares": 51
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:06:33 PM",
+  "lab": "RE-ARM",
+  "ext": 18.13,
+  "entry": 13.11,
+  "stop": 12.5227,
+  "pnl": 35.64,
+  "shares": 51
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:09:07 PM",
+  "lab": "RE-ARM",
+  "ext": 19.96,
+  "entry": 13.4699,
+  "stop": 12.73,
+  "pnl": 38.3,
+  "shares": 40
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:18:34 PM",
+  "lab": "NEW-SETUP",
+  "ext": 22.56,
+  "entry": 13.7499,
+  "stop": 13.0719,
+  "pnl": 46.99,
+  "shares": 44
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:19:21 PM",
+  "lab": "RE-ARM",
+  "ext": 22.92,
+  "entry": 13.955,
+  "stop": 13.11,
+  "pnl": 41.44,
+  "shares": 35
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:30:30 PM",
+  "lab": "RE-ARM",
+  "ext": 23.75,
+  "entry": 14.8192,
+  "stop": 13.2525,
+  "pnl": -33.93,
+  "shares": 19
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:33:27 PM",
+  "lab": "NEW-SETUP",
+  "ext": 25.8,
+  "entry": 14.2992,
+  "stop": 13.5185,
+  "pnl": 38.99,
+  "shares": 38
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:37:07 PM",
+  "lab": "RE-ARM",
+  "ext": 29.01,
+  "entry": 14.655,
+  "stop": 13.889,
+  "pnl": 35.55,
+  "shares": 39
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:48:06 PM",
+  "lab": "NEW-SETUP",
+  "ext": 37.3,
+  "entry": 15.7812,
+  "stop": 15.029,
+  "pnl": -38.43,
+  "shares": 39
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:48:49 PM",
+  "lab": "RE-ARM",
+  "pnl": null,
+  "why": "bad ticket"
+ },
+ {
+  "tk": "FCUV",
+  "tm": "01:59:48 PM",
+  "lab": "NEW-SETUP",
+  "ext": 29.98,
+  "entry": 14.9317,
+  "stop": 14.3069,
+  "pnl": 44.37,
+  "shares": 48
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:01:53 PM",
+  "lab": "RE-ARM",
+  "ext": 30.1,
+  "entry": 15.1,
+  "stop": 14.3308,
+  "pnl": 39.79,
+  "shares": 39
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:02:40 PM",
+  "lab": "RE-ARM",
+  "ext": 30.5,
+  "entry": 15.63,
+  "stop": 14.383,
+  "pnl": -2.77,
+  "shares": 24
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:04:26 PM",
+  "lab": "RE-ARM",
+  "ext": 30.79,
+  "entry": 15.3655,
+  "stop": 14.4257,
+  "pnl": -4.57,
+  "shares": 31
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:08:26 PM",
+  "lab": "RE-ARM",
+  "ext": 31.39,
+  "entry": 15.255,
+  "stop": 14.5065,
+  "pnl": 38.69,
+  "shares": 40
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:09:20 PM",
+  "lab": "RE-ARM",
+  "ext": 31.42,
+  "entry": 15.2573,
+  "stop": 14.516,
+  "pnl": 38.38,
+  "shares": 40
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:11:23 PM",
+  "lab": "RE-ARM",
+  "ext": 31.15,
+  "entry": 15.51,
+  "stop": 14.497,
+  "pnl": -4.45,
+  "shares": 29
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:14:42 PM",
+  "lab": "RE-ARM",
+  "ext": 34.72,
+  "entry": 15.6153,
+  "stop": 14.915,
+  "pnl": -4.84,
+  "shares": 42
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:47:08 PM",
+  "lab": "NEW-SETUP",
+  "ext": 18.24,
+  "entry": 13.92,
+  "stop": 13.2952,
+  "pnl": -39.86,
+  "shares": 48
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:49:24 PM",
+  "lab": "RE-ARM",
+  "ext": 17.23,
+  "entry": 13.68,
+  "stop": 13.1909,
+  "pnl": -42.16,
+  "shares": 61
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:52:10 PM",
+  "lab": "RE-ARM",
+  "ext": 17.4,
+  "entry": 13.8366,
+  "stop": 13.2145,
+  "pnl": -39.67,
+  "shares": 48
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:52:54 PM",
+  "lab": "RE-ARM",
+  "ext": 18.21,
+  "entry": 13.995,
+  "stop": 13.3094,
+  "pnl": -38.37,
+  "shares": 43
+ },
+ {
+  "tk": "FCUV",
+  "tm": "02:59:26 PM",
+  "lab": "RE-ARM",
+  "ext": 14.85,
+  "entry": 13.6,
+  "stop": 12.939,
+  "pnl": -5.28,
+  "shares": 45
+ },
+ {
+  "tk": "FCUV",
+  "tm": "03:01:27 PM",
+  "lab": "RE-ARM",
+  "ext": 15.01,
+  "entry": 13.8235,
+  "stop": 12.958,
+  "pnl": -3.47,
+  "shares": 34
+ },
+ {
+  "tk": "FCUV",
+  "tm": "03:02:53 PM",
+  "lab": "RE-ARM",
+  "ext": 16.34,
+  "entry": 13.6029,
+  "stop": 13.1096,
+  "pnl": -41.65,
+  "shares": 60
+ },
+ {
+  "tk": "FCUV",
+  "tm": "03:05:43 PM",
+  "lab": "RE-ARM",
+  "ext": 15.3,
+  "entry": 13.7,
+  "stop": 12.9971,
+  "pnl": -4.25,
+  "shares": 42
+ },
+ {
+  "tk": "FCUV",
+  "tm": "03:06:31 PM",
+  "lab": "RE-ARM",
+  "ext": 15.12,
+  "entry": 13.66,
+  "stop": 12.977,
+  "pnl": -5.12,
+  "shares": 43
+ },
+ {
+  "tk": "FCUV",
+  "tm": "03:08:15 PM",
+  "lab": "RE-ARM",
+  "ext": 15.36,
+  "entry": 13.6999,
+  "stop": 13.0055,
+  "pnl": -5.15,
+  "shares": 43
+ },
+ {
+  "tk": "FCUV",
+  "tm": "03:21:52 PM",
+  "lab": "NEW-SETUP",
+  "ext": 19.15,
+  "entry": 14.43,
+  "stop": 13.4687,
+  "pnl": -36.41,
+  "shares": 31
+ },
+ {
+  "tk": "FCUV",
+  "tm": "03:25:34 PM",
+  "lab": "RE-ARM",
+  "ext": 20.38,
+  "entry": 14.386,
+  "stop": 13.6123,
+  "pnl": -37.47,
+  "shares": 38
+ },
+ {
+  "tk": "FCUV",
+  "tm": "03:26:01 PM",
+  "lab": "RE-ARM",
+  "ext": 20.18,
+  "entry": 14.25,
+  "stop": 13.5897,
+  "pnl": -39.18,
+  "shares": 45
+ },
+ {
+  "tk": "FCUV",
+  "tm": "03:26:45 PM",
+  "lab": "RE-ARM",
+  "ext": 21.36,
+  "entry": 14.275,
+  "stop": 13.7275,
+  "pnl": -40.95,
+  "shares": 54
+ },
+ {
+  "tk": "FCUV",
+  "tm": "08:49:59 AM",
+  "lab": "NEW-SETUP",
+  "ext": 16.46,
+  "entry": 8.6,
+  "stop": 8.1415,
+  "pnl": -38.06,
+  "shares": 65
+ },
+ {
+  "tk": "FCUV",
+  "tm": "08:50:49 AM",
+  "lab": "RE-ARM",
+  "ext": 17.54,
+  "entry": 8.36,
+  "stop": 8.2175,
+  "pnl": -31.65,
+  "shares": 119
+ },
+ {
+  "tk": "FCUV",
+  "tm": "08:53:24 AM",
+  "lab": "RE-ARM",
+  "ext": 13.95,
+  "entry": 8.62,
+  "stop": 7.999,
+  "pnl": -35.92,
+  "shares": 48
+ },
+ {
+  "tk": "FCUV",
+  "tm": "08:54:11 AM",
+  "lab": "RE-ARM",
+  "ext": 14.9,
+  "entry": 8.66,
+  "stop": 8.0655,
+  "pnl": -36.12,
+  "shares": 50
+ },
+ {
+  "tk": "FCUV",
+  "tm": "08:55:04 AM",
+  "lab": "RE-ARM",
+  "ext": 14.86,
+  "entry": 8.5719,
+  "stop": 8.094,
+  "pnl": -3.92,
+  "shares": 62
+ },
+ {
+  "tk": "FCUV",
+  "tm": "08:55:51 AM",
+  "lab": "RE-ARM",
+  "ext": 15.06,
+  "entry": 8.38,
+  "stop": 8.1225,
+  "pnl": -7.18,
+  "shares": 116
+ },
+ {
+  "tk": "FCUV",
+  "tm": "08:57:40 AM",
+  "lab": "RE-ARM",
+  "ext": 14.79,
+  "entry": 8.35,
+  "stop": 8.1148,
+  "pnl": 27.52,
+  "shares": 119
+ },
+ {
+  "tk": "FCUV",
+  "tm": "08:58:29 AM",
+  "lab": "RE-ARM",
+  "ext": 13.82,
+  "entry": 8.39,
+  "stop": 8.0465,
+  "pnl": -5.8,
+  "shares": 87
+ },
+ {
+  "tk": "FCUV",
+  "tm": "08:59:23 AM",
+  "lab": "RE-ARM",
+  "ext": 13.37,
+  "entry": 8.43,
+  "stop": 8.0275,
+  "pnl": -4.61,
+  "shares": 74
+ },
+ {
+  "tk": "FCUV",
+  "tm": "09:00:12 AM",
+  "lab": "RE-ARM",
+  "ext": 15.23,
+  "entry": 8.74,
+  "stop": 8.1593,
+  "pnl": -36.2,
+  "shares": 51
+ },
+ {
+  "tk": "FCUV",
+  "tm": "09:03:24 AM",
+  "lab": "RE-ARM",
+  "ext": 12.85,
+  "entry": 8.47,
+  "stop": 8.056,
+  "pnl": -38.82,
+  "shares": 72
+ },
+ {
+  "tk": "FCUV",
+  "tm": "09:12:49 AM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 6.98
+ },
+ {
+  "tk": "FCUV",
+  "tm": "09:13:37 AM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 6.89
+ },
+ {
+  "tk": "FCUV",
+  "tm": "09:18:13 AM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 7.22
+ },
+ {
+  "tk": "FCUV",
+  "tm": "09:19:58 AM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 7.04
+ },
+ {
+  "tk": "FCUV",
+  "tm": "10:05:11 AM",
+  "lab": "NEW-SETUP",
+  "ext": 48.94,
+  "entry": 14.9824,
+  "stop": 13.8411,
+  "pnl": -2.88,
+  "shares": 26
+ },
+ {
+  "tk": "FCUV",
+  "tm": "10:07:42 AM",
+  "lab": "RE-ARM",
+  "ext": 51.21,
+  "entry": 14.7299,
+  "stop": 14.174,
+  "pnl": -40.99,
+  "shares": 53
+ },
+ {
+  "tk": "FCUV",
+  "tm": "10:27:34 AM",
+  "lab": "NEW-SETUP",
+  "pnl": null,
+  "why": "bad ticket"
+ },
+ {
+  "tk": "FCUV",
+  "tm": "10:32:14 AM",
+  "lab": "RE-ARM",
+  "ext": 20.16,
+  "entry": 12.52,
+  "stop": 11.5287,
+  "pnl": -35.29,
+  "shares": 30
+ },
+ {
+  "tk": "FCUV",
+  "tm": "10:33:04 AM",
+  "lab": "RE-ARM",
+  "ext": 19.81,
+  "entry": 12.3295,
+  "stop": 11.495,
+  "pnl": -35.58,
+  "shares": 35
+ },
+ {
+  "tk": "FCUV",
+  "tm": "10:34:06 AM",
+  "lab": "RE-ARM",
+  "ext": 19.66,
+  "entry": 12.145,
+  "stop": 11.5032,
+  "pnl": -37.77,
+  "shares": 46
+ },
+ {
+  "tk": "FCUV",
+  "tm": "10:34:56 AM",
+  "lab": "RE-ARM",
+  "ext": 18.5,
+  "entry": 12.0,
+  "stop": 11.4047,
+  "pnl": -38.63,
+  "shares": 50
+ },
+ {
+  "tk": "FCUV",
+  "tm": "10:37:49 AM",
+  "lab": "RE-ARM",
+  "ext": 18.61,
+  "entry": 12.0001,
+  "stop": 11.4285,
+  "pnl": 60.92,
+  "shares": 52
+ },
+ {
+  "tk": "FCUV",
+  "tm": "10:38:53 AM",
+  "lab": "RE-ARM",
+  "ext": 18.03,
+  "entry": 12.535,
+  "stop": 11.381,
+  "pnl": 40.75,
+  "shares": 25
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:01:35 AM",
+  "lab": "NEW-SETUP",
+  "ext": 28.79,
+  "entry": 13.1,
+  "stop": 12.69,
+  "pnl": -7.57,
+  "shares": 73
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:03:42 AM",
+  "lab": "RE-ARM",
+  "ext": 24.83,
+  "entry": 13.2505,
+  "stop": 12.5021,
+  "pnl": -37.76,
+  "shares": 40
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:04:34 AM",
+  "lab": "RE-ARM",
+  "ext": 24.64,
+  "entry": 13.05,
+  "stop": 12.483,
+  "pnl": 37.67,
+  "shares": 52
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:06:12 AM",
+  "lab": "RE-ARM",
+  "ext": 25.06,
+  "entry": 12.5701,
+  "stop": 12.54,
+  "pnl": 2.32,
+  "shares": 79
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:08:31 AM",
+  "lab": "RE-ARM",
+  "ext": 25.75,
+  "entry": 13.095,
+  "stop": 12.6255,
+  "pnl": 28.64,
+  "shares": 63
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:09:23 AM",
+  "lab": "RE-ARM",
+  "ext": 23.56,
+  "entry": 13.0857,
+  "stop": 12.4165,
+  "pnl": 35.98,
+  "shares": 44
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:11:17 AM",
+  "lab": "RE-ARM",
+  "ext": 23.53,
+  "entry": 13.515,
+  "stop": 12.4431,
+  "pnl": -3.87,
+  "shares": 27
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:12:02 AM",
+  "lab": "RE-ARM",
+  "ext": 25.31,
+  "entry": 13.2629,
+  "stop": 12.6222,
+  "pnl": 33.84,
+  "shares": 46
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:12:56 AM",
+  "lab": "RE-ARM",
+  "ext": 24.78,
+  "entry": 13.3284,
+  "stop": 12.5953,
+  "pnl": 32.84,
+  "shares": 40
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:15:21 AM",
+  "lab": "RE-ARM",
+  "ext": 25.94,
+  "entry": 13.215,
+  "stop": 12.7252,
+  "pnl": 36.83,
+  "shares": 61
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:16:06 AM",
+  "lab": "RE-ARM",
+  "ext": 24.84,
+  "entry": 13.1315,
+  "stop": 12.6207,
+  "pnl": 37.34,
+  "shares": 58
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:17:01 AM",
+  "lab": "RE-ARM",
+  "ext": 26.32,
+  "entry": 14.28,
+  "stop": 12.7965,
+  "pnl": -33.89,
+  "shares": 20
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:32:23 AM",
+  "lab": "RE-ARM",
+  "ext": 20.23,
+  "entry": 13.0637,
+  "stop": 12.3015,
+  "pnl": 30.25,
+  "shares": 39
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:43:08 AM",
+  "lab": "RE-ARM",
+  "ext": 22.66,
+  "entry": 13.13,
+  "stop": 12.7145,
+  "pnl": -43.88,
+  "shares": 72
+ },
+ {
+  "tk": "FCUV",
+  "tm": "11:43:54 AM",
+  "lab": "RE-ARM",
+  "ext": 22.04,
+  "entry": 13.2,
+  "stop": 12.6639,
+  "pnl": -40.21,
+  "shares": 55
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:02:59 PM",
+  "lab": "NEW-SETUP",
+  "ext": 15.34,
+  "entry": 12.571,
+  "stop": 12.008,
+  "pnl": -5.58,
+  "shares": 53
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:11:54 PM",
+  "lab": "RE-ARM",
+  "ext": 12.41,
+  "entry": 12.2301,
+  "stop": 11.723,
+  "pnl": 46.02,
+  "shares": 59
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:17:11 PM",
+  "lab": "RE-ARM",
+  "ext": 13.28,
+  "entry": 12.389,
+  "stop": 11.818,
+  "pnl": -39.21,
+  "shares": 52
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:18:03 PM",
+  "lab": "RE-ARM",
+  "ext": 12.44,
+  "entry": 12.3582,
+  "stop": 11.7353,
+  "pnl": 41.2,
+  "shares": 48
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:21:04 PM",
+  "lab": "RE-ARM",
+  "ext": 12.46,
+  "entry": 12.54,
+  "stop": 11.742,
+  "pnl": 36.33,
+  "shares": 37
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:22:40 PM",
+  "lab": "RE-ARM",
+  "ext": 12.34,
+  "entry": 12.275,
+  "stop": 11.7325,
+  "pnl": 44.13,
+  "shares": 55
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:23:32 PM",
+  "lab": "RE-ARM",
+  "ext": 13.87,
+  "entry": 12.52,
+  "stop": 11.8939,
+  "pnl": 38.31,
+  "shares": 47
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:29:42 PM",
+  "lab": "RE-ARM",
+  "ext": 12.7,
+  "entry": 12.1021,
+  "stop": 11.78,
+  "pnl": 51.25,
+  "shares": 82
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:32:37 PM",
+  "lab": "RE-ARM",
+  "ext": 12.13,
+  "entry": 12.37,
+  "stop": 11.7229,
+  "pnl": 40.28,
+  "shares": 46
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:33:29 PM",
+  "lab": "RE-ARM",
+  "ext": 12.48,
+  "entry": 12.2931,
+  "stop": 11.7594,
+  "pnl": 43.98,
+  "shares": 56
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:34:13 PM",
+  "lab": "RE-ARM",
+  "ext": 12.12,
+  "entry": 12.4301,
+  "stop": 11.723,
+  "pnl": 38.56,
+  "shares": 42
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:35:50 PM",
+  "lab": "RE-ARM",
+  "ext": 13.55,
+  "entry": 12.491,
+  "stop": 11.875,
+  "pnl": 39.28,
+  "shares": 48
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:37:34 PM",
+  "lab": "RE-ARM",
+  "ext": 12.8,
+  "entry": 12.9152,
+  "stop": 11.799,
+  "pnl": 30.6,
+  "shares": 26
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:53:41 PM",
+  "lab": "RE-ARM",
+  "ext": 17.47,
+  "entry": 13.005,
+  "stop": 12.4165,
+  "pnl": 36.57,
+  "shares": 50
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:54:25 PM",
+  "lab": "RE-ARM",
+  "ext": 17.38,
+  "entry": 13.0649,
+  "stop": 12.407,
+  "pnl": 35.37,
+  "shares": 45
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:55:18 PM",
+  "lab": "RE-ARM",
+  "ext": 17.65,
+  "entry": 13.1468,
+  "stop": 12.4411,
+  "pnl": 37.22,
+  "shares": 42
+ },
+ {
+  "tk": "FCUV",
+  "tm": "12:57:16 PM",
+  "lab": "RE-ARM",
+  "ext": 17.56,
+  "entry": 13.185,
+  "stop": 12.4378,
+  "pnl": 41.44,
+  "shares": 40
+ },
+ {
+  "tk": "FGL",
+  "tm": "09:57:06 AM",
+  "lab": "RE-ARM",
+  "ext": 1.78,
+  "entry": 1.0761,
+  "stop": 1.0725,
+  "pnl": 3.05,
+  "shares": 848
+ },
+ {
+  "tk": "FGL",
+  "tm": "09:57:49 AM",
+  "lab": "RE-ARM",
+  "ext": 0.98,
+  "entry": 1.04,
+  "stop": 1.0,
+  "pnl": -5.8,
+  "shares": 749
+ },
+ {
+  "tk": "FMFC",
+  "tm": "01:07:21 PM",
+  "lab": "FIRST",
+  "ext": 23.35,
+  "entry": 0.9332,
+  "stop": 0.8346,
+  "pnl": -34.16,
+  "shares": 304
+ },
+ {
+  "tk": "FMFC",
+  "tm": "01:11:14 PM",
+  "lab": "RE-ARM",
+  "ext": 12.57,
+  "entry": 0.8758,
+  "stop": 0.83,
+  "pnl": -4.29,
+  "shares": 655
+ },
+ {
+  "tk": "FMFC",
+  "tm": "01:12:49 PM",
+  "lab": "RE-ARM",
+  "ext": 13.84,
+  "entry": 0.8738,
+  "stop": 0.8463,
+  "pnl": -44.04,
+  "shares": 1090
+ },
+ {
+  "tk": "FMFC",
+  "tm": "01:46:23 PM",
+  "lab": "NEW-SETUP",
+  "ext": 0.95,
+  "entry": 0.8296,
+  "stop": 0.7124,
+  "pnl": -1.69,
+  "shares": 255
+ },
+ {
+  "tk": "FMFC",
+  "tm": "01:55:13 PM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 9.14
+ },
+ {
+  "tk": "FMFC",
+  "tm": "01:58:58 PM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 7.61
+ },
+ {
+  "tk": "FMFC",
+  "tm": "01:59:48 PM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 6.4
+ },
+ {
+  "tk": "FMFC",
+  "tm": "02:01:53 PM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 6.76
+ },
+ {
+  "tk": "FMFC",
+  "tm": "02:06:08 PM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 6.83
+ },
+ {
+  "tk": "FMFC",
+  "tm": "02:07:44 PM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 6.46
+ },
+ {
+  "tk": "FMFC",
+  "tm": "02:09:20 PM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 6.54
+ },
+ {
+  "tk": "FMFC",
+  "tm": "02:11:23 PM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 8.03
+ },
+ {
+  "tk": "FMFC",
+  "tm": "02:13:58 PM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 5.78
+ },
+ {
+  "tk": "MGRX",
+  "tm": "09:46:01 AM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 4.2
+ },
+ {
+  "tk": "MGRX",
+  "tm": "09:55:13 AM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 9.11
+ },
+ {
+  "tk": "MGRX",
+  "tm": "09:58:37 AM",
+  "lab": "RE-ARM",
+  "ext": 11.66,
+  "entry": 0.7825,
+  "stop": 0.7481,
+  "pnl": 30.0,
+  "shares": 872
+ },
+ {
+  "tk": "MGRX",
+  "tm": "10:00:35 AM",
+  "lab": "RE-ARM",
+  "ext": 11.15,
+  "entry": 0.8251,
+  "stop": 0.746,
+  "pnl": 60.05,
+  "shares": 379
+ },
+ {
+  "tk": "MGRX",
+  "tm": "10:49:14 AM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 7.81
+ },
+ {
+  "tk": "MGRX",
+  "tm": "10:52:41 AM",
+  "lab": "ext_refused",
+  "pnl": null,
+  "ext": 8.53
+ }
+]

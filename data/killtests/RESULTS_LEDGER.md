@@ -824,3 +824,45 @@ falsifiable, dateable claim and it predicts MORE of this regime, which bears on 
 NOTE: CYCU and GCTK were OUR two biggest winners today (+$127.26 / +$66.69), both via ma_pullback
 — he is calling both again for day 2. Four-for-four pullback framing is independent corroboration
 for the PULLBACK_FIRST reorder shipped tonight.
+
+### 7/31 16:30 — MIN_RUNWAY_RR=1.0 SHIPPED (Marcos: "Not enough runway, we should block")
+A TRADEABILITY FLOOR (class: min-stop-width / liquidity floor), NOT a setup-quality scalar. Blocks
+conversion when the road from entry to the NEXT MARKED LEVEL (Kev's sheet) is under 1.0R.
+NOT the refuted 7/2 room gate: that read MECHANICAL supply (find_next_supply) and INVERTED —
+it rejected the movers. This reads the human-marked map.
+THRESHOLD IS NOT TUNED (Fable): our ladder banks tier 1 at +1R, so a sub-1R runway puts the first
+bank BEYOND the known wall — the trade is structurally unable to reach tier 1. 1.0R is ladder
+geometry. If the first rung moves, the floor moves; for no other reason.
+EVIDENCE — pre-registered split: TRAIN 7/29 <1R n=2 −$70.20 (0% win) vs >=1R n=12 −$136.13.
+TEST 7/30+7/31 read once, then re-read as the day filled (status honestly degraded from clean-OOS
+to observed — Marcos: "just because i see it doesn't mean it's not true"; the mechanism is
+arithmetic, not correlation: a 0.07R target caps reward regardless of win rate).
+FULL 7/31: <1R n=9 −$241.56 (11% win) · >=1R n=11 +$259.64 (91%). Actual day +$12.20; gated +$259.64.
+SPECIMENS: AEMD 0.03R (entry 0.72 = the level) −$31.35 · MGRX 0.07R −$30.16 · ZEO 0.06R −$33.47 ·
+LESL 0.12R −$35.16 · TGHL 0.38R −$32.47 · SHPH 0.38R −$36.62 · FCUV 0.68R −$43.12.
+SAME-NAME PAIRS (variable held constant): MGRX 0.07R −$30.16 vs 1.59R +$29.99 · TGHL 0.38R −$32.47
+vs 2.21R +$39.34 vs 1.00R +$29.96 · FCUV 0.68R −$43.12 vs 1.00R +$46.44.
+FAIL-OPEN BY DESIGN (rig-pinned): only a NUMERIC runway blocks. None (unmapped) and
+'above_all_levels' both PASS — never repeat the 7/22 no_marked_level starvation. Kill: MIN_RUNWAY_RR=0.
+WRONG WHEN: the blocked cohort's forward counterfactual (`runway_reject` rows carry the full
+ticket) out-earns the allowed trades. FRIDAY: grade JOINTLY with the ±10% ballpark item (Fable:
+they are siblings measuring one defect — entering far above the break mechanically shortens the
+road; crediting both separately would double-count one phenomenon).
+RIG: 36/36 by exit code. TWO STALE PINS RE-WRITTEN to the new doctrine, both flagged in-comment:
+test_marked_runway.py asserted "LOG-ONLY: no gate/reject on runway anywhere" (true since 7/29,
+false as of this ruling); and my own ordering pin gave a FALSE RED by anchoring on the first of two
+"Kev short-003 sizing" occurrences — code was correct, the test was wrong.
+
+### 7/31 — CAPPED HIDDEN FIRES PRICED (Marcos: "price those 60 fires and we will know")
+93 cap-refused hidden fires priced through the honest harness. HEADLINE +$449.60 — AND IT IS AN
+ARTIFACT, reported as such. 85 of 93 are ONE ticker (FCUV, which ran 8.42->17.59, +109%); strip it
+and the entire refused cohort is +$3.12 across 8 fires. FCUV's refused fires BY HOUR: 08 −$135.74 /
+09 −$75.02 / 10 −$89.47 / 11 +$108.53 / 12 +$555.75 / 13 +$361.19 / 14 −$65.11 / 15 −$213.65 —
+they made money ONLY during the trending hours. That is the stock going up, not the setups being
+good. CAPITAL BOUND ignored by the naive number: 85 concurrent positions is impossible on a $3,000
+frame with a $1,000 notional cap (~2-3 concurrent). MARGINAL VERSION (raise the cap by N per name):
++1 = +$37.09 · +2 = +$126.93 · +3 = +$122.95 — not $450.
+BOTH PRIOR EXPECTATIONS WRONG: Opus expected the caps to look costly; Fable expected NEW-SETUP to
+carry it (it was NEGATIVE, −$40.13 on n=11, while RE-ARM was +$485.69 — the same trend artifact).
+VERDICT: 7/31 gives NO evidence the caps cost money. §I3 still runs Friday on the ERA (not one day,
+not one name) with the capital bound modelled.

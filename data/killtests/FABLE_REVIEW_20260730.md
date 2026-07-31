@@ -588,6 +588,9 @@ flush that bottomed at **0.604 with a bottoming wick on VWAP** — i.e. the stop
 stated entry (*"higher lows over VWAP, over 60 cents"*). We supplied the liquidity for the setup he
 described. Then four `hidden_capped` blocks (§I1) locked the lane out while MGRX ran 0.75 → 0.90.
 
-**FOR FRIDAY:** this pairing is the motivating case for the ±10% ballpark dollar-grade (already
-registered) — recommend the grade report the ABOVE-level cohort SEPARATELY rather than folding it
-into a single band statistic, since every study to date says the sign flips at the level.
+**FOR FRIDAY — REGISTERED (Marcos 7/31: "i agree yes, do that"):** the ±10% ballpark dollar-grade
+MUST report the **ABOVE-level cohort SEPARATELY** from the below/inside cohorts. NOT one band
+statistic. Every study to date says the sign FLIPS at the level (§G3 OOS n=559; the 7/30 band cut's
+four consecutive negative cells above; the 7/27 ballpark 54%-vs-29%), so averaging across the level
+cancels the very effect being measured. Reporting shape is now frozen: {below −X%..0%} · {0..+10%}
+· {above +10%}, dollars per fire and tail-kept in each.

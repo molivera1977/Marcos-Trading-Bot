@@ -146,3 +146,36 @@ check("ORB cannot steal the deferred name",
       "not found_entry and not _ma_first_fire" in src)
 check("NO duplicated conversion: exactly one triggered_ma_pullback log site",
       src.count('"triggered_ma_pullback"') == 1)
+
+print("== 9 · MIN_RUNWAY_RR (7/31, Marcos: 'Not enough runway, we should block') ==")
+src = pathlib.Path(bot.__file__).read_text()
+check("default 1.0R, env-revertible (0 = off)", bot.MIN_RUNWAY_RR == 1.0)
+# NOTE: "Kev short-003 sizing" appears TWICE in the file; anchor on the occurrence that FOLLOWS
+# the runway gate, not the first one (that mis-anchoring produced a false RED on the first run).
+_i_ms = src.index('"minstop_reject"'); _i_rw = src.index('"runway_reject"')
+check("gate sits with the other tradeability floors (after minstop, before sizing)",
+      _i_ms < _i_rw < src.index("Kev short-003 sizing", _i_rw))
+check("refuses only a NUMERIC runway below the floor",
+      'isinstance(_rw_v, (int, float)) and _rw_v < MIN_RUNWAY_RR' in src)
+check("refund + reentry release on reject (mirrors minstop)",
+      src[src.index('"runway_reject"'):src.index('"runway_reject"')+700].count("_slot_refund") == 1)
+check("logs the full ticket for the counterfactual", 'runway_rr=_rw_v' in src and 'target=_rw_t' in src)
+check("boot banner reports it", "MIN_RUNWAY_RR={MIN_RUNWAY_RR}" in src)
+# FAIL-OPEN pins: the 7/22 no_marked_level starvation must never repeat
+_saved_fetch = bot._fetch_kev_levels
+bot._fetch_kev_levels = lambda: {}
+check("no marked level -> runway None -> gate PASSES (fail-open)",
+      bot._marked_runway("RIGX", 1.00, 0.90)[0] is None)
+bot._fetch_kev_levels = lambda: {"RIGX": {"break": 0.50, "targets": [0.60]}}
+_v, _t = bot._marked_runway("RIGX", 1.00, 0.90)
+check("price beyond every target -> 'above_all_levels' -> PASSES (infinite runway)",
+      _v == "above_all_levels" and not isinstance(_v, (int, float)), str((_v, _t)))
+bot._fetch_kev_levels = lambda: {"RIGX": {"break": 0.50, "targets": [1.02]}}
+_v2, _t2 = bot._marked_runway("RIGX", 1.00, 0.90)
+check("tight target -> small numeric R -> WOULD block", isinstance(_v2, (int, float)) and _v2 < 1.0,
+      str((_v2, _t2)))
+bot._fetch_kev_levels = lambda: {"RIGX": {"break": 0.50, "targets": [1.50]}}
+_v3, _t3 = bot._marked_runway("RIGX", 1.00, 0.90)
+check("roomy target -> runway >= 1R -> passes", isinstance(_v3, (int, float)) and _v3 >= 1.0,
+      str((_v3, _t3)))
+bot._fetch_kev_levels = _saved_fetch

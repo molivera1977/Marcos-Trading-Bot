@@ -741,3 +741,86 @@ conversion logic (rig-pinned: exactly one triggered_ma_pullback site). Suppressi
 DURATION: ONE DAY (7/31), graded Friday alongside the front-side study. WRONG WHEN: suppressed
 flat-top fires' counterfactual out-earns the pullback conversions that displaced them.
 Rig sweep green by exit code (shipset now 8 sections, verdict-at-end). Flat book verified in-turn.
+
+## 2026-07-30 ~23:00 — KEV SWEEP LOGGED (long video d1_aPoPmZUg "I Kept LOSING Trades Until I
+## Learned THIS" + 6 shorts incl. the 7/31 watchlist). Marcos: "ledger the lessons".
+Sweep ran 21:05-21:07; corpus now 374 long / 2,646 shorts. THE SAME-STOCK HEAD-TO-HEAD BELOW IS
+THE CLEANEST KEV-VS-US COMPARISON WE HAVE EVER HAD — both tapes archived.
+
+### K1 · NUWE 7/30 — HE TRADED THE STOCK WE TRADED, ALL DAY, AND WON [VERIFIED]
+Identification verified against our own ALP10S tape (transcript says "NU"/"NW"/"NUE" = NUWE):
+HOD 6.40 matches his "almost 639"; EVERY level he named traded (4.97/5.44/5.60/5.82/5.88/6.13/
+6.33/6.39). Premkt high 5.93, RTH open 5.14, LOD 2.73, CLOSE 2.79 (round-tripped ~56% off HOD).
+  KEV (green, one stock all day):  4.97->5.30 · 5.82->6.00 · 5.44->5.57+ · 5.88->6.22 · 5.67->5.96
+  US: 07:02 reclaim 4.12->3.97 −$18.15 | 08:53 hidden 5.09->5.10 +$1.20 | 09:30 hidden 5.14->4.89 −$5.88
+He entered HIGHER than our first entry and made money; we were long three times into the same
+advance and netted −$22.83. HIS SUMMARY: "It was easy if you knew what to look for, but you had
+to play the pullbacks. If you didn't play the pullbacks, you probably got smoked."
+
+### K2 · THE MODE SWITCH (the video's actual thesis) — WE HAVE NO EQUIVALENT
+He classifies the tape BEFORE choosing a trigger: repeated big rejections / "topping tails ...
+middle finger off the highs" => "I know it's going to be heavy to the upside. So I've got to look
+for pullbacks. That's my only option." Backside => "This is a no-go... I leave it alone."
+OUR GAP: every lane fires the same way regardless of the day's rejection signature. Related:
+[[project_frontback_classifier]] (Friday's three arms) and the 7/30 PULLBACK_FIRST experiment —
+this is independent corroboration for both, from his own mouth, the same day.
+
+### K3 · TWO-CANDLE WICK CONFIRMATION [matches Marcos's 7/30 "multiple 10 second confirmations"]
+VERBATIM: "this first candle, we have this big bottoming wick... Same thing happens on the next
+candle. It pulls back beneath that previous candle and guess what? It gets wicked up again,
+showing that this thing is not ready to go back down... That's your confirmation right there."
+TWO wicks, the second UNDERCUTTING the first and reclaiming. Our curl lanes fire on ONE close
+above one wick high. The 7/30 confirm-bars sweep (confirm_bars_20260730.py) tested N consecutive
+closes and found win-rate rises monotonically (reclaim 22.9%->31.9%) but dollars never cross zero
+— HIS version is different in KIND: undercut-then-reclaim, not N-in-a-row. UNTESTED. Queue it as
+its own study; do NOT stack it into Friday's frozen arms.
+
+### K4 · CONFLUENCE, NOT A LEVEL. Every entry stacked pre-market range high + 50 EMA + VWAP
+("right off the 50 EMA", "over these previous highs from pre-market... it found support").
+Risk off the PREVIOUS CANDLE'S LOW (~10c on a $5 stock = ~2%). Our ma_pullback already reads
+9/20/50/90 + requires the MA held; the CONFLUENCE COUNT (how many levels coincide) is not
+measured anywhere. Cheap forward stamp — candidate for the next instrumentation pass.
+
+### K5 · KNIFE-AWARENESS DRIVES HIS EXITS: "I'm so cautious of a knife I want to make it risk-free
+when I can, then just let it go." Trims ~1:1, then stops touching it. Also: "if it's going to
+reject, just listen to it and get out" — he was FLAT before NUWE's collapse to 2.79.
+Consistent with tonight's A2-F scale-bar ratchet; the missing half is his knife-awareness INPUT
+(the same rejection read as K2).
+
+### K6 · QUALITY-PROPORTIONAL SIZING: "Which trade is the higher quality setup... you expose to
+each of these trades proportional to their expected value. Greatest expected value, most size."
+CORRECTION ON THE RECORD (Marcos caught my overstatement): we DO vary size — `_scaled_risk`
+(width-proportional, Marcos's 7/29 design), the $1,000 notional cap, the 5%-volume guard. The
+gap is the AXIS: we scale on ticket GEOMETRY, he scales on setup QUALITY. Blocked by design —
+every quality scalar tested this month is refuted (room, day-gain, momentum, extension). If
+Friday validates a quality axis, EV-sizing MULTIPLIES the existing width scaling; until then,
+sizing on an unvalidated ranking is a louder way to be wrong.
+
+### K7 · FILLS ARE REAL, EVEN FOR HIM [bounds tonight's RESTING_BANK]
+"My order that I placed by limit was 570. I don't know how it happened. But anyways... I just
+didn't get filled. So it just goes without me" — missed 5.60->6.20, "it would have transformed
+my day." Also a bad exit fill at 5.66, and "some nasty slippage." READING: a resting limit at a
+touched price does NOT guarantee a fill (queue position). Tonight's RESTING_BANK books only on a
+STRICT print THROUGH the tier, at tier price — which is why. NOT an argument against the feature
+(shipped, live); it bounds the DRY_RUN simulation so paper never overstates real fills.
+
+### K8 · MACRO CATALYST (new, structural — 7/31 watchlist short gDaaoZLssqY)
+"Up until last week the compliance requirement was to hold over a dollar a share... now they have
+to hold over a $5 million market cap. So reverse splits are no longer a solution. All these are
+desperate for a stock squeezing catalyst." THIS IS HIS EXPLANATION FOR THE WEEK'S SQUEEZE REGIME
+(4 straight days of 90-500% movers). Sub-$5M-cap names now have a survival incentive to squeeze.
+UNVERIFIED as a rule change (his claim, not checked against an SEC/exchange source) — but it is a
+falsifiable, dateable claim and it predicts MORE of this regime, which bears on the 8/20 runway
+(the era's tape may not resemble the tape we are calibrating on).
+
+### K9 · 7/31 WATCHLIST (4 picks, EVERY ONE A PULLBACK PLAN — zero breakout-chase entries)
+  GCTK (+200% today): higher lows back over VWAP over 0.5870 -> retest 1.00; or break 1.02 then
+        "pullbacks to confirm over VWAP at 90c" -> 1.30/1.70
+  KUSI (+50% AH, mkt cap $739k): strength + higher lows over VWAP, "playing the front side",
+        confirm over 1.45 -> 2.50/3.00/4.50. "No confirmation, no trade."
+  MGRX (+150% AH): confirmation over VWAP over 0.60 -> 1.50/2.00
+  CYCU (+500% today): "bottoming wick underneath VWAP over 1.67 to confirm that bottom" ->
+        2.60/3.00; or break 3.00, pullbacks over 2.60 -> 5.00/7.00
+NOTE: CYCU and GCTK were OUR two biggest winners today (+$127.26 / +$66.69), both via ma_pullback
+— he is calling both again for day 2. Four-for-four pullback framing is independent corroboration
+for the PULLBACK_FIRST reorder shipped tonight.

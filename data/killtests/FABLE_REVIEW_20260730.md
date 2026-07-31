@@ -469,77 +469,94 @@ measurement must be re-run, not assumed.
 
 ---
 
-## I · RE-ENTRY & ADDS — THE MISSING MECHANIC (7/31, Marcos: "Kev frequently goes back to the
-## well. If the setup is good, who cares what ticker it is. The quality of setup should always
-## decide." + "kev adds frequently even in the same leg")
+## I · CAPS ARE THE WRONG INSTRUMENT — CONCURRENCY, NOT TICKER IDENTITY
+### (REWRITTEN 7/31 on Marcos's ruling. The 7/30 draft framed this as "should caps be looser?" —
+### that question was wrongly posed and is withdrawn.)
 
-**THE DOCTRINE (Marcos's ruling, corpus-backed):** entry eligibility should be decided by SETUP
-QUALITY, not by ticker identity or a per-name counter. Kev's own words: *"Once front side, KEEP
-ATTACKING it — pullback after pullback, re-enter relentlessly"* (system spec §5). And the money
-line: *"The BIG money often comes from the RE-ENTRY, not the first leg"* (`project_kev_system_spec.md:116`).
+**MARCOS'S DOCTRINE (7/31, verbatim):** *"The only reason this is even a topic is because the bot
+went multiple times for one ticker and each instance was a bad setup. We are here to make money. I
+don't care if they all come from the same ticker or not. Each instance needs to be judged on its
+own merits. The ticker name should not matter one bit."* And: *"If ANY setup is good and it would
+pass all gates, then there is a great chance it will cost us money [to block it]."*
 
-### I1 · TWO SEPARATE GAPS — do not conflate them
-**GAP A — RE-ENTRY IS CAPPED.** Verified counts, 7/30 NUWE (the same name we traded 3× for −$22.83):
-Kev took **at least SIX entries on one ticker in one day** — 4.97 (premkt wick), 5.60 (attempted,
-limit skipped), 5.82, 5.44, 5.88, 5.67, plus runners at 6.13. OUR LIMITS on that same name:
-`HIDDEN_NAME_CAP=2`/day, `HIDDEN_DAILY_CAP=3`/day, and the curl lanes allow **ONE slot per name
-per SESSION** (`_curl_rth_slot`). Six versus one-or-two is not a tuning delta — it is a different
-method. LIVE COST TODAY (MGRX 7/31): after our 09:32 entry at 0.79 was stopped at 0.65, hidden
-fired FIVE more times while the name ran 0.75 -> 0.90 — 09:46 `hidden_capped` 0.7472 · 09:53
-`hidden_ext_reject` 0.7609 · 09:55 `hidden_capped` 0.7970 · 09:58 `hidden_capped` 0.7825 · 10:00
-`hidden_capped` 0.8251. FOUR of the five were the DAILY CAP — not a quality judgment. The lane was
-out of tickets by 09:46 AM.
+**THE ARGUMENT:** a per-name counter disqualifies a setup for a property that has nothing to do
+with its expected value — its symbol. Caps were introduced (7/24, hidden) as blast-radius
+protection on lanes that had NO quality filters. They were a PROXY for two real constraints:
+(a) don't repeat bad setups, (b) don't over-commit capital. Both proxies are now obsolete or
+mis-specified: (a) is the gates' job, and the gates now exist; (b) is a PORTFOLIO constraint,
+and a per-name counter cannot express it.
 
-**GAP B — THERE IS NO ADD PATH AT ALL. [VERIFIED: zero matches repo-wide for scale_in / pyramid /
-add_to / re_add]** Our position sizing is ONE-SHOT: we enter once and thereafter can only SELL.
-Kev's spec, in our own corpus, never built: *"Adds/pyramiding mechanic: trim some into strength,
-then RE-ADD on the pullback to the demand level / 20 EMA (bottoming tail)"* (`spec:118`). He did it
-live on NUWE 7/30: trimmed into 6.00, then *"I grabbed runners at 613 for the squeeze over 630."*
-CONSEQUENCE: a shakeout is TERMINAL for us (stop + cap + no add all point the same way) while for
-him it is a re-entry opportunity. It also reframes §K6 sizing: his *"greatest expected value, most
-size"* is not only an entry-time decision — SIZE ACCUMULATES THROUGH THE MOVE as the setup keeps
-proving itself. Our `_scaled_risk` picks a number once and never revisits it.
+### I1 · VERIFIED 7/31 — THE GATES DISCRIMINATE, THE CAPS DO NOT
+Every cap-blocked hidden fire priced through the honest harness, split by whether it would pass
+TODAY's shipped gates (ext band 3-10% + MIN_RUNWAY_RR 1.0):
+| cohort | n | total | mean/fire | win |
+|---|---|---|---|---|
+| **blocked fires that PASS all gates** | **81** | **+$414.13** | **+$5.11** | 49.4% |
+| blocked fires that FAIL a gate | 28 | −$31.32 | −$1.12 | 32.1% |
+The gates separate cleanly. The cap then blocks 81 GATE-PASSING setups on the grounds that the
+ticker already appeared twice. **RETRACTION ON THE RECORD:** I earlier wrote that 7/31 gave "no
+evidence the caps cost money." That was wrong — MGRX's two blocked fires **both passed every gate
+and were worth +$90.05**, which is precisely the morning lockout complaint I had withdrawn.
 
-### I2 · THE TENSION THAT MUST BE RESOLVED BEFORE ANY CAP CHANGE
-Measured evidence points BOTH ways and both are real:
-  - FOR caps: ignition 7/27-7/30 — **606 raw fires = −$1,759** vs **first-fire-only = +$129** (§E2).
-    Repeat conversions destroyed value in aggregate.
-  - AGAINST caps: Kev's 6-entry NUWE day; today's MGRX lockout; the corpus doctrine above.
-**THE LIKELY RECONCILIATION (hypothesis, untested):** Kev's repeats are each a NEW SETUP — fresh
-pullback, fresh wick, fresh defended level, risk re-defined off THAT candle's low. Our repeats may
-be the SAME setup re-firing as the machine re-arms on unchanged structure. Nobody has ever labelled
-them. "Attacking the front side" and "a detector stuck in a loop" produce identical row counts.
+### I2 · THE CONFOUND, HELD HONESTLY
+73 of those 81 gate-passing fires are FCUV on a **+109% day** (8.42 -> 17.59). Gate-passing repeat
+fires on a trending name win BECAUSE IT TRENDS. FCUV's blocked fires by hour: 08 −$135.74 / 09
+−$75.02 / 10 −$89.47 / 11 +$108.53 / 12 +$555.75 / 13 +$361.19 / 14 −$65.11 / 15 −$213.65 — money
+only in the trending window, losses in every other. So **+$414 is NOT a clean estimate of what caps
+cost.** It is evidence that the CRITERION is wrong, not a measurement of the DAMAGE.
+CAPITAL BOUND, also ignored by the naive number: 85 concurrent positions is impossible on a $3,000
+frame with a $1,000 notional cap (~2-3 concurrent). Marginal version — raise the cap by N per name:
++1 = +$37.09 · +2 = +$126.93 · +3 = +$122.95.
 
-### I3 · THE TEST THAT SHOULD PRECEDE ANY BUILD (cheap, archived data, no behavior change)
-Label EVERY repeat fire in the era as **NEW-SETUP** (materially different price / fresh wick /
-different level or MA held / structure changed since the prior fire) vs **RE-ARM** (same structure,
-same level, minutes apart). Price both cohorts through the honest harness WITH today's shipped
-quality gates applied (ext gate, 4.5x convert, fire-bar volume) — the caps were set when the lanes
-had NO selection filters, so they may now be paying twice for the same protection.
-  - If NEW-SETUP repeats pay and RE-ARMS bleed ⇒ **the fix is not a bigger number. It is a
-    STRUCTURE-CHANGE REQUIREMENT**: a repeat converts only when the setup is genuinely new. That is
-    Kev's rule expressed mechanically, and it satisfies Marcos's doctrine exactly (quality decides).
-  - If both bleed ⇒ caps stay, and the MGRX case is filed as variance.
-Standard gates apply: TRAIN 07-13..24 / TEST 07-27..31 read once, dollar test, tail test,
-coverage + non-degeneracy asserts (§G8 law).
+### I3 · THE REGISTERED TEST (Friday) — DOES "REPEAT" SURVIVE GATING?
+The one measurement that argues FOR caps is ignition's **606 raw fires = −$1,759 vs
+first-fire-only = +$129** (§E2). **That study ran the detector at 2.0x with NO gates applied.**
+If repeats looked bad only because UNGATED repeats are bad, the caps were compensating for absent
+quality filters — and the compensation is now obsolete. That is Marcos's argument, and it is
+checkable.
+**ATTEMPTED 7/31 AND FAILED — reported, not buried:** the archive-row version returned a GATED
+cohort of **n=0** (triggered_ignition rows do not reliably carry the detector's stop, and volx +
+runway could not both be reconstructed). Only 24 fires priced at all. **The contamination question
+is UNTESTED, not answered.**
+**PROPER METHOD (registered):** re-run the REAL detector over the archived tape the way
+`ignition_sweep_20260730.py` does, so every fire carries a true stop and volume multiple. Then:
+  1. Split FIRST-fire vs REPEAT-fire per name, era-wide.
+  2. Apply today's shipped gates (4.5x convert, ext band, MIN_RUNWAY_RR, fire-bar volmult).
+  3. Model the CAPITAL BOUND — max ~2-3 concurrent positions, taken in time order as capital frees.
+     A counterfactual that assumes unlimited simultaneous positions is fiction (the §I2 error).
+  4. Report FCUV-class trend days SEPARATELY from chop days; a single +109% runner must not carry
+     the result (the §I2 confound, made a reporting rule).
+  Standard gates: TRAIN/TEST split read once, dollar test, tail test, coverage + non-degeneracy
+  asserts (§G8 law).
+**OUTCOMES:** gated repeats hold up ⇒ per-name caps are REPLACED by a portfolio concurrency limit
+(below). Gated repeats still bleed ⇒ we have found something real about repeats that is NOT about
+symbols, and it needs explaining before any cap is loosened.
 
-### I4 · WHAT AN ADD MECHANIC WOULD ACTUALLY REQUIRE (scope honesty for the ruling)
-This is the LARGEST architectural change on any docket. The monitor currently assumes a position
-that only SHRINKS. Adds break that assumption in five places: (1) average entry price and therefore
-R itself; (2) the blended stop — Kev risks each tranche off ITS OWN candle low, so either we track
-per-tranche risk or accept a blended stop that is wrong for both; (3) the resting-order rungs
-shipped 7/30, which were sized against the ORIGINAL share count and would need re-scaffolding on
-every add; (4) the volume guard and notional cap, which were computed once at entry; (5) recovery /
-reconciliation after a restart, which currently rebuilds a single-entry position.
-AGAINST doing it now: 15 trading days to 8/20; nine switches shipped 7/30 and ungraded; it touches
-the live trade path at its most delicate point. FOR doing it: it is the mechanic behind most of
-Kev's money, it is fully specified in our corpus, and every day without it means shakeouts are
-terminal.
+### I4 · THE REPLACEMENT MECHANISM (design, pending I3)
+- **DELETE** `HIDDEN_NAME_CAP` / `HIDDEN_DAILY_CAP` / the one-slot-per-name-per-session curl rule
+  as QUALITY instruments.
+- **ADD** a portfolio **CONCURRENCY LIMIT**: the number of positions the account can fund at once
+  (~2-3 at $3,000 / $1,000 notional). When full, new qualifying setups WAIT for a slot rather than
+  being disqualified. This expresses the real constraint the caps were badly proxying.
+- **KEEP** the blast-radius argument only where a lane is genuinely unproven — and state it as a
+  *lane* kill switch, not a per-name counter.
+- Ticker identity decides nothing at any layer.
 
-**RULINGS REQUESTED:** (a) run the I3 new-setup-vs-re-arm study Friday; (b) is the add mechanic W2
-work, W3, or explicitly POST-LAUNCH; (c) interim — does anything change about the caps BEFORE I3
-returns, or do they hold as-is; (d) if adds are post-launch, should re-entry (Gap A) ship first as
-the cheaper half, since it needs no position-management changes at all.
+### I5 · THE ADD / PYRAMID GAP (unchanged from the 7/30 draft, still open)
+**VERIFIED: zero add/scale-in path exists repo-wide.** Our position sizing is ONE-SHOT — we enter
+once and thereafter only SELL. Kev's spec, in our corpus, never built: *"Adds/pyramiding mechanic:
+trim some into strength, then RE-ADD on the pullback to the demand level / 20 EMA"* (`spec:118`);
+live on NUWE 7/30: trimmed into 6.00, *"grabbed runners at 613 for the squeeze over 630."*
+CONSEQUENCE: a shakeout is TERMINAL for us and a re-entry opportunity for him.
+SCOPE HONESTY: adds break the monitor's shrink-only assumption in five places — average entry (and
+therefore R), the blended vs per-tranche stop, the resting-order rungs (sized against the ORIGINAL
+share count), the volume/notional caps computed once at entry, and post-restart reconciliation.
+**RULING REQUESTED:** W2, W3, or explicitly POST-LAUNCH. If post-launch, the concurrency rewrite
+(I4) is the cheaper half and can ship first — it needs no position-management changes at all.
+
+**RULINGS REQUESTED FOR §I:** (a) approve the doctrine as stated (ticker identity decides nothing);
+(b) run I3 Friday by detector re-run with the capital bound modelled; (c) on an I3 pass, authorise
+the I4 concurrency rewrite; (d) rule on I5's timing.
 
 ---
 

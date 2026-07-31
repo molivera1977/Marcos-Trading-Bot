@@ -414,3 +414,55 @@ Nothing from this review is implemented or deployed. `git diff` = `screener_app.
 card, #17). `marcos_trading_bot.py` UNTOUCHED — every study today patched the source IN MEMORY and
 printed its substitutions at run time for audit. 7/30 RTH is final (checked 18:39 EDT); the
 after-hours tape was still accumulating, so 7/30 is cut at 16:00 in every study that includes it.
+
+---
+
+## H · FIRE-AGE LATENCY — MEASURED AND PROPOSED CLOSED (7/31 AM, Marcos: "add this to the list")
+
+**QUESTION:** `fire_age_s` on converted curl fires runs 60–114s (KUST 113.8s this morning). Yesterday's
+G7 autopsy found the exit-side twin (WICK-MISS: 5 stops 1.3–58 min late). Is entry latency costing us,
+and does it justify architectural work?
+
+**WHAT `fire_age_s` MEASURES** (:6126): `time.time() - k`, where k = the 10s BUCKET EPOCH = when the
+fire bar OPENED. So ~10s of it is structural (the bar must close before it can be evaluated) and the
+metric is ~10s pessimistic by construction. Guard = `CURL_FIRE_MAX_AGE_SECS`, raised 90→240 by Fable
+on 7/29 (the old 90s ceiling silently suppressed 17 sparse premarket fires).
+
+**MEASUREMENT 1 — where the latency lives (n=76 fires, 7/27–7/31):**
+    median 58.8s · mean 115.9s · min 13.1s · max 2108.7s
+    0-15s 2.6% | 15-30s 17.1% | 30-60s 32.9% | 60-90s 17.1% | 90-120s 7.9% | 120+s 22.4%
+    by lane (median): reclaim 60.0s (n=41) · hidden 56.0s (n=21) · zone_flip 35.4s (n=6) · dip_rip 188.4s (n=8)
+**The 13.1s MINIMUM is the diagnostic:** bar closed, reached the feed, and converted in ~3s. The feed
+is NOT the bottleneck. The 13s→2108s spread is SCAN-CYCLE position — curl fires convert inside the
+ticker's own turn in a 100–160-name loop. dip_rip's 188s median fits (rarest lane, least likely to be
+front-of-queue). VERDICT: scan-cycle latency, not feed latency.
+
+**MEASUREMENT 2 — does it cost money? (n=68 conversions carrying BOTH age and drift):**
+    overall drift: median +0.00% · mean +0.05%   (positive = we paid UP vs the fire price)
+    0-30s   n=14  median +0.00%  mean −0.20%   |  60-120s  n=19  median +0.00%  mean −0.12%
+    30-60s  n=23  median +0.00%  mean +0.01%   |  120s+    n=12  median +0.00%  mean +0.70%
+    corr(age, drift) = +0.230
+**Median drift is ZERO in EVERY age bucket.** Waiting 90s is as often a discount as a tax (CYCU today:
+81.5s late, filled 1.4% BELOW the fire price). The weak +0.23 correlation is carried almost entirely
+by the n=12 120s+ cell.
+
+**OPUS RECOMMENDATION — CLOSE IT, DO NOT BUILD THE FAST LANE.**
+The architectural fix (a dedicated concurrent loop stepping only the 10s machines, which need just 10s
+bars + VWAP — not the 3-min EMAs/room/daily the chart lanes require) is the LARGEST-RISK change
+available: new threading in the trade path, three weeks from go-live, to recover a cost measured at
+≈$0. Fails its own cost/benefit test. Compare the actual bleed: friction −$1,650 vs gross strategy
+−$586 (dashboard, era) — friction is ~3× the strategy loss and fire-age drift is a rounding error
+beside it.
+
+**THE ONE NARROW ITEM (free, config-only):** the 120s+ cell is the only one showing cost (+0.70%), and
+`CURL_FIRE_MAX_AGE_SECS=240` was set to fix a SUPPRESSION problem, never tuned against OUTCOMES. ASK
+FOR FRIDAY: add one cut — do 120s+ conversions underperform in dollars? YES ⇒ lower the ceiling toward
+120s (config change, no architecture). NO ⇒ fire age is closed permanently.
+
+**CAVEATS HELD:** n=68 for the drift test and n=12 in the decisive tail cell; `k`=bar-open makes the
+metric ~10s pessimistic; premarket sparse tape is over-represented in the long ages. This closes the
+question at CURRENT scale — if the watch list grows materially, scan-cycle position gets worse and the
+measurement must be re-run, not assumed.
+
+**FOR FABLE:** ruling requested on (a) close fire-age as a non-issue, (b) the Friday 120s+ dollar cut,
+(c) confirm the fast-lane rebuild stays OFF the runway (it is currently not on any docket).

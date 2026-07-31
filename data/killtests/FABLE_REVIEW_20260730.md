@@ -542,6 +542,55 @@ symbols, and it needs explaining before any cap is loosened.
   *lane* kill switch, not a per-name counter.
 - Ticker identity decides nothing at any layer.
 
+### I4b · KEV'S 7/31 TAPE — FOUR MGRX ENTRIES AND ~FIVE FCUV ENTRIES, THE SAME DAY WE CAPPED BOTH
+(Marcos: *"Kev made huge money multiple times on MGRX."* Sources: long video OSgAqbaZED0 "How I
+AVOID False Breakouts"; shorts sdB--7-WvcM "How to trade MANIPULATION for pullback entries",
+xvoc5oHGMkM, rsM6S-nfzB4 "Friday Watchlist Recap". All 7/31, same session as our board.)
+
+**MGRX — four separate entries, one name, one day:**
+  1. `0.80 -> 0.85` — first pullback over the 90 EMA after the premarket-high break. Small win.
+  2. add back off the 9 EMA — *"looked heavy the whole entire time... trimmed so aggressively"* ~breakeven.
+  3. aggressive breakout attempt over $1.00 — *"It did nothing. And so you can see I got right back
+     out."* Scratched immediately.
+  4. **`0.92` risking `0.90` (2 CENTS of risk) -> half at 0.96, quarter into the halt, runners out
+     at 1.17-1.18.** *"I had it from 92 to A18."*
+**FCUV — roughly five:** 1150->1190 · 1175->1230 (*"I add back"*) · a hotkey misfire that cost him
+the leg he wanted · **1420 risking 1360 -> half 1480, rest 1640, runners 1530** · plus the earlier
+premarket he sat out.
+**OUR SAME DAY:** MGRX 3 conversions then `hidden_capped` x4 while it ran 0.75->0.90; FCUV 5
+conversions then `hidden_capped` x74 while it ran 8.42->17.59. Our limits: 2/name, 3/day.
+**This is the doctrine argument settled by observation, not theory:** the trader we are modelling
+goes back to the same name four and five times in a session and makes his money on the LAST entry,
+not the first. A per-name counter would have cut him off before his best trade of the week.
+
+### I4c · KEV VALIDATES THE RUNWAY GATE, VERBATIM (7/31)
+Shipped MIN_RUNWAY_RR the same afternoon he said this on tape:
+- *"It rejected off this next area of supply where I then had to **STOP TRADING THIS THING UNTIL IT
+  BROKE THE NEXT**."* (manipulation short) — no road ⇒ stand down; the level breaking RESETS the road.
+- On FCUV at the open: *"we didn't really have much room until we got over 11"* — he priced ROOM
+  before deciding whether the name was tradeable at all.
+- *"I know it has this flat top high at 1264. And I also knew on the daily chart, we had room to,
+  you know, 20 bucks if we actually got breaking over the highs."* — the trade became takeable only
+  once the road opened.
+**Our gate mechanises exactly this sentence.** It also explains why runway and caps are ONE system
+in his hands: he re-enters the same name repeatedly, but only after each level break re-opens the
+road. Ticker identity never gates him; ROAD always does.
+
+### I4d · CONCURRENCY BELONGS IN THE RUNWAY SPEC TOO (Marcos: "add the concurrency limit to the
+### runway gate specs")
+The runway floor and the capital constraint are DIFFERENT LAYERS and must not be conflated:
+- **QUALIFICATION (runway, ext band, fire-bar volume, min-stop):** is this setup worth taking?
+  Judged per instance, on its own merits. Ticker identity is not an input.
+- **FUNDING (concurrency):** can we pay for it right now? ~2-3 positions at $3,000 with the $1,000
+  notional cap.
+A qualifying setup that arrives while we are fully deployed must **WAIT FOR A SLOT**, never be
+disqualified — and never consume its lane slot on a refusal (the `_slot_refund` pattern already
+shipped for the other floors applies unchanged). Conversely a non-qualifying setup is refused even
+when capital is idle. Neither layer may stand in for the other.
+IMPLEMENTATION NOTE for the I4 rewrite: `runway_reject` (quality) and a future `capital_wait`
+(funding) must be DISTINCT decision rows, or Friday's counterfactual cannot tell "we judged it bad"
+from "we could not afford it."
+
 ### I5 · THE ADD / PYRAMID GAP (unchanged from the 7/30 draft, still open)
 **VERIFIED: zero add/scale-in path exists repo-wide.** Our position sizing is ONE-SHOT — we enter
 once and thereafter only SELL. Kev's spec, in our corpus, never built: *"Adds/pyramiding mechanic:

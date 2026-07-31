@@ -866,3 +866,29 @@ BOTH PRIOR EXPECTATIONS WRONG: Opus expected the caps to look costly; Fable expe
 carry it (it was NEGATIVE, −$40.13 on n=11, while RE-ARM was +$485.69 — the same trend artifact).
 VERDICT: 7/31 gives NO evidence the caps cost money. §I3 still runs Friday on the ERA (not one day,
 not one name) with the capital bound modelled.
+
+### 7/31 evening — KEV 7/31 TAPE: 4 MGRX ENTRIES + ~5 FCUV ENTRIES (same session as our caps)
+Sources: OSgAqbaZED0 (long) + sdB--7-WvcM / xvoc5oHGMkM / rsM6S-nfzB4 (shorts). Kev's 5th green day.
+MGRX: (1) 0.80->0.85 first pullback over the 90 EMA post premarket-high break; (2) add back off the
+9 EMA ~breakeven; (3) aggressive $1.00 breakout attempt — "It did nothing... I got right back out"
+(scratched); (4) 0.92 RISKING 0.90 — TWO CENTS — half at 0.96, quarter into the halt, runners
+1.17-1.18. FCUV: 1150->1190, 1175->1230, a hotkey misfire that cost him the leg, then 1420 risking
+1360 -> 1480/1640 with runners at 1530.
+OUR SAME DAY: MGRX 3 conversions then hidden_capped x4 (0.75->0.90); FCUV 5 then hidden_capped x74
+(8.42->17.59). Caps: 2/name, 3/day. HIS BEST TRADE OF THE WEEK WAS HIS 4TH ENTRY IN THE NAME —
+a per-name counter cuts it off. Marcos's doctrine (ticker identity decides nothing) is now backed
+by observation of the trader we model, not by argument.
+RUNWAY GATE VALIDATED VERBATIM, same afternoon we shipped it: "it rejected off this next area of
+supply where I then had to STOP TRADING THIS THING UNTIL IT BROKE THE NEXT"; "we didn't really have
+much room until we got over 11"; "I knew on the daily chart we had room to 20 bucks if we actually
+got breaking over the highs." No road => stand down; a level break RESETS the road. In his hands
+runway and re-entry are ONE system: repeat the name freely, but only when the road is open.
+ALSO: "when you have these thickly traded stocks you have GOT to take pullbacks — you can't go
+trying to get aggressive on a breakout" (MGRX float ~14.5M, "so thick", 50k shares resting at 65c).
+EXITS: "literally just trailing prior bar low. Boom. Boom. Forcing it to continue higher. Whenever
+it doesn't, I'm out of it." DIP-RIP: "It flushes out of the halt. Simple little dip and rip...
+Dip and rip saved the day. Tuesday on AMIX saved the day too" — our 7/30 lane, his named play.
+CONCURRENCY vs QUALIFICATION (added to the runway spec, §I4d): qualification judges the instance;
+funding decides whether we can pay now. A qualifying setup on a full book WAITS FOR A SLOT and must
+log `capital_wait`, NOT `runway_reject` — distinct rows or Friday cannot separate "judged bad" from
+"could not afford."

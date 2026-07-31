@@ -395,6 +395,18 @@ IGNITION_WINDOW_MIN    = 90      # fire through the first 90 min (was 45). Sweep
 IGNITION_BASE_MIN      = 1       # min base bars before a break (1 catches immediate igniters)
 IGNITION_BASE_LOOKBACK = 4       # base = the last N 1-min bars before the break (was 6; sweep +35.9→+43R, 4/4 marginal won)
 IGNITION_VOL_MULT      = 2.0     # ignition bar vol ≥ 2.0× base avg (was 2.5; looser surge bar, sweep-favored)
+# ── 7/30 FABLE SHIP + Marcos "ship it and shadow the alternative": DETECT at 2.0× (shadow keeps
+# accumulating the old cohort), CONVERT only at ≥ IGNITION_CONVERT_MULT. Fine sweep E1 with a
+# pre-registered OOS split: 2.0× = worst tested value ≥ it (+1.60/+1.98 $/fire), 4.0–6.0 = a
+# contiguous plateau, 4.5× halves nearly identical (+5.51/+5.61). Fires with volx below the
+# convert bar log `ignition_below_convert` — that IS the shadowed 2.0× alternative, graded Friday.
+# FAILURE CONDITION (pre-registered): wrong if the shadowed 2.0×-gated cohort out-earns live.
+IGNITION_CONVERT_MULT  = float(os.environ.get("IGNITION_CONVERT_MULT", "4.5"))
+# E3/E4: chart gate measured INVERTED on ignition (gate-ON −$19.80 n=5 vs gate-OFF +$482.51 at
+# 4.5×; the gate admits only fires past Kev's level = a LATENESS detector on a surge-off-base
+# lane). Marcos 7/30: ship the bypass, shadow the alternative — every fire still stamps the
+# gate's verdict so the gated counterfactual accrues. Kill switch: IGNITION_CHART_BYPASS=0.
+IGNITION_CHART_BYPASS  = os.environ.get("IGNITION_CHART_BYPASS", "1") == "1"
 IGNITION_MIN_ABS_VOL   = 5000    # abs-volume floor (was 10k; sweep +35.9→+47R, 7/9 marginal won; $100 pos = negligible slippage)
 IGNITION_MAX_EXT       = 0.15    # ignition close ≤ +15% from open (NOT-yet-extended). KEPT TIGHT — the one mechanism gate
                                  # (loosening = chasing extended, contradicts the entry thesis; do NOT widen).
@@ -453,6 +465,20 @@ else:
 VELOCITY_RIDE   = True     # DRY_RUN experiment (7/5) — defer scaling while accelerating; flip False to revert
 VELO_RIDE_PCT   = 0.12    # defer the scale if price gained >= this over the last VELO_BARS 1-min bars
 VELO_BARS       = 3       # rolling velocity window (1-min bars) — matches the ff3 finding (3-bar follow-through)
+# 7/30 FABLE RULING Q4: vride suppressed EVERY hidden scale (1 of 11 trades ever banked; WLDS had
+# 11 closes above 1R and banked nothing) while measuring mildly POSITIVE on ignition (+$43.89 at
+# 4.5×). Scoped exemption, not a global kill — lanes listed here never defer. Env-overridable.
+VRIDE_EXEMPT    = set(filter(None, (s.strip() for s in os.environ.get(
+    "VRIDE_EXEMPT", "hidden_entry").split(","))))
+# ── 7/30 RESTING BANK (Marcos: "all of our banking numbers should be limit orders waiting" +
+# "It's stupid to wait"). DRY_RUN bookkeeping of the resting-limit design: a tier is FILLED when
+# the tape has printed AT/THROUGH it (_tape_hi) or the stream price sits at/above it, and the fill
+# books AT TIER PRICE (a resting limit fills at its limit — conservative, never better). While ON,
+# vride is NOT consulted for tier fills: a resting order at the broker cannot defer. At go-live the
+# same scaffold swaps simulated fills for real broker limits. Kill switch: RESTING_BANK=0.
+# FAILURE CONDITION (pre-registered): wrong if wick-trimmed runners cost more than banked-at-number
+# gains — gradeable from the fill-source stamp on every partial.
+RESTING_BANK    = os.environ.get("RESTING_BANK", "1") == "1"
 MIN_RR             = 2.0    # minimum reward:risk ratio for EMA bounce
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
@@ -2854,7 +2880,13 @@ def _chart_break_gate(ticker, entry_price, entry_type=None):
     CPHI dip-buy at $5+ must not be blocked by a $1 map. Classifier replayed on all 96 priced 7/21
     gate rows: flips exactly the 19 stale allows (all ma_pullback), touches none of the day's trades."""
     _STALE_EXEMPT = ("rocket_catcher", "vwap_reclaim", "zone_flip", "hidden_entry")
-    if entry_type in ("hidden_entry", "vwap_reclaim", "zone_flip"):
+    # 7/30 (Fable ship, Marcos "ship it and shadow the alternative"): ignition joins the
+    # live-structure bypass — it fires on a volume surge off a quiet base, i.e. BELOW Kev's marked
+    # level, so "price broke the level" was a LATENESS detector for this lane (gate-ON −$19.80 n=5
+    # vs gate-OFF +$482.51 at 4.5×, E3/E4). The gated alternative still accrues: every ignition
+    # fire stamps the legacy verdict via the "_shadow_legacy" probe below. Kill: IGNITION_CHART_BYPASS=0.
+    _bypass = ("hidden_entry", "vwap_reclaim", "zone_flip") + (("ignition",) if IGNITION_CHART_BYPASS else ())
+    if entry_type in _bypass:
         # LIVE-STRUCTURE lanes (Marcos 7/24: "switch the reclaim and zone flip"): these trade
         # live 10s structure (VWAP/90MA wick, session VWAP 3-gate, premarket shelf) — a reader
         # map is irrelevant and unmapped intraday adds must not die on no_marked_level (#72:
@@ -4576,6 +4608,14 @@ def kev_reclaim_step(sym, new_bars, vwap):
 # the 9:30 open. ZONEFLIP_KEV=0 kill switch. RECLAIM_LIVE=0 (default) demotes the VWAP-reclaim
 # machine to shadow — 7/20 role swap; flip to 1 to restore it.
 ZONEFLIP_KEV   = os.environ.get("ZONEFLIP_KEV", "1") == "1"
+# ── 7/30 FABLE G1 (Marcos yes): zone_flip to SHADOW. Worst per-trade lane on the board (era 6
+# trades / 1 win / −$223.48; 7/30 0-for-2 −$57.46) and unmeasurable at ~3 fires/day: the 8-cell
+# arm-window sweep loses in EVERY cell with win rate pinned 31–36%. The DETECTOR stays fully live
+# (ZONEFLIP_KEV) so evidence keeps accruing free — only the conversion is off. RE-ARM CONDITION
+# (pre-registered): replay the accumulated fires through the front-side gate once Friday's
+# head-to-head picks it; if the gated lane resurrects, it comes back GATED. ZONEFLIP_CONVERT=1
+# restores today's behavior exactly.
+ZONEFLIP_CONVERT = os.environ.get("ZONEFLIP_CONVERT", "0") == "1"
 ZONEFLIP_FLUSH = float(os.environ.get("ZONEFLIP_FLUSH_PCT", "0.04"))   # tested primary cell
 ZONEFLIP_BAND  = float(os.environ.get("ZONEFLIP_BAND", "0.02"))        # tested primary cell
 # 7/20 FINAL CONFIG (Marcos: "put in both... VWAP reclaim in the morning like we had it...
@@ -4664,6 +4704,18 @@ HIDDEN_VEL_BARS   = int(os.environ.get("HIDDEN_VEL_BARS", "30"))    # 30 x 10s =
 HIDDEN_TRIM_R     = float(os.environ.get("HIDDEN_TRIM_R", "1.0"))   # 7/27: R-based FIRST trim on the hidden
                             # ladder (the inherited ×1.50 trigger sat above both closed peaks = unreachable).
 HIDDEN_DAILY_CAP  = int(os.environ.get("HIDDEN_DAILY_CAP", "3"))
+# ── 7/30 A1 (Fable ship, Marcos yes): extension-above-VWAP at entry is BIMODAL on 190 fires —
+# 0–3% = the clean dip-buy, 10%+ = the deep wick inside a genuine vertical (+$1,472, the entire
+# lane), 3–10% = no-man's-land (−$1,942/69 fires, survives BOTH exit configs = an entry property).
+# Refuse the dead band EXACTLY (3–10, no pad — padding eats the paying 10%+ cell; boundary fires
+# 9–12% are stamped for forward observation). Kill: HIDDEN_EXT_GATE=0.
+# FAILURE CONDITION (pre-registered): wrong if refused 3–10% fires' forward counterfactual turns
+# positive — every refusal logs `hidden_ext_reject` with the full fire so that grade stays runnable.
+HIDDEN_EXT_GATE   = os.environ.get("HIDDEN_EXT_GATE", "1") == "1"
+HIDDEN_EXT_LO     = float(os.environ.get("HIDDEN_EXT_LO", "3.0"))    # percent, inclusive
+HIDDEN_EXT_HI     = float(os.environ.get("HIDDEN_EXT_HI", "10.0"))   # percent, exclusive
+# 7/30 A2-F: post-scale stop ratchets to the scale-bar low (hidden only). Kill switch:
+HIDDEN_SCALEBAR_STOP = os.environ.get("HIDDEN_SCALEBAR_STOP", "1") == "1"
 # 7/29 ANCHOR-MATURITY GATE (gauntleted): the lane is Kev's wick off the VWAP+90MA CONFLUENCE, but
 # the detector's 10s-EMA90 is seeded from its first bar — on fresh gappers it is an unconverged
 # echo of recent closes, so `anchor=max(e90,vwap)` degenerates to plain VWAP. Every one of the
@@ -5980,7 +6032,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                   fire_px=dr.get("px"), fire_age_s=(round(time.time() - dr["k"], 1) if dr.get("k") else None))
                     continue                                   # captured — skip other detectors for t
                 # ZONE-FLIP first (its original priority) — live all RTH (Marcos 7/20).
-                if _zf_fire and _curl_rth_slot(t, "zf", _hm_curl):
+                if _zf_fire and not ZONEFLIP_CONVERT:
+                    # G1 SHADOW: the fire is consumed and fully logged (stop included, so the
+                    # forward replay stays runnable) but never trades and never spends a slot.
+                    _zfs = _zf_fire
+                    _zf_fire = None
+                    _log_decision(t, "zoneflip_shadow_convert", price=price, stop=_zfs["stop"],
+                                  fire_px=_zfs.get("px"), seq=_zfs["seq"], zone=_zfs.get("zone"),
+                                  zone_src=_zfs.get("zone_src"), flush_low=_zfs.get("flush_low"))
+                elif _zf_fire and _curl_rth_slot(t, "zf", _hm_curl):
                     zf = _zf_fire
                     _zf_fire = None                            # consumed
                     if "daily" not in cache[t]:
@@ -6043,6 +6103,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     if _he_day[_sess_he] >= HIDDEN_DAILY_CAP or _he_name.get(_k_he, 0) >= HIDDEN_NAME_CAP:
                         _log_decision(t, "hidden_capped", price=price, day_n=_he_day[_sess_he],
                                       name_n=_he_name.get(_k_he, 0), sess=_sess_he)
+                    elif HIDDEN_EXT_GATE and HIDDEN_EXT_LO <= float(_he_fire.get("ext_vwap") or 0) < HIDDEN_EXT_HI:
+                        # A1: the 3–10% no-man's-land — too late for the dip, too early for the
+                        # vertical. Consume the fire (no retry-spam) and log EVERYTHING needed to
+                        # grade the refusal forward.
+                        _her = _he_fire
+                        _he_fire = None
+                        _log_decision(t, "hidden_ext_reject", price=price, ext_vwap=_her["ext_vwap"],
+                                      stop=_her["stop"], anchor=_her["anchor"], seq=_her["seq"],
+                                      fire_px=_her.get("px"), band=f"{HIDDEN_EXT_LO}-{HIDDEN_EXT_HI}")
                     else:
                         he = _he_fire
                         _he_fire = None                        # consumed
@@ -6095,6 +6164,16 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 else:
                     _sess1 = _latest_session(cache[t].get("full_bars") or bars)
                     ign = detect_ignition(_sess1, price)
+                # 7/30 SHIP+SHADOW: detector still fires at 2.0× (IGNITION_VOL_MULT unchanged) so
+                # the old cohort keeps accruing as shadow rows; CONVERSION demands the plateau
+                # value. Below-convert fires do NOT burn the once-per-ticker slot — the E2 cap
+                # protects against repeat CONVERSIONS, and the first ≥4.5× fire must still be able
+                # to trade after an earlier 2.3× one was refused.
+                if ign and float(ign.get("volx") or 0) < IGNITION_CONVERT_MULT:
+                    _log_decision(t, "ignition_below_convert", price=price, volx=ign["volx"],
+                                  need=IGNITION_CONVERT_MULT, base_hi=ign["base_hi"],
+                                  ext_pct=ign["ext_pct"], stop=ign["stop"])
+                    ign = None
                 if ign:
                     _istop = ign["stop"]
                     if "daily" not in cache[t]:
@@ -6123,9 +6202,17 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                            "base_lo": ign["base_lo"], "volx": ign["volx"], "ext_pct": ign["ext_pct"],
                                            "ema90": round(_e90, 4), "front_side": _front,
                                            "ema9": round(_e9, 4), "ema20": round(_e20, 4)}))
+                        # 7/30 shadow stamp: what the OLD config's gate would have said. The
+                        # "_shadow_legacy" probe walks the exact legacy path (not stale-exempt,
+                        # not bypassed) — the gated alternative's counterfactual, graded Friday.
+                        try:
+                            _sgv, _sgr, _sgl, _ = _chart_break_gate(t, price, "_shadow_legacy")
+                        except Exception:
+                            _sgv, _sgr, _sgl = None, None, None
                         _log_decision(t, "triggered_ignition", price=price, room_rr=rr,
                                       volx=ign["volx"], base_hi=ign["base_hi"], ext_pct=ign["ext_pct"], front_side=_front,
-                                      src=("10s" if IGNITION_10S else "1min"))
+                                      src=("10s" if IGNITION_10S else "1min"),
+                                      shadow_gate=_sgv, shadow_gate_reason=_sgr, shadow_gate_level=_sgl)
                         cache[t]["ignition_fired"] = True
                         continue                              # ignition captured (in `breakouts`) — skip other detectors for t
 
@@ -6782,11 +6869,15 @@ def update_stop_order(ticker, shares, new_price, old_client_order_id):
 
 STOP_UPDATE_MIN_MOVE = 0.10   # Only replace exchange stop order if it moves >= $0.10
 
-def _vride_defer(ticker, tier_idx):
+def _vride_defer(ticker, tier_idx, entry_type=None):
     """VELOCITY-AWARE RIDE: True if the move is still accelerating hard → defer this scale (ride the vertical).
     Fail-CLOSED — any error or VELOCITY_RIDE off → False → normal scaling (exact baseline). Streaming makes
-    this velocity read fast/clean live; it uses the same 1-min bars monitor_trade already fetches."""
+    this velocity read fast/clean live; it uses the same 1-min bars monitor_trade already fetches.
+    7/30 Q4: lanes in VRIDE_EXEMPT never defer — on hidden the defer fired exactly when the tier was
+    reached (a hidden entry IS a ≥25%/5min rocket), suppressing 10 of 11 scale-outs."""
     if not VELOCITY_RIDE:
+        return False
+    if entry_type in VRIDE_EXEMPT:
         return False
     try:
         rb = _fresh_session(get_intraday_bars(ticker, count=VELO_BARS + 2, sessions=_live_sessions()))   # B16
@@ -6801,6 +6892,20 @@ def _vride_defer(ticker, tier_idx):
     except Exception:
         return False
     return False
+
+def _scale_bar_low(ticker):
+    """The low of the current/latest 10s bucket at scale time — config F's 'scale-bar low'
+    (7/30). Reads the same 10s feed the curl lanes use; hidden IS a 10s lane so the feed is warm.
+    Returns None on any failure → caller keeps the existing stop (fail-safe, never widens)."""
+    try:
+        d10, _src = _curl_feed(ticker, n=6)
+        if not d10:
+            return None
+        lo = d10[max(d10)].get("l")
+        return float(lo) if lo and lo > 0 else None
+    except Exception:
+        return None
+
 
 def _marked_runway(ticker, entry_price, stop_loss):
     """MARKED RUNWAY (Marcos's thesis): R-multiples of room from entry to the sheet's first target
@@ -6906,6 +7011,13 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                      (round(_scale2, 4), 0.75)]             # supply/+2R → sell 25% (down to a 1/4 runner)
     print(f"   Kev exits: R=${R:.2f} | tiers " + " → ".join(f"{int(c*100)}%@${p:.2f}" for p, c in kev_tiers)
           + " → runner trails (health-trail)")
+    # 7/30 RESTING BANK: the full exit scaffold, logged AT ENTRY — the order book we would hand
+    # the broker at go-live (stop + a limit at every rung). One durable row per trade; forward
+    # fill-quality evidence accrues from the tier_fill rows that reference it.
+    if RESTING_BANK:
+        _log_decision(ticker, "exit_scaffold", price=round(entry_price, 4),
+                      stop=round(stop_loss, 4), entry_type=entry_type,
+                      rungs=[[p, c] for p, c in kev_tiers], shares=total_shares)
     last_ema_check     = 0.0           # epoch of last EMA9 bar fetch
 
     result = {"exit_price": entry_price, "exit_reason": "Unknown",
@@ -7098,7 +7210,23 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         # ── Kev R-based scale-outs: 50% @ +1R (→ risk-free), 25% @ supply/+2R (→ a 1/4 runner) ──
         if tier_idx < len(kev_tiers) and remaining_shares > 0:
             tier_price, tier_cumulative = kev_tiers[tier_idx]
-            if current_price >= tier_price and not _vride_defer(ticker, tier_idx):
+            # 7/30 RESTING BANK: the tier is a resting limit, not a poll — it fills when the TAPE
+            # has printed at/through it (_tape_hi, cumulative since entry = exactly the semantics
+            # of an order resting since entry) OR the stream sits at/above it. Fill books AT the
+            # tier price (a limit fills at its limit, never better — conservative). vride is not
+            # consulted while on: a resting order at the broker cannot defer.
+            # Tape-only fills demand a STRICT print through the level (not a bare touch) — the
+            # no-fiction rule: a touched limit with size ahead may not fill; a traded-through one did.
+            _rb_tape = RESTING_BANK and _tape_hi is not None and _tape_hi > tier_price
+            if RESTING_BANK:
+                _tier_hit = _rb_tape or current_price >= tier_price
+                _fill_px = tier_price          # a limit fills at its limit, never better than booked
+            else:
+                _tier_hit = current_price >= tier_price and not _vride_defer(ticker, tier_idx, entry_type)
+                _fill_px = current_price
+            if _fill_px <= 0:
+                _fill_px = current_price
+            if _tier_hit:
                 if tier_cumulative >= 1.0:
                     sell_qty = remaining_shares
                 else:
@@ -7108,18 +7236,23 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     sell_qty = min(sell_qty, remaining_shares)
 
                 tier_label = f"Scale {tier_idx+1}/{len(kev_tiers)}"
+                _fill_src = ("resting_tape" if (RESTING_BANK and _rb_tape and current_price < tier_price)
+                             else ("resting_stream" if RESTING_BANK else "poll"))
                 print(f"💰 {tier_label}: selling {sell_qty} of {remaining_shares} shares "
-                      f"at ${current_price:.2f} (+{profit_pct:.1f}%) — {'+1R risk-free' if tier_idx == 0 else 'trim to runner'}")
+                      f"at ${_fill_px:.2f} [{_fill_src}] (+{profit_pct:.1f}%) — {'+1R risk-free' if tier_idx == 0 else 'trim to runner'}")
                 cancel_order(placed_stop_id)
                 close_position(ticker, sell_qty)
-                partial_price    = current_price
+                partial_price    = _fill_px
                 partial_taken    = True
-                partial_fills.append((sell_qty, current_price))
+                partial_fills.append((sell_qty, _fill_px))
+                _log_decision(ticker, "tier_fill", price=round(_fill_px, 4), tier=tier_idx + 1,
+                              src=_fill_src, qty=sell_qty, stream_px=round(current_price, 4),
+                              tape_hi=(round(_tape_hi, 4) if _tape_hi is not None else None))
                 remaining_shares -= sell_qty
                 tier_idx += 1
 
                 if remaining_shares <= 0:
-                    result["exit_price"]  = current_price
+                    result["exit_price"]  = _fill_px
                     result["exit_reason"] = f"Full exit ({tier_label}) ✅"
                     break
 
@@ -7129,6 +7262,15 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 # The prev-bar-low trail still ratchets the runner on a CLOSE basis (EMA section).
                 if tier_idx >= BE_FLOOR_AFTER_SCALE:
                     current_stop = entry_price
+                # 7/30 A2-F (hidden only, config F of hidden_exit_configs: −$96.04 best of six,
+                # walked bar-by-bar): after ANY scale the stop ratchets to the SCALE-BAR LOW — the
+                # level the market just defended — never down. Beat breakeven (B) and every offset;
+                # NUWE +4.25R→−0.25R is the rig pin this must prevent. Kill: HIDDEN_SCALEBAR_STOP=0.
+                if HIDDEN_SCALEBAR_STOP and entry_type == "hidden_entry":
+                    _sb_lo = _scale_bar_low(ticker)
+                    if _sb_lo and _sb_lo > current_stop:
+                        print(f"🪜 {ticker}: stop ratchets to scale-bar low ${_sb_lo:.2f} (was ${current_stop:.2f})")
+                        current_stop = _sb_lo
                 placed_stop_id    = place_stop_order(ticker, remaining_shares, current_stop)
                 placed_stop_price = current_stop
                 placed_stop_qty   = remaining_shares
@@ -8253,7 +8395,12 @@ def main():
           f"SWAP_MODE={SWAP_MODE} PM_EXT_QUOTE={int(PM_EXT_QUOTE)} DIP_RIP={int(DIP_RIP)} | "
           f"MIN_STOP_PCT={MIN_STOP_DIST_PCT} EXEMPT={sorted(MIN_STOP_EXEMPT)} | "
           f"ENTRY_OPEN_ET={ENTRY_OPEN_ET} INTRABAR_STOP={int(INTRABAR_STOP)} "
-          f"BE_FLOOR_AFTER_SCALE={BE_FLOOR_AFTER_SCALE}")
+          f"BE_FLOOR_AFTER_SCALE={BE_FLOOR_AFTER_SCALE} | "
+          # 7/30 change-set switches — every one independently revertible by env:
+          f"HIDDEN_EXT_GATE={int(HIDDEN_EXT_GATE)}({HIDDEN_EXT_LO}-{HIDDEN_EXT_HI}) "
+          f"HIDDEN_SCALEBAR_STOP={int(HIDDEN_SCALEBAR_STOP)} VRIDE_EXEMPT={sorted(VRIDE_EXEMPT)} "
+          f"RESTING_BANK={int(RESTING_BANK)} IGNITION_CONVERT_MULT={IGNITION_CONVERT_MULT} "
+          f"IGNITION_CHART_BYPASS={int(IGNITION_CHART_BYPASS)} ZONEFLIP_CONVERT={int(ZONEFLIP_CONVERT)}")
     post_balance_to_dashboard(balance)
 
     # ── Morning watchlist email ───────────────────────────
@@ -8913,6 +9060,10 @@ def main():
                 "planned_risk":    round(shares * (entry_price - stop_loss), 2),     # ≈ RISK_PER_TRADE unless capped
                 "stop_width_pct":  (round((entry_price - stop_loss) / entry_price * 100, 2)
                                     if entry_price > 0 else None),   # 7/27 minstop gate — kept-side column for the Friday grade
+                # 7/30 D-gap fix: the two fields that define hidden entry quality now PERSIST on
+                # the trade record (were decision-row-only, which blocked the A1 grade for a day).
+                "ext_vwap":        (extra or {}).get("ext_vwap"),
+                "anchor":          (extra or {}).get("anchor"),
                 # 7/27 off-tape guard: set only when the exit print could not be verified against
                 # the tape this monitor saw. exit_px_raw = what the stream claimed; `exit` = booked.
                 "exit_px_unverified": trade_result.get("exit_px_unverified"),

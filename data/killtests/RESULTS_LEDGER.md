@@ -672,3 +672,43 @@ MORNING PATTERN NAMED: two P0s in 45 min, same disease — PREMARKET SPARSENESS 
 STALENESS (guard killed entries; monitor killed an exit). Third occurrence of the class in 30h
 counting the retracted frozen-price claim. Every staleness check in this codebase must ask
 "sparse or stale?" — tonight's cursor-aware guard rework applies the lesson at the last site.
+
+## 2026-07-30 EVENING — FABLE REVIEW RULED + CHANGE-SET SHIPPED (Marcos: "yes to all. build it.")
+FULL RULINGS in FABLE_REVIEW_20260730.md §C/§G. SHIPPED (rig 36/36 green by exit code, incl. the
+new test_shipset_20260730.py 27-pin suite; every switch env-revertible; W10 re-pinned to the new
+doctrine with the kill-switch-restores-legacy pin):
+  1. HIDDEN_EXT_GATE=1 (3.0–10.0%) — refuse hidden's no-man's-land (A1: −$1,942/69 fires, survives
+     both exit configs). Refusals log `hidden_ext_reject` w/ full ticket. WRONG WHEN: the refused
+     cohort's forward counterfactual turns positive.
+  2. HIDDEN_SCALEBAR_STOP=1 — post-scale stop ratchets to the scale-bar low (config F, best of 6,
+     −$96.04 vs live −$163.58 on the 9 converted). WRONG WHEN: shaken runners cost more than
+     protection saves (fill-source stamps make this gradeable).
+  3. VRIDE_EXEMPT=hidden_entry — vride suppressed 10 of 11 hidden scales; stays live on ignition
+     where it measured +$43.89. NOT a global kill.
+  4. RESTING_BANK=1 (Marcos's design: "all of our banking numbers should be limit orders waiting")
+     — tiers fill on STRICT tape-through at TIER PRICE (never better); vride not consulted; every
+     fill stamps src (resting_tape/resting_stream); exit scaffold logged at entry. HONESTY BOUND:
+     conservative-by-construction vs the harness model; weakest-evidence component of the set —
+     graded forward from the stamps. WRONG WHEN: wick-trims cost more than banked-at-number gains.
+  5. IGNITION ship-and-shadow (Marcos: "ship it and shadow the alternative"): detect at 2.0×
+     (unchanged — the old cohort keeps accruing), CONVERT at ≥4.5× (E1 plateau, OOS-passed),
+     chart-gate BYPASS on (E3/E4 inversion) with the legacy verdict stamped on every fire via a
+     "_shadow_legacy" probe. Below-convert fires do NOT burn the once-per-ticker slot. WRONG WHEN:
+     the shadowed 2.0×-gated cohort out-earns live over the grading window.
+  6. ZONEFLIP_CONVERT=0 (G1 SHADOW) — detector fully live, conversion off. RE-ARM CONDITION:
+     replay accumulated fires through the winning Friday front-side gate; if it resurrects, it
+     returns GATED.
+G2 RULED: reclaim stays LIVE through Friday (it IS the OOS sample). G3 CLOSED: reclaim bypass
+vindicated ×3. G8 LAW: every killtest requires coverage + non-degeneracy asserts + a control cell.
+Q8 OPENED narrowly: tier clock replay on the kev25 population (measurement only).
+
+G7 AUTOPSY (15 blow-throughs <−1.05R, 7/30, corrected scan from ENTRY not 09:30 — first scan had
+that defect + a premarket filter bug, both caught in-session): TWO CLASSES. (1) KNIFE 10/15 —
+intrabar stop fired 7–27s after touch; the tape moved 0.2–7.1% through the stop INSIDE one 10s
+bar (PN 12:27 = 7.1%). No stop mechanism fixes velocity; the G6 survivability floor is the
+defense. (2) WICK-MISS 5/15 (BOOM −1.83R 8min late; YHC −1.43R 57.8min; INLF −1.25R 36.2min;
+NCRA 1.6min; NUWE 1.3min) — the 10s tape pierced the stop but the STREAM never printed it; exit
+waited for the next stream breach. Same family as #11 (STFS 09:58). Class (b) EXONERATED: when
+the stop fires, fills land inside the touch bar's range. FIX QUEUED (not shipped): tape-aware
+intrabar check off the curl feed — needs its own kill-test (0.1%-single-print wicks may not be
+free exits). Rows/method in-transcript; scan defects documented.

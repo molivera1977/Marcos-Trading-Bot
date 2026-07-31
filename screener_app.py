@@ -2010,10 +2010,84 @@ def premarket_dashboard():
     open_pre = []
     try:
         for _ot in (_open_trades or {}).values():
-            if isinstance(_ot, dict) and str(_ot.get("entry_session") or "") == "PRE":
+            if not isinstance(_ot, dict):
+                continue
+            _sess = str(_ot.get("entry_session") or "")
+            if not _sess:
+                # 7/30 (Marcos: "shouldn't this open trade be on the pre-market dashboard?"):
+                # entry_session is only stamped on the COMPLETED record, never on open state — so
+                # this filter matched nothing and the PRE board's open section was dead code.
+                # Derive it from the entry stamp (ET < 09:30 = PRE) so live PRE trades show up.
+                try:
+                    _dt = datetime.fromisoformat(str(_ot.get("entry_ts_utc")).replace("Z", "+00:00"))
+                    _sess = "PRE" if _dt.astimezone(EASTERN).strftime("%H:%M") < "09:30" else "RTH"
+                except Exception:
+                    _sess = ""
+            if _sess == "PRE":
                 open_pre.append(_ot)
     except Exception:
         pass
+
+    def _pre_open_card(o, levels):
+        """7/30 (Marcos: "i want this type of box on the premarket dashboard") — the live
+        tale-of-the-tape card, server-rendered (this page carries no JS). Same facts as the main
+        dashboard's card: what we're in for, each partial banked, runner state, whether the stop is
+        already a locked win, what to watch, and Kev's reader map."""
+        try:
+            tk = str(o.get("ticker") or "").upper()
+            e = float(o.get("entry_price") or 0)
+            px = float(o.get("last_price") or e)
+            stop = float(o.get("stop") or 0)
+            init = int(o.get("initial_shares") or 0)
+            rem = int(o.get("remaining_shares") or 0)
+            fills = [f for f in (o.get("partial_fills") or []) if isinstance(f, (list, tuple)) and len(f) >= 2]
+            banked = sum((float(f[1]) - e) * float(f[0]) for f in fills)
+            worst = banked + (stop - e) * rem                  # if the stop fills at its level
+            openpl = (px - e) * rem
+            hi = max(float(o.get("highest") or 0), px)
+            pct = ((px - e) / e * 100) if e else 0
+            vw = float(o.get("vwap") or 0)
+            hdr_cls = "green" if worst > 0.5 else ("yellow" if worst > -0.5 else "yellow")
+            hdr = (f"🔒 LOCKED WINNER — if the stop fills at its level we walk away with ≈ +${worst:.2f}"
+                   if worst > 0.5 else
+                   f"⚖️ RISK-FREE-ISH — stop at ${stop:.2f} leaves ≈ ${worst:+.2f}"
+                   if worst > -0.5 else
+                   f"⚠️ AT RISK — if the stop fills we book ≈ ${worst:+.2f}")
+            li = [f"In for <b>${(float(o.get('position_size') or e * init)):.0f}</b> — {init} shares at "
+                  f"<b>${e:.2f}</b>{(' (' + str(o.get('entry_hm')) + ')') if o.get('entry_hm') else ''}, "
+                  f"signal <b>{esc(o.get('entry_type') or '—')}</b>."]
+            for q, fp in fills:
+                li.append(f"Sold {int(q)} at <b>${float(fp):.2f}</b> → banked <b>+${(float(fp) - e) * float(q):.2f}</b>.")
+            if fills and rem > 0:
+                li.append(f"<b>Runner mode</b> — the last {rem} shares ride until the trend breaks.")
+            if abs(stop - e) < 0.005 and rem > 0:
+                li.append(f"Stop is at <b>breakeven</b> (${stop:.2f}) — the remaining {rem} shares can't lose money.")
+            li.append(f"<b>Watch:</b> higher lows"
+                      + (f", holding above VWAP (${vw:.2f})" if vw > 0 else "")
+                      + f". High so far ${hi:.2f}"
+                      + (f" (+{(hi - e) / e * 100:.1f}%)" if e else "")
+                      + f". Right now <b>${openpl:+.2f}</b> open on top of <b>${banked:+.2f}</b> banked."
+                      + "  <i>9:25 hard flatten applies — this is a PRE trade.</i>")
+            m = (levels or {}).get(tk) or {}
+            chips = ""
+            if m:
+                def _c(l, v):
+                    return ("<span style='display:inline-block;background:rgba(127,127,127,.12);"
+                            "border-radius:6px;padding:2px 8px;margin:2px 4px 2px 0'>" + l + " <b>" + v + "</b></span>")
+                _f = lambda x: ("—" if x in (None, "") else "$%.2f" % float(x))
+                tg = " / ".join("$%.2f" % float(x) for x in (m.get("targets") or [])) or "—"
+                chips = ("<div style='margin-top:8px;padding:8px;border:1px solid rgba(127,127,127,.25);border-radius:8px'>"
+                         "<div class='muted' style='font-size:11px;margin-bottom:4px'>📕 KEV READER MAP</div>"
+                         + _c("break", _f(m.get("break"))) + _c("confirm", _f(m.get("confirm")))
+                         + _c("supply", _f(m.get("next_supply"))) + _c("targets", tg) + "</div>")
+            return ("<div class='card' style='margin-top:10px'>"
+                    f"<h2>{esc(tk)} <span>— live PRE position · {pct:+.1f}% · "
+                    f"entry ${e:.2f} → now ${px:.2f} · stop ${stop:.2f} · {init - rem}/{init} sold</span></h2>"
+                    f"<div class='{hdr_cls}' style='font-weight:700;margin:6px 0'>{hdr}</div>"
+                    "<ul style='margin:6px 0 0 18px;line-height:1.6'>"
+                    + "".join(f"<li>{x}</li>" for x in li) + "</ul>" + chips + "</div>")
+        except Exception:
+            return ""
 
     def esc(x):
         return (str(x).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
@@ -2126,7 +2200,9 @@ def premarket_dashboard():
             "<div class='stat'><div class='stat-label'>Names watched</div><div class='stat-value'>" + str(len(names)) + "</div></div>"
             "<div class='stat'><div class='stat-label'>Kev sheet</div><div class='stat-value yellow'>" + str(kev_n) + "</div></div>"
             "</div>"
-            "<div class='section'><div class='card'>"
+            + ("<div class='section'>" + "".join(_pre_open_card(_o, lv) for _o in open_pre) + "</div>"
+               if open_pre else "")
+            + "<div class='section'><div class='card'>"
             "<h2>Premarket trades <span>— the PRE ledger (real entries, 9:25-flattened; graded separately)</span></h2>"
             "<div class='tw'><table><tr><th>ticker</th><th>lane</th><th>in ⏱</th><th>entry</th><th>out ⏱</th><th>exit</th><th>P&L</th><th>how it ended</th></tr>"
             + ("".join(
@@ -2609,10 +2685,11 @@ a.watch-chip:hover{filter:brightness(1.25)}
       <thead>
         <tr>
           <th>Date</th>
-          <th title="entry time ET (hover a row for exit time)">Entry ⏱</th>
+          <th title="entry time ET, to the second — line it up with a 10s chart">Entry ⏱</th>
           <th>Ticker</th>
           <th>Entry</th>
           <th>Exit</th>
+          <th title="exit time ET, to the second">Exit ⏱</th>
           <th>Shares</th>
           <th>Size</th>
           <th>P&amp;L $</th>
@@ -2624,7 +2701,7 @@ a.watch-chip:hover{filter:brightness(1.25)}
         </tr>
       </thead>
       <tbody id="tradeTable">
-        <tr><td colspan="13"><div class="empty-state"><div class="icon">📊</div><p>Loading trade history...</p></div></td></tr>
+        <tr><td colspan="14"><div class="empty-state"><div class="icon">📊</div><p>Loading trade history...</p></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -2640,7 +2717,12 @@ function fmtTime(iso){ if(!iso) return '—'; const m=String(iso).match(/T(\d{2}
 /* 7/29: entry_ts_utc is UTC — convert to ET properly (fmtTime reads literal digits, fine for the
    ET-stamped recorded_at but 4h wrong for UTC). Returns null when absent so callers can fall back. */
 function fmtTimeET(iso){ if(!iso) return null; const d=new Date(iso); if(isNaN(d)) return null;
-  return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'}); }
+  return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'}); }
+/* 7/30 (Marcos: "i want entry and exit times to the 10 seconds so i can look to the charts") —
+   recorded_at is already ET-local ISO, so read its digits directly (no tz conversion). */
+function fmtTimeSec(iso){ if(!iso) return '—'; const m=String(iso).match(/T(\d{2}):(\d{2}):(\d{2})/);
+  if(!m) return '—'; let h=+m[1]; const ap=h>=12?'PM':'AM'; h=h%12||12;
+  return h+':'+m[2]+':'+m[3]+' '+ap; }
 
 function loadData(){
   document.getElementById('lastUpdate').textContent = 'Refreshing...';
@@ -2878,7 +2960,7 @@ function renderTable(allTrades){
   if(_pl) _pl.innerHTML = _preN ? ' · <a href="/premarket" style="color:#8b949e">'+_preN+' premarket trade(s) on the premarket board ↗</a>' : '';
   const tbody = document.getElementById('tradeTable');
   if(!trades || trades.length===0){
-    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state">
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state">
       <div class="icon">📊</div>
       <p>No trades recorded yet</p>
       <small>The bot will log results here automatically after each session</small>
@@ -2903,10 +2985,11 @@ function renderTable(allTrades){
     const sz = t.position_size ? fmt$(t.position_size) : '—';
     return `<tr onclick="toggleStory('${key}', event)" style="cursor:pointer" title="Click for the story of this trade">
       <td style="color:#8b949e">${t.date||'—'}</td>
-      <td style="color:#8b949e" title="exit ${fmtTime(t.recorded_at)}">${fmtTimeET(t.entry_ts_utc) || fmtTime(t.recorded_at)}</td>
+      <td style="color:#8b949e;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtTimeET(t.entry_ts_utc) || fmtTimeSec(t.recorded_at)}</td>
       <td><a class="ticker-badge" href="https://www.tradingview.com/chart/?symbol=${t.ticker||''}" target="_blank" rel="noopener" title="Open chart">${t.ticker||'—'} ↗</a></td>
       <td>${t.entry?'$'+t.entry.toFixed(2):'—'}</td>
       <td>${t.exit?'$'+t.exit.toFixed(2):'—'}</td>
+      <td style="color:#8b949e;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtTimeSec(t.recorded_at)}</td>
       <td style="color:#8b949e">${t.shares||'—'}</td>
       <td style="color:#8b949e">${sz}</td>
       <td class="${pnlCls}">${pnlSign}$${Math.abs(t.pnl).toFixed(2)}</td>
@@ -2916,7 +2999,7 @@ function renderTable(allTrades){
       <td class="exit-tag" title="${t.exit_reason||''}">${isBookRow?'📋 ':''}${t.exit_reason||'—'}</td>
       <td style="color:#8b949e;font-size:12px">${fl}</td>
     </tr>`
-    + (isOpen?`<tr class="story-tr"><td colspan="12"><div class="tape show">${storyClosedHTML(t)}</div></td></tr>`:'');
+    + (isOpen?`<tr class="story-tr"><td colspan="14"><div class="tape show">${storyClosedHTML(t)}</div></td></tr>`:'');
   }).join('');
   tbody.innerHTML = rows;
 }

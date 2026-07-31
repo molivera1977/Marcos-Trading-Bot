@@ -95,8 +95,12 @@ check("W8 triggered_ignition stamps src=10s/1min",
 check("W9 downstream gates UNTOUCHED: ignition still day-gain-floored + vel5-floored legacy",
       "ignition" in bot.DAYGAIN_LEGACY
       and '"ignition", "flat_top", "ma_pullback", "orb", "ema_bounce"' in SRC)
-check("W10 downstream gates UNTOUCHED: ignition NOT in the chart-gate live-structure bypass",
-      'in ("hidden_entry", "vwap_reclaim", "zone_flip"):' in SRC
+# W10 RE-PINNED 7/30 (Fable E3/E4 ruling + Marcos "ship it and shadow the alternative"): ignition
+# now JOINS the live-structure bypass behind IGNITION_CHART_BYPASS (default on) — the old pin
+# ("ignition NOT in the bypass") tested the pre-7/30 doctrine. The kill switch must restore the
+# old gated behavior exactly, and the bypass must be conditional, not hardcoded.
+check("W10 chart-gate bypass: conditional on IGNITION_CHART_BYPASS, kill switch restores legacy",
+      '(("ignition",) if IGNITION_CHART_BYPASS else ())' in SRC
       and 'in ("hidden_entry", "vwap_reclaim", "zone_flip", "ignition")' not in SRC)
 check("W11 once-per-ticker cap preserved (cache flag both feed + consume)",
       SRC.count('cache[t].get("ignition_fired")') >= 2 and 'cache[t]["ignition_fired"] = True' in SRC)

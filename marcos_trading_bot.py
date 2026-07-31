@@ -354,6 +354,14 @@ BREAKOUT_ENTRIES   = True   # 7/2: KEV'S FULL BAG. The 4-day backtest is too noi
                             # 3-min managed). Bounce stays observe-only (its one backtest read was clearly −0.40).
 FLAT_TOP_WINDOW    = 4      # consolidation window (in 3-min bars now → ~12 min base). Kev gives NO bar
                             # count; this is a homegrown translation of "a base that held". [revisit w/ data]
+# ── 7/31 ONE-DAY EXPERIMENT (Marcos 7/30 night: "for one day let's reverse the order and just
+# see. Either way we have the data."). PULLBACK_FIRST=1: when the MA-pullback detector fires on a
+# scan pass, it OUTRANKS flat_top on that name — the flat-top block (arming included) is skipped
+# and the original ma_pullback block converts. Era context for the record: ma_pullback +$160.82
+# (70.6% win, best lane) vs flat_top front-side −$148.73 (36.4%); LINE ORDER alone gave flat_top
+# priority on the same names. Suppressions log `pullback_first_suppress` so the counterfactual is
+# exact. Friday grades it next to the 444-fire front-side study. PULLBACK_FIRST=0 reverts.
+PULLBACK_FIRST     = os.environ.get("PULLBACK_FIRST", "1") == "1"
 FLAT_TOP_MAX_RANGE = 0.12   # base-width chase-GUARD, not a Kev number. Kev quantifies no % range ("tighter
                             # is better" = tighter stop = better R:R). The ROOM GATE already filters width via
                             # R:R = (supply−entry)/(entry−base_low); a wide base = far stop = poor R:R = rejected
@@ -6320,12 +6328,22 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # (Topping-tail entry-skip is handled by check_momentum at execution time, on freshly-fetched
             # bars — see is_topping_tail() in check_momentum. No scan-time duplicate needed.)
 
+            # ── 7/31 PULLBACK_FIRST pre-pass: if the pullback detector fires NOW, it wins the name —
+            # flat_top is skipped below and the ORIGINAL ma_pullback block (entry type 2) re-detects
+            # the same pure function and converts through the existing path. No duplicated logic.
+            _ma_first_fire = None
+            if PULLBACK_FIRST and not found_entry and vwap > 0 and price > vwap:
+                _ma_first_fire = detect_ma_pullback(completed, price)
+                if _ma_first_fire:
+                    _log_decision(t, "pullback_first_suppress", price=price,
+                                  ma=_ma_first_fire["ma_name"], stop=_ma_first_fire["stop"])
+
             # ── Entry type 1: Flat top breakout ──────────────────────
             # The intraday BASE must be TODAY's 3-min bars — `completed` spans prior days (for the EMAs),
             # so slice to the current session or the first ~12 min of RTH would read a base across the
             # overnight gap (prior-day consolidation) and fire a spurious open-gap "breakout".
             _sess3 = _latest_session(completed)
-            if len(_sess3) >= FLAT_TOP_WINDOW:
+            if len(_sess3) >= FLAT_TOP_WINDOW and not _ma_first_fire:
                 window = _sess3[-FLAT_TOP_WINDOW:]
                 highs = [float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in window]
                 lows  = [float(b.get("low")  or b.get("l") or b.get("close") or b.get("c") or 0) for b in window]
@@ -6438,7 +6456,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             #    other setups (above VWAP + room≥2:1 + daily-first + front-side observed). Fires ONCE per
             #    ticker; later re-breaks of the same level are continuations handled by flat-top/re-entry.
             #    [widen within Kev's realm — feedback_widen_within_kev_realm] ──
-            if (not found_entry and vwap > 0 and price > vwap
+            if (not found_entry and not _ma_first_fire            # 7/31 PULLBACK_FIRST outranks ORB too
+                    and vwap > 0 and price > vwap
                     and (now.hour * 60 + now.minute) >= 575 and not cache[t].get("orb_fired")):
                 if "orb" not in cache[t]:
                     cache[t]["orb"] = opening_range(_latest_session(cache[t].get("full_bars") or bars))

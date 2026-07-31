@@ -725,3 +725,19 @@ counterfactual outperforms the accepted. Kill: RECLAIM_FIREVOL=0. Rig: shipset s
 RESTRUCTURED so the exit-code verdict runs AFTER all sections (a section added below the verdict
 would have been green-on-red — caught in-session). Sweep 36/36 by exit code. Flat book verified
 in-turn at push: open_trades=[].
+
+### 7/30 ~22:40 — PULLBACK_FIRST ONE-DAY EXPERIMENT SHIPPED (Marcos: "for one day let's reverse
+### the order and just see. Either way we have the data.")
+CONTEXT: flat_top era +$11.26 BUT front_side=True cohort −$148.73 (n=22, 36.4% win) vs
+front_side=False +$159.99 (n=6, 83.3% — THIN, Friday's 444-fire study grades it properly).
+ma_pullback = era's best lane (+$160.82, 70.6%, n=17; 3-for-3 on 7/30's worst-of-era day) and is
+Kev's own front-side trigger ("keep attacking it — pullback after pullback"). LINE ORDER alone
+gave flat_top priority over ma_pullback on the same names. TODAY: PN ×3 bear-flag breaks = −$108.16.
+SHIPPED: PULLBACK_FIRST=1 (env; =0 reverts) — when detect_ma_pullback fires on a scan pass it
+outranks flat_top AND orb on that name; flat-top block (arming included) skipped; the ORIGINAL
+ma_pullback block re-detects (pure fn) and converts through the existing path — zero duplicated
+conversion logic (rig-pinned: exactly one triggered_ma_pullback site). Suppressions log
+`pullback_first_suppress` w/ ma+stop = the exact counterfactual for the grade.
+DURATION: ONE DAY (7/31), graded Friday alongside the front-side study. WRONG WHEN: suppressed
+flat-top fires' counterfactual out-earns the pullback conversions that displaced them.
+Rig sweep green by exit code (shipset now 8 sections, verdict-at-end). Flat book verified in-turn.

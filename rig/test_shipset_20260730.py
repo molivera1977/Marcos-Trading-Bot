@@ -133,3 +133,16 @@ if fails:
 print("GREEN — 7/30 change-set wired: hidden gate+ratchet+exempt, resting bank, "
       "ignition ship-and-shadow, zone_flip shadow, reclaim fire-bar re-check. "
       "Every switch env-revertible; verdict evaluated AFTER all sections (exit-code honest).")
+
+print("== 8 · PULLBACK_FIRST one-day experiment (Marcos 7/30: 'reverse the order and just see') ==")
+src = pathlib.Path(bot.__file__).read_text()
+check("default ON, env-revertible", bot.PULLBACK_FIRST is True)
+check("pre-pass runs the REAL detector before flat_top and logs suppressions",
+      '"pullback_first_suppress"' in src
+      and src.index("_ma_first_fire = detect_ma_pullback") < src.index("Entry type 1: Flat top"))
+check("flat_top block skipped when the pullback fires (arming included)",
+      "len(_sess3) >= FLAT_TOP_WINDOW and not _ma_first_fire" in src)
+check("ORB cannot steal the deferred name",
+      "not found_entry and not _ma_first_fire" in src)
+check("NO duplicated conversion: exactly one triggered_ma_pullback log site",
+      src.count('"triggered_ma_pullback"') == 1)

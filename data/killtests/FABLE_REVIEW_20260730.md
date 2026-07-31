@@ -466,3 +466,77 @@ measurement must be re-run, not assumed.
 
 **FOR FABLE:** ruling requested on (a) close fire-age as a non-issue, (b) the Friday 120s+ dollar cut,
 (c) confirm the fast-lane rebuild stays OFF the runway (it is currently not on any docket).
+
+---
+
+## I · RE-ENTRY & ADDS — THE MISSING MECHANIC (7/31, Marcos: "Kev frequently goes back to the
+## well. If the setup is good, who cares what ticker it is. The quality of setup should always
+## decide." + "kev adds frequently even in the same leg")
+
+**THE DOCTRINE (Marcos's ruling, corpus-backed):** entry eligibility should be decided by SETUP
+QUALITY, not by ticker identity or a per-name counter. Kev's own words: *"Once front side, KEEP
+ATTACKING it — pullback after pullback, re-enter relentlessly"* (system spec §5). And the money
+line: *"The BIG money often comes from the RE-ENTRY, not the first leg"* (`project_kev_system_spec.md:116`).
+
+### I1 · TWO SEPARATE GAPS — do not conflate them
+**GAP A — RE-ENTRY IS CAPPED.** Verified counts, 7/30 NUWE (the same name we traded 3× for −$22.83):
+Kev took **at least SIX entries on one ticker in one day** — 4.97 (premkt wick), 5.60 (attempted,
+limit skipped), 5.82, 5.44, 5.88, 5.67, plus runners at 6.13. OUR LIMITS on that same name:
+`HIDDEN_NAME_CAP=2`/day, `HIDDEN_DAILY_CAP=3`/day, and the curl lanes allow **ONE slot per name
+per SESSION** (`_curl_rth_slot`). Six versus one-or-two is not a tuning delta — it is a different
+method. LIVE COST TODAY (MGRX 7/31): after our 09:32 entry at 0.79 was stopped at 0.65, hidden
+fired FIVE more times while the name ran 0.75 -> 0.90 — 09:46 `hidden_capped` 0.7472 · 09:53
+`hidden_ext_reject` 0.7609 · 09:55 `hidden_capped` 0.7970 · 09:58 `hidden_capped` 0.7825 · 10:00
+`hidden_capped` 0.8251. FOUR of the five were the DAILY CAP — not a quality judgment. The lane was
+out of tickets by 09:46 AM.
+
+**GAP B — THERE IS NO ADD PATH AT ALL. [VERIFIED: zero matches repo-wide for scale_in / pyramid /
+add_to / re_add]** Our position sizing is ONE-SHOT: we enter once and thereafter can only SELL.
+Kev's spec, in our own corpus, never built: *"Adds/pyramiding mechanic: trim some into strength,
+then RE-ADD on the pullback to the demand level / 20 EMA (bottoming tail)"* (`spec:118`). He did it
+live on NUWE 7/30: trimmed into 6.00, then *"I grabbed runners at 613 for the squeeze over 630."*
+CONSEQUENCE: a shakeout is TERMINAL for us (stop + cap + no add all point the same way) while for
+him it is a re-entry opportunity. It also reframes §K6 sizing: his *"greatest expected value, most
+size"* is not only an entry-time decision — SIZE ACCUMULATES THROUGH THE MOVE as the setup keeps
+proving itself. Our `_scaled_risk` picks a number once and never revisits it.
+
+### I2 · THE TENSION THAT MUST BE RESOLVED BEFORE ANY CAP CHANGE
+Measured evidence points BOTH ways and both are real:
+  - FOR caps: ignition 7/27-7/30 — **606 raw fires = −$1,759** vs **first-fire-only = +$129** (§E2).
+    Repeat conversions destroyed value in aggregate.
+  - AGAINST caps: Kev's 6-entry NUWE day; today's MGRX lockout; the corpus doctrine above.
+**THE LIKELY RECONCILIATION (hypothesis, untested):** Kev's repeats are each a NEW SETUP — fresh
+pullback, fresh wick, fresh defended level, risk re-defined off THAT candle's low. Our repeats may
+be the SAME setup re-firing as the machine re-arms on unchanged structure. Nobody has ever labelled
+them. "Attacking the front side" and "a detector stuck in a loop" produce identical row counts.
+
+### I3 · THE TEST THAT SHOULD PRECEDE ANY BUILD (cheap, archived data, no behavior change)
+Label EVERY repeat fire in the era as **NEW-SETUP** (materially different price / fresh wick /
+different level or MA held / structure changed since the prior fire) vs **RE-ARM** (same structure,
+same level, minutes apart). Price both cohorts through the honest harness WITH today's shipped
+quality gates applied (ext gate, 4.5x convert, fire-bar volume) — the caps were set when the lanes
+had NO selection filters, so they may now be paying twice for the same protection.
+  - If NEW-SETUP repeats pay and RE-ARMS bleed ⇒ **the fix is not a bigger number. It is a
+    STRUCTURE-CHANGE REQUIREMENT**: a repeat converts only when the setup is genuinely new. That is
+    Kev's rule expressed mechanically, and it satisfies Marcos's doctrine exactly (quality decides).
+  - If both bleed ⇒ caps stay, and the MGRX case is filed as variance.
+Standard gates apply: TRAIN 07-13..24 / TEST 07-27..31 read once, dollar test, tail test,
+coverage + non-degeneracy asserts (§G8 law).
+
+### I4 · WHAT AN ADD MECHANIC WOULD ACTUALLY REQUIRE (scope honesty for the ruling)
+This is the LARGEST architectural change on any docket. The monitor currently assumes a position
+that only SHRINKS. Adds break that assumption in five places: (1) average entry price and therefore
+R itself; (2) the blended stop — Kev risks each tranche off ITS OWN candle low, so either we track
+per-tranche risk or accept a blended stop that is wrong for both; (3) the resting-order rungs
+shipped 7/30, which were sized against the ORIGINAL share count and would need re-scaffolding on
+every add; (4) the volume guard and notional cap, which were computed once at entry; (5) recovery /
+reconciliation after a restart, which currently rebuilds a single-entry position.
+AGAINST doing it now: 15 trading days to 8/20; nine switches shipped 7/30 and ungraded; it touches
+the live trade path at its most delicate point. FOR doing it: it is the mechanic behind most of
+Kev's money, it is fully specified in our corpus, and every day without it means shakeouts are
+terminal.
+
+**RULINGS REQUESTED:** (a) run the I3 new-setup-vs-re-arm study Friday; (b) is the add mechanic W2
+work, W3, or explicitly POST-LAUNCH; (c) interim — does anything change about the caps BEFORE I3
+returns, or do they hold as-is; (d) if adds are post-launch, should re-entry (Gap A) ship first as
+the cheaper half, since it needs no position-management changes at all.

@@ -4590,7 +4590,10 @@ def kev_reclaim_step(sym, new_bars, vwap):
                         prev_c = c
                         continue
                     fired = {"stop": round(max(min(st["wick"][1], vwap), c * 0.93), 4),
-                             "wick_low": st["wick"][1], "seq": st["n"], "px": round(c, 4), "k": k}
+                             "wick_low": st["wick"][1], "seq": st["n"], "px": round(c, 4), "k": k,
+                             # 7/30: the fire bar's own participation, stamped for the conversion-
+                             # time re-check (RECLAIM_FIREVOL). Recording only — no branch changed.
+                             "volmult": (round(v / avgv, 2) if avgv > 0 else None)}
                     st["n"] += 1
                     st["phase"] = "seek"; st["ext"] = False; st["wick"] = None
         prev_c = c
@@ -4625,6 +4628,16 @@ ZONEFLIP_BAND  = float(os.environ.get("ZONEFLIP_BAND", "0.02"))        # tested 
 # 09:30–11:00 (its head-to-head-verified window: +0.289R/fire in-window vs −0.38R after),
 # shadow the rest of the day. Head-to-head evidence: scratchpad zone_flip_killtest_results.txt.
 RECLAIM_LIVE   = os.environ.get("RECLAIM_LIVE", "1") == "1"
+# ── 7/30 FIRE-BAR RE-CHECK (Marcos: "ship the 2.0"). The lane demands 2× participation at the
+# CROSS but never re-checks at the FIRE — entry can land 90s later on a 100-share bar (all five
+# of 7/30's live reclaim losers fired below 2×: 0.1/0.8/1.8/1.5/0.1×; YHC bought 150 sh = $296).
+# Same threshold the lane already believes in, applied at the moment we actually buy. CONVERSION
+# ONLY — detection/shadow untouched, so Friday's three-arm replay sample is unaffected. Sweep
+# (pre-registered split, control reproduced): TEST −$6.28 → −$5.47/fire, tail kept 80.7%; NOT a
+# profitability fix — a bleed reducer while G2 keeps the lane live for Friday's sample.
+# FAILURE CONDITION (pre-registered): wrong if the refused fires' forward counterfactual
+# (`reclaim_firevol_reject` rows) outperforms the accepted cohort. Kill: RECLAIM_FIREVOL=0.
+RECLAIM_FIREVOL = float(os.environ.get("RECLAIM_FIREVOL", "2.0"))
 _zf_st: dict = {}      # sym -> daily state machine
 _zf_cursor: dict = {}  # (day, sym) -> last processed 10s bucket epoch
 _zf_zone: dict = {}    # (day, sym) -> {"zone","src","open930"} or "none" (computed, no zone)
@@ -6063,7 +6076,20 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                   zone_src=zf["zone_src"], stop=zf["stop"])
                     continue                                   # captured — skip other detectors for t
                 # KEV RECLAIM — live in its verified 09:30-11:00 window.
-                if (_vr_fire and RECLAIM_LIVE
+                # 7/30 fire-bar re-check: computed BEFORE the slot so a refused fire never spends
+                # it. None-volmult fires (pre-deploy state, restart edge) pass through = fail-safe
+                # to the old behavior.
+                _vr_fv = (_vr_fire or {}).get("volmult")
+                _vr_fv_bad = (RECLAIM_FIREVOL > 0 and _vr_fv is not None and _vr_fv < RECLAIM_FIREVOL)
+                _vr_win = (RECLAIM_LIVE_START <= _hm_curl < RECLAIM_LIVE_END
+                           or (ENTRY_OPEN_ET <= _hm_curl < "09:30" and "vwap_reclaim" in PRE_LANES))
+                if _vr_fire and RECLAIM_LIVE and _vr_win and _vr_fv_bad:
+                    _vrr = _vr_fire
+                    _vr_fire = None                            # consumed — no retry-spam, no slot spent
+                    _log_decision(t, "reclaim_firevol_reject", price=price, volmult=_vrr["volmult"],
+                                  need=RECLAIM_FIREVOL, stop=_vrr["stop"], fire_px=_vrr.get("px"),
+                                  seq=_vrr["seq"])
+                elif (_vr_fire and RECLAIM_LIVE
                         and (RECLAIM_LIVE_START <= _hm_curl < RECLAIM_LIVE_END
                              # PREMARKET FIX 7/26 ("ship all 4"): PRE_LANES promised premarket reclaim
                              # but this window (09:30+) killed every premarket fire BEFORE the premkt
@@ -8400,7 +8426,8 @@ def main():
           f"HIDDEN_EXT_GATE={int(HIDDEN_EXT_GATE)}({HIDDEN_EXT_LO}-{HIDDEN_EXT_HI}) "
           f"HIDDEN_SCALEBAR_STOP={int(HIDDEN_SCALEBAR_STOP)} VRIDE_EXEMPT={sorted(VRIDE_EXEMPT)} "
           f"RESTING_BANK={int(RESTING_BANK)} IGNITION_CONVERT_MULT={IGNITION_CONVERT_MULT} "
-          f"IGNITION_CHART_BYPASS={int(IGNITION_CHART_BYPASS)} ZONEFLIP_CONVERT={int(ZONEFLIP_CONVERT)}")
+          f"IGNITION_CHART_BYPASS={int(IGNITION_CHART_BYPASS)} ZONEFLIP_CONVERT={int(ZONEFLIP_CONVERT)} "
+          f"RECLAIM_FIREVOL={RECLAIM_FIREVOL}")
     post_balance_to_dashboard(balance)
 
     # ── Morning watchlist email ───────────────────────────

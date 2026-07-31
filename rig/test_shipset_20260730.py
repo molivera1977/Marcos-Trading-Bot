@@ -97,9 +97,39 @@ print("== boot banner ==")
 check("all six switches visible at boot", "HIDDEN_EXT_GATE=" in src and "RESTING_BANK=" in src
       and "IGNITION_CONVERT_MULT=" in src and "ZONEFLIP_CONVERT=" in src)
 
+
+print("== 7 · reclaim fire-bar re-check (RECLAIM_FIREVOL, Marcos: 'ship the 2.0') ==")
+src = pathlib.Path(bot.__file__).read_text()   # re-read: section added after the first snapshot
+check("default 2.0, env-kill documented", bot.RECLAIM_FIREVOL == 2.0)
+check("reject computed BEFORE the slot (refused fire never spends it)",
+      src.index("_vr_fv_bad") < src.index('_curl_rth_slot(t, "vr", _hm_curl)'))
+check("reject consumes the fire and logs the full ticket", '"reclaim_firevol_reject"' in src)
+check("None volmult passes through (fail-safe to old behavior)",
+      "_vr_fv is not None and _vr_fv < RECLAIM_FIREVOL" in src)
+# functional: drive the REAL detector over a synthetic tape; the fire must carry volmult
+bot._bucket_fresh = lambda k: True
+bot._reclaim_st.clear()
+import time as _t
+K = int(_t.time()) // 10 * 10 - 600
+VW = 1.00
+seq = []
+for i in range(10):                                   # warm-up under VWAP, avgv ~100
+    seq.append((K + i * 10, 0.99, 0.995, 0.985, 0.99, 100))
+seq.append((K + 100, 0.99, 1.005, 0.99, 1.002, 1000))   # cross: prev<=vwap, c>vwap, v>=2x avg
+seq.append((K + 110, 1.002, 1.012, 1.008, 1.011, 300))  # extend >= +1%
+seq.append((K + 120, 1.011, 1.010, 1.004, 1.009, 200))  # pullback into the zone -> retest+wick
+seq.append((K + 130, 1.009, 1.013, 1.009, 1.012, 900))  # close > wick high -> FIRE
+f = bot.kev_reclaim_step("RIGVR", seq, VW)
+check("synthetic tape fires through the REAL detector", f is not None)
+check("fire dict carries its volume multiple", f is not None and f.get("volmult") is not None,
+      str(f))
+check("volmult is the FIRE bar's (900 sh vs rolling avg), not the cross bar's",
+      f is not None and f.get("volmult") is not None and 2.0 < f["volmult"] < 8.0, str(f))
+
 print()
 if fails:
     print(f"RED — {len(fails)} failing: {fails}")
     sys.exit(1)
-print("GREEN — 7/30 change-set wired: gate+ratchet+exempt (hidden), resting bank, "
-      "ignition ship-and-shadow, zone_flip shadow. Every switch env-revertible.")
+print("GREEN — 7/30 change-set wired: hidden gate+ratchet+exempt, resting bank, "
+      "ignition ship-and-shadow, zone_flip shadow, reclaim fire-bar re-check. "
+      "Every switch env-revertible; verdict evaluated AFTER all sections (exit-code honest).")

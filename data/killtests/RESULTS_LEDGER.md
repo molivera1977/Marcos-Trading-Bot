@@ -712,3 +712,16 @@ waited for the next stream breach. Same family as #11 (STFS 09:58). Class (b) EX
 the stop fires, fills land inside the touch bar's range. FIX QUEUED (not shipped): tape-aware
 intrabar check off the curl feed — needs its own kill-test (0.1%-single-print wicks may not be
 free exits). Rows/method in-transcript; scan defects documented.
+
+### 7/30 late — RECLAIM_FIREVOL=2.0 SHIPPED (Marcos: "ship the 2.0")
+Fire-bar participation re-check at CONVERSION only: the fire dict now stamps its bar's volmult
+(recording-only detector change), and a fire below 2.0× the rolling avg logs
+`reclaim_firevol_reject` (full ticket) WITHOUT spending the slot. Detection/shadow untouched ⇒
+Friday's three-arm replay sample unaffected. Evidence: reclaim_firevol_20260730.py (pre-registered
+split, control reproduced): TEST −$6.28 → −$5.47/fire, tail kept 80.7%. NOT a profitability fix —
+a bleed reducer while G2 keeps the lane live. WRONG WHEN: the refused cohort's forward
+counterfactual outperforms the accepted. Kill: RECLAIM_FIREVOL=0. Rig: shipset suite extended
+(functional synthetic-tape fire through the REAL kev_reclaim_step, volmult 2.0<x<8.0 pinned) and
+RESTRUCTURED so the exit-code verdict runs AFTER all sections (a section added below the verdict
+would have been green-on-red — caught in-session). Sweep 36/36 by exit code. Flat book verified
+in-turn at push: open_trades=[].

@@ -5640,7 +5640,12 @@ MAX_STOP_DIST_PCT       = 0.0    # C: Kev tight-setup gate — SKIP entries whos
 #    MARCOS'S DECISION over the pre-registered 5%; every reject is decision-logged with its width
 #    band so the 4–5% and 5–6% rejects are a live shadow cohort (graded Friday 7/31 vs real bars).
 #    MIN_STOP_PCT=0 env = kill switch.
-MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "6.0")) / 100.0
+# 8/1 (Marcos: "let's go for 4% and see where the data takes us") — floor 6->4. The cliff is
+# ARITHMETIC (slip 1.477%/entry = 0.37R at 4%, 0.74R at 2%; G7 n=784 monotone) and the shadow
+# bands graded 4-6% rejects as forfeited winners (~$65/4 days, n=6 — thin, hence the week of
+# finer-band data below). Live cells 4-5/5-6 from kept trades' stop_width_pct; death zone <4
+# stays shadow-graded via the refined reject bands. Friday 8/8 sets the floor where the edge is.
+MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "4.0")) / 100.0
 # 7/31 MINIMUM MARKED RUNWAY (Marcos): refuse a trade whose road to the next MARKED level is under
 # this many R. Risking a full R to reach 0.1R of reward is a bad bet regardless of setup quality.
 # 0 = gate off. Fail-open: only a NUMERIC runway can block (see the gate site for the evidence).
@@ -5687,7 +5692,10 @@ def _min_stop_verdict(entry_price, stop_loss, entry_type=None):
     # Round FIRST, then compare — raw float division rejects an exactly-6% stop
     # ((10−9.40)/10 → 5.999999999999998 < 6.0; the rig's boundary case caught it).
     w = round((entry_price - stop_loss) / entry_price * 100.0, 2)
-    band = "<4" if w < 4.0 else ("4-5" if w < 5.0 else ("5-6" if w < 6.0 else ">=6"))
+    # 8/1 FINE BANDS (Marcos: "gather data on 2,3,4,5,6 for the next week") — the death zone
+    # under the 4% floor gets counterfactual cells; 4-6 are LIVE cells under the new floor.
+    band = ("<2" if w < 2.0 else ("2-3" if w < 3.0 else ("3-4" if w < 4.0 else
+            ("4-5" if w < 5.0 else ("5-6" if w < 6.0 else ">=6")))))
     if entry_type in MIN_STOP_EXEMPT:
         return False, w, band
     return w < MIN_STOP_DIST_PCT * 100.0, w, band

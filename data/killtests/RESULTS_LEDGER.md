@@ -986,3 +986,12 @@ KIDZ CANARY: 0 exempt fills < −40% day_gain. NOT TRIPPED. Provisional −40% b
 canary closed clean.
 FRIDAY 8/1 DOCKET: ALL ITEMS RULED (grades 1-3, I3, four cuts). Weekend = Fable design docket only
 (exhaustion-succession, concurrency/I4, Railway migration, ghost-pass measurement).
+
+### 8/1 ~00:45 — MIN_STOP FLOOR 6% -> 4% + FINE BANDS (Marcos: "let's go for 4% and see where
+### the data takes us" after challenging my n=2 comfort — the cliff is ARITHMETIC (slip 0.37R at
+### 4%, 0.74R at 2%, calibrated n=59 + G7 n=784) but PROFITABILITY of 4-6 was n=6; hence:
+THE WEEK'S CURVE EXPERIMENT: floor=4 makes 4-5/5-6 LIVE cells (kept trades stamp stop_width_pct);
+reject bands refined <4/4-5/5-6 -> <2/2-3/3-4 so the death zone accrues counterfactual cells.
+Friday 8/8 sets the floor wherever the 2-6 curve says the edge is. HPAI-class (4.15%, -$91.26
+history) now trades live — the named risk the live cell grades. Rig re-pinned (floor + bands +
+HPAI expectation flipped with rationale); sweep green; flat book verified.

@@ -17,18 +17,18 @@ def check(name, cond, detail=""):
         fails.append(name)
 
 print("== config ==")
-check("floor is 6% by default", abs(bot.MIN_STOP_DIST_PCT - 0.06) < 1e-9,
+check("floor is 4% by default (8/1, Marcos: see where the data takes us)", abs(bot.MIN_STOP_DIST_PCT - 0.04) < 1e-9,
       f"MIN_STOP_DIST_PCT={bot.MIN_STOP_DIST_PCT}")
 
 print("== rejection boundary (entry $10.00) ==")
 for stop, want_rej, want_band in [
-    (9.90, True,  "<4"),    # 1.0% — the KIDZ class
-    (9.61, True,  "<4"),    # 3.9%
-    (9.60, True,  "4-5"),   # 4.0% exactly — band edge
-    (9.51, True,  "4-5"),   # 4.9%
-    (9.50, True,  "5-6"),   # 5.0% exactly — band edge
-    (9.41, True,  "5-6"),   # 5.9%
-    (9.40, False, ">=6"),   # 6.0% exactly — MUST PASS (floor is a minimum, not exclusive)
+    (9.90, True,  "<2"),    # 1.0% — the KIDZ class (fine bands 8/1)
+    (9.61, True,  "3-4"),   # 3.9% (fine bands 8/1)
+    (9.60, False, "4-5"),   # 4.0% — passes under the 4 floor (8/1)   # 4.0% exactly — band edge
+    (9.51, False, "4-5"),   # 4.9% — passes (8/1)   # 4.9%
+    (9.50, False, "5-6"),   # 5.0% — passes (8/1)   # 5.0% exactly — band edge
+    (9.41, False, "5-6"),   # 5.9% — passes under the 4 floor (8/1)
+    (9.40, False, ">=6"),   # 6.0% — passes (floor now 4.0, 8/1)
     (9.30, False, ">=6"),   # 7.0%
     (8.00, False, ">=6"),   # 20% — wide stops are the OTHER gate's business
 ]:
@@ -39,10 +39,12 @@ for stop, want_rej, want_band in [
 print("== real trades replay the right verdict (7/27 lane agreement) ==")
 # KIDZ 7/27 vwap_reclaim: 2.87% -> FLOORED lane -> reject, '<4' (the trade the gate exists for)
 rej, w, band = bot._min_stop_verdict(0.5400, 0.5245, "vwap_reclaim")
-check("KIDZ reclaim (2.87%) rejected in '<4'", rej and band == "<4", f"w={w} band={band}")
+check("KIDZ reclaim (2.87%) rejected in '2-3' (floor 4, fine bands 8/1)", rej and band == "2-3", f"w={w} band={band}")
 # HPAI 7/17 vwap_reclaim: 4.15% -> reject, '4-5' (worst tight-stop dollar loss, -$91.26)
 rej, w, band = bot._min_stop_verdict(0.620, 0.5943, "vwap_reclaim")
-check("HPAI reclaim (4.15%) rejected in '4-5'", rej and band == "4-5", f"w={w} band={band}")
+# 8/1 RE-PIN: HPAI (4.15%) now PASSES under the 4 floor — it becomes a LIVE 4-5 cell trade;
+# its -$91.26 history is exactly what the week's live 4-5 cell will confirm or refute.
+check("HPAI reclaim (4.15%) passes at floor 4, band '4-5'", (not rej) and band == "4-5", f"w={w} band={band}")
 # TGHL 7/17 ignition: 3.51% -> reject (ignition = the floor's main business, 43 era rejects)
 rej, w, band = bot._min_stop_verdict(1.400, 1.3509, "ignition")
 check("TGHL ignition (3.51%) rejected in '<4'", rej and band == "<4", f"w={w} band={band}")

@@ -47,7 +47,7 @@ rej, w, band = bot._min_stop_verdict(0.620, 0.5943, "vwap_reclaim")
 check("HPAI reclaim (4.15%) passes at floor 4, band '4-5'", (not rej) and band == "4-5", f"w={w} band={band}")
 # TGHL 7/17 ignition: 3.51% -> reject (ignition = the floor's main business, 43 era rejects)
 rej, w, band = bot._min_stop_verdict(1.400, 1.3509, "ignition")
-check("TGHL ignition (3.51%) rejected in '<4'", rej and band == "<4", f"w={w} band={band}")
+check("TGHL ignition (3.51%) rejected in '3-4' (fine bands 8/1)", rej and band == "3-4", f"w={w} band={band}")
 print("== exempt lanes: tight risk is the thesis — NEVER rejected, band still stamped ==")
 # ZYBT-0720-A — Kev's canonical zone-flip specimen: $1.28 entry, 7 cent risk = 5.47%. THE pin:
 # any future floor change that rejects the lane's founding trade goes red here.
@@ -61,10 +61,10 @@ check("LGHL zone_flip (5.56%) passes, band stamped '5-6'", not rej and band == "
 rej, w, band = bot._min_stop_verdict(2.88, 2.72, "hidden_entry")
 check("LVWR hidden (5.56%) passes", not rej and band == "5-6", f"w={w} band={band}")
 rej, w, band = bot._min_stop_verdict(2.88, 2.8512, "hidden_entry")
-check("hidden 1% stop still passes (exempt has no floor at all)", not rej and band == "<4", f"w={w} band={band}")
+check("hidden 1% stop still passes (exempt; band '<2' 8/1)", not rej and band == "<2", f"w={w} band={band}")
 # CPHI 7/16 flat_top 3.78% (+$62.89): the winner class the flat_top exemption protects
 rej, w, band = bot._min_stop_verdict(3.14, 3.0213, "flat_top")
-check("CPHI flat_top (3.78%) passes", not rej and band == "<4", f"w={w} band={band}")
+check("CPHI flat_top (3.78%) exempt-passes in '3-4' (8/1)", not rej and band == "3-4", f"w={w} band={band}")
 # BIYA flat_top 7/27: 7.03% -> passes on width alone either way
 rej, w, band = bot._min_stop_verdict(3.86, 3.5888, "flat_top")
 check("BIYA flat_top (7.03%) passes", not rej and band == ">=6", f"w={w} band={band}")
@@ -73,7 +73,7 @@ check("exempt set is exactly {zone_flip, hidden_entry, flat_top}",
       bot.MIN_STOP_EXEMPT == {"zone_flip", "hidden_entry", "flat_top"}, f"got {bot.MIN_STOP_EXEMPT}")
 _sv = bot.MIN_STOP_EXEMPT
 bot.MIN_STOP_EXEMPT = set()
-rej, w, band = bot._min_stop_verdict(1.28, 1.21, "zone_flip")
+rej, w, band = bot._min_stop_verdict(1.28, 1.24, "zone_flip")   # 3.1% — below the 4 floor (8/1)
 check("MIN_STOP_EXEMPT='' floors everything (env kill of the exemption)", rej, f"rej={rej}")
 bot.MIN_STOP_EXEMPT = _sv
 

@@ -932,3 +932,21 @@ at 0.70/1.00 while price traded 1.20) and brings kev maps under the Cartographer
 vision cannot see. Head-to-head accumulates via the picks db; no supersession on disagreement.
 REMAINING FRIDAY DOCKET (rolls to the weekend): flat_top 444-fire grade · PULLBACK_FIRST 71
 suppressions · I3 repeats-with-gates · 120s+ fire-age cut · 5%-vs-6% shadow bands · Q3b · KIDZ.
+
+### 7/31 ~23:50 — GRADE 3 RULED: flat_top front-side inversion REFUTED at fire level;
+### PULLBACK_FIRST day-one observational
+495 stamped flat_top fires (427 front / 68 back), 368 priced by forward mark-outs (no stops
+stamped — direction grade, not a trade sim): FRONT median −2.10/−2.10/−2.77% at 15/30/60m
+(26-29% positive) · BACK −0.91/−1.31/−2.68% (32-36%). BOTH NEGATIVE EVERYWHERE. The 6-trade
+back-side cell (+$159.99, 83%) was CONVERSION LUCK — the gates picked the good 6 from a bad 68.
+NO back-side gate ships. flat_top's era-positive trades vs negative fire population = the
+downstream gates doing the work. The 10x-sample registration did its job: killed a thin cell.
+PULLBACK_FIRST day one: 71 suppressions -> 71 ma fires -> only 4 conversions (−$23.39) — ma's own
+gates refused what priority delivered. flat_top still traded 5 (+$4.62 vs 7/30's −$155, regime
+confound). 35/71 suppressions had flat_top ARMED nearby = the only plausible displacements;
+unpriceable without scan-state replay. DESIGN WRINKLE logged: suppression at FIRE time + ma
+gate-blocked afterward = ghost passes where NOBODY traded (FCUV 13:11/13:23). Refinement candidate
+(docket, not tonight): suppress only on actual conversion. MONDAY: PULLBACK_FIRST stays ON
+(no measured harm; suppress logs accumulate the counterfactual) unless Marcos reverts.
+REMAINING DOCKET -> WEEKEND: I3 (repeats w/ gates + capital bound + cost-per-attempt) · 120s+
+fire-age dollar cut · 5%-vs-6% shadow bands · Q3b (post-7/28 stamps only) · KIDZ canary.

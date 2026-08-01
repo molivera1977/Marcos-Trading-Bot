@@ -1001,3 +1001,6 @@ answer to what is best. If we need to after next Friday, 5 will still be there."
 ~8-15 extra live trades/week in the 4-6 band, bounded worst ≈ −$300-500 DRY_RUN paper vs the band's
 measured +$65 last week. TRIPWIRE (pre-agreed): live 4-5 + 5-6 cells reach −$150 cumulative before
 Friday 8/8 -> revert MIN_STOP_PCT to 5 without waiting for the grade; bands keep logging either way.
+8/1 01:05 — sizing interaction confirmed + demonstrated on loaded code: floor 4% admits the new
+band at AUTO-REDUCED risk (RISK_PROP_REF held at 6%: 4%->$20, 5%->$25, 6%+->$30 full). REF
+revisited with the 8/8 curve. Config live in repo; Railway builds it for Monday's open.

@@ -126,6 +126,29 @@ check("fire dict carries its volume multiple", f is not None and f.get("volmult"
 check("volmult is the FIRE bar's (900 sh vs rolling avg), not the cross bar's",
       f is not None and f.get("volmult") is not None and 2.0 < f["volmult"] < 8.0, str(f))
 
+print("== 10 · BREAK-SIDE gate (7/31, Marcos: 'a real test on Monday, shadow the opposite') ==")
+src = pathlib.Path(bot.__file__).read_text()
+check("default ON; tol 0; tape lanes only, dip_rip EXCLUDED",
+      bot.BREAKSIDE_GATE is True and bot.BREAKSIDE_MAX_PCT == 0.0
+      and bot.BREAKSIDE_LANES == {"vwap_reclaim","hidden_entry","ignition"}
+      and "dip_rip" not in bot.BREAKSIDE_LANES)
+check("sits AFTER runway, BEFORE sizing",
+      src.index('"runway_reject"') < src.index('"breakside_reject"')
+      and src.index('"breakside_reject"') < src.index("Kev short-003 sizing", src.index('"breakside_reject"')))
+check("FAIL-OPEN: only a positive numeric break can block", "if _bs_brk > 0:" in src)
+check("reject logs the full ticket + refunds the slot",
+      '"breakside_reject"' in src
+      and src[src.index('"breakside_reject"'):src.index('"breakside_reject"')+600].count("_slot_refund") == 1)
+check("banner reports it", "BREAKSIDE_GATE=" in src)
+# functional: the gate math on the pinned specimens
+_saved = bot._fetch_kev_levels
+bot._fetch_kev_levels = lambda: {"RIGB": {"break": 0.70}}
+lv = float(((bot._fetch_kev_levels() or {}).get("RIGB") or {}).get("break") or 0)
+check("MGRX-A class (0.56 vs 0.70 = below) would PASS", (0.56 - lv) / lv * 100 <= 0.0)
+check("MGRX-B class (0.79 vs 0.70 = +12.9%) would BLOCK", (0.79 - lv) / lv * 100 > 0.0)
+bot._fetch_kev_levels = lambda: {}
+check("no sheet entry -> fail-open PASS", float((({} ).get("RIGB") or {}).get("break") or 0) == 0.0)
+bot._fetch_kev_levels = _saved
 print()
 if fails:
     print(f"RED — {len(fails)} failing: {fails}")

@@ -5645,6 +5645,27 @@ MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "6.0")) / 100.0
 # this many R. Risking a full R to reach 0.1R of reward is a bad bet regardless of setup quality.
 # 0 = gate off. Fail-open: only a NUMERIC runway can block (see the gate site for the evidence).
 MIN_RUNWAY_RR           = float(os.environ.get("MIN_RUNWAY_RR", "1.0"))
+# ── 7/31 BREAK-SIDE GATE (Marcos: "I want our findings to get a real test on Monday and you can
+# shadow the opposite" → "yes, definitely"). Joint grade n=56 (7/29-31): entries ABOVE the marked
+# break lose EVEN WITH ROAD OPEN (−$13.73/e, 33% win, n=12) while at/below wins (+$12.67/e, 64%,
+# n=25). 4th independent confirmation of buy-below-the-level. STATIC break BY MEASUREMENT: the
+# dynamic swing-re-anchor FAILED its pre-registered kill-test (breakside_dynamic_20260731.py —
+# TOL=0 identical to static; TOL=2% degrades PASS to −$1.23/e; the retest-chase zone lost −$216.86
+# on 11 trades). Freshness rides the LIVE RE-READ pipeline (10 v2+ maps 7/31, median 5.7 min
+# exhaustion→new map, latency now stamped, cap raised to 3).
+# SCOPE: vwap_reclaim, hidden_entry, ignition. dip_rip EXCLUDED — its thesis is buying resumption
+# OVER the level (AMIX +$39.46 at +2.5% above). Chart lanes EXCLUDED — their No-Break-No-Trade
+# gate requires above-break; flipping a settled gate is a separate Fable question.
+# KNOWN COST, on the record: blocks the MGRX-10:54 class (+$29.99 at +28.6% with road open) and is
+# dark on a name post-breakout until a re-read posts a fresh level or price returns to the map.
+# FAIL-OPEN like runway: no marked break -> PASS (ignorance never blocks; only evidence does).
+# Kill: BREAKSIDE_GATE=0.
+# WRONG WHEN (pre-registered): the blocked cohort's forward counterfactual (`breakside_reject`
+# rows, full ticket) out-earns the allowed cohort.
+BREAKSIDE_GATE          = os.environ.get("BREAKSIDE_GATE", "1") == "1"
+BREAKSIDE_MAX_PCT       = float(os.environ.get("BREAKSIDE_MAX_PCT", "0.0"))
+BREAKSIDE_LANES         = set(filter(None, (s.strip() for s in os.environ.get(
+    "BREAKSIDE_LANES", "vwap_reclaim,hidden_entry,ignition").split(","))))
 # 7/27 LANE AGREEMENT (Marcos, settled after the lane/design pass): the floor governs lanes whose
 # tight stop is an ACCIDENT of a noisy base — ignition (1-min base low; 43 era rejects −$276.73) and
 # vwap_reclaim (−$180.56) — plus ma_pullback/orb where it never binds. EXEMPT = lanes where tight
@@ -8450,7 +8471,8 @@ def main():
           f"HIDDEN_SCALEBAR_STOP={int(HIDDEN_SCALEBAR_STOP)} VRIDE_EXEMPT={sorted(VRIDE_EXEMPT)} "
           f"RESTING_BANK={int(RESTING_BANK)} IGNITION_CONVERT_MULT={IGNITION_CONVERT_MULT} "
           f"IGNITION_CHART_BYPASS={int(IGNITION_CHART_BYPASS)} ZONEFLIP_CONVERT={int(ZONEFLIP_CONVERT)} "
-          f"RECLAIM_FIREVOL={RECLAIM_FIREVOL} MIN_RUNWAY_RR={MIN_RUNWAY_RR}")
+          f"RECLAIM_FIREVOL={RECLAIM_FIREVOL} MIN_RUNWAY_RR={MIN_RUNWAY_RR} "
+          f"BREAKSIDE_GATE={int(BREAKSIDE_GATE)}({sorted(BREAKSIDE_LANES)})")
     post_balance_to_dashboard(balance)
 
     # ── Morning watchlist email ───────────────────────────
@@ -8828,6 +8850,27 @@ def main():
                     with trade_lock:
                         reentry["held"].discard(ticker)
                     return
+            # ── BREAK-SIDE gate (7/31, tape lanes only — see the constants block for the full
+            # evidence + known costs). At/below the marked break passes; a chase above it blocks
+            # and logs its full ticket so Monday's shadow prices the opposite. FAIL-OPEN: no
+            # break on the sheet -> pass.
+            if BREAKSIDE_GATE and entry_type in BREAKSIDE_LANES:
+                try:
+                    _bs_brk = float(((_fetch_kev_levels() or {}).get(ticker) or {}).get("break") or 0)
+                except Exception:
+                    _bs_brk = 0.0
+                if _bs_brk > 0:
+                    _bs_gap = (entry_price - _bs_brk) / _bs_brk * 100.0
+                    if _bs_gap > BREAKSIDE_MAX_PCT:
+                        print(f"📐 {ticker} entry ${entry_price:.2f} is {_bs_gap:+.1f}% ABOVE the marked "
+                              f"break ${_bs_brk} — chasing past the level, skipping [break-side gate]")
+                        _log_decision(ticker, "breakside_reject", price=entry_price,
+                                      stop=round(stop_loss, 4), break_level=_bs_brk,
+                                      gap_pct=round(_bs_gap, 2), machine=entry_type)
+                        _slot_refund(ticker, entry_type)
+                        with trade_lock:
+                            reentry["held"].discard(ticker)
+                        return
             # B: Kev short-003 sizing (LIVE 7/11) — shares = max-loss ÷ risk-per-share; notional-capped. Wide stop →
             # fewer shares, tight stop → more; every full stop-out costs the same RISK_PER_TRADE.
             _clamp = "none"   # CLAMP-CHAIN LOGGING (7/26, log-only — the 7/25 exec-expert rec, built at

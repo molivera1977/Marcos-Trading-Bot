@@ -892,3 +892,43 @@ CONCURRENCY vs QUALIFICATION (added to the runway spec, §I4d): qualification ju
 funding decides whether we can pay now. A qualifying setup on a full book WAITS FOR A SLOT and must
 log `capital_wait`, NOT `runway_reject` — distinct rows or Friday cannot separate "judged bad" from
 "could not afford."
+
+## 2026-07-31 NIGHT — FRIDAY GRADES 1+2 RULED · BREAK-SIDE GATE SHIPPED · RE-READ SYSTEM UPGRADED
+**GRADE 1 (three-arm front-side): INCONCLUSIVE — UNDERPOWERED, verdict STABLE across all 4
+reconstruction variants.** Original scoring script lost (/tmp); reconstruction matched the 136-row
+artifact at best 85%; verdict-stability run: best arm qualified 2 OOS fires vs the 8 required
+(A=0, B=2 +$36.69, C=1). THE FINDING: mature-trend reclaims essentially did not occur 7/29-31 —
+arm A found ZERO qualifying fires in 3 days. Any of these gates live = reclaim dark all week (the
+shadow outcome from the other direction). RULED (Marcos: "status quo but shadowing"): reclaim
+keeps trading under this week's floors; metrics FROZEN v2 IN-REPO (frontside_metrics.py) +
+next-Friday grader committed (frontside_grade_NEXT.py). Definitions never live in /tmp again.
+**GRADE 2 (joint runway × ballpark): RUNWAY IS THE LOAD-BEARING RULER; BALLPARK RESOLVED BY
+SUPERSESSION; BREAK-SIDE IS A REAL SECOND AXIS.** n=56 stamped trades 7/29-31, frozen 3-band:
+BELOW break +$6.91/e (57%) · 0..+10% ABOVE −$20.87/e (20%, the band the old ±10% would have
+BLESSED) · >+10% −$21.65/e. Runway on the same trades: <1R −$25.89/e (11%) vs >=1R +$4.11/e (54%).
+2x2: road carries dollars inside every ballpark cell; 14 near-level-no-road trades = −$332 (ballpark
+passes, runway catches); the 1 extended-with-road trade won (+$29.99). Marcos: "runway is king" —
+CORRECTED to: runway is the floor, break-side retains INDEPENDENT signal (within road>=1R: below
+break +$12.67/e 64% vs above −$13.73/e 33%; corr(gap,road)=−0.53). NO ±10% gate ships, ever.
+**DYNAMIC RE-ANCHOR REFUTED (pre-registered kill-test, breakside_dynamic_20260731.py):** swing-
+high re-anchor TOL=0 ≡ static; TOL=2% admits 11 trades netting −$216.86 (the retest-chase zone —
+Kev's play, unprofitable at OUR fills); MGRX-10:54 named case still blocked. Static wins.
+**BREAK-SIDE GATE SHIPPED (Marcos: "real test Monday, shadow the opposite" → "yes, definitely"):**
+BREAKSIDE_GATE=1, tol 0, lanes vwap_reclaim/hidden_entry/ignition (dip_rip excluded — buys OVER
+levels by thesis; chart lanes excluded — flipping No-Break-No-Trade = separate Fable question).
+Fail-open. `breakside_reject` = the shadow of the opposite. WRONG WHEN blocked cohort out-earns
+allowed. Rig section 10 green; sweep green; flat book verified 23:18 (open_trades=[]).
+**RE-READ SYSTEM (Cartographer #77) UPGRADED:** latency MEASURED for the first time — 10 v2+ maps
+7/31, exhaustion→post median 5.7 min (1.7–11.7) + ≤90s gate TTL ⇒ ~7 min end-to-end; timely for
+pullback entries, not for the vertical class (dip_rip's domain). Now STAMPED (`exhausted_at`,
+`reread_latency_min` on every v2+ map; whitelist passthrough fixed). Cap 2→3/name (Marcos: "if we
+are catching runners, it will pay for itself" — FCUV/TCX/CUPR all capped by midday).
+**KEV-MAP EXHAUSTION-SUCCESSION (design APPROVED by Marcos, build = Fable docket):** src=kev stays
+clobber-protected WHILE VALID; once price exhausts his last target, vision re-reads may post v2
+with his map in history (never deleted). Fixes the MGRX freeze (my 09:38 kev-merge locked its map
+at 0.70/1.00 while price traded 1.20) and brings kev maps under the Cartographer expiry law.
+**VISION vs KEV (n=2, honest):** MGRX exact match (0.70); CYCU disagreement and KEV RIGHT (vision
+2.16 vs his "need 3.00" — never broke 3, faded to 1.04). His levels carry story+regime information
+vision cannot see. Head-to-head accumulates via the picks db; no supersession on disagreement.
+REMAINING FRIDAY DOCKET (rolls to the weekend): flat_top 444-fire grade · PULLBACK_FIRST 71
+suppressions · I3 repeats-with-gates · 120s+ fire-age cut · 5%-vs-6% shadow bands · Q3b · KIDZ.

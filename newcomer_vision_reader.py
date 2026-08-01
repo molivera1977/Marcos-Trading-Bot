@@ -424,7 +424,7 @@ def post_level(ticker, read):
              "note": f"vision {verdict} (levels-only): {reason}", "src": "vision"}
     # LEDGER pass-through (#77 part 3): version lineage survives the post — read_version/trigger/
     # read_at/history were silently stripped by this whitelist (found 7/21: CPHI v2 posted, history:0).
-    for _lk in ("read_version", "trigger", "read_at", "history"):
+    for _lk in ("read_version", "trigger", "read_at", "history", "exhausted_at", "reread_latency_min"):
         if read.get(_lk) is not None:
             entry[_lk] = read[_lk]
     cur[ticker] = entry
@@ -575,7 +575,9 @@ def process_once(dry=False, out_rows=None):
 # (b) bot markers polled from decisions (rocket_armed / read_exhausted_observed). ~9 re-reads/day
 # measured on 7/20-21 (every monster flagged: ZYBT 9:30, CPHI 10:18, VIVK 9:47). Never blocks —
 # posts a v2+ map so the gate governs the REMAINING move (median +7%, tails +273-449%).
-REREAD_MAX_PER_NAME = int(os.environ.get("REREAD_MAX_PER_NAME", "2"))
+# 7/31 (Marcos): "ok a 3rd re-read if necessary. If we are catching runners, it will pay for
+# itself." FCUV/TCX/CUPR all hit the old cap of 2 by midday and went map-dark on their best legs.
+REREAD_MAX_PER_NAME = int(os.environ.get("REREAD_MAX_PER_NAME", "3"))
 REREAD_DAILY_CAP    = int(os.environ.get("REREAD_DAILY_CAP", "15"))
 REREAD_CUTOFF_HHMM  = os.environ.get("REREAD_CUTOFF_HHMM", "15:25")
 _rr_state = {"count": 0, "per_name": {}, "last_probe": 0.0, "seen_markers": set()}
@@ -646,6 +648,25 @@ def reread_one(ticker, trigger):
         rd["read_version"] = int(lv.get("read_version") or 1) + 1
         rd["trigger"] = trigger
         rd["read_at"] = dt.datetime.now(ET).strftime("%H:%M")
+        # 7/31 LATENCY STAMP: when did the tape actually exhaust the prior map (first 1-min high
+        # at/over its last target), and how long until this v2 posts? Baseline measured tonight:
+        # median 5.7 min over 10 re-reads. Fail-soft — a stamp failure never blocks the re-read.
+        try:
+            _tgts = [float(x) for x in (prior.get("targets") or []) if x]
+            _lastT = max(_tgts) if _tgts else None
+            if _lastT:
+                _b1 = sorted([r for r in _min1(ticker)
+                              if str(r.get("time","")).startswith(DAY) and r.get("session")=="RTH"],
+                             key=lambda r: str(r["time"]))
+                _cross = next((str(r["time"])[11:16] for r in _b1
+                               if float(r.get("high") or 0) >= _lastT), None)
+                if _cross:
+                    rd["exhausted_at"] = _cross
+                    _t1 = dt.datetime.strptime(_cross, "%H:%M")
+                    _t2 = dt.datetime.strptime(rd["read_at"], "%H:%M")
+                    rd["reread_latency_min"] = round((_t2 - _t1).total_seconds() / 60.0, 1)
+        except Exception as _e:
+            print(f"[reread] latency stamp failed {ticker}: {_e}", flush=True)
         post_level(ticker, rd)
         print(f"[reread] {ticker} v{rd['read_version']} ({trigger}): break {rd.get('break_level')} "
               f"targets {rd.get('targets')} [{rd.get('verdict')}/{rd.get('confidence')}]", flush=True)

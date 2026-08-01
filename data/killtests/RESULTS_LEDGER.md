@@ -995,3 +995,9 @@ reject bands refined <4/4-5/5-6 -> <2/2-3/3-4 so the death zone accrues counterf
 Friday 8/8 sets the floor wherever the 2-6 curve says the edge is. HPAI-class (4.15%, -$91.26
 history) now trades live — the named risk the live cell grades. Rig re-pinned (floor + bands +
 HPAI expectation flipped with rationale); sweep green; flat book verified.
+ADDENDUM (Marcos, on the record like the 7/27 canary reluctance): "it does make me nervous...
+my natural inclination would be to go from 6 to 5. However, going to 4 would give us a quicker
+answer to what is best. If we need to after next Friday, 5 will still be there." EXPOSURE SIZED:
+~8-15 extra live trades/week in the 4-6 band, bounded worst ≈ −$300-500 DRY_RUN paper vs the band's
+measured +$65 last week. TRIPWIRE (pre-agreed): live 4-5 + 5-6 cells reach −$150 cumulative before
+Friday 8/8 -> revert MIN_STOP_PCT to 5 without waiting for the grade; bands keep logging either way.

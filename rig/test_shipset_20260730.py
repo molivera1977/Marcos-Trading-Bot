@@ -149,6 +149,11 @@ check("MGRX-B class (0.79 vs 0.70 = +12.9%) would BLOCK", (0.79 - lv) / lv * 100
 bot._fetch_kev_levels = lambda: {}
 check("no sheet entry -> fail-open PASS", float((({} ).get("RIGB") or {}).get("break") or 0) == 0.0)
 bot._fetch_kev_levels = _saved
+print("== 11 · ungated_entry fail-open visibility (7/31) ==")
+src = pathlib.Path(bot.__file__).read_text()
+check("no-break tape-lane conversion logs ungated_entry", '"ungated_entry"' in src)
+check("sits in the breakside else-branch (fires only when the sheet has no break)",
+      src.index("if _bs_brk > 0:") < src.index('"ungated_entry"'))
 print()
 if fails:
     print(f"RED — {len(fails)} failing: {fails}")

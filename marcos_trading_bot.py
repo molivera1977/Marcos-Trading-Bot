@@ -8871,6 +8871,13 @@ def main():
                         with trade_lock:
                             reentry["held"].discard(ticker)
                         return
+                else:
+                    # 7/31 FAIL-OPEN VISIBILITY (Marcos: "do we have a mechanism to report no
+                    # reads?"): this trade is converting with NO break level on the sheet, so the
+                    # break-side AND runway gates both passed on IGNORANCE, not evidence. One row
+                    # makes that queryable live instead of reconstructable post-hoc.
+                    _log_decision(ticker, "ungated_entry", price=entry_price,
+                                  machine=entry_type, gates="breakside,runway")
             # B: Kev short-003 sizing (LIVE 7/11) — shares = max-loss ÷ risk-per-share; notional-capped. Wide stop →
             # fewer shares, tight stop → more; every full stop-out costs the same RISK_PER_TRADE.
             _clamp = "none"   # CLAMP-CHAIN LOGGING (7/26, log-only — the 7/25 exec-expert rec, built at

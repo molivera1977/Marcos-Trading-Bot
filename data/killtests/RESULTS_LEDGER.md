@@ -946,7 +946,14 @@ gates refused what priority delivered. flat_top still traded 5 (+$4.62 vs 7/30's
 confound). 35/71 suppressions had flat_top ARMED nearby = the only plausible displacements;
 unpriceable without scan-state replay. DESIGN WRINKLE logged: suppression at FIRE time + ma
 gate-blocked afterward = ghost passes where NOBODY traded (FCUV 13:11/13:23). Refinement candidate
-(docket, not tonight): suppress only on actual conversion. MONDAY: PULLBACK_FIRST stays ON
-(no measured harm; suppress logs accumulate the counterfactual) unless Marcos reverts.
+(docket, not tonight): suppress only on actual conversion. MONDAY RULING (MARCOS, 7/31 night — his decision, correcting my earlier assumed default):
+PULLBACK_FIRST is now STANDING CONFIG, no longer a one-day experiment. His reasoning, ratified by
+the grades: front side = 86% of stamped fires (427/68); front-side PULLBACKS are the best-graded
+entry in the system (ma_pullback era +$160.82, 70.6%); front-side BASE-BREAKS refuted at n=368
+(grade 3); back side also refuted at fire level. "Why not put pullback first when it has the
+obvious most opportunities. It just makes sense." The pullback owns the front side; flat_top's
+break gets its shot only when the pullback isn't setting up. OPEN: ghost-pass cost — measured
+forward from the suppress logs; the converts-only/inline-cheap-checks refinement builds ONLY if
+the ghosts prove costly.
 REMAINING DOCKET -> WEEKEND: I3 (repeats w/ gates + capital bound + cost-per-attempt) · 120s+
 fire-age dollar cut · 5%-vs-6% shadow bands · Q3b (post-7/28 stamps only) · KIDZ canary.

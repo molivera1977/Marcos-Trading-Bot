@@ -971,3 +971,18 @@ ENTRY-TIME version (range-so-far>=20% at fire) INVERTS OOS: TRAIN +$22.14 -> TES
 Third failed at-fire proxy for "big-time mover" (day-gain, maturity arms, range-so-far). The thing
 Kev sees remains uncaptured; forward stamps accumulate. NOTHING SHIPS from I3.
 Remaining docket (120s+ cut, 5v6 bands, Q3b, KIDZ) -> weekend session.
+
+### 8/1 ~00:40 — FINAL FOUR CUTS RULED; FRIDAY DOCKET COMPLETE
+120s+ FIRE-AGE: underperforms (−$17.39/e n=5 vs −$8.95/e) per §H registration, but lowering
+240→120 collides with the 7/29 sparse-premarket law (legit ages 93-193s). n=5. -> Fable:
+session-split ceiling (PRE 240 / RTH 120) or hold. Nothing shipped.
+5%-vs-6% FLOOR (the registered shadow-band grade): 4-5% rejects +$17.77/e (n=2), 5-6% +$7.43/e
+(n=4) = ~$65 of winners forfeited in 4 days; <4% rejects −$6.42/e (n=5). ANSWER: 5% — likely 4% —
+beats 6%, matching G6's slippage-survivability curve (slip <0.5R above ~4%). n=11; the 6 was
+Marcos's number; MIN_STOP_PCT=4 offered as his Monday env call. NOT shipped.
+Q3b (clean post-7/28 stamps, n=83): worst cohort = 50-150% day-gain at entry (−$11.38/e, 26%) —
+chasing mid-run names; consistent with breakside/runway. No cliff, no gate. Observational.
+KIDZ CANARY: 0 exempt fills < −40% day_gain. NOT TRIPPED. Provisional −40% bound never activates;
+canary closed clean.
+FRIDAY 8/1 DOCKET: ALL ITEMS RULED (grades 1-3, I3, four cuts). Weekend = Fable design docket only
+(exhaustion-succession, concurrency/I4, Railway migration, ghost-pass measurement).

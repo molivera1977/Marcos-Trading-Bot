@@ -957,3 +957,17 @@ forward from the suppress logs; the converts-only/inline-cheap-checks refinement
 the ghosts prove costly.
 REMAINING DOCKET -> WEEKEND: I3 (repeats w/ gates + capital bound + cost-per-attempt) · 120s+
 fire-age dollar cut · 5%-vs-6% shadow bands · Q3b (post-7/28 stamps only) · KIDZ canary.
+
+### 8/1 ~00:50 — I3 RULED: registered rule NOT met (by $0.67/e) — CAPS HOLD; hindsight-leak caught
+GATED+capital-bounded (max 3): FIRST +$27.01/e TRAIN, +$4.90 TEST (the Monday stack's cohort,
+positive BOTH splits — strongest forward support yet for 4.5x+runway+breakside). REPEATS: TRAIN
+−$0.67/e, TEST +$2.32/e — rule demanded non-negative BOTH; TRAIN misses by $0.67. NO cap deletion.
+CAPITAL IS THE REAL GOVERNOR: 913 fires -> 348 gate-passing -> only 69 taken (279 skipped while
+the 3-slot book was full). Cost/failed-attempt −$20..−$35 gated — Fable's transfer concern
+CONFIRMED (Kev's failures cost pennies; ours a full R; scratch-discipline gap open).
+"Repeats pay on trend names" (positive both splits) EXPOSED AS HINDSIGHT LEAK on Marcos's follow-up
+("why attack unless a big-time mover?!"): full-day range includes the repeat's own outcome. The
+ENTRY-TIME version (range-so-far>=20% at fire) INVERTS OOS: TRAIN +$22.14 -> TEST −$22.85 (0% win).
+Third failed at-fire proxy for "big-time mover" (day-gain, maturity arms, range-so-far). The thing
+Kev sees remains uncaptured; forward stamps accumulate. NOTHING SHIPS from I3.
+Remaining docket (120s+ cut, 5v6 bands, Q3b, KIDZ) -> weekend session.

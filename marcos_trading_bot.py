@@ -5681,6 +5681,15 @@ BREAKSIDE_LANES         = set(filter(None, (s.strip() for s in os.environ.get(
 TAPE_PREBREAK_GATE = os.environ.get("TAPE_PREBREAK_GATE", "1") == "1"
 TAPE_PREBREAK_LANES = set(filter(None, (s.strip() for s in os.environ.get(
     "TAPE_PREBREAK_LANES", "hidden_entry,vwap_reclaim,zone_flip").split(","))))
+# 8/3 CHART CEILING GATE (Marcos override, recorded: cohort n=5 -$50.75 mean -$10.15, UNDER the
+# frozen n>=8 bar; his call after FUSE -$64 — "ship the chart lane block, shadow the alternative").
+# CHART lanes only: entry ABOVE the map's last target = the map says the road is SPENT. With
+# re-reads live (#25) a fresh map lifts the block naturally (new targets -> in_range) — this is
+# the #28 stand-down in its narrow, self-releasing form. Tape lanes untouched (blue-sky cohort
+# bimodal: ZYBT-class tape winners live up there). Fail-open: no break on sheet -> no zone read.
+CHART_CEILING_GATE = os.environ.get("CHART_CEILING_GATE", "1") == "1"
+CHART_CEILING_LANES = set(filter(None, (s.strip() for s in os.environ.get(
+    "CHART_CEILING_LANES", "flat_top,ma_pullback,orb,ema_bounce,dip_rip").split(","))))
 # 7/27 LANE AGREEMENT (Marcos, settled after the lane/design pass): the floor governs lanes whose
 # tight stop is an ACCIDENT of a noisy base — ignition (1-min base low; 43 era rejects −$276.73) and
 # vwap_reclaim (−$180.56) — plus ma_pullback/orb where it never binds. EXEMPT = lanes where tight
@@ -8516,7 +8525,8 @@ def main():
                       hidden=int(HIDDEN_ENTRY), reclaim=int(RECLAIM_LIVE),
                       zoneflip_convert=int(ZONEFLIP_CONVERT), ignition_convert=IGNITION_CONVERT_MULT,
                       ignition_bypass=int(IGNITION_CHART_BYPASS), reclaim_firevol=RECLAIM_FIREVOL,
-                      swap_mode=SWAP_MODE, crater_floor_r=CRATER_FLOOR_R)
+                      swap_mode=SWAP_MODE, crater_floor_r=CRATER_FLOOR_R,
+                      tape_prebreak=int(TAPE_PREBREAK_GATE), chart_ceiling=int(CHART_CEILING_GATE))
     except Exception as _bc_e:
         print(f"⚠️  boot_config row failed (banner above still printed): {_bc_e}")
     post_balance_to_dashboard(balance)
@@ -8972,6 +8982,17 @@ def main():
             _log_decision(ticker, "entry_zone", price=entry_price, zone=_z_zone,
                           break_level=(_z_brk or None), last_target=_z_lastT,
                           day_high=_z_dayhi, retest_depth_pct=_z_depth, machine=entry_type)
+            if (CHART_CEILING_GATE and _z_zone == "past_targets"
+                    and entry_type in CHART_CEILING_LANES):
+                print(f"🏔️ {ticker} entry ${entry_price:.2f} is ABOVE the map's last target "
+                      f"${_z_lastT} — the road is spent until a fresh read; skipping [chart ceiling gate]")
+                _log_decision(ticker, "ceiling_reject", price=entry_price,
+                              stop=round(stop_loss, 4), last_target=_z_lastT,
+                              break_level=_z_brk, machine=entry_type)
+                _slot_refund(ticker, entry_type)
+                with trade_lock:
+                    reentry["held"].discard(ticker)
+                return
             if (TAPE_PREBREAK_GATE and _z_zone == "pre_break"
                     and entry_type in TAPE_PREBREAK_LANES):
                 print(f"🧭 {ticker} entry ${entry_price:.2f} is BELOW the unbroken break ${_z_brk} "

@@ -252,3 +252,20 @@ if fails:
     print(f"RED — {len(fails)} failing: {fails}")
     sys.exit(1)
 print("GREEN — zone stamp + pre-break gate pinned (section 14)")
+
+print("== 15 · (8/3) chart ceiling gate (Marcos override #2) ==")
+src = pathlib.Path(bot.__file__).read_text()
+check("ceiling fires ONLY on past_targets", '_z_zone == "past_targets"' in src)
+check("chart lanes only (default set)", '"CHART_CEILING_LANES", "flat_top,ma_pullback,orb,ema_bounce,dip_rip"' in src)
+check("tape lanes NOT in ceiling default", "hidden_entry" not in src[src.index('"CHART_CEILING_LANES"'):src.index('"CHART_CEILING_LANES"')+200])
+check("env kill switch", '"CHART_CEILING_GATE", "1"' in src)
+check("full-ticket reject (the shadow)", '"ceiling_reject"' in src and "last_target=_z_lastT" in src)
+check("ceiling checked BEFORE prebreak (both after zone stamp)",
+      src.index('"entry_zone"') < src.index('"ceiling_reject"') < src.index('"prebreak_reject"'))
+check("boot_config carries both gates", "tape_prebreak=int(TAPE_PREBREAK_GATE)" in src and "chart_ceiling=int(CHART_CEILING_GATE)" in src)
+
+print()
+if fails:
+    print(f"RED — {len(fails)} failing: {fails}")
+    sys.exit(1)
+print("GREEN — chart ceiling gate pinned (section 15)")

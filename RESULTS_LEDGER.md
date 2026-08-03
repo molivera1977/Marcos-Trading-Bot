@@ -30,3 +30,9 @@
 - Zone stamp on EVERY conversion (entry_zone row: zone/break/lastT/day-high/retest-depth) — "I refuse to let trades go forth blind."
 - Also found: in_range −$651 decomposes to −$432 already-blocked (pre-gate era) + −$154 Tuesday 7/29 + hidden-in-mid-range residual (−$163/6t, Friday question). Zone-gate conclusions beyond tape-pre-break NOT supported this week.
 - Friday 8/8 grades: prebreak_reject counterfactuals, retest-depth curve, hidden-mid-range, ceiling/wall runway (#27).
+
+## 8/3 late-2 — CHART CEILING GATE SHIPPED (Marcos override #2)
+- Cohort n=5 -$50.75 mean -$10.15 (under frozen n>=8); Marcos: "ship the chart lane block, shadow the alternative" after the FUSE -$64 pair. Override recorded, same structure as the prebreak ship.
+- Gate: CHART lanes only (flat_top/ma_pullback/orb/ema_bounce/dip_rip) blocked ABOVE the map's last target; SELF-RELEASING — a fresh re-read with higher targets returns the name to in_range (this is #28's stand-down in its narrow form, shipped via the zone mechanism). Tape lanes untouched (blue-sky bimodal, ZYBT class). ceiling_reject full tickets = daily counterfactual. Env CHART_CEILING_GATE.
+- TODAY REPLAYED under both overrides: blocks FUSE flat_top -$30.66 + ma_pullback -$33.53 (saves $64.19), also blocks FUSE dip_rip +$16.49 and PRZO x2 +$8.14 (costs $24.63) -> today lands ~-$0.76 vs actual -$40.32.
+- Friday 8/8 grades both overrides on their reject counterfactuals; either flips off by env if the shadows convict them.

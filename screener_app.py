@@ -2990,6 +2990,10 @@ function renderTable(allTrades){
     return;
   }
   window._allTrades = trades;
+  window._lastAllTrades = allTrades;
+  const _todayET = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})).toISOString().slice(0,10);
+  if(!window._dayOpen) window._dayOpen = new Set([_todayET]);
+  let _curDay = null;
   const rows = trades.map((t,i)=>({t,i})).reverse().map(o=>{
     const t=o.t;
     const key = t.trade_id || (t.ticker+'|'+t.date+'|'+o.i);
@@ -3005,7 +3009,23 @@ function renderTable(allTrades){
                : (rMul>=0?'+':'−')+Math.abs(rMul).toFixed(2)+'R'
                  + (rMul>=2?' 🚀':(rMul<=-1.15?' ⚠️':''));
     const sz = t.position_size ? fmt$(t.position_size) : '—';
-    return `<tr onclick="toggleStory('${key}', event)" style="cursor:pointer" title="Click for the story of this trade">
+    let hdr='';
+    const _d = String(t.date||'?');
+    if(_d!==_curDay){
+      _curDay=_d;
+      const dayTrades = trades.filter(x=>String(x.date||'?')===_d);
+      const dp = dayTrades.reduce((a,x)=>a+(parseFloat(x.pnl)||0),0);
+      const dw = dayTrades.filter(x=>(parseFloat(x.pnl)||0)>0).length;
+      const opn = window._dayOpen.has(_d);
+      hdr = `<tr class="day-hdr" onclick="toggleDay('${_d}')" style="cursor:pointer;background:#10151c">
+        <td colspan="13" style="padding:8px 16px;font-weight:600;color:#c9d1d9">
+          ${opn?'▾':'▸'} ${_d} <span style="font-weight:400;color:#8b949e">· ${dayTrades.length} trade${dayTrades.length!==1?'s':''} · </span>
+          <span style="font-weight:700" class="${dp>0?'pnl-pos':dp<0?'pnl-neg':'pnl-flat'}">${dp>0?'+':(dp<0?'−':'')}$${Math.abs(dp).toFixed(2)}</span>
+          <span style="font-weight:400;color:#8b949e"> · ${dayTrades.length?Math.round(dw/dayTrades.length*100):0}% WR</span>
+        </td></tr>`;
+    }
+    if(!window._dayOpen.has(_d)) return hdr;
+    return hdr + `<tr onclick="toggleStory('${key}', event)" style="cursor:pointer" title="Click for the story of this trade">
       <td style="color:#8b949e">${t.date||'—'}</td>
       <td style="color:#8b949e;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtTimeET(t.entry_ts_utc) || fmtTimeSec(t.recorded_at)}</td>
       <td><a class="ticker-badge" href="https://www.tradingview.com/chart/?symbol=${t.ticker||''}" target="_blank" rel="noopener" title="Open chart">${t.ticker||'—'} ↗</a></td>
@@ -3020,9 +3040,14 @@ function renderTable(allTrades){
       <td style="color:#8b949e">${(t.marked_runway_rr==='above_all_levels')?'∞':(typeof t.marked_runway_rr==='number'?t.marked_runway_rr.toFixed(1)+'R':'—')}</td>
       <td class="exit-tag" title="${t.exit_reason||''}">${isBookRow?'📋 ':''}${t.exit_reason||'—'}</td>
     </tr>`
-    + (isOpen?`<tr class="story-tr"><td colspan="14"><div class="tape show">${storyClosedHTML(t)}</div></td></tr>`:'');
+    + (isOpen?`<tr class="story-tr"><td colspan="13"><div class="tape show">${storyClosedHTML(t)}</div></td></tr>`:'');
   }).join('');
   tbody.innerHTML = rows;
+}
+
+function toggleDay(d){
+  if(window._dayOpen.has(d)) window._dayOpen.delete(d); else window._dayOpen.add(d);
+  if(window._lastAllTrades) renderTable(window._lastAllTrades);
 }
 
 function renderChart(curve){

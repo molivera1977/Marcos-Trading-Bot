@@ -328,6 +328,9 @@ EXITS_ON_3MIN      = True   # ⚠️ 7/2 THE TIMEFRAME FIX: manage the TRADE on 
 #    blow-through excess over 36 trades vs ≈$57 measured shakeout cost) — but the dial below exists so
 #    the answer to a shakeout day is one env var, not a redeploy of new logic.
 INTRABAR_STOP      = os.environ.get("INTRABAR_STOP", "1") == "1"   # kill switch → back to close-only
+RESTING_STOP       = os.environ.get("RESTING_STOP", "1") == "1"    # exchange STOP_LOSS order at the broker
+                            # (fixed 8/2: order_type=STOP_LOSS + stop_price; June tried STP/aux_price).
+                            # Inert under DRY_RUN. 0 → software stop only, no redeploy needed.
 INTRABAR_CONFIRM_SECS = float(os.environ.get("INTRABAR_CONFIRM_SECS", "0"))  # 0 = exit on the FIRST print
                             # at/below the stop (as approved). Raise it (e.g. 3) to require the breach to
                             # persist that long — filters single bad prints at the cost of that much lag.
@@ -6783,7 +6786,9 @@ def _place_order(ticker, shares, side, order_type,
         "entrust_type":            "QTY",
     }
     if stop_price is not None:
-        order["aux_price"] = _px(stop_price)
+        # Webull v2 field is stop_price — aux_price draws OAUTH_OPENAPI_PARAM_ERR
+        # (probed 8/2: preview_order 200 with stop_price, 417 with aux_price)
+        order["stop_price"] = _px(stop_price)
     if limit_price is not None:
         order["limit_price"] = _px(limit_price)
 
@@ -6916,16 +6921,26 @@ def cancel_order(client_order_id):
 
 def place_stop_order(ticker, shares, stop_price):
     """
-    Webull OpenAPI rejects all stop order types (STP, STP_LMT, STOP LOSS).
-    Rely entirely on the software stop in monitor_trade() which fires a MARKET
-    sell the moment price <= stop level. Returns None always.
+    Resting exchange stop via Webull OpenAPI v2: order_type=STOP_LOSS + stop_price.
+    June's "rejects all stop types" was two param defects at once — "STP"/"STOP LOSS"
+    spellings AND aux_price — refuted 8/2 by preview_order probe (HTTP 200, cost
+    estimate returned). The software stop in monitor_trade() stays armed regardless;
+    this is the crash/freeze backstop, not a replacement.
+    RESTING_STOP=0 kills exchange stops (back to software-only) without a redeploy.
     """
     shares = max(1, int(shares))
     if DRY_RUN:
         print(f"🧪 DRY RUN — software stop only: ${stop_price:.2f} × {shares} shares")
         return None
-    print(f"🛡️  Software stop armed at ${stop_price:.2f} × {shares} shares (exchange stops unsupported)")
-    return None
+    if not RESTING_STOP:
+        print(f"🛡️  Software stop only (RESTING_STOP=0): ${stop_price:.2f} × {shares} shares")
+        return None
+    result = _place_order(ticker, shares, "SELL", "STOP_LOSS", stop_price=stop_price)
+    if result:
+        print(f"🛡️  Resting exchange stop placed: ${stop_price:.2f} × {shares} shares")
+    else:
+        print(f"⚠️  Exchange stop REJECTED — software stop is the only protection on {ticker}")
+    return result
 
 
 def update_stop_order(ticker, shares, new_price, old_client_order_id):

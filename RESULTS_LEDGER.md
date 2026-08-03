@@ -9,3 +9,10 @@
 - **Probe (preview_order, places nothing):** `order_type=STOP_LOSS` + `stop_price` → HTTP 200 with cost estimate. `aux_price` → 417 PARAM_ERR ("invalid stop_price"). `STP` → 417 ("invalid order_type"). June failed on BOTH spelling and field name at once; "Webull rejects stop orders" docstring refuted by the server.
 - **Shipped `4a8d727`:** `_place_order` maps stop→`stop_price`; `place_stop_order` un-stubbed (SELL STOP_LOSS via the working order_v2 path); `RESTING_STOP` env kill switch (default 1); inert under DRY_RUN. Rig: test_resting_stop.py 7 pins + full sweep green by exit code.
 - **NOT yet proven:** an actual placed-and-cancelled stop on the live account (preview ≠ placement), and the double-sell race (exchange stop fills while software stop also market-sells) — both are go-live-week checklist items, to exercise on a $5 position before 8/18.
+
+## 8/3 — TWO-TIER SIZING (half-risk on fail-open ignorance): HOLD (all 3 frozen rules failed)
+- Registered rules R1/R2/R3 in `data/killtests/twotier_sizing_20260803.py`; graded as written.
+- Ignorance cohort BEAT informed on both splits (TRAIN −$8.81 vs −$14.74; TEST +$3.53 vs −$3.18); two-tier delta +$88.07 TRAIN / −$15.89 TEST.
+- Known cohort flaw (noted post-grade, verdict unchanged): "informed" included pre-gate sub-1R trades the runway gate now blocks — clean re-run REGISTERED for 8/8 on post-gate trades only (informed = stack-passers; ignorance = `ungated_entry` converts), same rules.
+- Watch-item (no claim): ignorance hidden_entry −$25.20/t vs ignorance vwap_reclaim +$5.50/t.
+- Runway-band + >=4R autopsy same session (observational): <1R −$492/19t (gate now blocks); 1-3R +$280/14t; >=4R losses = AMIX 7/29 pile-up (−$149.96/4t, one name) + floor-off artifacts; ratio-inflation trap (tiny stop inflates rw) noted for any future runway-magnitude use.

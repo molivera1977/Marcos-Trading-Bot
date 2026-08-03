@@ -1,0 +1,599 @@
+{
+ "rows": [
+  {
+   "date": "2026-07-28",
+   "ticker": "BIYA",
+   "entry_type": "ignition",
+   "_pnl": -30.8,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "WLDS",
+   "entry_type": "hidden_entry",
+   "_pnl": -35.89,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "CNET",
+   "entry_type": "ignition",
+   "_pnl": 24.39,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "KVAC",
+   "entry_type": "ignition",
+   "_pnl": 25.94,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "WLDS",
+   "entry_type": "flat_top",
+   "_pnl": 35.83,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "FIRY",
+   "entry_type": "flat_top",
+   "_pnl": -30.28,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "LGHL",
+   "entry_type": "ma_pullback",
+   "_pnl": -31.5,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "EGG",
+   "entry_type": "flat_top",
+   "_pnl": -32.0,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "BIYA",
+   "entry_type": "flat_top",
+   "_pnl": -30.41,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "WLDS",
+   "entry_type": "flat_top",
+   "_pnl": 12.94,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "WBUY",
+   "entry_type": "flat_top",
+   "_pnl": -52.99,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "MPLT",
+   "entry_type": "flat_top",
+   "_pnl": 29.54,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-28",
+   "ticker": "BIYA",
+   "entry_type": "flat_top",
+   "_pnl": 51.69,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "NCRA",
+   "entry_type": "hidden_entry",
+   "_pnl": -18.04,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "NCRA",
+   "entry_type": "hidden_entry",
+   "_pnl": -36.71,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "NCRA",
+   "entry_type": "hidden_entry",
+   "_pnl": -49.7,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "NCRA",
+   "entry_type": "hidden_entry",
+   "_pnl": -37.25,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "AMIX",
+   "entry_type": "vwap_reclaim",
+   "_pnl": -32.41,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "PYPD",
+   "entry_type": "vwap_reclaim",
+   "_pnl": -32.76,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "GMM",
+   "entry_type": "zone_flip",
+   "_pnl": 4.0,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "ONMD",
+   "entry_type": "zone_flip",
+   "_pnl": -48.03,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "GMM",
+   "entry_type": "vwap_reclaim",
+   "_pnl": 1.5,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "AMIX",
+   "entry_type": "hidden_entry",
+   "_pnl": -30.0,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "AMIX",
+   "entry_type": "hidden_entry",
+   "_pnl": -55.23,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "LVWR",
+   "entry_type": "vwap_reclaim",
+   "_pnl": -6.54,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "SKYQ",
+   "entry_type": "vwap_reclaim",
+   "_pnl": 10.23,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "SPRC",
+   "entry_type": "vwap_reclaim",
+   "_pnl": 42.27,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "STFS",
+   "entry_type": "ignition",
+   "_pnl": -27.84,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "YYGH",
+   "entry_type": "vwap_reclaim",
+   "_pnl": 14.18,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "YYGH",
+   "entry_type": "flat_top",
+   "_pnl": -33.3,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "AMIX",
+   "entry_type": "flat_top",
+   "_pnl": -32.32,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "STFS",
+   "entry_type": "orb",
+   "_pnl": -36.9,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "LVWR",
+   "entry_type": "orb",
+   "_pnl": 28.94,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-29",
+   "ticker": "SPRC",
+   "entry_type": "flat_top",
+   "_pnl": 56.97,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "SKYQ",
+   "entry_type": "vwap_reclaim",
+   "_pnl": -6.86,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "GMEX",
+   "entry_type": "vwap_reclaim",
+   "_pnl": 11.54,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "NUWE",
+   "entry_type": "vwap_reclaim",
+   "_pnl": -18.15,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "STAK",
+   "entry_type": "vwap_reclaim",
+   "_pnl": 13.2,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "NUWE",
+   "entry_type": "hidden_entry",
+   "_pnl": 1.2,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "STAK",
+   "entry_type": "zone_flip",
+   "_pnl": -26.88,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "BOOM",
+   "entry_type": "zone_flip",
+   "_pnl": -30.58,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "GMEX",
+   "entry_type": "vwap_reclaim",
+   "_pnl": -9.48,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "NCRA",
+   "entry_type": "vwap_reclaim",
+   "_pnl": -25.79,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "PN",
+   "entry_type": "ignition",
+   "_pnl": -31.8,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "DGNX",
+   "entry_type": "vwap_reclaim",
+   "_pnl": 8.65,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "NUWE",
+   "entry_type": "hidden_entry",
+   "_pnl": -5.88,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "KSCP",
+   "entry_type": "ignition",
+   "_pnl": -17.88,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "LESL",
+   "entry_type": "ignition",
+   "_pnl": -9.16,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "GVH",
+   "entry_type": "vwap_reclaim",
+   "_pnl": 2.24,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "YHC",
+   "entry_type": "vwap_reclaim",
+   "_pnl": -30.0,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "INLF",
+   "entry_type": "ignition",
+   "_pnl": 11.58,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "GVH",
+   "entry_type": "flat_top",
+   "_pnl": -30.23,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "YHC",
+   "entry_type": "ignition",
+   "_pnl": -8.72,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "PN",
+   "entry_type": "flat_top",
+   "_pnl": -46.2,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "PN",
+   "entry_type": "flat_top",
+   "_pnl": -30.16,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "INLF",
+   "entry_type": "flat_top",
+   "_pnl": -29.74,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "DGNX",
+   "entry_type": "flat_top",
+   "_pnl": -42.19,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "GCTK",
+   "entry_type": "ma_pullback",
+   "_pnl": 66.69,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "KSCP",
+   "entry_type": "ma_pullback",
+   "_pnl": 28.95,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "CMCO",
+   "entry_type": "hidden_entry",
+   "_pnl": 14.39,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-30",
+   "ticker": "CYCU",
+   "entry_type": "ma_pullback",
+   "_pnl": 127.26,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "KUST",
+   "entry_type": "vwap_reclaim",
+   "_pnl": -18.35,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "MGRX",
+   "entry_type": "vwap_reclaim",
+   "_pnl": 23.31,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "FCUV",
+   "entry_type": "hidden_entry",
+   "_pnl": 7.5,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "FCUV",
+   "entry_type": "hidden_entry",
+   "_pnl": -18.34,
+   "_ign": true
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "FCUV",
+   "entry_type": "hidden_entry",
+   "_pnl": 4.05,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "MGRX",
+   "entry_type": "vwap_reclaim",
+   "_pnl": -30.16,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "CUPR",
+   "entry_type": "vwap_reclaim",
+   "_pnl": 3.05,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "FCUV",
+   "entry_type": "hidden_entry",
+   "_pnl": 46.44,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "FGL",
+   "entry_type": "hidden_entry",
+   "_pnl": 4.12,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "TGHL",
+   "entry_type": "ignition",
+   "_pnl": 39.34,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "CYCU",
+   "entry_type": "ignition",
+   "_pnl": 29.89,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "CUPR",
+   "entry_type": "ignition",
+   "_pnl": 10.89,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "LNKS",
+   "entry_type": "ignition",
+   "_pnl": 20.86,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "TGHL",
+   "entry_type": "flat_top",
+   "_pnl": -32.47,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "MGRX",
+   "entry_type": "orb",
+   "_pnl": 29.99,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "AEMD",
+   "entry_type": "flat_top",
+   "_pnl": -31.35,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "GDC",
+   "entry_type": "ignition",
+   "_pnl": -0.79,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "LFS",
+   "entry_type": "ma_pullback",
+   "_pnl": 45.96,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "SHPH",
+   "entry_type": "flat_top",
+   "_pnl": -36.62,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "TGHL",
+   "entry_type": "ma_pullback",
+   "_pnl": 29.96,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "FCUV",
+   "entry_type": "ma_pullback",
+   "_pnl": -43.12,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "FCUV",
+   "entry_type": "flat_top",
+   "_pnl": -3.33,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "LESL",
+   "entry_type": "ma_pullback",
+   "_pnl": -35.16,
+   "_ign": false
+  },
+  {
+   "date": "2026-07-31",
+   "ticker": "ZEO",
+   "entry_type": "ma_pullback",
+   "_pnl": -33.47,
+   "_ign": false
+  }
+ ]
+}

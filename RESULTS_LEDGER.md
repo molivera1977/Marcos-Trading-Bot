@@ -16,3 +16,10 @@
 - Known cohort flaw (noted post-grade, verdict unchanged): "informed" included pre-gate sub-1R trades the runway gate now blocks — clean re-run REGISTERED for 8/8 on post-gate trades only (informed = stack-passers; ignorance = `ungated_entry` converts), same rules.
 - Watch-item (no claim): ignorance hidden_entry −$25.20/t vs ignorance vwap_reclaim +$5.50/t.
 - Runway-band + >=4R autopsy same session (observational): <1R −$492/19t (gate now blocks); 1-3R +$280/14t; >=4R losses = AMIX 7/29 pile-up (−$149.96/4t, one name) + floor-off artifacts; ratio-inflation trap (tiny stop inflates rw) noted for any future runway-magnitude use.
+
+## 8/3 evening — HIDDEN CAP MERIT-EXCEPTION: REFUTED 0-for-24 (cap VALIDATED)
+- Registered rule (mean>=+$5, n>=10) in `data/killtests/hidden_cap_merit_20260803.py`; cohort = capped fires w/ ballpark=in + gates-pass + empty slot, 7/28-8/3.
+- Result: n=24, $-543.04, mean $-22.63, WIN RATE 0% at optimistic pricing (perfect stop fills). TEST slice (8/3): 2 fires, both stopped.
+- 20/24 = FCUV Friday (Kev's do-not-trade day) — capped fires are the shakeout TAIL of names that already ran, not late-arriving quality; the cap accidentally enforced the veto on a veto-exempt lane.
+- HIDDEN_CAP_MERIT does NOT ship. Cap stays at 3/day. Marcos's question answered with dollars: the cap saved ~$543 this week on exactly the cohort suspected of being "ignored quality."
+- FUSE 8/3 miss remains real but its fix is map freshness (#25), not the cap.

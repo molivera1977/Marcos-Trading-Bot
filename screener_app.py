@@ -2635,18 +2635,19 @@ a.watch-chip:hover{filter:brightness(1.25)}
     <div class="panel-title">v10 Strategy Parameters</div>
     <div class="param-grid">
       <div class="param-pill"><span>Qualify</span><strong>price &lt;$20 · float &lt;30M (N/A kept) · Move% rank · scanner 50M band = Kev-watch</strong></div>
-      <div class="param-pill"><span>Entries — fast (10s)</span><strong>ignition-10s (surge off quiet base) · 🫥 hidden entry (rocket wick @VWAP/90MA, 3/day/sess) · VWAP-reclaim 3-gate · zone-flip (all RTH) — reclaim LIVE through Friday (Marcos call; three-arm test pending live-week data)</strong></div>
+      <div class="param-pill"><span>Entries — fast (10s)</span><strong>ignition-10s (surge off quiet base) · 🫥 hidden entry (rocket wick @VWAP/90MA, 3/day/sess) · VWAP-reclaim 3-gate · zone-flip (all RTH) — PULLBACK_FIRST standing config (Marcos 7/31: pullback outranks reclaim-firevol) · arms A/B/C stamp forward</strong></div>
       <div class="param-pill"><span>Entries — slow (3-min)</span><strong>flat-top · ORB · MA-pullback — break → retest ≤240s → confirm candle</strong></div>
       <div class="param-pill"><span>Premarket (7/25)</span><strong>REAL PRE entries: hidden + reclaim · cap 6 · ≥$250k dvol · 9:25 hard flatten · re-enabled 7/29 with session-aware prices + PRE bars in exits</strong></div>
-      <div class="param-pill"><span>Chart Gate</span><strong>ENFORCE (the ONE proven gate) — no break of the read's level (±2% band) · tape lanes trade live structure (Marcos 7/26: chart gates chart-trades, tape gates tape-trades)</strong></div>
+      <div class="param-pill"><span>Gates 8/3</span><strong>RUNWAY ≥1R to next marked level (fail-open) · BREAK-SIDE: tape lanes enter below the break only (fail-open) · rejects shadow-logged with full tickets</strong></div>
+      <div class="param-pill"><span>Chart Gate</span><strong>ENFORCE (proven) — no break of the read's level (±2% band) · tape lanes trade live structure (Marcos 7/26: chart gates chart-trades, tape gates tape-trades)</strong></div>
       <div class="param-pill"><span>Priority</span><strong>capital slots: Kev sheet → open positions → scanner Move% (🎖️ lines in log)</strong></div>
       <div class="param-pill"><span>Day-gain floor</span><strong>≥15% (was 30 — collecting the 15-30 band this week) · curls + Kev names exempt</strong></div>
       <div class="param-pill"><span>Vel5 Floor</span><strong>slow lanes only (vindicated 0.41R blocked) · ignition + curls exempt</strong></div>
       <div class="param-pill"><span>Retired 7/26</span><strong>momentum gate (inverted on retests) · extension guard (slow+curl exempt; ignition-only) · daily-veto → OBSERVE · room ≥2:1 → observe (since 7/2)</strong></div>
       <div class="param-pill"><span>Universal</span><strong>topping-tail (all lanes) · 10k/bar liquidity floor (RTH; ignition + premkt exempt)</strong></div>
-      <div class="param-pill"><span>Stop</span><strong>structural (base/OR/MA/wick low) · INTRABAR broker stop (7/27) + 3-min close manage · 6% min-stop floor OFF Wed–Fri (measurement, Fable-ruled)</strong></div>
+      <div class="param-pill"><span>Stop</span><strong>structural (base/OR/MA/wick low) · INTRABAR stop (7/27) + resting broker STOP_LOSS (8/2, live-mode only) · MIN-STOP floor 4% (8/3→, governed lanes; hidden/zone/flat-top exempt; 2-6% curve collecting; −$150 tripwire)</strong></div>
       <div class="param-pill"><span>Exits</span><strong>kev25 on 3-MIN CLOSE — 50%@+1R→BE · 25%@+2R · runner health-trail · 3:45 stop · rockets/hidden: ⅓@+50% ⅓@+100% · VERIFIED best-of-5 doctrines 7/26</strong></div>
-      <div class="param-pill"><span>Sizing</span><strong>$30 risk → shares · $1000 notional cap (halt-gap bound) · 5%-of-tape volume clamp · size_clamp logged per trade</strong></div>
+      <div class="param-pill"><span>Sizing</span><strong>width-proportional risk: $20 (4-5%) · $25 (5-6%) · $30 (≥6%) → shares · $1000 notional cap · 5%-of-tape clamp · size_clamp logged</strong></div>
       <div class="param-pill"><span>P&L display</span><strong>runner-leg correction merged at render (store append-only by ruling)</strong></div>
       <div class="param-pill"><span>Entry Cutoff</span><strong>3:30pm ET · re-entry re-gated</strong></div>
       <div class="param-pill"><span>Quality logs</span><strong>size_clamp · entry_session · src=10s · enforced flags · vel5 · L1 book — Friday reads columns, not archaeology</strong></div>

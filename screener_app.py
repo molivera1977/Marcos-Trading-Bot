@@ -2680,6 +2680,9 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="section-title">P&amp;L Calendar</div>
   <div id="pnlCalendar" class="cal-wrap"></div>
 
+  <div class="section-title">Gate Rejects <span style="font-size:12px;font-weight:400;color:#8b949e">(today — fires the new gates refused; every row is a logged counterfactual)</span></div>
+  <div id="rejectStrip" style="margin:0 0 18px 0;font-size:13px;color:#8b949e">loading…</div>
+
   <div class="section-title">Trade History <span style="font-size:12px;font-weight:400;color:#8b949e">(RTH)</span><span id="preLedgerLink" style="font-size:12px;font-weight:400"></span></div>
   <div class="table-wrap">
     <table>
@@ -2698,7 +2701,6 @@ a.watch-chip:hover{filter:brightness(1.25)}
           <th title="R-multiple: P&amp;L ÷ planned risk ($30 = 1R). Winners: target avg ≥ +0.85R. Losers: planned −1R; deeper = stop overshoot.">R</th>
           <th title="Marked runway at ENTRY: R-multiples of room to the next Kev level. Stamped before the trade — no hindsight. '∞' = above all marked levels (blue sky).">Road</th>
           <th>Exit Reason</th>
-          <th>Float</th>
         </tr>
       </thead>
       <tbody id="tradeTable">
@@ -2727,6 +2729,25 @@ function fmtTimeSec(iso){ if(!iso) return '—'; const m=String(iso).match(/T(\d
 
 function loadData(){
   document.getElementById('lastUpdate').textContent = 'Refreshing...';
+  (function loadRejects(){
+    const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    fetch('/api/decisions?date='+ds+'&limit=4000').then(r=>r.json()).then(j=>{
+      const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side'};
+      const rows=(j.rows||[]).filter(r=>GATES[r.status]);
+      const el=document.getElementById('rejectStrip'); if(!el) return;
+      if(!rows.length){ el.innerHTML='<span style="color:#484f58">no gate rejects yet today</span>'; return; }
+      el.innerHTML='<table style="width:100%"><thead><tr style="text-align:left;color:#8b949e"><th>Time</th><th>Ticker</th><th>Gate</th><th>Lane</th><th>Price</th><th>Why</th></tr></thead><tbody>'+
+        rows.slice(-40).reverse().map(r=>{
+          let why='';
+          if(r.status==='minstop_reject') why='stop '+(r.stop_width_pct!=null?r.stop_width_pct.toFixed(2)+'%':'?')+' wide (band '+(r.band||'?')+') < floor';
+          else if(r.status==='runway_reject') why=(r.runway_rr!=null?Number(r.runway_rr).toFixed(2)+'R':'?')+' of road to $'+(r.target!=null?r.target:'?')+' < '+(r.need||1)+'R';
+          else if(r.status==='breakside_reject') why='entry above the marked break'+(r.brk!=null?' $'+r.brk:'');
+          return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
+                 '<td><b>'+(r.ticker||'—')+'</b></td><td>'+GATES[r.status]+'</td><td>'+(r.machine||'—')+'</td>'+
+                 '<td>'+(r.price!=null?'$'+Number(r.price).toFixed(2):'—')+'</td><td>'+why+'</td></tr>';
+        }).join('')+'</tbody></table>';
+    }).catch(()=>{});
+  })();
   fetch('/api/trades')
     .then(r=>r.json())
     .then(data=>{
@@ -2975,7 +2996,7 @@ function renderTable(allTrades){
     const isOpen = window._storyOpen.has(key);
     const isBookRow=/RECOVER/i.test(String(t.exit_reason||''));
     const pnlCls  = isBookRow?'pnl-flat':(t.pnl>0?'pnl-pos':t.pnl<0?'pnl-neg':'pnl-flat');   // bookkeeping = muted
-    const pnlSign = t.pnl>0?'+':'';
+    const pnlSign = t.pnl>0?'+':(t.pnl<0?'−':'');
     const pctSign = t.pnl_pct>0?'+':'';
     const fl = t.float_shares ? String(t.float_shares).replace(/(\d)(?=(\d{3})+$)/g,'$1,') : '—';
     const pr = parseFloat(t.planned_risk);
@@ -2998,7 +3019,6 @@ function renderTable(allTrades){
       <td class="${pnlCls}" style="font-weight:700">${rTxt}</td>
       <td style="color:#8b949e">${(t.marked_runway_rr==='above_all_levels')?'∞':(typeof t.marked_runway_rr==='number'?t.marked_runway_rr.toFixed(1)+'R':'—')}</td>
       <td class="exit-tag" title="${t.exit_reason||''}">${isBookRow?'📋 ':''}${t.exit_reason||'—'}</td>
-      <td style="color:#8b949e;font-size:12px">${fl}</td>
     </tr>`
     + (isOpen?`<tr class="story-tr"><td colspan="14"><div class="tape show">${storyClosedHTML(t)}</div></td></tr>`:'');
   }).join('');

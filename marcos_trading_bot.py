@@ -5674,6 +5674,13 @@ BREAKSIDE_GATE          = os.environ.get("BREAKSIDE_GATE", "1") == "1"
 BREAKSIDE_MAX_PCT       = float(os.environ.get("BREAKSIDE_MAX_PCT", "0.0"))
 BREAKSIDE_LANES         = set(filter(None, (s.strip() for s in os.environ.get(
     "BREAKSIDE_LANES", "vwap_reclaim,hidden_entry,ignition").split(","))))
+
+# 8/3 dead-zone kill-test verdict (deadzone_20260803.py, frozen rules): TAPE lanes below a
+# never-broken-today break bleed (n=12, -$143.89); chart/ignition pre-break measured POSITIVE
+# and stamp only. Gate is fail-open on unknown day-high (uncaptured names) and env-revertible.
+TAPE_PREBREAK_GATE = os.environ.get("TAPE_PREBREAK_GATE", "1") == "1"
+TAPE_PREBREAK_LANES = set(filter(None, (s.strip() for s in os.environ.get(
+    "TAPE_PREBREAK_LANES", "hidden_entry,vwap_reclaim,zone_flip").split(","))))
 # 7/27 LANE AGREEMENT (Marcos, settled after the lane/design pass): the floor governs lanes whose
 # tight stop is an ACCIDENT of a noisy base — ignition (1-min base low; 43 era rejects −$276.73) and
 # vwap_reclaim (−$180.56) — plus ma_pullback/orb where it never binds. EXEMPT = lanes where tight
@@ -8922,6 +8929,61 @@ def main():
                     # makes that queryable live instead of reconstructable post-hoc.
                     _log_decision(ticker, "ungated_entry", price=entry_price,
                                   machine=entry_type, gates="breakside,runway")
+            # ── ZONE STAMP + TAPE PRE-BREAK GATE (8/3 evening; Marcos: "I refuse to let trades go
+            #    forth blind"). EVERY conversion logs WHERE it stands on the day's map: zone, break,
+            #    last target, day-high-so-far, retest depth. Dead-zone kill-test (deadzone_20260803):
+            #    only ONE cell met the frozen block bar — TAPE lanes below a never-broken-today break
+            #    (n=12, −$143.89, NCRA/STAK/BOOM class). Chart pre-break (+$126) and ignition
+            #    pre-break (+$67 — CYCU's curl lives there) measured POSITIVE, so they stamp only.
+            #    Gauntlet (worst sessions): 7/29 net +$82.72 saved · 7/30 +$72.36 · 8/3 −$8.14 cost.
+            #    FAIL-OPEN: no break, or day-high UNKNOWN (name not in the capture archive) → pass.
+            #    Kill switch: TAPE_PREBREAK_GATE=0. FAILURE CONDITION (pre-registered): wrong if
+            #    prebreak_reject rows' forward counterfactual out-earns the blocked cohort's −$12/t.
+            _z_zone, _z_brk, _z_lastT, _z_dayhi, _z_depth = "no_map", 0.0, None, None, None
+            try:
+                _z_rec = (_fetch_kev_levels() or {}).get(ticker) or {}
+                _z_brk = float(_z_rec.get("break") or 0)
+                _z_tg = [float(x) for x in (_z_rec.get("targets") or []) if float(x) > 0]
+                _z_lastT = max(_z_tg) if _z_tg else None
+                if _z_brk > 0:
+                    try:
+                        _z_req = urllib.request.urlopen(
+                            f"{SCREENER_URL}/api/bars?date={datetime.now(EASTERN).strftime('%Y-%m-%d')}"
+                            f"&ticker={ticker}~ALP10S", timeout=3)
+                        _z_bars = (json.load(_z_req) or {}).get("bars") or []
+                        _z_his = [float(b.get("high") or b.get("h") or 0) for b in _z_bars]
+                        _z_dayhi = max(_z_his) if _z_his else None
+                    except Exception:
+                        _z_dayhi = None
+                    if entry_price < _z_brk:
+                        if _z_dayhi is not None and _z_dayhi >= _z_brk:
+                            _z_zone = "retest"
+                            _z_depth = round((_z_brk - entry_price) / _z_brk * 100.0, 2)
+                        elif _z_dayhi is None:
+                            _z_zone = "pre_break_unverified"
+                        else:
+                            _z_zone = "pre_break"
+                    elif _z_lastT is not None and entry_price > _z_lastT:
+                        _z_zone = "past_targets"
+                    else:
+                        _z_zone = "in_range"
+            except Exception:
+                pass
+            _log_decision(ticker, "entry_zone", price=entry_price, zone=_z_zone,
+                          break_level=(_z_brk or None), last_target=_z_lastT,
+                          day_high=_z_dayhi, retest_depth_pct=_z_depth, machine=entry_type)
+            if (TAPE_PREBREAK_GATE and _z_zone == "pre_break"
+                    and entry_type in TAPE_PREBREAK_LANES):
+                print(f"🧭 {ticker} entry ${entry_price:.2f} is BELOW the unbroken break ${_z_brk} "
+                      f"(day high {_z_dayhi}) — front-running a level that hasn't fired, "
+                      f"skipping [tape pre-break gate]")
+                _log_decision(ticker, "prebreak_reject", price=entry_price,
+                              stop=round(stop_loss, 4), break_level=_z_brk,
+                              day_high=_z_dayhi, machine=entry_type)
+                _slot_refund(ticker, entry_type)
+                with trade_lock:
+                    reentry["held"].discard(ticker)
+                return
             # B: Kev short-003 sizing (LIVE 7/11) — shares = max-loss ÷ risk-per-share; notional-capped. Wide stop →
             # fewer shares, tight stop → more; every full stop-out costs the same RISK_PER_TRADE.
             _clamp = "none"   # CLAMP-CHAIN LOGGING (7/26, log-only — the 7/25 exec-expert rec, built at

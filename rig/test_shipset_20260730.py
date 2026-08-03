@@ -233,3 +233,22 @@ if fails:
     print(f"RED — {len(fails)} failing: {fails}")
     sys.exit(1)
 print("GREEN — boot_config row pinned (section 13)")
+
+print("== 14 · (8/3) zone stamp + tape pre-break gate (Marcos live-ship call) ==")
+src = pathlib.Path(bot.__file__).read_text()
+check("zone stamp logs on EVERY conversion", '"entry_zone"' in src)
+check("gate fires ONLY on pre_break (retest/unverified pass)", '_z_zone == "pre_break"' in src)
+check("retest depth stamped", 'retest_depth_pct=_z_depth' in src)
+check("unknown day-high fails OPEN", '"pre_break_unverified"' in src)
+check("ignition excluded by default", '"TAPE_PREBREAK_LANES", "hidden_entry,vwap_reclaim,zone_flip"' in src)
+check("env kill switch", '"TAPE_PREBREAK_GATE", "1"' in src)
+check("full-ticket reject (the shadow)", '"prebreak_reject"' in src and "day_high=_z_dayhi" in src)
+check("slot refund on reject", src.index('"prebreak_reject"') < src.index("_slot_refund", src.index('"prebreak_reject"')))
+check("sits after breakside, before sizing",
+      src.index('"breakside_reject"') < src.index('"entry_zone"') < src.index("CLAMP-CHAIN LOGGING"))
+
+print()
+if fails:
+    print(f"RED — {len(fails)} failing: {fails}")
+    sys.exit(1)
+print("GREEN — zone stamp + pre-break gate pinned (section 14)")

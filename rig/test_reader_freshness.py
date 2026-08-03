@@ -53,3 +53,29 @@ print()
 if fails:
     print(f"RED — {len(fails)} failing: {fails}"); sys.exit(1)
 print("GREEN — reader freshness pins all pass")
+
+# ── 8. the FUSE eyes: 10s-store rebuild kicks in when min1 is stale ─────────────
+import json as _j
+_calls = {}
+def _fake_get(path, timeout=20, tries=3):
+    if "~ALP10S" in path:
+        return {"bars": [{"time": f"2026-08-03T{hh}:{mm:02d}:{ss:02d}", "open": 1.4, "high": 1.47,
+                          "low": 1.39, "close": 1.46, "volume": 500}
+                         for hh in ("14",) for mm in range(30, 45) for ss in (5, 25, 45)]}
+    return {}
+R._get_retry = _fake_get
+R._min1 = lambda tk: [{"time": "2026-08-03T10:35:00", "session": "RTH", "open": 1.1, "high": 1.16,
+                       "low": 1.08, "close": 1.15, "volume": 100}] * 12   # stale tail at 1.15
+R.DAY = "2026-08-03"
+png, meta = R.render_intraday_png("FUSE")
+check("stale min1 -> rebuilt from 10s store", png is not None and abs(float(meta.get("last", 0)) - 1.46) < 1e-6,
+      f"meta last={meta.get('last')}")
+
+b10 = R._min1_from_10s("FUSE")
+check("10s aggregation: 3x10s -> 1min bars", len(b10) == 15 and b10[0]["volume"] == 1500,
+      f"n={len(b10)}")
+
+print()
+if fails:
+    print(f"RED — {len(fails)} failing: {fails}"); sys.exit(1)
+print("GREEN — 10s-rebuild pins pass")

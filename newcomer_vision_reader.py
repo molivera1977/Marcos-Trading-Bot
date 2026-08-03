@@ -604,6 +604,36 @@ REREAD_DAILY_CAP    = int(os.environ.get("REREAD_DAILY_CAP", "15"))
 REREAD_CUTOFF_HHMM  = os.environ.get("REREAD_CUTOFF_HHMM", "15:25")
 _rr_state = {"count": 0, "per_name": {}, "last_probe": 0.0, "seen_markers": set()}
 
+def _min1_from_10s(ticker):
+    """8/3 (#25, the FUSE eyes): rebuild TODAY-RTH 1-min bars by aggregating the ALP10S 10s store —
+    the source #77 already trusts for past-map detection. Used when the min1 source is missing or
+    STALE (FUSE 8/3: capture miss -> webull fallback whose tail was hours old -> three re-reads
+    faithfully mapped a chart that ended at the old level). Returns rows shaped like _min1()."""
+    try:
+        rows = _get_retry(f"{U}/api/bars?date={DAY}&ticker={_q(ticker)}~ALP10S").get("bars") or []
+        agg = {}
+        for r in rows:
+            ts = str(r.get("time") or r.get("t") or "")
+            hhmm = ts[11:16]
+            if not ("09:30" <= hhmm < "16:00"):
+                continue
+            o = float(r.get("open") or r.get("o") or 0); h = float(r.get("high") or r.get("h") or 0)
+            l = float(r.get("low") or r.get("l") or 0); c = float(r.get("close") or r.get("c") or 0)
+            v = float(r.get("volume") or r.get("v") or 0)
+            if c <= 0: continue
+            k = f"{DAY}T{hhmm}:00"
+            a = agg.get(k)
+            if a is None:
+                agg[k] = {"time": k, "session": "RTH", "open": o or c, "high": h or c,
+                          "low": l or c, "close": c, "volume": v}
+            else:
+                a["high"] = max(a["high"], h or c); a["low"] = min(a["low"], l or c)
+                a["close"] = c; a["volume"] += v
+        return [agg[k] for k in sorted(agg)]
+    except Exception:
+        return []
+
+
 def render_intraday_png(ticker):
     """Single-panel TODAY-RTH 1m chart (candles + session VWAP + prior levels as dashed lines).
     The re-read maps CURRENT structure; daily context rides in the prompt text. Returns (png, meta)."""
@@ -613,6 +643,21 @@ def render_intraday_png(ticker):
         rows = _min1(ticker)
         b = sorted([r for r in rows if str(r.get("time","")).startswith(DAY) and r.get("session")=="RTH"],
                    key=lambda r: str(r["time"]))
+        # 8/3 (#25): if the min1 chart is missing OR its tail disagrees with the trusted 10s store
+        # by >5% (stale fallback), rebuild the chart FROM the 10s store instead of skipping —
+        # a skip preserves the exhausted map; a 10s-built chart lets the re-read actually see today.
+        try:
+            b10 = _min1_from_10s(ticker)
+            if b10:
+                _live = float(b10[-1]["close"])
+                _tail = float(b[-1]["close"]) if b else 0.0
+                if len(b) < 10 or (_tail > 0 and _live > 0 and abs(_tail - _live)/_live > 0.05):
+                    if len(b10) >= 10:
+                        print(f"  [charts] {ticker}: min1 stale/short -> rebuilt from 10s store "
+                              f"({len(b10)} bars, last {_live})", flush=True)
+                        b = b10
+        except Exception:
+            pass
         if len(b) < 10:
             return None, {}
         o=[float(x["open"]) for x in b]; h=[float(x["high"]) for x in b]

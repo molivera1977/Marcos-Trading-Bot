@@ -794,7 +794,7 @@ function renderRows(rows){
     return '<tr class="'+(isBot?'bot-candidate ':'')+(isKev?'kev-row':'')+'" data-bot="'+(isBot?'1':'0')+'" data-kev="'+(isKev?'1':'0')+'">'
       +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+'<a class="tale-link" href="/tale/'+r.symbol+'" title="Tale of the Ticker — chart read, levels, gate status">📜</a>'+kevBadge+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+ahP+'</td>'
-      +'<td><span class="gap-pill '+gapClass+'">+'+r.change_pct.toFixed(1)+'%</span></td>'
+      +'<td><span class="gap-pill '+gapClass+'">'+(r.change_pct>=0?'+':'−')+Math.abs(r.change_pct).toFixed(1)+'%</span></td>'
       +'<td class="'+floatClass+'">'+r.float_label+'</td>'
       +'<td>'+relVol+'</td>'
       +'<td class="evening-col" style="'+eveningStyle+'"><span class="'+(shortClass?'gap-pill '+shortClass:'')+'">'+shortPct+'</span></td>'

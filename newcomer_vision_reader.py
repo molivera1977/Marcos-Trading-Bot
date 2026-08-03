@@ -370,6 +370,28 @@ def validate_read(rd, last_px):
         try:
             if float(stop) >= brk: return False, "stop_level not below break_level"
         except (TypeError, ValueError): pass
+    # ── FRESHNESS + SCALE SANITY (8/3, task #25 — the FUSE/YYAI class). Both failures shipped
+    #    maps the tape had already refuted: FUSE v2/v3/v4 re-reads each redrew targets 1.08/1.15
+    #    with the live tape at 1.30-1.46 (stale webull-fallback chart), and YYAI's first read drew
+    #    targets 0.85/1.00 against corrupt pre-reverse-split history showing $11.24. A map whose
+    #    TOP target is at/below the live price is not a map of what's ahead; levels 3x away from
+    #    the live price in either direction are reading a different instrument. last_px<=0 (no
+    #    trusted price) keeps the OLD behavior — this gate only bites when we can prove staleness.
+    try:
+        _px = float(last_px or 0)
+    except (TypeError, ValueError):
+        _px = 0.0
+    if _px > 0:
+        try:
+            _tg = [float(x) for x in (rd.get("targets") or []) if float(x) > 0]
+        except (TypeError, ValueError):
+            _tg = []
+        if _tg and max(_tg) <= _px * 1.01:
+            return False, f"map_already_exhausted: top target {max(_tg)} <= live {_px}"
+        if brk > 3.0 * _px or brk < _px / 3.0:
+            return False, f"level_scale_insane: break {brk} vs live {_px}"
+        if _tg and (max(_tg) > 3.0 * _px or min(_tg) < _px / 3.0):
+            return False, f"target_scale_insane: {_tg} vs live {_px}"
     return True, "ok"
 
 def vision_read(ticker, png_bytes, candidates, last_px):
@@ -638,7 +660,24 @@ def reread_one(ticker, trigger):
         if "```" in raw:
             raw = raw.split("```")[1].replace("json","",1).strip() if "```json" in raw else raw.split("```")[1].strip()
         rd = json.loads(raw)
-        ok, why = validate_read(rd, meta.get("last"))
+        # 8/3 (#25): validate against the TRUSTED 10s-store price, not the chart meta — the chart
+        # can be a stale webull fallback (FUSE: three re-reads redrew targets below the live tape
+        # because the fallback chart topped at the old level). #77 mandated the 10s store for
+        # past-map DETECTION; this extends it to VALIDATION. If store and chart disagree >5%, the
+        # chart is stale: skip WITHOUT posting and WITHOUT burning re-read budget (returns False).
+        _live = 0.0
+        try:
+            _rows10 = _get_retry(f"{U}/api/bars?date={DAY}&ticker={_q(ticker)}~ALP10S").get("bars") or []
+            if _rows10:
+                _live = float(_rows10[-1].get("close") or _rows10[-1].get("c") or 0)
+        except Exception:
+            _live = 0.0
+        _chart_last = float(meta.get("last") or 0)
+        if _live > 0 and _chart_last > 0 and abs(_chart_last - _live) / _live > 0.05:
+            print(f"[reread] {ticker} STALE CHART: chart last {_chart_last} vs 10s live {_live} "
+                  f"(>5%) — skipping, no budget burned", flush=True)
+            return False
+        ok, why = validate_read(rd, _live if _live > 0 else meta.get("last"))
         if not ok:
             print(f"[reread] {ticker} v-read invalid: {why}", flush=True); return False
         # LEDGER: carry prior map forward inside the record, bump version, tag trigger

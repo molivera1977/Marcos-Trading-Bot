@@ -218,3 +218,18 @@ if fails:
     print(f"RED — {len(fails)} failing: {fails}")
     sys.exit(1)
 print("GREEN — shadow stop stamp pinned (section 12)")
+
+print("== 13 · (8/3) boot_config decision row mirrors the banner values ==")
+_b1 = src.index('BREAKSIDE_GATE={int(BREAKSIDE_GATE)}')           # banner print
+_b2 = src.index('_log_decision("_BOOT", "boot_config"')           # durable row
+check("boot_config row exists after banner", _b2 > _b1)
+for _fld in ("min_stop_pct=MIN_STOP_DIST_PCT", "min_runway_rr=MIN_RUNWAY_RR",
+             "breakside_gate=int(BREAKSIDE_GATE)", "intrabar_stop=int(INTRABAR_STOP)",
+             "resting_stop=int(RESTING_STOP)", "entry_open_et=ENTRY_OPEN_ET"):
+    check(f"row carries {_fld.split('=')[0]} from the SAME variable", _fld in src)
+
+print()
+if fails:
+    print(f"RED — {len(fails)} failing: {fails}")
+    sys.exit(1)
+print("GREEN — boot_config row pinned (section 13)")

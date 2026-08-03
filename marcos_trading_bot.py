@@ -8496,6 +8496,22 @@ def main():
           f"IGNITION_CHART_BYPASS={int(IGNITION_CHART_BYPASS)} ZONEFLIP_CONVERT={int(ZONEFLIP_CONVERT)} "
           f"RECLAIM_FIREVOL={RECLAIM_FIREVOL} MIN_RUNWAY_RR={MIN_RUNWAY_RR} "
           f"BREAKSIDE_GATE={int(BREAKSIDE_GATE)}({sorted(BREAKSIDE_LANES)})")
+    # 8/3 (#26): the SAME config, as a DURABLE decision row — Railway's CLI log window is ~500
+    # lines, so the printed banner is unreadable hours later ("was the floor really 4% at boot"
+    # took env+code inference on 8/3 instead of one query). One row per boot, queryable forever.
+    try:
+        _log_decision("_BOOT", "boot_config",
+                      dry_run=bool(DRY_RUN), min_stop_pct=MIN_STOP_DIST_PCT,
+                      min_stop_exempt=sorted(MIN_STOP_EXEMPT), min_runway_rr=MIN_RUNWAY_RR,
+                      breakside_gate=int(BREAKSIDE_GATE), breakside_lanes=sorted(BREAKSIDE_LANES),
+                      entry_open_et=ENTRY_OPEN_ET, intrabar_stop=int(INTRABAR_STOP),
+                      resting_stop=int(RESTING_STOP), be_floor_after_scale=BE_FLOOR_AFTER_SCALE,
+                      hidden=int(HIDDEN_ENTRY), reclaim=int(RECLAIM_LIVE),
+                      zoneflip_convert=int(ZONEFLIP_CONVERT), ignition_convert=IGNITION_CONVERT_MULT,
+                      ignition_bypass=int(IGNITION_CHART_BYPASS), reclaim_firevol=RECLAIM_FIREVOL,
+                      swap_mode=SWAP_MODE, crater_floor_r=CRATER_FLOOR_R)
+    except Exception as _bc_e:
+        print(f"⚠️  boot_config row failed (banner above still printed): {_bc_e}")
     post_balance_to_dashboard(balance)
 
     # ── Morning watchlist email ───────────────────────────

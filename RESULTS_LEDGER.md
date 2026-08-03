@@ -23,3 +23,10 @@
 - 20/24 = FCUV Friday (Kev's do-not-trade day) — capped fires are the shakeout TAIL of names that already ran, not late-arriving quality; the cap accidentally enforced the veto on a veto-exempt lane.
 - HIDDEN_CAP_MERIT does NOT ship. Cap stays at 3/day. Marcos's question answered with dollars: the cap saved ~$543 this week on exactly the cohort suspected of being "ignored quality."
 - FUSE 8/3 miss remains real but its fix is map freshness (#25), not the cap.
+
+## 8/3 late — ZONE STAMP + TAPE PRE-BREAK GATE SHIPPED (Marcos live-ship override)
+- Dead-zone kill-test (deadzone_20260803.py): raw tape-pre-break met frozen bar (n=12 −$143.89); era-decontamination (same flaw class as two-tier cohorts) left n=7 −$161.52 mean −$23.07 — ONE SHORT of n>=8. Marcos: "ship it live tonight and shadow the alternative." Recorded as his override, precedent = 6% floor.
+- Gate: tape lanes only (hidden/reclaim/zone_flip); blocks entry BELOW a break the tape has NEVER touched today; retest (any depth) passes; ignition/chart excluded (their pre-break POSITIVE: +$67/+$126 — CYCU curl, GCTK, LFS); fail-open on no-map/unknown-day-high; env TAPE_PREBREAK_GATE.
+- Zone stamp on EVERY conversion (entry_zone row: zone/break/lastT/day-high/retest-depth) — "I refuse to let trades go forth blind."
+- Also found: in_range −$651 decomposes to −$432 already-blocked (pre-gate era) + −$154 Tuesday 7/29 + hidden-in-mid-range residual (−$163/6t, Friday question). Zone-gate conclusions beyond tape-pre-break NOT supported this week.
+- Friday 8/8 grades: prebreak_reject counterfactuals, retest-depth curve, hidden-mid-range, ceiling/wall runway (#27).

@@ -207,3 +207,14 @@ _v3, _t3 = bot._marked_runway("RIGX", 1.00, 0.90)
 check("roomy target -> runway >= 1R -> passes", isinstance(_v3, (int, float)) and _v3 >= 1.0,
       str((_v3, _t3)))
 bot._fetch_kev_levels = _saved_fetch
+print("== 12 · (8/3) premarket shadow stop stamp is lane-proof ==")
+_resolves = src.count('get("zone_stop") or (_px2 or {}).get("ema_stop")')
+check("both shadow sites resolve zone_stop -> ema_stop -> stop", _resolves >= 2,
+      f"found {_resolves}")
+check("generic stop fallback present", src.count('.get("ema_stop")\n') >= 0 and '.get("stop")' in src)
+
+print()
+if fails:
+    print(f"RED — {len(fails)} failing: {fails}")
+    sys.exit(1)
+print("GREEN — shadow stop stamp pinned (section 12)")

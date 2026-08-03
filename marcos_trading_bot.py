@@ -8703,8 +8703,12 @@ def main():
                     _pt, _pp, _pe = entry[0], entry[1], entry[3]
                     _px2 = entry[4] if len(entry) > 4 else {}
                     _why_pm = (_px2 or {}).get("_pm_why") or "premkt"
+                    # stop stamp lane-proof (8/3): each lane names its stop differently — without
+                    # this, ma_pullback/ema_bounce shadows were unpriceable (28/70 rows in the 8/3 study)
+                    _pm_stop = ((_px2 or {}).get("zone_stop") or (_px2 or {}).get("ema_stop")
+                                or (_px2 or {}).get("stop"))
                     _log_decision(_pt, "premarket_shadow_entry", price=_pp, entry_type=_pe,
-                                  stop=(_px2 or {}).get("zone_stop"), time_hm=_hm_pm, why=_why_pm,
+                                  stop=_pm_stop, time_hm=_hm_pm, why=_why_pm,
                                   dvol=(_px2 or {}).get("_pm_dvol"),
                                   day_gain=(_px2 or {}).get("day_gain"))
                     print(f"👥 {_pt} {_pe} fired {_hm_pm} — premarket SHADOW ({_why_pm})")
@@ -8730,7 +8734,8 @@ def main():
                 _pt, _pp, _pe = entry[0], entry[1], entry[3]
                 _px2 = entry[4] if len(entry) > 4 else {}
                 _log_decision(_pt, "premarket_shadow_entry", price=_pp, entry_type=_pe,
-                              stop=(_px2 or {}).get("zone_stop"), time_hm=_hm_pm,
+                              stop=((_px2 or {}).get("zone_stop") or (_px2 or {}).get("ema_stop")
+                                    or (_px2 or {}).get("stop")), time_hm=_hm_pm,
                               day_gain=(_px2 or {}).get("day_gain"))
                 print(f"👥 {_pt} {_pe} fired {_hm_pm} — PREMARKET SHADOW logged, entries open {ENTRY_OPEN_ET}")
                 if _pe == "ignition":

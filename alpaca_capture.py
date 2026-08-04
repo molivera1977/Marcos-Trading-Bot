@@ -186,13 +186,33 @@ def _refresh_actives_bg():
                     u = str(n).upper().strip()
                     if u and u not in seen and not u.startswith("ZZ"):
                         seen.add(u); names.append(u)
-            # 1. Alpaca most-actives (external, SIP-wide)
+            # 1. Alpaca most-actives (external, SIP-wide) — PROFILE-FILTERED (Marcos 8/4: raw
+            #    most-actives is megacap wall-to-wall; unfiltered it wastes roster slots on
+            #    NVDA-class names and subscribes firehose tape). One batched snapshots call
+            #    screens to OUR universe: price <= $20. Float can't be screened here; the
+            #    scanner source below (already float-filtered) covers that axis.
             try:
+                _h = {"APCA-API-KEY-ID": ALPACA_KEY, "APCA-API-SECRET-KEY": ALPACA_SECRET}
                 req = _ureq.Request("https://data.alpaca.markets/v1beta1/screener/stocks/most-actives"
-                                    "?by=trades&top=60",
-                                    headers={"APCA-API-KEY-ID": API_KEY, "APCA-API-SECRET-KEY": API_SECRET})
+                                    "?by=trades&top=100", headers=_h)
                 d = json.loads(_ureq.urlopen(req, timeout=15).read())
-                add([r.get("symbol") for r in (d.get("most_actives") or [])])
+                cands = [str(r.get("symbol") or "").upper() for r in (d.get("most_actives") or [])]
+                cands = [s for s in cands if s and s.isalpha()][:100]
+                kept = []
+                if cands:
+                    req2 = _ureq.Request("https://data.alpaca.markets/v2/stocks/snapshots?symbols="
+                                         + ",".join(cands) + "&feed=" + ALPACA_FEED, headers=_h)
+                    snaps = json.loads(_ureq.urlopen(req2, timeout=15).read()) or {}
+                    for s in cands:
+                        sn = snaps.get(s) or {}
+                        px = ((sn.get("latestTrade") or {}).get("p")
+                              or (sn.get("dailyBar") or {}).get("c") or 0)
+                        try: px = float(px)
+                        except Exception: px = 0.0
+                        if 0 < px <= 20.0:
+                            kept.append(s)
+                add(kept)
+                log("actives: screener %d raw -> %d in-profile (<= $20)" % (len(cands), len(kept)))
             except Exception as e:
                 log("actives: alpaca screener failed (%s) — scanner source still runs" % e)
             # 2. our scanner's movers

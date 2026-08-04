@@ -269,3 +269,24 @@ if fails:
     print(f"RED — {len(fails)} failing: {fails}")
     sys.exit(1)
 print("GREEN — chart ceiling gate pinned (section 15)")
+
+print("== 16 · (8/4) retest shallow-zone gate + fine bands (Marcos override #3 final) ==")
+src = pathlib.Path(bot.__file__).read_text()
+check("gate fires only on retest zone", '_z_zone == "retest" and _z_depth is not None' in src)
+check("blocks ONLY <5% (HI=999 open-ended)", '"RETEST_BAND_LO", "5"' in src and '"RETEST_BAND_HI", "999"' in src)
+check("fine bands stamped on every retest", '_retest_depth_band' in src and 'depth_band=' in src)
+check("band function covers the curve", '(1, "<1"), (2, "1-2")' in src and '">12"' in src)
+check("shallow rejects full-ticket shadow", '"retest_band_reject"' in src and 'side=_side' in src)
+check("env kill switch", '"RETEST_BAND_GATE", "1"' in src)
+check("gate order: band -> ceiling -> prebreak",
+      src.index('"retest_band_reject"') < src.index('"ceiling_reject"') < src.index('"prebreak_reject"'))
+check("boot_config carries band", 'retest_band=' in src)
+_fb = bot._retest_depth_band
+check("band fn: 0.4->'<1', 3.2->'3-4', 6->'5-8', 24->'>12'",
+      _fb(0.4)=="<1" and _fb(3.2)=="3-4" and _fb(6)=="5-8" and _fb(24)==">12")
+
+print()
+if fails:
+    print(f"RED — {len(fails)} failing: {fails}")
+    sys.exit(1)
+print("GREEN — retest gate final spec pinned (section 16)")

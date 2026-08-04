@@ -5690,6 +5690,27 @@ TAPE_PREBREAK_LANES = set(filter(None, (s.strip() for s in os.environ.get(
 CHART_CEILING_GATE = os.environ.get("CHART_CEILING_GATE", "1") == "1"
 CHART_CEILING_LANES = set(filter(None, (s.strip() for s in os.environ.get(
     "CHART_CEILING_LANES", "flat_top,ma_pullback,orb,ema_bounce,dip_rip").split(","))))
+# 8/4 ~01:15 RETEST DEPTH BAND (Marcos override #3: "set the retest level to 5%-12% and shadow
+# the lanes both above and below"). SIP-complete reclassification (zone_reclass_audit_20260803):
+# retest entries <=5% under an already-touched break = the BATTLE ZONE, -$13.66/t 31% win n=13
+# (buying under the sell wall before it clears — the break-side trap from below); >12% = mixed
+# curl-class, net -$8.26 n=6 but 67% win (CYCU +29.89 lives here — KNOWN COST, his call).
+# FINAL SPEC at ship (Marcos: "only block the 1,2,3, and 4% levels to make it a meaningful
+# retest but obviously keep tabs and data on all the bands"): a retest under 5% deep is INSIDE
+# the battle zone around the fired break (-$13.66/t, 31% win, n=13 on SIP-complete data —
+# buying under the sell wall before it clears); 5%+ = meaningful pullback, passes (keeps the
+# CYCU curl class). EVERY retest — allowed or blocked — stamps a FINE DEPTH BAND
+# (<1,1-2,2-3,3-4,4-5,5-8,8-12,>12) so Friday grades the whole curve, minstop-style.
+# Shallow rejects carry FULL-TICKET shadows (retest_band_reject). ALL lanes. Env-revertible.
+RETEST_BAND_GATE = os.environ.get("RETEST_BAND_GATE", "1") == "1"
+RETEST_BAND_LO = float(os.environ.get("RETEST_BAND_LO", "5"))
+RETEST_BAND_HI = float(os.environ.get("RETEST_BAND_HI", "999"))
+
+def _retest_depth_band(d):
+    """Fine band label for a retest depth pct (the 8/4 curve — graded Friday like the minstop bands)."""
+    for hi, lab in ((1, "<1"), (2, "1-2"), (3, "2-3"), (4, "3-4"), (5, "4-5"), (8, "5-8"), (12, "8-12")):
+        if d < hi: return lab
+    return ">12"
 # 7/27 LANE AGREEMENT (Marcos, settled after the lane/design pass): the floor governs lanes whose
 # tight stop is an ACCIDENT of a noisy base — ignition (1-min base low; 43 era rejects −$276.73) and
 # vwap_reclaim (−$180.56) — plus ma_pullback/orb where it never binds. EXEMPT = lanes where tight
@@ -8526,7 +8547,8 @@ def main():
                       zoneflip_convert=int(ZONEFLIP_CONVERT), ignition_convert=IGNITION_CONVERT_MULT,
                       ignition_bypass=int(IGNITION_CHART_BYPASS), reclaim_firevol=RECLAIM_FIREVOL,
                       swap_mode=SWAP_MODE, crater_floor_r=CRATER_FLOOR_R,
-                      tape_prebreak=int(TAPE_PREBREAK_GATE), chart_ceiling=int(CHART_CEILING_GATE))
+                      tape_prebreak=int(TAPE_PREBREAK_GATE), chart_ceiling=int(CHART_CEILING_GATE),
+                      retest_band=(f"{RETEST_BAND_LO}-{RETEST_BAND_HI}" if RETEST_BAND_GATE else "off"))
     except Exception as _bc_e:
         print(f"⚠️  boot_config row failed (banner above still printed): {_bc_e}")
     post_balance_to_dashboard(balance)
@@ -8981,7 +9003,23 @@ def main():
                 pass
             _log_decision(ticker, "entry_zone", price=entry_price, zone=_z_zone,
                           break_level=(_z_brk or None), last_target=_z_lastT,
-                          day_high=_z_dayhi, retest_depth_pct=_z_depth, machine=entry_type)
+                          day_high=_z_dayhi, retest_depth_pct=_z_depth,
+                          depth_band=(_retest_depth_band(_z_depth) if _z_depth is not None else None),
+                          machine=entry_type)
+            if (RETEST_BAND_GATE and _z_zone == "retest" and _z_depth is not None
+                    and not (RETEST_BAND_LO <= _z_depth <= RETEST_BAND_HI)):
+                _side = "shallow" if _z_depth < RETEST_BAND_LO else "deep"
+                print(f"🎯 {ticker} retest at {_z_depth:.1f}% below the fired break ${_z_brk} is "
+                      f"outside the {RETEST_BAND_LO:.0f}-{RETEST_BAND_HI:.0f}% band ({_side}) — "
+                      f"skipping [retest band gate]")
+                _log_decision(ticker, "retest_band_reject", price=entry_price,
+                              stop=round(stop_loss, 4), break_level=_z_brk,
+                              retest_depth_pct=_z_depth, depth_band=_retest_depth_band(_z_depth),
+                              side=_side, machine=entry_type)
+                _slot_refund(ticker, entry_type)
+                with trade_lock:
+                    reentry["held"].discard(ticker)
+                return
             if (CHART_CEILING_GATE and _z_zone == "past_targets"
                     and entry_type in CHART_CEILING_LANES):
                 print(f"🏔️ {ticker} entry ${entry_price:.2f} is ABOVE the map's last target "

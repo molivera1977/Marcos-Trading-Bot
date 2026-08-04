@@ -49,3 +49,9 @@
 - KEV SWEEP: server-side on the dashboard service (kev_sweep_server.py): 20:06 + 09:02 ET weekdays, retry-until-clean (max 5 — Marcos's multi-pass rule), transcripts to /data/kev/, TOP-3 parsed by Claude API, merge-only POST src=kev, kev_sweep decision row every run, fail-soft. PROXY_*/ANTHROPIC_API_KEY set on dashboard env.
 - Laptop scheduled tasks kev-sweep-night/morning, bot-preopen-health-check, postah-bars-backfill DISABLED deliberately (all silently dead since 7/26-27) with RETIRED notes.
 - CAVEAT (honest): the server sweep + external discovery + backfill are rig-pinned (section 17) but NOT yet exercised end-to-end live — first real runs: capture discovery within minutes of deploy, morning sweep 09:02, night sweep 20:06 today. I will verify each at its first firing; manual sweep remains the fallback until each proves itself once.
+
+## 8/4 08:32 — ENTRY_OPEN_ET 04:00 -> 07:00 (Marcos's call, aligned to Kev's 7am stream start)
+- Evidence: 4-6am cohort n=6 −$87.15 17% win since feed-fix (incl. today's DXST −$39.68 stale-fire/stale-swap defect, 4-sec −1.38R); 5-6am AND 6-7am hours have ZERO trades ever — no measured upside surrendered.
+- 04:00-06:59 fires now SHADOW with stops (auto-counterfactual, Friday-gradeable); slots not consumed; RTH mathematically untouched (all 6 code usages audited: bracketed <09:30 or >= comparisons).
+- Book flat-verified in-turn; env-only; restart ~58 min pre-open.
+- TONIGHT (registered): DXST price-path surgery — swap-proof drift guard (chosen-vs-OTHER-source), PRE fires >60s re-verify vs live 10s store, session-split fire-age ceiling. Fixtures: DXST 04:14 + IPW 04:09 8/4. RTH fire-age tail note: converts up to 2465s old — Friday question.

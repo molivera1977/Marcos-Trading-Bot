@@ -316,3 +316,12 @@ if fails:
     print(f"RED — {len(fails)} failing: {fails}")
     sys.exit(1)
 print("GREEN — #29 migration pinned (section 17)")
+
+print("== 17b · (8/4) capture screener profile filter ==")
+csrc = (pathlib.Path(bot.__file__).parent / "alpaca_capture.py").read_text()
+check("most-actives screened by price <= $20 via snapshots", "stocks/snapshots?symbols=" in csrc and "px <= 20.0" in csrc)
+check("filter tally logged (raw -> in-profile)", "in-profile" in csrc)
+print()
+if fails:
+    print(f"RED — {len(fails)} failing: {fails}"); sys.exit(1)
+print("GREEN — screener filter pinned (17b)")

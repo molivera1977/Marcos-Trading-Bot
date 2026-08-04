@@ -7,3 +7,5 @@ paho-mqtt==1.6.1
 resend>=0.8.0
 yfinance>=0.2.40
 webull-openapi-python-sdk
+yt-dlp>=2025.1.1               # kev_sweep_server (dashboard service)
+youtube-transcript-api>=1.0    # kev_sweep_server

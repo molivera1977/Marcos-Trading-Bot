@@ -8983,6 +8983,11 @@ def main():
                             f"{SCREENER_URL}/api/bars?date={datetime.now(EASTERN).strftime('%Y-%m-%d')}"
                             f"&ticker={ticker}~ALP10S", timeout=3)
                         _z_bars = (json.load(_z_req) or {}).get("bars") or []
+                        if not _z_bars:   # 8/4: late-join names carry ~ALP1M (join backfill)
+                            _z_req2 = urllib.request.urlopen(
+                                f"{SCREENER_URL}/api/bars?date={datetime.now(EASTERN).strftime('%Y-%m-%d')}"
+                                f"&ticker={ticker}~ALP1M", timeout=3)
+                            _z_bars = (json.load(_z_req2) or {}).get("bars") or []
                         _z_his = [float(b.get("high") or b.get("h") or 0) for b in _z_bars]
                         _z_dayhi = max(_z_his) if _z_his else None
                     except Exception:
@@ -9597,6 +9602,34 @@ if __name__ == "__main__":
     # Stale-trade watchdog — catches a monitor that freezes while the process stays alive.
     threading.Thread(target=_monitor_watchdog_loop, daemon=True, name="watchdog").start()
     print("🛟 Stale-trade watchdog thread started")
+
+    # 8/4 (#29): PRE-OPEN HEALTH CHECK — bot-side, replaces the laptop scheduled task that
+    # silently died 7/27 (the 9:05 sheet-freshness check is load-bearing: an empty Kev sheet
+    # means the day trades mapless). One durable decision row + a LOUD print at ~09:05 ET.
+    def _preopen_health_loop():
+        done_day = None
+        while True:
+            try:
+                now = datetime.now(EASTERN)
+                if now.strftime("%H:%M") >= "09:05" and now.strftime("%H:%M") < "09:25"                         and done_day != now.strftime("%Y-%m-%d") and now.weekday() < 5:
+                    done_day = now.strftime("%Y-%m-%d")
+                    lv = _fetch_kev_levels() or {}
+                    kev_n = sum(1 for v in lv.values() if isinstance(v, dict) and v.get("src") == "kev")
+                    vis_n = sum(1 for v in lv.values() if isinstance(v, dict) and v.get("src") == "vision")
+                    ok = kev_n >= 1 and vis_n >= 3
+                    _log_decision("_HEALTH", "preopen_health", kev_levels=kev_n, vision_levels=vis_n,
+                                  total_levels=len(lv), sheet_ok=ok)
+                    if ok:
+                        print(f"🩺 preopen health: sheet OK — {kev_n} kev + {vis_n} vision maps")
+                    else:
+                        print(f"🚨🚨 PREOPEN HEALTH: SHEET LOOKS STALE — kev={kev_n} vision={vis_n} "
+                              f"(expected >=1 kev, >=3 vision). Trading proceeds FAIL-OPEN but "
+                              f"today may be running MAPLESS — check the sweep + reader NOW.")
+            except Exception as _ph_e:
+                print(f"preopen health check error: {_ph_e}")
+            time.sleep(60)
+    threading.Thread(target=_preopen_health_loop, daemon=True, name="preopen_health").start()
+    print("🩺 Pre-open health thread started (09:05 ET sheet-freshness row)")
 
     # Day-2 observation runs on its own isolated daemon thread (never touches trading).
     threading.Thread(target=_day2_observer_loop, daemon=True, name="day2_observer").start()

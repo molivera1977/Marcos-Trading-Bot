@@ -3373,6 +3373,11 @@ setInterval(loadMarket, 60000);
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    try:                                # 8/4 (#29): server-side Kev sweep (fail-soft import)
+        import kev_sweep_server
+        kev_sweep_server.start()
+    except Exception as _ks_e:
+        print(f"[kev-sweep] not started: {_ks_e}")
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port, debug=False)
 

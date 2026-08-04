@@ -167,35 +167,44 @@ def roster_targets():
 
 _actives = {"ts": 0.0, "names": [], "busy": False}
 def _refresh_actives_bg():
-    """PROBE mode: rank today's archived ~10S names by summed volume and cache them (30-min
-    TTL). Runs in a background thread — up to ~100 series fetches at 0.15s pace must never
-    starve the websocket recv loop. This padding is what pushes subs toward SYMBOL_CAP so
-    RTH message rates directly test Alpaca's 'unlimited symbols' claim vs Webull's ~40 kick."""
-    if _actives["busy"] or time.time() - _actives["ts"] < 1800:
+    """PROBE mode, 8/4 REWRITE (the EZRA lesson): the old ranking used our OWN archive volume —
+    perfectly circular (a name not yet subscribed has no archive, so it never ranks, so it never
+    subscribes; EZRA +150% at 9:30 joined at 12:35). Discovery is now EXTERNAL, two sources
+    unioned, 3-min TTL:
+      1. Alpaca most-actives screener (SIP-ranked, market-wide — sees a mover within minutes)
+      2. the dashboard scanner's own movers (/api/scan symbols — our Move% eyes)
+    On every NEW subscribe the stream handler also REST-backfills the day's missed bars (see
+    _backfill_on_subscribe) so a 10:05 join still yields a complete 04:00-onward archive."""
+    if _actives["busy"] or time.time() - _actives["ts"] < 180:
         return
     _actives["busy"] = True
     def _work():
         try:
-            today = et_now().strftime("%Y-%m-%d")
-            d = _get_json("/api/bars", timeout=20) or {}
-            names = [n for n in (d.get("archived", {}).get(today) or [])
-                     if isinstance(n, str) and n.upper().endswith("~10S")
-                     and not n.upper().startswith("ZZ") and "~ALP" not in n.upper()]
-            ranked = []
-            for n in names[:120]:                  # bounded: gentle on the dashboard
-                if _stop.is_set(): return
-                b = _get_json("/api/bars?date=%s&ticker=%s" % (today, n), timeout=15)
-                try:
-                    vol = sum(float(x.get("volume") or 0) for x in (b or {}).get("bars", []))
-                except Exception:
-                    vol = 0.0
-                ranked.append((vol, n[:-4].upper()))
-                time.sleep(0.15)
-            ranked.sort(reverse=True)
-            _actives["names"] = [s for _, s in ranked]
-            _actives["ts"] = time.time()
-            log("PROBE actives refreshed: %d names ranked by archived volume (top: %s)"
-                % (len(ranked), [s for _, s in ranked[:5]]))
+            names, seen = [], set()
+            def add(ns):
+                for n in ns or []:
+                    u = str(n).upper().strip()
+                    if u and u not in seen and not u.startswith("ZZ"):
+                        seen.add(u); names.append(u)
+            # 1. Alpaca most-actives (external, SIP-wide)
+            try:
+                req = _ureq.Request("https://data.alpaca.markets/v1beta1/screener/stocks/most-actives"
+                                    "?by=trades&top=60",
+                                    headers={"APCA-API-KEY-ID": API_KEY, "APCA-API-SECRET-KEY": API_SECRET})
+                d = json.loads(_ureq.urlopen(req, timeout=15).read())
+                add([r.get("symbol") for r in (d.get("most_actives") or [])])
+            except Exception as e:
+                log("actives: alpaca screener failed (%s) — scanner source still runs" % e)
+            # 2. our scanner's movers
+            try:
+                d = _get_json("/api/scan", timeout=30) or {}
+                add([r.get("symbol") for r in (d.get("results") or [])])
+            except Exception as e:
+                log("actives: /api/scan failed (%s)" % e)
+            if names:
+                _actives["names"] = names
+                _actives["ts"] = time.time()
+                log("PROBE actives refreshed EXTERNALLY: %d names (top: %s)" % (len(names), names[:5]))
         except Exception as e:
             log("PROBE actives refresh failed: %s" % e)
         finally:
@@ -468,6 +477,27 @@ def _backfill_new_symbol(sym):
                 v["num"] += num; v["den"] += den
         _seeded.add(sym)
         log("backfill %s: VWAP seeded from %d shares of REST history (anchor=4:00 ET)" % (sym, int(den)))
+        # 8/4 (#29, the EZRA lesson pt.2): PERSIST the fetched history instead of discarding it.
+        # A mid-session subscribe now leaves a complete 04:00-onward record as {SYM}~ALP1M —
+        # 1-min SIP bars (10s can't be reconstructed honestly). Readers/killtests/day-high checks
+        # fall back to ~ALP1M when ~ALP10S starts late. Same bars_bulk path; fail-soft.
+        try:
+            hist = (r.json() or {}).get("bars") or []
+            if hist and DASH_URL:
+                ser = {"%s~ALP1M" % sym: [
+                    {"time": str(b.get("t", "")).replace("Z", ".000+0000"),
+                     "open": str(b.get("o")), "high": str(b.get("h")), "low": str(b.get("l")),
+                     "close": str(b.get("c")), "volume": str(int(float(b.get("v") or 0)))}
+                    for b in hist]}
+                body = gzip.compress(json.dumps({"date": et_now().strftime("%Y-%m-%d"),
+                                                 "series": ser, "reason": "join_backfill",
+                                                 "source": "alpaca_capture"}).encode(), compresslevel=1)
+                requests.post(DASH_URL + "/api/bars_bulk", data=body, timeout=15,
+                              headers={"X-Dashboard-Secret": DASH_SECRET, "Content-Encoding": "gzip",
+                                       "Content-Type": "application/json"})
+                log("backfill %s: %d 1-min bars persisted as ~ALP1M (04:00 onward)" % (sym, len(hist)))
+        except Exception as _bf_e:
+            log("backfill %s: history persist failed (VWAP seed unaffected): %s" % (sym, _bf_e))
     except Exception as e:
         log("backfill %s failed (will retry): %s" % (sym, e)); return "retry"
 

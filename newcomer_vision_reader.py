@@ -611,6 +611,10 @@ def _min1_from_10s(ticker):
     faithfully mapped a chart that ended at the old level). Returns rows shaped like _min1()."""
     try:
         rows = _get_retry(f"{U}/api/bars?date={DAY}&ticker={_q(ticker)}~ALP10S").get("bars") or []
+        if not rows:
+            # 8/4 (#29): late-subscribed names carry a join-backfill ~ALP1M series (full SIP
+            # 1-min history from 04:00) — use it when the 10s store started late or is empty.
+            rows = _get_retry(f"{U}/api/bars?date={DAY}&ticker={_q(ticker)}~ALP1M").get("bars") or []
         agg = {}
         for r in rows:
             ts = str(r.get("time") or r.get("t") or "")

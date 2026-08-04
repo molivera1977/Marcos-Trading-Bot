@@ -325,3 +325,12 @@ print()
 if fails:
     print(f"RED — {len(fails)} failing: {fails}"); sys.exit(1)
 print("GREEN — screener filter pinned (17b)")
+
+print("== 17c · (8/4) scanner Move% names take roster priority ==")
+csrc = (pathlib.Path(bot.__file__).parent / "alpaca_capture.py").read_text()
+check("scanner source runs FIRST", csrc.index('"/api/scan"') < csrc.index("screener/stocks/most-actives"))
+check("priority documented as Marcos's call", "MOVE% column" in csrc or "Move%-ranked" in csrc)
+print()
+if fails:
+    print(f"RED — {len(fails)} failing: {fails}"); sys.exit(1)
+print("GREEN — scanner-first pinned (17c)")

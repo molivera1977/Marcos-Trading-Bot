@@ -186,11 +186,16 @@ def _refresh_actives_bg():
                     u = str(n).upper().strip()
                     if u and u not in seen and not u.startswith("ZZ"):
                         seen.add(u); names.append(u)
-            # 1. Alpaca most-actives (external, SIP-wide) — PROFILE-FILTERED (Marcos 8/4: raw
-            #    most-actives is megacap wall-to-wall; unfiltered it wastes roster slots on
-            #    NVDA-class names and subscribes firehose tape). One batched snapshots call
-            #    screens to OUR universe: price <= $20. Float can't be screened here; the
-            #    scanner source below (already float-filtered) covers that axis.
+            # 1. OUR SCANNER FIRST (Marcos 8/4: "the symbols that should get priority are
+            #    those on our scanner in the MOVE% column") — already profile-filtered AND
+            #    Move%-ranked; its order is preserved into the roster, so under the symbol cap
+            #    the biggest movers subscribe first.
+            try:
+                d = _get_json("/api/scan", timeout=30) or {}
+                add([r.get("symbol") for r in (d.get("results") or [])])
+            except Exception as e:
+                log("actives: /api/scan failed (%s)" % e)
+            # 2. Alpaca most-actives screener SECOND — breadth only, fills in behind the scanner.
             try:
                 _h = {"APCA-API-KEY-ID": ALPACA_KEY, "APCA-API-SECRET-KEY": ALPACA_SECRET}
                 req = _ureq.Request("https://data.alpaca.markets/v1beta1/screener/stocks/most-actives"
@@ -215,12 +220,7 @@ def _refresh_actives_bg():
                 log("actives: screener %d raw -> %d in-profile (<= $20)" % (len(cands), len(kept)))
             except Exception as e:
                 log("actives: alpaca screener failed (%s) — scanner source still runs" % e)
-            # 2. our scanner's movers
-            try:
-                d = _get_json("/api/scan", timeout=30) or {}
-                add([r.get("symbol") for r in (d.get("results") or [])])
-            except Exception as e:
-                log("actives: /api/scan failed (%s)" % e)
+
             if names:
                 _actives["names"] = names
                 _actives["ts"] = time.time()

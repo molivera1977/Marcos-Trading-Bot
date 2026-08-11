@@ -1159,3 +1159,16 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
   Tuesday 8/11 OFFICIAL RTH: +$58.36 on 24 trades. PRE (own line): +$46.26 on 5 trades
   (PLAG +2.38; WXM +26.84/-1.03/+1.76/+16.31 incl. 9:25 flatten). All 29 records
   entry_session-stamped, zero unstamped. The +$104.62 figure = blended, not the headline.
+
+## 2026-08-11 EOD — MISS AUDIT (all 194 reject rows vs post-reject tape, timing-verified)
+- GATE MISSES (real blocks that ran): PLAG backside_reject 12:39 @2.83 -> +141% to 6.81 (15:35);
+  stale map compounding ("ORB pullback to $1.17", base-not-flat) — vertical-regime + stale-anchor
+  class (RDGT cousin); morning legs banked +$62 so partial-catch. STKH daygain_reject 06:48 @3.13
+  -> +51% to 4.75 (14:30), no lane fired all day. Daygain-refused runner pile: GRI +31%, TDIC +27%,
+  VEEE +27% — Ombudsman hearing (morning-snapshot bias: floor refuses pre-proof).
+- TRIGGER MISSES (never blocked, never fired): QMCO +34%, JWEL +30%, XHLD +29% — lane coverage Q.
+- NOT misses: room_soft rows = log-only (refuted 7/26, verified at :7559/:7671); WXM = partial
+  capture (+$44 PRE). Dollar frame at clip size: PLAG pm leg ~$60-120 forgone; STKH ~$30-60.
+- To the TUESDAY SITTING: backside-gate re-grade (Friday item, now with the 2.83->6.81 exhibit),
+  daygain-floor hearing (Ombudsman), stale-map re-read trigger for afternoon leaders (Cartographer),
+  vertical-regime entry hole (standing).

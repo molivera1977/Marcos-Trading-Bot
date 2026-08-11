@@ -1172,3 +1172,27 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
 - To the TUESDAY SITTING: backside-gate re-grade (Friday item, now with the 2.83->6.81 exhibit),
   daygain-floor hearing (Ombudsman), stale-map re-read trigger for afternoon leaders (Cartographer),
   vertical-regime entry hole (standing).
+
+## 2026-08-11 eve — REPLAYS RUN (Marcos: "run replays") — both gates re-graded on era SIP tape
+Script: data/killtests/backside_daygain_regrade_20260811.py (+_RESULTS.txt). Era 8/5-8/11,
+first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35% capture of
+>=8% offers, <4% = -$6 stop) — ranking tool, not a P&L promise.
+- BACKSIDE (10 first-rejects): modeled +$155.53 forgone total. THE SPLIT: rejects whose name
+  later RECLAIMED the reference high: n=2 (PLAG +124%, MSGY +42%), +$116 of the forgone;
+  never-reclaimed: n=8, median offer +9.9%. AMENDMENT CANDIDATE (principled + surgical): the
+  block's premise EXPIRES on reclaim of the stamped high — keeps all 8 saves, re-admits the 2
+  runners at reclaim price. CAVEAT: n=2, both this hot week. Sitting decides.
+- DAYGAIN (106 first-rejects): modeled +$582 forgone, 46/106 offered >=8%. STRUCTURAL FINDING —
+  the floor is BLIND TO RED-TO-GREEN DAY-2: dg measured vs prior close stays NEGATIVE all day on
+  a day-2 name even as it leads intraday (STKH dg=-27 -> +51%; XHLD dg=-34 -> +92%; YJ -25 ->
+  +66%; AZI -10 -> +53%). Split: dg<0 pile n=25 = +$350 modeled (+$14.00/name, 20/25 offered
+  >=8%) vs dg>=0 below-floor pile n=81 = +$232 (+$2.87/name). The dg<0 refusals are 5x richer
+  per name — and it's EXACTLY Kev's WAFU day-2-confirm shape. AMENDMENT CANDIDATE: day-2
+  red-to-green exemption (dg<0 + intraday leadership proof, e.g. VWAP reclaim / % off session
+  low) — needs precise trigger spec + kill-test before ship. Board-exemption variant NOT
+  historically testable (no dated board archive) -> START ARCHIVING the board daily (Curator).
+- Crown question ANSWERED: PLAG WAS crowned (leader_armed 08:20). The afternoon failure was the
+  MAP: 9 freshness_breach + 9 stale_swap_refused rows — freshness contract detected staleness
+  all afternoon but no clean re-read landed. Cartographer + reader docket for the sitting.
+- Officers: Strength Ombudsman (hearing evidence), Side Marshal (backside amendment), Wind
+  Tunnel (model coarseness caveat), Cartographer (stale-map), Statistician (results ledgered).

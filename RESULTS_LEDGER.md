@@ -1080,3 +1080,17 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
 - Commits 55a572d + 7165205 (main fast-forwarded from claude/funny-bell-adf49d).
 - REMAINING CHECK: Marcos's phone — but there is no filter left to composite, so the iOS
   failure mode from 8/10 is structurally gone, not patched around.
+
+## 2026-08-11 ~01:35 — LATE TUESDAY SHEET RECOVERED FROM TIKTOK (Marcos's link)
+- Kev posted the TOP-3 LATE (new-car night) and on TIKTOK (@momentum.official video
+  7672612324519333133, ~00:30 ET) — a platform the sweep does NOT watch (YouTube-only).
+  Without Marcos's link, tonight's sheet would have been missed entirely (09:02 sweep included).
+- Extraction: yt-dlp pulled the video's own captions (full transcript, saved to
+  data/kev/tiktok/7672612324519333133_TOP3_TUESDAY_20260811.vtt); hand-parsed levels posted
+  through post_sheet() itself so ALL guards ran (symbol-real, price fingerprint, merge-only).
+  POSTED 3 names, store verified live: SCKT 2.50/2.20 -> 4,5 · WAFU 2.10 day-2 -> 3,4,5 ·
+  MTEN 1.78/1.60 -> 2,3,4,5 (his "most explosive"; SCKT = his 230% Mon squeeze, MTEN his +30%).
+- PIPELINE HOLE (Feed Engineer + Kev Librarian): Kev cross-posts to TikTok; late/one-off sheets
+  may exist ONLY there. Fix candidate for the queue: add TikTok tab to the sweep (yt-dlp handles
+  captions cleanly, proven tonight). Officers touched: Kev Librarian (recovery+corpus), Feed
+  Engineer (vendor-surface gap), Handicapper (three fresh names for the open).

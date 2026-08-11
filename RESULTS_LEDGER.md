@@ -1049,3 +1049,10 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
   (book flat in-turn), served CSS verified live; desktop light mode re-checked (top + mid-page
   render correct; browser-pane blank-after-scroll screenshots occurred in BOTH themes incl.
   pre-pass-2 = pane renderer flake, not a regression). Final verify = Marcos's phone.
+- iOS light-mode PASS 3 (retreat to verified state): phone screenshot 2 proved Safari's root
+  filter reaches SOME tables (.table-wrap trade history — my extra filter double-inverted it
+  dark) and not others (rejects strip — my filter fixed it) on the SAME page = compositing
+  heuristics, not a rule. Pass 3: strips keep their own filter (both proven improved), .table-wrap
+  tables returned to root-filter handling (undo regression). Shadow-lanes header row stays a
+  dark band on iOS — readable, unfixed tonight. PROPER FIX registered for the Curator queue:
+  real literal light theme (CSS variables), no invert-filter hack — daytime build, not 23:40.

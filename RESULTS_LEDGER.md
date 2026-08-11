@@ -1042,3 +1042,10 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
   light mode. Desktop verified unaffected post-deploy (screenshot, full invert, no double-invert).
 - Deployed after hours, book flat (open_trades=[] in-turn). REMAINING CHECK: Marcos's phone —
   I cannot run real iOS Safari from here; his eyes are the verification.
+- iOS light-mode PASS 2 (Marcos's phone screenshot: filtered container only covered the
+  initially-visible slice; scrolled-in columns dark): filter moved onto the TABLES (full scroll
+  width); .table-wrap/.tw containers get literal light colors; #rejectStrip/#shadowStrip (bare
+  divs whose wide tables panned the page) made scroll containers + same table filter. Deployed
+  (book flat in-turn), served CSS verified live; desktop light mode re-checked (top + mid-page
+  render correct; browser-pane blank-after-scroll screenshots occurred in BOTH themes incl.
+  pre-pass-2 = pane renderer flake, not a regression). Final verify = Marcos's phone.

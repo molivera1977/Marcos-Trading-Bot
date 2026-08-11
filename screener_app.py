@@ -547,9 +547,15 @@ html[data-theme=light] img,html[data-theme=light] .no-invert{filter:invert(1) hu
    iOS-only via @supports; each composited layer gets its own copy of the filter, and the
    sticky header is demoted to normal flow so the root filter covers it. */
 @supports (-webkit-touch-callout: none){
-  html[data-theme=light] .table-wrap,html[data-theme=light] .tw,
+  /* 8/10 second pass (phone screenshot): filtering the scroll CONTAINER only covered the
+     initially-visible region — scrolled-in columns stayed dark. Filter the table itself
+     (spans the full scroll width); container gets literal light colors instead. */
+  html[data-theme=light] .table-wrap>table,html[data-theme=light] .tw>table,
+  html[data-theme=light] #rejectStrip>table,html[data-theme=light] #shadowStrip>table,
   html[data-theme=light] #themeBtn{filter:invert(.93) hue-rotate(180deg)}
+  html[data-theme=light] .table-wrap,html[data-theme=light] .tw{background:#e9e8e6;border-color:#d5d5d3}
   html[data-theme=light] .header{position:relative}
+  #rejectStrip,#shadowStrip{overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
 #themeBtn{position:fixed;bottom:14px;right:14px;z-index:9999;width:44px;height:44px;border-radius:50%;
 border:1px solid #30363d;background:#161b22;color:#e6edf3;font-size:19px;line-height:1;cursor:pointer;

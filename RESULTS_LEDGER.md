@@ -1094,3 +1094,19 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
   may exist ONLY there. Fix candidate for the queue: add TikTok tab to the sweep (yt-dlp handles
   captions cleanly, proven tonight). Officers touched: Kev Librarian (recovery+corpus), Feed
   Engineer (vendor-surface gap), Handicapper (three fresh names for the open).
+
+## 2026-08-11 ~01:50 — KEV LESSON: SCKT 5-second vertical (TikTok war story, Marcos's link)
+- Kev's Monday SCKT trade, his words: entry $1.20 on "a simple pullback off of VWAP," watching
+  "the break of the high of the day"; then $1.20 -> $3.97 in ~2-5 SECONDS ("that's not a glitch");
+  he SOLD NOTHING into the spike (thought it was fake) and traded out to ~$2.50; "people were up
+  five grand in seconds. 21R day in seconds"; closing doctrine: "whenever the opportunity is
+  there you take your shot."
+- What this feeds (officers): [Reclaim Architect] entry archetype = VWAP-pullback + HOD-break
+  watch, his canonical shape, again. [Rocket Rider / Tuesday sitting] the VERTICAL-REGIME entry
+  hole is not hypothetical — the month's biggest trade WAS a 5s vertical; our 5s/1s capture and
+  halt/seam lanes hunt exactly this. [Trade Manager / Execution Surgeon] even KEV captured only
+  ~$1.30 of the $2.77 offered — offered-vs-captured on verticals is the frontier, not a bot
+  defect. [REGISTERED QUESTION — Execution Surgeon]: our off-tape exit guard (_verify_exit_px)
+  would a REAL 2-second 3.97 print pass it, or would we refuse a legitimate vertical exit?
+  Needs a replay check against Monday's SCKT 5s/1s tape before the trial.
+- Transcript archived: data/kev/tiktok/7672424505150606605_SCKT_war_story_20260810.vtt

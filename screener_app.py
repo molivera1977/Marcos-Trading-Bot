@@ -550,10 +550,10 @@ html[data-theme=light] img,html[data-theme=light] .no-invert{filter:invert(1) hu
   /* 8/10 second pass (phone screenshot): filtering the scroll CONTAINER only covered the
      initially-visible region — scrolled-in columns stayed dark. Filter the table itself
      (spans the full scroll width); container gets literal light colors instead. */
-  html[data-theme=light] .table-wrap>table,html[data-theme=light] .tw>table,
+  /* pass 3 (phone evidence): root filter DOES reach .table-wrap tables (extra filter = double
+     invert = dark again) but NOT the loose strips. Only the strips keep their own filter. */
   html[data-theme=light] #rejectStrip>table,html[data-theme=light] #shadowStrip>table,
   html[data-theme=light] #themeBtn{filter:invert(.93) hue-rotate(180deg)}
-  html[data-theme=light] .table-wrap,html[data-theme=light] .tw{background:#e9e8e6;border-color:#d5d5d3}
   html[data-theme=light] .header{position:relative}
   #rejectStrip,#shadowStrip{overflow-x:auto;-webkit-overflow-scrolling:touch}
 }

@@ -1303,6 +1303,16 @@ def clear_open_trade():
         v = _open_trades.get(k) or {}
         if (_tid and (k == _tid or v.get("trade_id") == _tid)) or            (not _tid and tk and ((v.get("ticker") or "").upper() == tk or k == tk)):
             _gone.append(k); del _open_trades[k]
+    if not _gone and _tid and tk:
+        # 8/11 GHOST BELT: an id-bearing clear that matches NOTHING falls back to id-LESS rows of
+        # the same ticker (the 8/11 class: monitor posts lacked trade_id -> ticker-keyed ghost).
+        # Only id-less rows — never a sibling position that carries a different id.
+        for k in list(_open_trades.keys()):
+            v = _open_trades.get(k) or {}
+            if not v.get("trade_id") and (v.get("ticker") or "").upper() == tk:
+                _gone.append(k); del _open_trades[k]
+        if _gone:
+            print(f"[open-trade] clear fell back to id-less ticker rows for {tk}: {_gone}", flush=True)
     if _gone:
         _save_open_trades_file()
     return jsonify({"status": "ok", "cleared": _gone, "remaining": list(_open_trades.keys())})

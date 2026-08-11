@@ -899,5 +899,40 @@ _snap=_h5_ns["hot5_snapshot"]("SCKT", 10)
 check("hot5 EXECUTED: closed bars only (forming bucket excluded)", len(_snap["bars"])==1
       and _snap["bars"][0][4]==2)
 
+
+
+def test_ghost_open_trades_20260811():
+    """8/11 GHOST FIX: monitor posts lacked trade_id -> second ticker-keyed row -> id-bearing
+    clear stranded it (8 ghosts, phantom-resume risk at boot). Pins: one-key-one-row, ghost
+    fallback clear, sibling protection, bot-side trade_id stamp."""
+    import screener_app as s
+    c = s.app.test_client(); H = {"X-Dashboard-Secret": s.API_SECRET}
+    _saved = dict(s._open_trades); s._open_trades.clear()
+    try:
+        c.post("/api/open_trade", json={"ticker":"TSTA","trade_id":"id1","entry_price":1.0}, headers=H)
+        c.post("/api/open_trade", json={"ticker":"TSTA","trade_id":"id1","last_price":1.2}, headers=H)
+        assert len(s._open_trades) == 1
+        r = c.post("/api/open_trade/clear", json={"ticker":"TSTA","trade_id":"id1"}, headers=H)
+        assert s._open_trades == {} and r.get_json()["cleared"] == ["id1"]
+        s._open_trades["TSTB"] = {"ticker":"TSTB","entry_price":1.0}
+        r = c.post("/api/open_trade/clear", json={"ticker":"TSTB","trade_id":"idX"}, headers=H)
+        assert s._open_trades == {} and r.get_json()["cleared"] == ["TSTB"]
+        s._open_trades["id2"] = {"ticker":"TSTC","trade_id":"id2"}
+        r = c.post("/api/open_trade/clear", json={"ticker":"TSTC","trade_id":"id_missing"}, headers=H)
+        assert "id2" in s._open_trades and r.get_json()["cleared"] == []
+        src = open("marcos_trading_bot.py").read()
+        i = src.find('# Durable recovery state — survives a crash/restart')
+        assert '"trade_id": trade_id' in src[i:i+700]
+    finally:
+        s._open_trades.clear(); s._open_trades.update(_saved)
+
+print("G) 8/11 ghost open-trades pins")
+try:
+    test_ghost_open_trades_20260811()
+    check("ghost pins EXECUTED: one-key-one-row + fallback clear + sibling protection + bot stamp", True)
+except AssertionError as _ge:
+    check("ghost pins EXECUTED", False, str(_ge))
+
+
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

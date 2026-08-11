@@ -8690,7 +8690,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             "runway": runway,        # 7/29 (Marcos: "can it be read on the tale of the tape") — road at entry, live
         })
         # Durable recovery state — survives a crash/restart so this trade still gets a recorded exit.
+        # 8/11 GHOST FIX: trade_id was MISSING here, so this recurring post upserted a SECOND,
+        # ticker-keyed row beside the entry's id-keyed row; exit cleared only the id row and the
+        # ticker row lived forever (8 ghosts on 8/11). One key = one row = one clear.
         _save_open_trade({
+            "trade_id": trade_id,
             "ticker": ticker, "entry_price": round(entry_price, 4), "target": round(target_price, 4),
             "stop": round(current_stop, 4), "remaining_shares": remaining_shares,
             "initial_shares": initial_shares, "highest": round(highest_price, 4),

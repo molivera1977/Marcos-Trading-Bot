@@ -1134,3 +1134,24 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
    against Monday's SCKT 1s/5s tape; expect capture-rate haircut on vertical exits.
 - All transcripts archived under data/kev/tiktok/. Officers touched: Kev Librarian, Reclaim
   Architect, Rocket Rider, Halt lane owners, Wind Tunnel, Execution Surgeon, Opening Bell (PRE).
+
+## 2026-08-11 ~16:15 — GHOST OPEN-TRADES: FIXED, CLEANED, PINNED (task #46)
+- Marcos flagged "dead open trades blocking business." Truth: 8 GHOST store rows (trades closed
+  + recorded; rows never cleared). Trading was NOT blocked today — bot book "positions now 0
+  (peak 4)", 29 trades, re-entered the ghost tickers repeatedly. Display + boot-risk defect only.
+- ROOT CAUSE (my Sunday per-trade-id ship, incomplete): monitor-loop _save_open_trade lacked
+  trade_id -> second ticker-keyed row per trade; id-bearing exit clear removed only the id row.
+  FIX: trade_id stamped on monitor posts + clear endpoint falls back to id-LESS same-ticker rows
+  (sibling-safe). 4 rig pins, suite ALL GREEN exit 0. Auditor convened: GO, no blockers.
+- SEQUENCING ERROR (mine, owned): deployed the BOT before purging; its boot force-recorded all
+  8 ghosts as "RECOVERED after restart" = 8 duplicate P&L records (book briefly 37/+$137.52;
+  WAFU dupe +$7.44 = frozen mid-trade state, NOT its real +$16.51 exit — deleted-records payload
+  is untrustworthy as audit copies, per auditor warning). Auditor W2 predicted exactly this.
+- CLEANUP: new POST /api/trades/delete (predicate + expect-abort + returns records; 3 pins;
+  second auditor pass GO w/ conditions honored: store verified EMPTY pre-delete, delete belted
+  with all 8 tickers + expect=8). Deleted exactly 8. FINAL BOOK: 29 trades net +$104.62
+  (1-cent float-rounding vs bot's session print +$104.63). Zero RECOVERED-today records remain.
+- Follow-ups queued: #47 vacuous id-clear verify (the silent hole that let ghosts accumulate);
+  auditor W1 (orphan re-key strands old ticker row) noted in #47.
+- Officers: Blast Radius Auditor (2 convenings, verdicts in-transcript), Pit Crew Chief,
+  Systems Quant, Statistician (book corrected + traced).

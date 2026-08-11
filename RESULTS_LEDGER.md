@@ -1056,3 +1056,27 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
   tables returned to root-filter handling (undo regression). Shadow-lanes header row stays a
   dark band on iOS — readable, unfixed tonight. PROPER FIX registered for the Curator queue:
   real literal light theme (CSS variables), no invert-filter hack — daytime build, not 23:40.
+
+## 2026-08-11 ~00:45 ET — SHIP: real light theme (CSS variables), invert-filter hack retired
+- The Curator-queue item from 8/10 pass 3. THEME_SNIPPET now defines the full dark palette as
+  CSS custom properties on :root (exact old hexes — dark mode is byte-identical) with a light
+  override under html[data-theme=light]; color-scheme swaps with the theme. The invert(.93)
+  hue-rotate filter and the whole iOS @supports patch stack are DELETED — no filter anywhere,
+  so iOS compositing heuristics can no longer split the page into light and dark layers.
+- Sweep: 283 hex literals -> var(--x) across / (HTML), /dashboard, /day2, /premarket builder,
+  the Tale page, Python-side gate_color/bcol, and JS-built innerHTML (loadRejects/loadShadow,
+  live badge, trade panel). DUTY_HTML untouched (unthemed). Chart.js canvas can't take var():
+  colors resolve via getComputedStyle at render time; toggle dispatches 'mtheme-change' and the
+  equity chart re-renders. Toggle button + localStorage 'mtheme' unchanged.
+- Blast Radius Auditor (separate context) on the diff: verdict SHIP-WITH-FIXES, zero
+  trading-logic impact (gate/veto logic byte-identical, no route/data changes, Jinja clean,
+  node --check passed on all inline scripts). Both findings fixed pre-ship: (1) #d2992255
+  alpha hex became invalid var(--yellow)55 -> color-mix(); (2) deleted iOS block was the only
+  overflow-x:auto on #rejectStrip/#shadowStrip -> restored in base CSS.
+- Deploy gates: 00:29-00:35 ET (outside RTH), open_trades=[] curled in-turn before AND after
+  deploy. railway up (dashboard/ scanner); new CSS live ~80s later. Verified live: all 4 pages
+  200 with var(--) served and zero invert() remnants; /dashboard light mode eyeballed with real
+  data (balance banner, stat cards, P&L calendar tints, chart axis re-render, ledger table).
+- Commits 55a572d + 7165205 (main fast-forwarded from claude/funny-bell-adf49d).
+- REMAINING CHECK: Marcos's phone — but there is no filter left to composite, so the iOS
+  failure mode from 8/10 is structurally gone, not patched around.

@@ -1032,3 +1032,13 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
   14 rows sum EXACTLY $56.93 (incl. XHLD +$25.43 correction entry). The main thread's "+$58.90"
   was a mid-afternoon figure; two later THH trades (+$3.60, -$5.57) net -$1.97. Monday final
   book = +$56.93. The Duty Officer's first live answer was RIGHT and the main thread was stale.
+
+## 2026-08-10 night — FIX: iOS light mode "scroll part stays dark"
+- Cause: light mode = invert filter on the root; iOS Safari composites touch-scroll containers
+  (.table-wrap dashboard+scanner, .tw premarket) and the sticky header into separate layers the
+  root filter never reaches -> exactly the scrolling tables stayed dark on the phone.
+- Fix (THEME_SNIPPET, central to all pages): @supports(-webkit-touch-callout:none) — iOS-only —
+  gives each composited layer its own invert filter; sticky header demoted to normal flow in
+  light mode. Desktop verified unaffected post-deploy (screenshot, full invert, no double-invert).
+- Deployed after hours, book flat (open_trades=[] in-turn). REMAINING CHECK: Marcos's phone —
+  I cannot run real iOS Safari from here; his eyes are the verification.

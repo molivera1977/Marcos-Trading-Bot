@@ -540,25 +540,36 @@ def run_scan():
 # green/red semantics via hue-rotate); choice persists per device via localStorage. ──
 THEME_SNIPPET = """
 <style>
-html[data-theme=light]{filter:invert(.93) hue-rotate(180deg);background:#ececea}
-html[data-theme=light] img,html[data-theme=light] .no-invert{filter:invert(1) hue-rotate(180deg)}
-/* iOS Safari (8/10, Marcos: "the scroll part stays dark"): the root filter never reaches
-   composited layers — touch-scroll containers and sticky/fixed elements keep their dark paint.
-   iOS-only via @supports; each composited layer gets its own copy of the filter, and the
-   sticky header is demoted to normal flow so the root filter covers it. */
-@supports (-webkit-touch-callout: none){
-  /* 8/10 second pass (phone screenshot): filtering the scroll CONTAINER only covered the
-     initially-visible region — scrolled-in columns stayed dark. Filter the table itself
-     (spans the full scroll width); container gets literal light colors instead. */
-  /* pass 3 (phone evidence): root filter DOES reach .table-wrap tables (extra filter = double
-     invert = dark again) but NOT the loose strips. Only the strips keep their own filter. */
-  html[data-theme=light] #rejectStrip>table,html[data-theme=light] #shadowStrip>table,
-  html[data-theme=light] #themeBtn{filter:invert(.93) hue-rotate(180deg)}
-  html[data-theme=light] .header{position:relative}
-  #rejectStrip,#shadowStrip{overflow-x:auto;-webkit-overflow-scrolling:touch}
-}
+/* 8/10: real light theme via CSS custom properties. The old invert()/hue-rotate() filter hack
+   is GONE — iOS Safari applied the root filter to some composited table layers and not others
+   (RESULTS_LEDGER 2026-08-10), so it could never be consistent on iPhone. Every themed page's
+   colors reference these variables; light mode just swaps the palette. */
+:root{color-scheme:dark;
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#1c2128;--bg4b:#1c2129;--bg5:#10151c;
+  --border:#30363d;
+  --fg:#e6edf3;--fg2:#c9d1d9;--muted:#8b949e;--muted2:#7d8590;--muted3:#6e7681;--muted4:#484f58;
+  --green:#3fb950;--green2:#3ddc84;--green-btn:#238636;--green-mid:#2d5a3d;
+  --green-tint:#1a3a2a;--green-tint2:#0e2a1a;--green-tint3:#112b1a;--green-tint4:#0d1f14;
+  --red:#f85149;--red2:#ff6b6b;--red-text:#ffb3b3;--red-tint:#3d1a1a;--red-tint2:#3a1a1a;
+  --red-border:#3a1f1f;--red-border2:#6e2c2c;--red-bg:#1e1419;
+  --yellow:#d29922;--yellow2:#e3b341;--yellow-tint:#2d1f00;--yellow-tint2:#3a2e1a;
+  --yellow-tint3:#2d2a14;--yellow-tint4:#3a2f14;--yellow-border:#6b5518;
+  --blue:#58a6ff;--blue-btn:#1f6feb;
+  --purple:#c084fc;--purple2:#a371f7;--purple-tint:#2a1a3a;--purple-border:#5a3d8a}
+html[data-theme=light]{color-scheme:light;
+  --bg:#f6f8fa;--bg2:#ffffff;--bg3:#eaeef2;--bg4:#f6f8fa;--bg4b:#f6f8fa;--bg5:#eef1f4;
+  --border:#d0d7de;
+  --fg:#1f2328;--fg2:#424a53;--muted:#59636e;--muted2:#59636e;--muted3:#6e7781;--muted4:#8c959f;
+  --green:#1a7f37;--green2:#1a7f37;--green-btn:#1f883d;--green-mid:#96d0a5;
+  --green-tint:#dafbe1;--green-tint2:#d3f5dc;--green-tint3:#e6f7eb;--green-tint4:#dafbe1;
+  --red:#d1242f;--red2:#d1242f;--red-text:#82071e;--red-tint:#ffebe9;--red-tint2:#ffebe9;
+  --red-border:#ffcecb;--red-border2:#f7a9a4;--red-bg:#fff5f4;
+  --yellow:#9a6700;--yellow2:#9a6700;--yellow-tint:#fff8c5;--yellow-tint2:#fff8c5;
+  --yellow-tint3:#fff8c5;--yellow-tint4:#fff8c5;--yellow-border:#d4a72c;
+  --blue:#0969da;--blue-btn:#0969da;
+  --purple:#8250df;--purple2:#8250df;--purple-tint:#fbefff;--purple-border:#d8b9ff}
 #themeBtn{position:fixed;bottom:14px;right:14px;z-index:9999;width:44px;height:44px;border-radius:50%;
-border:1px solid #30363d;background:#161b22;color:#e6edf3;font-size:19px;line-height:1;cursor:pointer;
+border:1px solid var(--border);background:var(--bg2);color:var(--fg);font-size:19px;line-height:1;cursor:pointer;
 opacity:.9;box-shadow:0 2px 8px rgba(0,0,0,.35)}
 #themeBtn:hover{opacity:1}
 </style>
@@ -571,6 +582,7 @@ opacity:.9;box-shadow:0 2px 8px rgba(0,0,0,.35)}
     b.onclick=function(){
       var n=document.documentElement.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', n); localStorage.setItem('mtheme', n);
+      window.dispatchEvent(new CustomEvent('mtheme-change'));
     };
     document.body.appendChild(b);
   }
@@ -589,94 +601,94 @@ HTML = """<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',system-ui,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
 
   .header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;
-          background:#161b22;border-bottom:1px solid #21262d}
+          background:var(--bg2);border-bottom:1px solid var(--bg3)}
   .logo{display:flex;align-items:center;gap:10px}
-  .logo-icon{width:34px;height:34px;border-radius:8px;background:#1a3a2a;
+  .logo-icon{width:34px;height:34px;border-radius:8px;background:var(--green-tint);
              display:flex;align-items:center;justify-content:center;font-size:18px}
-  .logo h1{font-size:16px;font-weight:600;color:#e6edf3}
-  .logo sub{font-size:11px;color:#8b949e;display:block;margin-top:1px;font-weight:400}
+  .logo h1{font-size:16px;font-weight:600;color:var(--fg)}
+  .logo sub{font-size:11px;color:var(--muted);display:block;margin-top:1px;font-weight:400}
   .header-right{display:flex;align-items:center;gap:12px}
-  .ts{font-size:12px;color:#8b949e}
+  .ts{font-size:12px;color:var(--muted)}
   .btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-family:inherit;
-       padding:7px 14px;border-radius:8px;border:1px solid #30363d;background:transparent;
-       color:#e6edf3;cursor:pointer;transition:background .15s}
-  .btn:hover{background:#21262d}
+       padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;
+       color:var(--fg);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--bg3)}
   .btn:disabled{opacity:.5;cursor:not-allowed}
 
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px 24px 0}
-  .stat{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:14px 18px}
-  .stat-label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .stat{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;padding:14px 18px}
+  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
   .stat-value{font-size:24px;font-weight:600}
-  .green{color:#3fb950}
-  .yellow{color:#d29922}
-  .gray{color:#8b949e}
+  .green{color:var(--green)}
+  .yellow{color:var(--yellow)}
+  .gray{color:var(--muted)}
 
   .body{padding:20px 24px}
   .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .section-title{font-size:14px;font-weight:500;color:#e6edf3}
+  .section-title{font-size:14px;font-weight:500;color:var(--fg)}
   .live-dot{display:inline-flex;align-items:center;gap:5px;font-size:11px;
-            background:#1a3a2a;color:#3fb950;padding:3px 10px;border-radius:20px}
-  .live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:#3fb950}
+            background:var(--green-tint);color:var(--green);padding:3px 10px;border-radius:20px}
+  .live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
 
-  .table-wrap{border-radius:10px;border:1px solid #21262d;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .table-wrap{border-radius:10px;border:1px solid var(--bg3);overflow-x:auto;-webkit-overflow-scrolling:touch}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  thead th{padding:10px 16px;text-align:left;font-size:11px;font-weight:500;color:#8b949e;
-           text-transform:uppercase;letter-spacing:.4px;background:#161b22;
-           border-bottom:1px solid #21262d;cursor:pointer;user-select:none;white-space:nowrap}
-  thead th:hover{color:#e6edf3;background:#1c2128}
+  thead th{padding:10px 16px;text-align:left;font-size:11px;font-weight:500;color:var(--muted);
+           text-transform:uppercase;letter-spacing:.4px;background:var(--bg2);
+           border-bottom:1px solid var(--bg3);cursor:pointer;user-select:none;white-space:nowrap}
+  thead th:hover{color:var(--fg);background:var(--bg4)}
   thead th.sort-asc::after{content:' ▲';font-size:9px}
   thead th.sort-desc::after{content:' ▼';font-size:9px}
-  tbody tr{border-bottom:1px solid #161b22;transition:background .1s}
+  tbody tr{border-bottom:1px solid var(--bg2);transition:background .1s}
   tbody tr:last-child{border-bottom:none}
-  tbody tr:hover{background:#161b22}
-  tbody td{padding:12px 16px;color:#e6edf3;white-space:nowrap}
+  tbody tr:hover{background:var(--bg2)}
+  tbody td{padding:12px 16px;color:var(--fg);white-space:nowrap}
 
-  .ticker-cell{font-weight:600;font-size:14px;color:#58a6ff}
+  .ticker-cell{font-weight:600;font-size:14px;color:var(--blue)}
   .tk-link{color:inherit;text-decoration:none;cursor:pointer}
   .tk-link:hover{text-decoration:underline}
   .tk-arrow{font-size:10px;opacity:.45;margin-left:3px}
   .price-cell{font-variant-numeric:tabular-nums}
   .ah{font-size:11px;font-weight:600;margin-left:6px;opacity:.9}
-  .ah-up{color:#3ddc84}.ah-dn{color:#ff6b6b}
+  .ah-up{color:var(--green2)}.ah-dn{color:var(--red2)}
   .gap-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
-  .gap-hot{background:#1a3a2a;color:#3fb950}
-  .gap-warm{background:#2d2a14;color:#d29922}
-  .float-small{color:#3fb950;font-weight:600}
-  .float-med{color:#d29922}
-  .float-na{color:#8b949e}
+  .gap-hot{background:var(--green-tint);color:var(--green)}
+  .gap-warm{background:var(--yellow-tint3);color:var(--yellow)}
+  .float-small{color:var(--green);font-weight:600}
+  .float-med{color:var(--yellow)}
+  .float-na{color:var(--muted)}
   .source-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;
-               background:#161b22;border:1px solid #30363d;color:#8b949e}
+               background:var(--bg2);border:1px solid var(--border);color:var(--muted)}
 
-  .loader{display:none;text-align:center;padding:48px;color:#8b949e;font-size:14px}
+  .loader{display:none;text-align:center;padding:48px;color:var(--muted);font-size:14px}
   .loader.active{display:block}
-  .spinner{width:28px;height:28px;border:2px solid #21262d;border-top-color:#3fb950;
+  .spinner{width:28px;height:28px;border:2px solid var(--bg3);border-top-color:var(--green);
            border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  .errors{background:#1e1419;border:1px solid #3a1f1f;border-radius:8px;
-          padding:12px 16px;margin-top:16px;font-size:12px;color:#f85149}
-  .empty{text-align:center;padding:48px;color:#8b949e;font-size:14px}
+  .errors{background:var(--red-bg);border:1px solid var(--red-border);border-radius:8px;
+          padding:12px 16px;margin-top:16px;font-size:12px;color:var(--red)}
+  .empty{text-align:center;padding:48px;color:var(--muted);font-size:14px}
 
   /* ── Bot candidate highlighting ── */
-  tr.bot-candidate{background:#0d1f14}
-  tr.bot-candidate:hover{background:#112b1a}
-  tr.bot-candidate td.ticker-cell{font-weight:700;color:#3fb950}
+  tr.bot-candidate{background:var(--green-tint4)}
+  tr.bot-candidate:hover{background:var(--green-tint3)}
+  tr.bot-candidate td.ticker-cell{font-weight:700;color:var(--green)}
   .tale-link{margin-left:6px;text-decoration:none;font-size:12px;opacity:.8}
   .tale-link:hover{opacity:1}
-  .bot-pill{display:inline-block;background:#1a3a2a;border:1px solid #2d5a3d;
-            color:#3fb950;font-size:10px;font-weight:600;padding:1px 6px;
+  .bot-pill{display:inline-block;background:var(--green-tint);border:1px solid var(--green-mid);
+            color:var(--green);font-size:10px;font-weight:600;padding:1px 6px;
             border-radius:4px;margin-left:6px;vertical-align:middle}
-  .kev-pill{display:inline-block;background:#3a2f14;border:1px solid #6b5518;
-            color:#e3b341;font-size:10px;font-weight:700;padding:1px 6px;
+  .kev-pill{display:inline-block;background:var(--yellow-tint4);border:1px solid var(--yellow-border);
+            color:var(--yellow2);font-size:10px;font-weight:700;padding:1px 6px;
             border-radius:4px;margin-left:6px;vertical-align:middle}
   tr.kev-row td{background:rgba(227,179,65,0.06)}
   .filter-btn{font-size:12px;font-family:inherit;padding:5px 12px;border-radius:8px;
-              border:1px solid #2d5a3d;background:#1a3a2a;color:#3fb950;cursor:pointer;white-space:nowrap}
-  .filter-btn.off{background:transparent;border-color:#30363d;color:#8b949e}
-  .stat-sub{font-size:11px;color:#8b949e;margin-top:2px}
+              border:1px solid var(--green-mid);background:var(--green-tint);color:var(--green);cursor:pointer;white-space:nowrap}
+  .filter-btn.off{background:transparent;border-color:var(--border);color:var(--muted)}
+  .stat-sub{font-size:11px;color:var(--muted);margin-top:2px}
 
   @media(max-width:700px){
     .stats{grid-template-columns:repeat(2,1fr)}
@@ -886,10 +898,10 @@ function renderResults(d){
   var liveBadge = document.getElementById('live-badge');
   if(d.market_state==='after_hours'){
     liveBadge.textContent='Evening';
-    liveBadge.style.background='#2d1f00';liveBadge.style.color='#d29922';
+    liveBadge.style.background='var(--yellow-tint)';liveBadge.style.color='var(--yellow)';
   } else {
     liveBadge.textContent='Live';
-    liveBadge.style.background='#1a3a2a';liveBadge.style.color='#3fb950';
+    liveBadge.style.background='var(--green-tint)';liveBadge.style.color='var(--green)';
   }
 
   // Toggle evening-only columns
@@ -1999,14 +2011,14 @@ def tale_of_the_ticker(ticker):
     brk = d.get("break")
     veto = bool(d.get("veto")) or "do-not-trade" in note.lower() or "do not trade" in note.lower()
     if not d:
-        gate_color, gate_line = "#8b949e", ("NOT READ YET — No Read, No Trade: the bot will NOT enter "
+        gate_color, gate_line = "var(--muted)", ("NOT READ YET — No Read, No Trade: the bot will NOT enter "
                                             + tk + " until a chart read posts a level.")
     elif veto:
-        gate_color, gate_line = "#f85149", "DO-NOT-TRADE — vetoed by the read. The bot will never enter " + tk + " today."
+        gate_color, gate_line = "var(--red)", "DO-NOT-TRADE — vetoed by the read. The bot will never enter " + tk + " today."
     elif not brk:
-        gate_color, gate_line = "#f85149", "No numeric break level — the gate BLOCKS all entries."
+        gate_color, gate_line = "var(--red)", "No numeric break level — the gate BLOCKS all entries."
     else:
-        gate_color, gate_line = "#3fb950", ("ARMED — entries ALLOWED at/above " + fmt(brk) +
+        gate_color, gate_line = "var(--green)", ("ARMED — entries ALLOWED at/above " + fmt(brk) +
                                             " (the break). Below it: BLOCKED. No break, no trade.")
 
     rows = ""
@@ -2033,13 +2045,13 @@ def tale_of_the_ticker(ticker):
     return ("<!doctype html><html><head><meta charset='utf-8'><meta http-equiv='refresh' content='60'>"
             "<meta name='viewport' content='width=device-width,initial-scale=1'>"
             "<title>Tale of " + tk + "</title><style>"
-            "body{background:#0d1117;color:#e6edf3;font-family:-apple-system,Segoe UI,sans-serif;max-width:640px;margin:24px auto;padding:0 16px}"
-            "h1{font-size:26px;margin:6px 0} h3{color:#8b949e;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin:22px 0 6px}"
-            ".gate{border-left:4px solid " + gate_color + ";background:#161b22;padding:12px 14px;border-radius:6px;font-weight:600}"
-            "table{width:100%;border-collapse:collapse;background:#161b22;border-radius:6px}"
-            "td{padding:8px 12px;border-bottom:1px solid #21262d;font-size:14px} td:first-child{color:#8b949e;width:46%}"
-            ".note{background:#161b22;padding:12px 14px;border-radius:6px;font-size:14px;line-height:1.5;color:#c9d1d9}"
-            "a{color:#58a6ff;text-decoration:none} .top{font-size:13px;color:#8b949e}"
+            "body{background:var(--bg);color:var(--fg);font-family:-apple-system,Segoe UI,sans-serif;max-width:640px;margin:24px auto;padding:0 16px}"
+            "h1{font-size:26px;margin:6px 0} h3{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin:22px 0 6px}"
+            ".gate{border-left:4px solid " + gate_color + ";background:var(--bg2);padding:12px 14px;border-radius:6px;font-weight:600}"
+            "table{width:100%;border-collapse:collapse;background:var(--bg2);border-radius:6px}"
+            "td{padding:8px 12px;border-bottom:1px solid var(--bg3);font-size:14px} td:first-child{color:var(--muted);width:46%}"
+            ".note{background:var(--bg2);padding:12px 14px;border-radius:6px;font-size:14px;line-height:1.5;color:var(--fg2)}"
+            "a{color:var(--blue);text-decoration:none} .top{font-size:13px;color:var(--muted)}"
             "</style>" + THEME_SNIPPET + "</head><body>"
             "<div class='top'><a href='/'>← scanner</a> &nbsp;·&nbsp; " + date + " &nbsp;·&nbsp; auto-refreshes 60s</div>"
             "<h1>📜 Tale of " + tk + "</h1>"
@@ -2190,7 +2202,7 @@ def premarket_dashboard():
     banner = ("ENTRIES OPEN — RTH live trading" if entries_open
               else ("PREMARKET REGIME LIVE — hidden-entry + reclaim convert FOR REAL (cap 6 · ≥$250k dvol · 9:25 flatten) · legacy lanes shadow"
                     if _in_pre_regime else "9:25–9:30 dead window — no new PRE entries (flatten rule); RTH opens 09:30"))
-    bcol = "#3fb950" if entries_open else "#d29922"
+    bcol = "var(--green)" if entries_open else "var(--yellow)"
     # system-health witnesses (7/26): reader heartbeat + capture/recorder boots, from the store
     _hw = []
     try:
@@ -2243,35 +2255,35 @@ def premarket_dashboard():
             "<link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' rel='stylesheet'>"
             "<style>"
             "*{box-sizing:border-box;margin:0;padding:0}"
-            "body{font-family:'Inter',system-ui,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}"
+            "body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}"
             ".header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;"
-            "background:#161b22;border-bottom:1px solid #21262d;flex-wrap:wrap;gap:8px}"
+            "background:var(--bg2);border-bottom:1px solid var(--bg3);flex-wrap:wrap;gap:8px}"
             ".logo{display:flex;align-items:center;gap:10px}"
-            ".logo-icon{width:34px;height:34px;border-radius:8px;background:#3a2e1a;"
+            ".logo-icon{width:34px;height:34px;border-radius:8px;background:var(--yellow-tint2);"
             "display:flex;align-items:center;justify-content:center;font-size:18px}"
-            ".logo h1{font-size:16px;font-weight:600;color:#e6edf3}"
-            ".logo sub{font-size:11px;color:#8b949e;display:block;margin-top:1px;font-weight:400}"
-            ".ts{font-size:12px;color:#8b949e}"
+            ".logo h1{font-size:16px;font-weight:600;color:var(--fg)}"
+            ".logo sub{font-size:11px;color:var(--muted);display:block;margin-top:1px;font-weight:400}"
+            ".ts{font-size:12px;color:var(--muted)}"
             ".stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px 24px 0}"
-            ".stat{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:14px 18px}"
-            ".stat-label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}"
+            ".stat{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;padding:14px 18px}"
+            ".stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}"
             ".stat-value{font-size:22px;font-weight:600}"
-            ".green{color:#3fb950}.yellow{color:#d29922}.purple{color:#a371f7}.muted{color:#8b949e}"
+            ".green{color:var(--green)}.yellow{color:var(--yellow)}.purple{color:var(--purple2)}.muted{color:var(--muted)}"
             ".section{padding:20px 24px 0}"
-            ".card{background:#161b22;border:1px solid #21262d;border-radius:10px;overflow:hidden}"
-            ".card h2{font-size:13px;font-weight:600;color:#e6edf3;padding:12px 18px;border-bottom:1px solid #21262d}"
-            ".card h2 span{color:#8b949e;font-weight:400}"
+            ".card{background:var(--bg2);border:1px solid var(--bg3);border-radius:10px;overflow:hidden}"
+            ".card h2{font-size:13px;font-weight:600;color:var(--fg);padding:12px 18px;border-bottom:1px solid var(--bg3)}"
+            ".card h2 span{color:var(--muted);font-weight:400}"
             ".tw{overflow-x:auto;-webkit-overflow-scrolling:touch}"
             "table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}"
-            "td,th{border-bottom:1px solid #21262d;padding:9px 18px;text-align:left;white-space:nowrap}"
+            "td,th{border-bottom:1px solid var(--bg3);padding:9px 18px;text-align:left;white-space:nowrap}"
             "tr:last-child td{border-bottom:none}"
-            "th{color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:500}"
-            "tr:hover td{background:#1c2129}"
+            "th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:500}"
+            "tr:hover td{background:var(--bg4b)}"
             ".num{font-variant-numeric:tabular-nums}"
-            ".tk{color:#58a6ff;text-decoration:none;font-weight:600}.tk:hover{text-decoration:underline}"
-            ".kev-badge{font-size:10px;color:#d29922;border:1px solid #d2992255;border-radius:6px;"
+            ".tk{color:var(--blue);text-decoration:none;font-weight:600}.tk:hover{text-decoration:underline}"
+            ".kev-badge{font-size:10px;color:var(--yellow);border:1px solid var(--yellow)55;border-radius:6px;"
             "padding:1px 6px;margin-left:6px;vertical-align:1px}"
-            ".footer{padding:16px 24px;color:#484f58;font-size:11px}"
+            ".footer{padding:16px 24px;color:var(--muted4);font-size:11px}"
             "@media (max-width:700px){.stats{grid-template-columns:repeat(2,1fr);padding:14px 12px 0}"
             ".section{padding:14px 12px 0}.header{padding:12px}table{font-size:12px}td,th{padding:8px 12px}}"
             "</style></head><body>"
@@ -2430,13 +2442,13 @@ def dashboard():
 DAY2_HTML = """<!doctype html><html><head><meta charset="utf-8"><title>Day-Two Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{background:#0d1117;color:#e6edf3;font-family:Inter,system-ui,sans-serif;margin:0;padding:24px}
-h1{font-size:20px;margin:0 0 4px}.sub{color:#8b949e;font-size:13px;margin-bottom:20px}
-.watch{margin:12px 0 24px}.chip{display:inline-block;background:#161b22;border:1px solid #30363d;border-radius:8px;
+body{background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;margin:0;padding:24px}
+h1{font-size:20px;margin:0 0 4px}.sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+.watch{margin:12px 0 24px}.chip{display:inline-block;background:var(--bg2);border:1px solid var(--border);border-radius:8px;
  padding:6px 12px;margin:4px;font-weight:600}
-table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #21262d}
-th{color:#8b949e;font-weight:600}.pos{color:#3fb950}.neg{color:#f85149}.tk{font-weight:700;color:#58a6ff}
-.empty{color:#8b949e;padding:40px;text-align:center}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--bg3)}
+th{color:var(--muted);font-weight:600}.pos{color:var(--green)}.neg{color:var(--red)}.tk{font-weight:700;color:var(--blue)}
+.empty{color:var(--muted);padding:40px;text-align:center}
 </style></head><body>
 <h1>🔭 Day-Two Tracker <span class="sub">observe-only — how hard day-1 gappers behave on day 2</span></h1>
 <div id="watch" class="watch"></div>
@@ -2454,7 +2466,7 @@ fetch('/api/day2').then(r=>r.json()).then(d=>{
   const tb=document.getElementById('rows');
   if(!obs.length){tb.innerHTML='<tr><td colspan="9"><div class="empty">No day-2 observations yet — they\\'ll appear here during market hours.</div></td></tr>';return;}
   tb.innerHTML=obs.map(o=>`<tr>
-    <td>${o.date||'—'}</td><td>${o.time||'—'}</td><td class="tk"><a href="https://www.tradingview.com/chart/?symbol=${o.ticker}" target="_blank" rel="noopener" style="color:#58a6ff;text-decoration:none">${o.ticker} ↗</a></td>
+    <td>${o.date||'—'}</td><td>${o.time||'—'}</td><td class="tk"><a href="https://www.tradingview.com/chart/?symbol=${o.ticker}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none">${o.ticker} ↗</a></td>
     <td class="${cls(o.day1_move)}">${pct(o.day1_move)}</td>
     <td>${money(o.price)}</td>
     <td class="${cls(o.gap_pct)}">${pct(o.gap_pct)}</td>
@@ -2483,92 +2495,92 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
 
 /* ── Header ── */
 .header{display:flex;align-items:center;justify-content:space-between;
-        padding:16px 28px;background:#161b22;border-bottom:1px solid #21262d;position:sticky;top:0;z-index:10}
+        padding:16px 28px;background:var(--bg2);border-bottom:1px solid var(--bg3);position:sticky;top:0;z-index:10}
 .logo{display:flex;align-items:center;gap:12px}
-.logo-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#1a3a2a,#0e2a1a);
-           display:flex;align-items:center;justify-content:center;font-size:20px;border:1px solid #2d5a3d}
-.logo h1{font-size:17px;font-weight:700;color:#e6edf3;letter-spacing:-.2px}
-.logo sub{font-size:11px;color:#8b949e;display:block;margin-top:1px;font-weight:400}
+.logo-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--green-tint),var(--green-tint2));
+           display:flex;align-items:center;justify-content:center;font-size:20px;border:1px solid var(--green-mid)}
+.logo h1{font-size:17px;font-weight:700;color:var(--fg);letter-spacing:-.2px}
+.logo sub{font-size:11px;color:var(--muted);display:block;margin-top:1px;font-weight:400}
 .header-right{display:flex;align-items:center;gap:14px}
 .live-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;
-            background:#1a3a2a;color:#3fb950;padding:4px 10px;border-radius:20px;border:1px solid #2d5a3d}
-.live-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:#3fb950;
+            background:var(--green-tint);color:var(--green);padding:4px 10px;border-radius:20px;border:1px solid var(--green-mid)}
+.live-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);
                     animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.last-updated{font-size:11px;color:#8b949e}
+.last-updated{font-size:11px;color:var(--muted)}
 .refresh-btn{font-size:12px;font-family:inherit;padding:6px 14px;border-radius:8px;
-             border:1px solid #30363d;background:transparent;color:#e6edf3;cursor:pointer}
-.refresh-btn:hover{background:#21262d}
+             border:1px solid var(--border);background:transparent;color:var(--fg);cursor:pointer}
+.refresh-btn:hover{background:var(--bg3)}
 
 /* ── Balance Banner ── */
 .market-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  padding:9px 28px;background:#0d1117;border-bottom:1px solid #21262d}
+  padding:9px 28px;background:var(--bg);border-bottom:1px solid var(--bg3)}
 .market-inner{display:flex;gap:26px;flex-wrap:wrap;align-items:center}
 .mkt-idx{display:flex;flex-direction:column;gap:1px;line-height:1.15}
-.mkt-idx .mkt-name{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.6px}
+.mkt-idx .mkt-name{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
 .mkt-idx .mkt-chg{font-size:15px;font-weight:700}
-.mkt-idx .mkt-px{font-size:10.5px;color:#8b949e}
-.market-loading{font-size:12px;color:#8b949e}
-.market-updated{font-size:11px;color:#6e7681}
-.balance-banner{background:linear-gradient(135deg,#0e2a1a 0%,#161b22 100%);
-                border-bottom:1px solid #21262d;padding:24px 28px}
+.mkt-idx .mkt-px{font-size:10.5px;color:var(--muted)}
+.market-loading{font-size:12px;color:var(--muted)}
+.market-updated{font-size:11px;color:var(--muted3)}
+.balance-banner{background:linear-gradient(135deg,var(--green-tint2) 0%,var(--bg2) 100%);
+                border-bottom:1px solid var(--bg3);padding:24px 28px}
 .balance-row{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap}
 .balance-main{flex:1}
-.balance-label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
-.balance-value{font-size:42px;font-weight:700;color:#e6edf3;letter-spacing:-1px}
+.balance-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.balance-value{font-size:42px;font-weight:700;color:var(--fg);letter-spacing:-1px}
 .balance-change{display:inline-flex;align-items:center;gap:6px;margin-top:8px;
                 font-size:14px;font-weight:600;padding:4px 12px;border-radius:6px}
-.balance-change.up{background:#1a3a2a;color:#3fb950}
-.balance-change.down{background:#3a1a1a;color:#f85149}
-.balance-change.flat{background:#21262d;color:#8b949e}
+.balance-change.up{background:var(--green-tint);color:var(--green)}
+.balance-change.down{background:var(--red-tint2);color:var(--red)}
+.balance-change.flat{background:var(--bg3);color:var(--muted)}
 
 /* ── Stat Cards ── */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;padding:20px 28px 0}
-.stat-card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:16px 18px}
-.stat-label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.stat-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:16px 18px}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 .stat-value{font-size:22px;font-weight:700;line-height:1}
-.stat-sub{font-size:11px;color:#8b949e;margin-top:5px}
-.green{color:#3fb950} .red{color:#f85149} .yellow{color:#d29922} .gray{color:#8b949e} .white{color:#e6edf3}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:5px}
+.green{color:var(--green)} .red{color:var(--red)} .yellow{color:var(--yellow)} .gray{color:var(--muted)} .white{color:var(--fg)}
 
 /* ── Chart + Table section ── */
 .content{padding:20px 28px}
-.section-title{font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;
+.section-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;
                letter-spacing:.6px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.section-title::after{content:'';flex:1;height:1px;background:#21262d}
+.section-title::after{content:'';flex:1;height:1px;background:var(--bg3)}
 
-.chart-wrap{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:20px;margin-bottom:20px;height:220px}
+.chart-wrap{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:20px;margin-bottom:20px;height:220px}
 
 /* ── Trade Table ── */
-.table-wrap{background:#161b22;border:1px solid #21262d;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.table-wrap{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{padding:11px 14px;text-align:left;font-size:11px;font-weight:600;
-         color:#8b949e;text-transform:uppercase;letter-spacing:.5px;
-         background:#0d1117;border-bottom:1px solid #21262d;white-space:nowrap}
-tbody tr{border-bottom:1px solid #21262d;transition:background .1s}
+         color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+         background:var(--bg);border-bottom:1px solid var(--bg3);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--bg3);transition:background .1s}
 tbody tr:last-child{border-bottom:none}
-tbody tr:hover{background:#1c2128}
+tbody tr:hover{background:var(--bg4)}
 tbody td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
-.ticker-badge{display:inline-block;background:#1c2128;border:1px solid #30363d;
-              border-radius:6px;padding:2px 8px;font-weight:600;font-size:12px;color:#e6edf3;
+.ticker-badge{display:inline-block;background:var(--bg4);border:1px solid var(--border);
+              border-radius:6px;padding:2px 8px;font-weight:600;font-size:12px;color:var(--fg);
               text-decoration:none;cursor:pointer}
-.ticker-badge:hover{border-color:#58a6ff}
+.ticker-badge:hover{border-color:var(--blue)}
 a.watch-chip{text-decoration:none;cursor:pointer}
 a.watch-chip:hover{filter:brightness(1.25)}
-.pnl-pos{color:#3fb950;font-weight:600}
-.pnl-neg{color:#f85149;font-weight:600}
-.pnl-flat{color:#8b949e;font-weight:600}
-.exit-tag{font-size:11px;color:#8b949e;max-width:160px;overflow:hidden;text-overflow:ellipsis}
-.empty-state{text-align:center;padding:48px 24px;color:#8b949e}
+.pnl-pos{color:var(--green);font-weight:600}
+.pnl-neg{color:var(--red);font-weight:600}
+.pnl-flat{color:var(--muted);font-weight:600}
+.exit-tag{font-size:11px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.empty-state{text-align:center;padding:48px 24px;color:var(--muted)}
 .empty-state .icon{font-size:36px;margin-bottom:12px}
 .empty-state p{font-size:14px}
-.empty-state small{font-size:12px;display:block;margin-top:6px;color:#484f58}
+.empty-state small{font-size:12px;display:block;margin-top:6px;color:var(--muted4)}
 
 /* ── No-trade days row ── */
-.no-trade-row td{color:#484f58;font-style:italic}
+.no-trade-row td{color:var(--muted4);font-style:italic}
 
 /* ── Strategy + Watch panel ── */
 .strategy-panel{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 28px}
@@ -2585,75 +2597,75 @@ a.watch-chip:hover{filter:brightness(1.25)}
   .balance-value{font-size:34px}
   .trade-panel .tk{font-size:18px} .trade-panel .pnl{font-size:20px}
 }
-.panel-card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:16px 18px}
+.panel-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:16px 18px}
 .cal-wrap{max-width:660px;margin:0 auto 8px}
 .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.cal-nav{background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:2px 12px;cursor:pointer;font-size:20px;line-height:1.2}
-.cal-nav:hover{background:#30363d}
+.cal-nav{background:var(--bg3);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:2px 12px;cursor:pointer;font-size:20px;line-height:1.2}
+.cal-nav:hover{background:var(--border)}
 .cal-titlewrap{text-align:center;display:flex;flex-direction:column;gap:2px}
 .cal-title{font-size:15px;font-weight:700}
 .cal-month-pnl{font-size:15px;font-weight:800}
-.cal-month-sub{font-size:11px;color:#8b949e}
+.cal-month-sub{font-size:11px;color:var(--muted)}
 .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
-.cal-dow>div{text-align:center;font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em}
+.cal-dow>div{text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.cal-cell{min-height:58px;border-radius:8px;border:1px solid #21262d;background:#0d1117;padding:5px 7px;display:flex;flex-direction:column;justify-content:space-between}
+.cal-cell{min-height:58px;border-radius:8px;border:1px solid var(--bg3);background:var(--bg);padding:5px 7px;display:flex;flex-direction:column;justify-content:space-between}
 .cal-cell.empty{background:transparent;border-color:transparent}
 .cal-cell.win{background:rgba(63,185,80,.13);border-color:rgba(63,185,80,.38)}
 .cal-cell.loss{background:rgba(248,81,73,.13);border-color:rgba(248,81,73,.38)}
 .cal-cell.flat{background:rgba(139,148,158,.10)}
-.cal-cell.today{outline:2px solid #58a6ff;outline-offset:-2px}
-.cal-daynum{font-size:11px;color:#8b949e;font-weight:600}
+.cal-cell.today{outline:2px solid var(--blue);outline-offset:-2px}
+.cal-daynum{font-size:11px;color:var(--muted);font-weight:600}
 .cal-pnl{font-size:13px;font-weight:800;line-height:1.1}
 .cal-r{font-size:10px;font-weight:800;margin-top:1px}
-.cal-ct{font-size:9px;color:#8b949e}
+.cal-ct{font-size:9px;color:var(--muted)}
 @media(max-width:640px){
   .cal-cell{min-height:46px;padding:3px 4px}
   .cal-pnl{font-size:10px} .cal-daynum{font-size:9px} .cal-ct{display:none}
   .cal-dow>div{font-size:8px} .cal-grid{gap:4px} .cal-dow{gap:4px}
 }
-.panel-title{font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
+.panel-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
 .param-grid{display:flex;flex-wrap:wrap;gap:8px}
-.param-pill{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:5px 10px;font-size:12px}
-.param-pill span{color:#8b949e;margin-right:4px}
-.param-pill strong{color:#e6edf3}
+.param-pill{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px}
+.param-pill span{color:var(--muted);margin-right:4px}
+.param-pill strong{color:var(--fg)}
 .watch-tickers{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
-.trade-panel{margin-top:16px;background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px}
+.trade-panel{margin-top:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px}
 .trade-panel .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.trade-panel .tk{font-size:20px;font-weight:800;color:#58a6ff;text-decoration:none}
+.trade-panel .tk{font-size:20px;font-weight:800;color:var(--blue);text-decoration:none}
 .trade-panel .pnl{font-size:22px;font-weight:800}
 .trade-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.trade-grid .cell{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:8px 10px}
-.trade-grid .lbl{color:#8b949e;font-size:11px;text-transform:uppercase}
+.trade-grid .cell{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:8px 10px}
+.trade-grid .lbl{color:var(--muted);font-size:11px;text-transform:uppercase}
 .trade-grid .val{font-weight:700;font-size:15px;margin-top:2px}
-.tbar{height:8px;background:#161b22;border-radius:4px;margin-top:12px;overflow:hidden;position:relative}
-.tbar .fill{height:100%;background:linear-gradient(90deg,#f85149,#d29922,#3fb950)}
-.tbar-lbls{display:flex;justify-content:space-between;color:#8b949e;font-size:11px;margin-top:4px}
-.tape-btn{margin-top:10px;width:100%;background:#161b22;border:1px solid #21262d;border-radius:8px;
-          color:#8b949e;font-size:12px;font-weight:600;padding:7px 10px;cursor:pointer;text-align:center}
-.tape-btn:hover{border-color:#58a6ff;color:#c9d1d9}
-.tape{display:none;margin-top:10px;background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 14px}
+.tbar{height:8px;background:var(--bg2);border-radius:4px;margin-top:12px;overflow:hidden;position:relative}
+.tbar .fill{height:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green))}
+.tbar-lbls{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:4px}
+.tape-btn{margin-top:10px;width:100%;background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;
+          color:var(--muted);font-size:12px;font-weight:600;padding:7px 10px;cursor:pointer;text-align:center}
+.tape-btn:hover{border-color:var(--blue);color:var(--fg2)}
+.tape{display:none;margin-top:10px;background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:12px 14px}
 .tape.show{display:block}
 .tape .verdict{font-size:14px;font-weight:800;margin-bottom:8px}
-.tape .verdict.locked{color:#3fb950}
-.tape .verdict.risk{color:#d29922}
-.tape ul{margin:0;padding-left:18px;color:#c9d1d9;font-size:13px;line-height:1.65}
-.tape li b{color:#e6edf3}
-.tape .nums{color:#8b949e;font-size:11px;margin-top:8px}
-.cap-strip{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:10px 14px;margin-bottom:12px}
-.cap-lbl{font-size:12px;color:#8b949e}
-.cap-lbl b{color:#e6edf3}
-.cap-bar{height:8px;background:#161b22;border-radius:4px;margin-top:8px;overflow:hidden}
-.cap-fill{height:100%;background:linear-gradient(90deg,#3fb950,#d29922);border-radius:4px}
-.watch-chip{background:#1a3a2a;border:1px solid #2d5a3d;color:#3fb950;
+.tape .verdict.locked{color:var(--green)}
+.tape .verdict.risk{color:var(--yellow)}
+.tape ul{margin:0;padding-left:18px;color:var(--fg2);font-size:13px;line-height:1.65}
+.tape li b{color:var(--fg)}
+.tape .nums{color:var(--muted);font-size:11px;margin-top:8px}
+.cap-strip{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.cap-lbl{font-size:12px;color:var(--muted)}
+.cap-lbl b{color:var(--fg)}
+.cap-bar{height:8px;background:var(--bg2);border-radius:4px;margin-top:8px;overflow:hidden}
+.cap-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--yellow));border-radius:4px}
+.watch-chip{background:var(--green-tint);border:1px solid var(--green-mid);color:var(--green);
             border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600}
-.watch-chip.trading{background:#2a1a3a;border-color:#5a3d8a;color:#c084fc}
-.watch-status{font-size:12px;color:#8b949e;margin-bottom:10px}
+.watch-chip.trading{background:var(--purple-tint);border-color:var(--purple-border);color:var(--purple)}
+.watch-status{font-size:12px;color:var(--muted);margin-bottom:10px}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
-.status-dot.watching{background:#d29922;animation:pulse 2s infinite}
-.status-dot.trading{background:#c084fc;animation:pulse 1s infinite}
-.status-dot.idle{background:#484f58}
-.idle-msg{color:#484f58;font-size:13px;font-style:italic}
+.status-dot.watching{background:var(--yellow);animation:pulse 2s infinite}
+.status-dot.trading{background:var(--purple);animation:pulse 1s infinite}
+.status-dot.idle{background:var(--muted4)}
+.idle-msg{color:var(--muted4);font-size:13px;font-style:italic}
 </style>
 </head>
 <body>
@@ -2697,9 +2709,9 @@ a.watch-chip:hover{filter:brightness(1.25)}
       </div>
       <div>
         <div class="balance-label">Total Trades</div>
-        <div style="font-size:24px;font-weight:700;color:#e6edf3" id="totalTrades">—</div>
+        <div style="font-size:24px;font-weight:700;color:var(--fg)" id="totalTrades">—</div>
       </div>
-      <div style="border-left:1px solid #30363d;padding-left:28px">
+      <div style="border-left:1px solid var(--border);padding-left:28px">
         <div class="balance-label">Today P&amp;L</div>
         <div style="font-size:24px;font-weight:700" id="todayPnl">—</div>
       </div>
@@ -2714,7 +2726,7 @@ a.watch-chip:hover{filter:brightness(1.25)}
       <div>
         <div class="balance-label" title="Average R per WINNING trade today (pnl ÷ planned risk). THE capture target: ≥ +0.85R makes a ~60% win rate profitable. Small number = ex-best (without the day's biggest winner — the fragility check).">Avg Win 🎯0.85R</div>
         <div style="font-size:24px;font-weight:700" id="avgWinR">—</div>
-        <div style="font-size:11px;color:#8b949e" id="avgWinRx"></div>
+        <div style="font-size:11px;color:var(--muted)" id="avgWinRx"></div>
       </div>
     </div>
   </div>
@@ -2758,7 +2770,7 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="stat-card"><div class="stat-label">Worst Trade</div><div class="stat-value red" id="worstPnl">—</div><div class="stat-sub" id="worstTicker">—</div></div>
   <div class="stat-card"><div class="stat-label">Wins</div><div class="stat-value green" id="wins">—</div><div class="stat-sub">profitable sessions</div></div>
   <div class="stat-card"><div class="stat-label">Losses</div><div class="stat-value red" id="losses">—</div><div class="stat-sub">closed in the red</div></div>
-  <div class="stat-card"><div class="stat-label">Break Even</div><div class="stat-value" id="breakeven" style="color:#8b949e">—</div><div class="stat-sub">scratched at $0</div></div>
+  <div class="stat-card"><div class="stat-label">Break Even</div><div class="stat-value" id="breakeven" style="color:var(--muted)">—</div><div class="stat-sub">scratched at $0</div></div>
 </div>
 
 <div class="content">
@@ -2770,13 +2782,13 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="section-title">P&amp;L Calendar</div>
   <div id="pnlCalendar" class="cal-wrap"></div>
 
-  <div class="section-title">Gate Rejects <span style="font-size:12px;font-weight:400;color:#8b949e">(today — fires the new gates refused; every row is a logged counterfactual)</span></div>
-  <div id="rejectStrip" style="margin:0 0 18px 0;font-size:13px;color:#8b949e">loading…</div>
+  <div class="section-title">Gate Rejects <span style="font-size:12px;font-weight:400;color:var(--muted)">(today — fires the new gates refused; every row is a logged counterfactual)</span></div>
+  <div id="rejectStrip" style="margin:0 0 18px 0;font-size:13px;color:var(--muted)">loading…</div>
 
-  <div class="section-title">Shadow Lanes <span style="font-size:12px;font-weight:400;color:#8b949e">(today — halt arms &amp; seam fires; H2 grading week: watch the evidence accumulate live)</span></div>
-  <div id="shadowStrip" style="margin:0 0 18px 0;font-size:13px;color:#8b949e">loading…</div>
+  <div class="section-title">Shadow Lanes <span style="font-size:12px;font-weight:400;color:var(--muted)">(today — halt arms &amp; seam fires; H2 grading week: watch the evidence accumulate live)</span></div>
+  <div id="shadowStrip" style="margin:0 0 18px 0;font-size:13px;color:var(--muted)">loading…</div>
 
-  <div class="section-title">Trade History <span style="font-size:12px;font-weight:400;color:#8b949e">(RTH)</span><span id="preLedgerLink" style="font-size:12px;font-weight:400"></span></div>
+  <div class="section-title">Trade History <span style="font-size:12px;font-weight:400;color:var(--muted)">(RTH)</span><span id="preLedgerLink" style="font-size:12px;font-weight:400"></span></div>
   <div class="table-wrap">
     <table>
       <thead>
@@ -2828,8 +2840,8 @@ function loadData(){
       const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side',ceiling_reject:'🏔️ ceiling'};
       const rows=(j.rows||[]).filter(r=>GATES[r.status]);
       const el=document.getElementById('rejectStrip'); if(!el) return;
-      if(!rows.length){ el.innerHTML='<span style="color:#484f58">no gate rejects yet today</span>'; return; }
-      el.innerHTML='<table style="width:100%"><thead><tr style="text-align:left;color:#8b949e"><th>Time</th><th>Ticker</th><th>Gate</th><th>Lane</th><th>Price</th><th>Why</th></tr></thead><tbody>'+
+      if(!rows.length){ el.innerHTML='<span style="color:var(--muted4)">no gate rejects yet today</span>'; return; }
+      el.innerHTML='<table style="width:100%"><thead><tr style="text-align:left;color:var(--muted)"><th>Time</th><th>Ticker</th><th>Gate</th><th>Lane</th><th>Price</th><th>Why</th></tr></thead><tbody>'+
         rows.slice(-40).reverse().map(r=>{
           let why='';
           if(r.status==='minstop_reject') why='stop '+(r.stop_width_pct!=null?r.stop_width_pct.toFixed(2)+'%':'?')+' wide (band '+(r.band||'?')+') < floor';
@@ -2848,15 +2860,15 @@ function loadData(){
       const LANES={halt_arm:'🪜 halt arm',halt_early_arm:'🌅 early arm',seam_shadow_fire:'🧵 seam'};
       const rows=(j.rows||[]).filter(r=>LANES[r.status]);
       const el=document.getElementById('shadowStrip'); if(!el) return;
-      if(!rows.length){ el.innerHTML='<span style="color:#484f58">no shadow fires yet today</span>'; return; }
-      el.innerHTML='<table style="width:100%"><thead><tr style="text-align:left;color:#8b949e"><th>Time</th><th>Ticker</th><th>Lane</th><th>Price</th><th>Side</th><th>Detail</th><th>Converted?</th></tr></thead><tbody>'+
+      if(!rows.length){ el.innerHTML='<span style="color:var(--muted4)">no shadow fires yet today</span>'; return; }
+      el.innerHTML='<table style="width:100%"><thead><tr style="text-align:left;color:var(--muted)"><th>Time</th><th>Ticker</th><th>Lane</th><th>Price</th><th>Side</th><th>Detail</th><th>Converted?</th></tr></thead><tbody>'+
         rows.slice(-40).reverse().map(r=>{
           let det='';
           if(r.status==='seam_shadow_fire') det='pull '+(r.pull_pct!=null?r.pull_pct+'%':'—')+(r.stop!=null?' · stop $'+r.stop:'');
           else det='prox '+(r.prox!=null?r.prox:'—')+' · vel '+(r.vel1m!=null?r.vel1m+'%/m':'—')+
                    (r.status==='halt_arm'?(' · 5s '+(r.confirm5s?'✅':'❌')+(r.upratio!=null?' up '+r.upratio:'')):'');
-          const conv=(r.status==='halt_early_arm')?'<span style="color:#484f58">shadow</span>'
-                    :(r.convert?'<span style="color:#3fb950">LIVE</span>':'<span style="color:#484f58">shadow</span>');
+          const conv=(r.status==='halt_early_arm')?'<span style="color:var(--muted4)">shadow</span>'
+                    :(r.convert?'<span style="color:var(--green)">LIVE</span>':'<span style="color:var(--muted4)">shadow</span>');
           return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
                  '<td><b>'+(r.ticker||'—')+'</b></td><td>'+LANES[r.status]+'</td>'+
                  '<td>'+(r.price!=null?'$'+Number(r.price).toFixed(2):'—')+'</td>'+
@@ -3029,7 +3041,7 @@ function renderStats(s, acct, trades){
       const back=document.getElementById('balanceChange');
       if(back) back.innerHTML='era account value (compounded) · sizing frame resets to $3,000/day (R=$30 constant) · gross '+money(pnl)
         +' · friction −$'+frict.toFixed(0)+' <span title="Conservative model: full quoted spread per trade. Middle: ~60% (taker entries, maker tier-exits, stops cross). True slippage gets measured at go-live.">(mid −$'+fmid.toFixed(0)+')</span>'
-        +' → <b>net '+money(net)+' <span style="color:#d29922">(mid ≈ '+money(netMid)+')</span></b>'
+        +' → <b>net '+money(net)+' <span style="color:var(--yellow)">(mid ≈ '+money(netMid)+')</span></b>'
         +(era.length>graded.length?' · '+(era.length-graded.length)+' bookkeeping print(s) excluded from WR':'');
       // honest R pair: expectancy + avg loss (graded, planned_risk era only)
       const _er=(t)=>{const pr=parseFloat(t.planned_risk)||0;const sz=parseFloat(t.position_size)||parseFloat(t.size)||0;return Math.max(pr,sz*0.005);};   // 8/7 #12 honest floor
@@ -3107,7 +3119,7 @@ function renderTable(allTrades){
   const _preN=(allTrades||[]).filter(t=>String(t.entry_session||'')==='PRE' && String(t.date||'').slice(0,10)===_tds).length;
   const trades=(allTrades||[]).filter(t=>String(t.entry_session||'')!=='PRE');
   const _pl=document.getElementById('preLedgerLink');
-  if(_pl) _pl.innerHTML = _preN ? ' · <a href="/premarket" style="color:#8b949e">'+_preN+' premarket trade(s) on the premarket board ↗</a>' : '';
+  if(_pl) _pl.innerHTML = _preN ? ' · <a href="/premarket" style="color:var(--muted)">'+_preN+' premarket trade(s) on the premarket board ↗</a>' : '';
   const tbody = document.getElementById('tradeTable');
   if(!trades || trades.length===0){
     tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state">
@@ -3133,7 +3145,7 @@ function renderTable(allTrades){
     const fl = t.float_shares ? String(t.float_shares).replace(/(\d)(?=(\d{3})+$)/g,'$1,') : '—';
     const pr = parseFloat(t.planned_risk);
     const rMul = (pr>0.5) ? (t.pnl/pr) : null;
-    const rTxt = rMul===null ? '<span style="color:#484f58">—</span>'
+    const rTxt = rMul===null ? '<span style="color:var(--muted4)">—</span>'
                : (rMul>=0?'+':'−')+Math.abs(rMul).toFixed(2)+'R'
                  + (rMul>=2?' 🚀':(rMul<=-1.15?' ⚠️':''));
     const sz = t.position_size ? fmt$(t.position_size) : '—';
@@ -3145,27 +3157,27 @@ function renderTable(allTrades){
       const dp = dayTrades.reduce((a,x)=>a+(parseFloat(x.pnl)||0),0);
       const dw = dayTrades.filter(x=>(parseFloat(x.pnl)||0)>0).length;
       const opn = window._dayOpen.has(_d);
-      hdr = `<tr class="day-hdr" onclick="toggleDay('${_d}')" style="cursor:pointer;background:#10151c">
-        <td colspan="13" style="padding:8px 16px;font-weight:600;color:#c9d1d9">
-          ${opn?'▾':'▸'} ${_d} <span style="font-weight:400;color:#8b949e">· ${dayTrades.length} trade${dayTrades.length!==1?'s':''} · </span>
+      hdr = `<tr class="day-hdr" onclick="toggleDay('${_d}')" style="cursor:pointer;background:var(--bg5)">
+        <td colspan="13" style="padding:8px 16px;font-weight:600;color:var(--fg2)">
+          ${opn?'▾':'▸'} ${_d} <span style="font-weight:400;color:var(--muted)">· ${dayTrades.length} trade${dayTrades.length!==1?'s':''} · </span>
           <span style="font-weight:700" class="${dp>0?'pnl-pos':dp<0?'pnl-neg':'pnl-flat'}">${dp>0?'+':(dp<0?'−':'')}$${Math.abs(dp).toFixed(2)}</span>
-          <span style="font-weight:400;color:#8b949e"> · ${dayTrades.length?Math.round(dw/dayTrades.length*100):0}% WR</span>
+          <span style="font-weight:400;color:var(--muted)"> · ${dayTrades.length?Math.round(dw/dayTrades.length*100):0}% WR</span>
         </td></tr>`;
     }
     if(!window._dayOpen.has(_d)) return hdr;
     return hdr + `<tr onclick="toggleStory('${key}', event)" style="cursor:pointer" title="Click for the story of this trade">
-      <td style="color:#8b949e">${t.date||'—'}</td>
-      <td style="color:#8b949e;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtTimeET(t.entry_ts_utc) || fmtTimeSec(t.recorded_at)}</td>
+      <td style="color:var(--muted)">${t.date||'—'}</td>
+      <td style="color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums">${fmtTimeET(t.entry_ts_utc) || fmtTimeSec(t.recorded_at)}</td>
       <td><a class="ticker-badge" href="https://www.tradingview.com/chart/?symbol=${t.ticker||''}" target="_blank" rel="noopener" title="Open chart">${t.ticker||'—'} ↗</a></td>
       <td>${t.entry?'$'+t.entry.toFixed(2):'—'}</td>
       <td>${t.exit?'$'+t.exit.toFixed(2):'—'}</td>
-      <td style="color:#8b949e;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtTimeSec(t.recorded_at)}</td>
-      <td style="color:#8b949e">${t.shares||'—'}</td>
-      <td style="color:#8b949e">${sz}</td>
+      <td style="color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums">${fmtTimeSec(t.recorded_at)}</td>
+      <td style="color:var(--muted)">${t.shares||'—'}</td>
+      <td style="color:var(--muted)">${sz}</td>
       <td class="${pnlCls}">${pnlSign}$${Math.abs(t.pnl).toFixed(2)}</td>
       <td class="${pnlCls}">${pctSign}${t.pnl_pct.toFixed(1)}%</td>
       <td class="${pnlCls}" style="font-weight:700">${rTxt}</td>
-      <td style="color:#8b949e">${(t.marked_runway_rr==='above_all_levels')?'∞':(typeof t.marked_runway_rr==='number'?t.marked_runway_rr.toFixed(1)+'R':'—')}</td>
+      <td style="color:var(--muted)">${(t.marked_runway_rr==='above_all_levels')?'∞':(typeof t.marked_runway_rr==='number'?t.marked_runway_rr.toFixed(1)+'R':'—')}</td>
       <td class="exit-tag" title="${t.exit_reason||''}">${isBookRow?'📋 ':''}${t.exit_reason||'—'}</td>
     </tr>`
     + (isOpen?`<tr class="story-tr"><td colspan="13"><div class="tape show">${storyClosedHTML(t)}</div></td></tr>`:'');
@@ -3178,19 +3190,24 @@ function toggleDay(d){
   if(window._lastAllTrades) renderTable(window._lastAllTrades);
 }
 
+// canvas can't resolve var() — read the themed value off :root at render time
+function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+let _lastCurve = null;
+window.addEventListener('mtheme-change', ()=>{ if(_lastCurve!==null) renderChart(_lastCurve); });
 function renderChart(curve){
+  _lastCurve = curve;
   const canvas = document.getElementById('equityChart');
   const ctx    = canvas.getContext('2d');
   if(chart){ chart.destroy(); }
   if(!curve || curve.length===0){
-    ctx.fillStyle='#484f58';ctx.font='13px Inter';ctx.textAlign='center';
+    ctx.fillStyle=cssv('--muted4');ctx.font='13px Inter';ctx.textAlign='center';
     ctx.fillText('No trade data yet — equity curve will appear after the first trade',canvas.width/2,canvas.height/2);
     return;
   }
   const labels = curve.map(p=>p.date);
   const values = curve.map(p=>p.equity);
   const pos    = values[values.length-1]>=0;
-  const color  = pos?'#3fb950':'#f85149';
+  const color  = pos?cssv('--green'):cssv('--red');
   chart = new Chart(ctx,{
     type:'line',
     data:{
@@ -3210,13 +3227,13 @@ function renderChart(curve){
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{
-        backgroundColor:'#161b22',borderColor:'#30363d',borderWidth:1,
-        titleColor:'#8b949e',bodyColor:'#e6edf3',
+        backgroundColor:cssv('--bg2'),borderColor:cssv('--border'),borderWidth:1,
+        titleColor:cssv('--muted'),bodyColor:cssv('--fg'),
         callbacks:{label:ctx=>'P&L: '+(ctx.parsed.y>=0?'+':'')+fmt$(ctx.parsed.y)}
       }},
       scales:{
-        x:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:11}}},
-        y:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:11},
+        x:{grid:{color:cssv('--bg3')},ticks:{color:cssv('--muted'),font:{size:11}}},
+        y:{grid:{color:cssv('--bg3')},ticks:{color:cssv('--muted'),font:{size:11},
              callback:v=>(v>=0?'+':'')+fmt$(v)}}
       }
     }
@@ -3241,8 +3258,8 @@ function renderTradePanel(ts){
     <div class="trade-grid">
       <div class="cell"><div class="lbl">Entry${ts.entry_hm?' · '+ts.entry_hm+' ET':''}${ts.runway!=null?(' · 🛣️ '+(ts.runway==='above_all_levels'?'blue sky':Number(ts.runway).toFixed(1)+'R road')):''}</div><div class="val">$${Number(ts.entry).toFixed(2)}</div></div>
       <div class="cell"><div class="lbl">Now</div><div class="val">$${Number(ts.price).toFixed(2)}</div></div>
-      <div class="cell"><div class="lbl" title="Trigger, not the fill — sells on a 3-min CLOSE below this level, so the actual exit can be a bit lower (wick-snipe protection)">Stop ▾</div><div class="val" style="color:#f85149">$${Number(ts.stop).toFixed(2)}</div></div>
-      <div class="cell"><div class="lbl">Target</div><div class="val" style="color:#3fb950">$${Number(ts.target).toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl" title="Trigger, not the fill — sells on a 3-min CLOSE below this level, so the actual exit can be a bit lower (wick-snipe protection)">Stop ▾</div><div class="val" style="color:var(--red)">$${Number(ts.stop).toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl">Target</div><div class="val" style="color:var(--green)">$${Number(ts.target).toFixed(2)}</div></div>
     </div>
     <div class="tbar"><div class="fill" style="width:${prog.toFixed(0)}%"></div></div>
     <div class="tbar-lbls"><span>🛑 stop</span><span>${sold}${sold&&ts.vwap?' · ':''}${ts.vwap?'VWAP $'+Number(ts.vwap).toFixed(2):''}</span><span>🎯 target</span></div>
@@ -3402,8 +3419,8 @@ function tradeCardHTML(t){
     <div class="trade-grid">
       <div class="cell"><div class="lbl">Entry</div><div class="val">$${entry.toFixed(2)}</div></div>
       <div class="cell"><div class="lbl">Now</div><div class="val">$${price.toFixed(2)}</div></div>
-      <div class="cell"><div class="lbl" title="Trigger, not the fill — sells on a 3-min CLOSE below this level, so the actual exit can be a bit lower (wick-snipe protection)">Stop ▾</div><div class="val" style="color:#f85149">$${Number(t.stop||0).toFixed(2)}</div></div>
-      <div class="cell"><div class="lbl">Target</div><div class="val" style="color:#3fb950">$${Number(t.target||0).toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl" title="Trigger, not the fill — sells on a 3-min CLOSE below this level, so the actual exit can be a bit lower (wick-snipe protection)">Stop ▾</div><div class="val" style="color:var(--red)">$${Number(t.stop||0).toFixed(2)}</div></div>
+      <div class="cell"><div class="lbl">Target</div><div class="val" style="color:var(--green)">$${Number(t.target||0).toFixed(2)}</div></div>
     </div>
     <div class="tbar"><div class="fill" style="width:${prog.toFixed(0)}%"></div></div>
     <div class="tbar-lbls"><span>🛑 stop</span><span>${sold}${(sold&&(t.vwap||et))?' · ':''}${t.vwap?'VWAP $'+Number(t.vwap).toFixed(2):''}${et?(t.vwap?' · ':'')+et:''}</span><span>🎯 target</span></div>
@@ -3427,7 +3444,7 @@ function renderAllTrades(list){
       <div class="cap-lbl">💵 In trades: <b>${money(used)}</b> of ${money(budget)} (${pct.toFixed(0)}%) · <b>${money(free)}</b> free for the next setup</div>
       <div class="cap-bar"><div class="cap-fill" style="width:${pct.toFixed(0)}%"></div></div>
     </div>`
-    + `<div style="font-size:12px;color:#8b949e;margin-bottom:8px">${list.length} open position${list.length>1?'s':''}</div>`
+    + `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">${list.length} open position${list.length>1?'s':''}</div>`
     + list.map(tradeCardHTML).join('');
 }
 

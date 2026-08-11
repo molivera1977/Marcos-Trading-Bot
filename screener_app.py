@@ -542,6 +542,15 @@ THEME_SNIPPET = """
 <style>
 html[data-theme=light]{filter:invert(.93) hue-rotate(180deg);background:#ececea}
 html[data-theme=light] img,html[data-theme=light] .no-invert{filter:invert(1) hue-rotate(180deg)}
+/* iOS Safari (8/10, Marcos: "the scroll part stays dark"): the root filter never reaches
+   composited layers — touch-scroll containers and sticky/fixed elements keep their dark paint.
+   iOS-only via @supports; each composited layer gets its own copy of the filter, and the
+   sticky header is demoted to normal flow so the root filter covers it. */
+@supports (-webkit-touch-callout: none){
+  html[data-theme=light] .table-wrap,html[data-theme=light] .tw,
+  html[data-theme=light] #themeBtn{filter:invert(.93) hue-rotate(180deg)}
+  html[data-theme=light] .header{position:relative}
+}
 #themeBtn{position:fixed;bottom:14px;right:14px;z-index:9999;width:44px;height:44px;border-radius:50%;
 border:1px solid #30363d;background:#161b22;color:#e6edf3;font-size:19px;line-height:1;cursor:pointer;
 opacity:.9;box-shadow:0 2px 8px rgba(0,0,0,.35)}

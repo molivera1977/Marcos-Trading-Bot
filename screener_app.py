@@ -1147,6 +1147,31 @@ def api_trades():
     return jsonify({"trades": out, "stats": _compute_stats(), "account": _account,
                     "pnl_correction_applied": _PNL_CORR_N})
 
+@app.route("/api/trades/delete", methods=["POST"])
+def delete_trades():
+    """8/11 surgical delete (the ghost-dupe cleanup): remove ONLY records matching ALL given
+    predicates (date + exit_reason required, tickers optional). Returns the removed records so
+    the caller can ledger them. Never a bulk wipe — that's /api/trades/clear."""
+    global _trades
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    date, reason = d.get("date"), d.get("exit_reason")
+    if not (date and reason):
+        return jsonify({"error": "date and exit_reason are both required"}), 400
+    tks = {str(t).upper() for t in (d.get("tickers") or [])}
+    with _store_lock:
+        gone = [t for t in _trades if t.get("date") == date and t.get("exit_reason") == reason
+                and (not tks or (t.get("ticker") or "").upper() in tks)]
+        if d.get("expect") is not None and len(gone) != int(d["expect"]):
+            return jsonify({"error": f"expect={d['expect']} but matched {len(gone)} — aborted",
+                            "matched": gone}), 409
+        _trades = [t for t in _trades if t not in gone]
+    if gone:
+        _save_trades()
+    return jsonify({"status": "ok", "deleted": len(gone), "records": gone})
+
+
 @app.route("/api/trades/clear", methods=["POST"])
 def clear_trades():
     # 7/11 F3: mutate under the store lock (an in-flight record_trade raced the rebind)

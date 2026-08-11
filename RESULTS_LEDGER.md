@@ -1028,3 +1028,7 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
   SHIPPED + PROVEN. Note: store net $56.93 vs main-thread true book $58.90 = $1.97 runner-leg
   display-correction delta (correction layer lives in the main thread, not the raw store) — known,
   acceptable for road answers.
+- CORRECTION to the note above: no display-correction delta. Reconciled against /api/trades:
+  14 rows sum EXACTLY $56.93 (incl. XHLD +$25.43 correction entry). The main thread's "+$58.90"
+  was a mid-afternoon figure; two later THH trades (+$3.60, -$5.57) net -$1.97. Monday final
+  book = +$56.93. The Duty Officer's first live answer was RIGHT and the main thread was stale.

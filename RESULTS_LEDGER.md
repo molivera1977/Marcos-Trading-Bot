@@ -1023,3 +1023,8 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
   ledger tail frozen at deploy time; duty_log durable on /data (volume verified).
 - Officers touched: Blast Radius Auditor (convened, artifact = audit report), Dashboard Curator
   (portal + header link), Pit Crew Chief (after-hours deploy, flat book verified in-turn: open_trades=[]).
+- LIVE VERIFY (22:02 ET): /duty 200; wrong-key 401; real question answered from the store
+  ("+$56.93 | 14 trades" — the store's own numbers, cited); exchange landed in /data/duty_log.jsonl.
+  SHIPPED + PROVEN. Note: store net $56.93 vs main-thread true book $58.90 = $1.97 runner-leg
+  display-correction delta (correction layer lives in the main thread, not the raw store) — known,
+  acceptable for road answers.

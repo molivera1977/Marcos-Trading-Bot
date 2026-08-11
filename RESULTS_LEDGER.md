@@ -1155,3 +1155,7 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
   auditor W1 (orphan re-key strands old ticker row) noted in #47.
 - Officers: Blast Radius Auditor (2 convenings, verdicts in-transcript), Pit Crew Chief,
   Systems Quant, Statistician (book corrected + traced).
+- BOOK SPLIT CORRECTION (Marcos's catch — RTH official, PRE separate, per 8/4 law):
+  Tuesday 8/11 OFFICIAL RTH: +$58.36 on 24 trades. PRE (own line): +$46.26 on 5 trades
+  (PLAG +2.38; WXM +26.84/-1.03/+1.76/+16.31 incl. 9:25 flatten). All 29 records
+  entry_session-stamped, zero unstamped. The +$104.62 figure = blended, not the headline.

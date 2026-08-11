@@ -1,0 +1,254 @@
+[
+ {
+  "d": "2026-08-03",
+  "t": "04:26",
+  "tk": "UPC",
+  "gate": "breakside",
+  "gain": 197.8,
+  "leader": true,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-03",
+  "t": "09:36",
+  "tk": "EZRA",
+  "gate": "breakside",
+  "gain": 129.1,
+  "leader": true,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-03",
+  "t": "09:38",
+  "tk": "EZRA",
+  "gate": "breakside",
+  "gain": 118.7,
+  "leader": true,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-03",
+  "t": "09:38",
+  "tk": "PRZO",
+  "gate": "breakside",
+  "gain": 25.1,
+  "leader": false,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-03",
+  "t": "09:43",
+  "tk": "MRDN",
+  "gate": "breakside",
+  "gain": 17.8,
+  "leader": false,
+  "pnl": 12.18
+ },
+ {
+  "d": "2026-08-03",
+  "t": "09:45",
+  "tk": "EDBL",
+  "gate": "runway",
+  "gain": 33.5,
+  "leader": false,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-03",
+  "t": "09:54",
+  "tk": "XAIR",
+  "gate": "breakside",
+  "gain": 21.3,
+  "leader": false,
+  "pnl": 27.56
+ },
+ {
+  "d": "2026-08-03",
+  "t": "10:50",
+  "tk": "SDST",
+  "gate": "breakside",
+  "gain": 23.1,
+  "leader": false,
+  "pnl": 57.03
+ },
+ {
+  "d": "2026-08-03",
+  "t": "11:30",
+  "tk": "XAIR",
+  "gate": "runway",
+  "gain": 38.2,
+  "leader": false,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-03",
+  "t": "11:30",
+  "tk": "COCP",
+  "gate": "runway",
+  "gain": 18.3,
+  "leader": false,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-03",
+  "t": "11:56",
+  "tk": "HCWB",
+  "gate": "runway",
+  "gain": 19.4,
+  "leader": false,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-03",
+  "t": "11:57",
+  "tk": "XAIR",
+  "gate": "runway",
+  "gain": 44.1,
+  "leader": false,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-03",
+  "t": "13:48",
+  "tk": "MRDN",
+  "gate": "runway",
+  "gain": 18.3,
+  "leader": false,
+  "pnl": 24.93
+ },
+ {
+  "d": "2026-08-03",
+  "t": "13:51",
+  "tk": "NEXR",
+  "gate": "runway",
+  "gain": 49.6,
+  "leader": false,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-03",
+  "t": "14:02",
+  "tk": "MRDN",
+  "gate": "runway",
+  "gain": 20.2,
+  "leader": false,
+  "pnl": 20.02
+ },
+ {
+  "d": "2026-08-03",
+  "t": "14:23",
+  "tk": "MRDN",
+  "gate": "runway",
+  "gain": 22.0,
+  "leader": false,
+  "pnl": 8.87
+ },
+ {
+  "d": "2026-08-03",
+  "t": "14:32",
+  "tk": "MRDN",
+  "gate": "runway",
+  "gain": 24.1,
+  "leader": false,
+  "pnl": -1.09
+ },
+ {
+  "d": "2026-08-03",
+  "t": "14:58",
+  "tk": "MRDN",
+  "gate": "runway",
+  "gain": 25.5,
+  "leader": false,
+  "pnl": -8.54
+ },
+ {
+  "d": "2026-08-04",
+  "t": "09:38",
+  "tk": "MED",
+  "gate": "breakside",
+  "gain": 30.4,
+  "leader": false,
+  "pnl": -25.0
+ },
+ {
+  "d": "2026-08-04",
+  "t": "10:09",
+  "tk": "AMIX",
+  "gate": "runway",
+  "gain": 61.1,
+  "leader": true,
+  "pnl": 33.16
+ },
+ {
+  "d": "2026-08-04",
+  "t": "10:12",
+  "tk": "AMIX",
+  "gate": "breakside",
+  "gain": 68.8,
+  "leader": true,
+  "pnl": 19.35
+ },
+ {
+  "d": "2026-08-04",
+  "t": "10:16",
+  "tk": "BGMS",
+  "gate": "runway",
+  "gain": 11.3,
+  "leader": false,
+  "pnl": 16.97
+ },
+ {
+  "d": "2026-08-04",
+  "t": "10:18",
+  "tk": "AMIX",
+  "gate": "breakside",
+  "gain": 73.6,
+  "leader": true,
+  "pnl": -30.0
+ },
+ {
+  "d": "2026-08-04",
+  "t": "10:36",
+  "tk": "AMIX",
+  "gate": "breakside",
+  "gain": 63.3,
+  "leader": true,
+  "pnl": 10.0
+ },
+ {
+  "d": "2026-08-04",
+  "t": "10:38",
+  "tk": "AMIX",
+  "gate": "breakside",
+  "gain": 63.0,
+  "leader": true,
+  "pnl": 10.0
+ },
+ {
+  "d": "2026-08-04",
+  "t": "10:49",
+  "tk": "AMIX",
+  "gate": "breakside",
+  "gain": 71.5,
+  "leader": true,
+  "pnl": 27.5
+ },
+ {
+  "d": "2026-08-04",
+  "t": "10:51",
+  "tk": "VGAS",
+  "gate": "runway",
+  "gain": 34.8,
+  "leader": false,
+  "pnl": 9.08
+ },
+ {
+  "d": "2026-08-04",
+  "t": "10:52",
+  "tk": "AMIX",
+  "gate": "runway",
+  "gain": 81.4,
+  "leader": true,
+  "pnl": -0.51
+ }
+]

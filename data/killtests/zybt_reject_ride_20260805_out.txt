@@ -1,0 +1,8 @@
+ZYBT reject rows: [('11:09:32 AM', 'runway_reject', 1.8899, 1.6137, 2.0, 0.4)]
+entry 1.8899 stop 1.6137 width 14.61% risk $30 shares 109
+map rungs above entry: [3.1, 3.5, 3.75] | raw level rec: {'break': 3.1, 'confidence': 'HIGH', 'confirm': 3.25, 'exhausted_at': '10:10', 'history': [{'break': 1.32, 'confirm': 1.32, 'stop': 1.2, 'targets': [1.5, 1.75, 2.0]}], 'next_supply': 3.75, 'note': 'vision SKIP (levels-only): Distribution phase — lower highs off 4.29, below VWAP 2.93, no fresh base. Reclaim 3.10+ VWAP to change mind.', 'read_at': '12:23', 'read_version': 2, 'reread_latency_min': 133.0, 'room_rr': None, 'setup': 'post-spike distribution, lower highs off 4.29, trading below VWAP', 'src': 'vision', 'stop': 2.6, 'targets': [3.5], 'trigger': 'past_map'}
+post-entry session high: 4.29 (+127%)  | 15:45 close-ish: 2.4201
+  P1: $+78.55
+  P2: $+89.95
+  P3: $+80.72
+  P5: $+107.33

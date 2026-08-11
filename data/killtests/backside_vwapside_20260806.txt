@@ -1,0 +1,7 @@
+graded: 107 era RTH trades (dip_rip exempt)
+LIVE  (RTH high, no vwap cond): blocks  18 | blocked P&L $  -146.91
+CAND  (PM high + above-VWAP)  : blocks  23 | blocked P&L $  -239.48
+  winners candidate blocks: 10 totaling $+231.46 -> [('ADGM', '2026-08-04', 57.54), ('BIYA', '2026-07-28', 51.69), ('WLDS', '2026-07-28', 35.83), ('MGRX', '2026-07-31', 29.99), ('ADGM', '2026-08-04', 16.05)]
+  protection regressions (live blocked a >$20 loser, candidate lets it through): []
+
+FROZEN VERDICT: NOT MET -> Friday table

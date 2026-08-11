@@ -57,7 +57,7 @@ for site, label in [("CHART-GATE BLOCKED {ticker} entry", "chart gate"),
     check(f"{label} refunds the slot", "_slot_refund(ticker, entry_type)" in seg)
 check("refund logs a decision row", '"slot_refunded"' in src)
 check("refund never raises (try/except)", "def _slot_refund" in src
-      and "except Exception:" in src[src.find("def _slot_refund"):src.find("def _slot_refund") + 1600])
+      and "except Exception:" in src[src.find("def _slot_refund"):src.find("def _slot_refund") + 2400])   # 8/5: fn grew (leader multi-slot refund)
 
 print()
 if fails:

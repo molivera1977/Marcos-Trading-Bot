@@ -5,7 +5,9 @@
 # upgrading to "always" is a separate deliberate decision, not a side effect of #53.
 [build]
 builder = "nixpacks"
-watchPatterns = ["screener_app.py", "railway.dashboard.toml"]
+# 8/6 night: kev_sweep_server.py rides this service but wasn't watched — two fix
+# deploys silently SKIPPED ("No changes to watched files"), same trap as 7/20.
+watchPatterns = ["screener_app.py", "kev_sweep_server.py", "crown_eod_report.py", "railway.dashboard.toml"]
 
 [deploy]
 startCommand = "python screener_app.py"

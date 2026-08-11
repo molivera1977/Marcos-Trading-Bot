@@ -632,8 +632,8 @@ def dip_rip_step(sym, new_bars, price_hint=0.0):
                 continue
             if st["r_k"] is None:
                 st["r_k"] = k                          # first print after the gap = resumption
-            if k - st["r_k"] > DIPRIP_WINDOW_S:
-                st["done"] = True; st["why"] = "window_expired"
+            if (k - st["r_k"]) - _halted_secs_since(sym, st["r_k"]) > DIPRIP_WINDOW_S:
+                st["done"] = True; st["why"] = "window_expired"   # 8/5 halt-aware window
                 _log_decision(sym, "diprip_expired", level=round(lvl, 4))
                 return None
             if c < lvl * 0.99:                         # decisive break below the level: thesis dead
@@ -668,6 +668,12 @@ REENTRY_ENABLED         = True
 REENTRY_GIVEUP_REASONS  = {"TOPPING TAIL"}   # Kev's exact "done with it" — front-side rejection at the high
 REENTRY_MAX_CONSEC_LOSS = 3      # HOMEGROWN rail: after N CONSECUTIVE losing (re)entries on a name, leave it
                                  # alone. A win resets it (his 6-win trend days keep going). #022 "third try".
+# ── 8/5 (Marcos: "losses that small should not count as three losses... These crown names are the
+#    whales we are living to find and milk"): CROWNED names ban on consecutive-loss DOLLARS, not
+#    transaction count — three $5 shakeouts != three $30 full stops. Era evidence 5-for-5 (all four
+#    legitimate bans had bled $93-$124; YXT 8/5 was banned over $14.37 and then ran +144%). $75 =
+#    2.5 full-risk units, Marcos-accepted risk level. 0 = kill switch back to count-based on crowns. ──
+REENTRY_CROWN_LOSS_DOLLARS = float(os.environ.get("REENTRY_CROWN_LOSS_DOLLARS", "75"))
 # ── Room-to-next-supply (Kev: enter only with ≥2:1 room to the next overhead supply) ──
 PIVOT_WINDOW         = 3      # a swing high = bar whose high tops the 3 bars on each side
 SUPPLY_CLUSTER_PCT   = 0.01   # merge supply levels within 1% into one zone
@@ -1041,6 +1047,40 @@ def _alp10_bars(t, n=90):
 
 _curl_canary_t = {}   # ticker -> last canary log ts (throttle)
 
+# 8/6 DETECTOR REHYDRATE (Marcos: "why can't we rehydrate the 10s lanes?" — the ENSC 9:40
+# blindness): a name's FIRST detector pass after boot fetches a DEEP backfill so state
+# machines (hidden 90-bar anchor, ignition bases, reclaim sequences) wake up already mature.
+# Subsequent passes use the cheap 15-min default as before. Kill: REHYDRATE_BARS=90.
+REHYDRATE_BARS = int(os.environ.get("REHYDRATE_BARS", "240"))
+
+_bf_done: set = set()   # 8/10: one backfill per name per process
+
+def _archive10_backfill(t, n=240):
+    """8/10 FULL-WARM (Marcos: rehydration is mandatory): the hot feed only knows bars since
+    SUBSCRIPTION — a name adopted mid-session has its real history in the dashboard archive.
+    The archive lags ~90s (why it must never drive triggers) but history IS the past — for
+    warm-up it is exactly right. Returns {sec: {o,h,l,c}} of today's ~ALP10S bars. Fail-soft {}."""
+    try:
+        import urllib.request as _ur
+        d = json.load(_ur.urlopen(f"{SCREENER_URL}/api/bars?date="
+                                  f"{datetime.now(EASTERN).strftime('%Y-%m-%d')}&ticker={t}~ALP10S",
+                                  timeout=6))
+        out = {}
+        for b in (d.get("bars") or [])[-n:]:
+            try:
+                # archive stamps are ET wall-clock strings; hot-feed keys are EPOCH seconds.
+                # Convert via an aware datetime so the two key-spaces actually merge.
+                _dt = datetime.strptime(str(b.get("time"))[:19], "%Y-%m-%dT%H:%M:%S")
+                _epoch = int(_dt.replace(tzinfo=timezone.utc).timestamp())   # auditor F1: archive stamps are UTC (alpaca_capture writes fromtimestamp(tz=utc)) — ET here shifted every bar 4h into the future
+                out[_epoch] = {"o": float(b.get("open") or b["close"]), "h": float(b["high"]),
+                               "l": float(b["low"]), "c": float(b["close"]),
+                               "v0": 0, "v1": float(b.get("volume") or 0)}
+            except Exception:
+                continue
+        return out
+    except Exception:
+        return {}
+
 def _curl_feed(t, n=90):
     """T2 choke-point: the ONE place the curl lanes get their 10s bars. CURL_SOURCE=webull →
     bot's own _shadow_bars (today's behavior); =alpaca → _alp10_bars. Canary logs fed-bar
@@ -1053,6 +1093,16 @@ def _curl_feed(t, n=90):
         with _shadow_lock:
             d10 = dict(_shadow_bars[10].get(t) or {})
         src = "webull-shadow"
+    # 8/10 FULL-WARM: a DEEP request answered thin = an adopted/rebooted name whose history
+    # lives in the archive, not the hot feed. Backfill the past (lag-safe by definition);
+    # hot bars win every overlapping key. One-shot per name per session via _bf_done.
+    if n >= 180 and len(d10) < n // 2 and t not in _bf_done:
+        _bf_done.add(t)
+        _arch = _archive10_backfill(t, n=n)
+        if _arch:
+            _merged = dict(_arch); _merged.update(d10)
+            print(f"🌊 {t}: warm-boot backfill {len(_arch)} archive bars under {len(d10)} hot bars")
+            d10 = _merged
     now = time.time()
     if now - _curl_canary_t.get(t, 0) >= 120:
         _curl_canary_t[t] = now
@@ -1063,7 +1113,20 @@ def _curl_feed(t, n=90):
     # (we are IN the name while it goes quiet) — the DFNS 7/27 situation.
     try:
         _susp, _gap, _lastk = _halt_suspect(t, d10)
+        try:
+            _lh_c = d10[max(d10)]["c"] if d10 else 0
+            _leader_high_probe(t, float(_lh_c or 0))          # 8/5 leader ammo: fresh-high tracking
+            # 8/5 halt-aware clocks: note completed >120s inter-bar gaps as halt credit
+            _ks = sorted(d10.keys())[-8:]
+            for _i in range(1, len(_ks)):
+                if _ks[_i] - _ks[_i-1] > 120:
+                    _seen = _halt_credit.get(t, [])
+                    if not any(abs(end - _ks[_i]) < 1 for end, _ in _seen):
+                        _halt_credit_note(t, _ks[_i-1], _ks[_i])
+        except Exception:
+            pass
         if _susp:
+            _leader_violence(t, "halt")                        # 8/5 leader ammo: halt = violence proven
             _log_halt_suspect(t, _gap, _lastk, held=(t in _halt_held_mirror))
             # DIP-RIP arm (7/30): a halt on a SHEET name trading over its marked level arms the
             # resumption watch. Sheet-only + above-level = the false-positive guard (thin-tape
@@ -1740,7 +1803,10 @@ def get_premarket_data(ticker):
     try:
         info = yf.Ticker(ticker).info or {}
         if float_sh == "N/A":
-            float_sh  = info.get("floatShares") or info.get("sharesOutstanding") or "N/A"
+            _pf_fs = float(info.get("floatShares") or 0); _pf_so = float(info.get("sharesOutstanding") or 0)
+            if _pf_fs and _pf_so and _pf_fs > _pf_so * 1.05:
+                _pf_fs = _pf_so   # 8/10 STKH: stale pre-split float capped at outstanding (mini-audit 1b)
+            float_sh  = _pf_fs or _pf_so or "N/A"
         if avg_vol == "N/A":
             avg_vol   = info.get("averageVolume10days") or info.get("averageVolume") or "N/A"
         if mkt_cap == "N/A":
@@ -1801,6 +1867,69 @@ REENGAGE_MAX = 5              # cap on re-admitted names per scan
 REENGAGE_BAND = 40            # only consider ranks 21..BAND (still-live gappers crowded out, not deep-dead names)
 REENGAGE_RECOVER = 1.15       # re-admit only if current score >= 1.15× last scan's (score climbing back = a reset leg)
 
+
+BOARD_FUNNEL = os.environ.get("BOARD_FUNNEL", "1") == "1"
+_board_last = {"t": 0, "out": None}   # auditor F14: last-good board cache   # 8/10 Marcos: THE BOARD IS THE UNIVERSE
+
+def _board_candidates():
+    """8/10 (Marcos: "Our scanner is already calibrated... The scanner has been created
+    specifically to the standards set by Kev... the board is the universe"): candidate
+    discovery = the dashboard scanner's board + Kev-sheet names, PERIOD. Returns the same
+    shape scan_morning_gappers() produced so every consumer downstream is untouched.
+    Fail-soft to the legacy internal scan ONLY on total board failure (never blank discovery)."""
+    try:
+        import urllib.request as _ur
+        d = json.load(_ur.urlopen(f"{SCREENER_URL}/api/scan", timeout=8))   # auditor F14: don't stall the loop
+        res = d.get("results") or []
+        out = []
+        for r in res:
+            sym = (r.get("symbol") or "").upper()
+            if not sym:
+                continue
+            # LEGACY SHAPE (the internal scan's contract — downstream reads symbol/change_pct/
+            # float_shares/float_label/relative_volume/easy_to_borrow): emit exactly those keys.
+            out.append({
+                "symbol": sym,
+                "change_pct": float(r.get("change_pct") or 0),
+                "price": float(r.get("price") or 0),
+                "float_shares": float(r.get("float_shares") or 0) or None,
+                "float_label": r.get("float_label") or "",
+                "relative_volume": r.get("relative_volume"),
+                "easy_to_borrow": r.get("easy_to_borrow"),
+                "market_cap": r.get("market_cap"),
+                "kev": bool(r.get("kev")),
+                "source": r.get("source") or "board",
+            })
+        if out:
+            # auditor F6: the internal scan ALSO fed the reader's roster + the Move% ranking —
+            # without these the reader goes Kev-only (non-Kev names get NO maps -> chart-gate
+            # blocks them) and entry priority degrades to day_gain. The funnel feeds both.
+            try:
+                _post_read_list(out)
+            except Exception as _prl:
+                print(f"⚠️ funnel: read-list post failed ({_prl})")
+            try:
+                _move_pct.update({c["symbol"]: float(c.get("change_pct") or 0)
+                                  for c in out if c.get("symbol")})
+            except Exception:
+                pass
+            _board_last["t"] = time.time(); _board_last["out"] = out
+            print(f"🧭 BOARD FUNNEL: {len(out)} candidates from the dashboard scanner "
+                  f"(internal scan retired — Marcos 8/10)")
+            return out
+        print("⚠️ BOARD FUNNEL: board empty — falling back to legacy internal scan (loudly)")
+        _log_decision("_BOARD", "board_funnel_fallback")
+    except Exception as _bfe:
+        if _board_last["out"] and time.time() - _board_last["t"] < 900:
+            print(f"⚠️ BOARD FUNNEL: board unreachable ({_bfe}) — serving last-good board "
+                  f"({int(time.time()-_board_last['t'])}s old)")
+            return _board_last["out"]
+        print(f"⚠️ BOARD FUNNEL: board unreachable ({_bfe}) — legacy internal scan (loudly)")
+        try:
+            _log_decision("_BOARD", "board_funnel_fallback")
+        except Exception:
+            pass
+    return scan_morning_gappers()
 
 def scan_morning_gappers():
     """
@@ -1924,7 +2053,16 @@ def scan_morning_gappers():
             if not float_shares:
                 try:
                     info = yf.Ticker(sym).info or {}
-                    float_shares = float(info.get("floatShares") or info.get("sharesOutstanding") or 0)
+                    _fs = float(info.get("floatShares") or 0)
+                    _so = float(info.get("sharesOutstanding") or 0)
+                    # 8/10 STKH lesson: yfinance can serve PRE-reverse-split float beside
+                    # post-split outstanding (3.86B float vs 592K outstanding). Float can never
+                    # exceed shares outstanding — cap it, loudly.
+                    if _fs and _so and _fs > _so * 1.05:
+                        print(f"   ⚠️ {sym}: float {_fs/1e6:.1f}M > outstanding {_so/1e6:.2f}M — "
+                              f"stale-split data, using outstanding (so-capped)")
+                        _fs = _so
+                    float_shares = _fs or _so or 0
                     time.sleep(0.2)   # light rate-limit avoidance
                 except Exception:
                     pass
@@ -2115,7 +2253,8 @@ def _save_open_trade_sync(state: dict) -> bool:
         return False
 
 
-def _clear_open_trade(ticker: str):
+def _clear_open_trade(ticker: str, trade_id=None):   # auditor F3: id-precise clears — a
+    # ticker-wide clear with two same-name positions wipes the SIBLING's recovery row.
     """Remove the open position from durable storage once it has a recorded exit. Blocking
     (must complete before the run ends) but bounded.
     7/29 P1-F: VERIFIED clear — the old fire-and-forget version swallowed failures silently, which
@@ -2127,7 +2266,7 @@ def _clear_open_trade(ticker: str):
         return
     for _attempt in (1, 2):
         try:
-            r = requests.post(f"{url}/api/open_trade/clear", json={"ticker": ticker},
+            r = requests.post(f"{url}/api/open_trade/clear", json={"ticker": ticker, "trade_id": trade_id},
                               headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
             if r.status_code == 200:
                 try:
@@ -2136,7 +2275,7 @@ def _clear_open_trade(ticker: str):
                               .json().get("open_trades") or [])]
                 except Exception:
                     still = []
-                if ticker not in still:
+                if (trade_id and trade_id not in still) or (not trade_id and ticker not in still):
                     return                                     # verified gone
             print(f"🧹 {ticker}: open-trade clear attempt {_attempt} NOT verified "
                   f"(HTTP {r.status_code}) — {'retrying' if _attempt == 1 else 'GIVING UP'}")
@@ -2147,7 +2286,7 @@ def _clear_open_trade(ticker: str):
           f"next boot's orphan recovery will see it. Manual: POST /api/open_trade/clear")
 
 
-def _load_open_trades_from_screener() -> list:
+def _load_open_trades_from_screener():
     """On startup, pull any positions that were left open by a prior (crashed) run."""
     url = os.environ.get("SCREENER_URL", "").rstrip("/")
     if not url:
@@ -2158,7 +2297,7 @@ def _load_open_trades_from_screener() -> list:
             return r.json().get("open_trades", [])
     except Exception:
         pass
-    return []
+    return None   # auditor F5: outage must be DISTINGUISHABLE from "no positions" — None, never []
 
 
 def _log_room_skip(ticker, price, entry_type, room):
@@ -2202,10 +2341,25 @@ _decision_queue: list = []
 _decision_queue_lock = threading.Lock()
 _decision_flusher_started = False
 
+_side_memo = {}   # ticker -> (expires, side) — 8/8: one tape read per 20s per name
+_SIDE_STAMPED = ("_reject", "_capped", "_skip")   # every refusal row carries its story position
+
 def _log_decision(ticker, status, **fields):
     # Wrapped so observability can NEVER throw into the trading hot path (this is called for every
     # candidate every cycle). A logging bug must not be able to stop the bot from trading.
     try:
+        # 8/8 (Marcos: "make sure the machinery is giving us the details we need"): REJECTS carry
+        # the SIDE stamp too — refusal grading needs to know if we refused front-side strength or
+        # back-side chop. Memoized 20s/name; fills+heartbeats already stamp at their sites.
+        if "side" not in fields and (any(str(status).endswith(sfx) for sfx in _SIDE_STAMPED)
+                                     or status in ("halt_arm", "halt_early_arm", "seam_shadow_fire")):
+            _m = _side_memo.get(ticker)
+            if _m and _m[0] > time.time():
+                fields["side"] = _m[1]
+            else:
+                _sv = _side_state(ticker)
+                _side_memo[ticker] = (time.time() + 20, _sv)
+                fields["side"] = _sv
         prev = _decision_last.get(ticker)
         now = time.time()
         if prev and prev[0] == status and (now - prev[1]) < DECISION_HEARTBEAT_SECS:
@@ -2491,6 +2645,42 @@ def _note_positions(cur):
         if cur > _exec_health["peak_positions"]:
             _exec_health["peak_positions"] = cur
 
+def _post_resume_record(o: dict, result) -> None:
+    """8/10 C2: the resumed monitor's exit reaches the books (today's XHLD original recorded
+    NOTHING). Entry/partials/shares come from the SAVED state; exit price/reason from the
+    monitor result. Posts through post_trade_record_reliably; trade_id dedups re-posts."""
+    try:
+        tk = (o.get("ticker") or "").upper()
+        entry = float(o.get("entry_price") or 0)
+        if not tk or entry <= 0:
+            return
+        res = result if isinstance(result, dict) else {}
+        exit_px = float(res.get("exit_price") or o.get("last_price") or entry)
+        partials = o.get("partial_fills") or []
+        remaining = int(o.get("remaining_shares") or 0)
+        initial = int(o.get("initial_shares") or remaining or 1)
+        pnl = sum((float(p[1]) - entry) * float(p[0])
+                  for p in partials if isinstance(p, (list, tuple)) and len(p) >= 2)
+        pnl += (exit_px - entry) * remaining
+        cost = entry * initial
+        _rec_ok = post_trade_record_reliably({
+            "date": datetime.now(EASTERN).strftime("%Y-%m-%d"),
+            "ticker": tk, "trade_id": o.get("trade_id"),
+            "entry_type": o.get("entry_type") or "flat_top",
+            "entry": entry, "exit": round(exit_px, 4), "shares": initial,
+            "pnl": round(pnl, 2), "pnl_pct": round(pnl / cost * 100, 2) if cost else 0,
+            "exit_reason": (res.get("exit_reason") or "RESUMED-EXIT"),
+            "partial_fills": partials, "position_size": round(cost, 2),
+            "entry_session": o.get("entry_session") or "RTH",
+            "entry_crown": o.get("entry_crown"),
+        })
+        if _rec_ok:
+            _clear_open_trade(tk, trade_id=o.get("trade_id"))
+        else:
+            print(f"🛟 {tk}: resume record NOT persisted — durable state kept (restart re-posts; trade_id dedups)")
+    except Exception as _pre:
+        print(f"⚠️  resume-record post failed for {o.get('ticker')}: {_pre}")
+
 def _watchdog_force_record(ctx: dict):
     """Record a frozen-monitor trade at the current price (intraday) — same record-on-recovery
     semantics as startup recovery, but triggered live by the watchdog. trade_id dedups."""
@@ -2523,6 +2713,7 @@ def _watchdog_force_record(ctx: dict):
     pnl_pct = (pnl / _cost * 100) if _cost > 0 else 0   # blended (7/11 A6)
     print(f"🛟 WATCHDOG recording {ticker}: entry ${entry:.2f} → ${px:.2f} ({pnl_pct:+.1f}%, ${pnl:+.2f})")
     _rec_ok = post_trade_record_reliably({
+        "entry_crown":     ctx.get("entry_crown"),
         "date": ctx.get("entry_date") or datetime.now(EASTERN).strftime("%Y-%m-%d"),
         "ticker": ticker, "entry_type": ctx.get("entry_type", ""),
         "entry": entry, "exit": round(px, 4), "shares": initial,
@@ -2549,12 +2740,16 @@ def _monitor_watchdog_loop():
     while True:
         try:
             now = time.time()
-            for ticker, m in list(_active_monitors.items()):
+            for _wkey, m in list(_active_monitors.items()):
+                # 8/10: registry keyed by trade_id — the human-facing name lives in ctx.
+                ticker = (m.get("ctx") or {}).get("ticker") or _wkey
                 stale = now - m.get("heartbeat", now)
                 if stale >= WATCHDOG_RECOVER_SECS:
                     print(f"🛟 WATCHDOG: {ticker} heartbeat stale {stale:.0f}s — force-recording + aborting")
-                    _monitor_abort.add(ticker)
-                    _active_monitors.pop(ticker, None)
+                    _monitor_abort.add(_wkey)
+                    if not (m.get("ctx") or {}).get("trade_id"):
+                        _monitor_abort.add(ticker)   # legacy id-less rows only (auditor F4)
+                    _active_monitors.pop(_wkey, None)
                     try:
                         _watchdog_force_record(m.get("ctx", {"ticker": ticker}))
                     except Exception as e:
@@ -2573,14 +2768,94 @@ def _monitor_watchdog_loop():
         time.sleep(WATCHDOG_CHECK_SECS)
 
 
+_BOOT_TS = time.time()               # 8/10: process birth (informational)
+_RECOVERY_DONE_TS = [None]           # auditor F4: race window anchors HERE, not at import
+_recovery_done = threading.Event()   # 8/10 BOOT BARRIER (the XHLD double-entry): entries wait
+# for orphan recovery to finish re-registering positions; 90s fail-open so a hung recovery can
+# never dead-lock trading (worst case = today's behavior, loudly).
+
 def _recover_orphaned_trades():
     """THE safety net: on startup, close + RECORD any position a crashed prior run left open,
     so every entered trade reaches a recorded exit regardless of what killed the process.
     Records the remainder at the current price (the trade was interrupted)."""
     orphans = _load_open_trades_from_screener()
+    if orphans is None:
+        print("🚨 orphan recovery: durable store UNREACHABLE — cannot verify open positions "
+              "(recovery skipped; dupe guard stays fail-closed in the race window)")
+        _log_decision("_BOOT", "recovery_store_unreachable")
+        return
     if not orphans:
         return
     print(f"♻️  Recovering {len(orphans)} orphaned open trade(s) from a prior run...")
+    # ── 8/8 (#35): SAME-DAY orphans during market hours RESUME monitoring with full saved
+    # context instead of being force-closed (the 7/29 STFS/YYGH class: close+record was the
+    # only path). Overnight/weekend orphans still close — day trades must not roll over.
+    # Kill: RESUME_OPEN_TRADES=0 restores close-only.
+    if os.environ.get("RESUME_OPEN_TRADES", "1") == "1":
+        _now_et = datetime.now(EASTERN)
+        _today = _now_et.strftime("%Y-%m-%d")
+        _mkt_open = _now_et.weekday() < 5 and "04:00" <= _now_et.strftime("%H:%M") < "15:40"
+        _resumed = []
+        for o in list(orphans):
+            _tk = (o.get("ticker") or "").upper()
+            if (_mkt_open and o.get("entry_date") == _today and _tk
+                    and float(o.get("entry_price") or 0) > 0
+                    and int(o.get("remaining_shares") or 0) > 0):
+                try:
+                    _rs_stream = WebullStream([_tk])
+                    # auditor #2: register with the WATCHDOG before the thread starts — an
+                    # unregistered resumed monitor is a frozen-invisible position (7/28 class)
+                    if not o.get("trade_id"):
+                        o["trade_id"] = uuid.uuid4().hex   # auditor F9: id-less orphan gets an id
+                        try: _save_open_trade_sync(o)      # persist so dedup + clears work
+                        except Exception: pass
+                    _rs_key = o["trade_id"]
+                    _active_monitors[_rs_key] = {"heartbeat": time.time(), "alerted": False, "ctx": {
+                        "entry_crown": o.get("entry_crown"),       # mini-audit 3c
+                        "ticker": _tk, "trade_id": o.get("trade_id"),
+                        "entry_price": float(o["entry_price"]),
+                        "stop": float(o.get("stop") or 0),
+                        "initial_shares": int(o.get("initial_shares") or 0),
+                        "remaining_shares": int(o.get("remaining_shares") or 0),
+                        "tier_idx": int(o.get("tier_idx") or 0),
+                        "partial_fills": o.get("partial_fills") or [],
+                        "entry_type": o.get("entry_type") or "flat_top",
+                        "entry_date": o.get("entry_date"),
+                        "last_price": float(o.get("last_price") or o["entry_price"])}}
+                    def _rs_run(_o=o, _t=_tk, _st=_rs_stream):
+                        # auditor #4: crash fallback — a dead resume thread must never strand a
+                        # position (neither monitored nor closed); fall back to close+record.
+                        try:
+                            _rs_result = monitor_trade(_t, int(_o.get("remaining_shares") or 0),
+                                          float(_o["entry_price"]),
+                                          float(_o.get("target") or float(_o["entry_price"]) * 1.10),
+                                          float(_o.get("stop") or float(_o["entry_price"]) * 0.93),
+                                          _st, None,
+                                          vwap=float(_o.get("vwap") or 0),
+                                          entry_type=_o.get("entry_type") or "flat_top",
+                                          entered_premkt=(_o.get("entry_session") == "PRE") or None,
+                                          resume_state=_o,
+                                          trade_id=_o.get("trade_id"))
+                            # 8/10 C2 (the unrecorded XHLD original): a resumed monitor's result
+                            # reaches the books like every other exit — entry/partials from the
+                            # SAVED state, exit from the monitor. trade_id dedups on the store.
+                            _post_resume_record(_o, _rs_result)
+                        except Exception as _mre:
+                            print(f"🚨 {_t}: RESUMED MONITOR CRASHED ({_mre}) — closing + recording")
+                            try:
+                                _rs_ctx = (_active_monitors.pop(_o.get("trade_id") or _t, {}) or {}).get("ctx") or _o
+                                _watchdog_force_record(_rs_ctx)   # auditor F10: id-keyed lookup + pop
+                            except Exception as _fe:
+                                print(f"🚨 {_t}: fallback close ALSO failed: {_fe}")
+                    _rs_th = threading.Thread(target=_rs_run, daemon=True, name=f"resume-{_tk}")
+                    _rs_th.start()
+                    _resumed.append(_tk)
+                    print(f"♻️  {_tk}: RESUMED (not closed) — monitor thread live with saved context")
+                except Exception as _re:
+                    print(f"⚠️ {_tk}: resume failed ({_re}) — falling back to close+record")
+        orphans = [o for o in orphans if (o.get("ticker") or "").upper() not in _resumed]
+        if _resumed and not orphans:
+            return
     for o in orphans:
         ticker = (o.get("ticker") or "").upper()
         try:
@@ -2617,6 +2892,7 @@ def _recover_orphaned_trades():
                   f"({pnl_pct:+.1f}%, ${pnl:+.2f})")
             _rec_ok = post_trade_record_reliably({
                 "date":            o.get("entry_date") or datetime.now(EASTERN).strftime("%Y-%m-%d"),
+                "entry_session":   o.get("entry_session") or "RTH",   # 8/8 auditor #5: rebuild reads this
                 "ticker":          ticker, "entry_type": o.get("entry_type", ""),
                 "entry":           entry, "exit": round(px, 4), "shares": initial,
                 "pnl":             round(pnl, 2), "pnl_pct": round(pnl_pct, 2),
@@ -2906,12 +3182,13 @@ def _chart_break_gate(ticker, entry_price, entry_type=None):
         # 7/27: carry the marked level in the allow row (was None) — LGHL/DFNS/VEEE entered below
         # fresh marked breaks invisibly; the level rides along as EVIDENCE, still never a veto here.
         try:
-            _blv = float(((_fetch_kev_levels() or {}).get(ticker) or {}).get("break") or 0) or None
+            _blv = float((_effective_map(ticker, entry_price) or {}).get("break") or 0) or None   # 8/7 auditor #4
         except Exception:
             _blv = None
         return ("allow", "live_structure", _blv, "none")
     try:
-        lv = (_fetch_kev_levels() or {}).get(ticker) or {}
+        lv = _effective_map(ticker, entry_price) or {}   # 8/7 auditor #4: the ENFORCE gate was
+        # reading the RAWEST map — never got 8/6 freshest nor the contract; missed twin.
         note = str(lv.get("note") or "").lower()
         if lv.get("veto") or "do-not-trade" in note or "do not trade" in note or "pass" == note.strip():
             return ("skip", "veto_do_not_trade", lv.get("break"), "sheet")   # e.g. VEEE 7/17
@@ -3195,6 +3472,7 @@ def _get_price_rest(ticker) -> float:
 
 _quote_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4,
                                                         thread_name_prefix="wb_quote")
+_quote_wedge = {"n": 0}   # auditor F11: consecutive-timeout wedge detector
 # Separate pool for NON-trade work (dashboard posts, durable-state persistence, day-2
 # observer). Kept off _quote_executor so observation/posting load can never starve the
 # exit-critical price feed (the contention the audit flagged + today's crash trigger).
@@ -3211,22 +3489,44 @@ def _get_webull_quote(ticker, executor=None) -> dict:
     loop (the BOXL freeze, June 24). Run it on a worker with a hard QUOTE_TIMEOUT_SECS cap so
     it can never block; on timeout we return {} and the caller treats it as "no price".
     """
+    global _quote_executor
     try:
-        dc = _get_data_client()
-        if not dc:
-            return {}
-
-        future = (executor or _quote_executor).submit(
-            dc.market_data.get_snapshot,
-            symbols=ticker,
-            category="US_STOCK",
-            extend_hour_required=True,
-        )
+        # 8/10 RESTART-PROOF (Marcos: zero effect, ever): EVERYTHING that can touch the network
+        # — including SDK client init/auth, which was running UNCAPPED on the monitor thread and
+        # is the prime suspect for the frozen-resumed-monitor class — runs under the hard timeout.
+        def _snap():
+            _dc = _get_data_client()
+            if not _dc:
+                return None
+            return _dc.market_data.get_snapshot(symbols=ticker, category="US_STOCK",
+                                                extend_hour_required=True)
+        try:
+            future = (executor or _quote_executor).submit(_snap)
+        except RuntimeError as _dead:
+            # 8/10 SELF-HEALING PLUMBING ("cannot schedule new futures after shutdown"): a dead
+            # pool is rebuilt on the spot — a monitor must never ride bar-fallback forever
+            # because an executor object died.
+            print(f"🔧 quote executor dead ({_dead}) — rebuilding pool")
+            _quote_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4,
+                                                                    thread_name_prefix="wb_quote")
+            future = _quote_executor.submit(_snap)
         try:
             resp = future.result(timeout=QUOTE_TIMEOUT_SECS)
+            _quote_wedge["n"] = 0   # any success resets the wedge counter
+            if resp is None:
+                return {}
         except concurrent.futures.TimeoutError:
             print(f"⚠️  Webull quote TIMEOUT for {ticker} (>{QUOTE_TIMEOUT_SECS}s) — treating as no price")
             _bump("timeouts")
+            # auditor F11: hung _snap workers saturate the pool with NO RuntimeError — after 6
+            # consecutive timeouts, abandon the wedged pool and rebuild (workers are daemons).
+            _qt = _quote_wedge
+            _qt["n"] += 1
+            if _qt["n"] >= 6:
+                _qt["n"] = 0
+                print("🔧 quote pool wedged (6 consecutive timeouts) — abandoning + rebuilding")
+                _quote_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4,
+                                                                        thread_name_prefix="wb_quote")
             return {}
         if resp.status_code != 200:
             print(f"⚠️  Webull snapshot {resp.status_code} for {ticker}")
@@ -3549,6 +3849,46 @@ def check_level2(ticker, entry_price) -> tuple[bool, dict]:
         return True, details
 
 
+# ── 8/6 AMBIENT LIQUIDITY FLOOR (Marcos: "this volume gate ignorance must be fixed" + "same
+#    story here" — FVN 810/bar and SUGP 2.4k/bar both entered through spike-measured floors).
+#    Both old floors measure the FIRE: ignition's 5k floor checks the spike bar itself, and the
+#    universal 10k AVG gets dragged over the line by that same spike (plus ignition carved out
+#    entirely). This floor measures the RESTING tape: MEDIAN dollar-volume of the last 10
+#    completed 1-min bars (median = spike-proof) must cover AMBIENT_DVOL_MULT x the position
+#    cap — you must be able to LEAVE inside a minute without being the whole tape. Execution-
+#    safety rationale, not edge (the 8/6 kill test showed era paper P&L can't see slippage;
+#    data/killtests/ambient_liquidity_20260806.py). Applies to ALL lanes incl. ignition (the
+#    quiet-base carve-out confused quiet with illiquid). Kill: AMBIENT_DVOL_MULT=0. ──
+# MULT calibration (8/6): 5x was participation-rate practice (exit <=20%% of a median minute)
+# but passes FVN ($14.6k/min — thin shares, $15 stock). 10x blocks BOTH 8/6 specimens and the
+# era cohort under it is 23 trades / -$47.93 on paper (before live slippage, which paper
+# understates). Homegrown -> translation registry; Friday re-grades from mapless/ambient stamps.
+# 15x FINAL (8/6, Marcos: "these low volume losers are a fucking waste of time. We need to be
+# big game hunting"): $15k/min blocks BOTH 8/6 specimens (FVN $14.6k incl.) at ZERO additional
+# winner cost vs 10x (same 13 forgone scratches, +$187 paper, all sub-$40 dead-tape trades that
+# live slippage mostly eats). Era cohort under the floor: 25 trades, -$66.95 net.
+AMBIENT_DVOL_MULT = float(os.environ.get("AMBIENT_DVOL_MULT", "15.0"))
+
+def _ambient_dvol_ok(bars):
+    """(ok, median_dvol, need). Median $ volume of the last 10 COMPLETED bars vs the floor.
+    Fail-OPEN on missing data (<5 completed bars) — a data gap is not evidence of thin tape;
+    the read-list floor and PRE_MIN_DVOL own the sparse-tape cases."""
+    try:
+        if not AMBIENT_DVOL_MULT:
+            return True, 0.0, 0.0
+        comp = bars[:-1] if len(bars) > 1 else bars
+        dv = sorted(float(b.get("volume") or b.get("v") or 0) * float(b.get("close") or b.get("c") or 0)
+                    for b in comp[-10:])
+        if len(dv) < 5:
+            _gate_failopen("ambient", why="<5 bars")   # 8/8 #33: counted, still open by design
+            return True, 0.0, 0.0
+        med = dv[len(dv) // 2]
+        need = AMBIENT_DVOL_MULT * MAX_TRADE_DOLLARS
+        return med >= need, med, need
+    except Exception:
+        _gate_failopen("ambient", why="exception")
+        return True, 0.0, 0.0
+
 def check_momentum(ticker) -> tuple[bool, dict]:
     """
     Fetch recent 1-min bars and read momentum at execution time. Kev's concept = "volume on the break".
@@ -3598,7 +3938,21 @@ def check_momentum(ticker) -> tuple[bool, dict]:
         #    [[feedback_grade_gates_vs_outcomes]] Tunable: lower MOMENTUM_MIN_AVG_VOL if it ever blocks a mover. ──
         soft = []
         if avg_vol < MOMENTUM_MIN_AVG_VOL:                          # LIQUIDITY FLOOR — HARD (thin stock = skip)
-            details["reason"] = f"illiquid — avg vol {int(avg_vol):,}/bar < {MOMENTUM_MIN_AVG_VOL:,} floor, skip"
+            # 8/6 SUPERSESSION (Marcos "build the share floor"; the PN 11:29 miss): shares are
+            # price-blind — 5,748/bar of a $9.74 name is $56k/min of REAL liquidity, while 2,400
+            # of SUGP was $5k. The ambient DOLLAR floor is the correct measure; when it passes,
+            # the share floor is waived. When ambient data is missing both floors stand.
+            _sf_ok, _sf_med, _sf_need = _ambient_dvol_ok(bars)
+            if _sf_ok and _sf_med >= _sf_need > 0:
+                print(f"💵 {ticker} share floor waived — ambient ${int(_sf_med):,}/min >= ${int(_sf_need):,} (dollar floor supersedes)")
+            else:
+                details["reason"] = f"illiquid — avg vol {int(avg_vol):,}/bar < {MOMENTUM_MIN_AVG_VOL:,} floor, skip"
+                print(f"❌ {ticker} momentum FAIL: {details['reason']}")
+                return False, details
+        _am_ok, _am_med, _am_need = _ambient_dvol_ok(bars)           # 8/6 ambient floor (spike-proof)
+        if not _am_ok:
+            details["reason"] = (f"thin ambient tape — median ${int(_am_med):,}/min over prior 10 bars "
+                                 f"< ${int(_am_need):,} exit floor ({AMBIENT_DVOL_MULT:g}x position cap)")
             print(f"❌ {ticker} momentum FAIL: {details['reason']}")
             return False, details
 
@@ -4309,6 +4663,10 @@ CURL_FIRE_MAX_AGE_SECS = float(os.environ.get("CURL_FIRE_MAX_AGE_SECS", "90"))
 # verified 7/29: the swap block sits ABOVE the lane gates, so lane flags never disarm it.
 SWAP_MODE       = os.environ.get("SWAP_MODE", "pm_stale").strip().lower()   # off | pm_stale | legacy
 QUOTE_MAX_AGE_S = float(os.environ.get("QUOTE_MAX_AGE_S", "15"))
+# 8/4 DXST surgery knobs (see _swap_price_ok / _bucket_fresh): cross-source agreement required
+# before any price substitution; PRE fire-age ceiling tighter than RTH.
+SWAP_XSRC_MAX_PCT     = float(os.environ.get("SWAP_XSRC_MAX_PCT", "3.0"))
+CURL_FIRE_MAX_AGE_PRE = float(os.environ.get("CURL_FIRE_MAX_AGE_PRE", "60"))
 
 def _stream_tick_age(sym):
     """Seconds since the last stream tick we RECEIVED for sym (local arrival clock).
@@ -4340,14 +4698,71 @@ def _swap_price_ok(sym, stream_px, bar_px, bar_k, hm=None):
             return False, "tick_fresh"
         if not _bucket_fresh(bar_k):
             return False, "bar_stale_too"
+        # ── 8/4 DXST SURGERY part 1: SWAP-PROOF cross-source check. DXST 04:14 −$39.68: the
+        # swap replaced a stale stream quote (3.03) with a STALER bar (3.34) and the drift
+        # guard then compared the entry against ITSELF (drift=0 by construction). Rule: the
+        # substitute must agree with the OTHER source within SWAP_XSRC_MAX_PCT — a stale tick
+        # is still evidence about the price's neighborhood; a 10% disagreement means one of
+        # them is lying, and we don't trade on a liar either way.
+        try:
+            with _price_lock:
+                _rec = _price_registry.get(str(sym).upper())
+            _tick_px = float(_rec.get("p") or 0) if isinstance(_rec, dict) else 0.0
+        except Exception:
+            _tick_px = 0.0
+        if _tick_px > 0 and abs(bar_px - _tick_px) / _tick_px * 100.0 > SWAP_XSRC_MAX_PCT:
+            return False, f"xsrc_divergence({bar_px}vs{_tick_px})"
         return True, "pm_quote_stale"
     except Exception:
         return False, "swap_guard_error"
 
-def _bucket_fresh(k):
-    """True when 10s bucket epoch `k` is recent enough to ACT on (fire). 0/None never fresh."""
+# ── 8/5 HALT-AWARE CLOCKS (dip_rip autopsy: YXT's resumption watch expired MID-HALT twice;
+# a mid-ladder fire was killed at "240.6s old" when 200+ of those seconds were a halt).
+# Halted time doesn't count against staleness: _halt_credit[sym] accumulates completed
+# >120s inter-bar gaps (minus the normal 10s cadence), fed from the curl feed. Effective
+# age = wall age − credit accrued since the fire. No gate is bypassed — the clocks just
+# stop while the exchange has the stock frozen. ──
+_halt_credit: dict = {}    # sym -> [(gap_end_epoch, gap_secs), ...] today
+
+def _halt_credit_note(sym, prev_k, new_k):
     try:
-        return bool(k) and (time.time() - float(k)) <= CURL_FIRE_MAX_AGE_SECS
+        gap = float(new_k) - float(prev_k)
+        if gap > 120:
+            _halt_credit.setdefault(sym, []).append((float(new_k), gap - 10.0))
+            if len(_halt_credit[sym]) > 40: _halt_credit[sym] = _halt_credit[sym][-40:]
+    except Exception:
+        pass
+
+def _halted_secs_since(sym, k):
+    try:
+        return sum(g for end, g in _halt_credit.get(sym, []) if end > float(k))
+    except Exception:
+        return 0.0
+
+_vwap_warned: dict = {}   # 8/5: dedupe "VWAP unavailable" spam — one line per name per 30min
+def _vwap_warn_ok(sym):
+    try:
+        now = time.time()
+        if now - _vwap_warned.get(sym, 0) > 1800:
+            _vwap_warned[sym] = now
+            return True
+        return False
+    except Exception:
+        return True
+
+def _bucket_fresh(k, hm=None, sym=None):
+    """True when 10s bucket epoch `k` is recent enough to ACT on (fire). 0/None never fresh.
+    8/4 DXST SURGERY part 2: PRE gets its OWN, tighter ceiling (CURL_FIRE_MAX_AGE_PRE).
+    8/5 HALT-AWARE: when sym is given, halted seconds since k don't count against the age."""
+    try:
+        _lim = CURL_FIRE_MAX_AGE_SECS
+        _hm = hm or datetime.now(EASTERN).strftime("%H:%M")
+        if _hm < "09:30":
+            _lim = min(_lim, CURL_FIRE_MAX_AGE_PRE)
+        _age = time.time() - float(k)
+        if sym:
+            _age -= _halted_secs_since(sym, k)
+        return bool(k) and _age <= _lim
     except Exception:
         return False
 
@@ -4368,6 +4783,314 @@ def _log_stale_fire(sym, lane, k, px):
 # 09:30, consumed only when a trade is actually QUEUED. Premarket fires are evidence, never burners.
 _curl_rth_n: dict = {}        # (day, sym, lane) -> live conversions taken
 
+# ── 8/5 LEADER AMMO ("meritocracy — to the winners go the extra bullets", Marcos, after
+# YXT 6->16 and JLHL 7.66->15 ran on spent ammo; counterfactual leader_ammo 27 starved setups
+# = +$634.96, formula-v2 backlabel armed 26/27 = +$624.96). A name that has PROVEN itself today
+# — day gain >= LEADER_GAIN_MIN and violence (halt today, or >=3 fresh-high minutes in a
+# rolling 10) — is a LEADER for the rest of the session (sticky). Leaders earn: curl-lane
+# session slots 1 -> LEADER_CURL_SLOTS, hidden cap bypass, ignition refires up to
+# LEADER_IGNITION_CAP. The FIELD keeps every cap (cap-merit 8/3: blanket relief = 0/24 −$543).
+# Every relief use is stamped leader_ammo=True. Kill switch: LEADER_AMMO=0.
+LEADER_AMMO         = os.environ.get("LEADER_AMMO", "1") == "1"
+LEADER_GAIN_MIN     = float(os.environ.get("LEADER_GAIN_MIN", "40"))
+LEADER_IGNITION_CAP = int(os.environ.get("LEADER_IGNITION_CAP", "3"))
+LEADER_CURL_SLOTS   = int(os.environ.get("LEADER_CURL_SLOTS", "3"))
+_leader_day: dict = {}     # (day, sym) -> {"gain": bool, "viol": str|None, "since": "HH:MM"}
+
+def _leader_rec(sym):
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    return _leader_day.setdefault((day, sym), {"gain": False, "viol": None, "since": None,
+                                               "hi": 0.0, "hi_marks": []})
+
+def _leader_qualify(sym, rec):
+    if rec["since"] is None and rec["gain"] and rec["viol"]:
+        rec["since"] = datetime.now(EASTERN).strftime("%H:%M")
+        print(f"👑 {sym} qualifies as LEADER ({rec['viol']}, gain-proven) — extra bullets earned "
+              f"(ignition x{LEADER_IGNITION_CAP}, curl slots x{LEADER_CURL_SLOTS}, hidden uncapped)")
+        try:
+            _log_decision(sym, "leader_armed", why=rec["viol"])
+        except Exception:
+            pass
+
+def _leader_gain(sym, gain_pct):
+    """Called wherever a day gain is computed. Sticky."""
+    try:
+        if not LEADER_AMMO or gain_pct is None: return
+        rec = _leader_rec(sym)
+        if gain_pct >= LEADER_GAIN_MIN and not rec["gain"]:
+            rec["gain"] = True
+        _leader_qualify(sym, rec)
+    except Exception:
+        pass
+
+def _leader_violence(sym, why):
+    """Called on halt-suspect episodes."""
+    try:
+        if not LEADER_AMMO: return
+        rec = _leader_rec(sym)
+        if rec["viol"] is None: rec["viol"] = why
+        _leader_qualify(sym, rec)
+    except Exception:
+        pass
+
+_pdc_map: dict = {}   # sym -> prior day close (fed at daily preload; crowns-from-tape 8/5)
+
+def _leader_high_probe(sym, last_close):
+    """Fresh-high persistence: >=3 minutes in a rolling 10 printing a new session high.
+    8/5: also computes day gain vs prior close (from _pdc_map) so a name CROWNS from the
+    tape itself — no longer waiting for its first conversion attempt to compute gain."""
+    try:
+        if not LEADER_AMMO or not last_close: return
+        _pdc = _pdc_map.get(sym) or 0
+        if _pdc > 0:
+            _leader_gain(sym, 100.0 * (float(last_close) / _pdc - 1.0))
+        rec = _leader_rec(sym)
+        nowm = datetime.now(EASTERN).hour * 60 + datetime.now(EASTERN).minute
+        if last_close > rec["hi"]:
+            rec["hi"] = last_close
+            if not rec["hi_marks"] or rec["hi_marks"][-1] != nowm:
+                rec["hi_marks"].append(nowm)
+                rec["hi_marks"] = rec["hi_marks"][-12:]
+        # 8/5: RTH-only high + its timestamp for the BACK-SIDE gate — the kill-test measured
+        # drawdown from the RTH session high; a premarket spike must not mark a name back-side.
+        if nowm >= 570 and last_close > rec.get("rth_hi", 0):
+            rec["rth_hi"] = last_close
+            rec["rth_hi_m"] = nowm
+        if rec["viol"] is None and sum(1 for m in rec["hi_marks"] if nowm - 10 <= m <= nowm) >= 3:
+            rec["viol"] = "fresh_highs"
+        _leader_qualify(sym, rec)
+    except Exception:
+        pass
+
+# ── 8/6 DEPLOY-FREEZE client (the 12:28 WYHG entry orphan-closed by the 12:31 deploy boot):
+#    before ANY conversion the bot consults the dashboard's pause flag. Set by the deploy
+#    procedure BEFORE uploading; CLEARED by this bot on boot (new image live = trading resumes).
+#    Fail-OPEN: dashboard unreachable -> trade normally (a monitoring outage must never strand
+#    the bot; the deploy procedure verifies the flag took before uploading). Kill:
+#    PAUSE_ENTRIES_RESPECT=0. Cached 10s so the hot path adds ~zero latency. ──
+# ── 8/6 RETEST ENTRY (Marcos: "build retest entry tonight"; kill test data/killtests/
+#    break_vs_retest_20260806.py — break-print cohort -$395.09 over 56 era trades, the 1.0%%
+#    retest arm -$252.60 = +$142 better, 12%% missed, SHIP-CANDIDATE by pre-registered rule):
+#    breakout lanes no longer market-buy the break print. After ALL gates pass, the worker
+#    waits up to RETEST_EXPIRY_S for a 10s bar LOW to touch fire_px*(1-DEPTH) and enters
+#    THERE; no touch -> retest_expired, slot refunded, no trade (the measured 12%% cost of
+#    patience). Stop stays the stamped structural stop. Kill: RETEST_ENTRY=0. ──
+RETEST_ENTRY     = os.environ.get("RETEST_ENTRY", "1") == "1"
+RETEST_DEPTH_PCT = float(os.environ.get("RETEST_DEPTH_PCT", "1.0"))
+RETEST_EXPIRY_S  = int(os.environ.get("RETEST_EXPIRY_S", "900"))
+RETEST_LANES     = set((os.environ.get("RETEST_LANES", "flat_top,ignition,orb")).split(","))
+
+PAUSE_ENTRIES_RESPECT = os.environ.get("PAUSE_ENTRIES_RESPECT", "1") == "1"
+_pause_cache = {"t": 0.0, "paused": False}
+
+
+# ── 8/8 (#33) GATE FAIL-OPEN COUNTER: a gate that passes because its DATA failed is now a
+# measured event, not a silent one (the exec paths had _exec_health since 7/11; the ENTRY gates
+# were mute). One decision row per (gate, 60s); daily visibility via the decisions archive. ──
+_gate_fo_t = {}
+def _gate_failopen(gate, ticker="_GATE", why=""):
+    try:
+        now = time.time()
+        if now - _gate_fo_t.get(gate, 0) >= 60:
+            _gate_fo_t[gate] = now
+            _log_decision(ticker, "gate_fail_open", gate=gate, why=str(why)[:60])
+    except Exception:
+        pass
+
+def _entries_paused():
+    if not PAUSE_ENTRIES_RESPECT or not SCREENER_URL:
+        return False
+    now = time.time()
+    if now - _pause_cache["t"] < 10:
+        return _pause_cache["paused"]
+    try:
+        import urllib.request as _ur
+        with _ur.urlopen(SCREENER_URL + "/api/pause_entries", timeout=3) as r:
+            _pause_cache["paused"] = bool(json.load(r).get("paused"))
+        _pause_cache["ok_t"] = now
+    except Exception:
+        # 8/8 (#33): the deploy-safety tool must not vanish the moment the dashboard hiccups.
+        # KEEP the last-known state for up to 10 min of API failure; only then fail open (and
+        # say so). A frozen bot stays frozen through a dashboard blip mid-deploy.
+        if now - _pause_cache.get("ok_t", 0) > 600:
+            if _pause_cache["paused"]:
+                print("⚠️ pause-state unknown >10min — failing OPEN (freeze lost)")
+            _pause_cache["paused"] = False
+            _gate_failopen("entries_paused", why="api>10min")
+        else:
+            _gate_failopen("entries_paused", why="api err, last-known kept")
+    _pause_cache["t"] = now
+    return _pause_cache["paused"]
+
+
+_rebuilt_day = {"d": None}   # 8/8 auditor #3: once-per-day sentinel
+def _rebuild_counters_from_today():
+    """8/8 (#35 PAINLESS RESTARTS part A): rebuild the in-memory counter economy from the day's
+    own DURABLE records (trades + open positions) so a mid-day restart resumes with honest
+    ledgers instead of zeroes. Event-sourced: the records are the truth; no second store.
+    Rebuilds: PRE tickets (_pre_day), hidden day/name caps (_he_day/_he_name), curl lane slots
+    (_curl_rth_n), held set. Crown rehydrate already exists separately (8/5). Fail-soft: any
+    error leaves the fresh-boot zeroes (pre-8/8 behavior). Kill: REBUILD_COUNTERS=0."""
+    if os.environ.get("REBUILD_COUNTERS", "1") != "1":
+        return
+    try:
+        day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        # auditor #3: main() re-runs every rescan — rebuild ONCE per day per process, and zero
+        # the target ledgers before summing (idempotent even if the sentinel is ever bypassed).
+        if _rebuilt_day.get("d") == day:
+            return
+        _rebuilt_day["d"] = day
+        _he_day.clear(); _he_name.clear(); _curl_rth_n.clear()
+        # 8/10 CRASH FIX (13 boots: clear() strips the "d" key; with no hidden fills to replay,
+        # the dict stays EMPTY and _he_day["d"] at the fire site KeyErrors -> process death loop):
+        _he_day.update({"d": None, "PRE": 0, "RTH": 0})
+        _closed = []
+        try:
+            r = requests.get(f"{SCREENER_URL}/api/trades", timeout=10)
+            _closed = [t for t in (r.json().get("trades") or []) if t.get("date") == day]
+        except Exception:
+            pass
+        _open = []
+        try:
+            _open = [o for o in _load_open_trades_from_screener()
+                     if o.get("entry_date") == day or o.get("date") == day]
+        except Exception:
+            pass
+        _lane_map = {"zone_flip": "zf", "vwap_reclaim": "vr", "dip_rip": "dr"}
+        n_pre = 0
+        _seen_tid = set()
+        for t in _closed + _open:
+            _tid = t.get("trade_id")
+            if _tid and _tid in _seen_tid:
+                continue   # auditor #5: a record posted whose open-row clear failed = one trade, once
+            if _tid: _seen_tid.add(_tid)
+            tk = str(t.get("ticker") or "").upper()
+            et = str(t.get("entry_type") or "")
+            sess = "PRE" if (t.get("entry_session") == "PRE") else "RTH"
+            if not tk:
+                continue
+            if t.get("entry_session") == "PRE":
+                n_pre += 1
+            if et == "hidden_entry":
+                if _he_day.get("d") != day:
+                    _he_day["d"] = day; _he_day["PRE"] = 0; _he_day["RTH"] = 0
+                _he_day[sess] = _he_day.get(sess, 0) + 1
+                _k = (day, tk, sess)
+                _he_name[_k] = _he_name.get(_k, 0) + 1
+            lane = _lane_map.get(et)
+            if lane:
+                _k = (day, tk, lane, sess)
+                _curl_rth_n[_k] = _curl_rth_n.get(_k, 0) + 1
+        _pre_day["d"] = day
+        _pre_day["n"] = n_pre
+        for o in _open:
+            tk = str(o.get("ticker") or "").upper()
+            if tk:
+                reentry["held"].add(tk)
+        print(f"🧮 counters rebuilt from today's records: PRE {n_pre}, hidden "
+              f"{_he_day.get('PRE',0)}P/{_he_day.get('RTH',0)}R, curl slots {len(_curl_rth_n)}, "
+              f"held {sorted(reentry['held']) or '[]'}")
+        _log_decision("_BOOT", "counters_rebuilt", pre_n=n_pre,
+                      hidden_pre=_he_day.get("PRE", 0), hidden_rth=_he_day.get("RTH", 0),
+                      curl_keys=len(_curl_rth_n), held=len(reentry["held"]))
+    except Exception as e:
+        print(f"⚠️ counter rebuild failed (fresh-boot zeroes kept): {e}")
+
+def _clear_entries_pause():
+    """Boot: the new image is live — lift the deploy freeze."""
+    try:
+        import urllib.request as _ur
+        req = _ur.Request(SCREENER_URL + "/api/pause_entries",
+                          data=json.dumps({"paused": False, "note": "cleared by bot boot"}).encode(),
+                          headers={"Content-Type": "application/json",
+                                   "X-Dashboard-Secret": os.environ.get("DASHBOARD_SECRET", "marcos2026")},
+                          method="POST")
+        _ur.urlopen(req, timeout=5)
+        print("🧊 deploy-freeze flag cleared (new image live)")
+    except Exception as e:
+        print(f"⚠️  could not clear pause flag ({e}) — clear manually if a freeze was set")
+
+def _reentry_rail_giveup(ticker, pnl, reentry, crowned):
+    """Death-by-cuts rail, one decision per closed trade. Updates BOTH counters (count + dollars;
+    a winning trade resets both — Kev's 6-win trend days keep going), then bans on the counter
+    that governs this name: CROWNED = consecutive-loss DOLLARS >= REENTRY_CROWN_LOSS_DOLLARS
+    (8/5 Marcos: whales are banned on real damage, never on paper-cut count); uncrowned (or
+    dollar rail killed via env 0) = the original count-of-N."""
+    reentry["consec_loss"][ticker] = 0 if pnl > 0 else reentry["consec_loss"].get(ticker, 0) + 1
+    _u = reentry.setdefault("consec_loss_usd", {})
+    _u[ticker] = 0.0 if pnl > 0 else _u.get(ticker, 0.0) + abs(min(float(pnl), 0.0))
+    if crowned and REENTRY_CROWN_LOSS_DOLLARS > 0:
+        return _u[ticker] >= REENTRY_CROWN_LOSS_DOLLARS
+    return reentry["consec_loss"][ticker] >= REENTRY_MAX_CONSEC_LOSS
+
+def _is_leader(sym):
+    if not LEADER_AMMO: return False
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    rec = _leader_day.get((day, sym))
+    return bool(rec and rec["since"] is not None)
+
+_leader_rehydrated = {"day": None}
+def _leader_rehydrate():
+    """8/5 (Marcos: "so it would have to reprove the violence"): leader status is EARNED and
+    must survive a restart — the proof already lives in durable decision rows. On session start,
+    replay today's leader_armed rows (full requalification) and halt_suspect rows (violence
+    half re-armed; gain re-proves from live tape within minutes). Fail-soft: no dashboard, no
+    rehydrate, detector just re-earns from tape like before."""
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    if not LEADER_AMMO or _leader_rehydrated["day"] == day:
+        return
+    _leader_rehydrated["day"] = day
+    try:
+        import urllib.request as _lr_ureq
+        req = _lr_ureq.Request(f"{SCREENER_URL}/api/decisions_archive?date={day}"
+                               f"&status=leader_armed,halt_suspect&limit=50000")
+        rows = json.load(_lr_ureq.urlopen(req, timeout=20)).get("rows") or []
+        n_l = n_h = 0
+        for r in rows:
+            sym = str(r.get("ticker") or "").upper()
+            if not sym or sym.startswith("_"): continue
+            rec = _leader_rec(sym)
+            if r.get("status") == "leader_armed" and rec["since"] is None:
+                rec["gain"] = True; rec["viol"] = r.get("why") or "rehydrated"
+                rec["since"] = str(r.get("time") or "")[:5] or "00:00"; n_l += 1
+            elif r.get("status") == "halt_suspect" and rec["viol"] is None:
+                rec["viol"] = "halt"; n_h += 1
+        if n_l or n_h:
+            print(f"👑 leader rehydrate: {n_l} leaders restored, {n_h} halt-violence flags re-armed")
+        # 8/5 AMMO-LEDGER REHYDRATE (restart amnesty fix): rebuild spent-ticket counts from
+        # today's recorded trades so a restart never re-rations names that already spent tickets.
+        try:
+            import urllib.request as _ar_ureq
+            _tr = json.load(_ar_ureq.urlopen(f"{SCREENER_URL}/api/trades", timeout=20)).get("trades") or []
+            _n_seed = 0
+            for _t in _tr:
+                if _t.get("date") != day: continue
+                _sym = str(_t.get("ticker") or "").upper(); _lane = _t.get("entry_type")
+                _sess = "RTH"
+                try:
+                    _ets = str(_t.get("entry_ts_utc") or "")
+                    if _ets:
+                        _h = int(_ets[11:13]) - 4
+                        _sess = "PRE" if _h * 60 + int(_ets[14:16]) < 570 else "RTH"
+                except Exception:
+                    pass
+                _ln = {"zone_flip": "zf", "vwap_reclaim": "vr", "dip_rip": "dr"}.get(_lane)
+                if _ln:
+                    _kk = (day, _sym, _ln, _sess)
+                    _curl_rth_n[_kk] = _curl_rth_n.get(_kk, 0) + 1; _n_seed += 1
+                elif _lane == "hidden_entry":
+                    if _he_day.get("d") != day:
+                        _he_day["d"] = day; _he_day["PRE"] = 0; _he_day["RTH"] = 0
+                    _he_day[_sess] = _he_day.get(_sess, 0) + 1
+                    _kh = (day, _sym, _sess)
+                    _he_name[_kh] = _he_name.get(_kh, 0) + 1; _n_seed += 1
+            if _n_seed:
+                print(f"♻️  ammo rehydrate: {_n_seed} spent ticket(s) restored from today's trades")
+        except Exception as _ae:
+            print(f"   ⚠️ ammo rehydrate skipped ({_ae})")
+    except Exception as _e:
+        print(f"   ⚠️ leader rehydrate skipped ({_e}) — detector re-earns from live tape")
+
 def _curl_rth_slot(sym, lane, hm):
     """True exactly once per (day, sym, lane, SESSION): first converting fire per session.
     SESSION SPLIT 7/26 (Marcos "ship all 4" — was the code's own 'KNOWN LIMITATION, weekend fix
@@ -4380,9 +5103,10 @@ def _curl_rth_slot(sym, lane, hm):
     sess = "PRE" if hm < "09:30" else "RTH"
     day = datetime.now(EASTERN).strftime("%Y-%m-%d")
     k = (day, sym, lane, sess)
-    if _curl_rth_n.get(k, 0) > 0:
+    _lim = LEADER_CURL_SLOTS if _is_leader(sym) else 1   # 8/5 leader ammo
+    if _curl_rth_n.get(k, 0) >= _lim:
         return False
-    _curl_rth_n[k] = 1
+    _curl_rth_n[k] = _curl_rth_n.get(k, 0) + 1
     return True
 
 def _slot_refund(sym, entry_type):
@@ -4398,7 +5122,13 @@ def _slot_refund(sym, entry_type):
         sess = "PRE" if hm < "09:30" else "RTH"
         lane = {"zone_flip": "zf", "vwap_reclaim": "vr", "dip_rip": "dr"}.get(entry_type)
         if lane:
-            _curl_rth_n.pop((day, sym, lane, sess), None)
+            # 8/5 leader ammo: refund ONE ticket, not the whole ledger — a leader that spent
+            # 2 of 3 slots and dies at a gate gets back to 1 used, not 0.
+            _k_cr = (day, sym, lane, sess)
+            if _curl_rth_n.get(_k_cr, 0) > 1:
+                _curl_rth_n[_k_cr] -= 1
+            else:
+                _curl_rth_n.pop(_k_cr, None)
         elif entry_type == "hidden_entry":
             if _he_day.get("d") == day and _he_day.get(sess, 0) > 0:
                 _he_day[sess] -= 1
@@ -4594,7 +5324,7 @@ def kev_reclaim_step(sym, new_bars, vwap):
                     # (Marcos 7/19: "data for and against it the whole day"). seq 0 = the day's
                     # first fire (the only live-eligible one); seq 1+ = shadow evidence.
                     # 7/28 stale-fire guard: an OLD bar consumes the setup but never fires.
-                    if not _bucket_fresh(k):
+                    if not _bucket_fresh(k, sym=sym):   # 8/5 halt-aware
                         _log_stale_fire(sym, "vwap_reclaim", k, round(c, 4))
                         st["n"] += 1
                         st["phase"] = "seek"; st["ext"] = False; st["wick"] = None
@@ -4738,6 +5468,12 @@ HIDDEN_DAILY_CAP  = int(os.environ.get("HIDDEN_DAILY_CAP", "3"))
 HIDDEN_EXT_GATE   = os.environ.get("HIDDEN_EXT_GATE", "1") == "1"
 HIDDEN_EXT_LO     = float(os.environ.get("HIDDEN_EXT_LO", "3.0"))    # percent, inclusive
 HIDDEN_EXT_HI     = float(os.environ.get("HIDDEN_EXT_HI", "10.0"))   # percent, exclusive
+# 8/6: crowned names bypass the band (see gate comment; refused-crown forward +$641.87/26 vs
+# non-crown refusals negative). 0 = flat band for everyone (pre-8/6 behavior).
+HIDDEN_EXT_CROWN_BYPASS = os.environ.get("HIDDEN_EXT_CROWN_BYPASS", "1") == "1"
+# 8/6 (Marcos: "why are we trading anything without a map????") — tape-lane conversions on
+# names with ZERO levels are fail-closed; see mapless_reject site. 0 restores the fail-open.
+MAPLESS_BLOCK = os.environ.get("MAPLESS_BLOCK", "1") == "1"
 # 7/30 A2-F: post-scale stop ratchets to the scale-bar low (hidden only). Kill switch:
 HIDDEN_SCALEBAR_STOP = os.environ.get("HIDDEN_SCALEBAR_STOP", "1") == "1"
 # 7/29 ANCHOR-MATURITY GATE (gauntleted): the lane is Kev's wick off the VWAP+90MA CONFLUENCE, but
@@ -4767,6 +5503,11 @@ def hidden_entry_step(sym, new_bars, vwap):
     if not st or st.get("day") != day:
         st = {"day": day, "closes": [], "e90": None, "armed": False, "n": 0, "nbars": 0}
         _he_st[sym] = st
+        # 8/10 FULL-WARM (Marcos: "No warming should be needed. Rehydration is mandatory."):
+        # a fresh machine fed a deep first pass matures instantly — nbars counts BARS SEEN,
+        # and history bars are bars. Nothing else needed here; the deep pass below does it.
+        # (STKH 8/10: mid-session add stayed immature because its first pass wasn't deep —
+        # fixed by the roster-add deep-pass below, not by faking maturity.)
     if not vwap or vwap <= 0:
         return None
     fired = None
@@ -4796,7 +5537,7 @@ def hidden_entry_step(sym, new_bars, vwap):
                     pass
                 st["n"] += 1                             # consumed, not traded
                 continue
-            if not _bucket_fresh(k):                     # 7/28 stale-fire guard: old bar never fires
+            if not _bucket_fresh(k, sym=sym):              # 7/28 stale-fire guard (8/5 halt-aware)
                 _log_stale_fire(sym, "hidden_entry", k, round(c, 4))
                 st["n"] += 1                             # consumed (mirror of a fire's seq advance)
                 continue
@@ -4842,7 +5583,7 @@ def kev_zoneflip_step(sym, new_bars):
             continue
         st["flush_low"] = min(st["flush_low"], l) if st["flush_low"] else l
         if st["wick"] and c > st["wick"][0] and fired is None:
-            if not _bucket_fresh(k):                     # 7/28 stale-fire guard: consume, never fire
+            if not _bucket_fresh(k, sym=sym):              # 7/28 stale-fire guard (8/5 halt-aware)
                 _log_stale_fire(sym, "zone_flip", k, round(c, 4))
                 st["n"] += 1
                 st["armed"] = False; st["wick"] = None; st["flush_low"] = None
@@ -4968,7 +5709,7 @@ def ignition_10s_step(sym, new_bars):
                     and strong >= IGNITION_STRONG          # strong close (buyers won the bar)
                     and c >= base_hi_c                     # breaks the quiet base (by close)
                     and IGNITION_MIN_EXT <= ext_bar <= IGNITION_MAX_EXT):
-                if not _bucket_fresh(k):                   # 7/28 stale-fire guard (replay never fires)
+                if not _bucket_fresh(k, sym=sym):            # 7/28 stale-fire guard (8/5 halt-aware)
                     _log_stale_fire(sym, "ignition10s", k, round(c, 4))
                     continue
                 fire = {"stop": round(base_lo * (1 - ZONE_STOP_BUFFER), 4),
@@ -5653,6 +6394,81 @@ MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "4.0")) / 100.0
 # this many R. Risking a full R to reach 0.1R of reward is a bad bet regardless of setup quality.
 # 0 = gate off. Fail-open: only a NUMERIC runway can block (see the gate site for the evidence).
 MIN_RUNWAY_RR           = float(os.environ.get("MIN_RUNWAY_RR", "1.0"))
+# ── 8/4 CLASS-AWARE RUNWAY (Marcos: "scale points are not walls but they are levels of
+# resistance until crossed"; kill-test runway_graded_20260804: RUNG>=0.5R +$91.01 plateau,
+# MAJORs all-taken −$148.67, majors-at-1R correct). MAJOR = break/next_supply match or a
+# whole/half-dollar within ~1c; everything else = RUNG (intermediate target). The gate needs
+# RUNWAY_MIN_RR_MAJOR of road to a MAJOR but only RUNWAY_MIN_RR_RUNG to a RUNG. MIN_RUNWAY_RR=0
+# remains the master kill switch. Continuous road_rr + class + fine band stamped on EVERY
+# conversion and reject so Friday can replay ANY threshold (flat T=0.3 was the sweep's own
+# ship-candidate at +$117.65 — graded head-to-head from the stamps, Marcos's call 8/4).
+RUNWAY_MIN_RR_RUNG      = float(os.environ.get("RUNWAY_MIN_RR_RUNG", "0.5"))
+RUNWAY_MIN_RR_MAJOR     = float(os.environ.get("RUNWAY_MIN_RR_MAJOR", "1.0"))
+# ── 8/5 BACK-SIDE GATE (Marcos: "this will allow the bot to see that the ticker is on a
+# downtrend"; kill-test backside_20260805: entries 15-30% below a >=20-min-stale session high
+# lost ~-$147 era-wide at a -$8/trade mean with ~no winners forfeited in-band, while front-side
+# entries were the only profitable cohort). A pullback SHAPE is identical on the way up and the
+# way down — this gate reads WHERE IN THE MOVE'S LIFE the entry sits. Band-block: 15-30% off a
+# stale high = the distribution zone. >30% = capitulation-flush territory (n=4, held up) stays
+# open, as does dip_rip (flush-buying is its design). Session high tracked close-based from the
+# curl feed (resets on restart -> gate fails open until it re-learns; deliberate).
+# Kill switch: BACKSIDE_GATE=0. Band edges re-graded Friday from the dd/stale stamps.
+BACKSIDE_GATE     = os.environ.get("BACKSIDE_GATE", "1") == "1"
+BACKSIDE_DD_LO    = float(os.environ.get("BACKSIDE_DD_LO", "15"))
+BACKSIDE_DD_HI    = float(os.environ.get("BACKSIDE_DD_HI", "30"))
+BACKSIDE_STALE_MIN= float(os.environ.get("BACKSIDE_STALE_MIN", "20"))
+BACKSIDE_EXEMPT   = {"dip_rip"}
+
+def _backside_check(sym, price):
+    """Returns (dd_pct, stale_min, block) from the leader tracker's session-high state.
+    Fail-open on any missing data."""
+    try:
+        day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        rec = _leader_day.get((day, sym))
+        if not rec or not rec.get("rth_hi") or not price:
+            return None, None, False   # 8/5: RTH-only high (matches the kill-tested definition)
+        dd = 100.0 * (rec["rth_hi"] - price) / rec["rth_hi"]
+        nowm = datetime.now(EASTERN).hour * 60 + datetime.now(EASTERN).minute
+        stale = nowm - rec.get("rth_hi_m", nowm)
+        block = (BACKSIDE_GATE and BACKSIDE_DD_LO <= dd < BACKSIDE_DD_HI
+                 and stale >= BACKSIDE_STALE_MIN)
+        return round(dd, 1), stale, block
+    except Exception:
+        _gate_failopen("backside")
+        return None, None, False
+
+# 8/4 RUNG RATCHET (Marcos override #4; engine-H replay level_exits_20260804: 92% wins/ties,
+# worst give-back $5.24 vs A). Runner hard floor = highest map rung cleared by a 1-min close.
+RUNG_RATCHET            = os.environ.get("RUNG_RATCHET", "1") == "1"
+
+def _runway_level_class(ticker, tgt, rec=None):
+    """MAJOR = the sheet's break/next_supply (±0.5%) or a whole/half-dollar within 1.1c; else RUNG.
+    8/7 auditor #5: caller may pass the EFFECTIVE rec so an auto-map break classes MAJOR."""
+    try:
+        if tgt is None:
+            return None
+        tgt = float(tgt)
+        lvd = rec if isinstance(rec, dict) else ((_fetch_kev_levels() or {}).get(ticker) or {})
+        for k in ("break", "next_supply"):
+            v = lvd.get(k)
+            if v is not None and float(v) > 0 and abs(float(v) - tgt) / tgt < 0.005:
+                return "MAJOR"
+        frac = tgt - int(tgt)
+        if min(abs(frac), abs(frac - 0.5), abs(frac - 1.0)) < 0.011:
+            return "MAJOR"
+        return "RUNG"
+    except Exception:
+        return "RUNG"
+
+def _road_band(rr):
+    """Fine road bands for Friday's threshold curves (mirror of the min-stop fine bands)."""
+    if not isinstance(rr, (int, float)):
+        return str(rr) if rr else None
+    for hi, lab in ((0.2, "<0.2"), (0.3, "0.2-0.3"), (0.4, "0.3-0.4"), (0.5, "0.4-0.5"),
+                    (0.75, "0.5-0.75"), (1.0, "0.75-1")):
+        if rr < hi:
+            return lab
+    return ">=1"
 # ── 7/31 BREAK-SIDE GATE (Marcos: "I want our findings to get a real test on Monday and you can
 # shadow the opposite" → "yes, definitely"). Joint grade n=56 (7/29-31): entries ABOVE the marked
 # break lose EVEN WITH ROAD OPEN (−$13.73/e, 33% win, n=12) while at/below wins (+$12.67/e, 64%,
@@ -5671,9 +6487,16 @@ MIN_RUNWAY_RR           = float(os.environ.get("MIN_RUNWAY_RR", "1.0"))
 # WRONG WHEN (pre-registered): the blocked cohort's forward counterfactual (`breakside_reject`
 # rows, full ticket) out-earns the allowed cohort.
 BREAKSIDE_GATE          = os.environ.get("BREAKSIDE_GATE", "1") == "1"
-BREAKSIDE_MAX_PCT       = float(os.environ.get("BREAKSIDE_MAX_PCT", "0.0"))
+BREAKSIDE_MAX_PCT = float(os.environ.get("BREAKSIDE_MAX_PCT", "1.0"))
+# 8/8 (Ombudsman hearing #1, breakside_tolerance_20260808, frozen rule pre-run): tol 1% admits
+# 4 era rejects for +$581.70 (worst −$48.19) vs $0 at tol 0 — SHIP-CANDIDATE met. CAVEAT on the
+# ledger: 2 of 4 admits = YJ 8/7 (same name/day). At-the-line entries (<=1% over the break) are
+# now entries; the chase-refusal (>1%) stands. Was 0.0 since 7/31.
 BREAKSIDE_LANES         = set(filter(None, (s.strip() for s in os.environ.get(
-    "BREAKSIDE_LANES", "vwap_reclaim,hidden_entry,ignition").split(","))))
+    "BREAKSIDE_LANES", "vwap_reclaim,hidden_entry,ignition,ma_pullback,ema_bounce").split(","))))
+# 8/8: ma_pullback/ema_bounce added on the YJ 8/7 specimen (bought $10.95 = +32% over the map's
+# break through this exact hole, against our own SKIP read; the era side-door evidence is thin
+# beyond it — one-day specimen, flagged honestly). Same 6% tolerance; kill via env override.
 
 # 8/3 dead-zone kill-test verdict (deadzone_20260803.py, frozen rules): TAPE lanes below a
 # never-broken-today break bleed (n=12, -$143.89); chart/ignition pre-break measured POSITIVE
@@ -5690,6 +6513,133 @@ TAPE_PREBREAK_LANES = set(filter(None, (s.strip() for s in os.environ.get(
 CHART_CEILING_GATE = os.environ.get("CHART_CEILING_GATE", "1") == "1"
 CHART_CEILING_LANES = set(filter(None, (s.strip() for s in os.environ.get(
     "CHART_CEILING_LANES", "flat_top,ma_pullback,orb,ema_bounce,dip_rip").split(","))))
+# 8/8 (#28, promoted by the freshness acceptance: at fresh highs the auto-map opens breakside,
+# so the BLOW-OFF guard must be the READ made STICKY — YJ 8/7: ceiling stood it down 11:44,
+# the same lane bought the top 11:51 on the same unchanged read). A ceiling stand-down now
+# BINDS the ticker's chart lanes until a FRESH read (map _ts changes) arrives. In-memory;
+# derivable after one ceiling fire post-restart (8/7 restart law: degradation, not loss).
+# Kill: STANDDOWN_STICKY=0.
+STANDDOWN_STICKY = os.environ.get("STANDDOWN_STICKY", "1") == "1"
+# ── 8/8 (#37) HALT-LADDER LANE — SHADOW-FIRST. Two-stage trigger from the 8/7-8/8 studies:
+# ARM (10s, era-proven: 110 arms +$840.93, mean +$7.64, worst day −$145): LULD band-proximity
+# (px/ref5min−1)/band >= HALT_ARM_PROX and 1-min vel >= HALT_ARM_VEL, CROWNS ONLY (the live
+# universe standing in for the replay's halting set — flagged in the ledger). CONFIRM (5s,
+# n=5 specimens — accumulating): trailing-60s uptick-ratio >= 0.8 AND max-retrace <= 1%
+# ("the tape stops breathing"). This is the bot's FIRST 5s consumer — the record-only doctrine
+# is CONSCIOUSLY retired for this one read (rig pin updated same commit). Detect logs halt_arm
+# rows always; conversion only when HALT_LANE_CONVERT=1 (DEFAULT 0 — Monday runs shadow).
+HALT_LANE          = os.environ.get("HALT_LANE", "1") == "1"
+HALT_LANE_CONVERT  = os.environ.get("HALT_LANE_CONVERT", "0") == "1"
+HALT_ARM_PROX      = float(os.environ.get("HALT_ARM_PROX", "0.7"))
+HALT_ARM_5S        = os.environ.get("HALT_ARM_5S", "1") == "1"   # 8/8: arm on 5s feed (10s fallback)
+HALT_CONFIRM_GATE  = os.environ.get("HALT_CONFIRM_GATE", "0") == "1"   # 8/8: confirm = stamp only (refuted as gate)
+HALT_ARM_VEL       = float(os.environ.get("HALT_ARM_VEL", "5.0"))
+_halt_arm_t = {}   # ticker -> last arm log (cadence)
+_halt_early_t = {}  # 8/8: early-arm shadow cadence
+
+_seam_shadow_t = {}   # 8/8 #38 fire cadence
+SEAM_CONVERT = os.environ.get("SEAM_CONVERT", "1") == "1"   # Marcos 8/8: paper book -> live test
+
+def _seam5_check(t):
+    """#38 shadow: on 5s bars — front side (>=90%% of session-window high), up-phase, pullback
+    >=1.5%% from running peak, and the LAST 5s bar closes back above the pullback's high.
+    Returns the would-be ticket dict or None. Frozen rules = ride_seams_5s_20260807."""
+    try:
+        # 8/10: through the _alp5_feed choke point (hot5 primary) — the seam detector spent its
+        # first shadow week reading the lagged archive; zero fires 8/10 = the lag, not the tape.
+        _f5 = _alp5_feed(t, n=720)
+        if len(_f5) < 60:
+            return None
+        _ks5 = sorted(_f5)
+        cl = [_f5[k]["c"] for k in _ks5]
+        hi = [_f5[k]["h"] for k in _ks5]
+        lo = [_f5[k]["l"] for k in _ks5]
+        px = cl[-1]
+        sess_hi = max(hi)
+        if px < sess_hi * 0.90:
+            return None
+        w3 = cl[-36:]
+        if px <= sum(w3) / len(w3):
+            return None
+        w2h, w2l = hi[-24:-1], lo[-24:-1]
+        peak = max(w2h); trough = min(x for x in w2l if x > 0)
+        if peak <= 0 or (peak - trough) / peak * 100 < 1.5:
+            return None
+        pb_hi = max(h for h, l in zip(w2h, w2l) if l <= trough * 1.002)
+        if px > pb_hi and cl[-2] <= pb_hi:
+            return {"price": round(px, 4), "stop": round(trough, 4),
+                    "pull_pct": round((peak - trough) / peak * 100, 1),
+                    "peak": round(peak, 4),
+                    "hi_window": "60m"}   # audit F1: the 90% gate measures a 1-HOUR high, not session — stamped so grading knows
+        return None
+    except Exception:
+        return None
+
+def _alp5_feed(t, n=360):
+    """5s bars as {sec: {"c","l","h"}} — the arm/seam fine clock.
+    8/10 REWIRED (the lagged-store lesson): PRIMARY = capture /hot5 (in-memory, fresh to the
+    last closed 5s bucket); FALLBACK = dashboard archive ~ALP5S (90-180s persist lag — fine for
+    HISTORY, marked so consumers can tell). Fail-soft {}. Max-age doctrine: callers get
+    ("_src","hot5"/"arch") and "_age" stamped under key -1 is avoided — instead the freshest
+    key speaks for itself; triggers must check recency."""
+    # hot path (audit F3: per-symbol backoff — a dead capture must not stack 2.5s timeouts
+    # into every 10s cycle for every crown; skip hot for 60s after a failure)
+    if ALP_CAPTURE_URL and time.time() - _hot5_backoff.get(t, 0) > 60:
+        try:
+            r = requests.get(ALP_CAPTURE_URL + "/hot5", params={"sym": t, "n": n},
+                             headers={"X-Hot-Secret": ALP_HOT_SECRET}, timeout=2.5)
+            if r.status_code == 200:
+                out = {}
+                for k, o, h, l, c, v in (r.json().get("bars") or []):
+                    out[int(k)] = {"c": float(c), "l": float(l), "h": float(h)}
+                if out:
+                    return out
+            _hot5_backoff[t] = time.time()
+        except Exception:
+            _hot5_backoff[t] = time.time()
+    # archive fallback (historical truth, lagged present — loud once per name per 10 min)
+    try:
+        import urllib.request as _ur
+        d = json.load(_ur.urlopen(f"{SCREENER_URL}/api/bars?date="
+                                  f"{datetime.now(EASTERN).strftime('%Y-%m-%d')}&ticker={t}~ALP5S",
+                                  timeout=4))
+        out = {}
+        for b in (d.get("bars") or [])[-n:]:
+            try:
+                _dt = datetime.strptime(str(b.get("time"))[:19], "%Y-%m-%dT%H:%M:%S")
+                sec = int(_dt.replace(tzinfo=timezone.utc).timestamp())
+                out[sec] = {"c": float(b["close"]), "l": float(b["low"]), "h": float(b["high"])}
+            except Exception:
+                continue
+        if out and time.time() - _alp5_lag_warn.get(t, 0) > 600:
+            _alp5_lag_warn[t] = time.time()
+            print(f"⚠️ {t}: 5s feed on ARCHIVE fallback (up to ~3min lag) — hot5 unavailable")
+        return out
+    except Exception:
+        return {}
+
+_alp5_lag_warn: dict = {}
+_hot5_backoff: dict = {}   # audit F3: per-symbol hot-path backoff
+
+def _halt5_confirm(t):
+    """5s confirm: trailing 60s uptick-ratio + max retrace from the running peak. (ok, up, pull).
+    Fail-CLOSED (no 5s tape -> not confirmed): the confirm exists to say 'no breathing' — absence
+    of evidence is not that."""
+    try:
+        # 8/10: through the _alp5_feed choke point (hot5 primary) — the confirm was reading the
+        # lagged archive directly, grading minute-old tape as "the final 60s".
+        _f5 = _alp5_feed(t, n=14)
+        if len(_f5) < 8:
+            return False, None, None
+        cl = [_f5[k]["c"] for k in sorted(_f5)][-14:]
+        ups = sum(1 for a, b in zip(cl, cl[1:]) if b >= a) / max(len(cl) - 1, 1)
+        peak = cl[0]; mp = 0.0
+        for c in cl:
+            peak = max(peak, c); mp = max(mp, (peak - c) / peak * 100 if peak else 0)
+        return (ups >= 0.8 and mp <= 1.0), round(ups, 2), round(mp, 2)
+    except Exception:
+        return False, None, None
+_standdown = {}   # ticker -> map _ts at stand-down; cleared when the map's _ts moves
 # 8/4 ~01:15 RETEST DEPTH BAND (Marcos override #3: "set the retest level to 5%-12% and shadow
 # the lanes both above and below"). SIP-complete reclassification (zone_reclass_audit_20260803):
 # retest entries <=5% under an already-touched break = the BATTLE ZONE, -$13.66/t 31% win n=13
@@ -5777,7 +6727,10 @@ SIM_ACCOUNT_BALANCE     = 3000.0 # DRY_RUN virtual account (the intended go-live
 MAX_POS_VOL_PCT         = 0.05   # share cap = 5% of the avg recent 1-min volume (KUST lesson: the formula wanted
                                  # 750 shares of a 3k-shares/min tape = unfillable; size must fit the market)
 
-INTRADAY_RESCAN_INTERVAL = 3 * 60   # 7/3: 5→3 min — catch intraday runners sooner (they were seen too late)
+INTRADAY_RESCAN_INTERVAL = int(os.environ.get("RESCAN_SECS", "60"))   # 8/10 latency doctrine:
+# discovery floor 3min -> 60s. Affordable because the board funnel made a rescan ONE cached
+# HTTP read (the old internal scan burned ~60s of sequential float checks per pass). The
+# board's own server cache (30s TTL) means browser + bot never double-spend Webull budget.
 
 
 def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
@@ -5819,6 +6772,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
     for t in candidates:
         cache[t]["daily"] = get_daily_levels(t)
         if cache[t]["daily"]:
+            try:   # 8/5: feed the crown's gain probe (crowns from the TAPE, not the first fire)
+                _pdc_map[t] = float(cache[t]["daily"].get("prior_day_close") or 0)
+            except Exception:
+                pass
             _daily_ok.append(t)
             _log_decision(t, "daily_loaded")
         else:
@@ -5962,7 +6919,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 print(f"   ⚠️ {t} tick-VWAP ${_tick:.4f} REJECTED by sanity "
                                       f"(bar ${_fullvw:.4f}, px ${_px_now}) — bar line holds")
                 else:
-                    print(f"⚠️  {t} VWAP unavailable — no bars ({BARS_SOURCE} primary + webull fallback both empty)")
+                    if _vwap_warn_ok(t):
+                        print(f"⚠️  {t} VWAP unavailable — no bars ({BARS_SOURCE} primary + webull fallback both empty) [deduped 30m]")
                 cache[t]["fetched"] = time.time()
 
         # Check each ticker for flat top breakout OR EMA bounce
@@ -6014,7 +6972,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     _cur_key = (datetime.now(EASTERN).strftime("%Y-%m-%d"), t)
                     _last_k = _reclaim_cursor.get(_cur_key, 0)
                     _now_cut = int(time.time()) // 10 * 10     # exclude the still-forming bucket
-                    _d10, _vr_src = _curl_feed(t)              # #97 choke-point (CURL_SOURCE env)
+                    _d10, _vr_src = _curl_feed(t, n=(REHYDRATE_BARS if not _last_k else 90))   # 8/6 rehydrate: deep first pass
                     _fed_k = 0
                     for _k in sorted(_d10):
                         if _last_k < _k < _now_cut:
@@ -6047,12 +7005,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             #    so it must NOT live inside the reclaim block's _vr_sv>0 gate. Own cursor; fire is
             #    consumed by the legacy ignition branch below (keeps ALL its gates — this is eyes-only). ──
             _ig_fire = None
-            if IGNITION_10S and IGNITION_ENABLED and not cache[t].get("ignition_fired"):
+            if IGNITION_10S and IGNITION_ENABLED and (not cache[t].get("ignition_fired")
+                    or (_is_leader(t) and cache[t].get("ignition_n", 1) < LEADER_IGNITION_CAP)):
                 _ig_nb = []
                 _cur_i = (datetime.now(EASTERN).strftime("%Y-%m-%d"), t)
                 _last_i = _ig_cursor.get(_cur_i, 0)
                 _cut_i = int(time.time()) // 10 * 10       # exclude the still-forming bucket
-                _d10i, _ig_src = _curl_feed(t)             # #97 choke-point (CURL_SOURCE env)
+                _d10i, _ig_src = _curl_feed(t, n=(REHYDRATE_BARS if not _last_i else 90))   # 8/6 rehydrate: deep first pass
                 for _k in sorted(_d10i):
                     if _last_i < _k < _cut_i:
                         _b = _d10i[_k]
@@ -6199,18 +7158,118 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                   fire_px=vr.get("px"), fire_age_s=(round(time.time() - vr["k"], 1) if vr.get("k") else None),
                                   drift_pct=(round((price - vr["px"]) / vr["px"] * 100, 2) if vr.get("px") else None))
                     continue                                   # captured — skip other detectors for t
+                # ── 8/8 (#38) CROWN-SEAM lane — 5s micro-pullback reclaims, CROWNS ONLY.
+                # Marcos (three calls, same minute): "we are playing with fake money. I want a
+                # real live test" / "shadow the alternative if you wish" / "this is just for
+                # crowns for now." Paper book = live conversion IS the kill-test. Converts by
+                # default (SEAM_CONVERT=0 restores shadow). Every fire logs seam_shadow_fire
+                # regardless, so the evidence ledger rides along either way. ──
+                if HALT_LANE and _is_leader(t) and _hm_curl >= "09:30" \
+                        and time.time() - _seam_shadow_t.get(t, 0) >= 45:
+                    try:
+                        _ss = _seam5_check(t)
+                        if _ss:
+                            _seam_shadow_t[t] = time.time()
+                            _log_decision(t, "seam_shadow_fire", convert=SEAM_CONVERT, **_ss)
+                            print(f"🧵 {t} SEAM: entry ${_ss['price']} stop ${_ss['stop']} "
+                                  f"(pull {_ss['pull_pct']}%){' -> CONVERT' if SEAM_CONVERT else ' (shadow)'}")
+                            if SEAM_CONVERT and float(_ss['stop']) < float(_ss['price']):
+                                breakouts.append((t, float(_ss['price']), 0, "crown_seam", {
+                                    "zone_stop": float(_ss['stop']),
+                                    "seam_pull_pct": _ss['pull_pct']}))
+                                continue
+                    except Exception:
+                        pass
+                # ── 8/8 (#37) HALT-LADDER detector (crowns only; shadow unless HALT_LANE_CONVERT) ──
+                if HALT_LANE and _is_leader(t) and _hm_curl >= "09:30":
+                    try:
+                        # 8/8 night: _curl_feed returns (bars, src) — the unpack was missing, so
+                        # sorted() threw into the except and the detector NEVER armed (caught in
+                        # the pre-Monday exec check, not by the pattern pins — three-rings lesson).
+                        # 8/8 (Marcos: "go with 1"): arm on the 5s feed when available — Friday
+                        # full-day head-to-head (arm_resolution_reconciled_20260808): 10s −$13.91
+                        # vs 5s +$216.35 on identical exits. 10s fallback fail-open; HALT_ARM_5S=0 kill.
+                        # n = 30 min of bars: arm math only reads the last 5 min, but the
+                        # mins_since_halt stamp (HALT-H1) needs to see resumptions up to 30 min back.
+                        _hl_d10, _hl_src = _curl_feed(t, n=180)
+                        _hl_min = 12
+                        if HALT_ARM_5S:
+                            _hl_d5 = _alp5_feed(t, n=360)
+                            if len(_hl_d5) >= 24:
+                                _hl_d10, _hl_src, _hl_min = _hl_d5, "alp5s", 24
+                        _hl_ks = sorted(_hl_d10)
+                        if len(_hl_ks) >= _hl_min:
+                            _hl_px = float(_hl_d10[_hl_ks[-1]].get("c") or 0)
+                            _hl_w5 = [_hl_d10[k] for k in _hl_ks if k >= _hl_ks[-1] - 300]
+                            _hl_ref = sum(float(b.get("c") or 0) for b in _hl_w5) / max(len(_hl_w5), 1)
+                            _hl_band = 0.10 if _hl_px >= 3 else (0.20 if _hl_px >= 0.75 else 0.75)
+                            _hl_prox = (_hl_px / _hl_ref - 1) / _hl_band if _hl_ref else 0
+                            _hl_w1 = [_hl_d10[k] for k in _hl_ks if k >= _hl_ks[-1] - 60]
+                            _hl_v0 = float(_hl_w1[0].get("c") or 0) if _hl_w1 else 0
+                            _hl_vel = (_hl_px / _hl_v0 - 1) * 100 if _hl_v0 else 0
+                            if 0.4 <= _hl_prox < HALT_ARM_PROX and _hl_vel >= HALT_ARM_VEL \
+                                    and time.time() - _halt_early_t.get(t, 0) >= 120:
+                                _halt_early_t[t] = time.time()
+                                _log_decision(t, "halt_early_arm", price=round(_hl_px, 4),
+                                              prox=round(_hl_prox, 2), vel1m=round(_hl_vel, 1))
+                                # 8/8 (Marcos: get in BEFORE... from the beginning) — shadow meter
+                                # of the EARLIER boarding point; weekend grades the prox bands.
+                            if _hl_prox >= HALT_ARM_PROX and _hl_vel >= HALT_ARM_VEL                                     and time.time() - _halt_arm_t.get(t, 0) >= 60:
+                                _halt_arm_t[t] = time.time()
+                                _hl_ok, _hl_up, _hl_pull = _halt5_confirm(t)
+                                _hl_stop = min((float(_hl_d10[k].get("l") or 0) for k in _hl_ks
+                                                if k >= _hl_ks[-1] - 120 and float(_hl_d10[k].get("l") or 0) > 0),
+                                               default=0)
+                                # 8/8 anatomy (arm_anatomy_20260808): Friday's 4 worst losers armed
+                                # 2-10 min after a resumption; winners 10-35+ min. HALT-H1 cooldown
+                                # hypothesis — STAMP ONLY, grades on unseen rows before any gating.
+                                _hl_gaps = [_hl_ks[_gi] for _gi in range(1, len(_hl_ks))
+                                            if _hl_ks[_gi] - _hl_ks[_gi-1] >= 270]
+                                _hl_shalt = round((_hl_ks[-1] - _hl_gaps[-1]) / 60, 1) if _hl_gaps else None
+                                _log_decision(t, "halt_arm", mins_since_halt=_hl_shalt,
+                                              price=round(_hl_px, 4),
+                                              prox=round(_hl_prox, 2), vel1m=round(_hl_vel, 1),
+                                              confirm5s=_hl_ok, upratio=_hl_up, maxpull=_hl_pull,
+                                              stop=round(_hl_stop, 4) if _hl_stop else None,
+                                              convert=bool(HALT_LANE_CONVERT and (_hl_ok or not HALT_CONFIRM_GATE)))
+                                # 8/8 (Marcos: "Fix the confirm"): confirm REFUTED as a gate on the
+                                # full 5s day (its only pass lost; it refused YJ +$399 — "breathless
+                                # tape" = exhaustion as often as halt-bound). Demoted to a DATA STAMP:
+                                # logs ok/up/pull on every arm row, converts nothing, earns gate
+                                # status only on unseen-day evidence. HALT_CONFIRM_GATE=1 re-arms.
+                                _hl_go = _hl_ok or not HALT_CONFIRM_GATE
+                                print(f"🪜 {t} HALT-LADDER ARM ${_hl_px:.2f} prox {_hl_prox:.2f} "
+                                      f"vel {_hl_vel:.1f}%/m 5s-confirm={_hl_ok}"
+                                      f"{' -> CONVERT' if HALT_LANE_CONVERT and _hl_go else ' (shadow)'}")
+                                if HALT_LANE_CONVERT and _hl_go and _hl_stop and _hl_stop < _hl_px:
+                                    breakouts.append((t, _hl_px, 0, "halt_ladder", {
+                                        "zone_stop": _hl_stop, "half_size": True,
+                                        "luld_prox": round(_hl_prox, 2)}))
+                                    continue
+                    except Exception:
+                        pass
                 # HIDDEN ENTRY (Kev 10s rocket wick) — live all RTH, own caps, replaces rocket_catcher.
                 if _he_fire and HIDDEN_ENTRY and _hm_curl >= ENTRY_OPEN_ET:
                     _heday = datetime.now(EASTERN).strftime("%Y-%m-%d")
                     _sess_he = "PRE" if _hm_curl < "09:30" else "RTH"
-                    if _he_day["d"] != _heday:
+                    if _he_day.get("d") != _heday:   # 8/10: defensive — never crash the loop on a counter
                         _he_day["d"] = _heday; _he_day["PRE"] = 0; _he_day["RTH"] = 0
                     _k_he = (_heday, t)
                     _k_he = _k_he + (_sess_he,)
-                    if _he_day[_sess_he] >= HIDDEN_DAILY_CAP or _he_name.get(_k_he, 0) >= HIDDEN_NAME_CAP:
+                    if ((_he_day[_sess_he] >= HIDDEN_DAILY_CAP or _he_name.get(_k_he, 0) >= HIDDEN_NAME_CAP)
+                            and not _is_leader(t)):   # 8/5 leader ammo: winners bypass the ration
                         _log_decision(t, "hidden_capped", price=price, day_n=_he_day[_sess_he],
                                       name_n=_he_name.get(_k_he, 0), sess=_sess_he)
-                    elif HIDDEN_EXT_GATE and HIDDEN_EXT_LO <= float(_he_fire.get("ext_vwap") or 0) < HIDDEN_EXT_HI:
+                    elif (HIDDEN_EXT_GATE and HIDDEN_EXT_LO <= float(_he_fire.get("ext_vwap") or 0) < HIDDEN_EXT_HI
+                            # 8/6 CROWN-SCOPED (Marcos: "build the crown-scoped ext gate now"): the
+                            # A1 no-man's-land held forward for ordinary names but on CROWNED names
+                            # the 3-10% band IS the coil — refused crown fires replayed +$641.87/26
+                            # (AZI's seven base fires alone +$459 before its 70% leg) while non-crown
+                            # refusals stayed correctly negative. Crowns bypass the band; everyone
+                            # else keeps July's protection. Kill: HIDDEN_EXT_CROWN_BYPASS=0 restores
+                            # the flat band. Bypassed crown fires stamp ext_vwap on the trade record
+                            # (already do) so Friday grades the reopened band from live fills.
+                            and not (HIDDEN_EXT_CROWN_BYPASS and _is_leader(t))):
                         # A1: the 3–10% no-man's-land — too late for the dip, too early for the
                         # vertical. Consume the fire (no retry-spam) and log EVERYTHING needed to
                         # grade the refusal forward.
@@ -6248,7 +7307,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             #    reads 1-MIN SESSION bars + the volume-acceleration surge and does NOT need the 3-min EMAs
             #    (not warm in the ignition window). The ONE entry NOT gated on above-VWAP (quiet base sits below
             #    VWAP). Surge breaking the quiet base = the trigger; tight stop at base low. Fires ONCE per ticker. ──
-            if IGNITION_ENABLED and not cache[t].get("ignition_fired"):
+            if IGNITION_ENABLED and (not cache[t].get("ignition_fired")
+                    or (_is_leader(t) and cache[t].get("ignition_n", 1) < LEADER_IGNITION_CAP)):
                 if IGNITION_10S:
                     # 10s machine's fire (7/26) — same dict shape; re-apply the 1-min detector's two
                     # consume-time clauses here: the live-price no-chase cap + the stale-price fix (a4fe777).
@@ -6291,7 +7351,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     rr = room["rr_to_supply"]
                     if IGNITION_DAILY_VETO and bool(_daily) and not daily_first_ok(price, _daily):
                         _log_decision(t, "ignition_daily_bad", price=price, room_rr=rr)
-                        cache[t]["ignition_fired"] = True     # bad daily = no trade (Kev)
+                        cache[t]["ignition_fired"] = True; cache[t]["ignition_n"] = cache[t].get("ignition_n", 0) + 1     # bad daily = no trade (Kev)
                     else:
                         if rr is not None and rr < MIN_ROOM_RR:   # room DE-INVERTED — observe (base+volume is the filter)
                             _log_decision(t, "ignition_low_room_soft", price=price, room_rr=rr)
@@ -6320,7 +7380,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                       volx=ign["volx"], base_hi=ign["base_hi"], ext_pct=ign["ext_pct"], front_side=_front,
                                       src=("10s" if IGNITION_10S else "1min"),
                                       shadow_gate=_sgv, shadow_gate_reason=_sgr, shadow_gate_level=_sgl)
-                        cache[t]["ignition_fired"] = True
+                        cache[t]["ignition_fired"] = True; cache[t]["ignition_n"] = cache[t].get("ignition_n", 0) + 1
                         continue                              # ignition captured (in `breakouts`) — skip other detectors for t
 
             # ── ROCKET CATCHER (7/21 KEV-SPEC, video XFSPUI5YJsE: "wait for the pullback to draw down
@@ -6683,6 +7743,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 _pdc = ((cache[b[0]].get("daily") or {}).get("prior_day_close") or 0)
                 if _pdc > 0:
                     b[4]["day_gain"] = round((b[1] - _pdc) / _pdc * 100, 2)
+                    _leader_gain(b[0], b[4]["day_gain"])       # 8/5 leader ammo: gain-proven probe
             except Exception:
                 pass
         # ── VEL5 FLOOR (7/21 kill-test, n=56 real trades 7/13-7/21): entries with NEGATIVE trailing
@@ -6722,6 +7783,30 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 else:
                     _kept_g.append(b)
             breakouts = _kept_g
+        # 8/8 (Marcos: "add the crown stamp"): crown status AT ENTRY on every candidate — crowns
+        # change intraday, and the Friday what-if had to rebuild the set from leader_armed rows.
+        for b in breakouts:
+            try:
+                b[4]["entry_crown"] = bool(_is_leader(b[0]))
+            except Exception:
+                b[4]["entry_crown"] = None
+        # ── 8/5 BACK-SIDE GATE: block the distribution band (see constants block) ──
+        if BACKSIDE_GATE:
+            _kept_bs = []
+            for b in breakouts:
+                _dd, _st, _blk = _backside_check(b[0], b[1])
+                b[4]["entry_dd_pct"] = _dd
+                b[4]["entry_high_stale_min"] = _st
+                if _blk and b[3] not in BACKSIDE_EXEMPT:
+                    _log_decision(b[0], "backside_reject", price=b[1], dd_pct=_dd,
+                                  stale_min=_st, machine=b[3],
+                                  band=f"{BACKSIDE_DD_LO}-{BACKSIDE_DD_HI}")
+                    print(f"   ⛔ BACK-SIDE gate blocked {b[0]} {b[3]} (entry {_dd}% below a "
+                          f"{_st}m-stale high — distribution zone, not a builder)")
+                    _slot_refund(b[0], b[3])
+                else:
+                    _kept_bs.append(b)
+            breakouts = _kept_bs
         if EXTENSION_MAX_PCT and EXTENSION_MAX_PCT < 9:
             _kept = []
             for b in breakouts:
@@ -6778,7 +7863,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 for t in new_candidates:
                     if t not in candidates:
                         candidates.append(t)
-                        cache[t] = {"bars": [], "vwap": 0.0, "fetched": 0.0}
+                        cache.setdefault(t, {"bars": [], "vwap": 0.0, "fetched": 0.0})   # audit F7: re-add must not wipe prior machine state (#81 class)
                         if t in traded_tickers:   # a previously-traded, now-eligible name coming back for re-entry
                             print(f"   ♻️  Re-watching traded-but-eligible {t} for re-entry (was locked out pre-fix)")
                         print(f"   ➕ Added {t} to flat top watch list")
@@ -6877,6 +7962,16 @@ def get_actual_fill_price(order_id, timeout_secs=8):
     return None
 
 
+# 8/8 PERIMETER WALL part 1 (the YJ side-door class): execute_trade now DEMANDS a perimeter
+# token — set only at the end of the worker's gate chain (the perimeter_stamp site) — so no
+# code path can reach a live order without passing every gate. Per-thread; consumed on use.
+# Startup self-test path passes explicitly. Kill: PERIMETER_ENFORCE=0 (logs, doesn't refuse).
+PERIMETER_ENFORCE = os.environ.get("PERIMETER_ENFORCE", "1") == "1"
+_peri_token = threading.local()
+
+def _grant_perimeter():
+    _peri_token.ok = True
+
 def execute_trade(ticker, shares, entry_price, stop_loss, target):
     """
     Places a limit buy order (1% above VWAP entry) then a stop order.
@@ -6886,6 +7981,39 @@ def execute_trade(ticker, shares, entry_price, stop_loss, target):
     actual_fill_price is the confirmed Webull fill — use it for stop/target/P&L.
     Returns (None, None, None) on failure.
     """
+    _tok = getattr(_peri_token, "ok", False)
+    _peri_token.ok = False                     # consumed FIRST (auditor F1: a reject below must not leak a blessed token)
+    if not _recovery_done.wait(timeout=90):
+        print(f"⚠️  BOOT BARRIER: recovery still running after 90s — proceeding fail-open ({ticker})")
+        _log_decision(ticker, "barrier_failopen")   # auditor F8: fail-open must be durable, not a log line
+    # 8/10 belt+suspenders (the 140-share XHLD dupe): refuse a NEW entry in a ticker the durable
+    # store still holds open — the live-state guard can't see positions recovery hasn't
+    # re-registered yet. Fail-open on store weather (never blank trading on an API hiccup).
+    # auditor F4: the race window runs 300s from RECOVERY COMPLETION, not process birth —
+    # a slow recovery must not outlive its own protection.
+    _win = (not _recovery_done.is_set()) or (time.time() - (_RECOVERY_DONE_TS[0] or time.time()) < 300)
+    if _win:
+        try:
+            _dupes = _load_open_trades_from_screener()
+            if _dupes is None:
+                raise RuntimeError("store probe returned None")
+            if any((o.get("ticker") == ticker) for o in _dupes):
+                print(f"🚫 DUPLICATE-ENTRY GUARD: {ticker} already open in the durable store — refusing second position")
+                _log_decision(ticker, "dup_entry_reject", price=entry_price)
+                return None, None, None
+        except Exception as _dge:
+            # auditor F2: inside the race window a FAILED probe is not a clean answer — with real
+            # money, unknown store state + possible in-flight recovery = REJECT, loudly. (Fail-open
+            # resumes automatically once the window closes.)
+            print(f"🚫 DUP-PROBE FAILED in race window ({_dge}) — refusing {ticker} entry (fail-closed)")
+            _log_decision(ticker, "dup_probe_failed", price=entry_price)
+            return None, None, None
+    if not _tok:
+        _log_decision(ticker, "perimeter_refused", price=entry_price, shares=shares)
+        print(f"🚧 {ticker} PERIMETER: order without a gate-chain token — "
+              f"{'REFUSED' if PERIMETER_ENFORCE else 'logged (enforce off)'}")
+        if PERIMETER_ENFORCE:
+            return None, None, None
     if DRY_RUN:
         fake_id = uuid.uuid4().hex
         print(f"🧪 DRY RUN — simulating BUY {shares} shares of {ticker} @ ${entry_price:.2f}")
@@ -6967,8 +8095,9 @@ def place_stop_order(ticker, shares, stop_price):
     """
     shares = max(1, int(shares))
     if DRY_RUN:
-        print(f"🧪 DRY RUN — software stop only: ${stop_price:.2f} × {shares} shares")
-        return None
+        print(f"🧪 DRY RUN — simulated resting stop: ${stop_price:.2f} × {shares} shares")
+        return f"DRY-STOP-{uuid.uuid4().hex[:8]}"   # 8/8 auditor C: fake id -> sync path fully
+        # exercisable on paper (was None -> one sync then self-disable = test-push parity gap)
     if not RESTING_STOP:
         print(f"🛡️  Software stop only (RESTING_STOP=0): ${stop_price:.2f} × {shares} shares")
         return None
@@ -7037,31 +8166,220 @@ def _scale_bar_low(ticker):
         return None
 
 
+
+def _freshest_rec(ticker):
+    """8/6 FRESHEST-DATA (Marcos: "I always believe the most current data, whether it be map
+    or KEV. The freshest data must rule."): the record the GATES should see. Kev's slot is
+    never altered in storage; but when its vision_shadow (a newer read the server tucked
+    alongside) carries a newer timestamp, the gates read the shadow's structure. Timestamps
+    are server-stamped (_ts) on every write; shadow read_at is the fallback comparator.
+    Fail-safe: any doubt -> Kev's record unchanged (pre-8/6 behavior)."""
+    try:
+        rec = (_fetch_kev_levels() or {}).get(ticker) or {}
+        sh = rec.get("vision_shadow")
+        if not isinstance(sh, dict):
+            return rec
+        rts = str(rec.get("_ts") or "")
+        sts = str(sh.get("_ts") or "")
+        if sts and (not rts or sts > rts):
+            eff = dict(rec)
+            for k in ("break", "confirm", "targets", "stop", "next_supply", "blue_sky", "read_at"):
+                if sh.get(k) is not None:
+                    eff[k] = sh[k]
+            eff["_freshest_src"] = "vision_shadow"
+            return eff
+        return rec
+    except Exception:
+        return (_fetch_kev_levels() or {}).get(ticker) or {}
+
+# ── 8/7 THE FRESHNESS CONTRACT (Marcos: "we have fixed this a million different times... fucking
+# do it!!!" — after the 8th staleness recurrence; YJ +545% ran on maps one-full-map behind).
+# CONTRACT: a CROWNED name's effective map is never > FRESH_MAX_MIN old AND never has price
+# > FRESH_MAX_DIST% beyond its break. Enforcement: when breached, the gates read an AUTO-MAP
+# computed from the live tape (session-window high = wall/break, defended shelf = confirm,
+# surviving kev targets above — the NAMI 8/7 arithmetic). Storage is NEVER altered (source
+# protection law); only the gates' effective view changes, flagged auto_map. Every breach logs
+# a freshness_breach row (120s cadence per name) so violations surface in-day, not in
+# screenshots. Kill switch: FRESHNESS_CONTRACT=0. Scope: crowns only (resolution-for-winners).
+FRESHNESS_CONTRACT = os.environ.get("FRESHNESS_CONTRACT", "1") == "1"
+FRESH_MAX_MIN  = float(os.environ.get("FRESH_MAX_MIN", "10"))    # map age ceiling, minutes
+FRESH_MAX_DIST = float(os.environ.get("FRESH_MAX_DIST", "15"))   # px beyond break ceiling, %
+_fresh_breach_t = {}   # ticker -> last breach-row time (log cadence only; restart just re-logs)
+
+
+def _side_state(ticker, px=0.0):
+    """8/8 (Side Marshal charter — Marcos: "the bot must always know where a ticker is in
+    relation to what's been going on"): the unified SIDE variable, computed from the live tape.
+      front_side      — at/near fresh highs, structure building (hh within 5 min OR px >=97% of hi)
+      back_side       — >=10% below a >=15-min-stale high (the move is being sold)
+      basing          — off-highs but compressed (last-3-min range < 1.5%): coiling, not bleeding
+      reclaim_attempt — off-highs, pushing back up (px above the 3-min mean)
+    DATA-ONLY v1: stamped on rows (perimeter/heartbeat), consumed by NOTHING until a week of
+    stamps grades side-vs-outcome in dollars (the Marshal's law). Fail-soft: unknown on thin tape."""
+    try:
+        d10, _ = _curl_feed(ticker, n=360)   # 8/8 night: missing unpack made every stamp "unknown"
+        if not d10 or len(d10) < 18:
+            return "unknown"
+        ks = sorted(d10)
+        if not px:
+            px = float(d10[ks[-1]].get("c") or 0)
+        hi = 0.0; hi_k = ks[0]
+        for k in ks:
+            h = float(d10[k].get("h") or 0)
+            if h > hi: hi, hi_k = h, k
+        if hi <= 0 or px <= 0:
+            return "unknown"
+        stale_min = (ks[-1] - hi_k) / 60.0
+        dd = (hi - px) / hi * 100.0
+        if dd <= 3.0 or stale_min <= 5:
+            return "front_side"
+        if dd >= 10.0 and stale_min >= 15:
+            return "back_side"
+        w3 = [d10[k] for k in ks if k >= ks[-1] - 180]
+        w3h = max(float(b.get("h") or 0) for b in w3); w3l = min(float(b.get("l") or 0) for b in w3 if float(b.get("l") or 0) > 0)
+        if w3l > 0 and (w3h - w3l) / w3l * 100 < 1.5:
+            return "basing"
+        m3 = sum(float(b.get("c") or 0) for b in w3) / max(len(w3), 1)
+        return "reclaim_attempt" if px > m3 else "back_side"
+    except Exception:
+        return "unknown"
+
+def _map_freshness(rec, live_px):
+    """(age_min, dist_pct) of a map vs now/price. age from _ts (fallback read_at, ISO, ET);
+    dist = how far price has run BEYOND the map's break (0 when break is overhead/absent).
+    Unparseable timestamp -> age None (treated as stale by the contract, never as fresh)."""
+    age = None
+    try:
+        ts = str(rec.get("_ts") or rec.get("read_at") or "")
+        if ts:
+            dt = datetime.fromisoformat(ts)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=EASTERN.utcoffset(datetime.now()) and datetime.now(EASTERN).tzinfo)
+            age = (datetime.now(EASTERN) - dt).total_seconds() / 60.0
+    except Exception:
+        age = None
+    dist = 0.0
+    try:
+        brk = float(rec.get("break") or 0)
+        if brk > 0 and live_px > brk:
+            dist = (live_px - brk) / brk * 100.0
+    except Exception:
+        pass
+    return age, dist
+
+def _auto_map(ticker, live_px):
+    """Tape-computed structural map (maps-describe law: every number a REAL computed anchor).
+    Window = _curl_feed(n=720) (2h of 10s bars — the feed's hot bound; anchors are RECENT
+    structure by design). break = window high; confirm = defended shelf (highest 10s low
+    touched >=3x within 0.25% in the last 3 min; fallback last-3-min low); targets = the
+    stored map's targets that survive ABOVE the window high. None if tape too thin (<30 bars)."""
+    try:
+        d10 = _curl_feed(ticker, n=720)
+        if not d10 or len(d10) < 30:
+            return None
+        ks = sorted(d10)
+        hi = max(float(d10[k].get("h") or 0) for k in ks)
+        last3 = [d10[k] for k in ks if k >= ks[-1] - 180]
+        lows = sorted(float(b.get("l") or 0) for b in last3 if float(b.get("l") or 0) > 0)
+        shelf = 0.0
+        for lv in reversed(lows):
+            if sum(1 for x in lows if abs(x - lv) / lv <= 0.0025) >= 3:
+                shelf = lv
+                break
+        if not shelf and lows:
+            shelf = lows[0]
+        if hi <= 0:
+            return None
+        stored = (_fetch_kev_levels() or {}).get(ticker) or {}
+        surv = sorted(float(x) for x in (stored.get("targets") or []) if float(x) > hi)
+        return {"break": round(hi, 4), "confirm": round(shelf, 4) or None,
+                "targets": surv, "auto_map": True,
+                "_ts": datetime.now(EASTERN).isoformat()}
+    except Exception:
+        return None
+
+_effmap_cache = {}   # ticker -> (expires_epoch, rec)  — 8/7 auditor #6: up to 4 gate reads/fire
+def _effective_map(ticker, live_px=0.0):
+    """THE gates' map view. Fresh (or non-crown, or contract off) -> _freshest_rec unchanged.
+    Crowned + contract breached -> auto-map overlay (break/confirm/targets swapped, rest kept),
+    breach row logged. Auto-map unavailable -> stale rec unchanged + breach row still logged
+    (the meter must never go dark just because the fallback failed)."""
+    _c = _effmap_cache.get(ticker)
+    if _c and _c[0] > time.time():
+        return _c[1]
+    rec = _freshest_rec(ticker)
+    if not FRESHNESS_CONTRACT or not _is_leader(ticker):
+        _effmap_cache[ticker] = (time.time() + 20, rec)
+        return rec
+    age, dist = _map_freshness(rec or {}, float(live_px or 0))
+    stale = (age is None) or (age > FRESH_MAX_MIN) or (dist > FRESH_MAX_DIST)
+    if not stale:
+        _effmap_cache[ticker] = (time.time() + 20, rec)
+        return rec
+    am = _auto_map(ticker, float(live_px or 0))
+    now = time.time()
+    if now - _fresh_breach_t.get(ticker, 0) >= 120:
+        _fresh_breach_t[ticker] = now
+        _log_decision(ticker, "freshness_breach", price=round(float(live_px or 0), 4),
+                      map_age_min=(round(age, 1) if age is not None else None),
+                      map_dist_pct=round(dist, 1), auto_map_used=bool(am),
+                      old_break=(rec or {}).get("break"),
+                      new_break=(am or {}).get("break"))
+        print(f"⏱️  {ticker} FRESHNESS BREACH: map age={age if age is None else round(age,1)}m "
+              f"dist={dist:.1f}% -> {'AUTO-MAP break $%s' % (am or {}).get('break') if am else 'no tape fallback — stale map kept, breach logged'}")
+    if not am:
+        return rec
+    eff = dict(rec or {})
+    for k in ("break", "confirm", "targets"):
+        eff[k] = am.get(k)
+    eff["auto_map"] = True
+    eff["_freshest_src"] = "auto_map"
+    _effmap_cache[ticker] = (time.time() + 20, eff)
+    return eff
+
 def _marked_runway(ticker, entry_price, stop_loss):
     """MARKED RUNWAY (Marcos's thesis): R-multiples of room from entry to the sheet's first target
     above (fallback next_supply). Fully knowable at entry. Returns (rr|'above_all_levels'|None, tgt).
     7/29: extracted so the LIVE card shows the road DURING the trade, not only in the post-mortem —
     identical inputs at entry and at record time, so the two stamps always agree."""
     try:
-        _lvd = (_fetch_kev_levels() or {}).get(ticker) or {}
+        _lvd = _effective_map(ticker, entry_price)   # 8/7 freshness contract (was _freshest_rec)
         _rps = entry_price - stop_loss
         if _rps <= 0:
             return None, None
         _tgts = sorted(float(x) for x in (_lvd.get("targets") or []) if float(x) > entry_price)
         _ns = float(_lvd.get("next_supply") or 0)
+        # ── 8/8 (#27 completion, Marcos 8/4 directive; 8/7 ROAD fictions = the specimens):
+        # THE WALL. The runway must respect what today's tape already did: (a) a rung the price
+        # has ALREADY traded above today is SPENT — skip it; (b) if the session high stands
+        # between entry and the target, the honest road ends AT THE WALL, not at the ink.
+        # (MB 8/7: "150.1R" to a $19.75 ghost while the wall sat 4% up.) Kill: RUNWAY_WALL=0.
+        if os.environ.get("RUNWAY_WALL", "1") == "1":
+            try:
+                _wb = _curl_feed(ticker, n=720)
+                _whi = max((float(b.get("h") or 0) for b in _wb.values()), default=0.0) if _wb else 0.0
+            except Exception:
+                _whi = 0.0
+            if _whi > 0:
+                _tgts = [x for x in _tgts if x > _whi]          # spent rungs demoted
+                if _whi > entry_price * 1.005:
+                    _tgts = sorted(_tgts + [round(_whi, 4)])    # the wall IS the nearest road end
+                if _ns and _ns <= _whi:
+                    _ns = 0.0
         _tgt = (_tgts[0] if _tgts else (_ns if _ns > entry_price else None))
         if _tgt:
             return round((_tgt - entry_price) / _rps, 2), _tgt
         if _lvd.get("targets") or _ns:
             return "above_all_levels", None
     except Exception:
-        pass
+        _gate_failopen("runway", why="exception")   # 8/8 #33
     return None, None
 
 
 def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                   stream: WebullStream, stop_order_id, vwap=0, next_supply=None, entry_type="flat_top",
-                  entered_premkt=None, runway=None):
+                  entered_premkt=None, runway=None, resume_state=None, trade_id=None):
+    _mon_key = trade_id or ticker   # 8/10 per-trade-id books: registry key (XHLD collision fix)
     """
     Monitors the trade using the real-time stream.
     All stop levels are kept as live orders on Webull — not just in memory.
@@ -7077,6 +8395,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     print(f"   Entry: ${entry_price:.2f} | Target: ${target_price:.2f} | Stop: ${stop_loss:.2f}")
 
     current_stop       = stop_loss
+    _ratchet_floor     = 0.0   # 8/4 RUNG RATCHET: highest map rung cleared by a 1-min close (0 = none yet)
     placed_stop_price  = stop_loss
     placed_stop_qty    = total_shares
     placed_stop_id     = stop_order_id
@@ -7091,6 +8410,9 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     _status_px         = 0.0           # throttle the 💰 status print (streaming's 0.5s loop floods it otherwise)
     _status_t          = 0.0           # print only on a ≥0.3% move OR every ≥STATUS_PRINT_SECS — keeps real events visible
     _hb_t              = 0.0           # custody heartbeat throttle (7/28) — first row fires on the first loop pass
+    _rest_lvl          = stop_loss     # 8/8 RESTING-STOP SYNC: level of the resting order at broker
+    _rest_sync_t       = 0.0           # (MB 8/7: fill 50c through a RATCHETED stop the resting order
+                                       # never learned about; YJ 91c on the halt reopen — same class)
     _barpx_t           = 0.0           # 7/29 NCRA fix: throttle for quote-dead bar-price lookups
     _barpx             = 0.0           # last bar-close fallback price
     _barpx_on          = False         # currently riding bar closes? (one-line canary on switch)
@@ -7104,7 +8426,28 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     _entry_ts_utc  = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")  # B14: stop closes must post-date entry
 
     initial_shares = total_shares
-    tier_idx = 0
+    # ── 8/8 (#35 PAINLESS RESTARTS): a redeploy mid-trade RESUMES the monitor with its full
+    # saved context (partials, tier index, highest, ratcheted stop) instead of restarting
+    # blind or force-closing. resume_state = the durable _save_open_trade dict. ──
+    if isinstance(resume_state, dict):
+        try:
+            partial_fills    = [list(p) for p in (resume_state.get("partial_fills") or [])]
+            tier_idx         = int(resume_state.get("tier_idx") or 0)
+            highest_price    = float(resume_state.get("highest") or entry_price)
+            remaining_shares = int(resume_state.get("remaining_shares") or total_shares)
+            initial_shares   = int(resume_state.get("initial_shares") or total_shares)
+            partial_taken    = bool(partial_fills)
+            _rs_stop         = float(resume_state.get("stop") or 0)
+            if _rs_stop > 0:
+                stop_loss = max(stop_loss, _rs_stop)   # never resume BELOW the ratcheted stop
+            print(f"♻️  {ticker} RESUMED mid-trade: rem {remaining_shares}/{initial_shares}, "
+                  f"{len(partial_fills)} partial(s), tier {tier_idx}, stop ${stop_loss:.4f}")
+            _log_decision(ticker, "trade_resumed", price=entry_price, stop=round(stop_loss, 4),
+                          remaining=remaining_shares, partials=len(partial_fills), tier_idx=tier_idx)
+        except Exception as _rse:
+            print(f"⚠️ {ticker} resume-state restore failed ({_rse}) — monitoring fresh")
+    if not isinstance(resume_state, dict):
+        tier_idx = 0        # fresh trade default; a resume keeps its restored index (auditor #1)
     # ── Kev's R-based exits (SUPPLY_EXIT_DESIGN.md): R = entry − initial stop. Sell HALF at +1R
     # (risk-free → stop to break-even), trim to a ~1/4 runner at the next supply (or +2R if open room),
     # then the 1/4 runner trails the PREVIOUS-BAR LOW. Replaces the made-up +8/12/20% tiers + TRAIL_PCT. ──
@@ -7113,6 +8456,9 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     _entered_premkt = (entered_premkt if entered_premkt is not None
                        else datetime.now(EASTERN).strftime("%H:%M") < "09:30")
     R = max(entry_price - stop_loss, 0.01)
+    if isinstance(resume_state, dict) and float(resume_state.get("risk_ps") or 0) > 0:
+        R = float(resume_state["risk_ps"])   # auditor #1: R from the ORIGINAL risk, never the
+        # ratcheted stop — else tiers collapse onto entry and already-sold tiers re-fire
     if entry_type in ("rocket_catcher", "hidden_entry"):   # ROCKET scale-out ladder (Fable 7/21): %-of-entry, NOT R —
         # a parabola round-trips, so bank 1/3 @ +50%, 1/3 @ +100% on the way up; runner health-trails.
         # Fable evidence: detection-entry + scale-out = +32% mean vs trail20 = +1.5% noise. Runner trail
@@ -7157,8 +8503,8 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         now = datetime.now(EASTERN)
 
         # ── Watchdog took over (this monitor had stalled, then thawed) — bail without re-recording.
-        if ticker in _monitor_abort:
-            _monitor_abort.discard(ticker)
+        if _mon_key in _monitor_abort or ticker in _monitor_abort:
+            _monitor_abort.discard(ticker); _monitor_abort.discard(_mon_key)
             print(f"🛟 {ticker}: watchdog already recorded this trade — monitor exiting")
             result["exit_reason"] = "WATCHDOG_ABORT"
             return result
@@ -7166,7 +8512,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         # WATCHDOG heartbeat — set UNCONDITIONALLY at the top of every iteration so it means
         # "this loop is alive", independent of feed/price/persist. (If placed lower it would be
         # skipped during a dead-feed `continue`, falsely looking frozen — audit catch.)
-        _hb = _active_monitors.get(ticker)
+        _hb = _active_monitors.get(_mon_key)
         if _hb is not None:
             _hb["heartbeat"] = time.time()
 
@@ -7297,10 +8643,33 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         # console logs). One DURABLE decision row per minute while holding: what the monitor sees
         # (price + its age), what it holds, where its stop/tier is. Turns the next "why didn't it
         # scale" from an autopsy into a query. Non-fatal by construction; ~1 row/min/position.
+        # ── 8/8 RESTING-STOP SYNC (auditor A: OUT of the heartbeat throttle — its own 20s
+        # cadence; auditor B: PLACE-THEN-CANCEL so a broker rejection never strips protection,
+        # and a failed sync retries next pass instead of disabling forever). Never lowers.
+        # Kill: RESTING_STOP_SYNC=0. (MB 50c / YJ 91c through-the-stop specimens.) ──
+        if (os.environ.get("RESTING_STOP_SYNC", "1") == "1"
+                and remaining_shares > 0 and placed_stop_id
+                and current_stop > _rest_lvl * 1.0025
+                and time.time() - _rest_sync_t >= 20):
+            try:
+                _new_stop_id = place_stop_order(ticker, remaining_shares, current_stop)
+                if _new_stop_id:
+                    cancel_order(placed_stop_id)      # old order dies only AFTER the new one lives
+                    placed_stop_id = _new_stop_id
+                    _rest_lvl = current_stop
+                    print(f"🧷 {ticker} resting stop SYNCED to ${current_stop:.4f} "
+                          f"({remaining_shares} sh)")
+                else:
+                    print(f"⚠️ {ticker} resting-stop sync: place rejected — old stop KEPT, retrying")
+                _rest_sync_t = time.time()
+            except Exception as _rse:
+                print(f"⚠️ {ticker} resting-stop sync failed (old stop stands): {_rse}")
+                _rest_sync_t = time.time()
         if time.time() - _hb_t >= 60:
             _hb_t = time.time()
             try:
                 _log_decision(ticker, "custody_heartbeat",
+                              side=_side_state(ticker, current_price),
                               price=round(current_price, 4),
                               price_age_s=round(time.time() - last_good_price_t, 1),
                               rem=remaining_shares, stop=round(current_stop, 4),
@@ -7317,6 +8686,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             "initial_shares": initial_shares, "partials": len(partial_fills),
             "highest": round(highest_price, 4), "vwap": round(vwap, 4) if vwap else None,
             "entry_hm": _entry_hm,   # 7/28 (Marcos: "i dont see entry time") — fill time on the card
+            "entry_session": ("PRE" if _entered_premkt else "RTH"),   # 8/7 (#17; auditor #9: clock-fallback var)
             "runway": runway,        # 7/29 (Marcos: "can it be read on the tale of the tape") — road at entry, live
         })
         # Durable recovery state — survives a crash/restart so this trade still gets a recorded exit.
@@ -7328,9 +8698,10 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             "last_price": round(current_price, 4),
             # Static plan fields for the dashboard's tale-of-the-tape (constant per trade)
             "tiers": [[p, c] for p, c in kev_tiers], "risk_ps": round(R, 4),
+            "entry_session": ("PRE" if _entered_premkt else "RTH"),   # 8/7 (#17; auditor #9)
         })
         # Refresh the watchdog's recordable context (heartbeat itself is set at the loop top).
-        _m = _active_monitors.get(ticker)
+        _m = _active_monitors.get(_mon_key)
         if _m is not None:
             _m["ctx"].update({"remaining_shares": remaining_shares, "partial_fills": partial_fills,
                               "tier_idx": tier_idx, "highest": round(highest_price, 4),
@@ -7402,6 +8773,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                         print(f"🪜 {ticker}: stop ratchets to scale-bar low ${_sb_lo:.2f} (was ${current_stop:.2f})")
                         current_stop = _sb_lo
                 placed_stop_id    = place_stop_order(ticker, remaining_shares, current_stop)
+                _rest_lvl         = current_stop   # 8/8 sync tracker
                 placed_stop_price = current_stop
                 placed_stop_qty   = remaining_shares
                 _floor_lbl = "floored at ENTRY (risk-free)" if current_stop == entry_price else "holding STRUCTURE"
@@ -7526,6 +8898,47 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 # runner through a pullback while it stays above VWAP OR the 9-EMA (healthy structure); FOLD only when
                 # a 3-min bar CLOSES below BOTH (structure gone). Breakeven stop (above) is the hard floor. Data-derived
                 # (healthy pullbacks hold VWAP 84%/EMA 67% vs dying 30%/26%); +6R over baseline across 4 days. ──
+                # ── 8/4 RUNG RATCHET (Marcos override #4: "we need that new ratchet exit" + AMIX
+                # 8/4 six-halt ladder giving back $75+ against a BE-only floor; engine-H replay
+                # level_exits_20260804: 92% wins/ties, worst give-back $5.24). Doctrine: a level is
+                # resistance until CROSSED (a completed 1-min close above it), support after — so the
+                # runner's hard floor climbs to the HIGHEST CLEARED map rung and never comes back
+                # down. Complements (never replaces) the health fold: whichever says exit first
+                # wins. Map refreshes ride the ~90s _fetch_kev_levels TTL, so a fresh re-read's
+                # rungs join the ladder mid-trade (held-name uncapped re-reads, same batch).
+                # Kill switch: RUNG_RATCHET=0.
+                if RUNG_RATCHET and remaining_shares > 0 and partial_taken and len(completed) >= 1:
+                    try:
+                        _rl = (_fetch_kev_levels() or {}).get(ticker) or {}
+                        _rungs = sorted(set(float(x) for x in (_rl.get("targets") or []) if float(x) > entry_price))
+                        _ns_r = float(_rl.get("next_supply") or 0)
+                        if _ns_r > entry_price:
+                            _rungs = sorted(set(_rungs + [_ns_r]))
+                        # 8/4 HB variant (replayed same night, frozen verdict passed: +$10.59 vs H
+                        # across 45 trades, worst give-up $4.59): the BREAK level joins the ladder —
+                        # a crossed break is the canonical resistance-turned-support (Kev's flip).
+                        _bk_r = float(_rl.get("break") or 0)
+                        if _bk_r > entry_price:
+                            _rungs = sorted(set(_rungs + [_bk_r]))
+                        _lc = float(completed[-1].get("close") or completed[-1].get("c") or 0)
+                        if _lc > 0:
+                            for _r_ in _rungs:
+                                if _lc > _r_ and _r_ > _ratchet_floor:
+                                    _ratchet_floor = _r_
+                                    print(f"🪜 {ticker}: 1-min close ${_lc:.2f} cleared rung ${_r_} — "
+                                          f"runner floor ratchets to ${_ratchet_floor:.2f}")
+                        if _ratchet_floor > 0 and current_price <= _ratchet_floor:
+                            print(f"🪜 {ticker}: ${current_price:.2f} back at/below the highest cleared rung "
+                                  f"${_ratchet_floor:.2f} — RUNG RATCHET exit (crossed resistance = support; "
+                                  f"defend it, don't watch it go).")
+                            cancel_order(placed_stop_id)
+                            close_position(ticker, remaining_shares)
+                            result["exit_price"]  = current_price
+                            result["exit_reason"] = f"RUNG RATCHET (floor ${_ratchet_floor:.2f})"
+                            remaining_shares = 0
+                    except Exception as _rex:
+                        print(f"   ⚠️ {ticker} ratchet check error (non-fatal): {_rex}")
+
                 if RUNNER_HEALTH_EXIT and remaining_shares > 0 and partial_taken and len(completed) >= 2:
                     _hc = float(completed[-1].get("close") or completed[-1].get("c") or 0)
                     _e9 = calculate_ema9(completed)
@@ -8347,7 +9760,7 @@ def resume_monitoring_if_open():
         stream, stop_order_id=None
     )
 
-    _open_trade.pop(ticker, None)
+    _open_trade.pop(ticker, None)   # legacy test-path (ticker-keyed row, if any)
     stream.stop()
     new_balance = get_account_balance()
     pnl = trade_result.get("profit_loss", 0)
@@ -8434,7 +9847,8 @@ def main():
         print(f"   Stop:    ${stop_loss:.2f} (-{STOP_LOSS_PCT*100:.0f}%)")
         print(f"   Target:  ${target:.2f} (+{TARGET_PCT*100:.0f}%)")
         print(f"{'='*60}\n")
-        order_id, stop_order_id = execute_trade(TEST_TRADE, shares, entry_price, stop_loss, target)
+        _grant_perimeter()   # 8/8: explicit bless for the startup self-test path
+        order_id, stop_order_id, _tt_fill = execute_trade(TEST_TRADE, shares, entry_price, stop_loss, target)  # 8/8: was a 2-name unpack of a 3-tuple (dormant crash)
         if not order_id:
             print("❌ TEST TRADE: buy order failed")
             stream.stop()
@@ -8487,7 +9901,7 @@ def main():
         print("🧪 DRY RUN MODE — all trades will be simulated, no real orders placed")
 
     # ── Step 1: Scan Webull screener for RVOL + momentum candidates ──
-    gappers = scan_morning_gappers()
+    gappers = _board_candidates() if BOARD_FUNNEL else scan_morning_gappers()
 
     # ── #98 PREMARKET STARTER SEED (premarket ONLY — RTH path byte-identical) ──
     # The 4am screener is near-empty (nothing's cleared +8% yet), so without a seed the abort
@@ -8540,6 +9954,15 @@ def main():
         _log_decision("_BOOT", "boot_config",
                       dry_run=bool(DRY_RUN), min_stop_pct=MIN_STOP_DIST_PCT,
                       min_stop_exempt=sorted(MIN_STOP_EXEMPT), min_runway_rr=MIN_RUNWAY_RR,
+                      runway_rr_rung=RUNWAY_MIN_RR_RUNG, runway_rr_major=RUNWAY_MIN_RR_MAJOR,
+                      rung_ratchet=RUNG_RATCHET,
+                      leader_ammo=LEADER_AMMO, leader_gain_min=LEADER_GAIN_MIN,
+                      leader_ignition_cap=LEADER_IGNITION_CAP, leader_curl_slots=LEADER_CURL_SLOTS,
+                      reentry_crown_usd=REENTRY_CROWN_LOSS_DOLLARS,
+                      hidden_ext_crown_bypass=int(HIDDEN_EXT_CROWN_BYPASS), mapless_block=int(MAPLESS_BLOCK),
+                      ambient_dvol_mult=AMBIENT_DVOL_MULT,
+                      deploy_id=os.environ.get("RAILWAY_DEPLOYMENT_ID", "")[:12],
+                      backside_gate=BACKSIDE_GATE, backside_band=f"{BACKSIDE_DD_LO}-{BACKSIDE_DD_HI}", backside_stale=BACKSIDE_STALE_MIN,
                       breakside_gate=int(BREAKSIDE_GATE), breakside_lanes=sorted(BREAKSIDE_LANES),
                       entry_open_et=ENTRY_OPEN_ET, intrabar_stop=int(INTRABAR_STOP),
                       resting_stop=int(RESTING_STOP), be_floor_after_scale=BE_FLOOR_AFTER_SCALE,
@@ -8549,8 +9972,12 @@ def main():
                       swap_mode=SWAP_MODE, crater_floor_r=CRATER_FLOOR_R,
                       tape_prebreak=int(TAPE_PREBREAK_GATE), chart_ceiling=int(CHART_CEILING_GATE),
                       retest_band=(f"{RETEST_BAND_LO}-{RETEST_BAND_HI}" if RETEST_BAND_GATE else "off"))
+        _leader_rehydrate()   # 8/5: earned leader status survives restarts
     except Exception as _bc_e:
         print(f"⚠️  boot_config row failed (banner above still printed): {_bc_e}")
+
+    _clear_entries_pause()   # 8/6 deploy-freeze: new image live -> lift the freeze
+    _rebuild_counters_from_today()   # 8/8 (#35): honest ledgers after a mid-day restart
     post_balance_to_dashboard(balance)
 
     # ── Morning watchlist email ───────────────────────────
@@ -8656,7 +10083,7 @@ def main():
                 fresh_gappers = None
             else:
                 print(f"\n🔄 Trade #{trade_count} done — rescanning live market for next setup...")
-                fresh_gappers = scan_morning_gappers()
+                fresh_gappers = _board_candidates() if BOARD_FUNNEL else scan_morning_gappers()
                 _last_full_scan[0] = time.time()
             if fresh_gappers is not None and fresh_gappers:
                 remaining_candidates = [g["symbol"] for g in fresh_gappers
@@ -8687,7 +10114,7 @@ def main():
         # ── Step 8: Watch all gappers — flat top breakout OR EMA bounce ────
         def _intraday_rescan(exclude=None):
             exclude = exclude or set()
-            fresh = scan_morning_gappers()
+            fresh = _board_candidates() if BOARD_FUNNEL else scan_morning_gappers()
             return [g["symbol"] for g in fresh
                     if g.get("symbol") and g["symbol"] not in exclude]
 
@@ -8741,7 +10168,10 @@ def main():
                     # F1a (7/26 exit review): NO conversions in [PRE_FLAT_HHMM, 09:30) — a 9:26 fire
                     # would convert and be flattened on the monitor's FIRST iteration (minted spread-
                     # loss + burned PRE ticket/cap slot). Fires in the dead window shadow instead.
-                    _pre_day["n"] += 1
+                    # 8/7 (#34 ROOT FIX — the ticket siphon that killed PRE on 8/7): the ticket
+                    # is now charged AT EXECUTION (worker, point of no return), so no reject of
+                    # any kind (mapless/runway/ambient/retest-expiry/freeze) can ever burn one.
+                    # The cap CHECK stays here for selection; the worker re-checks under lock.
                     entry[4]["_pre_convert"] = True   # F1b: PRE-ness decided AT CONVERSION, not by
                     _kept_pm.append(entry)            # the monitor/record wall-clock (worker latency
                                                       # across 09:30 must not turn a PRE trade RTH).
@@ -8773,7 +10203,7 @@ def main():
                         _session_cache.get(_pt, {}).pop("rocket_fired", None)
                         _rocket_day["n"] = max(0, _rocket_day["n"] - 1)
                     elif _pe == "hidden_entry":
-                        _he_day["PRE"] = max(0, _he_day["PRE"] - 1)
+                        _he_day["PRE"] = max(0, _he_day.get("PRE", 0) - 1)
                         _k_he = (_pmday, _pt, "PRE")
                         _he_name[_k_he] = max(0, _he_name.get(_k_he, 0) - 1)
                     elif _pe == "vwap_reclaim":
@@ -8799,7 +10229,7 @@ def main():
                     _session_cache.get(_pt, {}).pop("rocket_fired", None)
                     _rocket_day["n"] = max(0, _rocket_day["n"] - 1)
                 elif _pe == "hidden_entry":
-                    _he_day["PRE"] = max(0, _he_day["PRE"] - 1)
+                    _he_day["PRE"] = max(0, _he_day.get("PRE", 0) - 1)
                     _k_he = (datetime.now(EASTERN).strftime("%Y-%m-%d"), _pt, "PRE")
                     _he_name[_k_he] = max(0, _he_name.get(_k_he, 0) - 1)
                 # (7/26: session-keyed tickets stop practice fires spending RTH slots, and shadowed
@@ -8827,6 +10257,17 @@ def main():
             nonlocal session_pnl, trade_count, settled_remaining, current_balance
             extra = extra or {}
 
+            # ── 8/6 DEPLOY-FREEZE: a build is in flight — refuse NEW entries (exits/custody
+            #    unaffected; they run in their own monitors). Slot refunded, held released. ──
+            if _entries_paused():
+                print(f"🧊 {ticker} entry refused — deploy freeze active ({entry_type})")
+                _log_decision(ticker, "entries_paused", price=round(float(entry_price), 4),
+                              machine=entry_type)
+                _slot_refund(ticker, entry_type)
+                with trade_lock:
+                    reentry["held"].discard(ticker)
+                return
+
             # ── LAYER 2: "No Break, No Trade" chart-level gate — SHADOW unless CHART_GATE_ENFORCE=1 ──
             # Logs the verdict beside EVERY trade so we can validate against real tape before enforcing.
             # Default = shadow: records only, changes nothing. Enforce = block non-'allow' entries.
@@ -8843,6 +10284,8 @@ def main():
                               entry=round(float(entry_price), 4), break_level=_cg_level, reason=_cg_reason)
                 print(f"   ⛔ CHART-GATE BLOCKED {ticker} entry (no break of marked level) — no trade")
                 _slot_refund(ticker, entry_type)
+                with trade_lock:
+                    reentry["held"].discard(ticker)   # 8/7 (#34 invariant catch): held was leaking here
                 return   # ENFORCE mode only: Kev's No-Break-No-Trade blocks this entry
 
             # DATA-ONLY: capture where price sat vs the 90 EMA at entry, so we can later study
@@ -8871,6 +10314,7 @@ def main():
             if MAX_STOP_DIST_PCT and _stop_dist > MAX_STOP_DIST_PCT:
                 print(f"⚠️ {ticker} stop {_stop_dist*100:.1f}% away > {MAX_STOP_DIST_PCT*100:.0f}% tight-setup gate — skipping")
                 _log_decision(ticker, "wide_stop_reject", price=entry_price, stop_dist_pct=round(_stop_dist * 100, 1))
+                _slot_refund(ticker, entry_type)   # 8/7 (#34 invariant catch): slot was leaking here
                 with trade_lock:
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
@@ -8924,41 +10368,82 @@ def main():
             # (`runway_reject` rows) out-earns the trades that were allowed.
             if MIN_RUNWAY_RR > 0:
                 _rw_v, _rw_t = _marked_runway(ticker, entry_price, stop_loss)
-                if isinstance(_rw_v, (int, float)) and _rw_v < MIN_RUNWAY_RR:
-                    print(f"🛣️  {ticker} runway {_rw_v:.2f}R to ${_rw_t} < {MIN_RUNWAY_RR}R minimum "
+                if isinstance(extra, dict):
+                    extra["_rw_gate"] = (_rw_v, _rw_t)   # 8/8 auditor E: one runway truth per trade
+                # 8/4 class-aware: the threshold depends on WHAT stands overhead — a RUNG
+                # (intermediate target, scale point) needs RUNWAY_MIN_RR_RUNG; a MAJOR
+                # (break/next_supply/whole-half-dollar, real resistance) needs RUNWAY_MIN_RR_MAJOR.
+                _rw_cls  = _runway_level_class(ticker, _rw_t, _effective_map(ticker, entry_price))
+                _rw_need = RUNWAY_MIN_RR_MAJOR if _rw_cls == "MAJOR" else RUNWAY_MIN_RR_RUNG
+                _rw_band = _road_band(_rw_v)
+                if isinstance(_rw_v, (int, float)) and _rw_v < _rw_need:
+                    print(f"🛣️  {ticker} runway {_rw_v:.2f}R to {_rw_cls} ${_rw_t} < {_rw_need}R minimum "
                           f"— risking a full R for {_rw_v:.2f}R of road, skipping [runway gate]")
                     _log_decision(ticker, "runway_reject", price=entry_price, stop=round(stop_loss, 4),
-                                  runway_rr=_rw_v, target=_rw_t, need=MIN_RUNWAY_RR, machine=entry_type)
+                                  runway_rr=_rw_v, target=_rw_t, need=_rw_need, machine=entry_type,
+                                  road_cls=_rw_cls, road_band=_rw_band)
                     _slot_refund(ticker, entry_type)
                     with trade_lock:
                         reentry["held"].discard(ticker)
                     return
+                if isinstance(_rw_v, (int, float)):
+                    # passed with a numeric road — stamp the measurement on a decision row too,
+                    # so Friday's threshold curves see the TAKEN side, not only the refused side
+                    _log_decision(ticker, "runway_pass", price=entry_price, stop=round(stop_loss, 4),
+                                  runway_rr=_rw_v, target=_rw_t, need=_rw_need, machine=entry_type,
+                                  road_cls=_rw_cls, road_band=_rw_band)
             # ── BREAK-SIDE gate (7/31, tape lanes only — see the constants block for the full
             # evidence + known costs). At/below the marked break passes; a chase above it blocks
             # and logs its full ticket so Monday's shadow prices the opposite. FAIL-OPEN: no
             # break on the sheet -> pass.
             if BREAKSIDE_GATE and entry_type in BREAKSIDE_LANES:
                 try:
-                    _bs_brk = float(((_fetch_kev_levels() or {}).get(ticker) or {}).get("break") or 0)
+                    _bs_rec = _effective_map(ticker, entry_price) or {}   # 8/7 freshness contract
+                    _bs_brk = float(_bs_rec.get("break") or 0)
                 except Exception:
-                    _bs_brk = 0.0
+                    _bs_rec, _bs_brk = {}, 0.0
                 if _bs_brk > 0:
                     _bs_gap = (entry_price - _bs_brk) / _bs_brk * 100.0
                     if _bs_gap > BREAKSIDE_MAX_PCT:
                         print(f"📐 {ticker} entry ${entry_price:.2f} is {_bs_gap:+.1f}% ABOVE the marked "
                               f"break ${_bs_brk} — chasing past the level, skipping [break-side gate]")
+                        _bs_age, _bs_dist = _map_freshness(_bs_rec, entry_price)   # 8/7 meter stamp
                         _log_decision(ticker, "breakside_reject", price=entry_price,
                                       stop=round(stop_loss, 4), break_level=_bs_brk,
-                                      gap_pct=round(_bs_gap, 2), machine=entry_type)
+                                      gap_pct=round(_bs_gap, 2), machine=entry_type,
+                                      map_age_min=(round(_bs_age, 1) if _bs_age is not None else None),
+                                      map_dist_pct=round(_bs_dist, 1),
+                                      auto_map=bool(_bs_rec.get("auto_map")))
                         _slot_refund(ticker, entry_type)
                         with trade_lock:
                             reentry["held"].discard(ticker)
                         return
                 else:
-                    # 7/31 FAIL-OPEN VISIBILITY (Marcos: "do we have a mechanism to report no
-                    # reads?"): this trade is converting with NO break level on the sheet, so the
-                    # break-side AND runway gates both passed on IGNORANCE, not evidence. One row
-                    # makes that queryable live instead of reconstructable post-hoc.
+                    # 8/6 FAIL-CLOSED (Marcos: "close the fail opens for these mapless trades.
+                    # And why are we trading anything without a map????") — the FVN specimen:
+                    # no map -> breakside/runway had nothing to measure -> ungated_entry walked
+                    # into a back-side chase at 0.25:1 room. Ignorance no longer buys permission:
+                    # a name with NO levels at all (no break/confirm/targets from Kev or vision)
+                    # does not convert on ANY tape lane. Partial maps (confirm/targets, no break)
+                    # keep the 7/31 visibility row and proceed — runway can still measure those.
+                    # Kill: MAPLESS_BLOCK=0 restores the fail-open. Every refusal logs the full
+                    # ticket so the refused cohort stays gradeable forward, same as every gate.
+                    try:
+                        _ml_rec = _effective_map(ticker, entry_price) or {}   # 8/7 freshness contract:
+                        # a CROWNED mapless name gets the auto-map tape floor instead of a blindfold
+                        # (Marcos 8/7, the NAMI doctrine); non-crowns unchanged (fail-closed).
+                    except Exception:
+                        _ml_rec = {}
+                    _ml_has_map = bool(_ml_rec.get("break") or _ml_rec.get("confirm") or _ml_rec.get("targets"))
+                    if MAPLESS_BLOCK and not _ml_has_map:
+                        print(f"🗺️  {ticker} NO MAP (no break/confirm/targets on the sheet) — "
+                              f"mapless conversions are CLOSED [8/6] — skipping {entry_type}")
+                        _log_decision(ticker, "mapless_reject", price=entry_price,
+                                      stop=round(stop_loss, 4), machine=entry_type)
+                        _slot_refund(ticker, entry_type)
+                        with trade_lock:
+                            reentry["held"].discard(ticker)
+                        return
                     _log_decision(ticker, "ungated_entry", price=entry_price,
                                   machine=entry_type, gates="breakside,runway")
             # ── ZONE STAMP + TAPE PRE-BREAK GATE (8/3 evening; Marcos: "I refuse to let trades go
@@ -8973,7 +10458,7 @@ def main():
             #    prebreak_reject rows' forward counterfactual out-earns the blocked cohort's −$12/t.
             _z_zone, _z_brk, _z_lastT, _z_dayhi, _z_depth = "no_map", 0.0, None, None, None
             try:
-                _z_rec = (_fetch_kev_levels() or {}).get(ticker) or {}
+                _z_rec = _effective_map(ticker, entry_price)   # 8/7 freshness contract (was _freshest_rec)
                 _z_brk = float(_z_rec.get("break") or 0)
                 _z_tg = [float(x) for x in (_z_rec.get("targets") or []) if float(x) > 0]
                 _z_lastT = max(_z_tg) if _z_tg else None
@@ -9025,6 +10510,21 @@ def main():
                 with trade_lock:
                     reentry["held"].discard(ticker)
                 return
+            if (STANDDOWN_STICKY and entry_type in CHART_CEILING_LANES
+                    and ticker in _standdown):
+                _sd_ts = str((_z_rec or {}).get("_ts") or "")
+                _sd_bound, _sd_at = _standdown[ticker]
+                if (_sd_ts and _sd_ts != _sd_bound) or (not _sd_ts and time.time() - _sd_at > 1800):
+                    _standdown.pop(ticker, None)   # fresh read arrived (or ts unknown 30 min) -> lifts
+                    print(f"🟢 {ticker} stand-down LIFTED — {'fresh read' if _sd_ts else 'ts-unknown timeout'}")
+                else:
+                    print(f"🛑 {ticker} STAND-DOWN active (read unchanged since ceiling) — no chart-lane trade")
+                    _log_decision(ticker, "standdown_active", price=entry_price,
+                                  machine=entry_type, since_ts=str(_sd_bound)[-19:])
+                    _slot_refund(ticker, entry_type)
+                    with trade_lock:
+                        reentry["held"].discard(ticker)
+                    return
             if (CHART_CEILING_GATE and _z_zone == "past_targets"
                     and entry_type in CHART_CEILING_LANES):
                 print(f"🏔️ {ticker} entry ${entry_price:.2f} is ABOVE the map's last target "
@@ -9032,6 +10532,9 @@ def main():
                 _log_decision(ticker, "ceiling_reject", price=entry_price,
                               stop=round(stop_loss, 4), last_target=_z_lastT,
                               break_level=_z_brk, machine=entry_type)
+                if STANDDOWN_STICKY and str((_z_rec or {}).get("_ts") or ""):
+                    _standdown[ticker] = (str(_z_rec["_ts"]), time.time())   # 8/8 #28: binds
+                    # auditor #6: never bind on a ts-less map (unliftable forever-hold)
                 _slot_refund(ticker, entry_type)
                 with trade_lock:
                     reentry["held"].discard(ticker)
@@ -9070,6 +10573,22 @@ def main():
                 shares = max(1, int(pos_size / entry_price))
                 _clamp = "notional"
 
+            # ── 8/8 VWAP-SIDE SIZING (Marcos: "Go with B", CROWN-EXEMPT per the Steward split —
+            # kill-test vwap_sizing_20260808: half-above B +$912 vs actual +$393, inverse control
+            # −$323; crown split: above/CROWN −$90 (flat) vs above/field −$948 (THE bleed). FIELD
+            # entries above session VWAP take HALF size; crowns keep every bullet. Fail-open to
+            # full size when VWAP unknown. Kill: VWAP_SIDE_SIZING=1.0. 2-wk evidence, graded live
+            # by the SIDE stamp + gate rows.) ──
+            _vss = float(os.environ.get("VWAP_SIDE_SIZING", "0.5"))
+            if _vss < 1.0 and vwap and vwap > 0 and entry_price >= vwap and not _is_leader(ticker):
+                _sh_old = shares
+                shares = max(1, int(shares * _vss))
+                _clamp = _clamp + "+vwap_side"
+                print(f"   ⚖️ {ticker} above session VWAP (${vwap:.2f}) non-crown — field size "
+                      f"x{_vss:g}: {_sh_old} -> {shares} sh")
+                _log_decision(ticker, "vwap_side_sized", price=entry_price, vwap=round(vwap, 4),
+                              factor=_vss, shares_from=_sh_old, shares_to=shares)
+
             # ── VOLUME GUARD (7/11, the KUST lesson): size must fit the tape. Cap shares at MAX_POS_VOL_PCT of the
             # avg recent 1-min volume — the risk formula on a tight-stop illiquid name demands size the market
             # can't fill without becoming the market. ──
@@ -9100,6 +10619,7 @@ def main():
                     print(f"⛔ {ticker}: needs ${_reserved:.2f}, only ${settled_remaining:.2f} free — capital skip")
                     _log_decision(ticker, "no_capital_skip", price=entry_price,
                                   needed=_reserved, free=round(settled_remaining, 2), entry_type=entry_type)
+                    _slot_refund(ticker, entry_type)   # 8/7 (#34 invariant catch): slot was leaking here
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                     return
                 settled_remaining -= _reserved
@@ -9107,6 +10627,8 @@ def main():
 
             if entry_price > current_balance:
                 print(f"⚠️ {ticker} @ ${entry_price:.2f} exceeds balance — skipping")
+                _log_decision(ticker, "balance_skip", price=entry_price)   # 8/7 auditor #3: was silent
+                _slot_refund(ticker, entry_type)                           # 8/7 auditor #3: slot leaked
                 with trade_lock:
                     settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
@@ -9132,6 +10654,7 @@ def main():
             if not l2_ok:
                 print(f"⚠️ {ticker} L2 rejected: {l2_details.get('reason','')} — skipping")
                 _log_decision(ticker, "l2_reject", price=entry_price, reason=str(l2_details.get('reason', ''))[:80])
+                _slot_refund(ticker, entry_type)   # 8/7 auditor #3: slot leaked here too
                 with trade_lock:
                     settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
@@ -9169,27 +10692,125 @@ def main():
                         _g3 = _gb[-4:-1]
                         _gav = sum(float(b.get("volume") or b.get("v") or 0) for b in _g3) / max(len(_g3), 1)
                         if _gav < MOMENTUM_MIN_AVG_VOL:
-                            mom_ok, mom_details = False, {"reason": f"illiquid — avg vol {int(_gav):,}/bar < {MOMENTUM_MIN_AVG_VOL:,} floor (universal gate)"}
+                            # 8/6 supersession — see check_momentum twin: dollar floor outranks shares
+                            _sf_ok, _sf_med, _sf_need = _ambient_dvol_ok(_gb)
+                            if _sf_ok and _sf_med >= _sf_need > 0:
+                                print(f"💵 {ticker} share floor waived — ambient ${int(_sf_med):,}/min (universal gate)")
+                            else:
+                                mom_ok, mom_details = False, {"reason": f"illiquid — avg vol {int(_gav):,}/bar < {MOMENTUM_MIN_AVG_VOL:,} floor (universal gate)"}
+                    # 8/6 AMBIENT floor — ALL tape lanes INCLUDING ignition (the quiet-base carve-out
+                    # above is why FVN/SUGP converted on 810/2.4k-share tape: it confused quiet with
+                    # illiquid; the MEDIAN of 10 is spike-proof so a liquid quiet base still passes).
+                    if mom_ok and ENTRY_GATE_LIQUIDITY and len(_gb) >= 6 \
+                            and datetime.now(EASTERN).strftime("%H:%M") >= "09:30":
+                        _am_ok, _am_med, _am_need = _ambient_dvol_ok(_gb)
+                        if not _am_ok:
+                            mom_ok, mom_details = False, {"reason": (
+                                f"thin ambient tape — median ${int(_am_med):,}/min over prior 10 bars "
+                                f"< ${int(_am_need):,} exit floor (universal gate)")}
             else:
                 mom_ok, mom_details = check_momentum(ticker)
             if not mom_ok:
                 print(f"⚠️ {ticker} momentum rejected: {mom_details.get('reason','')} — skipping")
                 _log_decision(ticker, "momentum_reject", price=entry_price, reason=str(mom_details.get('reason', ''))[:80])
+                _slot_refund(ticker, entry_type)   # 8/7 (#34): was the ONLY worker reject path
+                # without a refund — survived the 7/29 "every refusal refunds" sweep; the 8/6
+                # ambient floor routed new traffic through it (leader-ammo drain risk, flagged 8/7 AM).
                 with trade_lock:
                     settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
 
+            # ── 8/6 RETEST ENTRY: wait for the pullback instead of buying the print ──
+            if RETEST_ENTRY and entry_type in RETEST_LANES:
+                _rt_lvl = round(entry_price * (1 - RETEST_DEPTH_PCT / 100.0), 4)
+                _log_decision(ticker, "retest_wait", price=entry_price, retest_level=_rt_lvl,
+                              machine=entry_type, expiry_s=RETEST_EXPIRY_S)
+                print(f"⏳ {ticker} retest-entry armed: fire ${entry_price:.4f} -> waiting for "
+                      f"${_rt_lvl:.4f} (-{RETEST_DEPTH_PCT:g}%, {RETEST_EXPIRY_S}s window)")
+                _rt_t0 = time.time(); _rt_hit = False
+                while time.time() - _rt_t0 < RETEST_EXPIRY_S:
+                    if _entries_paused():
+                        break                                    # deploy freeze also cancels waits
+                    try:
+                        _rd10, _ = _curl_feed(ticker, n=2)
+                        if _rd10:
+                            _rl = float((_rd10[max(_rd10)] or {}).get("l") or 0)
+                            if 0 < _rl <= _rt_lvl:
+                                _rt_hit = True
+                                break
+                    except Exception:
+                        pass
+                    time.sleep(5)
+                if not _rt_hit:
+                    print(f"⌛ {ticker} retest never came (or freeze) — no trade [retest expiry]")
+                    _log_decision(ticker, "retest_expired", price=entry_price, retest_level=_rt_lvl,
+                                  machine=entry_type)
+                    _slot_refund(ticker, entry_type)
+                    with trade_lock:
+                        settled_remaining += _reservations.pop(ticker, 0)
+                        reentry["held"].discard(ticker)
+                    return
+                entry_price = _rt_lvl                            # enter AT the retest level
+                _log_decision(ticker, "retest_fill", price=entry_price, machine=entry_type,
+                              waited_s=round(time.time() - _rt_t0, 1))
+                print(f"🎯 {ticker} retest touched — entering at ${entry_price:.4f}")
+
+            if (extra or {}).get("_pre_convert"):
+                # 8/7 (#34): PRE ticket charged HERE, under lock, with a race re-check — two
+                # near-simultaneous PRE fires must not overshoot the cap (pre-written failure
+                # clause; rig proves the race). Cap full at execution -> full-refund reject.
+                with trade_lock:
+                    _pt_day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+                    if _pre_day.get("d") != _pt_day:
+                        _pre_day["d"] = _pt_day; _pre_day["n"] = 0
+                    if _pre_day["n"] >= PRE_MAX_TRADES:
+                        _pre_ok = False
+                    else:
+                        _pre_day["n"] += 1; _pre_ok = True
+                if not _pre_ok:
+                    print(f"🎫 {ticker} PRE cap reached at execution (race) — refunding, no trade")
+                    _log_decision(ticker, "pre_capped_at_exec", price=entry_price)
+                    _slot_refund(ticker, entry_type)
+                    with trade_lock:
+                        settled_remaining += _reservations.pop(ticker, 0)
+                        reentry["held"].discard(ticker)
+                    return
+            _grant_perimeter()   # 8/8: end of the gate chain — the ONE place orders are blessed.
+            # (auditor #7: sits AFTER the last reject so the invariant never depends on
+            # threads-not-pooled; if workers ever move to an executor this stays airtight.)
             order_id, stop_order_id, actual_fill = execute_trade(
                 ticker, shares, entry_price, stop_loss, target_price
             )
             if not order_id:
                 print(f"⚠️ Order failed for {ticker}")
                 _log_decision(ticker, "order_failed", price=entry_price)
+                _slot_refund(ticker, entry_type)   # 8/7 (#34): failed order refunds the lane slot
                 with trade_lock:
+                    if (extra or {}).get("_pre_convert") and _pre_day.get("n", 0) > 0:
+                        _pre_day["n"] -= 1        # 8/7 (#34): and the PRE ticket — no fill, no charge
                     settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
+            # 8/8 PERIMETER METER (observability before the wall — the YJ ma_pullback side-door):
+            # every fill records which lane-gated checks covered THIS lane, so an ungated lane
+            # is visible in the row the moment it trades, not in a post-mortem. The one-wall
+            # refactor lands this weekend; this meter also verifies it after it ships.
+            try:
+                _peri = {"breakside": entry_type in BREAKSIDE_LANES,
+                         "ceiling": entry_type in CHART_CEILING_LANES,
+                         "prebreak": entry_type in TAPE_PREBREAK_LANES,
+                         "retest_wait": entry_type in RETEST_LANES,
+                         "minstop": entry_type not in MIN_STOP_EXEMPT if 'MIN_STOP_EXEMPT' in globals() else None,
+                         "standdown": entry_type in CHART_CEILING_LANES}
+                _uncov = [k for k, v in _peri.items() if v is False]
+                _log_decision(ticker, "perimeter_stamp", machine=entry_type,
+                              covered=[k for k, v in _peri.items() if v],
+                              uncovered=_uncov, side=_side_state(ticker, entry_price))
+                if len(_uncov) >= 4:
+                    print(f"🚧 {ticker} PERIMETER WARNING: lane '{entry_type}' outside most gates ({_uncov})")
+            except Exception:
+                pass
             _log_decision(ticker, "filled", price=actual_fill or entry_price, entry_type=entry_type)
 
             if actual_fill and actual_fill != entry_price:
@@ -9217,16 +10838,16 @@ def main():
                     shares = min(shares, _vol_cap)
                 # ledger note: reservation stays at the pre-fill notional (fill deltas are pennies; released as reserved)
 
+            trade_id = uuid.uuid4().hex   # 8/10: minted BEFORE any keyed state exists
             with trade_lock:   # guard the _open_trade write (the SIGTERM handler reads it from the main thread)
-                _open_trade[ticker] = {"active": True, "ticker": ticker,
-                                       "entry_price": entry_price, "shares": shares,
-                                       "stop_loss": stop_loss, "target": target_price}
+                _open_trade[trade_id] = {"active": True, "ticker": ticker, "trade_id": trade_id,
+                                         "entry_price": entry_price, "shares": shares,
+                                         "stop_loss": stop_loss, "target": target_price}
             _post_watching_to_screener([ticker], status="trading")
             send_entry_alert(ticker, shares, entry_price,
                              stop_loss, target_price, vwap, _reserved)
             # Persist the static context SYNCHRONOUSLY (confirmed) BEFORE monitoring, so a
             # crash anywhere after this still records a proper exit. trade_id = idempotency key.
-            trade_id = uuid.uuid4().hex
             # 7/27: the trade store had NO entry timestamp on any of 149 era rows (`recorded_at` is the
             # EXIT time), which blocked every bar-replay query outside the 5-day decision-log window.
             # Stamped once here, at the fill, and carried through the durable state, the watchdog ctx,
@@ -9234,6 +10855,7 @@ def main():
             _entry_ts_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             _shadow_keep.add(ticker)   # B12: this trade's 10s anatomy persists tonight no matter its tick rank
             _save_open_trade_sync({
+                "entry_crown": (extra or {}).get("entry_crown"),   # mini-audit 3b
                 "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
                 "target": round(target_price, 4), "stop": round(stop_loss, 4),
                 "initial_shares": shares, "remaining_shares": shares, "tier_idx": 0,
@@ -9248,7 +10870,8 @@ def main():
             # Register with the stale-trade watchdog (full ctx so it can record if the monitor freezes).
             _monitor_abort.discard(ticker)   # 7/11 audit A8: a stale abort flag from a never-thawed prior
                                              # monitor would insta-kill THIS trade's monitor on iteration 1
-            _active_monitors[ticker] = {"heartbeat": time.time(), "alerted": False, "ctx": {
+            _active_monitors[trade_id] = {"heartbeat": time.time(), "alerted": False, "ctx": {
+                "entry_crown": (extra or {}).get("entry_crown"),   # mini-audit 3a
                 "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
                 "stop": round(stop_loss, 4), "initial_shares": shares, "remaining_shares": shares,
                 "tier_idx": 0, "partial_fills": [], "entry_type": entry_type, "confidence": confidence,
@@ -9256,23 +10879,23 @@ def main():
                 "entry_ts_utc": _entry_ts_iso, "last_price": round(entry_price, 4)}}
             _note_positions(len(_active_monitors))   # track peak concurrent positions (capacity signal)
 
-            _rw_rr, _rw_tgt = _marked_runway(ticker, entry_price, stop_loss)   # road at entry, for the live card
+            _rw_rr, _rw_tgt = (extra or {}).get("_rw_gate") or _marked_runway(ticker, entry_price, stop_loss)   # 8/8 auditor E: gate-time value reused
             trade_result = monitor_trade(
                 ticker, shares, entry_price, target_price, stop_loss,
-                stream, stop_order_id, vwap=vwap,
+                stream, stop_order_id, trade_id=trade_id, vwap=vwap,
                 next_supply=((extra or {}).get("room") or {}).get("next_supply"),
                 entry_type=entry_type,               # rocket_catcher → %-based scale-out ladder in monitor_trade
                 entered_premkt=(True if (extra or {}).get("_pre_convert") else None),   # F1b: None → clock fallback
                 runway=_rw_rr,
             )
-            _active_monitors.pop(ticker, None)   # monitor returned — deregister from watchdog
+            _active_monitors.pop(trade_id, None)   # monitor returned — deregister from watchdog
 
             # DRY_RUN: skip the real-balance fetch entirely — the sim frame tracks its own balance, and the
             # fetch's side-post was flip-flopping the dashboard between $3,000(sim) and the real cash figure.
             _bal = 0.0 if DRY_RUN else get_account_balance()   # blocking Webull HTTP — fetch BEFORE the lock so we
                                            # don't serialize every other worker on the network call (audit HIGH-3)
             with trade_lock:
-                _open_trade.pop(ticker, None)
+                _open_trade.pop(trade_id, None)
                 pnl         = trade_result.get("profit_loss", 0)
                 pnl_pct     = trade_result.get("profit_loss_pct", 0)
                 exit_reason = trade_result.get("exit_reason", "N/A")
@@ -9292,10 +10915,9 @@ def main():
                 #    structural "done" signal. Topping tail = Kev's "that's when I'm done with it" →
                 #    leave it alone. Consec losing (re)entries ≥ cap = HOMEGROWN death-by-cuts rail. ──
                 reentry["held"].discard(ticker)
-                reentry["consec_loss"][ticker] = (
-                    0 if pnl > 0 else reentry["consec_loss"].get(ticker, 0) + 1)
+                _crowned_now = _is_leader(ticker)
                 _reentry_giveup = (exit_reason in REENTRY_GIVEUP_REASONS) or \
-                                  (reentry["consec_loss"][ticker] >= REENTRY_MAX_CONSEC_LOSS)
+                                  _reentry_rail_giveup(ticker, pnl, reentry, _crowned_now)
                 if _reentry_giveup:
                     reentry["givenup"].add(ticker); reentry["eligible"].discard(ticker)
                 else:
@@ -9306,9 +10928,13 @@ def main():
             _att = reentry["count"].get(ticker, 0); _cl = reentry["consec_loss"].get(ticker, 0)
             print(f"🔁 {ticker} re-entry: "
                   f"{'GIVEN UP — ' + exit_reason if _reentry_giveup else 'ELIGIBLE for a fresh gated re-entry'} "
-                  f"| attempts={_att} consec_loss={_cl}")
+                  f"| attempts={_att} consec_loss={_cl} "
+                  f"consec_loss_usd=${reentry.get('consec_loss_usd', {}).get(ticker, 0.0):.2f}")
+            _cl_usd = reentry.get("consec_loss_usd", {}).get(ticker, 0.0)
             _log_decision(ticker, "reentry_givenup" if _reentry_giveup else "reentry_eligible",
-                          exit_reason=str(exit_reason), attempts=_att, consec_loss=_cl, pnl=round(pnl, 2))
+                          exit_reason=str(exit_reason), attempts=_att, consec_loss=_cl,
+                          consec_loss_usd=round(_cl_usd, 2), crowned=bool(_is_leader(ticker)),
+                          pnl=round(pnl, 2))
 
             # float is for the trade log only (cosmetic); source it from the in-scope extra dict.
             # The old code referenced an undefined `market_data`, which raised NameError AFTER the
@@ -9328,7 +10954,7 @@ def main():
                 float_shares = float_shares,
             )
             _kev_lv = None
-            _runway_rr, _runway_tgt = _marked_runway(ticker, entry_price, stop_loss)
+            _runway_rr, _runway_tgt = (extra or {}).get("_rw_gate") or _marked_runway(ticker, entry_price, stop_loss)   # 8/8 auditor E
             try:
                 _lvd = (_fetch_kev_levels() or {}).get(ticker) or {}
                 _kev_lv = float(_lvd.get("break") or 0) or None
@@ -9382,11 +11008,20 @@ def main():
                                                 or datetime.now(EASTERN).strftime("%H:%M") < "09:30")
                                         else "RTH"),  # 7/25 premarket-paper; F1b 7/26: conversion stamp wins over the clock
                 "day_gain_at_entry":  extra.get("day_gain"),     # DAY-GAIN FLOOR column (7/22): % vs prior close at entry
+                "entry_crown":        extra.get("entry_crown"),  # 8/8: crown at entry (sticky-crown state, not re-derived)
                 # 7/28 MARKED RUNWAY (sheet-level room, distinct from mechanical entry_room_rr below):
                 # RR from fill to the sheet's first target above entry; 0.0 = entered above ALL marked
                 # levels (EGG 7/28); None = no sheet levels for the name. LOG-ONLY, Friday grades.
                 "marked_runway_rr":   _runway_rr,
                 "marked_runway_tgt":  _runway_tgt,
+                # 8/4 class-aware runway: what KIND of level stood overhead at entry (RUNG =
+                # intermediate target/scale point; MAJOR = break/next_supply/whole-half-dollar
+                # = real resistance) + the fine road band — the tale shows it, Friday grades it.
+                "marked_runway_cls":  _runway_level_class(ticker, _runway_tgt),
+                "marked_runway_band": _road_band(_runway_rr),
+                # 8/5 back-side gate: where in the move's life the entry sat (Friday grades bands)
+                "entry_dd_pct":       (extra or {}).get("entry_dd_pct"),
+                "entry_high_stale_min": (extra or {}).get("entry_high_stale_min"),
                 "entry_room_rr":      (extra.get("room") or {}).get("rr_to_supply"),
                 "entry_room_pct":     (extra.get("room") or {}).get("room_pct"),
                 "entry_next_supply":  (extra.get("room") or {}).get("next_supply"),
@@ -9418,7 +11053,7 @@ def main():
                 send_summary_email(analysis, trade_result, display_balance,
                                    csv_log_line=csv_row, traded_ticker=ticker)
             if _rec_ok:
-                _clear_open_trade(ticker)   # recorded exit reached — drop durable recovery state
+                _clear_open_trade(ticker, trade_id=trade_id)   # recorded exit reached — drop durable recovery state
             else:
                 print(f"🚨 {ticker}: exit record unconfirmed — durable state KEPT (restart will re-post; trade_id dedups)")
 
@@ -9450,7 +11085,9 @@ def main():
                         else:
                             print(f"🧯 {_tkr}: ${_amt:.2f} reservation orphaned by worker death (live: NOT refunded)")
                     reentry["held"].discard(_tkr)
-                    _open_trade.pop(_tkr, None)
+                    for _k_ot, _v_ot in list(_open_trade.items()):
+                        if (_v_ot.get("ticker") or "").upper() == _tkr:
+                            _open_trade.pop(_k_ot, None)
 
         # Launch each breakout as a BACKGROUND daemon and KEEP GOING — do NOT join here.
         # This kills the blindspot: the scan loop keeps watching the rest of the market (and lets
@@ -9598,6 +11235,9 @@ if __name__ == "__main__":
         _recover_orphaned_trades()
     except Exception as e:
         print(f"⚠️  Orphan recovery failed: {e}")
+    finally:
+        _RECOVERY_DONE_TS[0] = time.time()
+        _recovery_done.set()   # 8/10: entries were racing recovery at boot (XHLD 140-sh dupe)
 
     # Stale-trade watchdog — catches a monitor that freezes while the process stays alive.
     threading.Thread(target=_monitor_watchdog_loop, daemon=True, name="watchdog").start()

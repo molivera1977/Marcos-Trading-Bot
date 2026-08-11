@@ -1,0 +1,7 @@
+era RTH non-dip_rip trades in 15-30%%/stale band: 33
+
+ALL in-band:              n= 33 total $ -115.34 winners 18/33
+A_run40 CREDENTIALED   n= 23 total $ -145.26 winners 10/23  NOT MET
+A_run40 no-credential  n= 10 total $  +29.92 winners 8/10
+B_run25 CREDENTIALED   n= 26 total $ -174.02 winners 12/26  NOT MET
+B_run25 no-credential  n=  7 total $  +58.68 winners 6/7

@@ -437,7 +437,13 @@ def run_scan():
         g["chart_url"] = _chart_url(sym, g.get("exchange", ""))
         try:
             info = yf.Ticker(sym).info or {}
-            float_sh = info.get("floatShares") or info.get("sharesOutstanding") or 0
+            _fs = float(info.get("floatShares") or 0)
+            _so = float(info.get("sharesOutstanding") or 0)
+            # 8/10 STKH lesson: float can never exceed outstanding (stale pre-split data) — cap.
+            if _fs and _so and _fs > _so * 1.05:
+                _fs = _so
+                g["float_src"] = "so-capped"
+            float_sh = _fs or _so or 0
             g["float_shares"] = float_sh
             float_m = float_sh / 1_000_000
             if float_sh == 0:
@@ -518,7 +524,8 @@ def run_scan():
                     _ah = _webull_ah_price(data_client, _sym)
                     if isinstance(_ah, tuple) and _ah[0]:
                         _row["ah_price"], _row["ah_pct"] = _ah
-                        _row["ah_label"] = "AH"
+                        # 8/5: session-aware (was hardcoded AH — KEV-pinned rows showed "AH" premarket)
+                        _row["ah_label"] = "PM" if datetime.now(EASTERN).strftime("%H:%M") < "09:30" else "AH"
             except Exception:
                 pass
             results.append(_row)
@@ -950,9 +957,16 @@ def index():
     return render_template_string(HTML.replace("</head>", THEME_SNIPPET + "</head>"))
 
 
+_scan_cache = {"t": 0.0, "res": None, "err": None}
 @app.route("/api/scan")
 def api_scan():
-    results, errors = run_scan()
+    # 8/10: 30s TTL cache — the bot pulls every 60s + the browser every 5min; one scan serves all.
+    import time as _t
+    if _scan_cache["res"] is not None and _t.time() - _scan_cache["t"] < 90:   # audit: 30s TTL never served the 60s bot cadence — full scan ran every 60s (3x load)
+        results, errors = _scan_cache["res"], _scan_cache["err"]
+    else:
+        results, errors = run_scan()
+        _scan_cache["t"], _scan_cache["res"], _scan_cache["err"] = _t.time(), results, errors
     now_et, _, _, _, market_state = _market_state()
     return jsonify({
         "results":      results,
@@ -1237,7 +1251,10 @@ def upsert_open_trade():
     data["updated"] = datetime.now(EASTERN).isoformat()
     # MERGE: entry posts static context (entry_type, confidence, size...), monitor posts
     # dynamic state (remaining, partials, stop, highest, tier) — together = full record.
-    _open_trades.setdefault(tk, {}).update(data)
+    # 8/10 PER-TRADE-ID BOOKS (the XHLD corruption: two same-ticker positions shared one
+    # ticker-keyed slot): key by trade_id when present; legacy ticker-keyed rows still merge.
+    _key = (data.get("trade_id") or tk)
+    _open_trades.setdefault(_key, {}).update(data)
     _save_open_trades_file()
     return jsonify({"status": "ok"})
 
@@ -1247,11 +1264,19 @@ def clear_open_trade():
     """Bot removes a position here once it has reached a recorded exit."""
     if request.headers.get("X-Dashboard-Secret") != API_SECRET:
         return jsonify({"error": "unauthorized"}), 401
-    tk = (request.get_json(silent=True) or {}).get("ticker", "").upper()
-    if tk in _open_trades:
-        del _open_trades[tk]
+    _b = request.get_json(silent=True) or {}
+    tk = (_b.get("ticker") or "").upper()
+    _tid = _b.get("trade_id")
+    # 8/10: clear by trade_id (exact) when given; by ticker = clears EVERY entry for the name
+    # (legacy behavior, also the belt for id-less callers).
+    _gone = []
+    for k in list(_open_trades.keys()):
+        v = _open_trades.get(k) or {}
+        if (_tid and (k == _tid or v.get("trade_id") == _tid)) or            (not _tid and tk and ((v.get("ticker") or "").upper() == tk or k == tk)):
+            _gone.append(k); del _open_trades[k]
+    if _gone:
         _save_open_trades_file()
-    return jsonify({"status": "ok", "remaining": list(_open_trades.keys())})
+    return jsonify({"status": "ok", "cleared": _gone, "remaining": list(_open_trades.keys())})
 
 
 @app.route("/api/open_trades", methods=["GET"])
@@ -1348,7 +1373,9 @@ def get_decisions():
     rows = _decisions
     if tk:     rows = [r for r in rows if (r.get("ticker") or "").upper() == tk]
     if date:   rows = [r for r in rows if r.get("date") == date]
-    if status: rows = [r for r in rows if r.get("status") == status]
+    if status:
+        _st = set(status.split(","))
+        rows = [r for r in rows if r.get("status") in _st]
     by_status = {}
     for r in rows:
         by_status[r.get("status", "?")] = by_status.get(r.get("status", "?"), 0) + 1
@@ -1361,7 +1388,7 @@ def get_decisions_archive():
     cache /api/decisions reads). ?date=YYYY-MM-DD [&status=triggered_flat_top] [&limit=5000]. Returns the
     day's records + a status histogram + a time-of-day histogram of 'triggered_*' entries (the prime-window check)."""
     date   = request.args.get("date")
-    status = request.args.get("status")
+    status = request.args.get("status")   # single value OR comma-list (8/4: reject-strip fix)
     limit  = int(request.args.get("limit", 5000))
     if not date:
         return jsonify({"error": "need ?date=YYYY-MM-DD"}), 400
@@ -1381,7 +1408,8 @@ def get_decisions_archive():
     except Exception as e:
         return jsonify({"error": str(e)})
     if status:
-        rows = [r for r in rows if r.get("status") == status]
+        _st = set(status.split(","))   # 8/4: comma-list for the reject strip
+        rows = [r for r in rows if r.get("status") in _st]
     by_status, trig_hour = {}, {}
     for r in rows:
         by_status[r.get("status", "?")] = by_status.get(r.get("status", "?"), 0) + 1
@@ -1844,16 +1872,56 @@ def _merge_kev_levels(existing, incoming, remove=None):
         if not isinstance(inc, dict):
             continue
         ex = merged.get(tk)
+        # 8/6 FRESHEST-DATA (Marcos: "the freshest data must rule"): every accepted write gets a
+        # server-side timestamp so gates can pick newest-by-time between Kev's slot and the
+        # vision_shadow slot. Storage separation unchanged — Kev's record is still never clobbered.
+        _now_ts = datetime.now(EASTERN).isoformat()
         if isinstance(ex, dict) and ex.get("src") == "kev" and inc.get("src") != "kev":
             kept = dict(ex)
             shadow = {k: v for k, v in inc.items() if k != "vision_shadow"}
             if shadow:
+                shadow["_ts"] = _now_ts
                 kept["vision_shadow"] = shadow
             merged[tk] = kept
+        elif isinstance(ex, dict) and ex.get("src") == "kev" and inc.get("src") == "kev":
+            # 8/7 (AUDITOR #2 — the morning wipe that nulled NAMI/CLRO + would erase Marcos's
+            # veto): kev-over-kev is now FIELD-WISE — only keys PRESENT in the incoming write
+            # update; omitted fields survive. veto survives unless the incoming write carries
+            # the veto key itself (only Marcos's manual POSTs do — the sweep parser can't mint
+            # it and post_sheet strips it). "Veto = a flag on the map, never an eraser of it."
+            kept = dict(ex)
+            for k, v in inc.items():
+                if v is not None:
+                    kept[k] = v
+            kept["_ts"] = _now_ts
+            merged[tk] = kept
         else:
+            inc = dict(inc)
+            inc.setdefault("_ts", _now_ts)
             merged[tk] = inc
     return merged
 
+
+# ── 8/6 DEPLOY-FREEZE (Marcos; the 12:28 WYHG entry force-closed by the 12:31 batch-deploy
+#    boot): a Railway build takes 5-7 min and the OLD container keeps trading through it, so
+#    any entry opened mid-build is orphan-closed at swap. This flag is the freeze: set BEFORE
+#    uploading, the bot refuses NEW conversions while it's up (exits/custody unaffected), and
+#    the NEW image clears it on boot. Lives here (not bot env) so it survives the restart it
+#    exists to protect against. ──
+_pause_entries = {"paused": False, "at": None, "note": ""}
+
+@app.route("/api/pause_entries", methods=["GET", "POST"])
+def pause_entries():
+    global _pause_entries
+    if request.method == "POST":
+        if not _endpoint_authed():
+            return jsonify({"error": "unauthorized"}), 401
+        d = request.get_json(silent=True) or {}
+        _pause_entries = {"paused": bool(d.get("paused")),
+                          "at": datetime.now(EASTERN).isoformat(),
+                          "note": str(d.get("note") or "")[:120]}
+        print(f"[pause-entries] -> {_pause_entries}", flush=True)
+    return jsonify(_pause_entries)
 
 @app.route("/api/kev_watchlist", methods=["POST"])
 def set_kev_watchlist():
@@ -1868,6 +1936,12 @@ def set_kev_watchlist():
     # send tickers merge-union; explicit removal is not a thing this endpoint does.
     if tickers:
         _kev_wl[date] = sorted(set(_kev_wl.get(date) or []) | set(tickers))
+    # 8/4 tickers_remove: EXPLICIT removal (the only kind allowed — merge-only stands). Needed
+    # because parser hallucinations (EASY/FUS) persist as roster ghosts with no deletion path.
+    _trm = {str(t).upper().strip() for t in (d.get("tickers_remove") or []) if str(t).strip()}
+    if _trm:
+        _kev_wl[date] = sorted(set(_kev_wl.get(date) or []) - _trm)
+        print(f"[kev-wl] explicit removal {sorted(_trm)} from {date} roster", flush=True)
     # 7/13 Kev-level anchoring: carry his STATED levels per ticker ({T: {break, confirm, targets}})
     # so the bot can record each pick-trade's entry distance from his level (study: 3/3 days,
     # closest-to-level = best outcome). Stored under a reserved "_levels" key.
@@ -2580,6 +2654,7 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="header-right">
     <span class="live-badge">LIVE</span>
     <span class="last-updated" id="lastUpdate">Loading...</span>
+    <a href="/duty" class="refresh-btn" style="text-decoration:none">🎖️ Duty Officer</a>
     <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
   </div>
 </div>
@@ -2683,6 +2758,9 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="section-title">Gate Rejects <span style="font-size:12px;font-weight:400;color:#8b949e">(today — fires the new gates refused; every row is a logged counterfactual)</span></div>
   <div id="rejectStrip" style="margin:0 0 18px 0;font-size:13px;color:#8b949e">loading…</div>
 
+  <div class="section-title">Shadow Lanes <span style="font-size:12px;font-weight:400;color:#8b949e">(today — halt arms &amp; seam fires; H2 grading week: watch the evidence accumulate live)</span></div>
+  <div id="shadowStrip" style="margin:0 0 18px 0;font-size:13px;color:#8b949e">loading…</div>
+
   <div class="section-title">Trade History <span style="font-size:12px;font-weight:400;color:#8b949e">(RTH)</span><span id="preLedgerLink" style="font-size:12px;font-weight:400"></span></div>
   <div class="table-wrap">
     <table>
@@ -2731,8 +2809,8 @@ function loadData(){
   document.getElementById('lastUpdate').textContent = 'Refreshing...';
   (function loadRejects(){
     const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    fetch('/api/decisions?date='+ds+'&limit=4000').then(r=>r.json()).then(j=>{
-      const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side'};
+    fetch('/api/decisions_archive?date='+ds+'&status=minstop_reject,runway_reject,breakside_reject,ceiling_reject&limit=50000').then(r=>r.json()).then(j=>{
+      const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side',ceiling_reject:'🏔️ ceiling'};
       const rows=(j.rows||[]).filter(r=>GATES[r.status]);
       const el=document.getElementById('rejectStrip'); if(!el) return;
       if(!rows.length){ el.innerHTML='<span style="color:#484f58">no gate rejects yet today</span>'; return; }
@@ -2740,11 +2818,34 @@ function loadData(){
         rows.slice(-40).reverse().map(r=>{
           let why='';
           if(r.status==='minstop_reject') why='stop '+(r.stop_width_pct!=null?r.stop_width_pct.toFixed(2)+'%':'?')+' wide (band '+(r.band||'?')+') < floor';
-          else if(r.status==='runway_reject') why=(r.runway_rr!=null?Number(r.runway_rr).toFixed(2)+'R':'?')+' of road to $'+(r.target!=null?r.target:'?')+' < '+(r.need||1)+'R';
-          else if(r.status==='breakside_reject') why='entry above the marked break'+(r.brk!=null?' $'+r.brk:'');
+          else if(r.status==='runway_reject') why=(r.runway_rr!=null?Number(r.runway_rr).toFixed(2)+'R':'?')+' of road to '+(r.road_cls?r.road_cls.toLowerCase()+' ':'')+'$'+(r.target!=null?r.target:'?')+' < '+(r.need||1)+'R';
+          else if(r.status==='ceiling_reject') why='chart lane past all mapped targets — stand down until fresh read';
+          else if(r.status==='breakside_reject') why='entry '+(r.gap_pct!=null?'+'+r.gap_pct+'% ':'')+'above the marked break'+(r.break_level!=null?' $'+r.break_level:'');
           return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
                  '<td><b>'+(r.ticker||'—')+'</b></td><td>'+GATES[r.status]+'</td><td>'+(r.machine||'—')+'</td>'+
                  '<td>'+(r.price!=null?'$'+Number(r.price).toFixed(2):'—')+'</td><td>'+why+'</td></tr>';
+        }).join('')+'</tbody></table>';
+    }).catch(()=>{});
+  })();
+  (function loadShadow(){
+    const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    fetch('/api/decisions_archive?date='+ds+'&status=halt_arm,halt_early_arm,seam_shadow_fire&limit=50000').then(r=>r.json()).then(j=>{
+      const LANES={halt_arm:'🪜 halt arm',halt_early_arm:'🌅 early arm',seam_shadow_fire:'🧵 seam'};
+      const rows=(j.rows||[]).filter(r=>LANES[r.status]);
+      const el=document.getElementById('shadowStrip'); if(!el) return;
+      if(!rows.length){ el.innerHTML='<span style="color:#484f58">no shadow fires yet today</span>'; return; }
+      el.innerHTML='<table style="width:100%"><thead><tr style="text-align:left;color:#8b949e"><th>Time</th><th>Ticker</th><th>Lane</th><th>Price</th><th>Side</th><th>Detail</th><th>Converted?</th></tr></thead><tbody>'+
+        rows.slice(-40).reverse().map(r=>{
+          let det='';
+          if(r.status==='seam_shadow_fire') det='pull '+(r.pull_pct!=null?r.pull_pct+'%':'—')+(r.stop!=null?' · stop $'+r.stop:'');
+          else det='prox '+(r.prox!=null?r.prox:'—')+' · vel '+(r.vel1m!=null?r.vel1m+'%/m':'—')+
+                   (r.status==='halt_arm'?(' · 5s '+(r.confirm5s?'✅':'❌')+(r.upratio!=null?' up '+r.upratio:'')):'');
+          const conv=(r.status==='halt_early_arm')?'<span style="color:#484f58">shadow</span>'
+                    :(r.convert?'<span style="color:#3fb950">LIVE</span>':'<span style="color:#484f58">shadow</span>');
+          return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
+                 '<td><b>'+(r.ticker||'—')+'</b></td><td>'+LANES[r.status]+'</td>'+
+                 '<td>'+(r.price!=null?'$'+Number(r.price).toFixed(2):'—')+'</td>'+
+                 '<td>'+(r.side||'—')+'</td><td>'+det+'</td><td>'+conv+'</td></tr>';
         }).join('')+'</tbody></table>';
     }).catch(()=>{});
   })();
@@ -2779,15 +2880,24 @@ loadReadMaps(); setInterval(loadReadMaps, 120000);
 function renderTodayStats(trades){
   // Today's P&L + win rate, computed client-side from the trade log (ET calendar day).
   const todayET = new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});  // YYYY-MM-DD
+  // 8/7 (#12, AUDITOR FIX #1): effR hoisted to function scope — it was block-scoped and the
+  // avgWinR consumer below crashed out of scope; calendar's typeof-guard silently reverted to raw R.
+  const effR=(t)=>{const pr=parseFloat(t.planned_risk)||0;const sz=parseFloat(t.position_size)||parseFloat(t.size)||0;
+    return Math.max(pr, sz*0.005);};
   const _isPre=t=>String(t.entry_session||'')==='PRE';   // 7/27: PRE grades on /premarket only
   const _todayPre=(trades||[]).filter(t=>String(t.date||'').slice(0,10)===todayET && _isPre(t));
   const todayAll = (trades||[]).filter(t=>String(t.date||'').slice(0,10)===todayET && !_isPre(t));
   // Same rule as the era stats: bookkeeping prints (forced recovery closes) count in MONEY, never in QUALITY.
   const today = todayAll.filter(t=>!/RECOVER/i.test(String(t.exit_reason||'')));
   const pEl = document.getElementById('todayPnl'), wEl = document.getElementById('todayWr');
-  if(_todayPre.length){ const pp=_todayPre.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
-    const lbl=document.querySelector('#todayPnl')?.previousElementSibling;
-    if(lbl) lbl.innerHTML='TODAY P&L <span style="font-weight:400;opacity:.75">(RTH · <a href="/premarket" style="color:inherit">PRE '+_todayPre.length+': $'+(pp>=0?'+':'')+pp.toFixed(2)+'</a>)</span>'; }
+  { const lbl=document.querySelector('#todayPnl')?.previousElementSibling;
+    if(lbl){ if(_todayPre.length){ const pp=_todayPre.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
+      lbl.innerHTML='TODAY P&L <span style="font-weight:400;opacity:.75">(RTH · <a href="/premarket" style="color:inherit">PRE '+_todayPre.length+': $'+(pp>=0?'+':'')+pp.toFixed(2)+'</a>)</span>';
+    } else {
+      // 8/7 (#17): label persisted across the midnight rollover on a long-open tab —
+      // 8/6's "PRE 1: +$22.39" showed all morning 8/7 while PRE was DEAD. Always reset.
+      lbl.innerHTML='TODAY P&L <span style="font-weight:400;opacity:.75">(RTH · PRE 0)</span>';
+    } } }
   if(!todayAll.length){
     pEl.textContent='—'; pEl.className='white'; wEl.textContent='—'; wEl.className='gray';
     // 7/16 fix: a long-lived tab crosses midnight — reset ALL today-tiles, not just two, or
@@ -2808,7 +2918,7 @@ function renderTodayStats(trades){
   // the day's biggest winner (a mean carried by one monster is fragile — show both).
   const tR=document.getElementById('todayR');
   if(tR){
-    const rs=today.filter(t=>parseFloat(t.planned_risk)>0.5).map(t=>(parseFloat(t.pnl)||0)/parseFloat(t.planned_risk));
+    const rs=today.filter(t=>effR(t)>0.5).map(t=>(parseFloat(t.pnl)||0)/effR(t));
     if(!rs.length){ tR.textContent='—'; tR.className='gray'; }
     else{ const sum=rs.reduce((a,b)=>a+b,0);
       tR.textContent=(sum>=0?'+':'−')+Math.abs(sum).toFixed(1)+'R';
@@ -2816,8 +2926,8 @@ function renderTodayStats(trades){
   }
   const rEl=document.getElementById('avgWinR'), rxEl=document.getElementById('avgWinRx');
   if(rEl){
-    const winRs=today.filter(t=>(parseFloat(t.pnl)||0)>0 && parseFloat(t.planned_risk)>0.5)
-                      .map(t=>parseFloat(t.pnl)/parseFloat(t.planned_risk));
+    const winRs=today.filter(t=>(parseFloat(t.pnl)||0)>0 && effR(t)>0.5)
+                      .map(t=>parseFloat(t.pnl)/effR(t));
     if(!winRs.length){ rEl.textContent='—'; rEl.className='gray'; rxEl.textContent=''; }
     else{
       const mean=winRs.reduce((a,b)=>a+b,0)/winRs.length;
@@ -2839,7 +2949,7 @@ function renderCalendar(trades){
     const d=String(t.date||'').slice(0,10); if(d.length!==10) return;
     const o=byDay[d]||(byDay[d]={pnl:0,ct:0,w:0,r:0,rn:0});
     const p=parseFloat(t.pnl)||0; o.pnl+=p; o.ct++; if(p>0)o.w++;
-    const pr=parseFloat(t.planned_risk); if(pr>0.5){ o.r+=p/pr; o.rn++; }
+    const pr=(typeof effR==='function')?effR(t):parseFloat(t.planned_risk); if(pr>0.5){ o.r+=p/pr; o.rn++; }
   });
   const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
   if(calYear===null){ calYear=nowET.getFullYear(); calMonth=nowET.getMonth(); }
@@ -2907,7 +3017,8 @@ function renderStats(s, acct, trades){
         +' → <b>net '+money(net)+' <span style="color:#d29922">(mid ≈ '+money(netMid)+')</span></b>'
         +(era.length>graded.length?' · '+(era.length-graded.length)+' bookkeeping print(s) excluded from WR':'');
       // honest R pair: expectancy + avg loss (graded, planned_risk era only)
-      const rs=graded.filter(t=>parseFloat(t.planned_risk)>0.5).map(t=>(parseFloat(t.pnl)||0)/parseFloat(t.planned_risk));
+      const _er=(t)=>{const pr=parseFloat(t.planned_risk)||0;const sz=parseFloat(t.position_size)||parseFloat(t.size)||0;return Math.max(pr,sz*0.005);};   // 8/7 #12 honest floor
+      const rs=graded.filter(t=>_er(t)>0.5).map(t=>(parseFloat(t.pnl)||0)/_er(t));
       const lrs=rs.filter(r=>r<0);
       const expEl=document.getElementById('avgGain'), alEl=document.getElementById('avgLoss');
       if(expEl&&rs.length){ const ex=rs.reduce((a,b)=>a+b,0)/rs.length;
@@ -2976,7 +3087,9 @@ function renderStats(s, acct, trades){
 function renderTable(allTrades){
   // 7/27 (Marcos: "I want these erased from RTH ledger too"): the Trade History table is the RTH
   // ledger — PRE trades render on /premarket only. Same separation as the stats/balance/calendar.
-  const _preN=(allTrades||[]).filter(t=>String(t.entry_session||'')==='PRE').length;
+  // 8/10 Curator fix: this counted ALL-TIME PRE trades (showed "27" on a 1-PRE-trade day).
+  const _tds=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date());   // mini-audit 4a: ET date, not viewer-local
+  const _preN=(allTrades||[]).filter(t=>String(t.entry_session||'')==='PRE' && String(t.date||'').slice(0,10)===_tds).length;
   const trades=(allTrades||[]).filter(t=>String(t.entry_session||'')!=='PRE');
   const _pl=document.getElementById('preLedgerLink');
   if(_pl) _pl.innerHTML = _preN ? ' · <a href="/premarket" style="color:#8b949e">'+_preN+' premarket trade(s) on the premarket board ↗</a>' : '';
@@ -3209,7 +3322,7 @@ function storyClosedHTML(t){
   const li=[];
   li.push(`Was in for <b>$${inFor.toFixed(0)}</b> — ${shares} shares at <b>$${entry.toFixed(2)}</b>${t.entry_type?`, entry signal: <b>${t.entry_type}</b>`:''}${t.stop_loss?`, safety net at $${Number(t.stop_loss).toFixed(2)} (≈$${risk.toFixed(0)} at risk)`:''}.`);
   if(t.marked_runway_rr==='above_all_levels') li.push(`🛣️ <b>Road at entry:</b> above ALL marked levels — blue sky, no ceiling on the map (and no support from it either).`);
-  else if(typeof t.marked_runway_rr==='number') li.push(`🛣️ <b>Road at entry:</b> ${t.marked_runway_rr.toFixed(1)}R of runway to the next marked level${t.marked_runway_tgt?` ($${Number(t.marked_runway_tgt).toFixed(2)})`:''} — known BEFORE the trade.`);
+  else if(typeof t.marked_runway_rr==='number') li.push(`🛣️ <b>Road at entry:</b> ${t.marked_runway_rr.toFixed(1)}R of runway to the next ${t.marked_runway_cls==='MAJOR'?'<b>major level</b> (break/supply/round number — real resistance, needs 1R of road)':t.marked_runway_cls==='RUNG'?'<b>rung</b> (intermediate target — a scale point, needs 0.5R)':'marked level'}${t.marked_runway_tgt?` ($${Number(t.marked_runway_tgt).toFixed(2)})`:''} — known BEFORE the trade.`);
   if(b.lines.length){ b.lines.forEach(x=>li.push(x)); li.push(`The last ${Math.max(0,shares-b.sold)} shares went out at <b>$${exit.toFixed(2)}</b>.`); }
   else li.push(`Sold everything at <b>$${exit.toFixed(2)}</b> in one piece.`);
   li.push(`<b>Why it ended:</b> ${exitStory(t.exit_reason)}`);
@@ -3370,6 +3483,168 @@ setInterval(loadMarket, 60000);
 </html>"""
 
 
+# ── DUTY OFFICER PORTAL (8/10, task #44) — phone chat, read-only, books-first ──
+# Marcos on the road: asks questions from the phone; officer answers from the SAME
+# books the dashboard serves (open trades, today's decisions, trade history, ledger).
+# Every exchange appends to /data/duty_log.jsonl for ingestion into the main thread.
+import hmac as _hmac
+import urllib.request as _dureq
+
+DUTY_SECRET  = os.environ.get("DUTY_SECRET", "") or API_SECRET   # reuse dashboard secret (A3 pattern)
+DUTY_LOG     = DECISIONS_FILE.parent / "duty_log.jsonl"
+_LEDGER_PATH = pathlib.Path(__file__).resolve().parent / "RESULTS_LEDGER.md"
+DUTY_MODEL   = os.environ.get("DUTY_MODEL", "claude-sonnet-4-6")
+
+def _duty_ok(k):
+    return bool(DUTY_SECRET) and _hmac.compare_digest(str(k or ""), DUTY_SECRET)
+
+def _duty_context():
+    """Assemble the officer's evidence pack from live stores. Fail-soft per section."""
+    now = datetime.now(EASTERN); day = now.strftime("%Y-%m-%d")
+    parts = [f"CURRENT TIME: {now.strftime('%Y-%m-%d %H:%M:%S ET')}"]
+    try:
+        with _store_lock: ot = json.dumps(_open_trades, default=str)
+        parts.append(f"OPEN TRADES (live store, {len(_open_trades)} open): {ot[:4000]}")
+    except Exception as e: parts.append(f"OPEN TRADES: unavailable ({e})")
+    try:
+        todays = [t for t in _trades if str(t.get("date","")) == day]   # store keys per record_trade
+        pnl = sum(float(t.get("pnl") or 0) for t in todays)
+        slim = [{k: t.get(k) for k in ("ticker","entry","exit","shares","pnl","date",
+                 "entry_time","exit_reason","entry_type","entry_session","trade_id") if t.get(k) is not None}
+                for t in todays[-40:]]
+        parts.append(f"TODAY'S TRADES ({len(todays)}, net ${pnl:+.2f} incl. all sessions): "
+                     + json.dumps(slim, default=str)[:6000])
+    except Exception as e: parts.append(f"TRADES: unavailable ({e})")
+    try:
+        rows = []
+        f = DECISIONS_DIR / f"decisions-{day}.jsonl"
+        if f.exists():
+            for ln in f.read_text().splitlines()[-400:]:
+                try:
+                    d = json.loads(ln)
+                    rows.append({k: v for k, v in d.items()   # forward writer's real keys (status/time/side/…)
+                                 if k not in ("recorded_at","date") and v is not None})
+                except Exception: pass
+        parts.append(f"TODAY'S DECISION ROWS (last {len(rows)} of the day's gate/lane record): "
+                     + json.dumps(rows, default=str)[:14000])
+    except Exception as e: parts.append(f"DECISIONS: unavailable ({e})")
+    try:
+        led = _LEDGER_PATH.read_text().splitlines()
+        parts.append("RESULTS LEDGER (tail — doctrine, verdicts, directives; as of last deploy):\n"
+                     + "\n".join(led[-350:])[:24000])
+    except Exception as e: parts.append(f"LEDGER: unavailable ({e})")
+    return "\n\n".join(parts)
+
+_DUTY_SYSTEM = """You are the Duty Officer for Marcos's trading operation. Marcos is on the \
+road, asking questions from his phone. You answer from the evidence pack below — the live \
+books of the actual system (open trades, today's trades, today's gate/lane decision rows, and \
+the results ledger holding doctrine and directives).
+
+STANDING VERIFICATION CONTRACT (Marcos's law): state no fact you cannot point to in the \
+evidence pack — cite the row, trade, or ledger entry inline. If the pack doesn't contain the \
+answer, say so plainly and tag the gap [NOT IN BOOKS]; never guess or improvise doctrine. \
+P&L always in dollars. You are READ-ONLY: you cannot change config, place or close trades, \
+or restart anything — if Marcos asks for an action, tell him it must wait for the main \
+thread this evening. Keep answers short and phone-readable. This conversation is logged to \
+the books and will be read by the main session tonight; flag anything decision-shaped as \
+[FOR THE EVENING SITTING].
+
+EVIDENCE PACK:
+"""
+
+def _duty_llm(messages, ctx):
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not key: return None, "ANTHROPIC_API_KEY not set on this service"
+    body = json.dumps({"model": DUTY_MODEL, "max_tokens": 1200,
+                       "system": _DUTY_SYSTEM + ctx, "messages": messages}).encode()
+    req = _dureq.Request("https://api.anthropic.com/v1/messages", data=body,
+                         headers={"x-api-key": key, "anthropic-version": "2023-06-01",
+                                  "content-type": "application/json"})
+    try:
+        with _dureq.urlopen(req, timeout=60) as r:
+            out = json.loads(r.read())
+        return "".join(b.get("text","") for b in out.get("content",[]) if b.get("type")=="text"), None
+    except Exception as e:
+        return None, f"api error: {e}"
+
+@app.route("/api/duty_chat", methods=["POST"])
+def duty_chat():
+    data = request.get_json(force=True, silent=True) or {}
+    if not _duty_ok(data.get("k")): return jsonify({"error": "unauthorized"}), 401
+    q = str(data.get("q") or "").strip()[:4000]
+    if not q: return jsonify({"error": "empty question"}), 400
+    hist = data.get("history") or []          # [{role, content}] from the page, capped
+    msgs = [{"role": m.get("role"), "content": str(m.get("content"))[:4000]}
+            for m in hist[-12:] if m.get("role") in ("user","assistant") and m.get("content")]
+    msgs.append({"role": "user", "content": q})
+    ans, err = _duty_llm(msgs, _duty_context())
+    if err: return jsonify({"error": err}), 502
+    try:
+        with open(DUTY_LOG, "a") as f:
+            f.write(json.dumps({"ts": datetime.now(EASTERN).isoformat(),
+                                "q": q, "a": ans}) + "\n")
+    except Exception as e: print(f"[duty] log append failed: {e}")
+    return jsonify({"answer": ans})
+
+@app.route("/api/duty_log", methods=["GET"])
+def duty_log():                               # main-thread ingestion endpoint
+    if not _duty_ok(request.args.get("k")): return jsonify({"error": "unauthorized"}), 401
+    try:
+        txt = DUTY_LOG.read_text() if DUTY_LOG.exists() else ""
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    return txt, 200, {"Content-Type": "application/x-ndjson"}
+
+DUTY_HTML = """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Duty Officer</title><style>
+*{box-sizing:border-box;margin:0}body{background:#0d1117;color:#e6edf3;font:16px -apple-system,system-ui,sans-serif;
+display:flex;flex-direction:column;height:100dvh}
+#hdr{padding:10px 14px;background:#161b22;border-bottom:1px solid #30363d;font-weight:700;flex:none}
+#hdr small{color:#7d8590;font-weight:400;display:block;font-size:12px}
+#log{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:10px 12px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word;line-height:1.45}
+.u{align-self:flex-end;background:#1f6feb;color:#fff}.a{align-self:flex-start;background:#161b22;border:1px solid #30363d}
+.e{align-self:flex-start;background:#3d1a1a;border:1px solid #6e2c2c;color:#ffb3b3}
+#bar{flex:none;display:flex;gap:8px;padding:10px;background:#161b22;border-top:1px solid #30363d}
+#q{flex:1;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:10px;padding:10px 12px;font-size:16px}
+#send{background:#238636;color:#fff;border:0;border-radius:10px;padding:0 18px;font-size:16px;font-weight:700}
+#send:disabled{opacity:.5}.think{color:#7d8590;font-style:italic}
+</style></head><body>
+<div id="hdr">🎖️ Duty Officer <small>read-only · answers from the live books · logged to the main thread</small></div>
+<div id="log"></div>
+<div id="bar"><input id="q" placeholder="Ask about the bot…" autocomplete="off">
+<button id="send">Send</button></div>
+<script>
+var K=new URLSearchParams(location.search).get('k')||localStorage.getItem('duty_k')||'', hist=[];
+if(K)localStorage.setItem('duty_k',K);
+var log=document.getElementById('log'), q=document.getElementById('q'), btn=document.getElementById('send');
+function add(cls,txt){var d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;return d;}
+function send(){var t=q.value.trim();if(!t||btn.disabled)return;q.value='';btn.disabled=true;
+  add('u',t);var w=add('a think','…checking the books');
+  fetch('/api/duty_chat',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({k:K,q:t,history:hist})})
+  .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+  .then(function(r){w.remove();btn.disabled=false;
+    if(!r.ok||r.j.error){
+      if(r.j.error==='unauthorized'){K=prompt('Dashboard key:')||'';
+        if(K){localStorage.setItem('duty_k',K);add('e','key saved — send your question again');}
+        else add('e','⚠ no key — ask Claude for the dashboard key');}
+      else add('e','⚠ '+(r.j.error||'request failed'));return;}
+    add('a',r.j.answer);hist.push({role:'user',content:t},{role:'assistant',content:r.j.answer});
+    hist=hist.slice(-12);})
+  .catch(function(e){w.remove();btn.disabled=false;add('e','⚠ '+e);});}
+btn.onclick=send; q.addEventListener('keydown',function(e){if(e.key==='Enter')send();});
+add('a',"Duty Officer on watch. I answer from the live books — positions, today's gates and trades, the ledger. I can't change anything; decisions wait for the evening thread.");
+</script></body></html>"""
+
+@app.route("/duty")
+def duty_page():
+    # page itself holds no data — auth lives on /api/duty_chat; key remembered in localStorage
+    return DUTY_HTML
+
+
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -3378,6 +3653,13 @@ if __name__ == "__main__":
         kev_sweep_server.start()
     except Exception as _ks_e:
         print(f"[kev-sweep] not started: {_ks_e}")
+    try:                                # 8/8 (#36 remainder): crown/freshness EOD report daemon
+        import crown_eod_report
+        crown_eod_report.start({"EASTERN": EASTERN, "DECISIONS_DIR": DECISIONS_DIR,
+                                "TRADES_FILE": TRADES_FILE,
+                                "_log_decision_row": lambda d: _persist_decisions([d])})
+    except Exception as _ce_e:
+        print(f"[crown-eod] not started: {_ce_e}")
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port, debug=False)
 

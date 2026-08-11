@@ -1,0 +1,31 @@
+era RTH trades priced: 94
+
+-- X=15% off high, high >=20min stale --
+  BACK-SIDE                          n= 22  $  -131.39  mean $  -5.97  win 41%
+  front side / fresh                 n= 72  $  +112.77  mean $  +1.57  win 49%
+-- X=20% off high, high >=20min stale --
+  BACK-SIDE                          n= 17  $   -90.97  mean $  -5.35  win 41%
+  front side / fresh                 n= 77  $   +72.35  mean $  +0.94  win 48%
+-- X=30% off high, high >=20min stale --
+  BACK-SIDE                          n=  4  $   +15.52  mean $  +3.88  win 25%
+  front side / fresh                 n= 90  $   -34.14  mean $  -0.38  win 48%
+
+named traces:
+  JDZG  hidden_entry dd 23.1% stale 26m  $+13.87
+  YXT   ignition     dd 9.2% stale 28m  $-33.21
+  JDZG  flat_top     dd 22.0% stale 94m  $-30.75
+  YXT   hidden_entry dd 31.9% stale 100m  $-3.93
+  YXT   hidden_entry dd 32.3% stale 103m  $-7.06
+  YXT   hidden_entry dd 35.6% stale 113m  $-3.38
+  BJDX  orb          dd 4.2% stale 200m  $-32.52
+  BJDX  ma_pullback  dd 9.5% stale 85m  $-30.10
+
+worst back-side offenders (X=20):
+  2026-07-29 AMIX   hidden_entry dd 22.6%  $-55.23
+  2026-08-03 FUSE   ma_pullback  dd 20.7%  $-33.53
+  2026-07-29 AMIX   flat_top     dd 26.2%  $-32.32
+  2026-07-28 EGG    flat_top     dd 27.0%  $-32.00
+  2026-08-05 JDZG   flat_top     dd 22.0%  $-30.75
+  2026-08-03 FUSE   flat_top     dd 20.1%  $-30.66
+  2026-08-05 YXT    hidden_entry dd 32.3%  $-7.06
+  2026-08-05 INLF   hidden_entry dd 28.6%  $-4.96

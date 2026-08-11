@@ -25,9 +25,14 @@ def check(name, cond, detail=""):
 print("== 1 · hidden ext gate ==")
 check("defaults: ON, band 3.0-10.0 pct",
       bot.HIDDEN_EXT_GATE is True and bot.HIDDEN_EXT_LO == 3.0 and bot.HIDDEN_EXT_HI == 10.0)
+# 8/6: condition text gained the crown-bypass clause (Marcos's order) — pin the INVARIANT
+# (refusal consumes + logs) against the branch BODY, plus the new condition's presence.
+_egi = src.index("elif (HIDDEN_EXT_GATE and HIDDEN_EXT_LO")
+_egbody = src[_egi:src.index("else:", _egi)]
 check("refusal branch consumes the fire and logs the full ticket",
-      'elif HIDDEN_EXT_GATE and HIDDEN_EXT_LO <= float(_he_fire.get("ext_vwap") or 0) < HIDDEN_EXT_HI:' in src
-      and '"hidden_ext_reject"' in src)
+      'float(_he_fire.get("ext_vwap") or 0) < HIDDEN_EXT_HI' in _egbody
+      and "and not (HIDDEN_EXT_CROWN_BYPASS and _is_leader(t))" in _egbody
+      and "_he_fire = None" in _egbody and '"hidden_ext_reject"' in _egbody)
 check("band is checked in PERCENT (detector emits *100)",
       '"ext_vwap": round((c - vwap) / vwap * 100.0, 2)' in src)
 check("ext_vwap + anchor persist to the trade record (D gap)",
@@ -107,7 +112,7 @@ check("reject consumes the fire and logs the full ticket", '"reclaim_firevol_rej
 check("None volmult passes through (fail-safe to old behavior)",
       "_vr_fv is not None and _vr_fv < RECLAIM_FIREVOL" in src)
 # functional: drive the REAL detector over a synthetic tape; the fire must carry volmult
-bot._bucket_fresh = lambda k: True
+bot._bucket_fresh = lambda k, hm=None, sym=None: True   # 8/5: signature grew (halt-aware)
 bot._reclaim_st.clear()
 import time as _t
 K = int(_t.time()) // 10 * 10 - 600
@@ -128,9 +133,10 @@ check("volmult is the FIRE bar's (900 sh vs rolling avg), not the cross bar's",
 
 print("== 10 · BREAK-SIDE gate (7/31, Marcos: 'a real test on Monday, shadow the opposite') ==")
 src = pathlib.Path(bot.__file__).read_text()
-check("default ON; tol 0; tape lanes only, dip_rip EXCLUDED",
-      bot.BREAKSIDE_GATE is True and bot.BREAKSIDE_MAX_PCT == 0.0
-      and bot.BREAKSIDE_LANES == {"vwap_reclaim","hidden_entry","ignition"}
+check("default ON; tol 0; 8/8 SUPERSEDES 7/31 lane set: +ma_pullback/+ema_bounce (YJ $10.95 "
+      "side-door specimen), dip_rip still EXCLUDED",
+      bot.BREAKSIDE_GATE is True and bot.BREAKSIDE_MAX_PCT == 1.0   # 8/8 Ombudsman re-grade supersedes 7/31's 0.0
+      and bot.BREAKSIDE_LANES == {"vwap_reclaim","hidden_entry","ignition","ma_pullback","ema_bounce"}
       and "dip_rip" not in bot.BREAKSIDE_LANES)
 check("sits AFTER runway, BEFORE sizing",
       src.index('"runway_reject"') < src.index('"breakside_reject"')
@@ -183,8 +189,8 @@ check("default 1.0R, env-revertible (0 = off)", bot.MIN_RUNWAY_RR == 1.0)
 _i_ms = src.index('"minstop_reject"'); _i_rw = src.index('"runway_reject"')
 check("gate sits with the other tradeability floors (after minstop, before sizing)",
       _i_ms < _i_rw < src.index("Kev short-003 sizing", _i_rw))
-check("refuses only a NUMERIC runway below the floor",
-      'isinstance(_rw_v, (int, float)) and _rw_v < MIN_RUNWAY_RR' in src)
+check("refuses only a NUMERIC runway below the floor",   # 8/4: floor became class-aware (_rw_need)
+      'isinstance(_rw_v, (int, float)) and _rw_v < _rw_need' in src)
 check("refund + reentry release on reject (mirrors minstop)",
       src[src.index('"runway_reject"'):src.index('"runway_reject"')+700].count("_slot_refund") == 1)
 check("logs the full ticket for the counterfactual", 'runway_rr=_rw_v' in src and 'target=_rw_t' in src)
@@ -194,14 +200,17 @@ _saved_fetch = bot._fetch_kev_levels
 bot._fetch_kev_levels = lambda: {}
 check("no marked level -> runway None -> gate PASSES (fail-open)",
       bot._marked_runway("RIGX", 1.00, 0.90)[0] is None)
+bot._effmap_cache.clear()   # 8/7: effective-map cache (20s TTL) between cases
 bot._fetch_kev_levels = lambda: {"RIGX": {"break": 0.50, "targets": [0.60]}}
 _v, _t = bot._marked_runway("RIGX", 1.00, 0.90)
 check("price beyond every target -> 'above_all_levels' -> PASSES (infinite runway)",
       _v == "above_all_levels" and not isinstance(_v, (int, float)), str((_v, _t)))
+bot._effmap_cache.clear()   # 8/7: effective-map cache (20s TTL) between cases
 bot._fetch_kev_levels = lambda: {"RIGX": {"break": 0.50, "targets": [1.02]}}
 _v2, _t2 = bot._marked_runway("RIGX", 1.00, 0.90)
 check("tight target -> small numeric R -> WOULD block", isinstance(_v2, (int, float)) and _v2 < 1.0,
       str((_v2, _t2)))
+bot._effmap_cache.clear()   # 8/7: effective-map cache (20s TTL) between cases
 bot._fetch_kev_levels = lambda: {"RIGX": {"break": 0.50, "targets": [1.50]}}
 _v3, _t3 = bot._marked_runway("RIGX", 1.00, 0.90)
 check("roomy target -> runway >= 1R -> passes", isinstance(_v3, (int, float)) and _v3 >= 1.0,

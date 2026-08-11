@@ -285,6 +285,48 @@ def render_daily_png(ticker):
             cand["YESTERDAY_AFTERHOURS"] = {"ah_high": round(max(x["h"] for x in ah), 4),
                                             "ah_low": round(min(x["l"] for x in ah), 4),
                                             "ah_close": round(ah[-1]["c"], 4)}
+    # 8/6 (WYHG: every read REJECTED all day): the anchor list had NO today-RTH levels, so on a
+    # monster whose real structure formed TODAY the model's honest reads (9.46 early high, 10.14
+    # resumption zone) could never anchor -> no map -> no chart-lane door on the day's whale.
+    # Add TODAY_INTRADAY from the trusted 10s store (same source the re-read charts use): day
+    # high/low, live VWAP, last, and 5-bar swing extrema. Fail-soft: no store, no block.
+    try:
+        _tb = _min1_from_10s(ticker)
+        if _tb and len(_tb) >= 5:
+            _h = [float(x["high"]) for x in _tb]; _l = [float(x["low"]) for x in _tb]
+            _c = [float(x["close"]) for x in _tb]; _v = [float(x.get("volume") or 0) for x in _tb]
+            _pv = sum(c0 * v0 for c0, v0 in zip(_c, _v)); _vv = sum(_v)
+            _sw = []
+            for i in range(2, len(_tb) - 2):
+                if _h[i] == max(_h[i-2:i+3]): _sw.append(_h[i])
+                if _l[i] == min(_l[i-2:i+3]): _sw.append(_l[i])
+            _ded = []
+            for x in sorted(set(round(float(x), 4) for x in _sw if x)):
+                if not _ded or abs(x - _ded[-1]) / max(_ded[-1], 1e-9) > 0.004:
+                    _ded.append(x)
+            # 8/6 (Marcos: "why aren't the halt gaps explicitly stated on the maps???") — halts
+            # ARE the structure on these names. Detect >=3-min RTH print gaps; state each halt's
+            # window + pre-halt px + resumption px on the map (both prices are anchorable levels).
+            _halts = []
+            _tm = []
+            for x in _tb:
+                try:
+                    ts = str(x.get("time") or "")[11:16]
+                    _tm.append(int(ts[:2]) * 60 + int(ts[3:5]))
+                except Exception:
+                    _tm.append(None)
+            for i in range(1, len(_tb)):
+                if _tm[i] is not None and _tm[i-1] is not None and _tm[i] - _tm[i-1] >= 3:
+                    _halts.append({"halted": f"{_tm[i-1]//60:02d}:{_tm[i-1]%60:02d}",
+                                   "resumed": f"{_tm[i]//60:02d}:{_tm[i]%60:02d}",
+                                   "pre_halt_px": round(_c[i-1], 4),
+                                   "resume_px": round(float(_tb[i]["open"]), 4)})
+            cand["TODAY_INTRADAY"] = {"day_high": round(max(_h), 4), "day_low": round(min(_l), 4),
+                                      "vwap": round(_pv / _vv, 4) if _vv else None,
+                                      "last": round(_c[-1], 4), "swings": _ded[-24:],
+                                      "halts": _halts[-8:]}
+    except Exception as _tie:
+        print(f"  [charts] {ticker}: TODAY_INTRADAY candidates unavailable ({_tie}) — daily-only anchors", flush=True)
     import matplotlib; matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.patches import Rectangle
@@ -348,6 +390,12 @@ PRECISE CANDIDATE LEVELS (computed from the data — SELECT the meaningful ones;
 {candidates}
 current/last price ~ {last_px}
 
+SLOT MEANINGS (8/4 — these now carry different weight in the trading gate, slot deliberately): `targets` = intermediate SCALE POINTS on the way up (rungs — the bot trims into them and will enter with just 0.5R of road to one). `next_supply` = the MAJOR shelf — the one overhead level with real, defended supply (the bot refuses entries with under 1R of road to it). `break_level` = the major trigger. Do NOT promote an ordinary intermediate target into next_supply, and do NOT leave next_supply empty when a genuine major shelf exists — under-marking it removes the bot's respect for real resistance; over-marking it blocks good entries.
+
+EXACT PRICES ONLY (8/5, enforced): every level you return MUST be one of the PRECISE CANDIDATE LEVELS verbatim, to the cent. Do NOT round to cleaner numbers (no substituting 1.25 for 1.2385) — tidy-looking prices that are not in the candidate list will cause the entire read to be REJECTED.
+
+CONFIDENCE CALIBRATION (8/4 — 416 prior reads used HIGH exactly 0 times; that is hedging, not caution): confidence grades THIS CHART'S CLARITY, not the market. Anchors — HIGH = the cleanest ~15-25% of TAKE/SKIP charts: one dominant structure, an unambiguous level, volume agrees (a textbook flag/base/breakdown IS HIGH — if you would show this chart to teach the pattern, it is HIGH). MEDIUM = readable structure with a competing interpretation. LOW = genuinely muddy/thin/contradictory. Using HIGH when earned is part of the job; a HIGH that fails is FINE — a deck with no HIGHs is miscalibrated by definition.
+
 Return ONLY this JSON (no prose, no code fence). break_level is REQUIRED (never null); use null only for optional fields that don't apply:
 {{"ticker":"{ticker}","setup":"base-breakout|uptrend-coil|pullback|downtrend|falling-knife|parabolic|chop","verdict":"TAKE|SKIP|MARGINAL","confidence":"HIGH|MEDIUM|LOW","break_level":0.00,"confirm_level":0.00,"next_supply":0.00,"stop_level":0.00,"targets":[0.00],"room_rr":0.0,"reason":"one concrete sentence citing the structure and the level"}}"""
 
@@ -393,6 +441,45 @@ def validate_read(rd, last_px):
         if _tg and (max(_tg) > 3.0 * _px or min(_tg) < _px / 3.0):
             return False, f"target_scale_insane: {_tg} vs live {_px}"
     return True, "ok"
+
+def anchor_check(rd, candidates):
+    """8/4 MAPS-DESCRIBE-NOT-SERVE machine check (Marcos: "I dont want fake maps... trustworthy
+    and not just what we want them to say"): every posted level must sit within tolerance of a
+    COMPUTED candidate level (the data the prompt supplied) — the model SELECTS levels, it never
+    invents them. Whole/half dollars pass too (real market anchors not always in the candidate
+    list). NON-FATAL for now: returns (ok, offenders) and the caller LOGS; flips to enforcement
+    once a week of logs shows the false-positive rate. Sparse candidates (<3) = skip (a thin map
+    is valid information; forcing anchors onto nothing would invert the law)."""
+    try:
+        vals = []
+        def _walk(o):
+            if isinstance(o, dict):
+                for x in o.values(): _walk(x)
+            elif isinstance(o, (list, tuple)):
+                for x in o: _walk(x)
+            else:
+                try:
+                    f = float(o)
+                    if f > 0: vals.append(f)
+                except (TypeError, ValueError): pass
+        _walk(candidates)
+        if len(vals) < 3:
+            return True, []
+        posted = []
+        for k in ("break_level", "confirm_level", "next_supply", "stop_level"):
+            if rd.get(k) is not None: posted.append((k, float(rd[k])))
+        for i, t in enumerate(rd.get("targets") or []):
+            posted.append((f"target{i+1}", float(t)))
+        off = []
+        for name, p in posted:
+            # 8/5 (Marcos: "I want actual numbers from the chart read, not rounded numbers"):
+            # NO exemptions — round numbers included. If the psychology at a round number is
+            # real on this name, the candidate generator will have found the shelf it created.
+            if not any(abs(p - c) / max(c, 1e-9) < 0.006 for c in vals):
+                off.append(f"{name}={p}")
+        return (not off), off
+    except Exception:
+        return True, []
 
 def vision_read(ticker, png_bytes, candidates, last_px):
     if not API_KEY:
@@ -506,7 +593,14 @@ def sheet_shadow_pass(dry=False, out_rows=None):
             print(f"  [shadow] {tk}: read error ({_rfail[tk]}/{MAX_RENDER_FAILS}): {rd['error']}", flush=True)
             continue
         _attempts[tk] = _attempts.get(tk, 0) + 1
-        ok_v, why = validate_read(rd, None)
+        _lp = _live_px_10s(tk)
+        ok_v, why = validate_read(rd, _lp if _lp > 0 else None)   # 8/5: live px, never prior close
+        _aok, _aoff = anchor_check(rd, cand)
+        if not _aok:
+            # 8/5 ENFORCED (Marcos: "this needs to be fixed right now") — a map with invented
+            # prices is worse than no map; reject like a stale chart, the retry loop re-reads.
+            print(f"  [anchor] {tk}: REJECTED — unanchored levels {_aoff} (exact chart prices only)", flush=True)
+            ok_v, why = False, f"unanchored_levels:{_aoff}"
         if out_rows is not None:
             out_rows.append({**rd, "ticker": tk, "_shadow": True, "_accepted": ok_v, "_why": why})
         if not ok_v:
@@ -556,18 +650,40 @@ def process_once(dry=False, out_rows=None):
         # then nothing reads this cycle and we retry next 90s poll (fail-CLOSED, never balloon load).
         _kev = _today_watchlist()[1] or []
         todo = [str(t).upper() for t in _kev if str(t).upper() not in seen and not str(t).startswith("_")]
+    # 8/5 (HYM stall: a dead ticker burned 10 retry cycles at the FRONT of the queue while
+    # JLHL/OESX/PCLA/XOS waited unread past the open): names with prior render failures sort to
+    # the BACK of every pass — healthy names always read first. And a name that has failed 3+
+    # times with NO live price anywhere (dead listing) is dropped for the day, not retried.
+    # 8/5: never bill a read for a name whose sheet already carries NON-vision levels (Kev's) —
+    # the server clobber-protects the post anyway; skipping saves the call and respects the sheet.
+    try:
+        _lv_now = _get_retry(f"{U}/api/kev_watchlist?date={DAY}").get("levels") or {}
+        todo = [t for t in todo
+                if not (isinstance(_lv_now.get(t), dict)
+                        and _lv_now[t].get("break")
+                        and str(_lv_now[t].get("src") or "") != "vision")]
+    except Exception:
+        pass
+    todo = sorted(todo, key=lambda t: _rfail.get(t, 0))
     print(f"[{dt.datetime.now(ET):%H:%M:%S}] read-list={len(todo)} (strict top-20 by Move%+Kev) "
           f"already-read={len(seen)}{'  (DRY — no posts)' if dry else ''}", flush=True)
     for tk in todo:
         if _attempts.get(tk, 0) >= MAX_ATTEMPTS or _rfail.get(tk, 0) >= MAX_RENDER_FAILS:
             continue                       # gave up on this name today (cost guard) → stays unarmed
+        if _rfail.get(tk, 0) >= 3 and not _live_px_10s(tk):
+            _rfail[tk] = MAX_RENDER_FAILS  # dead listing (no chart AND no tape) → done for the day
+            print(f"  {tk}: DROPPED — 3 chart failures and no live tape (dead listing)", flush=True)
+            continue
         time.sleep(SPACING)                # pace Webull-backed daily GETs + vision calls
         png, cand = render_daily_png(tk)
         if not png:                        # /api/daily is Webull-live → could be a 429; free retry
             _rfail[tk] = _rfail.get(tk, 0) + 1
             print(f"  {tk}: no daily chart (fetch fail {_rfail[tk]}/{MAX_RENDER_FAILS}) — retry next loop", flush=True)
             continue
-        last_px = pxmap.get(tk) or (cand or {}).get("prior_day_close")
+        # 8/7 (NAMI specimen: valid read killed as scale-insane vs YESTERDAY'S $2.91): the 8/5
+        # "live px, never prior close" fix patched the batch site only — this is the twin.
+        _lp10 = _live_px_10s(tk)
+        last_px = (_lp10 if _lp10 > 0 else None) or pxmap.get(tk) or (cand or {}).get("prior_day_close")
         rd = vision_read(tk, png, cand, last_px)
         if rd.get("error"):                # transport/API error → NOT a graded attempt (an Anthropic
             _rfail[tk] = _rfail.get(tk, 0) + 1     # outage at 8:50 must never kill a name for the day);
@@ -575,6 +691,12 @@ def process_once(dry=False, out_rows=None):
             continue                               # bounded by the free-retry cap + 90s loop cadence
         _attempts[tk] = _attempts.get(tk, 0) + 1   # count GRADED reads only (billed + parseable)
         ok_v, why = validate_read(rd, last_px)
+        _aok, _aoff = anchor_check(rd, cand)
+        if not _aok:
+            # 8/5 ENFORCED (Marcos: "this needs to be fixed right now") — a map with invented
+            # prices is worse than no map; reject like a stale chart, the retry loop re-reads.
+            print(f"  [anchor] {tk}: REJECTED — unanchored levels {_aoff} (exact chart prices only)", flush=True)
+            ok_v, why = False, f"unanchored_levels:{_aoff}"
         if out_rows is not None:                              # capture EVERY read for grading (accepted or not)
             out_rows.append({**rd, "ticker": tk, "_accepted": ok_v, "_why": why})
         if not ok_v:
@@ -603,6 +725,7 @@ REREAD_MAX_PER_NAME = int(os.environ.get("REREAD_MAX_PER_NAME", "3"))
 REREAD_DAILY_CAP    = int(os.environ.get("REREAD_DAILY_CAP", "15"))
 REREAD_CUTOFF_HHMM  = os.environ.get("REREAD_CUTOFF_HHMM", "15:25")
 _rr_state = {"count": 0, "per_name": {}, "last_probe": 0.0, "seen_markers": set()}
+_nme_fired = {}   # ticker -> lastT already read-ahead fired (8/7 auditor #10)
 
 def _min1_from_10s(ticker):
     """8/3 (#25, the FUSE eyes): rebuild TODAY-RTH 1-min bars by aggregating the ALP10S 10s store —
@@ -616,9 +739,22 @@ def _min1_from_10s(ticker):
             # 1-min history from 04:00) — use it when the 10s store started late or is empty.
             rows = _get_retry(f"{U}/api/bars?date={DAY}&ticker={_q(ticker)}~ALP1M").get("bars") or []
         agg = {}
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        _ET = ZoneInfo("America/New_York")
         for r in rows:
             ts = str(r.get("time") or r.get("t") or "")
-            hhmm = ts[11:16]
+            # store timestamps are UTC (e.g. 2026-08-04T16:53:40.000+0000) — convert to ET
+            # before the RTH window test; the naive ts[11:16] compare dropped every bar
+            # after 16:00 UTC = noon ET (AMIX 8/4: chart frozen at 11.69, three reads refused)
+            try:
+                dt = datetime.fromisoformat(ts.replace("Z", "+00:00").replace("+0000", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+                et = dt.astimezone(_ET)
+                hhmm = f"{et.hour:02d}:{et.minute:02d}"
+            except Exception:
+                hhmm = ts[11:16]
             if not ("09:30" <= hhmm < "16:00"):
                 continue
             o = float(r.get("open") or r.get("o") or 0); h = float(r.get("high") or r.get("h") or 0)
@@ -676,6 +812,21 @@ def render_intraday_png(ticker):
         ax.plot(range(len(b)), vw, color="#f0a500", lw=1.4, label="VWAP")
         meta = dict(day_high=max(h), day_low=min(l), last=c[-1], vwap=round(vw[-1],4),
                     n_bars=len(b), open_px=o[0])
+        # 8/5 (Marcos: exact chart numbers only): computed intraday candidates — swing highs/
+        # lows (5-bar local extrema), day high/low, VWAP, last. The model SELECTS from these;
+        # anchor_check enforces. Deduped within 0.4%.
+        try:
+            cands = [meta["day_high"], meta["day_low"], meta["vwap"], meta["last"], o[0]]
+            for i in range(2, len(b) - 2):
+                if h[i] == max(h[i-2:i+3]): cands.append(h[i])
+                if l[i] == min(l[i-2:i+3]): cands.append(l[i])
+            ded = []
+            for x in sorted(set(round(float(x), 4) for x in cands if x)):
+                if not ded or abs(x - ded[-1]) / max(ded[-1], 1e-9) > 0.004:
+                    ded.append(x)
+            meta["candidates"] = ded
+        except Exception:
+            meta["candidates"] = []
         ax.set_title(f"{ticker} — TODAY 1-min RTH (re-read)"); ax.legend(loc="upper left", fontsize=8)
         import io as _io
         buf=_io.BytesIO(); fig.tight_layout(); fig.savefig(buf, format="png"); plt.close(fig)
@@ -686,7 +837,13 @@ def render_intraday_png(ticker):
 
 REREAD_PROMPT = """You are an experienced small-cap momentum trader (Kev lineage). This chart is TODAY'S 1-minute RTH tape of {ticker} — a name that has BLOWN THROUGH its earlier map and needs a FRESH map drawn mid-flight.
 PRIOR READ (now exhausted): {prior}. Price since: {since}. Session facts: {meta}.
+PRECISE CANDIDATE LEVELS (computed from today's bars — SELECT from these verbatim, to the cent; do NOT estimate off the pixels): {cands}
 Re-map from CURRENT intraday structure only: the reclaim/break level that would confirm the NEXT leg (a real shelf/pivot on this chart, not the old map), confirm level, next supply (today's high or the visible ceiling), a structural stop, and 1-2 targets. If the move looks finished (distribution, lower highs, dead tape), verdict SKIP — but STILL give the break_level it would take to change your mind (levels-only doctrine: a level is mandatory on every read). Same JSON as always:
+SLOT MEANINGS (8/4 — these now carry different weight in the trading gate, slot deliberately): `targets` = intermediate SCALE POINTS on the way up (rungs — the bot trims into them and will enter with just 0.5R of road to one). `next_supply` = the MAJOR shelf — the one overhead level with real, defended supply (the bot refuses entries with under 1R of road to it). `break_level` = the major trigger. Do NOT promote an ordinary intermediate target into next_supply, and do NOT leave next_supply empty when a genuine major shelf exists — under-marking it removes the bot's respect for real resistance; over-marking it blocks good entries.
+
+EXACT PRICES ONLY (8/5, enforced): every level you return MUST be one of the PRECISE CANDIDATE LEVELS verbatim, to the cent. Do NOT round to cleaner numbers (no substituting 1.25 for 1.2385) — tidy-looking prices that are not in the candidate list will cause the entire read to be REJECTED.
+
+CONFIDENCE anchors (8/4): HIGH = cleanest ~15-25% of charts (one dominant structure, unambiguous level — textbook = HIGH); MEDIUM = readable w/ a competing interpretation; LOW = muddy. 416 reads with zero HIGHs = hedging; use HIGH when earned.
 {{"ticker":"{ticker}","verdict":"TAKE|MARGINAL|SKIP","confidence":"HIGH|MEDIUM|LOW","setup":"...","break_level":0.0,"confirm_level":0.0,"next_supply":0.0,"stop_level":0.0,"targets":[0.0],"reason":"<=40 words"}}"""
 
 def reread_one(ticker, trigger):
@@ -698,7 +855,9 @@ def reread_one(ticker, trigger):
             return False
         prior = {k: lv.get(k) for k in ("break","confirm","targets","stop","setup","confidence") if lv.get(k) is not None}
         since = f"day high {meta['day_high']}, last {meta['last']}, vwap {meta['vwap']}"
-        prompt = REREAD_PROMPT.format(ticker=ticker, prior=json.dumps(prior), since=since, meta=json.dumps(meta))
+        prompt = REREAD_PROMPT.format(ticker=ticker, prior=json.dumps(prior), since=since,
+                                      meta=json.dumps({k: v for k, v in meta.items() if k != "candidates"}),
+                                      cands=json.dumps(meta.get("candidates") or []))
         import anthropic, base64
         client = anthropic.Anthropic(api_key=API_KEY)
         img = base64.standard_b64encode(png).decode()
@@ -727,8 +886,28 @@ def reread_one(ticker, trigger):
                   f"(>5%) — skipping, no budget burned", flush=True)
             return False
         ok, why = validate_read(rd, _live if _live > 0 else meta.get("last"))
+        if ok:
+            _aok, _aoff = anchor_check(rd, meta.get("candidates") or [])
+            if not _aok:
+                ok, why = False, f"unanchored_levels:{_aoff}"   # 8/5 enforced: exact chart prices only
         if not ok:
-            print(f"[reread] {ticker} v-read invalid: {why}", flush=True); return False
+            # 8/6 BLUE-SKY COMEBACK MAP (Marcos: "add it" — but "I'm leery of blue sky"):
+            # a FRESH read of a name at its highs honestly returns target ~= live, which the
+            # exhausted-map check was built to refuse on STALE charts. Freshness is proven
+            # here (chart-vs-10s guard above), so post it as verdict SKIP + blue_sky=True —
+            # "map the summit as the target, not the entry". Entries at the summit stay
+            # impossible via RUNWAY ARITHMETIC (~0 road); the map self-activates on pullback.
+            # Kill: NEWCOMER_BLUESKY=0 restores the discard. All other invalids still refused.
+            if (os.environ.get("NEWCOMER_BLUESKY", "1") == "1"
+                    and str(why or "").startswith("map_already_exhausted")):
+                rd["verdict"] = "SKIP"
+                rd["blue_sky"] = True
+                rd["note"] = ("[blue-sky " + dt.datetime.now(ET).strftime("%H:%M") + "] summit map — "
+                              + str(rd.get("note") or rd.get("reason") or ""))[:200]
+                print(f"[reread] {ticker} BLUE-SKY: posting summit map (target={rd.get('targets')}) "
+                      f"instead of discarding", flush=True)
+            else:
+                print(f"[reread] {ticker} v-read invalid: {why}", flush=True); return False
         # LEDGER: carry prior map forward inside the record, bump version, tag trigger
         hist = lv.get("history") or []
         hist.append({k: lv.get(k) for k in ("break","confirm","targets","stop","read_at","read_version") if lv.get(k) is not None})
@@ -774,6 +953,40 @@ def _get_retry(path, timeout=20, tries=3):
     return {}
 
 
+def _live_px_10s(tk):
+    """Trusted live price from the 10s store; 0.0 on any failure (validation then skips the
+    freshness legs, old behavior). 8/5: the 8:50 batch was validating gappers against PRIOR
+    CLOSE — YXT (+239%) had its valid read rejected as 'scale insane'."""
+    try:
+        b = _get_retry(f"{U}/api/bars?date={DAY}&ticker={_q(tk)}~ALP10S").get("bars") or []
+        return float(b[-1].get("close") or 0) if b else 0.0
+    except Exception:
+        return 0.0
+
+_ldr_cache = {"t": 0.0, "set": set()}
+def _leaders():
+    """8/5 (Marcos: "crowns need to be checked more often"): crowned names from the bot's
+    durable leader_armed rows. Cached 60s. Fail-soft to empty set."""
+    try:
+        if time.time() - _ldr_cache["t"] > 60:
+            rows = _get_retry(f"{U}/api/decisions?date={DAY}&status=leader_armed&limit=50").get("rows") or []
+            _ldr_cache["set"] = {str(r.get("ticker") or "").upper() for r in rows}
+            _ldr_cache["t"] = time.time()
+    except Exception:
+        pass
+    return _ldr_cache["set"]
+
+_rr_overdue: dict = {}
+_pm_fired: dict = {}   # auditor F13: past_map per-map-version dedup
+
+def _post_decision(ticker, status, **kw):
+    """8/10: the reader writes durable decision rows (reread_overdue) like every other service —
+    latency must be visible in the store, not just in logs. Fail-soft."""
+    try:
+        _post("/api/decision", {"ticker": ticker, "status": status, **kw}, timeout=8)
+    except Exception:
+        pass
+
 def reread_check():
     """Called each trickle cycle. Finds exhausted maps + bot markers; fires capped re-reads.
 
@@ -784,10 +997,38 @@ def reread_check():
     — the query that was 503ing our own dashboard); every GET retries with backoff."""
     now = dt.datetime.now(ET)
     if now.strftime("%H:%M") >= REREAD_CUTOFF_HHMM: return
-    if _rr_state["count"] >= REREAD_DAILY_CAP: return
-    if time.time() - _rr_state["last_probe"] < 240: return       # probe every ~4 min
+    _probe_gap = 60   # 8/10 LATENCY DOCTRINE (Marcos: "latency is stealing money"): probes are
+    # cheap reads — the 240s no-crown economy tier cost PCLA 16 min and RDGT 35 min of stale
+    # maps on stand-downs. 60s always; the expensive part (renders/reads) stays capped.
+    if time.time() - _rr_state["last_probe"] < _probe_gap: return   # (markers for crowns ride the 60s gap)
     _rr_state["last_probe"] = time.time()
+    # 8/4 (Marcos: "we should make the reads limitless if we are actually trading a ticker"):
+    # HELD names — an open position on the book — bypass BOTH the per-name and daily caps.
+    # The budget exists to stop speculative read-spam; a name we're IN is never speculative
+    # (AMIX 8/4: runner rode 12.80→21.98 with a map that ended at 12.80). Un-held names still
+    # respect every cap below.
+    held = set()
+    try:
+        held = {str(o.get("ticker") or "").upper()
+                for o in (_get_retry(f"{U}/api/open_trades").get("open_trades") or [])}
+    except Exception:
+        pass
+    def _capped(tk):
+        if tk in held or tk in _leaders() or tk in _stood_down:   # held/crowned/STOOD-DOWN: uncapped
+            # 8/10: a ceiling stand-down = money actively waiting on fresh eyes ("fresher eyes
+            # not blindfolds" made literal) — never let a cap keep the blindfold on.
+            return False
+        return (_rr_state["count"] >= REREAD_DAILY_CAP
+                or _rr_state["per_name"].get(tk, 0) >= REREAD_MAX_PER_NAME)
+    if _rr_state["count"] >= REREAD_DAILY_CAP and not held and not _leaders(): return
     want = []
+    _stood_down = set()   # auditor F2: _capped closes over this — MUST exist before section (a)
+    # cheap pre-pass: today's stand-down markers (drives both the uncapped tier and the alarm)
+    try:
+        for r in (_get_retry(f"{U}/api/decisions?date={DAY}&status=ceiling_reject&limit=200").get("rows") or []):
+            _stood_down.add((r.get("ticker") or "").upper())
+    except Exception:
+        pass
     # (a) passive: live price beyond the current map's last target — CHEAP, fires first
     try:
         lv = _get_retry(f"{U}/api/kev_watchlist?date={DAY}").get("levels") or {}
@@ -797,9 +1038,15 @@ def reread_check():
             # clobber-protects src=="kev" only, but Kev-tier in the bot is src != "vision" —
             # a re-read over a manual/unstamped entry would silently demote the name from
             # tier-0 + its exemptions and swap the human's level for the model's.
-            if str(rec.get("src") or "") != "vision": continue
-            if _rr_state["per_name"].get(tk, 0) >= REREAD_MAX_PER_NAME: continue
-            tg = rec.get("targets") or []
+            # 8/6 FRESHEST-DATA (Marcos: "Kev's levels are only as useful as they are up to
+            # date... Freshness trumps everything else" — the CELZ $1.05 all-day freeze):
+            # kev-src names are now PROBED and re-read too. Their posts are still routed to
+            # the record's vision_shadow slot by the server's merge protection — Kev's own
+            # numbers are never touched; the gates pick newest-by-timestamp.
+            if _capped(tk): continue   # 8/4: held names uncapped
+            _sh = rec.get("vision_shadow") or {}
+            tg = (_sh.get("targets") if str(rec.get("src") or "") != "vision" and _sh.get("targets")
+                  else rec.get("targets")) or []
             try: lastT = float(tg[-1]) if tg else 0.0
             except (TypeError, ValueError): lastT = 0.0
             if lastT <= 0: continue
@@ -816,28 +1063,65 @@ def reread_check():
                 try: px = float(rows[-1].get("close") or rows[-1].get("c") or 0)
                 except (TypeError, ValueError): px = 0.0
             if px > lastT:
+                if _pm_fired.get(tk) == lastT:
+                    continue   # auditor F13: once per map version — an uncapped stood-down name
+                               # must not re-render every probe against an unchanged map
+                _pm_fired[tk] = lastT
                 want.append((tk, "past_map"))
+            elif (tk in _leaders() and px > lastT * 0.80
+                  and _nme_fired.get(tk) != lastT):
+                # 8/7 FRESHNESS CONTRACT part 2 (YJ +545% on maps one-full-map behind; the 8/5
+                # cap-lift never fixed the TRIGGER): crowns re-read BEFORE the map is consumed —
+                # within 20% of the last target = read-ahead, not read-after.
+                _nme_fired[tk] = lastT   # 8/7 auditor #10: once per map version, not per cycle
+                want.append((tk, "near_map_exhaust"))
     except Exception as e:
         print(f"[reread] passive-section error (markers still run): {e}", flush=True)
     # (b) bot markers: rocket arms + entry-attempt exhaustion — heavier, isolated
     try:
         rows = _get_retry(f"{U}/api/decisions_archive?date={DAY}&limit=1500").get("rows") or []
         for r in rows:
+            if r.get("status") in ("ceiling_reject", "read_exhausted_observed"):
+                _stood_down.add((r.get("ticker") or "").upper())
+                # 8/10 RE-READ DEADLINE: exhaustion marker starts a 3-min clock; a map still
+                # older than the marker after that = loud overdue row (latency made visible).
+                try:
+                    _mk_t = str(r.get("recorded_at") or "")
+                    _rec = (lv or {}).get((r.get("ticker") or "").upper()) or {}
+                    _map_ts = str(_rec.get("_ts") or "")
+                    if _mk_t and _map_ts and _map_ts < _mk_t:
+                        _mk_dt = dt.datetime.fromisoformat(_mk_t)
+                        if (dt.datetime.now(ET) - _mk_dt).total_seconds() > 180 and                                 _rr_overdue.get((r.get("ticker"), _mk_t)) is None:
+                            _rr_overdue[(r.get("ticker"), _mk_t)] = True
+                            _post_decision((r.get("ticker") or "").upper(), "reread_overdue",
+                                           marker_at=_mk_t, map_ts=_map_ts)
+                            print(f"[reread] ⏰ OVERDUE: {r.get('ticker')} stood down >3min with a "
+                                  f"stale map (marker {_mk_t[11:19]}, map {_map_ts[11:19]})", flush=True)
+                except Exception:
+                    pass
+        for r in rows:
             st = r.get("status")
-            if st in ("rocket_armed", "read_exhausted_observed"):
+            if st in ("rocket_armed", "read_exhausted_observed", "ceiling_reject"):
                 key = f"{r.get('ticker')}|{st}|{r.get('recorded_at')}"
                 if key in _rr_state["seen_markers"]: continue
                 _rr_state["seen_markers"].add(key)
                 tk = (r.get("ticker") or "").upper()
-                if _rr_state["per_name"].get(tk, 0) < REREAD_MAX_PER_NAME:
+                if not _capped(tk):   # 8/4: held names uncapped
                     want.append((tk, st))
     except Exception as e:
         print(f"[reread] marker-section error (passive candidates still fire): {e}", flush=True)
     # (c) fire — its own guard so a render/post failure can't mark the probe dead
     try:
         done = set()
+        # 8/6 (Marcos: "the newly triggered maps need to be faster") — the queue ran in sheet
+        # order, so a FRESH mover waited behind a pile of re-versioning veterans (~30s vision
+        # call each; first-re-read latencies hit 57-73 min in the 8/6 morning congestion while
+        # crowned WYHG got 9 min). Priority: crowned first, then names with the FEWEST re-reads
+        # today (a name at zero versions IS the newly triggered map), then sheet order.
+        _ldrs = _leaders()
+        want.sort(key=lambda x: (x[0] not in _ldrs, _rr_state["per_name"].get(x[0], 0)))
         for tk, trig in want:
-            if tk in done or _rr_state["count"] >= REREAD_DAILY_CAP: continue
+            if tk in done or _capped(tk): continue   # 8/4: held names bypass the day cap
             done.add(tk)
             if reread_one(tk, trig):
                 _rr_state["count"] += 1
@@ -887,9 +1171,10 @@ def _run_session():
         _hb["n"] += 1
         if _hb["n"] % 10 == 0:
             try:
-                requests.post(f"{U}/api/observe", headers=HDRS, timeout=8,
-                              json={"ticker": "ZZREADERBEAT", "note": f"reader alive cycle={_hb['n']}",
-                                    "price": 0})
+                # 8/10: previously used the requests library — which the reader NEVER IMPORTS. NameError'd and
+                # was swallowed every cycle since ship: the aliveness beat was itself dead.
+                _post("/api/observe", {"ticker": "ZZREADERBEAT",
+                                       "note": f"reader alive cycle={_hb['n']}", "price": 0}, timeout=8)
             except Exception:
                 pass
         time.sleep(POLL_SECS)

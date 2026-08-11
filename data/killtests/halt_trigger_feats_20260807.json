@@ -1,0 +1,1854 @@
+{
+"halt": [
+{
+"prox": 0.27,
+"vel1m": 3.1,
+"wick": false,
+"volx": 0.9
+},
+{
+"prox": 0.88,
+"vel1m": 7.8,
+"wick": false,
+"volx": 0.6
+},
+{
+"prox": 0.1,
+"vel1m": 0.0,
+"wick": false,
+"volx": 0.9
+},
+{
+"prox": 0.86,
+"vel1m": 7.8,
+"wick": false,
+"volx": 5.1
+},
+{
+"prox": 0.07,
+"vel1m": 0.0,
+"wick": true,
+"volx": 0.9
+},
+{
+"prox": 0.17,
+"vel1m": -1.8,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.03,
+"vel1m": -1.3,
+"wick": false,
+"volx": 0.3
+},
+{
+"prox": 1.04,
+"vel1m": 14.8,
+"wick": false,
+"volx": 4.8
+},
+{
+"prox": 1.95,
+"vel1m": 13.0,
+"wick": false,
+"volx": 2.0
+},
+{
+"prox": 1.01,
+"vel1m": 8.2,
+"wick": false,
+"volx": 4.5
+},
+{
+"prox": 0.66,
+"vel1m": 10.1,
+"wick": true,
+"volx": 0.8
+},
+{
+"prox": 1.83,
+"vel1m": 20.3,
+"wick": false,
+"volx": 5.6
+},
+{
+"prox": 1.11,
+"vel1m": 7.0,
+"wick": false,
+"volx": 4.0
+},
+{
+"prox": 0.08,
+"vel1m": 2.1,
+"wick": false,
+"volx": 1.7
+},
+{
+"prox": 0.03,
+"vel1m": 0.9,
+"wick": false,
+"volx": 0.3
+},
+{
+"prox": 0.09,
+"vel1m": 0.8,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": -0.01,
+"vel1m": 0.1,
+"wick": true,
+"volx": 1.8
+},
+{
+"prox": 0.86,
+"vel1m": 5.6,
+"wick": false,
+"volx": 1.3
+},
+{
+"prox": 0.13,
+"vel1m": 2.0,
+"wick": false,
+"volx": 1.8
+},
+{
+"prox": -0.01,
+"vel1m": 0.0,
+"wick": false,
+"volx": 0.1
+},
+{
+"prox": 0.02,
+"vel1m": 0.8,
+"wick": false,
+"volx": 1.3
+},
+{
+"prox": 1.94,
+"vel1m": 18.6,
+"wick": false,
+"volx": 5.8
+},
+{
+"prox": 1.88,
+"vel1m": 7.4,
+"wick": false,
+"volx": 1.0
+},
+{
+"prox": 1.69,
+"vel1m": 13.4,
+"wick": false,
+"volx": 1.7
+},
+{
+"prox": 0.64,
+"vel1m": 6.4,
+"wick": false,
+"volx": 0.6
+},
+{
+"prox": 0.03,
+"vel1m": 4.7,
+"wick": true,
+"volx": 1.1
+},
+{
+"prox": 0.06,
+"vel1m": 0.0,
+"wick": false,
+"volx": 88.0
+},
+{
+"prox": 1.1,
+"vel1m": 19.8,
+"wick": false,
+"volx": 14.2
+},
+{
+"prox": 0.15,
+"vel1m": 3.1,
+"wick": false,
+"volx": 1.3
+},
+{
+"prox": 0.2,
+"vel1m": 8.9,
+"wick": true,
+"volx": 0.6
+},
+{
+"prox": 0.27,
+"vel1m": 6.0,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 1.23,
+"vel1m": 13.5,
+"wick": false,
+"volx": 4.5
+},
+{
+"prox": 0.92,
+"vel1m": 7.9,
+"wick": false,
+"volx": 1.6
+},
+{
+"prox": 1.09,
+"vel1m": 8.4,
+"wick": false,
+"volx": 2.4
+},
+{
+"prox": 0.66,
+"vel1m": 15.4,
+"wick": false,
+"volx": 1.2
+},
+{
+"prox": 0.94,
+"vel1m": 11.4,
+"wick": false,
+"volx": 1.4
+},
+{
+"prox": 0.87,
+"vel1m": 9.3,
+"wick": false,
+"volx": 1.5
+},
+{
+"prox": 0.73,
+"vel1m": 8.3,
+"wick": false,
+"volx": 0.6
+},
+{
+"prox": 0.85,
+"vel1m": 8.5,
+"wick": false,
+"volx": 1.5
+},
+{
+"prox": 0.98,
+"vel1m": 12.3,
+"wick": false,
+"volx": 1.3
+},
+{
+"prox": 0.96,
+"vel1m": 8.9,
+"wick": false,
+"volx": 5.0
+},
+{
+"prox": 0.85,
+"vel1m": 6.8,
+"wick": false,
+"volx": 2.9
+},
+{
+"prox": 0.55,
+"vel1m": 14.0,
+"wick": false,
+"volx": 1.2
+},
+{
+"prox": 1.01,
+"vel1m": 8.1,
+"wick": false,
+"volx": 2.8
+},
+{
+"prox": 0.99,
+"vel1m": 8.1,
+"wick": false,
+"volx": 2.0
+},
+{
+"prox": 1.09,
+"vel1m": 11.2,
+"wick": false,
+"volx": 1.9
+},
+{
+"prox": 0.94,
+"vel1m": 9.4,
+"wick": false,
+"volx": 1.4
+},
+{
+"prox": 0.62,
+"vel1m": 6.0,
+"wick": false,
+"volx": 0.6
+},
+{
+"prox": 0.9,
+"vel1m": 8.1,
+"wick": true,
+"volx": 1.8
+},
+{
+"prox": 1.0,
+"vel1m": 6.2,
+"wick": false,
+"volx": 6.8
+},
+{
+"prox": 0.74,
+"vel1m": 6.0,
+"wick": false,
+"volx": 1.0
+},
+{
+"prox": 0.42,
+"vel1m": 12.2,
+"wick": false,
+"volx": 1.3
+},
+{
+"prox": 1.03,
+"vel1m": 4.4,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.82,
+"vel1m": 4.0,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.64,
+"vel1m": 10.2,
+"wick": false,
+"volx": 2.5
+},
+{
+"prox": 0.74,
+"vel1m": 3.0,
+"wick": true,
+"volx": 2.3
+},
+{
+"prox": 1.1,
+"vel1m": 14.5,
+"wick": false,
+"volx": 1.8
+},
+{
+"prox": 0.01,
+"vel1m": 0.0,
+"wick": false,
+"volx": 0.1
+}
+],
+"control": [
+{
+"prox": -0.0,
+"vel1m": 3.7,
+"wick": false,
+"volx": 10.2
+},
+{
+"prox": 0.32,
+"vel1m": 3.6,
+"wick": false,
+"volx": 2.5
+},
+{
+"prox": 0.15,
+"vel1m": 3.7,
+"wick": false,
+"volx": 0.4
+},
+{
+"prox": 0.58,
+"vel1m": 3.3,
+"wick": false,
+"volx": 3.9
+},
+{
+"prox": 0.67,
+"vel1m": 3.4,
+"wick": false,
+"volx": 1.5
+},
+{
+"prox": 1.01,
+"vel1m": 8.4,
+"wick": false,
+"volx": 11.3
+},
+{
+"prox": 0.11,
+"vel1m": 5.0,
+"wick": false,
+"volx": 1.2
+},
+{
+"prox": 0.68,
+"vel1m": 4.1,
+"wick": false,
+"volx": 2.6
+},
+{
+"prox": 0.57,
+"vel1m": 7.8,
+"wick": false,
+"volx": 3.4
+},
+{
+"prox": 0.18,
+"vel1m": 4.3,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.8,
+"vel1m": 5.6,
+"wick": true,
+"volx": 0.3
+},
+{
+"prox": 0.1,
+"vel1m": 3.4,
+"wick": false,
+"volx": 0.1
+},
+{
+"prox": 0.12,
+"vel1m": 3.2,
+"wick": false,
+"volx": 0.1
+},
+{
+"prox": 0.28,
+"vel1m": 4.4,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.51,
+"vel1m": 3.3,
+"wick": false,
+"volx": 0.9
+},
+{
+"prox": 0.43,
+"vel1m": 3.8,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.07,
+"vel1m": 3.1,
+"wick": false,
+"volx": 0.4
+},
+{
+"prox": 0.21,
+"vel1m": 3.9,
+"wick": false,
+"volx": 1.8
+},
+{
+"prox": 1.55,
+"vel1m": 4.7,
+"wick": true,
+"volx": 2.2
+},
+{
+"prox": 0.44,
+"vel1m": 5.4,
+"wick": true,
+"volx": 1.7
+},
+{
+"prox": 0.27,
+"vel1m": 3.2,
+"wick": true,
+"volx": 0.6
+},
+{
+"prox": 0.22,
+"vel1m": 3.0,
+"wick": true,
+"volx": 1.2
+},
+{
+"prox": 0.03,
+"vel1m": 4.1,
+"wick": true,
+"volx": 0.6
+},
+{
+"prox": 0.24,
+"vel1m": 8.2,
+"wick": true,
+"volx": 0.8
+},
+{
+"prox": -0.09,
+"vel1m": 3.1,
+"wick": false,
+"volx": 0.5
+},
+{
+"prox": 0.47,
+"vel1m": 3.0,
+"wick": true,
+"volx": 1.5
+},
+{
+"prox": 0.27,
+"vel1m": 3.1,
+"wick": false,
+"volx": 5.1
+},
+{
+"prox": 0.24,
+"vel1m": 3.6,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.11,
+"vel1m": 3.3,
+"wick": true,
+"volx": 0.3
+},
+{
+"prox": 0.51,
+"vel1m": 8.3,
+"wick": false,
+"volx": 10.9
+},
+{
+"prox": 0.21,
+"vel1m": 5.4,
+"wick": false,
+"volx": 3.7
+},
+{
+"prox": 0.1,
+"vel1m": 4.0,
+"wick": false,
+"volx": 2.5
+},
+{
+"prox": 1.73,
+"vel1m": 40.9,
+"wick": true,
+"volx": 7.0
+},
+{
+"prox": 0.61,
+"vel1m": 22.9,
+"wick": false,
+"volx": 2.0
+},
+{
+"prox": 0.12,
+"vel1m": 5.0,
+"wick": false,
+"volx": 0.5
+},
+{
+"prox": 0.11,
+"vel1m": 5.5,
+"wick": true,
+"volx": 0.5
+},
+{
+"prox": 0.24,
+"vel1m": 3.2,
+"wick": false,
+"volx": 3.2
+},
+{
+"prox": 3.65,
+"vel1m": 21.9,
+"wick": false,
+"volx": 3.8
+},
+{
+"prox": 0.33,
+"vel1m": 4.3,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.56,
+"vel1m": 4.6,
+"wick": false,
+"volx": 4.9
+},
+{
+"prox": 0.21,
+"vel1m": 5.6,
+"wick": true,
+"volx": 1.0
+},
+{
+"prox": -0.13,
+"vel1m": 3.3,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.49,
+"vel1m": 4.5,
+"wick": true,
+"volx": 2.0
+},
+{
+"prox": -0.0,
+"vel1m": 4.0,
+"wick": false,
+"volx": 0.4
+},
+{
+"prox": 0.34,
+"vel1m": 4.4,
+"wick": false,
+"volx": 1.6
+},
+{
+"prox": 0.35,
+"vel1m": 4.3,
+"wick": true,
+"volx": 6.0
+},
+{
+"prox": 0.47,
+"vel1m": 4.5,
+"wick": true,
+"volx": 2.6
+},
+{
+"prox": 0.44,
+"vel1m": 5.9,
+"wick": true,
+"volx": 0.3
+},
+{
+"prox": 0.7,
+"vel1m": 5.5,
+"wick": true,
+"volx": 3.2
+},
+{
+"prox": 0.22,
+"vel1m": 5.3,
+"wick": false,
+"volx": 1.9
+},
+{
+"prox": 0.31,
+"vel1m": 3.3,
+"wick": false,
+"volx": 5.4
+},
+{
+"prox": 0.75,
+"vel1m": 6.4,
+"wick": true,
+"volx": 3.5
+},
+{
+"prox": 0.51,
+"vel1m": 10.3,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.26,
+"vel1m": 4.5,
+"wick": false,
+"volx": 1.7
+},
+{
+"prox": 0.62,
+"vel1m": 4.1,
+"wick": false,
+"volx": 2.1
+},
+{
+"prox": 0.72,
+"vel1m": 6.9,
+"wick": true,
+"volx": 1.5
+},
+{
+"prox": -0.04,
+"vel1m": 3.4,
+"wick": false,
+"volx": 0.5
+},
+{
+"prox": 0.68,
+"vel1m": 7.8,
+"wick": false,
+"volx": 5.4
+},
+{
+"prox": 0.23,
+"vel1m": 6.6,
+"wick": false,
+"volx": 1.0
+},
+{
+"prox": 0.41,
+"vel1m": 3.2,
+"wick": true,
+"volx": 0.9
+},
+{
+"prox": 0.66,
+"vel1m": 7.6,
+"wick": false,
+"volx": 1.2
+},
+{
+"prox": 0.44,
+"vel1m": 4.1,
+"wick": true,
+"volx": 3.1
+},
+{
+"prox": 0.1,
+"vel1m": 3.2,
+"wick": true,
+"volx": 0.5
+},
+{
+"prox": 0.4,
+"vel1m": 4.6,
+"wick": true,
+"volx": 1.0
+},
+{
+"prox": 0.12,
+"vel1m": 5.6,
+"wick": false,
+"volx": 2.3
+},
+{
+"prox": 0.01,
+"vel1m": 4.6,
+"wick": false,
+"volx": 1.2
+},
+{
+"prox": 0.09,
+"vel1m": 3.0,
+"wick": true,
+"volx": 1.8
+},
+{
+"prox": 0.04,
+"vel1m": 4.0,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.01,
+"vel1m": 3.0,
+"wick": true,
+"volx": 0.9
+},
+{
+"prox": 0.06,
+"vel1m": 4.5,
+"wick": false,
+"volx": 1.0
+},
+{
+"prox": 0.28,
+"vel1m": 7.0,
+"wick": true,
+"volx": 0.9
+},
+{
+"prox": 0.35,
+"vel1m": 4.6,
+"wick": true,
+"volx": 2.1
+},
+{
+"prox": 0.2,
+"vel1m": 3.1,
+"wick": false,
+"volx": 8.4
+},
+{
+"prox": 0.55,
+"vel1m": 5.2,
+"wick": true,
+"volx": 2.8
+},
+{
+"prox": 0.06,
+"vel1m": 4.1,
+"wick": true,
+"volx": 0.4
+},
+{
+"prox": 0.55,
+"vel1m": 6.2,
+"wick": true,
+"volx": 0.1
+},
+{
+"prox": 0.17,
+"vel1m": 3.9,
+"wick": true,
+"volx": 2.5
+},
+{
+"prox": -0.41,
+"vel1m": 3.2,
+"wick": false,
+"volx": 13.0
+},
+{
+"prox": 0.09,
+"vel1m": 7.6,
+"wick": false,
+"volx": 0.5
+},
+{
+"prox": 1.61,
+"vel1m": 5.7,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.42,
+"vel1m": 4.5,
+"wick": false,
+"volx": 2.7
+},
+{
+"prox": 1.62,
+"vel1m": 9.5,
+"wick": true,
+"volx": 3.7
+},
+{
+"prox": 0.12,
+"vel1m": 4.7,
+"wick": false,
+"volx": 1.0
+},
+{
+"prox": 1.18,
+"vel1m": 11.9,
+"wick": true,
+"volx": 2.3
+},
+{
+"prox": 0.48,
+"vel1m": 6.7,
+"wick": true,
+"volx": 1.5
+},
+{
+"prox": 0.33,
+"vel1m": 10.6,
+"wick": false,
+"volx": 1.5
+},
+{
+"prox": 0.66,
+"vel1m": 7.5,
+"wick": false,
+"volx": 2.1
+},
+{
+"prox": 0.77,
+"vel1m": 7.1,
+"wick": false,
+"volx": 1.0
+},
+{
+"prox": 0.34,
+"vel1m": 3.5,
+"wick": false,
+"volx": 1.3
+},
+{
+"prox": -0.04,
+"vel1m": 3.4,
+"wick": true,
+"volx": 0.5
+},
+{
+"prox": 0.05,
+"vel1m": 3.5,
+"wick": false,
+"volx": 3.0
+},
+{
+"prox": 0.1,
+"vel1m": 7.5,
+"wick": false,
+"volx": 1.6
+},
+{
+"prox": 0.08,
+"vel1m": 3.8,
+"wick": false,
+"volx": 4.1
+},
+{
+"prox": 0.08,
+"vel1m": 6.3,
+"wick": false,
+"volx": 1.9
+},
+{
+"prox": 0.04,
+"vel1m": 3.2,
+"wick": false,
+"volx": 1.2
+},
+{
+"prox": 0.14,
+"vel1m": 17.1,
+"wick": false,
+"volx": 9.3
+},
+{
+"prox": 0.06,
+"vel1m": 6.5,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.8,
+"vel1m": 11.5,
+"wick": true,
+"volx": 1.8
+},
+{
+"prox": 0.14,
+"vel1m": 3.7,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.2,
+"vel1m": 6.2,
+"wick": true,
+"volx": 0.8
+},
+{
+"prox": 0.04,
+"vel1m": 3.2,
+"wick": true,
+"volx": 1.0
+},
+{
+"prox": 0.0,
+"vel1m": 3.2,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.06,
+"vel1m": 4.6,
+"wick": false,
+"volx": 1.5
+},
+{
+"prox": 0.05,
+"vel1m": 6.3,
+"wick": false,
+"volx": 0.6
+},
+{
+"prox": 0.14,
+"vel1m": 8.4,
+"wick": false,
+"volx": 4.4
+},
+{
+"prox": 0.16,
+"vel1m": 11.7,
+"wick": false,
+"volx": 3.2
+},
+{
+"prox": 0.03,
+"vel1m": 3.0,
+"wick": false,
+"volx": 0.5
+},
+{
+"prox": 0.0,
+"vel1m": 3.1,
+"wick": false,
+"volx": 1.4
+},
+{
+"prox": 0.03,
+"vel1m": 3.1,
+"wick": true,
+"volx": 0.3
+},
+{
+"prox": 0.07,
+"vel1m": 4.3,
+"wick": false,
+"volx": 3.4
+},
+{
+"prox": 0.27,
+"vel1m": 7.9,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 1.25,
+"vel1m": 15.9,
+"wick": true,
+"volx": 2.0
+},
+{
+"prox": -0.04,
+"vel1m": 3.4,
+"wick": false,
+"volx": 0.2
+},
+{
+"prox": 0.02,
+"vel1m": 3.0,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.72,
+"vel1m": 4.1,
+"wick": true,
+"volx": 1.2
+},
+{
+"prox": 4.83,
+"vel1m": 24.2,
+"wick": false,
+"volx": 2.6
+},
+{
+"prox": 0.91,
+"vel1m": 4.9,
+"wick": false,
+"volx": 4.6
+},
+{
+"prox": 0.28,
+"vel1m": 3.1,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.25,
+"vel1m": 5.8,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.48,
+"vel1m": 5.1,
+"wick": false,
+"volx": 2.4
+},
+{
+"prox": 0.51,
+"vel1m": 6.9,
+"wick": false,
+"volx": 2.4
+},
+{
+"prox": 0.15,
+"vel1m": 3.8,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.26,
+"vel1m": 5.8,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.49,
+"vel1m": 5.2,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": -0.11,
+"vel1m": 3.3,
+"wick": true,
+"volx": 0.7
+},
+{
+"prox": 0.65,
+"vel1m": 7.3,
+"wick": false,
+"volx": 11.5
+},
+{
+"prox": 0.14,
+"vel1m": 3.7,
+"wick": true,
+"volx": 0.4
+},
+{
+"prox": 0.5,
+"vel1m": 5.6,
+"wick": false,
+"volx": 2.2
+},
+{
+"prox": 0.74,
+"vel1m": 3.6,
+"wick": true,
+"volx": 3.2
+},
+{
+"prox": 0.01,
+"vel1m": 3.4,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.68,
+"vel1m": 8.3,
+"wick": true,
+"volx": 3.1
+},
+{
+"prox": 0.37,
+"vel1m": 6.6,
+"wick": false,
+"volx": 2.3
+},
+{
+"prox": 0.41,
+"vel1m": 4.7,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.16,
+"vel1m": 3.2,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.65,
+"vel1m": 12.7,
+"wick": false,
+"volx": 1.7
+},
+{
+"prox": 0.26,
+"vel1m": 3.2,
+"wick": false,
+"volx": 0.5
+},
+{
+"prox": 0.44,
+"vel1m": 3.5,
+"wick": false,
+"volx": 1.8
+},
+{
+"prox": 0.08,
+"vel1m": 3.0,
+"wick": false,
+"volx": 0.3
+},
+{
+"prox": 1.07,
+"vel1m": 17.8,
+"wick": false,
+"volx": 7.5
+},
+{
+"prox": 0.16,
+"vel1m": 3.5,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.05,
+"vel1m": 3.9,
+"wick": false,
+"volx": 0.3
+},
+{
+"prox": 0.21,
+"vel1m": 5.0,
+"wick": false,
+"volx": 1.9
+},
+{
+"prox": 0.05,
+"vel1m": 3.2,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.29,
+"vel1m": 5.6,
+"wick": false,
+"volx": 6.3
+},
+{
+"prox": 0.59,
+"vel1m": 8.3,
+"wick": false,
+"volx": 4.1
+},
+{
+"prox": 0.16,
+"vel1m": 3.2,
+"wick": false,
+"volx": 0.6
+},
+{
+"prox": 0.38,
+"vel1m": 5.7,
+"wick": false,
+"volx": 2.5
+},
+{
+"prox": 0.58,
+"vel1m": 5.6,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.32,
+"vel1m": 5.3,
+"wick": false,
+"volx": 3.0
+},
+{
+"prox": 0.04,
+"vel1m": 3.5,
+"wick": false,
+"volx": 2.9
+},
+{
+"prox": 0.02,
+"vel1m": 3.3,
+"wick": false,
+"volx": 1.9
+},
+{
+"prox": 0.04,
+"vel1m": 3.2,
+"wick": true,
+"volx": 2.5
+},
+{
+"prox": 0.11,
+"vel1m": 5.3,
+"wick": false,
+"volx": 3.4
+},
+{
+"prox": 0.17,
+"vel1m": 8.6,
+"wick": false,
+"volx": 1.9
+},
+{
+"prox": 0.03,
+"vel1m": 11.3,
+"wick": true,
+"volx": 0.9
+},
+{
+"prox": -0.04,
+"vel1m": 3.6,
+"wick": false,
+"volx": 1.2
+},
+{
+"prox": 0.06,
+"vel1m": 3.3,
+"wick": false,
+"volx": 1.8
+},
+{
+"prox": 0.08,
+"vel1m": 5.6,
+"wick": false,
+"volx": 3.5
+},
+{
+"prox": 0.33,
+"vel1m": 19.0,
+"wick": false,
+"volx": 2.5
+},
+{
+"prox": 0.49,
+"vel1m": 7.5,
+"wick": false,
+"volx": 1.4
+},
+{
+"prox": 0.09,
+"vel1m": 4.6,
+"wick": false,
+"volx": 0.9
+},
+{
+"prox": 0.13,
+"vel1m": 3.1,
+"wick": false,
+"volx": 1.0
+},
+{
+"prox": 0.22,
+"vel1m": 3.2,
+"wick": false,
+"volx": 1.0
+},
+{
+"prox": 0.27,
+"vel1m": 3.3,
+"wick": false,
+"volx": 1.4
+},
+{
+"prox": 2.11,
+"vel1m": 22.1,
+"wick": false,
+"volx": 4.5
+},
+{
+"prox": 2.44,
+"vel1m": 4.3,
+"wick": true,
+"volx": 1.6
+},
+{
+"prox": 3.05,
+"vel1m": 21.7,
+"wick": true,
+"volx": 2.5
+},
+{
+"prox": -0.1,
+"vel1m": 3.8,
+"wick": false,
+"volx": 0.6
+},
+{
+"prox": 0.02,
+"vel1m": 6.4,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.86,
+"vel1m": 9.6,
+"wick": false,
+"volx": 1.4
+},
+{
+"prox": 0.67,
+"vel1m": 10.1,
+"wick": false,
+"volx": 1.3
+},
+{
+"prox": 0.41,
+"vel1m": 5.2,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.47,
+"vel1m": 4.8,
+"wick": true,
+"volx": 1.5
+},
+{
+"prox": 3.56,
+"vel1m": 32.0,
+"wick": false,
+"volx": 12.0
+},
+{
+"prox": 0.66,
+"vel1m": 7.0,
+"wick": false,
+"volx": 3.1
+},
+{
+"prox": 0.23,
+"vel1m": 3.9,
+"wick": true,
+"volx": 1.6
+},
+{
+"prox": 0.91,
+"vel1m": 7.5,
+"wick": false,
+"volx": 2.4
+},
+{
+"prox": 0.57,
+"vel1m": 3.6,
+"wick": true,
+"volx": 1.7
+},
+{
+"prox": 0.16,
+"vel1m": 3.3,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.62,
+"vel1m": 13.0,
+"wick": false,
+"volx": 33.2
+},
+{
+"prox": 0.55,
+"vel1m": 4.9,
+"wick": true,
+"volx": 1.3
+},
+{
+"prox": 0.21,
+"vel1m": 4.6,
+"wick": false,
+"volx": 1.8
+},
+{
+"prox": 0.23,
+"vel1m": 4.9,
+"wick": false,
+"volx": 2.9
+},
+{
+"prox": 0.23,
+"vel1m": 6.3,
+"wick": true,
+"volx": 1.5
+},
+{
+"prox": 0.21,
+"vel1m": 3.2,
+"wick": false,
+"volx": 3.4
+},
+{
+"prox": 0.31,
+"vel1m": 8.3,
+"wick": false,
+"volx": 0.9
+},
+{
+"prox": 0.16,
+"vel1m": 3.2,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.06,
+"vel1m": 6.6,
+"wick": false,
+"volx": 1.0
+},
+{
+"prox": 0.86,
+"vel1m": 5.2,
+"wick": true,
+"volx": 1.6
+},
+{
+"prox": 0.47,
+"vel1m": 3.1,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.69,
+"vel1m": 3.8,
+"wick": true,
+"volx": 1.4
+},
+{
+"prox": 0.0,
+"vel1m": 3.8,
+"wick": true,
+"volx": 0.2
+},
+{
+"prox": 0.26,
+"vel1m": 3.1,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.24,
+"vel1m": 4.6,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.43,
+"vel1m": 7.6,
+"wick": false,
+"volx": 0.5
+},
+{
+"prox": 0.56,
+"vel1m": 3.9,
+"wick": true,
+"volx": 2.8
+},
+{
+"prox": 1.0,
+"vel1m": 9.2,
+"wick": false,
+"volx": 2.5
+},
+{
+"prox": 0.13,
+"vel1m": 3.2,
+"wick": false,
+"volx": 0.9
+},
+{
+"prox": 0.32,
+"vel1m": 4.1,
+"wick": true,
+"volx": 1.1
+},
+{
+"prox": 0.47,
+"vel1m": 7.9,
+"wick": false,
+"volx": 1.8
+},
+{
+"prox": 0.34,
+"vel1m": 6.0,
+"wick": false,
+"volx": 1.2
+},
+{
+"prox": 1.44,
+"vel1m": 14.5,
+"wick": false,
+"volx": 4.0
+},
+{
+"prox": 0.5,
+"vel1m": 5.2,
+"wick": false,
+"volx": 1.0
+},
+{
+"prox": -0.54,
+"vel1m": 3.1,
+"wick": true,
+"volx": 0.5
+},
+{
+"prox": 0.38,
+"vel1m": 4.0,
+"wick": true,
+"volx": 0.8
+},
+{
+"prox": 0.65,
+"vel1m": 3.3,
+"wick": true,
+"volx": 2.9
+},
+{
+"prox": 0.37,
+"vel1m": 4.9,
+"wick": true,
+"volx": 3.0
+},
+{
+"prox": 0.64,
+"vel1m": 15.7,
+"wick": false,
+"volx": 0.9
+},
+{
+"prox": 0.08,
+"vel1m": 3.0,
+"wick": true,
+"volx": 0.9
+},
+{
+"prox": -0.0,
+"vel1m": 3.4,
+"wick": true,
+"volx": 1.1
+},
+{
+"prox": 0.21,
+"vel1m": 3.1,
+"wick": false,
+"volx": 1.6
+},
+{
+"prox": 0.25,
+"vel1m": 3.3,
+"wick": false,
+"volx": 2.5
+},
+{
+"prox": 0.42,
+"vel1m": 3.1,
+"wick": false,
+"volx": 4.0
+},
+{
+"prox": 0.19,
+"vel1m": 5.7,
+"wick": false,
+"volx": 0.9
+},
+{
+"prox": 0.06,
+"vel1m": 3.3,
+"wick": false,
+"volx": 0.4
+},
+{
+"prox": 0.12,
+"vel1m": 4.1,
+"wick": true,
+"volx": 0.5
+},
+{
+"prox": 0.15,
+"vel1m": 3.6,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.22,
+"vel1m": 3.5,
+"wick": false,
+"volx": 6.2
+},
+{
+"prox": 0.11,
+"vel1m": 3.2,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.2,
+"vel1m": 5.3,
+"wick": false,
+"volx": 8.0
+},
+{
+"prox": 0.1,
+"vel1m": 3.5,
+"wick": false,
+"volx": 0.3
+},
+{
+"prox": 0.14,
+"vel1m": 3.9,
+"wick": false,
+"volx": 0.6
+},
+{
+"prox": 0.37,
+"vel1m": 4.1,
+"wick": false,
+"volx": 9.5
+},
+{
+"prox": 0.11,
+"vel1m": 3.0,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.26,
+"vel1m": 7.8,
+"wick": true,
+"volx": 3.6
+},
+{
+"prox": 0.11,
+"vel1m": 7.7,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.12,
+"vel1m": 4.0,
+"wick": false,
+"volx": 0.9
+},
+{
+"prox": 0.59,
+"vel1m": 6.3,
+"wick": false,
+"volx": 1.6
+},
+{
+"prox": 0.8,
+"vel1m": 4.2,
+"wick": true,
+"volx": 4.1
+},
+{
+"prox": 0.83,
+"vel1m": 3.3,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.12,
+"vel1m": 9.3,
+"wick": false,
+"volx": 2.2
+},
+{
+"prox": 0.71,
+"vel1m": 9.7,
+"wick": false,
+"volx": 1.5
+},
+{
+"prox": 0.04,
+"vel1m": 3.1,
+"wick": false,
+"volx": 1.6
+},
+{
+"prox": 0.02,
+"vel1m": 4.3,
+"wick": true,
+"volx": 1.1
+},
+{
+"prox": 0.02,
+"vel1m": 3.8,
+"wick": false,
+"volx": 2.2
+},
+{
+"prox": 0.3,
+"vel1m": 7.1,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.2,
+"vel1m": 4.9,
+"wick": false,
+"volx": 1.1
+},
+{
+"prox": 0.13,
+"vel1m": 8.9,
+"wick": false,
+"volx": 2.8
+},
+{
+"prox": 0.17,
+"vel1m": 5.5,
+"wick": false,
+"volx": 0.0
+},
+{
+"prox": 0.37,
+"vel1m": 4.4,
+"wick": true,
+"volx": 3.5
+},
+{
+"prox": 0.92,
+"vel1m": 10.0,
+"wick": false,
+"volx": 4.7
+},
+{
+"prox": 1.11,
+"vel1m": 12.3,
+"wick": false,
+"volx": 3.4
+},
+{
+"prox": 0.27,
+"vel1m": 4.5,
+"wick": false,
+"volx": 0.8
+},
+{
+"prox": 0.49,
+"vel1m": 3.4,
+"wick": true,
+"volx": 0.9
+},
+{
+"prox": 0.46,
+"vel1m": 10.2,
+"wick": false,
+"volx": 2.0
+},
+{
+"prox": 0.93,
+"vel1m": 6.9,
+"wick": false,
+"volx": 4.8
+},
+{
+"prox": 0.44,
+"vel1m": 4.6,
+"wick": true,
+"volx": 4.0
+},
+{
+"prox": 0.28,
+"vel1m": 3.9,
+"wick": false,
+"volx": 0.7
+},
+{
+"prox": 0.33,
+"vel1m": 4.5,
+"wick": true,
+"volx": 2.0
+},
+{
+"prox": 0.27,
+"vel1m": 3.2,
+"wick": true,
+"volx": 1.6
+}
+]
+}

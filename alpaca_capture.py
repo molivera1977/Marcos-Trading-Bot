@@ -49,6 +49,7 @@ except Exception:
     EASTERN = timezone(timedelta(hours=-4))  # EDT fallback (mirrors recorder.py)
 
 import requests
+import urllib.request as _ureq   # 8/10: actives leg NameError'd since ship — alias was never defined
 
 try:
     import websocket    # websocket-client (NOT the alpaca-py SDK — one tiny proven dep)
@@ -83,6 +84,20 @@ def log(m):   print("[%s ALP] %s" % (et_now().strftime("%H:%M:%S"), m), flush=Tr
 # ── shared state ─────────────────────────────────────────────────────────────
 _lock = threading.Lock()
 _bars = {}          # sym -> {bucket_epoch: {o,h,l,c,v}}   (10s only — the comparison unit)
+# 8/6 (Marcos: "i want 5 second bars saved for tomorrow's trading day" — the WYHG 5s-vs-10s
+# charts): parallel 5s buckets, RECORD-ONLY. No detector or gate consumes these yet; Friday
+# evening replays the day's trades on both feeds and counts divergent fires before anything
+# trades on 5s. Kill: CAPTURE_5S=0.
+CAPTURE_5S = os.environ.get("CAPTURE_5S", "1") == "1"
+_bars5 = {}         # sym -> {bucket_epoch: {o,h,l,c,v}}   (5s, record-only)
+# 8/7 (#39, Marcos: "the seams are there we just need better glasses"): 1s buckets for the
+# TOP MOVERS ONLY (resolution is a leader privilege — 8/7 doctrine). Roster-capped via _hot1
+# (first CAPTURE_1S_TOP names of the ranked roster: kev picks + held + hottest watchlist).
+# RECORD-ONLY, same doctrine as 5s. Kill: CAPTURE_1S=0.
+CAPTURE_1S    = os.environ.get("CAPTURE_1S", "1") == "1"
+CAPTURE_1S_TOP = int(os.environ.get("CAPTURE_1S_TOP", "15"))
+_bars1 = {}         # sym -> {epoch_sec: {o,h,l,c,v}}   (1s, record-only, hot set only)
+_hot1  = set()      # refreshed with the roster mirror
 _vwap = {}          # sym -> {"num":Σp*s, "den":Σs, "series":[(ts,vwap)]} — anchored at the 4:00
                     # premarket open by construction: state resets at day roll, every trade counts
 _subscribed = set()
@@ -109,6 +124,7 @@ def ingest(sym, price, size, ts):
     try:
         _last_trade[0] = time.time()
         k = int(ts) // 10 * 10                     # identical bucketing to recorder/B12
+        k5 = int(ts) // 5 * 5                      # 8/6: parallel 5s bucket (record-only)
         with _lock:
             d = _bars.setdefault(sym, {})
             b = d.get(k)
@@ -119,6 +135,27 @@ def ingest(sym, price, size, ts):
                 if price < b["l"]: b["l"] = price
                 b["c"] = price
                 b["v"] += size
+            if CAPTURE_5S:
+                d5 = _bars5.setdefault(sym, {})
+                b5 = d5.get(k5)
+                if b5 is None:
+                    d5[k5] = {"o": price, "h": price, "l": price, "c": price, "v": size}
+                else:
+                    if price > b5["h"]: b5["h"] = price
+                    if price < b5["l"]: b5["l"] = price
+                    b5["c"] = price
+                    b5["v"] += size
+            if CAPTURE_1S and sym in _hot1:
+                k1 = int(ts)
+                d1 = _bars1.setdefault(sym, {})
+                b1 = d1.get(k1)
+                if b1 is None:
+                    d1[k1] = {"o": price, "h": price, "l": price, "c": price, "v": size}
+                else:
+                    if price > b1["h"]: b1["h"] = price
+                    if price < b1["l"]: b1["l"] = price
+                    b1["c"] = price
+                    b1["v"] += size
             # exact trade-weighted VWAP — every print carries its own size (no counter math)
             v = _vwap.setdefault(sym, {"num": 0.0, "den": 0.0, "series": []})
             v["num"] += price * size
@@ -163,6 +200,8 @@ def roster_targets():
     if isinstance(d, dict): add(d.get("tickers"))
     if SYMBOL_PROBE:
         add(_actives["names"])                     # cached ranking; refreshed in background
+    if CAPTURE_1S:
+        _hot1.clear(); _hot1.update(out[:CAPTURE_1S_TOP])   # 8/7 (#39): 1s = top of the ranked roster
     return out[:_cap_eff[0]]
 
 _actives = {"ts": 0.0, "names": [], "busy": False}
@@ -257,6 +296,8 @@ def sync_roster(ws):
 
 # ── persistence (mirrors recorder.persist: gzip bars_bulk, watermark-on-200) ─
 _shipped    = {}    # sym -> last bar bucket persisted
+_shipped5   = {}    # 8/6: 5s series watermark
+_shipped1   = {}    # 8/7 (#39): 1s series watermark
 _vw_shipped = {}    # sym -> last vwap-series ts persisted
 
 def build_payload(final=False):
@@ -274,6 +315,24 @@ def build_payload(final=False):
             if items:
                 snap10[t] = items
                 marks10[t] = items[-1][0]
+        snap5, marks5 = {}, {}
+        if CAPTURE_5S:
+            cutoff5 = time.time() if final else (int(time.time()) // 5 * 5)
+            for t, bk in _bars5.items():
+                lo = _shipped5.get(t, -1)
+                items = sorted((k, b) for k, b in bk.items() if k > lo and (final or k + 5 <= cutoff5))
+                if items:
+                    snap5[t] = items
+                    marks5[t] = items[-1][0]
+        snap1, marks1 = {}, {}
+        if CAPTURE_1S:
+            cutoff1 = time.time() if final else int(time.time())
+            for t, bk in _bars1.items():
+                lo = _shipped1.get(t, -1)
+                items = sorted((k, b) for k, b in bk.items() if k > lo and (final or k + 1 <= cutoff1))
+                if items:
+                    snap1[t] = items
+                    marks1[t] = items[-1][0]
         vwseries = {}
         for t, v in _vwap.items():
             lo = _vw_shipped.get(t, -1.0)
@@ -288,6 +347,18 @@ def build_payload(final=False):
              "open": str(b["o"]), "high": str(b["h"]), "low": str(b["l"]), "close": str(b["c"]),
              "volume": str(int(b["v"]))}
             for k, b in items]
+    for t, items in snap1.items():
+        series["%s~ALP1S" % t] = [
+            {"time": datetime.fromtimestamp(k, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
+             "open": str(b["o"]), "high": str(b["h"]), "low": str(b["l"]), "close": str(b["c"]),
+             "volume": str(int(b["v"]))}
+            for k, b in items]
+    for t, items in snap5.items():
+        series["%s~ALP5S" % t] = [
+            {"time": datetime.fromtimestamp(k, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
+             "open": str(b["o"]), "high": str(b["h"]), "low": str(b["l"]), "close": str(b["c"]),
+             "volume": str(int(b["v"]))}
+            for k, b in items]
     for t, ser in vwseries.items():
         series["%s~ALPVWAP" % t] = [
             {"time": datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
@@ -295,7 +366,7 @@ def build_payload(final=False):
              "low": str(round(vw, 6)), "volume": "0"}
             for ts, vw in ser]
     return {"date": et_now().strftime("%Y-%m-%d"), "series": series,
-            "source": "alpaca_capture"}, (marks10, marksvw)
+            "source": "alpaca_capture"}, (marks10, marksvw, marks5, marks1)
 
 def persist(reason="periodic", final=False):
     try:
@@ -312,6 +383,10 @@ def persist(reason="periodic", final=False):
             with _lock:               # commit watermarks only on confirmed store write
                 _shipped.update(marks[0])
                 _vw_shipped.update(marks[1])
+                if len(marks) > 2:
+                    _shipped5.update(marks[2])
+                if len(marks) > 3:
+                    _shipped1.update(marks[3])   # 8/7 (#39): commit-on-200, same doctrine
         log("persist(%s): %d series -> %d" % (reason, len(pl["series"]), r.status_code))
         return ok
     except Exception as e:
@@ -357,6 +432,20 @@ def hot_snapshot(sym, n):
     return {"sym": sym,
             "bars": [[k, b["o"], b["h"], b["l"], b["c"], b["v"]] for k, b in items],
             "vwap": vw, "day_bars": total, "subscribed": subbed,
+            "server_ts": time.time()}
+
+def hot5_snapshot(sym, n):
+    """8/10 (the lagged-5s lesson: the arm/seam/confirm read the dashboard ARCHIVE, 90-180s
+    stale, and verticals died inside the lag): last n CLOSED 5s buckets from the in-memory
+    store — same contract as hot_snapshot, 5s flavor. Record-only store, so coverage is the
+    capture roster; absent sym returns empty bars (caller falls back)."""
+    n = max(1, min(int(n), HOT_MAX_N))
+    cut = int(time.time()) // 5 * 5
+    with _lock:
+        bk = _bars5.get(sym) or {}
+        items = sorted((k, b) for k, b in bk.items() if k + 5 <= cut)[-n:]
+    return {"sym": sym,
+            "bars": [[k, b["o"], b["h"], b["l"], b["c"], b["v"]] for k, b in items],
             "server_ts": time.time()}
 
 _chart_cache = {}   # (kind, sym) -> (ts, payload)  — 600s TTL, reader-burst shield
@@ -405,6 +494,15 @@ def _hot_route(path, params, auth_ok):
         except Exception:
             n = 90
         return 200, hot_snapshot(sym, n)
+    if path == "/hot5":
+        sym = (params.get("sym") or "").upper()
+        if not _SYM_RE.match(sym):
+            return 400, {"error": "bad sym"}
+        try:
+            n = int(params.get("n", "120"))
+        except Exception:
+            n = 120
+        return 200, hot5_snapshot(sym, n)
     if path in ("/daily", "/min1"):
         sym = (params.get("sym") or "").upper()
         if not _SYM_RE.match(sym):

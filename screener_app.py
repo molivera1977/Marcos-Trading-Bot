@@ -572,6 +572,8 @@ html[data-theme=light]{color-scheme:light;
 border:1px solid var(--border);background:var(--bg2);color:var(--fg);font-size:19px;line-height:1;cursor:pointer;
 opacity:.9;box-shadow:0 2px 8px rgba(0,0,0,.35)}
 #themeBtn:hover{opacity:1}
+/* strips scroll their JS-built nowrap tables on phones (kept from the old iOS block) */
+#rejectStrip,#shadowStrip{overflow-x:auto;-webkit-overflow-scrolling:touch}
 </style>
 <script>
 (function(){
@@ -2281,7 +2283,7 @@ def premarket_dashboard():
             "tr:hover td{background:var(--bg4b)}"
             ".num{font-variant-numeric:tabular-nums}"
             ".tk{color:var(--blue);text-decoration:none;font-weight:600}.tk:hover{text-decoration:underline}"
-            ".kev-badge{font-size:10px;color:var(--yellow);border:1px solid var(--yellow)55;border-radius:6px;"
+            ".kev-badge{font-size:10px;color:var(--yellow);border:1px solid color-mix(in srgb, var(--yellow) 33%, transparent);border-radius:6px;"
             "padding:1px 6px;margin-left:6px;vertical-align:1px}"
             ".footer{padding:16px 24px;color:var(--muted4);font-size:11px}"
             "@media (max-width:700px){.stats{grid-template-columns:repeat(2,1fr);padding:14px 12px 0}"

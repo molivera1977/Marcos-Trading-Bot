@@ -1110,3 +1110,27 @@ master table + completeness check + consumer-ladder verdicts, daily, with Marcos
   would a REAL 2-second 3.97 print pass it, or would we refuse a legitimate vertical exit?
   Needs a replay check against Monday's SCKT 5s/1s tape before the trial.
 - Transcript archived: data/kev/tiktok/7672424505150606605_SCKT_war_story_20260810.vtt
+
+## 2026-08-11 ~02:00 — THREE MORE KEV TIKTOK LESSONS (Marcos's links) — heavy doctrine night
+1) SCKT FULL BREAKDOWN (7672464964568796430): timeline = AUD 8:00am VWAP-pullback base hit ->
+   LRHC small bases -> 9:00am SCKT squeeze .30->1.00 on APPLE-scanner distribution NEWS -> waited
+   for "a one minute pullback to VWAP," punched 1.24 for HOD-break over 1.34 -> 1.20->3.97 vertical
+   in <5s -> managed by "raising stops to 1-minute lows," rode to ~2.50; exited all "before the
+   bell because I don't want to get stuck in the halty mess"; after the open the name "turned into
+   a disaster." ==> [PREMARKET EVIDENCE for Tuesday's PRE sitting]: Kev's biggest trade of the
+   month was ENTIRELY premarket (8:00-9:25 arc), and he deliberately FLATTENED BEFORE 9:30 —
+   matching our PRE 07:00-9:25-flatten shape exactly. Also: NEWS was the fuel (catalyst awareness
+   = named open hole). [Reclaim Architect] entry = 1-min VWAP pullback + HOD break, again.
+2) MTEN HALT-BAND PLAY (7672469812320242957): his live halt-lane doctrine in sequence — "need to
+   see the halt band get RAISED," "1.41/1.48 are the new halt levels. WE HAVE DISTANCE NOW. That
+   is KEY," HALF SIZE for the break, re-entry off VWAP pullback, full exit on "topping tail
+   rejection off the high" before the reversal. ==> [Halt lane/Tuesday]: distance-to-halt-band as
+   an entry CONDITION and band-raise as the arm trigger — direct spec language for our arm; our
+   half-size crown-lane sizing matches his; topping-tail = an exit trigger we don't model.
+3) SCKT LIVE CLIP (7672476799023992077): "I got a lot filled at 1.60, but I got NOTHING FILLED
+   at 2 or 3 or 4" during the vertical. ==> [Wind Tunnel/Execution Surgeon — TRIAL-CRITICAL]:
+   in a real 5s vertical, sell orders through the move DON'T FILL; DRY_RUN's fill assumptions on
+   verticals are optimistic by construction. Before the $1,000 trial: stress the sim's fill model
+   against Monday's SCKT 1s/5s tape; expect capture-rate haircut on vertical exits.
+- All transcripts archived under data/kev/tiktok/. Officers touched: Kev Librarian, Reclaim
+  Architect, Rocket Rider, Halt lane owners, Wind Tunnel, Execution Surgeon, Opening Bell (PRE).

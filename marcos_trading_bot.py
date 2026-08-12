@@ -10199,13 +10199,22 @@ def main():
                                    for b in _d10pm.values())
                 except Exception:
                     pass
-                if (entry[3] in PRE_LANES and _pre_day["n"] < PRE_MAX_TRADES
+                if (entry[3] in PRE_LANES
+                        and (_pre_day["n"] < PRE_MAX_TRADES or _is_leader(entry[0]))
                         and _pm_dvol >= PRE_MIN_DVOL and _hm_pm < PRE_FLAT_HHMM):
+                    # 8/12 CROWN EXEMPTION (Marcos: "if a name gets crowned, it doesn't count
+                    # against the 10"): meritocracy extended to the SESSION cap — crowns pass it
+                    # AND don't consume slots (see worker recheck); the cap rations the unproven.
+                    if _is_leader(entry[0]) and _pre_day["n"] >= PRE_MAX_TRADES:
+                        _log_decision(entry[0], "crown_pre_exempt", price=entry[1],
+                                      slots_used=_pre_day["n"])
                     # 8/12 CAP RAISE (Marcos verdict: hidden 5 + PRE 8; era kill-test cap_cost_
                     # 20260812): slots beyond the OLD caps get their own row so Friday grades
                     # the marginal cohort in isolation. Busy window = 8:30-9:25 (Marcos's read,
                     # rows-verified: 11/12 conversions 08:52-09:22).
-                    if _pre_day["n"] >= 6:
+                    if _pre_day["n"] >= 6 and not _is_leader(entry[0]):
+                        # auditor note 2 (10th): crowns consume no slot — stamping them would
+                        # pollute the marginal cohort Friday grades
                         _log_decision(entry[0], "cap_raise_slot", price=entry[1],
                                       cap="pre8", slot=_pre_day["n"] + 1)
                     # F1a (7/26 exit review): NO conversions in [PRE_FLAT_HHMM, 09:30) — a 9:26 fire
@@ -10813,10 +10822,15 @@ def main():
                     _pt_day = datetime.now(EASTERN).strftime("%Y-%m-%d")
                     if _pre_day.get("d") != _pt_day:
                         _pre_day["d"] = _pt_day; _pre_day["n"] = 0
-                    if _pre_day["n"] >= PRE_MAX_TRADES:
+                    if _is_leader(ticker):
+                        _pre_ok = True        # 8/12 crown exemption: passes cap, consumes NO slot
+                    elif _pre_day["n"] >= PRE_MAX_TRADES:
                         _pre_ok = False
                     else:
                         _pre_day["n"] += 1; _pre_ok = True
+                        extra["_pre_slot_charged"] = True   # auditor blocker (10th): only a trade
+                        # that CHARGED a slot may refund one — a failed CROWN order must not
+                        # decrement a slot some non-crown trade paid for
                 if not _pre_ok:
                     print(f"🎫 {ticker} PRE cap reached at execution (race) — refunding, no trade")
                     _log_decision(ticker, "pre_capped_at_exec", price=entry_price)
@@ -10836,8 +10850,10 @@ def main():
                 _log_decision(ticker, "order_failed", price=entry_price)
                 _slot_refund(ticker, entry_type)   # 8/7 (#34): failed order refunds the lane slot
                 with trade_lock:
-                    if (extra or {}).get("_pre_convert") and _pre_day.get("n", 0) > 0:
-                        _pre_day["n"] -= 1        # 8/7 (#34): and the PRE ticket — no fill, no charge
+                    if (extra or {}).get("_pre_slot_charged") and _pre_day.get("n", 0) > 0:
+                        _pre_day["n"] -= 1        # 8/7 (#34): and the PRE ticket — no fill, no
+                        # charge. 8/12 auditor blocker: gated on _pre_slot_charged (crowns never
+                        # charge, so they never refund — the non-crown ration stays honest)
                     settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return

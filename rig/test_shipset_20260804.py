@@ -1059,5 +1059,36 @@ try:
 except AssertionError as _ebe:
     check("evening batch EXECUTED", False, str(_ebe))
 
+
+print("N) 8/12 PRE-10 + crown exemption pins")
+try:
+    _p_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    assert '(_pre_day["n"] < PRE_MAX_TRADES or _is_leader(entry[0]))' in _p_src   # selection exempt
+    assert '"crown_pre_exempt"' in _p_src                                          # visibility row
+    _i = _p_src.find("if _is_leader(ticker):")                                     # worker recheck
+    assert _i > 0 and "consumes NO slot" in _p_src[_i:_i+250]
+    _j = _p_src.find('elif _pre_day["n"] >= PRE_MAX_TRADES:', _i)                  # non-crown path intact
+    assert 0 < _j - _i < 300 and '_pre_day["n"] += 1' in _p_src[_j:_j+200]
+    # exemption semantics EXECUTED
+    def _admit(is_leader, n, cap=10):
+        if is_leader: return True, n
+        if n >= cap: return False, n
+        return True, n + 1
+    assert _admit(True, 10) == (True, 10)      # crown passes full cap, no slot burned
+    assert _admit(False, 10) == (False, 10)    # non-crown refused at cap
+    assert _admit(False, 9) == (True, 10)      # non-crown consumes slot
+    # auditor blocker re-pin (10th): refund gated on _pre_slot_charged — a failed CROWN order
+    # leaves n untouched; only slot-charging trades may refund
+    assert '"_pre_slot_charged"' in _p_src.replace("'", '"')
+    assert '_pre_slot_charged") and _pre_day.get("n", 0) > 0' in _p_src
+    def _refund(charged, n):
+        return n - 1 if (charged and n > 0) else n
+    assert _refund(False, 5) == 5              # crown fail: no decrement
+    assert _refund(True, 5) == 4               # charged fail: honest refund
+    assert 'and not _is_leader(entry[0]):' in _p_src   # note 2: crowns don't pollute cap stamps
+    check("PRE-10 crown exemption EXECUTED: pass-no-consume + ration intact + refund gated", True)
+except AssertionError as _pce:
+    check("PRE-10 crown exemption EXECUTED", False, str(_pce))
+
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

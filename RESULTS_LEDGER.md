@@ -1285,3 +1285,15 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - Sitting tally, full night: #1 withdrawn (gate already correct), #2 refuted (2 kill-tests),
   #3A shipped (summit sanity), #3B registered (#48), halt/seam/PRE/drill verdicts above.
   Officers: all standing rooms touched; 4 Auditor convenings tonight, artifacts in-transcript.
+
+## 2026-08-12 ~00:20 — SHIPPED: REREAD LATENCY STAMPS (Marcos: "add the stamps")
+- Every posted re-read now writes a durable reread_latency row: detect->posted secs (first-
+  detect-wins across probe cycles, so cap-wait + queue time are IN the number), queue_pos,
+  queue_len, trigger. Latency doctrine complete for the reader: budget question now answerable
+  from rows forever, immune to log rotation. Read behavior byte-identical (bookkeeping only).
+- Auditor GO (5th convening of the night): growth bounded + wiped by daily execv; re-fire
+  semantics correct per map-version episode; nothing new can raise in the fire loop. Ledger
+  note (auditor): queue_pos/len count pre-dedup entries — slight congestion overstatement,
+  fine for distributions, don't use raw for Friday's parallel-reads case math.
+- FRIDAY: grade the week's stamp distribution; if the single-file queue costs real minutes on
+  busy tape, that row-set is the case for parallel reads. Pinned; suite ALL GREEN.

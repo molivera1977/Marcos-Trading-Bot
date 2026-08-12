@@ -1346,3 +1346,14 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   consumers of returns), CSV logging lives outside the email path, DRY_RUN load-order safe.
   Pinned (4 gates + critical ungated + env semantics), suite ALL GREEN. Bot deployed asleep,
   book flat in-turn; boots 03:55 quota-safe.
+
+## 2026-08-12 ~01:10 — SHIPPED: CROWN PIN IN 1S ROSTER (Marcos: "pin the crowned names ... now")
+- Cause (Quartermaster 1s first-look): live-watching ranking rotated crowned PLAG OUT of the
+  15-name 1s set for its entire +141% afternoon (~295 sparse bars). Fix: capture fetches today's
+  leader_armed rows each 5-min roster refresh and pins crowns FIRST in _hot1; crowns also added
+  to the subscription union; fail-open = prior behavior. Auditor GO (8th convening, 8/8): held
+  names un-evictable (order-verified), 01:00 deploy = zero-loss window (capture idle, 04:00 boot
+  rehydrates), limit belt taken (50000, tail-slice would drop MORNING crowns — PLAG shape).
+  Ledger notes: cap-pressure crown-subscription edge (move add earlier if _cap_eff ever trims);
+  all-crown >15 case accepted by doctrine ("resolution is a leader privilege"). Pinned, ALL GREEN.
+- Leader meritocracy now extends to data capture: the winners keep their glasses.

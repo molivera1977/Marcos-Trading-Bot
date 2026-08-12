@@ -399,6 +399,19 @@ CONFIDENCE CALIBRATION (8/4 — 416 prior reads used HIGH exactly 0 times; that 
 Return ONLY this JSON (no prose, no code fence). break_level is REQUIRED (never null); use null only for optional fields that don't apply:
 {{"ticker":"{ticker}","setup":"base-breakout|uptrend-coil|pullback|downtrend|falling-knife|parabolic|chop","verdict":"TAKE|SKIP|MARGINAL","confidence":"HIGH|MEDIUM|LOW","break_level":0.00,"confirm_level":0.00,"next_supply":0.00,"stop_level":0.00,"targets":[0.00],"room_rr":0.0,"reason":"one concrete sentence citing the structure and the level"}}"""
 
+def _summit_sane(targets, live):
+    """8/12 SUMMIT SANITY (PLAG 8/11: vision returned the STALE morning level 1.62 on a $4.50
+    tape; "map_already_exhausted" was TRUE for garbage too, and blue-sky posted it 3x — chart
+    lanes read a backward ceiling and stood down through a +141% run). A summit map may only
+    post if its target IS the summit: max target within 10% of the live tape. Anything lower is
+    a stale/garbled read -> discard; sparse map = valid information."""
+    try:
+        tmax = max(float(t) for t in (targets or []) if t is not None)
+    except Exception:
+        return False
+    return bool(live and live > 0 and tmax >= 0.9 * float(live))
+
+
 def validate_read(rd, last_px):
     """LEVELS-ONLY validation (7/18): the DECISION is the break_level, not the verdict, so a break_level
     is MANDATORY for every read — NO exceptions (the parabolic veto was removed 7/18 per Marcos:
@@ -898,8 +911,12 @@ def reread_one(ticker, trigger):
             # "map the summit as the target, not the entry". Entries at the summit stay
             # impossible via RUNWAY ARITHMETIC (~0 road); the map self-activates on pullback.
             # Kill: NEWCOMER_BLUESKY=0 restores the discard. All other invalids still refused.
+            _bs_live = _live   # auditor W2 (8/12): blue-sky demands a REAL 10s print — the
+            # meta["last"] fallback can be the stale FUSE-class chart price, which makes the
+            # summit check toothless exactly when freshness is unproven. No print -> no post.
             if (os.environ.get("NEWCOMER_BLUESKY", "1") == "1"
-                    and str(why or "").startswith("map_already_exhausted")):
+                    and str(why or "").startswith("map_already_exhausted")
+                    and _summit_sane(rd.get("targets"), _bs_live)):
                 rd["verdict"] = "SKIP"
                 rd["blue_sky"] = True
                 rd["note"] = ("[blue-sky " + dt.datetime.now(ET).strftime("%H:%M") + "] summit map — "

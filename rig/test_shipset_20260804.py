@@ -972,5 +972,18 @@ try:
 except AssertionError as _tke:
     check("tiktok pins EXECUTED", False, str(_tke))
 
+
+print("I) 8/12 summit-sanity pin (PLAG blue-sky garbage map)")
+try:
+    assert nvr._summit_sane([4.40], 4.50) is True            # true summit map posts
+    assert nvr._summit_sane([1.62], 4.50) is False           # PLAG's exact garbage -> discard
+    assert nvr._summit_sane([], 4.50) is False               # no targets -> discard
+    assert nvr._summit_sane([4.40], 0) is False              # no live price -> discard
+    _bs_src = open(os.path.join(ROOT, "newcomer_vision_reader.py")).read()
+    assert "_summit_sane(rd.get(\"targets\"), _bs_live)" in _bs_src   # branch actually calls it
+    check("summit sanity EXECUTED: posts true summits, discards PLAG-class garbage", True)
+except AssertionError as _sse:
+    check("summit sanity EXECUTED", False, str(_sse))
+
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

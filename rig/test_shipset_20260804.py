@@ -934,5 +934,43 @@ except AssertionError as _ge:
     check("ghost pins EXECUTED", False, str(_ge))
 
 
+
+print("H) 8/11 TikTok sheet backstop pins (offline)")
+try:
+    import datetime as _dt, tempfile as _tf, pathlib as _pl, time as _time
+    import kev_sweep_server as _k
+    _td = _tf.mkdtemp(); _orig_data = _k.DATA; _k.DATA = _pl.Path(_td)
+    (_k.DATA/"shorts").mkdir(parents=True); (_k.DATA/"tiktok").mkdir()
+    (_k.DATA/"tiktok"/"111_sheet.txt").write_text("TOP 3 STOCKS FOR WEDNESDAY 8/12/26 WATCHLIST\nurl\n====\n\nbody")
+    assert _k.find_top3(_dt.date(2026,8,12)).name == "111_sheet.txt"
+    (_k.DATA/"shorts"/"222_sheet.txt").write_text("TOP 3 STOCKS WEDNESDAY 8/12 UPDATE\nurl\n====\n\nbody")
+    assert _k.find_top3(_dt.date(2026,8,12), update=True).name == "222_sheet.txt"
+    _calls = {"n": 0}
+    _ol, _oc, _os = _k._tiktok_list, _k._tiktok_captions, _time.sleep
+    _k._tiktok_list = lambda limit=None: [("111","already have"),("333","no caps post"),("444","TOP 3 THURSDAY 8/13")]
+    def _fc(vid):
+        _calls["n"] += 1
+        if vid == "333": raise RuntimeError("no vtt captions written")
+        return "caption text"
+    _k._tiktok_captions = _fc; _time.sleep = lambda s: None
+    assert _k.tiktok_pass() == (1, 0) and _calls["n"] == 3
+    assert "[no captions on this post]" in (_k.DATA/"tiktok"/"333_no_caps_post.txt").read_text()
+    assert _k.tiktok_pass() == (0, 0)
+    # auditor BLOCKER pin: a NEWER caption-less tiktok stub must NOT shadow the real shorts sheet
+    (_k.DATA/"tiktok"/"999_stub_sheet.txt").write_text("TOP 3 STOCKS FOR FRIDAY 8/14/26 WATCHLIST\nurl\n====\n\n[no captions on this post]")
+    (_k.DATA/"shorts"/"888_real_sheet.txt").write_text("TOP 3 STOCKS FRIDAY 8/14/26\nurl\n====\n\nreal transcript")
+    import os as _osm
+    _now = __import__("time").time(); _osm.utime(_k.DATA/"tiktok"/"999_stub_sheet.txt", (_now+60, _now+60))
+    assert _k.find_top3(_dt.date(2026,8,14)).name == "888_real_sheet.txt"
+    # tiktok still serves when shorts has NO match (true backstop)
+    assert _k.find_top3(_dt.date(2026,8,12)).name == "111_sheet.txt"
+    # auditor W1 pin: digit id skips vision, returns parse unchanged
+    _osm.environ["KEV_VISION_CHECK"] = "1"
+    assert _k._vision_check("7672909778615602446", {"X": {"break": 1}}) == {"X": {"break": 1}}
+    _k._tiktok_list, _k._tiktok_captions, _time.sleep, _k.DATA = _ol, _oc, _os, _orig_data
+    check("tiktok EXECUTED: find_top3 cross-dir + stub retirement + retry-before-stub + convergence", True)
+except AssertionError as _tke:
+    check("tiktok pins EXECUTED", False, str(_tke))
+
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

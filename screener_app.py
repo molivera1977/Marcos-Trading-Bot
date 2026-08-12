@@ -1987,6 +1987,21 @@ def pause_entries():
         print(f"[pause-entries] -> {_pause_entries}", flush=True)
     return jsonify(_pause_entries)
 
+@app.route("/api/kev_tiktok_probe", methods=["GET"])
+def kev_tiktok_probe():
+    """8/11 (#45): in-container proof the TikTok backstop's listing leg works from Railway's
+    network (proxy fallback and all). Listing only — no fetches, no writes. Secret-gated."""
+    if not _endpoint_authed():
+        return jsonify({"error": "unauthorized"}), 401
+    try:
+        import kev_sweep_server as _ks
+        posts = _ks._tiktok_list(limit=6)
+        return jsonify({"ok": True, "user": _ks.TIKTOK_USER, "n": len(posts),
+                        "titles": [t[:70] for _id, t in posts]})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)[:300]}), 502
+
+
 @app.route("/api/kev_watchlist", methods=["POST"])
 def set_kev_watchlist():
     if request.headers.get("X-Dashboard-Secret") != API_SECRET:

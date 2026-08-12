@@ -114,6 +114,89 @@ def sweep_until_clean():
         time.sleep(10 + 10 * i)
     return tally
 
+# ── 8/11 TIKTOK SHEET BACKSTOP (task #45; Marcos: late 8/10 sheet existed ONLY on TikTok —
+# both YouTube sweeps would have missed it; his link + yt-dlp caption pull recovered it).
+# SHORTS-ONLY scope (Marcos: "tik tok would only have his shorts"): sheet + morning-UPDATE
+# backstop, NOT a corpus source — long-form lessons stay YouTube. @momentum.official is his
+# ONLY TikTok account (Marcos 8/11). No auth needed: public posts, captions free. ──
+TIKTOK_USER = os.environ.get("KEV_TIKTOK", "momentum.official")
+
+def _tiktok_list(limit=None):
+    from yt_dlp import YoutubeDL
+    _opts = {"quiet": True, "extract_flat": True, "playlistend": limit or LIMIT}
+    _px = _proxy_url()
+    if _px:
+        _opts["proxy"] = _px
+    with YoutubeDL(_opts) as y:
+        info = y.extract_info(f"https://www.tiktok.com/@{TIKTOK_USER}", download=False)
+    return [(e["id"], e.get("title") or "") for e in (info.get("entries") or [])
+            if e and e.get("id")]
+
+def _vtt_to_text(vtt):
+    out, prev = [], None
+    for ln in vtt.splitlines():
+        ln = ln.strip()
+        if not ln or ln.startswith("WEBVTT") or "-->" in ln or ln.isdigit():
+            continue
+        if ln != prev:
+            out.append(ln); prev = ln
+    return "\n".join(out)
+
+def _tiktok_captions(vid):
+    """Caption text for one TikTok post — the EXACT CLI path proven on the 8/10 night sheet
+    (`--write-subs --write-auto-subs --skip-download`): bare extract_info returns EMPTY
+    subtitle dicts for TikTok, so we run the download pipeline into a temp dir and read the
+    .vtt it writes."""
+    import tempfile, pathlib as _pl
+    from yt_dlp import YoutubeDL
+    with tempfile.TemporaryDirectory() as td:
+        _opts = {"quiet": True, "skip_download": True, "writesubtitles": True,
+                 "writeautomaticsub": True, "subtitleslangs": ["all"],
+                 "outtmpl": str(_pl.Path(td) / "cap")}
+        _px = _proxy_url()
+        if _px:
+            _opts["proxy"] = _px
+        with YoutubeDL(_opts) as y:
+            y.download([f"https://www.tiktok.com/@{TIKTOK_USER}/video/{vid}"])
+        vtts = sorted(_pl.Path(td).glob("cap*.vtt"),
+                      key=lambda p: (not p.name.lower().startswith("cap.eng"), p.name))
+        if not vtts:
+            raise RuntimeError("no vtt captions written")
+        return _vtt_to_text(vtts[0].read_text(errors="ignore"))
+
+def tiktok_pass(limit=None):
+    """One TikTok backstop pass -> DATA/tiktok/. Returns (new_saved, errors). Fail-soft:
+    a TikTok outage must never break the YouTube sweep (callers wrap in try)."""
+    outdir = DATA / "tiktok"
+    outdir.mkdir(parents=True, exist_ok=True)
+    have = {f.name.split("_")[0] for f in outdir.glob("*.txt")}   # TikTok ids: 19 digits, no "_"
+    new = errors = 0
+    for vid, title in _tiktok_list(limit):
+        if vid in have:
+            continue
+        try:
+            try:
+                text = _tiktok_captions(vid)
+            except RuntimeError:
+                time.sleep(5)                 # one retry before concluding caption-less —
+                text = _tiktok_captions(vid)  # a transient miss must not stub a real sheet
+            (outdir / f"{vid}_{_safe_name(title)}.txt").write_text(
+                f"{title}\nhttps://www.tiktok.com/@{TIKTOK_USER}/video/{vid}\n{'='*60}\n\n{text}")
+            new += 1
+            time.sleep(2)
+        except RuntimeError:
+            # caption-less post (bio clips etc.) — stub it so it never re-errors on every pass.
+            # NOTE: the title line still feeds find_top3, so a caption-less SHEET post still
+            # surfaces the sheet's existence (vision/YouTube then carry the levels).
+            (outdir / f"{vid}_{_safe_name(title)}.txt").write_text(
+                f"{title}\nhttps://www.tiktok.com/@{TIKTOK_USER}/video/{vid}\n{'='*60}\n\n"
+                f"[no captions on this post]")
+            time.sleep(2)
+        except Exception:
+            errors += 1
+            time.sleep(3)
+    return new, errors
+
 DAYNAMES = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
 
 def find_top3(for_date, update=False):
@@ -121,16 +204,22 @@ def find_top3(for_date, update=False):
     dn = DAYNAMES[for_date.weekday()]
     md = f"{for_date.month}/{for_date.day}"          # titles use M/D
     best = None
-    for f in sorted((DATA / "shorts").glob("*.txt"), key=lambda x: -x.stat().st_mtime):
-        head = f.read_text(errors="ignore").split("\n", 1)[0].upper()
-        if "TOP 3" not in head or dn not in head:
-            continue
-        if md.replace("/", "") not in head.replace("/", ""):
-            continue
-        if update != ("UPDATE" in head):
-            continue
-        best = f
-        break
+    # 8/11 backstop + auditor BLOCKER fix: SHORTS FIRST, tiktok only when YouTube has no match
+    # (mtime-merged pools let a caption-less TikTok stub out-mtime and SHADOW the real YouTube
+    # sheet all night — backstop must never outrank the primary).
+    for _dir in ("shorts", "tiktok"):
+        for f in sorted((DATA / _dir).glob("*.txt"), key=lambda x: -x.stat().st_mtime):
+            head = f.read_text(errors="ignore").split("\n", 1)[0].upper()
+            if "TOP 3" not in head or dn not in head:
+                continue
+            if md.replace("/", "") not in head.replace("/", ""):
+                continue
+            if update != ("UPDATE" in head):
+                continue
+            best = f
+            break
+        if best:
+            break
     return best
 
 PARSE_PROMPT = """You are extracting Kev's TOP-3 stock watchlist levels from his video transcript.
@@ -169,6 +258,12 @@ def parse_top3(path):
 _vision_cache = {}   # vid -> screen-ticker hits (8/8: retries must NOT re-download — proxy GB cap)
 def _vision_check(vid, parsed_levels):
     if os.environ.get("KEV_VISION_CHECK", "1") != "1":
+        return parsed_levels
+    if str(vid).isdigit():   # 8/11 auditor W1: TikTok ids (19 digits) are NOT YouTube ids —
+        # building a watch?v= URL burns ~80s of failed downloads in the fast path. Captions
+        # stand without the frame check; ticker-authority layer loudly skipped.
+        print(f"[kev-sweep] vision check skipped for TikTok-sourced sheet {vid} "
+              f"(no YouTube frames) — captions stand", flush=True)
         return parsed_levels
     if vid in _vision_cache:
         hits = _vision_cache[vid]
@@ -490,9 +585,19 @@ def run_once(kind):
         while kind == "night" and target.weekday() >= 5:      # Friday night -> Monday sheet
             target += datetime.timedelta(days=1)
         posted = 0; f = None
+        _tt_new = _tt_err = 0; _tt_ran = False
         try:
             fetch_pass("shorts", DATA / "shorts")
             f = find_top3(target, update=(kind == "morning"))
+            if not f:   # 8/11 TikTok BACKSTOP (auditor W2: only when YouTube missed — zero
+                        # added latency on the nights the primary works; fail-soft on outage)
+                _tt_ran = True
+                try:
+                    _tt_new, _tt_err = tiktok_pass()
+                except Exception as _te:
+                    _tt_err = -1
+                    print(f"[kev-sweep] tiktok pass failed ({_te}) — YouTube-only this run", flush=True)
+                f = find_top3(target, update=(kind == "morning"))
             if f:
                 posted = post_sheet(target.strftime("%Y-%m-%d"),
                                     _vision_check(f.name.split("_", 1)[0], parse_top3(f)),
@@ -514,7 +619,8 @@ def run_once(kind):
             _morning_posted["day"] = _now().strftime("%Y-%m-%d"); _morning_posted["ok"] = posted > 0
         _decision("kev_sweep", kind=kind, passes=tally["passes"], new=tally["new"],
                   fetch_errors=tally["errors_final"], sheet_file=(f.name if f else None),
-                  posted=posted, secs=round(time.time() - t0))
+                  posted=posted, secs=round(time.time() - t0),
+                  tiktok_new=_tt_new, tiktok_errors=_tt_err)
         print(f"[kev-sweep] {kind}: {tally} sheet={'none' if not f else f.name} posted={posted}", flush=True)
     except Exception as e:
         _decision("kev_sweep_error", kind=kind, error=str(e)[:200])

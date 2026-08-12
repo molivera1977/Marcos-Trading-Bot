@@ -201,7 +201,26 @@ def roster_targets():
     if SYMBOL_PROBE:
         add(_actives["names"])                     # cached ranking; refreshed in background
     if CAPTURE_1S:
-        _hot1.clear(); _hot1.update(out[:CAPTURE_1S_TOP])   # 8/7 (#39): 1s = top of the ranked roster
+        # 8/12 CROWN PIN (Marcos: "pin the crowned names into the 1s roster now"; PLAG 8/11:
+        # the live-watching ranking rotated the day's crowned +141% mover OUT of the 1s set for
+        # its entire afternoon run — ~295 sparse bars in the window that mattered most. Leader
+        # meritocracy extends to data capture: crowns hold their 1s seat all day). Crowns =
+        # today's leader_armed rows (sticky, matches the bot's sticky-crown doctrine).
+        # Fail-open: fetch failure -> exactly yesterday's behavior.
+        crowns = []
+        try:
+            d = _get_json("/api/decisions_archive?date=" + today + "&status=leader_armed&limit=50000")
+            # limit matches the bot's own crown rehydrate (auditor note 1: limit slices the TAIL,
+            # so a 500 cap could drop MORNING crowns on a row-heavy day — the exact PLAG shape)
+            for r in (d.get("rows") or []) if isinstance(d, dict) else []:
+                u = str(r.get("ticker") or "").upper().strip()
+                if u and u not in crowns and not u.startswith("ZZ"):
+                    crowns.append(u)
+        except Exception:
+            crowns = []
+        add(crowns)   # a crown evicted from the watch roster still gets captured
+        _hot1.clear()
+        _hot1.update((crowns + [t for t in out if t not in crowns])[:CAPTURE_1S_TOP])
     return out[:_cap_eff[0]]
 
 _actives = {"ts": 0.0, "names": [], "busy": False}

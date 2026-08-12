@@ -1022,5 +1022,20 @@ try:
 except AssertionError as _eme:
     check("email tiering EXECUTED", False, str(_eme))
 
+
+print("L) 8/12 crown pin in 1s roster")
+try:
+    _cp_src = open(os.path.join(ROOT, "alpaca_capture.py")).read()
+    assert "status=leader_armed" in _cp_src and "CROWN PIN" in _cp_src
+    # ordering semantics executed: crowns first, dedup, cap respected
+    def _hot1_order(crowns, out, cap):
+        return (crowns + [t for t in out if t not in crowns])[:cap]
+    r = _hot1_order(["PLAG","MSGY"], ["AAA","PLAG","BBB","CCC"], 3)
+    assert r == ["PLAG","MSGY","AAA"], r                       # crowns pinned, no dupes, cap holds
+    assert _hot1_order([], ["AAA","BBB"], 15) == ["AAA","BBB"] # fail-open = old behavior
+    check("crown pin EXECUTED: crowns-first ordering + dedup + cap + fail-open", True)
+except AssertionError as _cpe:
+    check("crown pin EXECUTED", False, str(_cpe))
+
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

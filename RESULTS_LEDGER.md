@@ -1228,3 +1228,20 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   first real in-band forfeits on record vs the original -$8/trade bleed evidence.
 - Law honored the hard way: check FIRST, ship second — the almost-shipped amendment died on a
   two-minute rows query. [[feedback_verify_before_asserting]]
+
+## 2026-08-12 ~00:30 — SITTING ITEM #2: RED-TO-GREEN EXEMPTION REFUTED (two kill-tests, NO SHIP)
+- v1 (exempt at refusal moment): refuted — refusals stamp EARLY, before intraday leadership can
+  exist; at 15% off-low only 1/25 passes and every big winner sits still-blocked. No discrimination.
+- v2 (standing exemption, entry at first qualifying minute — what a shipped gate would DO):
+  refuted harder — 14 qualified, 10 STOPPED, 2 winners, NET -$71.20 (-$5.09/name); 10% bar:
+  -$22.79. AUTOPSY: first-crossing of VWAP+off-low buys the local top of the early pop and eats
+  the -6% stop; the pile's big offers (STKH's +51% came at 14:30, entry fired 06:57 -> stopped)
+  are not capturable by this trigger. The $350 "forgone" was real OFFER, mirage CAPTURE.
+- VERDICT: day-gain floor STAYS as-is. The day-2 red-to-green shape remains real (Kev's WAFU
+  language) but the key is STRUCTURE (pullback-confirm, higher-low over VWAP — his actual
+  entry), not a floor exemption at first crossing. Registered as a post-freeze lane-design
+  hypothesis (Seam-Scientist-style specimen work), NOT a gate knob.
+- Discipline note: idea survived one coarse offer-model, died on two capture-model kill-tests
+  BEFORE touching live config. Files: daygain_red2green[_v2]_20260812.py + _RESULTS.
+- Officers: Strength Ombudsman (hearing closed: floor acquitted on capturability), Wind Tunnel
+  (model escalation coarse->bracket), Convexity Trader (mean-after-costs verdict), Statistician.

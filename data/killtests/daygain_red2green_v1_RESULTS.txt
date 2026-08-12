@@ -1,0 +1,18 @@
+25 first-rejects with dg<0 across 5 days
+
+== LOW_PCT=10%: EXEMPTED(pass) n=7 sum $+3.18 ($+0.45/name) winners 3/7 | STILL-BLOCKED(fail) n=18 sum $+53.36 ($+2.96/name) winners 11/18
+
+== LOW_PCT=15%: EXEMPTED(pass) n=1 sum $+10.95 ($+10.95/name) winners 1/1 | STILL-BLOCKED(fail) n=24 sum $+45.59 ($+1.90/name) winners 13/24
+   PASS 2026-08-11 PCLA   @7.61     dg=-16.47  off_low= 16.9% mfe=  15.6% $  +10.95 ran [ma_pullback]
+   fail 2026-08-07 AZI    off_low=  5.1% above_vwap=True mfe=  52.8% $  +36.94
+   fail 2026-08-11 JWEL   off_low= 10.0% above_vwap=True mfe=  30.0% $  +21.00
+   fail 2026-08-11 XHLD   off_low=  5.4% above_vwap=True mfe=  29.0% $  +20.30
+   fail 2026-08-05 TNMG   off_low= 10.2% above_vwap=True mfe=  27.5% $  +19.23
+   fail 2026-08-10 SLGB   off_low=  3.5% above_vwap=True mfe=  20.1% $  +14.05
+   fail 2026-08-11 ZJYL   off_low=  6.8% above_vwap=True mfe=  15.2% $  +10.65
+   fail 2026-08-07 PAVS   off_low=  5.6% above_vwap=False mfe=  14.2% $   +9.93
+   fail 2026-08-07 ENSC   off_low=  5.0% above_vwap=True mfe=  13.7% $   +9.59
+
+== LOW_PCT=20%: EXEMPTED(pass) n=0 | STILL-BLOCKED(fail) n=25 sum $+56.54 ($+2.26/name) winners 14/25
+
+Model: $200 clip, -6% first-touch stop (-$12), 35% capture of MFE>=8%, <4% = -$6, 4-8% flat.

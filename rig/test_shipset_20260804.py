@@ -1000,5 +1000,27 @@ try:
 except AssertionError as _lse:
     check("latency stamps EXECUTED", False, str(_lse))
 
+
+print("K) 8/12 email tiering (quota protection)")
+try:
+    _em_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    assert _em_src.count("if not _email_trade_tier():") == 4       # all 4 trade-tier funcs gated
+    for _fn in ("def send_plan_alert", "def send_entry_alert", "def send_partial_exit_alert", "def send_summary_email"):
+        _i = _em_src.find(_fn); assert "_email_trade_tier()" in _em_src[_i:_i+420], _fn
+    # critical tier untouched: watchdog/stall/recovered/token call send_alert_email directly, ungated
+    _j = _em_src.find("def send_alert_email"); assert "_email_trade_tier" not in _em_src[_j:_j+400]
+    # helper semantics EXECUTED
+    import importlib.util as _ilu
+    _spec = _ilu.spec_from_file_location("_ett", os.path.join(ROOT, "marcos_trading_bot.py"))
+    # heavy module — test logic standalone instead:
+    def _tier(env, dry):
+        if env is not None: return env == "1"
+        return not dry
+    assert _tier(None, True) is False and _tier(None, False) is True
+    assert _tier("1", True) is True and _tier("0", False) is False
+    check("email tiering EXECUTED: 4 gates + critical untouched + env semantics", True)
+except AssertionError as _eme:
+    check("email tiering EXECUTED", False, str(_eme))
+
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

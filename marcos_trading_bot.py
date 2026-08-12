@@ -9339,6 +9339,18 @@ def _row(label: str, value: str, big: bool = False) -> str:
             f'</div>')
 
 
+def _email_trade_tier() -> bool:
+    """8/12 EMAIL TIERING (Marcos: 80% of the 100/day Resend quota burned by NOON on per-trade
+    emails — and a full quota would SILENCE the critical tier: token failing, watchdog, stalls).
+    Trade-tier emails (plan/entry/partial/exit-summary) default OFF in DRY_RUN — the dashboard
+    + Duty Officer are the trade feed. EMAIL_TRADE_ALERTS=1 forces on (go-live real fills);
+    =0 forces off anywhere. Critical-tier send_alert_email callers are untouched."""
+    v = os.environ.get("EMAIL_TRADE_ALERTS")
+    if v is not None:
+        return v == "1"
+    return not DRY_RUN
+
+
 def send_alert_email(subject, body, html=None):
     """Sends email via Resend API. Accepts optional html for rich formatting."""
     if DRY_RUN:
@@ -9362,6 +9374,8 @@ def send_alert_email(subject, body, html=None):
 
 def send_plan_alert(analysis, balance):
     """Alert 1 — Fired right after Claude finishes analysis (~8:55am or mid-day rescan)."""
+    if not _email_trade_tier():
+        print("📪 trade-tier email suppressed (plan) — quota reserved for critical tier"); return
     recommended = analysis.get("recommended_trade", {})
     action      = recommended.get("action", "HOLD CASH")
     ticker      = recommended.get("ticker", "N/A")
@@ -9433,6 +9447,8 @@ def send_plan_alert(analysis, balance):
 
 def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap, position_size):
     """Alert 2 — Fired the moment the buy order is placed."""
+    if not _email_trade_tier():
+        print(f"📪 trade-tier email suppressed (entry {ticker})"); return
     now_str = datetime.now(EASTERN).strftime("%I:%M:%S %p ET")
     subject = f"🚀 TRADE ENTERED — {ticker} @ ${entry_price:.2f} | {now_str}"
     plain = (f"TRADE ENTERED: {ticker} @ ${entry_price:.2f} | {shares} shares | ${position_size:.2f}\n"
@@ -9466,6 +9482,8 @@ def send_entry_alert(ticker, shares, entry_price, stop_loss, target_price, vwap,
 def send_partial_exit_alert(ticker, half_shares, partial_price, entry_price,
                             remaining_shares, new_stop, profit_pct):
     """Alert 3 — Fired when half the position is sold at +8% AM / +5% PM."""
+    if not _email_trade_tier():
+        print(f"📪 trade-tier email suppressed (partial {ticker})"); return
     now_str = datetime.now(EASTERN).strftime("%I:%M:%S %p ET")
     profit  = (partial_price - entry_price) * half_shares
     subject = f"💰 PARTIAL EXIT — {ticker} +{profit_pct:.1f}% at {now_str}"
@@ -9560,6 +9578,8 @@ def _send_morning_watchlist(top_gappers: list, balance: float):
 
 
 def send_summary_email(analysis, trade_result=None, account_balance=100.0, csv_log_line="", traded_ticker=None):
+    if not _email_trade_tier():
+        print("📪 trade-tier email suppressed (per-exit summary)"); return
     print(f"📨 Sending summary email to {SUMMARY_EMAIL}...")
     today   = datetime.now(EASTERN).strftime("%A, %B %d, %Y")
     dry_tag = "[DRY RUN] " if DRY_RUN else ""

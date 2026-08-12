@@ -1312,3 +1312,14 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   currently unverified); retention tiers w/ rotation-proof evidence; daily debrief line.
   Founded on the scars: premarket blackout -$624.50, 5s persist-lag, P&L store corruption,
   tonight's log-rotation evidence loss. Audits first; builds queue behind trial-critical work.
+
+## 2026-08-12 ~00:35 — QUARTERMASTER FIRST AUDIT (executed; Marcos: "run the first audit")
+- F1 HEADLINE: NO LIVE BACKUP EXISTS. iCloud TradingBot = frozen laptop mirror (bars stop 8/1,
+  shorts 8/6, decisions 7/14; 1.6GB); laptop ferry cleanly retired (no cron/launchd). Trade
+  records + decisions + kev store + character book live SOLELY on the Railway volume. Single
+  point of failure for the entire evidentiary record.
+- F2: resolution sampling (8/11, SCKT/PLAG/MSGY): 10S rich (2.6-4.7k bars), 1S rich (7-15.5k),
+  ~ALP1M nearly empty (0/24/2) — design-or-defect check queued (backfill-seeded by design?).
+- F3: hot5 probe 404 = wrong service URL (dashboard vs capture), corrected, no defect.
+- RECOMMENDATION queued (build, post-trial-critical): nightly books-export off-volume to iCloud
+  + monthly restore drill. Until shipped: the books have no parachute.

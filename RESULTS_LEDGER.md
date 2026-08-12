@@ -1264,3 +1264,24 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   #3B = vertical-regime lane hole registered as task #48 (specimen anatomy first, post-freeze).
 - Officers: Cartographer (map truth), Systems Quant (branch geometry), Blast Radius Auditor
   (GO + 2 warnings, W2 shipped in-batch), Wind Tunnel n/a, Pit Crew Chief (reader-only deploy).
+
+## 2026-08-11 ~23:50 — TUESDAY SITTING CLOSED: ALL VERDICTS RENDERED (Marcos: "agree on all")
+1. HALT LANE: KEEP as configured (arm-only converts, crowns, half size, hot-5s). Evidence: MSGY
+   11:28 arm prox 1.25 converted inside the crowned cluster; era +$840.93.
+2. CONFIRM = STAMP, PERMANENT. Today's only convert stamped confirm5s=False — the refuted gate
+   would have blocked it.
+3. H1 COOLDOWN + H2 SIDE: probation EXTENDED TO FRIDAY (zero occurrences in 2 days, n=0).
+4. EARLY-ARM: 0.7 stays live; 0.4-0.7 shadow band runs to FRIDAY re-grade (3 specimens today
+   incl. PLAG 0.65 front_side 10:12 — 2.5h before its monster).
+5. SEAM: shadow extended THROUGH FRIDAY; if Wednesday = 0 fires again, detector-liveness check
+   required before market-didn't-offer is assumed.
+6. PRE: 7:00-9:25 window KEPT AS-IS through trial week (Mon -$0.35, Tue +$46.26 + Kev's own
+   premarket monster w/ pre-bell flatten; cap-6 + 9:25 flatten price the risk; PRE-KEV-only
+   narrowing declined — would have refused today's WXM money). Revisit with full week's split.
+7. DRILL: Wednesday ~13:30 ET kill-under-fire, mid-trade if a DRY position is open. Trial gate.
+- Tomorrow's maintenance window queue: halt-convert entry_type stamp (attribution defect found
+  tonight), W3 vacuous clear verify (#47), W1 reread backoff. No config changes tonight — all
+  verdicts are keeps/extends.
+- Sitting tally, full night: #1 withdrawn (gate already correct), #2 refuted (2 kill-tests),
+  #3A shipped (summit sanity), #3B registered (#48), halt/seam/PRE/drill verdicts above.
+  Officers: all standing rooms touched; 4 Auditor convenings tonight, artifacts in-transcript.

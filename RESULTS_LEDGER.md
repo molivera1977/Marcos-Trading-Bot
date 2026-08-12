@@ -1297,3 +1297,10 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   fine for distributions, don't use raw for Friday's parallel-reads case math.
 - FRIDAY: grade the week's stamp distribution; if the single-file queue costs real minutes on
   busy tape, that row-set is the case for parallel reads. Pinned; suite ALL GREEN.
+
+## 2026-08-12 00:15 — TUESDAY OFFICERS' DEBRIEF DELIVERED (full room, per standing law)
+- Attribution: PRE +$46.26 (5) · First Hour +$58.91 (16) · 10:30+ -$0.55 (8). Lanes: hidden
+  +$67.55/22, ignition +$43.05/6, flat_top -$5.98/1. Afternoon = non-participation not losses
+  (#48 specimen). Crown stamps proven live (entry_crown=True on all 6 MSGY records). Full
+  per-office reports in-transcript; flags: fill-model stress vs SCKT 1s tape owed this week,
+  token re-mint ~8/23, seam liveness check if Wednesday=0, vision stale-chart source question.

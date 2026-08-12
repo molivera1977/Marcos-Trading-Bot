@@ -1,0 +1,105 @@
+2026-08-10: 170 names
+2026-08-11: 185 names
+2026-08-12: 180 names
+
+BURSTS (intraday, artifact-excluded): 38 | controls 14
+  08-11 PLAG   burst +11.7% @10:12ET  cont-beyond-high 392.2%  monster=True
+  08-12 OFAL   burst +11.7% @06:17ET  cont-beyond-high 253.7%  monster=True
+  08-11 AIHS   burst +12.2% @05:55ET  cont-beyond-high 178.9%  monster=True
+  08-12 BOXL   burst +18.3% @04:05ET  cont-beyond-high 74.6%  monster=True
+  08-12 BIVI   burst +15.7% @09:52ET  cont-beyond-high 54.7%  monster=True
+  08-12 BQ     burst +12.0% @10:56ET  cont-beyond-high 28.8%  monster=True
+  08-10 BKYI   burst +13.6% @04:33ET  cont-beyond-high 22.3%  monster=True
+  08-10 DKI    burst +11.9% @04:08ET  cont-beyond-high 21.9%  monster=True
+  08-11 CIGL   burst +11.0% @05:15ET  cont-beyond-high 20.6%  monster=True
+  08-12 BAOS   burst +18.9% @04:05ET  cont-beyond-high 20.1%  monster=True
+  08-10 XHLD   burst +12.0% @09:51ET  cont-beyond-high 17.8%  monster=True
+  08-10 STKH   burst +11.9% @09:46ET  cont-beyond-high 17.5%  monster=True
+  08-11 WXM    burst +11.0% @09:00ET  cont-beyond-high 13.6%  monster=True
+  08-10 ANGH   burst +17.8% @05:51ET  cont-beyond-high 12.4%  monster=True
+  08-12 VBIO   burst +19.6% @09:55ET  cont-beyond-high 6.6%  monster=True
+burst   median continuation-beyond-burst-high: 5.3%  (tail: 12/38 >= +15%)
+control median continuation from time-matched anchor: 17.0%  (tail: 8/14 >= +15%)
+
+MONSTERS (>=40% day range, 10s-verified): 111 total — 30 burst first, 81 did NOT:
+  NO-BURST monster: 08-10 AUUD (1s bars observed: 20124 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 BAOS (1s bars observed: 908 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 CLRO (1s bars observed: 3475 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 CSAI (1s bars observed: 2 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 DTSS (1s bars observed: 579 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 EBON (1s bars observed: 7 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 ELPW (1s bars observed: 108 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 EVGN (1s bars observed: 1663 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 FEAM (1s bars observed: 663 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 GURE (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 HKIT (1s bars observed: 352 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 HWH (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 INHD (1s bars observed: 3242 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 LRHC (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 LZMH (1s bars observed: 298 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 MEDS (1s bars observed: 1 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 MTEN (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 NAMI (1s bars observed: 88 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 OFAL (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 ONFO (1s bars observed: 93 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 PAVS (1s bars observed: 932 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 PCLA (1s bars observed: 1811 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 PETZ (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 POM (1s bars observed: 20 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 RDGT (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 SCKT (1s bars observed: 1203 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 SEGG (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 SLN (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 SSM (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 STFS (1s bars observed: 124 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 THH (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 TNON (1s bars observed: 395 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 TOPP (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 VATE (1s bars observed: 47 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 VEEE (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 VSA (1s bars observed: 1160 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 WYHG (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 YJ (1s bars observed: 302 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 YMT (1s bars observed: 301 — sparse observation may hide a burst)
+  NO-BURST monster: 08-10 ZJYL (1s bars observed: 29896 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 ABTS (1s bars observed: 240 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 AIFA (1s bars observed: 1400 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 ATHR (1s bars observed: 31 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 ELPW (1s bars observed: 12152 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 FRTT (1s bars observed: 15080 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 GENK (1s bars observed: 279 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 GMEX (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 GRI (1s bars observed: 3951 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 GYGY (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 HXHX (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 JWEL (1s bars observed: 775 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 MEDS (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 MGIH (1s bars observed: 76 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 NCRA (1s bars observed: 700 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 PCLA (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 PIII (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 QMCO (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 STKH (1s bars observed: 1321 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 TDIC (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 UZX (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 VEEE (1s bars observed: 2879 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 WYHG (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 XHLD (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-11 ZKIN (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 BMGL (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 CCEL (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 CHOW (1s bars observed: 6596 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 CRIS (1s bars observed: 2 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 DOGZ (1s bars observed: 15530 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 DSWL (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 FXHO (1s bars observed: 77 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 GSUN (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 IMTE (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 JWEL (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 MYSZ (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 NTHI (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 PLAG (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 SCKT (1s bars observed: 15421 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 SPRC (1s bars observed: 0 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 WXM (1s bars observed: 58 — sparse observation may hide a burst)
+  NO-BURST monster: 08-12 XHLD (1s bars observed: 0 — sparse observation may hide a burst)

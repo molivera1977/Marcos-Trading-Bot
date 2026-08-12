@@ -1369,3 +1369,13 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   + the "any monster WITHOUT a burst?" count. Files: burst_study_v1_20260812.py + _RESULTS.
 - Officers: Forward Architect (registry owner), Convexity Trader (tail framing), Wind Tunnel
   (mechanical-coupling catch), Seam Scientist (one-day-humility law applied).
+
+## 2026-08-12 eve — BURST HYPOTHESIS REFUTED (v2, task #51; Marcos was told "could be huge" — it isn't)
+- Proper test (artifact-excluded, continuation-beyond-burst-high, time-matched controls, 3 days):
+  111 monsters, only 30 burst first — 81 did NOT, incl. 7+ RICHLY-observed no-burst monsters
+  (AUUD 20k 1s bars, DOGZ 15.5k, SCKT 15.4k...). Burst median continuation +5.3% vs CONTROL
+  +17.0%. v1's excitement = mechanical coupling + n=2 tail (PLAG +392%, OFAL +254% are real but
+  2/38, matched by no-burst spectaculars). AUTOPSY: offer-side-fragility story sounded right and
+  failed measurement — story discipline held; nothing touched live config. Detector NOT built.
+- 1s infrastructure value stands (fill-model specimens, halt anatomy, studies). Files:
+  burst_study_v2_20260812.py + _RESULTS.txt.

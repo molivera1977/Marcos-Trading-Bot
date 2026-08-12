@@ -2270,12 +2270,16 @@ def _clear_open_trade(ticker: str, trade_id=None):   # auditor F3: id-precise cl
                               headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
             if r.status_code == 200:
                 try:
-                    still = [o.get("ticker") for o in
-                             (requests.get(f"{url}/api/open_trades", timeout=5)
-                              .json().get("open_trades") or [])]
+                    _rows = (requests.get(f"{url}/api/open_trades", timeout=5)
+                             .json().get("open_trades") or [])
+                    still_tk  = [o.get("ticker") for o in _rows]
+                    still_ids = [o.get("trade_id") for o in _rows if o.get("trade_id")]
                 except Exception:
-                    still = []
-                if (trade_id and trade_id not in still) or (not trade_id and ticker not in still):
+                    still_tk, still_ids = [], []
+                # 8/12 W3 FIX (auditor: the old check compared a trade_id against a TICKER list —
+                # vacuously true, so id-bearing clears never actually verified; that silence is
+                # how 8/11's 8 ghosts accumulated unseen).
+                if (trade_id and trade_id not in still_ids) or (not trade_id and ticker not in still_tk):
                     return                                     # verified gone
             print(f"🧹 {ticker}: open-trade clear attempt {_attempt} NOT verified "
                   f"(HTTP {r.status_code}) — {'retrying' if _attempt == 1 else 'GIVING UP'}")

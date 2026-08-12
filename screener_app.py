@@ -1987,6 +1987,32 @@ def pause_entries():
         print(f"[pause-entries] -> {_pause_entries}", flush=True)
     return jsonify(_pause_entries)
 
+@app.route("/api/books_export", methods=["GET"])
+def books_export():
+    """8/12 QUARTERMASTER (Marcos: "shouldn't it be done now?"): the BOOKS-tier backup — every
+    file that is UNRECOVERABLE if the volume dies (trade records, decisions, kev store, watch
+    history, duty log, observations). Bars deliberately EXCLUDED: recoverable from Alpaca SIP
+    any-day. Streams a tar.gz; read-only; secret-gated."""
+    if not _endpoint_authed():
+        return jsonify({"error": "unauthorized"}), 401
+    import io as _io, tarfile as _tarfile
+    buf = _io.BytesIO()
+    root = pathlib.Path("/data") if pathlib.Path("/data").exists() else pathlib.Path("/tmp")
+    n = 0
+    with _tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        for pat in ("*.json", "*.jsonl", "kev/**/*.txt", "kev/**/*.csv"):
+            for f in sorted(root.glob(pat)):
+                if f.is_file():
+                    tar.add(str(f), arcname=str(f.relative_to(root)))
+                    n += 1
+    buf.seek(0)
+    _stamp = datetime.now(EASTERN).strftime("%Y%m%d_%H%M")
+    return buf.read(), 200, {
+        "Content-Type": "application/gzip",
+        "X-Books-Files": str(n),
+        "Content-Disposition": f"attachment; filename=books_{_stamp}.tar.gz"}
+
+
 @app.route("/api/kev_tiktok_probe", methods=["GET"])
 def kev_tiktok_probe():
     """8/11 (#45): in-container proof the TikTok backstop's listing leg works from Railway's

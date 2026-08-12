@@ -1379,3 +1379,25 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   failed measurement — story discipline held; nothing touched live config. Detector NOT built.
 - 1s infrastructure value stands (fill-model specimens, halt anatomy, studies). Files:
   burst_study_v2_20260812.py + _RESULTS.txt.
+
+## 2026-08-12 eve — WEDNESDAY SITTING + BATCH SHIPPED (auditor GO, 9th convening, 9/9 tonight)
+- MARCOS VERDICTS: (1) hidden session cap 3->5 non-crown (kill-test cap_cost_20260812: +$257
+  era offer, YXT tail; all measured money RTH-side) + (2) PRE session cap 6->8 (his interaction
+  read: reclaim converts ~never — 1 conversion ever — so hidden IS the PRE throttle; 6-over-3
+  headroom preserved as 8-over-5). Env-shipped, cap_raise_slot stamps on the marginal cohort
+  (PRE slots 7-8, hidden slots 4-5), Friday grades in isolation. (3) BURST HYPOTHESIS REFUTED
+  (v2: 81/111 monsters never burst; controls +17% vs bursts +5.3%) — no detector built.
+- MARCOS OBSERVATION (rows-verified, ledgered under his name): PRE's real burn window is
+  ~8:30-9:25 — 11/12 conversions this week landed 08:52-09:22; the $250k dvol floor gates the
+  early hours. Friday's PRE grade asks "did the WINDOW starve", not "did the day".
+- BATCH: W3 ids-vs-ids clear verify + note-4 poison sentinels (failed verify-read != verified);
+  queryable premkt_capped rows; scan-bg proactive rebuild daemon (kills the 19x funnel timeouts);
+  tale links on reject/shadow strips; reader summit-sanity backoff (2min doubling, cap 32min,
+  reset on good post; latency rows include backoff time BY DESIGN — grader note: backoff_n field
+  queued). Rig ALL GREEN incl. 1 brittle-window pin honestly widened (refusal path byte-identical).
+- Auditor notes queued: rig-import spins scan-bg (env guard someday); esc() parity on JS strips;
+  backoff_n on latency rows. Deploys: all 3 services, book flat in-turn, boot-verify pending.
+- Also today: burst v1->v2 arc closed, cap kill-test, OFAL halt-ladder custody proven live
+  (+$21.32 w/ gap-through-floor specimen for the fill model), TikTok backstop caught its first
+  live sheet (morning UPDATE was TikTok-only), drill MISSED at 13:30 (session idle — owned;
+  hard-scheduled Thursday), day book RTH +$254.99 / PRE +$29.18 = best day of the era.

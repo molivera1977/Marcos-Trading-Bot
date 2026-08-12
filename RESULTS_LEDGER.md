@@ -1304,3 +1304,11 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   (#48 specimen). Crown stamps proven live (entry_crown=True on all 6 MSGY records). Full
   per-office reports in-transcript; flags: fill-model stress vs SCKT 1s tape owed this week,
   token re-mint ~8/23, seam liveness check if Wednesday=0, vision stale-chart source question.
+
+## 2026-08-12 ~00:25 — OFFICE CHARTERED: THE QUARTERMASTER (11th; Marcos: "charter it")
+- Sole custodian of all bars (1s/5s/10s/1m/daily), the ferry/warehouse, and backup+restore.
+  Five duties: daily completeness vs roster; ferry integrity by counts+checksums; backup with
+  scheduled RESTORE DRILLS (first act: audit the existing iCloud TradingBot folder — contents
+  currently unverified); retention tiers w/ rotation-proof evidence; daily debrief line.
+  Founded on the scars: premarket blackout -$624.50, 5s persist-lag, P&L store corruption,
+  tonight's log-rotation evidence loss. Audits first; builds queue behind trial-critical work.

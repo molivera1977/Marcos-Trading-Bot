@@ -1245,3 +1245,22 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   BEFORE touching live config. Files: daygain_red2green[_v2]_20260812.py + _RESULTS.
 - Officers: Strength Ombudsman (hearing closed: floor acquitted on capturability), Wind Tunnel
   (model escalation coarse->bracket), Convexity Trader (mean-after-costs verdict), Statistician.
+
+## 2026-08-11 ~23:55 — SITTING ITEM #3A SHIPPED: SUMMIT SANITY (the PLAG stale-map defect)
+- DIAGNOSIS (rows + reader logs): re-reads v2/v3/v4 FIRED correctly on PLAG; vision returned the
+  stale morning level (break 1.62, targets [1.62]) on a $3-6 tape; the 8/6 blue-sky branch
+  posted the garbage 3x (assumed "exhausted" implies "target ~= summit", never verified) ->
+  chart lanes read a $1.62 ceiling on a $4.50 stock and stood down through the +141% afternoon.
+  NOTE my earlier misread, corrected: stale_swap_refused rows = the PRICE-source arbitration
+  guard (rth_quote_trusted), NOT map re-reads; and the freshness_breach rows were MORNING rows.
+- FIX (reader): _summit_sane — a blue-sky summit map posts only if max target >= 0.9x the live
+  10s print (auditor-verified geometry: inside the branch tmax<=live always, so this rejects
+  ONLY maps materially BELOW the tape — a true summit read during a pullback passes trivially);
+  auditor W2 folded in: blue-sky now demands a REAL 10s print (no stale-chart meta fallback).
+  Discards are loud, burn no budget, leave the map honestly sparse. Pinned; suite ALL GREEN;
+  auditor GO (4th convening tonight); reader deployed (asleep until 08:50).
+- FOLLOW-UPS ledgered: W1 — sanity-discard can hot-loop the 60s uncapped reread tier on an
+  hours-stale vision (per-name backoff after N discards = candidate, tomorrow's window);
+  #3B = vertical-regime lane hole registered as task #48 (specimen anatomy first, post-freeze).
+- Officers: Cartographer (map truth), Systems Quant (branch geometry), Blast Radius Auditor
+  (GO + 2 warnings, W2 shipped in-batch), Wind Tunnel n/a, Pit Crew Chief (reader-only deploy).

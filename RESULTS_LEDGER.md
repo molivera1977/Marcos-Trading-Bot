@@ -1196,3 +1196,22 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   all afternoon but no clean re-read landed. Cartographer + reader docket for the sitting.
 - Officers: Strength Ombudsman (hearing evidence), Side Marshal (backside amendment), Wind
   Tunnel (model coarseness caveat), Cartographer (stale-map), Statistician (results ledgered).
+
+## 2026-08-11 ~23:40 — SHIPPED: TIKTOK SHEET BACKSTOP (task #45)
+- Sweep now has a TikTok leg (@momentum.official, his only account): SHORTS-FIRST semantics —
+  YouTube stays primary; tiktok_pass runs ONLY when the YouTube pass finds no sheet (auditor W2:
+  zero added latency on good nights); find_top3 checks shorts/ before tiktok/ (auditor BLOCKER:
+  a caption-less TikTok stub could otherwise out-mtime and SHADOW the real YouTube sheet all
+  night); caption-less posts stubbed after one retry (never re-error, never outrank); TikTok-id
+  sheets skip the YouTube frame-vision check loudly (auditor W1). Covers night TOP-3 AND morning
+  UPDATE (both run_once kinds).
+- Proof chain: end-to-end EXECUTED locally (real listing 1.8s; captions via CLI-equivalent
+  download path — bare extract_info returns EMPTY subs for TikTok, discovered + fixed; two
+  passes converge 0/0; find_top3 matched the REAL Wednesday 8/12 TikTok sheet). Rig: pins incl.
+  stub-shadowing + digit-guard, suite ALL GREEN exit 0. Auditor: 1 blocker + 3 warnings -> all
+  addressed -> conditional GO satisfied. Deployed (book flat in-turn); IN-CONTAINER probe
+  (/api/kev_tiktok_probe): ok=true, 6 titles from Railway's network, Wednesday sheet on top.
+- Tonight's sheets: YouTube 20:06 sweep already posted Wednesday BOXL/DRMA/SCKT (posted=3);
+  TikTok copy independently names the same three (grep cross-check) — two-source agreement.
+- Officers: Kev Librarian + Feed Engineer (owners), Blast Radius Auditor (convened, blocker
+  caught pre-ship), Pit Crew Chief (deploy), Integrator (find_top3 seam pinned).

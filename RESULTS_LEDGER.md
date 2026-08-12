@@ -1323,3 +1323,15 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - F3: hot5 probe 404 = wrong service URL (dashboard vs capture), corrected, no defect.
 - RECOMMENDATION queued (build, post-trial-critical): nightly books-export off-volume to iCloud
   + monthly restore drill. Until shipped: the books have no parachute.
+
+## 2026-08-12 ~00:30 — THE PARACHUTE: BOOKS BACKUP LIVE (Marcos: "shouldn't it be done now?" — yes)
+- /api/books_export shipped (books tier: all /data json/jsonl + kev corpus; bars excluded as
+  Alpaca-SIP-recoverable; secret-gated, read-only; auditor GO — 6th convening, 6/6 tonight,
+  glob-verified vs real layout, no tokens exportable, atomic-write consistency confirmed).
+- FIRST BACKUP PULLED: books_20260812_0028.tar.gz -> iCloud/TradingBot/books_backups (157
+  files, 3.6MB). RESTORE DRILL EXECUTED AND PASSED: 41 json/jsonl parse clean, trade records
+  backup=425 == live=425 EXACT, kev store restores w/ Wednesday sheet, 116 corpus transcripts.
+- Nightly launchd agent LOADED (22:30 ET daily, header auth per auditor note 3, tarball
+  integrity check, file-count tripwire vs prior night, 14-day retention, fires on wake if
+  missed). The single-point-of-failure found in the Quartermaster's first audit is closed
+  same-night. Remaining on #50: monthly drill cadence + ~ALP1M design-or-defect check.

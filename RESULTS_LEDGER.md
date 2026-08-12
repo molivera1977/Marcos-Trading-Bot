@@ -1215,3 +1215,16 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   TikTok copy independently names the same three (grep cross-check) — two-source agreement.
 - Officers: Kev Librarian + Feed Engineer (owners), Blast Radius Auditor (convened, blocker
   caught pre-ship), Pit Crew Chief (deploy), Integrator (find_top3 seam pinned).
+
+## 2026-08-11 ~23:55 — SITTING, ITEM #1: BACKSIDE AMENDMENT WITHDRAWN (correction, mine)
+- Code + rows check (PLAG: exactly 2 backside_rejects 12:39-12:40 @2.83/2.95 dd 26.5/23.4, then
+  ZERO up the entire run; MSGY same shape): the gate's reference high is LIVE — dd shrinks as
+  price climbs, block releases below dd=15, and at/above the reclaimed high dd<=0 can never
+  block. "Expire on reclaim" is ALREADY the gate's behavior. My replay modeled entry-at-reject-
+  price and OVERATTRIBUTED the runs to the gate; true gate cost today = the two blocked in-band
+  tickets each on PLAG/MSGY. The 3.30->6.81 PLAG region was un-blocked and un-fired = stale map
+  + trigger coverage (item #3), where the real dollars died.
+- VERDICT: no ship on #1 (would have been a no-op). Friday band re-grade stands, now with the
+  first real in-band forfeits on record vs the original -$8/trade bleed evidence.
+- Law honored the hard way: check FIRST, ship second — the almost-shipped amendment died on a
+  two-minute rows query. [[feedback_verify_before_asserting]]

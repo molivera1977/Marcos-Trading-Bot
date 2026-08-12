@@ -1414,3 +1414,14 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   that released on the climb, halt lane caught the name at 15:07 (+$34.34) — partial catch,
   Friday band evidence. BQ/OFAL early-leg misses vs +$165/+$31 banked later = meat caught,
   appetizer missed.
+
+## 2026-08-12 night — SHIPPED: READER START 07:00 (Marcos: "worth the extra few dollars. ship it")
+- Counterfactuals: maps@8:05 = +$44.69/3d; maps@7:05 = +$111.70/3d (6W/4S) — mapless money
+  lives 7:00-8:00; ALL 10 era refusals had the $250k floor already met (map = sole blocker;
+  my dvol-confound theory WRONG, corrected). NEWCOMER_START_HHMM=07:00 env-shipped (all 4 code
+  uses read the env — three-rings verified; stale docstring only). Conversion gates unchanged;
+  7am reads that fail thin-chart validation = status quo + retry (fail-safe). Cohort = PRE
+  conversions 07:05-08:50, time-identifiable for Friday. Kill switch: env back to 08:50.
+- Left-on-table accounting today (coarse): ~$155-165 untaken vs $284 banked (~2/3 capture);
+  $60 closed same-night (mapless + cap), $46 behind Friday minstop re-grade (BIVI specimen),
+  ~$55 = #48 lane hole (BOXL mid-leg), ~$50 halt-physics give-back (fill-model specimen).

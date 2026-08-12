@@ -1401,3 +1401,16 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   (+$21.32 w/ gap-through-floor specimen for the fill model), TikTok backstop caught its first
   live sheet (morning UPDATE was TikTok-only), drill MISSED at 13:30 (session idle — owned;
   hard-scheduled Thursday), day book RTH +$254.99 / PRE +$29.18 = best day of the era.
+
+## 2026-08-12 night — WEDNESDAY MISS AUDIT (time-verified vs post-reject tape)
+- SYSTEMIC: MAPLESS-PRE HOLE — the day's monsters all drew mapless_rejects at 7:00-8:15 (BQ
+  7:00 +121% after, OFAL 7:26 +88%, HXHX 7:23 +59%, CHOW 8:07 +41%-in-13min) because the READER
+  WAKES 08:50; mapless conversions closed by design. AMENDS Marcos's confirmed PRE-window
+  finding: conversion clustering post-8:52 has TWO confounded drivers — dvol floor (his read)
+  AND map availability. CANDIDATE (HYPOTHESIS, counterfactual owed tomorrow): READER_START ~08:00
+  so board leaders have maps when the floor opens; vision-budget cost to price.
+- Cap specimen #2: IMTE hidden_capped 11:53 -> +30% (tonight's 3->5 takes it tomorrow); XHLD
+  cap refusal = correct save (sim stopped). BOXL breakside 9:38 (+91% after) = in-band label
+  that released on the climb, halt lane caught the name at 15:07 (+$34.34) — partial catch,
+  Friday band evidence. BQ/OFAL early-leg misses vs +$165/+$31 banked later = meat caught,
+  appetizer missed.

@@ -1,0 +1,30 @@
+  BURST 08-11 PLAG   +11.7% @14:12UTC  fwd60 74.0%  fwdEOD 511.3%  obs 120m
+  BURST 08-11 AIHS   +12.2% @09:55UTC  fwd60 48.1%  fwdEOD 213.0%  obs 48m
+  BURST 08-11 CIGL   +11.0% @09:15UTC  fwd60 10.7%  fwdEOD 57.5%  obs 14m
+  BURST 08-10 BKYI   +13.6% @08:33UTC  fwd60 38.9%  fwdEOD 38.9%  obs 17m
+  BURST 08-10 DKI    +11.9% @08:08UTC  fwd60 36.4%  fwdEOD 36.4%  obs 179m
+  BURST 08-10 ZJYL   +10.9% @08:00UTC  fwd60 32.8%  fwdEOD 32.8%  obs 498m
+  BURST 08-10 ANGH   +17.8% @09:51UTC  fwd60 17.8%  fwdEOD 32.5%  obs 6m
+  BURST 08-10 XHLD   +12.0% @13:51UTC  fwd60 31.9%  fwdEOD 31.9%  obs 68m
+  BURST 08-10 STKH   +11.9% @13:46UTC  fwd60 31.5%  fwdEOD 31.5%  obs 380m
+  BURST 08-11 WXM    +11.0% @13:00UTC  fwd60 26.1%  fwdEOD 26.1%  obs 342m
+  BURST 08-10 JWEL   +12.0% @11:33UTC  fwd60 17.5%  fwdEOD 17.5%  obs 295m
+  BURST 08-11 GLE    +10.8% @13:14UTC  fwd60 17.3%  fwdEOD 17.3%  obs 79m
+  BURST 08-11 DXF    +16.2% @08:05UTC  fwd60 16.2%  fwdEOD 16.2%  obs 128m
+  BURST 08-11 AEHL   +16.1% @08:09UTC  fwd60 16.1%  fwdEOD 16.1%  obs 5m
+  BURST 08-10 AWX    +15.6% @08:06UTC  fwd60 15.6%  fwdEOD 15.6%  obs 24m
+  BURST 08-11 MSGY   +10.0% @15:39UTC  fwd60 13.1%  fwdEOD 13.1%  obs 219m
+  BURST 08-11 MTEN   +13.1% @08:00UTC  fwd60 13.1%  fwdEOD 13.1%  obs 333m
+  BURST 08-11 SCKT   +10.6% @08:00UTC  fwd60 10.6%  fwdEOD 12.8%  obs 258m
+  BURST 08-10 ADVB   +10.9% @10:08UTC  fwd60 12.5%  fwdEOD 12.5%  obs 22m
+  BURST 08-10 ARTW   +11.9% @19:33UTC  fwd60 11.9%  fwdEOD 11.9%  obs 70m
+  BURST 08-11 HQI    +11.6% @14:44UTC  fwd60 11.6%  fwdEOD 11.6%  obs 8m
+  BURST 08-11 WAFU   +11.1% @08:00UTC  fwd60 11.1%  fwdEOD 11.1%  obs 380m
+  BURST 08-10 HUDI   +10.9% @08:01UTC  fwd60 10.9%  fwdEOD 10.9%  obs 418m
+  BURST 08-11 DKI    +11.4% @20:02UTC  fwd60 10.7%  fwdEOD 10.7%  obs 17m
+  BURST 08-11 FXHO   +10.3% @16:06UTC  fwd60 10.3%  fwdEOD 10.3%  obs 13m
+  BURST 08-10 VIVK   +10.0% @13:56UTC  fwd60 10.0%  fwdEOD 10.0%  obs 44m
+  BURST 08-10 AEHL   +12.6% @14:15UTC  fwd60 0.0%  fwdEOD 0.0%  obs 94m
+burst   median fwd60 15.6%  fwdEOD 16.1%
+control median fwd60 5.7%  fwdEOD 7.9%  (n=12)
+CAVEATS: partial observation (roster-capped), crude control anchor (median observed second), 2 days.

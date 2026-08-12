@@ -1357,3 +1357,15 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   Ledger notes: cap-pressure crown-subscription edge (move add earlier if _cap_eff ever trims);
   all-crown >15 case accepted by doctrine ("resolution is a leader privilege"). Pinned, ALL GREEN.
 - Leader meritocracy now extends to data capture: the winners keep their glasses.
+
+## 2026-08-12 ~01:00 — BURST STUDY v1 RUN (registry hypothesis; NOTHING ships)
+- 27 burst name-days vs 12 controls (2 days, roster-capped observation). Raw medians 15.6/16.1%
+  vs 5.7/7.9% BUT burst is inside the forward number — median continuation beyond burst ~0.
+  SURVIVING CLAIM (Convexity form): the TAIL — 10/27 continued far beyond; EVERY captured
+  monster burst first (PLAG 10:12 burst -> +511% from burst px; AIHS +213%; STKH & XHLD burst
+  hours before the runs the daygain floor refused). Necessary-but-not-sufficient shape ->
+  candidate ARM condition, never an entry. Contaminations flagged for v2: 7 bursts at the 04:00
+  open = gap artifacts (exclude); crude control anchor. v2 after a week of crown-pinned 1s tape
+  + the "any monster WITHOUT a burst?" count. Files: burst_study_v1_20260812.py + _RESULTS.
+- Officers: Forward Architect (registry owner), Convexity Trader (tail framing), Wind Tunnel
+  (mechanical-coupling catch), Seam Scientist (one-day-humility law applied).

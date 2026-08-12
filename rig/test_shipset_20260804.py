@@ -985,5 +985,20 @@ try:
 except AssertionError as _sse:
     check("summit sanity EXECUTED", False, str(_sse))
 
+
+print("J) 8/12 reread latency stamps")
+try:
+    _lat_src = open(os.path.join(ROOT, "newcomer_vision_reader.py")).read()
+    assert _lat_src.count("_rr_detect.setdefault") == 3          # all 3 trigger sites stamped
+    assert '_rr_detect.pop((tk, trig)' in _lat_src               # fire loop consumes the stamp
+    assert '"reread_latency"' in _lat_src and "queue_pos" in _lat_src and "queue_len" in _lat_src
+    assert hasattr(nvr, "_rr_detect") and isinstance(nvr._rr_detect, dict)   # module loads with the dict
+    nvr._rr_detect.setdefault(("TST","past_map"), 100.0)         # setdefault semantics: first detect wins
+    nvr._rr_detect.setdefault(("TST","past_map"), 999.0)
+    assert nvr._rr_detect.pop(("TST","past_map")) == 100.0
+    check("latency stamps EXECUTED: 3 sites + consume + row fields + first-detect-wins", True)
+except AssertionError as _lse:
+    check("latency stamps EXECUTED", False, str(_lse))
+
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

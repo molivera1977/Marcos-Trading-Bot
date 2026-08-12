@@ -994,6 +994,9 @@ def _leaders():
     return _ldr_cache["set"]
 
 _rr_overdue: dict = {}
+_rr_detect: dict = {}   # (ticker, trigger) -> first-detected epoch (8/12 latency stamps, Marcos:
+                        # "add the stamps" — latency doctrine: budget + STAMP + alarm; the alarm
+                        # existed, the stamp didn't, and log rotation ate yesterday's evidence)
 _pm_fired: dict = {}   # auditor F13: past_map per-map-version dedup
 
 def _post_decision(ticker, status, **kw):
@@ -1084,14 +1087,14 @@ def reread_check():
                     continue   # auditor F13: once per map version — an uncapped stood-down name
                                # must not re-render every probe against an unchanged map
                 _pm_fired[tk] = lastT
-                want.append((tk, "past_map"))
+                want.append((tk, "past_map")); _rr_detect.setdefault((tk, "past_map"), time.time())
             elif (tk in _leaders() and px > lastT * 0.80
                   and _nme_fired.get(tk) != lastT):
                 # 8/7 FRESHNESS CONTRACT part 2 (YJ +545% on maps one-full-map behind; the 8/5
                 # cap-lift never fixed the TRIGGER): crowns re-read BEFORE the map is consumed —
                 # within 20% of the last target = read-ahead, not read-after.
                 _nme_fired[tk] = lastT   # 8/7 auditor #10: once per map version, not per cycle
-                want.append((tk, "near_map_exhaust"))
+                want.append((tk, "near_map_exhaust")); _rr_detect.setdefault((tk, "near_map_exhaust"), time.time())
     except Exception as e:
         print(f"[reread] passive-section error (markers still run): {e}", flush=True)
     # (b) bot markers: rocket arms + entry-attempt exhaustion — heavier, isolated
@@ -1124,7 +1127,7 @@ def reread_check():
                 _rr_state["seen_markers"].add(key)
                 tk = (r.get("ticker") or "").upper()
                 if not _capped(tk):   # 8/4: held names uncapped
-                    want.append((tk, st))
+                    want.append((tk, st)); _rr_detect.setdefault((tk, st), time.time())
     except Exception as e:
         print(f"[reread] marker-section error (passive candidates still fire): {e}", flush=True)
     # (c) fire — its own guard so a render/post failure can't mark the probe dead
@@ -1137,12 +1140,22 @@ def reread_check():
         # today (a name at zero versions IS the newly triggered map), then sheet order.
         _ldrs = _leaders()
         want.sort(key=lambda x: (x[0] not in _ldrs, _rr_state["per_name"].get(x[0], 0)))
-        for tk, trig in want:
+        for _qi, (tk, trig) in enumerate(want):
             if tk in done or _capped(tk): continue   # 8/4: held names bypass the day cap
             done.add(tk)
             if reread_one(tk, trig):
                 _rr_state["count"] += 1
                 _rr_state["per_name"][tk] = _rr_state["per_name"].get(tk, 0) + 1
+                # 8/12 LATENCY STAMP: detect->posted seconds + queue position, durable row.
+                # Friday grades the distribution; if the single-file queue costs real minutes
+                # on busy tape, THAT row is the case for parallel reads — evidence, not hunch.
+                _det = _rr_detect.pop((tk, trig), None)
+                try:
+                    _post_decision(tk, "reread_latency",
+                                   secs=(round(time.time() - _det, 1) if _det else None),
+                                   queue_pos=_qi, queue_len=len(want), trigger=trig)
+                except Exception:
+                    pass
     except Exception as e:
         print(f"[reread] fire error: {e}", flush=True)
 

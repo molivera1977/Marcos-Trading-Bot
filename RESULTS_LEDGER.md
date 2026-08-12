@@ -1335,3 +1335,14 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   integrity check, file-count tripwire vs prior night, 14-day retention, fires on wake if
   missed). The single-point-of-failure found in the Quartermaster's first audit is closed
   same-night. Remaining on #50: monthly drill cadence + ~ALP1M design-or-defect check.
+
+## 2026-08-12 ~00:50 — SHIPPED: EMAIL TIERING (Marcos: "ship it now"; 80/100 quota by noon)
+- Per-trade emails (~3/trade, 87 on Tuesday) were burning the 100/day Resend quota and would
+  eventually CAP-SILENCE the critical tier (token failing, watchdog, stalls — which email even
+  in DRY_RUN). Trade tier (plan/entry/partial/per-exit-summary) now defaults OFF in DRY_RUN;
+  EMAIL_TRADE_ALERTS=1 restores at go-live (the $5 place+cancel test will email its fill ✓).
+  Morning watchlist deliberately left on (1/day, Marcos reads it) — boundary, not omission.
+- Auditor GO (7th convening, 7/7 tonight): no side effects skipped (pure email funcs, no
+  consumers of returns), CSV logging lives outside the email path, DRY_RUN load-order safe.
+  Pinned (4 gates + critical ungated + env semantics), suite ALL GREEN. Bot deployed asleep,
+  book flat in-turn; boots 03:55 quota-safe.

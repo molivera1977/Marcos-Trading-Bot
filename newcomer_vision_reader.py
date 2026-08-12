@@ -924,6 +924,15 @@ def reread_one(ticker, trigger):
                 print(f"[reread] {ticker} BLUE-SKY: posting summit map (target={rd.get('targets')}) "
                       f"instead of discarding", flush=True)
             else:
+                if str(why or "").startswith("map_already_exhausted"):
+                    # 8/12 W1 BACKOFF (auditor 8/11: a sanity-discard on the uncapped tier
+                    # re-fires every ~60s probe — an hours-stale vision = one 30s call/min all
+                    # afternoon). Exponential per-name pause: 2min, 4, 8... capped 32min.
+                    _c, _ = _rr_backoff.get(ticker, (0, 0))
+                    _c = min(_c + 1, 5)
+                    _rr_backoff[ticker] = (_c, time.time() + 120 * (2 ** (_c - 1)))
+                    print(f"[reread] {ticker} summit-sanity discard #{_c} — backoff "
+                          f"{2 ** (_c - 1) * 2}min", flush=True)
                 print(f"[reread] {ticker} v-read invalid: {why}", flush=True); return False
         # LEDGER: carry prior map forward inside the record, bump version, tag trigger
         hist = lv.get("history") or []
@@ -952,6 +961,7 @@ def reread_one(ticker, trigger):
         except Exception as _e:
             print(f"[reread] latency stamp failed {ticker}: {_e}", flush=True)
         post_level(ticker, rd)
+        _rr_backoff.pop(ticker, None)   # 8/12 W1: a good post resets the sanity-discard backoff
         print(f"[reread] {ticker} v{rd['read_version']} ({trigger}): break {rd.get('break_level')} "
               f"targets {rd.get('targets')} [{rd.get('verdict')}/{rd.get('confidence')}]", flush=True)
         return True
@@ -994,6 +1004,7 @@ def _leaders():
     return _ldr_cache["set"]
 
 _rr_overdue: dict = {}
+_rr_backoff: dict = {}  # ticker -> (consecutive summit-sanity discards, earliest next-try epoch)
 _rr_detect: dict = {}   # (ticker, trigger) -> first-detected epoch (8/12 latency stamps, Marcos:
                         # "add the stamps" — latency doctrine: budget + STAMP + alarm; the alarm
                         # existed, the stamp didn't, and log rotation ate yesterday's evidence)
@@ -1142,6 +1153,8 @@ def reread_check():
         want.sort(key=lambda x: (x[0] not in _ldrs, _rr_state["per_name"].get(x[0], 0)))
         for _qi, (tk, trig) in enumerate(want):
             if tk in done or _capped(tk): continue   # 8/4: held names bypass the day cap
+            _bc, _bnext = _rr_backoff.get(tk, (0, 0))
+            if _bnext > time.time(): continue        # 8/12 W1: in summit-sanity backoff window
             done.add(tk)
             if reread_one(tk, trig):
                 _rr_state["count"] += 1

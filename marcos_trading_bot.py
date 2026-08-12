@@ -2275,7 +2275,9 @@ def _clear_open_trade(ticker: str, trade_id=None):   # auditor F3: id-precise cl
                     still_tk  = [o.get("ticker") for o in _rows]
                     still_ids = [o.get("trade_id") for o in _rows if o.get("trade_id")]
                 except Exception:
-                    still_tk, still_ids = [], []
+                    # auditor note 4 (8/12): a FAILED verify-read must NOT read as "verified
+                    # gone" — poison sentinels force the retry/give-up path instead.
+                    still_tk, still_ids = [ticker], [trade_id]
                 # 8/12 W3 FIX (auditor: the old check compared a trade_id against a TICKER list —
                 # vacuously true, so id-bearing clears never actually verified; that silence is
                 # how 8/11's 8 ghosts accumulated unseen).
@@ -7288,6 +7290,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         print(f"\n🫥 {t} HIDDEN ENTRY! ${price:.2f} — Kev 10s wick off "
                               f"${he['anchor']:.2f} (VWAP+90MA), stop ${he['stop']:.2f} (wick low) "
                               f"[#{_he_day[_sess_he] + 1}/{HIDDEN_DAILY_CAP} {_sess_he}]")
+                        if _he_day[_sess_he] >= 3 and not _is_leader(t):
+                            # 8/12 CAP RAISE stamp (Marcos: hidden 5; kill-test cap_cost_20260812
+                            # +$257 era offer, YXT-tail): non-crown slots 4-5 = the marginal
+                            # cohort, rowed for Friday's isolated grade.
+                            _log_decision(t, "cap_raise_slot", price=price, cap="hidden5",
+                                          slot=_he_day[_sess_he] + 1, sess=_sess_he)
                         breakouts.append((t, price, he["anchor"], "hidden_entry", {
                             "zone_stop": he["stop"], "wick": he["wick"], "anchor": he["anchor"],
                             "ext_vwap": he["ext_vwap"], "he_seq": he["seq"],
@@ -10193,6 +10201,13 @@ def main():
                     pass
                 if (entry[3] in PRE_LANES and _pre_day["n"] < PRE_MAX_TRADES
                         and _pm_dvol >= PRE_MIN_DVOL and _hm_pm < PRE_FLAT_HHMM):
+                    # 8/12 CAP RAISE (Marcos verdict: hidden 5 + PRE 8; era kill-test cap_cost_
+                    # 20260812): slots beyond the OLD caps get their own row so Friday grades
+                    # the marginal cohort in isolation. Busy window = 8:30-9:25 (Marcos's read,
+                    # rows-verified: 11/12 conversions 08:52-09:22).
+                    if _pre_day["n"] >= 6:
+                        _log_decision(entry[0], "cap_raise_slot", price=entry[1],
+                                      cap="pre8", slot=_pre_day["n"] + 1)
                     # F1a (7/26 exit review): NO conversions in [PRE_FLAT_HHMM, 09:30) — a 9:26 fire
                     # would convert and be flattened on the monitor's FIRST iteration (minted spread-
                     # loss + burned PRE ticket/cap slot). Fires in the dead window shadow instead.
@@ -10210,6 +10225,12 @@ def main():
                                                        else "premkt_capped")))
                     entry[4]["_pm_dvol"] = round(_pm_dvol)
                     _shadow_pm.append(entry)
+                    if entry[4]["_pm_why"] == "premkt_capped":
+                        # 8/12: the PRE cap refusal gets its OWN queryable status — the 8/12-am
+                        # "never fired" claim was wrong precisely because this lived only in a
+                        # shadow-row field no census query could see. Never again.
+                        _log_decision(entry[0], "premkt_capped", price=entry[1],
+                                      machine=entry[3], pm_dvol=round(_pm_dvol))
             breakouts = _kept_pm
             if _shadow_pm:
                 for entry in _shadow_pm:

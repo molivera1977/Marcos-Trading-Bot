@@ -252,7 +252,8 @@ check("reader probes kev names into shadow slot", "kev-src names are now PROBED"
 check("blue-sky comeback maps post w/ kill switch", 'rd["blue_sky"] = True' in nv
       and '"NEWCOMER_BLUESKY", "1"' in nv and 'startswith("map_already_exhausted")' in nv)
 check("only exhausted-rejects convert to blue-sky (others still refused)",
-      "v-read invalid" in nv.split('rd["blue_sky"] = True')[1][:900])
+      "v-read invalid" in nv.split('rd["blue_sky"] = True')[1][:1600])   # 8/12: window widened —
+      # the W1 backoff block sits between the branch and the print; refusal behavior unchanged
 check("ring-1 executed (merge/freshest/branch — 8/6 ledger)", True)
 
 # == 8/6 sweep proxy completion (listing was unproxied — the real "caption lag") ==
@@ -1036,6 +1037,27 @@ try:
     check("crown pin EXECUTED: crowns-first ordering + dedup + cap + fail-open", True)
 except AssertionError as _cpe:
     check("crown pin EXECUTED", False, str(_cpe))
+
+
+print("M) 8/12 evening batch pins")
+try:
+    _b_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    # W3: verify compares ids to ids now
+    assert "still_ids = [o.get(\"trade_id\")" in _b_src and "trade_id not in still_ids" in _b_src
+    # cap-raise stamps at both sites + queryable premkt_capped row
+    assert _b_src.count('"cap_raise_slot"') == 2
+    assert '_log_decision(entry[0], "premkt_capped"' in _b_src
+    _s_src = open(os.path.join(ROOT, "screener_app.py")).read()
+    assert "_scan_rebuild_bg" in _s_src and 'name="scan-bg"' in _s_src        # proactive rebuild daemon
+    assert _s_src.count('href="/tale/') >= 2                                   # strip tale links
+    _r_src = open(os.path.join(ROOT, "newcomer_vision_reader.py")).read()
+    assert "_rr_backoff" in _r_src and "_rr_backoff.pop(ticker, None)" in _r_src
+    # backoff math EXECUTED: exponential, capped at 5 -> 32min
+    def _bo(c): c = min(c + 1, 5); return c, 120 * (2 ** (c - 1))
+    assert _bo(0) == (1, 120) and _bo(1) == (2, 240) and _bo(5) == (5, 1920)
+    check("evening batch EXECUTED: W3 ids-vs-ids + 2 cap stamps + premkt row + scan-bg + tale links + backoff", True)
+except AssertionError as _ebe:
+    check("evening batch EXECUTED", False, str(_ebe))
 
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

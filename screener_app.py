@@ -986,12 +986,37 @@ def index():
     return render_template_string(HTML.replace("</head>", THEME_SNIPPET + "</head>"))
 
 
-_scan_cache = {"t": 0.0, "res": None, "err": None}
+_scan_cache = {"t": 0.0, "res": None, "err": None, "building": False}
+
+def _scan_rebuild_bg():
+    """8/12 PROACTIVE REBUILD (the 8/12 morning: cache-miss rebuilds took 30-50s during the
+    pre-open rush, so the bot's 60s funnel pulls timed out 19x and served last-good boards).
+    A daemon refreshes the cache BEFORE it expires during market hours — callers now always
+    hit warm cache; nobody ever waits on a cold rebuild. Single-flight via 'building' flag."""
+    import time as _t
+    while True:
+        try:
+            now = datetime.now(EASTERN)
+            in_hours = now.weekday() < 5 and "03:50" <= now.strftime("%H:%M") <= "20:05"
+            if in_hours and not _scan_cache["building"] and _t.time() - _scan_cache["t"] > 60:
+                _scan_cache["building"] = True
+                try:
+                    results, errors = run_scan()
+                    _scan_cache["t"], _scan_cache["res"], _scan_cache["err"] = _t.time(), results, errors
+                finally:
+                    _scan_cache["building"] = False
+        except Exception as _e:
+            print(f"[scan-bg] rebuild error: {_e}", flush=True)
+        _threading.Event().wait(15)
+
+_threading.Thread(target=_scan_rebuild_bg, daemon=True, name="scan-bg").start()
+
 @app.route("/api/scan")
 def api_scan():
-    # 8/10: 30s TTL cache — the bot pulls every 60s + the browser every 5min; one scan serves all.
+    # 8/10: TTL cache; 8/12: background daemon keeps it warm — request-path rebuild is now the
+    # off-hours fallback only.
     import time as _t
-    if _scan_cache["res"] is not None and _t.time() - _scan_cache["t"] < 90:   # audit: 30s TTL never served the 60s bot cadence — full scan ran every 60s (3x load)
+    if _scan_cache["res"] is not None and _t.time() - _scan_cache["t"] < 120:
         results, errors = _scan_cache["res"], _scan_cache["err"]
     else:
         results, errors = run_scan()
@@ -2927,7 +2952,7 @@ function loadData(){
           else if(r.status==='ceiling_reject') why='chart lane past all mapped targets — stand down until fresh read';
           else if(r.status==='breakside_reject') why='entry '+(r.gap_pct!=null?'+'+r.gap_pct+'% ':'')+'above the marked break'+(r.break_level!=null?' $'+r.break_level:'');
           return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
-                 '<td><b>'+(r.ticker||'—')+'</b></td><td>'+GATES[r.status]+'</td><td>'+(r.machine||'—')+'</td>'+
+                 '<td><a href="/tale/'+(r.ticker||'')+'" style="color:#58a6ff;text-decoration:none"><b>'+(r.ticker||'—')+'</b></a></td><td>'+GATES[r.status]+'</td><td>'+(r.machine||'—')+'</td>'+
                  '<td>'+(r.price!=null?'$'+Number(r.price).toFixed(2):'—')+'</td><td>'+why+'</td></tr>';
         }).join('')+'</tbody></table>';
     }).catch(()=>{});
@@ -2948,7 +2973,7 @@ function loadData(){
           const conv=(r.status==='halt_early_arm')?'<span style="color:var(--muted4)">shadow</span>'
                     :(r.convert?'<span style="color:var(--green)">LIVE</span>':'<span style="color:var(--muted4)">shadow</span>');
           return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
-                 '<td><b>'+(r.ticker||'—')+'</b></td><td>'+LANES[r.status]+'</td>'+
+                 '<td><a href="/tale/'+(r.ticker||'')+'" style="color:#58a6ff;text-decoration:none"><b>'+(r.ticker||'—')+'</b></a></td><td>'+LANES[r.status]+'</td>'+
                  '<td>'+(r.price!=null?'$'+Number(r.price).toFixed(2):'—')+'</td>'+
                  '<td>'+(r.side||'—')+'</td><td>'+det+'</td><td>'+conv+'</td></tr>';
         }).join('')+'</tbody></table>';

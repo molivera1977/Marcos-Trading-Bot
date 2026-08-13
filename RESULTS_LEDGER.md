@@ -1506,3 +1506,15 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   envelope confirmed bounded (fresh-fire + flatten 9:25 + crown proof requirements).
 - Bot redeployed, book flat in-turn, boot verified. Thursday wakes to: reader 07:00, PRE 10,
   crown-exempt, hidden 5, every new cohort stamped.
+
+## 2026-08-12 ~22:00 — DOCTRINE ENCODED: NO ONE HAS VETO POWER (Marcos; re-grade n=0)
+- Marcos: "the chart and tape decide. No one has veto power." RE-GRADE RUN FIRST: the chart-lane
+  veto branch (veto flag + do-not-trade/pass note language) fired ZERO times era-wide since
+  enforcement began — a loaded gun that never fired; removal = zero measured behavior change.
+- SHIPPED: the skip branch removed; veto/stand-down language now DATA-ONLY everywhere (new
+  veto_noted_not_gating row when encountered; still recorded in kev_shadow for the Friday A/B
+  + magnet grading). Tape lanes were already veto-immune (code-verified :3184 bypass). Tonight's
+  earlier words->flag conversion in the merge = harmless recording, gates nothing. Pinned,
+  suite ALL GREEN, bot redeployed (book flat in-turn).
+- Doctrine chain now fully consistent: chart-as-gate decides entries, tape lanes decide
+  themselves, maps describe, freshest data rules, crowns earn bullets, NO human blocks a ticker.

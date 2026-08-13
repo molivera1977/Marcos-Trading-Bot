@@ -1624,3 +1624,8 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   test extended to cover a resting sell + stop pair, kill switch LIVE_RESTING_TIERS. Window:
   Thu evening/weekend; Broker Desk owns semantics; full protocol ship.
 - Spread-cap decision (1.5-2% entry refuse) still OPEN — Marcos has the census, his call.
+- SPREAD-CAP RULING (Marcos 8/13 ~02:15): "i'm not playing with the spread cap for now. We can run
+  the numbers Friday after close." NO cap ships — nothing changes in code (spread stays data-only
+  via the existing est_slippage stamp). FRIDAY SLATE ADDS: re-run spread census on the week's tape
+  (doctrine model: resting tiers free, entry+safety legs pay) + the Wednesday counter-evidence
+  (2% cap would have refused 6 BQ trades summing +$135.66 sim on the best RTH day of the era).

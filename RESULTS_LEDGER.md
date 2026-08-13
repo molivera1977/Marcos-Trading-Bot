@@ -1571,3 +1571,23 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - Proven both directions: tampered tree -> RED exit 1; restored -> ALL GREEN exit 0. New ship law:
   every deploy is preceded by SHIP_CHECK=1 rig, no exceptions, and the rig now enforces the law
   the way the flat-book law is enforced: by check, not by memory.
+
+## 2026-08-13 ~00:10 — FULL LIVE-STATE AUDIT (Marcos: "full audit check on everything live? In case anything slipped by?")
+- Three parallel live auditors + own checks; READ-ONLY; all 5 services + local backup + 15-ship
+  cross-check. VERDICT: GO FOR 03:55. Nothing slipped through to a live defect.
+- Bot: all envs correct or safely defaulted (MAPLESS_BLOCK absent = default ON :5491; MIN_STOP_PCT=4
+  = the 8/3 ruling, agent's "6%" was stale memory; EMAIL_TRADE_ALERTS absent = designed DRY_RUN
+  default :9369). Boot logs clean, veto build 7e6f20ba active, book flat.
+- 15/15 ships verified in deployed artifacts w/ line cites; /duty 200; /premarket 40 tales live;
+  books backup ALREADY RAN (22:30 8/12, 4.0MB in iCloud, exit 0; next 22:30 tonight).
+- Support services: reader sleeping until 07:00 (env load-bearing vs 08:50 code default); capture
+  feed=sip 0 disconnects; sweep SUCCEEDED tonight via YOUTUBE (Thursday sheet posted: 3 names;
+  _levels 8/13 = BOXL,GXAI,JF,OFAL,SCKT; "GAXOS" correctly dropped by hallucination guard — that's
+  Gaxos.ai = GXAI, which IS in the levels). Zero tracebacks anywhere.
+- Resolved flags: "API_SECRET missing" = naming mismatch (code reads DASHBOARD_SECRET w/ default,
+  :43). SKIPPED deploys 23:52/00:00 on bot AND capture = my two GitHub pushes — repo-connected
+  services record push builds as SKIPPED, running images untouched. Standing rule: pushes only
+  after hours (existing law), and after any push CHECK the deployment list shows SKIPPED.
+- WATCH-TOMORROW (carried from 16th convening + tonight): PRE slot count vs fills (crown race) ·
+  concurrent PRE notional · first veto_noted_not_gating/crown_pre_exempt rows · 07:00 reader first
+  light on the 5-name Thursday sheet with primacy flip live.

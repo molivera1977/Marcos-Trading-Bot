@@ -1,0 +1,86 @@
+FOUR-ARM HIDDEN-EXIT COMPARISON — kill-test run 2026-08-13T12:31:15-04:00
+Cohort: entry_type==hidden_entry, 2026-07-24..2026-08-12 (8/13 EXCLUDED for tonight rerun). N=113
+
+ASSUMPTIONS (all stated up front):
+ - Read-only replay; sizing = each trade's REAL shares; dollars through that chain.
+ - Path fidelity: 10s bars (TICKER~10S pref, ~ALP10S fallback) windowed entry_ts_utc..recorded_at;
+   fallback = 3-point model entry->highest->exit (conservative: high precedes final exit).
+   Split: 71 trades on 10s bars, 42 on 3-point model.
+ - Tier fill only when path trades THROUGH: bar high > tier*1.001; fill at tier price.
+ - Ratchet: floor active at +10% = max(entry, high*0.90); at +25% = high*0.95;
+   exit when bar low <= floor; FILL = floor*0.97 (FGI live measurement 13.80->13.38 = -3.0%).
+ - Within a bar, tier fills are taken before the ratchet check (favors the up-move).
+ - End-of-data: remaining shares exit at the trade's REAL recorded exit price.
+ - Arm 1 first trim = actual first partial price when recorded, else entry*1.02.
+ - Arm 2 ratchet-only trades: no _levels map entry = 0; map present but NO marked level above entry = 2.
+ - Arm 4 rung substitution: closest unused marked level below each percentage rung.
+ - Fractional shares used in the arithmetic (real thirds/quarters of real share counts).
+ - No commissions/borrow modeled; real trades' recorded pnl includes what it includes.
+
+REAL BOOK (recorded pnl, this cohort): $707.10  (baseline for comparison)
+
+================ ALL TRADES (N=113) ================
+ARM 1 — GRID (current)
+  total $-175.48 | mean $-1.55/trade | win rate 23.9% (27/113)
+  best  WFF 2026-08-07  $110.92
+  worst NCRA 2026-07-29  $-50.14
+  top-3 monsters (tail $): WFF 2026-08-07 $110.92, VEEE 2026-07-27 $98.25, WYHG 2026-08-06 $77.27  | tail total $286.44
+
+ARM 2 — LEVEL-TIERS
+  total $-163.77 | mean $-1.45/trade | win rate 21.2% (24/113)
+  best  WFF 2026-08-07  $158.58
+  worst AMIX 2026-07-29  $-55.12
+  top-3 monsters (tail $): WFF 2026-08-07 $158.58, VEEE 2026-07-27 $129.07, WYHG 2026-08-06 $101.16  | tail total $388.81
+
+ARM 3 — RATCHET-PRIMARY
+  total $-175.48 | mean $-1.55/trade | win rate 23.9% (27/113)
+  best  WFF 2026-08-07  $110.92
+  worst NCRA 2026-07-29  $-50.14
+  top-3 monsters (tail $): WFF 2026-08-07 $110.92, VEEE 2026-07-27 $98.25, WYHG 2026-08-06 $77.27  | tail total $286.44
+
+ARM 4 — HYBRID
+  total $-173.79 | mean $-1.54/trade | win rate 23.9% (27/113)
+  best  WFF 2026-08-07  $110.92
+  worst NCRA 2026-07-29  $-50.14
+  top-3 monsters (tail $): WFF 2026-08-07 $110.92, VEEE 2026-07-27 $81.69, WYHG 2026-08-06 $77.27  | tail total $269.87
+
+================ FGI-CLASS SUBSET (MFE >= +30%): N=6 ================
+ARM 1 — GRID (current)
+  total $421.32 | mean $70.22/trade | win rate 100.0% (6/6)
+  best  WFF 2026-08-07  $110.92
+  worst FCUV 2026-07-31  $27.92
+  top-3 monsters (tail $): WFF 2026-08-07 $110.92, VEEE 2026-07-27 $98.25, WYHG 2026-08-06 $77.27  | tail total $286.44
+
+ARM 2 — LEVEL-TIERS
+  total $545.58 | mean $90.93/trade | win rate 100.0% (6/6)
+  best  WFF 2026-08-07  $158.58
+  worst FCUV 2026-07-31  $27.30
+  top-3 monsters (tail $): WFF 2026-08-07 $158.58, VEEE 2026-07-27 $129.07, WYHG 2026-08-06 $101.16  | tail total $388.81
+
+ARM 3 — RATCHET-PRIMARY
+  total $421.32 | mean $70.22/trade | win rate 100.0% (6/6)
+  best  WFF 2026-08-07  $110.92
+  worst FCUV 2026-07-31  $27.92
+  top-3 monsters (tail $): WFF 2026-08-07 $110.92, VEEE 2026-07-27 $98.25, WYHG 2026-08-06 $77.27  | tail total $286.44
+
+ARM 4 — HYBRID
+  total $403.17 | mean $67.19/trade | win rate 100.0% (6/6)
+  best  WFF 2026-08-07  $110.92
+  worst FCUV 2026-07-31  $27.92
+  top-3 monsters (tail $): WFF 2026-08-07 $110.92, VEEE 2026-07-27 $81.69, WYHG 2026-08-06 $77.27  | tail total $269.87
+
+================ NAMED TRACE (dollars-not-R law) ================
+Trade: WFF 2026-08-07 | entry $3.8300 x 130 sh | stop 3.7000 | highest 7.0100 | real exit 6.4500 | real pnl $215.59 | fills fidelity: bars
+ ARM 1 — GRID (current): pnl $110.92
+    tier@3.9500                     43.33 sh @ $3.9500  -> $+5.20
+    ratchet@5.2060->fill            86.67 sh @ $5.0498  -> $+105.72
+ ARM 2 — LEVEL-TIERS: pnl $158.58
+    ratchet@5.2060->fill           130.00 sh @ $5.0498  -> $+158.58
+ ARM 3 — RATCHET-PRIMARY: pnl $110.92
+    tier@3.9500                     43.33 sh @ $3.9500  -> $+5.20
+    ratchet@5.2060->fill            86.67 sh @ $5.0498  -> $+105.72
+ ARM 4 — HYBRID: pnl $110.92
+    tier@3.9500                     43.33 sh @ $3.9500  -> $+5.20
+    ratchet@5.2060->fill            86.67 sh @ $5.0498  -> $+105.72
+
+No recommendation — numbers only; the decision is Marcos's on Friday.

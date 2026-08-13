@@ -1645,3 +1645,8 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   operational memory because we'd never used it intraday; law now written + indexed
   (feedback_manual_override_first) so it loads EVERY session. The deeper fix is Build 3: the machine
   asks for its own reads, so remembering stops being load-bearing.
+- 12:58 SECOND MANUAL BATCH (Marcos: "add this to the list"): board rotated by midday — NINE new
+  fired-and-mapless actives (LEXX 7 fires, MSGY 12, INHD, TOPS, JUNS, SHPH, ARTW, EXOD, UPLD);
+  posted manual maps, 68 total, zero blind. TWICE in one session = Build 3 (auto-read on
+  fire+no-map) is not an improvement, it's a requirement; evidence attached to task #54.
+  Bonus observed: FGI blue-sky rereads self-updating as it climbs (summit maps 16.50 -> 18.45).

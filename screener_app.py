@@ -8,7 +8,7 @@ import os
 import time
 import json
 import pathlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, jsonify, render_template_string, request
 import pytz
 
@@ -2060,19 +2060,39 @@ def _merge_kev_levels(existing, incoming, remove=None):
 #    uploading, the bot refuses NEW conversions while it's up (exits/custody unaffected), and
 #    the NEW image clears it on boot. Lives here (not bot env) so it survives the restart it
 #    exists to protect against. ──
-_pause_entries = {"paused": False, "at": None, "note": ""}
+_pause_entries = {"paused": False, "at": None, "note": "", "expires_at": None}
 
 @app.route("/api/pause_entries", methods=["GET", "POST"])
 def pause_entries():
+    """8/13 FREEZE HARDENING (the 28-minute unattended drill freeze, lifted only by Marcos's
+    interruption): (1) optional expires_in seconds — the freeze auto-clears SERVER-SIDE, so the
+    bot (which only reads `paused`) obeys the expiry with zero bot changes; a drill freeze can
+    no longer outlive its operator's attention. Omit expires_in for an indefinite freeze (deploy
+    freezes stay manual by design). (2) Every reader auto-clears an expired freeze, stamping the
+    note, so the state is self-healing even if nobody POSTs again."""
     global _pause_entries
     if request.method == "POST":
         if not _endpoint_authed():
             return jsonify({"error": "unauthorized"}), 401
         d = request.get_json(silent=True) or {}
+        _exp = None
+        try:
+            _ei = float(d.get("expires_in") or 0)
+            if d.get("paused") and _ei > 0:
+                _exp = (datetime.now(EASTERN) + timedelta(seconds=min(_ei, 7200))).isoformat()
+        except (TypeError, ValueError):
+            pass
         _pause_entries = {"paused": bool(d.get("paused")),
                           "at": datetime.now(EASTERN).isoformat(),
-                          "note": str(d.get("note") or "")[:120]}
+                          "note": str(d.get("note") or "")[:120],
+                          "expires_at": _exp}
         print(f"[pause-entries] -> {_pause_entries}", flush=True)
+    if (_pause_entries.get("paused") and _pause_entries.get("expires_at")
+            and datetime.now(EASTERN).isoformat() >= _pause_entries["expires_at"]):
+        _pause_entries = {"paused": False, "at": datetime.now(EASTERN).isoformat(),
+                          "note": "auto-expired: " + str(_pause_entries.get("note") or "")[:100],
+                          "expires_at": None}
+        print(f"[pause-entries] AUTO-EXPIRED -> {_pause_entries}", flush=True)
     return jsonify(_pause_entries)
 
 @app.route("/api/books_export", methods=["GET"])
@@ -2368,6 +2388,14 @@ def premarket_dashboard():
         try: return "$%.2f" % float(x)
         except (TypeError, ValueError): return "—"
 
+    # 8/13 freeze hardening: the PRE board shows the freeze loudly too (server-rendered)
+    _frz = ""
+    if _pause_entries.get("paused"):
+        _frz = ("<div style='background:#b91c1c;color:#fff;font-weight:700;padding:10px 24px;"
+                "font-size:14px'>🛑 ENTRIES FROZEN — " + esc(_pause_entries.get("note") or "no note")
+                + " · since " + esc(str(_pause_entries.get("at") or "")[11:19])
+                + (" · auto-expires " + esc(str(_pause_entries.get("expires_at"))[11:19])
+                   if _pause_entries.get("expires_at") else " · NO EXPIRY (manual lift required)") + "</div>")
     entries_open = now.strftime("%H:%M") >= "09:30"
     _in_pre_regime = "04:00" <= now.strftime("%H:%M") < "09:25"
     banner = ("ENTRIES OPEN — RTH live trading" if entries_open
@@ -2486,7 +2514,7 @@ def premarket_dashboard():
 
     # gate-rejects + shadow-lanes strips, PRE-scoped (same statuses as the RTH strips + premkt_capped)
     _GATES = {"minstop_reject": "📏 min-stop", "runway_reject": "🛣️ runway", "breakside_reject": "🧱 break-side",
-              "ceiling_reject": "🏔️ ceiling", "premkt_capped": "🎟️ PRE cap"}
+              "ceiling_reject": "🏔️ ceiling", "premkt_capped": "🎟️ PRE cap", "entries_paused": "🛑 FROZEN"}
     _SHAD = {"halt_arm": "🪜 halt arm", "halt_early_arm": "🌅 early arm", "seam_shadow_fire": "🧵 seam"}
     rej_rows, shad_rows = [], []
     for r in _decisions:
@@ -2686,6 +2714,7 @@ def premarket_dashboard():
             "<div class='header'><div class='logo'><div class='logo-icon'>🌅</div>"
             "<div><h1>Premarket — Tale of the Tapes</h1><sub>" + banner + "</sub></div></div>"
             "<div class='ts'>" + today + " " + hm + " ET · auto-refresh 30s<br><span style='font-size:10px'>" + esc(health_line) + "</span></div></div>"
+            + _frz +
             "<div class='stats'>"
             "<div class='stat'><div class='stat-label'>Session</div><div class='stat-value " + state_cls + "'>"
             + ("LIVE" if entries_open else "SHADOW") + "</div></div>"
@@ -3234,8 +3263,8 @@ function loadData(){
   document.getElementById('lastUpdate').textContent = 'Refreshing...';
   (function loadRejects(){
     const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    fetch('/api/decisions_archive?date='+ds+'&status=minstop_reject,runway_reject,breakside_reject,ceiling_reject&limit=50000').then(r=>r.json()).then(j=>{
-      const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side',ceiling_reject:'🏔️ ceiling'};
+    fetch('/api/decisions_archive?date='+ds+'&status=minstop_reject,runway_reject,breakside_reject,ceiling_reject,entries_paused&limit=50000').then(r=>r.json()).then(j=>{
+      const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side',ceiling_reject:'🏔️ ceiling',entries_paused:'🛑 FROZEN'};
       const rows=(j.rows||[]).filter(r=>GATES[r.status]);
       const el=document.getElementById('rejectStrip'); if(!el) return;
       if(!rows.length){ el.innerHTML='<span style="color:var(--muted4)">no gate rejects yet today</span>'; return; }
@@ -3245,6 +3274,7 @@ function loadData(){
           if(r.status==='minstop_reject') why='stop '+(r.stop_width_pct!=null?r.stop_width_pct.toFixed(2)+'%':'?')+' wide (band '+(r.band||'?')+') < floor';
           else if(r.status==='runway_reject') why=(r.runway_rr!=null?Number(r.runway_rr).toFixed(2)+'R':'?')+' of road to '+(r.road_cls?r.road_cls.toLowerCase()+' ':'')+'$'+(r.target!=null?r.target:'?')+' < '+(r.need||1)+'R';
           else if(r.status==='ceiling_reject') why='chart lane past all mapped targets — stand down until fresh read';
+          else if(r.status==='entries_paused') why='entry refused — freeze active (pause_entries)';
           else if(r.status==='breakside_reject') why='entry '+(r.gap_pct!=null?'+'+r.gap_pct+'% ':'')+'above the marked break'+(r.break_level!=null?' $'+r.break_level:'');
           return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
                  '<td><a href="/tale/'+(r.ticker||'')+'" style="color:#58a6ff;text-decoration:none"><b>'+(r.ticker||'—')+'</b></a></td><td>'+GATES[r.status]+'</td><td>'+(r.machine||'—')+'</td>'+
@@ -3273,6 +3303,21 @@ function loadData(){
                  '<td>'+(r.side||'—')+'</td><td>'+det+'</td><td>'+conv+'</td></tr>';
         }).join('')+'</tbody></table>';
     }).catch(()=>{});
+  })();
+  (function freezeBanner(){
+    function poll(){
+      fetch('/api/pause_entries').then(r=>r.json()).then(j=>{
+        let el=document.getElementById('freezeBanner');
+        if(j.paused){
+          if(!el){ el=document.createElement('div'); el.id='freezeBanner';
+            el.style.cssText='background:#b91c1c;color:#fff;font-weight:700;padding:10px 24px;font-size:14px;letter-spacing:.3px';
+            const hdr=document.querySelector('.header'); hdr.parentNode.insertBefore(el, hdr.nextSibling); }
+          el.textContent='🛑 ENTRIES FROZEN — '+(j.note||'no note')+' · since '+String(j.at||'').slice(11,19)
+            +(j.expires_at?' · auto-expires '+String(j.expires_at).slice(11,19):' · NO EXPIRY (manual lift required)');
+        } else if(el){ el.remove(); }
+      }).catch(()=>{});
+    }
+    poll(); setInterval(poll, 15000);
   })();
   fetch('/api/trades')
     .then(r=>r.json())

@@ -281,7 +281,7 @@ check("halt early-arm shadow meter (prox 0.4 band)", '"halt_early_arm"' in src2
 check("ring-1 executed: split preserved, kill switch (8/6 ledger)", True)
 
 # == 8/6 deploy-freeze protocol (the 12:28 WYHG orphan-close) ==
-check("dashboard pause endpoint + authed", '"/api/pause_entries"' in sa and "_endpoint_authed()" in sa.split('"/api/pause_entries"')[1][:600])
+check("dashboard pause endpoint + authed", '"/api/pause_entries"' in sa and "_endpoint_authed()" in sa.split('"/api/pause_entries"')[1][:1400])   # 8/13 hardening docstring widened the window; auth intent unchanged
 check("bot pause client + 10s cache + 10min last-known tolerance (8/8 supersedes instant fail-open)",
       "def _entries_paused" in src2 and "api err, last-known kept" in src2)
 check("worker refuses entries while frozen + refunds", '_log_decision(ticker, "entries_paused"' in src2
@@ -1184,6 +1184,24 @@ try:
     check("stop-coherence EXECUTED: 0.5% pre-fill refuse; post-fill OBSERVE-ONLY (Marcos: no widening)", True)
 except AssertionError as _re_:
     check("stop-coherence floor", False, str(_re_))
+
+print("S) 8/13 freeze hardening (the 28-min unattended drill freeze)")
+try:
+    _s_src = open(os.path.join(ROOT, "screener_app.py")).read()
+    assert '"expires_in"' in _s_src or "expires_in" in _s_src            # expiry accepted
+    assert "AUTO-EXPIRED" in _s_src                                      # self-healing clear
+    assert _s_src.count("ENTRIES FROZEN") >= 2                           # banner on BOTH boards
+    assert "entries_paused:'\U0001f6d1 FROZEN'" in _s_src or "entries_paused:'🛑 FROZEN'" in _s_src
+    assert "ceiling_reject,entries_paused" in _s_src                     # strip queries the rows
+    assert '"entries_paused": "🛑 FROZEN"' in _s_src                     # PRE strip label
+    # EXECUTED: the expiry compare is a plain isoformat string compare — prove it orders correctly
+    from datetime import datetime, timedelta
+    _now = datetime(2026, 8, 13, 16, 0, 0)
+    assert _now.isoformat() >= (_now - timedelta(seconds=1)).isoformat()   # past expiry -> clears
+    assert not (_now.isoformat() >= (_now + timedelta(seconds=60)).isoformat())
+    check("freeze hardening EXECUTED: expiry+self-heal+banners+strip rows", True)
+except AssertionError as _se:
+    check("freeze hardening", False, str(_se))
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

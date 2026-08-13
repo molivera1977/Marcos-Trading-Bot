@@ -1118,7 +1118,13 @@ try:
     # blocker 1: flipped rows keep Kev exemptions in the bot
     _b2 = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
     assert 'bool(lv.get("kev_name")) or str(lv.get("src") or "") != "vision"' in _b2
-    check("primacy flip EXECUTED: promote+preserve+morning-shadow+carry+word-veto+killswitch+kev_name", True)
+    # 8/12 15th-convening fix #1: VISION-FIRST ordering (07:00 read, Kev sweep at 09:00 after)
+    # must NOT clobber the vision map — vision stays primary, Kev rides shadow, veto promotes.
+    o = _M({}, {"E": {"src": "vision", "break": 4.10, "targets": [4.5]}})       # 07:00 read
+    o = _M(o, {"E": {"src": "kev", "break": 4.00, "note": "do not trade"}})     # 09:00 sweep
+    assert o["E"]["break"] == 4.10 and o["E"]["kev_name"] is True
+    assert o["E"]["kev_shadow"]["break"] == 4.00 and o["E"]["veto"] is True
+    check("primacy flip EXECUTED: promote+preserve+morning-shadow+carry+word-veto+killswitch+kev_name+vision-first", True)
 except AssertionError as _pfe:
     check("primacy flip EXECUTED", False, str(_pfe))
 
@@ -1130,7 +1136,23 @@ try:
     assert '("skip", "veto_do_not_trade"' not in _v_src                 # the gate branch is GONE
     _i = _v_src.find('"veto_noted_not_gating"')
     assert "No one has veto power" in _v_src[_i-700:_i]                 # doctrine cited at site
-    check("veto EXECUTED as data-only: skip branch removed, noted row in its place", True)
+    # 8/12 15th-convening fix #3: EXECUTE the gate, don't just grep it. Extract
+    # _chart_break_gate via ast, run it in a stub namespace with a VETOED map — the verdict
+    # must be a live one (allow/block on structure), never a veto skip, and the data-only
+    # row must be logged.
+    import ast as _ast
+    _tree = _ast.parse(_v_src)
+    _fn = next(n for n in _tree.body if isinstance(n, _ast.FunctionDef) and n.name == "_chart_break_gate")
+    _rows = []
+    _ns = {"IGNITION_CHART_BYPASS": True, "CHART_GATE_BAND": 0.02,
+           "_effective_map": lambda tk, px: {"veto": True, "note": "do not trade",
+                                             "break": 1.0, "targets": [2.0]},
+           "_log_decision": lambda tk, st, **kw: _rows.append(st)}
+    exec(compile(_ast.Module(body=[_fn], type_ignores=[]), "<gate>", "exec"), _ns)
+    _verdict = _ns["_chart_break_gate"]("XVET", 1.05, "ma_pullback")   # chart lane, vetoed map
+    assert _verdict[0] == "allow" and _verdict[1] == "broke_level", _verdict   # veto did NOT gate
+    assert "veto_noted_not_gating" in _rows                                    # and WAS recorded
+    check("veto EXECUTED as data-only: skip branch removed, noted row in its place, gate RUN live", True)
 except AssertionError as _ve:
     check("veto EXECUTED as data-only", False, str(_ve))
 

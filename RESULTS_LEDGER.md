@@ -1541,3 +1541,20 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   iOS Safari details/summary, escaping, perf, %-format scan); item 2 ONE real 500 path — a
   malformed date record would brick the month grid (writer accepts any string at :1058). Fix-now
   shipped: strict YYYY-MM regex guard; poison-date render 200, rig ALL GREEN, flat book, redeployed.
+
+## 2026-08-12 ~23:30 — SHIP-CENSUS ANSWER (Marcos: "were any other shipped items tonight unaudited?")
+- YES, TWO: reader-07:00 and the veto removal both shipped without separate-context convenings
+  (kill-tests/rig only). 15th convening (agent a79beb9ce875ec1d8) ran post-ship and found a REAL
+  BLOCK: reader-at-07:00 broke _merge_kev_levels' ordering assumption — a 07:00 vision map on a
+  new Kev name would be WHOLESALE CLOBBERED by the 09:00 sweep (bare else branch), silently
+  restoring Kev primacy on A/B DAY ONE. Fixed: new vision-first branch (vision primary, kev_shadow
+  verbatim, kev_name, veto promotes), executed rig pin added.
+- Also fixed from same convening: dashboard veto line lied ("bot will never enter") → now
+  "recorded, NOT gating"; rig section P upgraded from grep-pin to EXECUTED gate run (ast-extracted
+  _chart_break_gate with vetoed map → allow/broke_level + veto_noted_not_gating row asserted).
+- Flagged for Marcos, not tonight: Kev DAILY-FIRST veto (#067, marcos_trading_bot.py:7557) still
+  GATES non-ignition entries — different mechanism (daily-chart quality, kill-tested), but under a
+  LITERAL "no one has veto power" it's a live veto twin. Doctrine-scope call is his.
+- Canary this week: 07:00 attempt-exhaustion ("gave up" prints) — 3 early rejects now kill a name
+  for the whole day where they previously couldn't start until 08:50.
+- Rig ALL GREEN exit 0, flat book verified 23:31, dashboard redeployed.

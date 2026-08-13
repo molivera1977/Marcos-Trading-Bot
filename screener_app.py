@@ -2023,6 +2023,24 @@ def _merge_kev_levels(existing, incoming, remove=None):
             if "do-not-trade" in _kn2 or "do not trade" in _kn2 or "leave it alone" in _kn2:
                 kept["veto"] = True   # blocker 2: morning spoken stand-down still gates
             merged[tk] = kept
+        elif (isinstance(ex, dict) and ex.get("src") != "kev" and not ex.get("kev_name")
+              and ex.get("break") is not None and inc.get("src") == "kev"
+              and os.environ.get("KEV_PRIMACY", "0") != "1"):
+            # 8/12 AUDITOR FIX-NOW #1 (15th convening — reader-at-07:00 broke the ordering
+            # assumption): Kev's 09:00 sweep arriving AFTER a 07:00 vision map must NOT clobber
+            # it. Vision stays primary; Kev's numbers land verbatim in kev_shadow; kev_name
+            # provenance stamps; his veto/spoken stand-down promotes (data-only since f36c1b2).
+            kept = dict(ex)
+            kept["kev_name"] = True
+            _ks3 = {k: v for k, v in inc.items() if k not in ("vision_shadow", "kev_shadow")}
+            _ks3["_ts"] = _now_ts
+            kept["kev_shadow"] = _ks3
+            if inc.get("veto"):
+                kept["veto"] = True
+            _kn3 = str(inc.get("note") or "").lower()
+            if "do-not-trade" in _kn3 or "do not trade" in _kn3 or "leave it alone" in _kn3:
+                kept["veto"] = True
+            merged[tk] = kept
         else:
             inc = dict(inc)
             inc.setdefault("_ts", _now_ts)
@@ -2162,7 +2180,8 @@ def tale_of_the_ticker(ticker):
         gate_color, gate_line = "var(--muted)", ("NOT READ YET — No Read, No Trade: the bot will NOT enter "
                                             + tk + " until a chart read posts a level.")
     elif veto:
-        gate_color, gate_line = "var(--red)", "DO-NOT-TRADE — vetoed by the read. The bot will never enter " + tk + " today."
+        gate_color, gate_line = "var(--yellow)", ("DO-NOT-TRADE noted on " + tk + " — recorded, NOT gating "
+                                                  "(8/12 doctrine: the chart and tape decide; no one has veto power).")
     elif not brk:
         gate_color, gate_line = "var(--red)", "No numeric break level — the gate BLOCKS all entries."
     else:

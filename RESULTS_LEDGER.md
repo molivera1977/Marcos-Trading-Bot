@@ -1490,3 +1490,19 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   display (Curator); census annotation (kev_n collapse post-07:00 = experiment artifact, not a
   sweep failure); pre-reg note: KEV_PRIMACY=1 stops NEW flips but already-flipped rows need a
   manual kev re-post to fully revert.
+
+## 2026-08-12 late — SHIPPED: PRE-10 + CROWN SESSION-CAP EXEMPTION (Marcos verdicts)
+- Retro-validation closed the feasibility gap SAME NIGHT (Marcos: "look at the earlier charts"):
+  11/11 of this morning's vision maps VALID at 7:10 prices (first reads use the DAILY chart —
+  time-of-day-independent); no-tape names simply queue later. With feasibility verified, the
+  PRE-8-undersized arithmetic (6 late + ~3 early > 8) went from theory to fact -> PRE_MAX_TRADES=10.
+- CROWN EXEMPTION (Marcos: "if a name gets crowned, it doesn't count against the 10"): crowns
+  pass the session cap AND consume no slot (selection + worker recheck under trade_lock);
+  crown_pre_exempt rows for visibility; cap rations only the unproven. Meritocracy now covers:
+  lane caps, 1s capture, session cap.
+- AUDITOR (10th convening, 10/10 verdicts tonight): caught a REAL refund leak — failed crown
+  orders would have decremented slots non-crowns paid for — fixed via _pre_slot_charged gate
+  (only chargers refund) + crowns excluded from cap_raise_slot stamps (cohort purity). Cycling
+  envelope confirmed bounded (fresh-fire + flatten 9:25 + crown proof requirements).
+- Bot redeployed, book flat in-turn, boot verified. Thursday wakes to: reader 07:00, PRE 10,
+  crown-exempt, hidden 5, every new cohort stamped.

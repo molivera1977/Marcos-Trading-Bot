@@ -546,6 +546,9 @@ def post_level(ticker, read):
              "note": f"vision {verdict} (levels-only): {reason}", "src": "vision"}
     # LEDGER pass-through (#77 part 3): version lineage survives the post — read_version/trigger/
     # read_at/history were silently stripped by this whitelist (found 7/21: CPHI v2 posted, history:0).
+    if read.get("blue_sky"):
+        entry["blue_sky"] = True          # 8/13 #54: survives the whitelist; note carries the stamp
+        entry["note"] = str(read.get("note") or entry["note"])[:300]
     for _lk in ("read_version", "trigger", "read_at", "history", "exhausted_at", "reread_latency_min"):
         if read.get(_lk) is not None:
             entry[_lk] = read[_lk]
@@ -669,12 +672,22 @@ def process_once(dry=False, out_rows=None):
     # times with NO live price anywhere (dead listing) is dropped for the day, not retried.
     # 8/5: never bill a read for a name whose sheet already carries NON-vision levels (Kev's) —
     # the server clobber-protects the post anyway; skipping saves the call and respects the sheet.
+    # 8/13 #54 BUILD 2 — THE RULE INVERTED UNDER THE FLIP (found tonight: this skip, not the
+    # liquidity floor, is why 4 of 5 Kev names never flipped on A/B day one — a billing-saver
+    # written when his numbers RULED now guarantees they never stop ruling). Under our-numbers
+    # primacy (KEV_PRIMACY!=1), Kev-src names are EXACTLY the ones that must be read: the read
+    # IS the flip. Sheet is 3-8 names, one accepted read each — bounded cost.
+    # Kill: KEV_READ_UNCONDITIONAL=0 restores the skip.
     try:
         _lv_now = _get_retry(f"{U}/api/kev_watchlist?date={DAY}").get("levels") or {}
-        todo = [t for t in todo
-                if not (isinstance(_lv_now.get(t), dict)
-                        and _lv_now[t].get("break")
-                        and str(_lv_now[t].get("src") or "") != "vision")]
+        if (os.environ.get("KEV_READ_UNCONDITIONAL", "1") == "1"
+                and os.environ.get("KEV_PRIMACY", "0") != "1"):
+            pass                                        # read everything on the list, Kev names first
+        else:
+            todo = [t for t in todo
+                    if not (isinstance(_lv_now.get(t), dict)
+                            and _lv_now[t].get("break")
+                            and str(_lv_now[t].get("src") or "") != "vision")]
     except Exception:
         pass
     todo = sorted(todo, key=lambda t: _rfail.get(t, 0))
@@ -713,6 +726,27 @@ def process_once(dry=False, out_rows=None):
         if out_rows is not None:                              # capture EVERY read for grading (accepted or not)
             out_rows.append({**rd, "ticker": tk, "_accepted": ok_v, "_why": why})
         if not ok_v:
+            # ── 8/13 BLUE-SKY FIRST READS (#54 Build 1; Marcos: "finish what we half built") ──
+            # The FGI/XHG/PSQH deadlock: blue-sky output existed ONLY in the reread lane, and the
+            # reread lane needs an existing map — a door that opens from inside. A read whose ONLY
+            # sin is map_already_exhausted, made against a FRESH 10s print (same no-print-no-post
+            # guard as the reread lane), now POSTS with blue_sky=True: the name is above all its
+            # known levels and the map SAYS SO instead of going silent. Targets stay as
+            # historical-support (advisory — bot skips exhaustion standdown on blue_sky maps;
+            # chart lanes remain protected by the live break-side gate). Bot-side TTL makes a
+            # stale blue-sky map count as absent (the FGI-9:31-into-halt-down class dies there).
+            # Kill: BLUESKY_FIRSTREAD=0.
+            if (os.environ.get("BLUESKY_FIRSTREAD", "1") == "1"
+                    and str(why or "").startswith("map_already_exhausted")
+                    and _lp10 and _lp10 > 0):
+                rd["blue_sky"] = True
+                rd["note"] = ("[blue-sky first-read " + dt.datetime.now(ET).strftime("%H:%M")
+                              + "] above all known levels (live " + str(round(_lp10, 4))
+                              + "); historical levels = support. " + str(rd.get("note") or ""))[:300]
+                ok2 = post_level(tk, rd)
+                print(f"  {tk}: BLUE-SKY FIRST-READ posted (was: {why}) live={_lp10} "
+                      f"→ {'posted' if ok2 else 'POST FAILED'}", flush=True)
+                continue
             print(f"  {tk}: REJECTED ({why}) → no post = no-read = no-trade", flush=True); continue
         if dry:
             print(f"  {tk}: DRY {rd.get('verdict')}/{rd.get('confidence')} [{rd.get('setup')}] "

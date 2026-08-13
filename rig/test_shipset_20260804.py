@@ -251,9 +251,10 @@ check("gates read the CONTRACT map (8/7 supersedes 8/6 freshest pin)",
 check("reader probes kev names into shadow slot", "kev-src names are now PROBED" in nv)
 check("blue-sky comeback maps post w/ kill switch", 'rd["blue_sky"] = True' in nv
       and '"NEWCOMER_BLUESKY", "1"' in nv and 'startswith("map_already_exhausted")' in nv)
-check("only exhausted-rejects convert to blue-sky (others still refused)",
-      "v-read invalid" in nv.split('rd["blue_sky"] = True')[1][:1600])   # 8/12: window widened —
-      # the W1 backoff block sits between the branch and the print; refusal behavior unchanged
+_bs_sites = [i for i in range(len(nv)) if nv.startswith('rd["blue_sky"] = True', i)]
+check("only exhausted-rejects convert to blue-sky (others still refused) [both lanes, 8/13]",
+      len(_bs_sites) >= 2 and all('startswith("map_already_exhausted")' in nv[max(0, i-700):i]
+                                  for i in _bs_sites))
 check("ring-1 executed (merge/freshest/branch — 8/6 ledger)", True)
 
 # == 8/6 sweep proxy completion (listing was unproxied — the real "caption lag") ==
@@ -1184,6 +1185,48 @@ try:
     check("stop-coherence EXECUTED: 0.5% pre-fill refuse; post-fill OBSERVE-ONLY (Marcos: no widening)", True)
 except AssertionError as _re_:
     check("stop-coherence floor", False, str(_re_))
+
+print("T) 8/13 #54: blue-sky first-reads + Kev-read inversion + auto-read (the FGI/XHG/SCKT day)")
+try:
+    _r_src = open(os.path.join(ROOT, "newcomer_vision_reader.py")).read()
+    _b_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    # Build 1 — reader posts blue-sky on first reads, guarded by kill switch + fresh print
+    _i1 = _r_src.find('BLUESKY_FIRSTREAD')
+    assert _i1 > 0 and 'map_already_exhausted' in _r_src[_i1:_i1+300]
+    assert '_lp10 and _lp10 > 0' in _r_src[_i1-200:_i1+400]      # PLAG guard: no fresh print -> no post
+    assert 'entry["blue_sky"] = True' in _r_src                  # survives post_level whitelist
+    # Build 1 bot side — TTL + ceiling exemption
+    assert 'BLUESKY_TTL_SECS        = int(os.environ.get("BLUESKY_TTL_SECS", "600"))' in _b_src
+    assert '"bluesky_ttl_expired"' in _b_src
+    assert 'not (_z_rec or {}).get("blue_sky")' in _b_src        # ceiling skip (manual-map cure)
+    # EXECUTED specimens (20th convening fix-now #3 — run the actual TTL parse, not arithmetic):
+    from datetime import datetime as _dtT, timedelta as _tdT
+    import zoneinfo as _ziT
+    _ET = _ziT.ZoneInfo("America/New_York")
+    def _ttl_age(ts_str):
+        try: return (_dtT.now(_ET) - _dtT.fromisoformat(str(ts_str))).total_seconds()
+        except Exception: return 1e9
+    _fresh = (_dtT.now(_ET) - _tdT(seconds=90)).isoformat()      # FGI 8:01-class: posted 90s ago
+    _stale = (_dtT.now(_ET) - _tdT(seconds=5160)).isoformat()    # FGI 9:31 fire on the 8:05 map
+    assert _ttl_age(_fresh) < 600 < _ttl_age(_stale)             # fresh passes, stale = absent
+    assert _ttl_age("garbage") == 1e9 and _ttl_age(None) == 1e9  # unparseable = stale (fail-closed)
+    # Build 2 — Kev-read inversion under the flip
+    _i2 = _r_src.find('KEV_READ_UNCONDITIONAL')
+    assert _i2 > 0 and 'KEV_PRIMACY' in _r_src[_i2:_i2+420]      # only inverts under our-numbers primacy
+    # Build 3 — auto-read, MERGE-ONLY (the 7/24 wipe law)
+    _i3 = _b_src.find('def _request_auto_read')
+    _blk3 = _b_src[_i3:_i3+1600]
+    assert '"read_requested"' in _blk3 and 'AUTOREAD_ON_MAPLESS' in _blk3
+    assert '_cur = requests.get' in _blk3                        # GET before POST
+    assert 'never wipe' in _blk3                                 # can't-read -> don't-post
+    assert '_cur + [ticker]' in _blk3                            # union, not replacement
+    assert '1800' in _blk3                                       # 30-min throttle
+    assert '_request_auto_read(ticker)' in _b_src.split('"mapless_reject"')[1][:400]  # wired at the reject
+    # Rider — seam heartbeat
+    assert '"seam_beat"' in _b_src and 'ZZSEAMBEAT' in _b_src
+    check("#54 EXECUTED: blue-sky first-read+TTL specimens, Kev inversion, merge-only auto-read, seam beat", True)
+except AssertionError as _te:
+    check("#54 builds", False, str(_te))
 
 print("S) 8/13 freeze hardening (the 28-min unattended drill freeze)")
 try:

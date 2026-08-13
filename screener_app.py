@@ -2514,7 +2514,7 @@ def premarket_dashboard():
 
     # gate-rejects + shadow-lanes strips, PRE-scoped (same statuses as the RTH strips + premkt_capped)
     _GATES = {"minstop_reject": "📏 min-stop", "runway_reject": "🛣️ runway", "breakside_reject": "🧱 break-side",
-              "ceiling_reject": "🏔️ ceiling", "premkt_capped": "🎟️ PRE cap", "entries_paused": "🛑 FROZEN"}
+              "ceiling_reject": "🏔️ ceiling", "premkt_capped": "🎟️ PRE cap", "entries_paused": "🛑 FROZEN", "mapless_reject": "🗺️ mapless"}
     _SHAD = {"halt_arm": "🪜 halt arm", "halt_early_arm": "🌅 early arm", "seam_shadow_fire": "🧵 seam"}
     rej_rows, shad_rows = [], []
     for r in _decisions:
@@ -3263,8 +3263,8 @@ function loadData(){
   document.getElementById('lastUpdate').textContent = 'Refreshing...';
   (function loadRejects(){
     const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    fetch('/api/decisions_archive?date='+ds+'&status=minstop_reject,runway_reject,breakside_reject,ceiling_reject,entries_paused&limit=50000').then(r=>r.json()).then(j=>{
-      const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side',ceiling_reject:'🏔️ ceiling',entries_paused:'🛑 FROZEN'};
+    fetch('/api/decisions_archive?date='+ds+'&status=minstop_reject,runway_reject,breakside_reject,ceiling_reject,entries_paused,mapless_reject&limit=50000').then(r=>r.json()).then(j=>{
+      const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side',ceiling_reject:'🏔️ ceiling',entries_paused:'🛑 FROZEN',mapless_reject:'🗺️ mapless'};
       const rows=(j.rows||[]).filter(r=>GATES[r.status]);
       const el=document.getElementById('rejectStrip'); if(!el) return;
       if(!rows.length){ el.innerHTML='<span style="color:var(--muted4)">no gate rejects yet today</span>'; return; }
@@ -3274,6 +3274,7 @@ function loadData(){
           if(r.status==='minstop_reject') why='stop '+(r.stop_width_pct!=null?r.stop_width_pct.toFixed(2)+'%':'?')+' wide (band '+(r.band||'?')+') < floor';
           else if(r.status==='runway_reject') why=(r.runway_rr!=null?Number(r.runway_rr).toFixed(2)+'R':'?')+' of road to '+(r.road_cls?r.road_cls.toLowerCase()+' ':'')+'$'+(r.target!=null?r.target:'?')+' < '+(r.need||1)+'R';
           else if(r.status==='ceiling_reject') why='chart lane past all mapped targets — stand down until fresh read';
+          else if(r.status==='mapless_reject') why='fired with NO MAP — auto-read requested (Build 3)';
           else if(r.status==='entries_paused') why='entry refused — freeze active (pause_entries)';
           else if(r.status==='breakside_reject') why='entry '+(r.gap_pct!=null?'+'+r.gap_pct+'% ':'')+'above the marked break'+(r.break_level!=null?' $'+r.break_level:'');
           return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+

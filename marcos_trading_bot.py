@@ -2926,6 +2926,37 @@ def _recover_orphaned_trades():
 # loop, positions, or orders. Pure read + POST. See [[project_market_observations]].
 # ============================================================
 
+_auto_read_asked: dict = {}   # ticker -> epoch of last auto-read request (30-min throttle)
+
+def _request_auto_read(ticker):
+    """8/13 #54 Build 3 (Marcos: "don't just wait for them to pop" + the twice-in-one-day manual
+    census): a FIRE on a mapless name is the strongest possible read request — POST the name onto
+    the reader's list NOW instead of waiting for the next scan ranking. Observe-only side effects
+    (a read), throttled 1/name/30min. Kill: AUTOREAD_ON_MAPLESS=0. Never raises."""
+    try:
+        if os.environ.get("AUTOREAD_ON_MAPLESS", "1") != "1":
+            return
+        now = time.time()
+        if now - _auto_read_asked.get(ticker, 0) < 1800:
+            return
+        _auto_read_asked[ticker] = now
+        url = SCREENER_URL
+        if not url:
+            return
+        # MERGE-ONLY (the 7/24 wipe law — this endpoint REPLACES): GET current, POST the union.
+        try:
+            _cur = requests.get(f"{url}/api/read_list", timeout=5).json().get("tickers") or []
+        except Exception:
+            return                                   # can't read = don't blind-post (never wipe)
+        if ticker in _cur:
+            return
+        requests.post(f"{url}/api/read_list", json={"tickers": list(dict.fromkeys(_cur + [ticker]))},
+                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
+        _log_decision(ticker, "read_requested", why="mapless_fire_autoread")
+        print(f"📖 {ticker} AUTO-READ requested (fired mapless) — reader picks it up next cycle")
+    except Exception:
+        pass
+
 def _fetch_kev_watchlist():
     """Kev's explicitly-flagged tickers for today (from the screener /api/kev_watchlist).
     These are FORCE-watched regardless of the morning-scan top-15 score cut — the selection
@@ -6413,6 +6444,9 @@ MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "4.0")) / 100.0
 # Era census 8/13 (killtests/stop_coherence_census): <0.5% = 3 trades net −$17.50 (pure);
 # 1% would refuse 4 winners (−$51.54). Kill switch: STOP_COHERENCE_MIN_PCT=0. Friday re-grade.
 STOP_COHERENCE_MIN_PCT  = float(os.environ.get("STOP_COHERENCE_MIN_PCT", "0.5")) / 100.0
+# ── 8/13 #54: blue-sky map TTL — a blue-sky map is only as good as its freshness; older than
+#    this it counts as ABSENT for the mapless gate (fail-closed). Kill: huge value.
+BLUESKY_TTL_SECS        = int(os.environ.get("BLUESKY_TTL_SECS", "600"))
 # 7/31 MINIMUM MARKED RUNWAY (Marcos): refuse a trade whose road to the next MARKED level is under
 # this many R. Risking a full R to reach 0.1R of reward is a bad bet regardless of setup quality.
 # 0 = gate off. Fail-open: only a NUMERIC runway can block (see the gate site for the evidence).
@@ -7190,6 +7224,18 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 if HALT_LANE and _is_leader(t) and _hm_curl >= "09:30" \
                         and time.time() - _seam_shadow_t.get(t, 0) >= 45:
                     try:
+                        # 8/13 #49 rider — SEAM LIVENESS HEARTBEAT: 3 days of ZERO seam rows of
+                        # any status made dead-vs-quiet indistinguishable. One observe row/hour
+                        # proves the detector is REACHED and evaluating (feed length included so
+                        # a starved 5s feed is visible too). Data-only.
+                        global _seam_beat_t
+                        if time.time() - globals().get("_seam_beat_t", 0) > 3600:
+                            globals()["_seam_beat_t"] = time.time()
+                            try:
+                                _log_decision("ZZSEAMBEAT", "seam_beat", ticker_checked=t,
+                                              feed_len=len(_alp5_feed(t, n=720)))
+                            except Exception:
+                                pass
                         _ss = _seam5_check(t)
                         if _ss:
                             _seam_shadow_t[t] = time.time()
@@ -10510,11 +10556,25 @@ def main():
                     except Exception:
                         _ml_rec = {}
                     _ml_has_map = bool(_ml_rec.get("break") or _ml_rec.get("confirm") or _ml_rec.get("targets"))
+                    # 8/13 #54 Build 1 TTL: a BLUE-SKY map is only as good as its freshness — past
+                    # BLUESKY_TTL_SECS it counts as ABSENT (fail-closed back to caged). The FGI
+                    # 9:31 fire into the halt-down dies exactly here: its 8am-class map is stale.
+                    if _ml_has_map and _ml_rec.get("blue_sky"):
+                        try:
+                            _bs_ts = datetime.fromisoformat(str(_ml_rec.get("_ts")))
+                            _bs_age = (datetime.now(EASTERN) - _bs_ts).total_seconds()
+                        except Exception:
+                            _bs_age = 1e9                       # unstampable = stale (fail-closed)
+                        if _bs_age > BLUESKY_TTL_SECS:
+                            _ml_has_map = False
+                            _log_decision(ticker, "bluesky_ttl_expired", price=entry_price,
+                                          age_s=round(_bs_age), machine=entry_type)
                     if MAPLESS_BLOCK and not _ml_has_map:
                         print(f"🗺️  {ticker} NO MAP (no break/confirm/targets on the sheet) — "
                               f"mapless conversions are CLOSED [8/6] — skipping {entry_type}")
                         _log_decision(ticker, "mapless_reject", price=entry_price,
                                       stop=round(stop_loss, 4), machine=entry_type)
+                        _request_auto_read(ticker)              # 8/13 #54 Build 3: fire+no-map -> read NOW
                         _slot_refund(ticker, entry_type)
                         with trade_lock:
                             reentry["held"].discard(ticker)
@@ -10601,7 +10661,12 @@ def main():
                         reentry["held"].discard(ticker)
                     return
             if (CHART_CEILING_GATE and _z_zone == "past_targets"
-                    and entry_type in CHART_CEILING_LANES):
+                    and entry_type in CHART_CEILING_LANES
+                    and not (_z_rec or {}).get("blue_sky")):
+                # 8/13 #54: blue-sky maps' targets are ADVISORY (historical support, above all
+                # known levels by definition) — being "past" them is the map's whole message,
+                # never a ceiling. Cures today's manual-map side effect (INHD/LEXX class:
+                # session-high targets became stand-down ceilings on continuations).
                 print(f"🏔️ {ticker} entry ${entry_price:.2f} is ABOVE the map's last target "
                       f"${_z_lastT} — the road is spent until a fresh read; skipping [chart ceiling gate]")
                 _log_decision(ticker, "ceiling_reject", price=entry_price,

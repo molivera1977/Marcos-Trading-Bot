@@ -40,3 +40,9 @@ freshness still discards. Summit sanity is not weakened; it gains an output besi
 
 ## VERDICT: fix justified by archetype + Monday; measured cost small but freshly accruing daily.
 Ship tonight via full protocol (convening + roll call + rig pins + ship.sh). NOT shipped intraday.
+
+## ADDENDUM (8/13 evening ship, 20th convening fix-now #2)
+The shipped design EXEMPTS blue-sky maps from the #28 ceiling standdown (targets advisory), so
+the PLAG-safety argument above is superseded: PLAG-stale protection now = (1) the 600s TTL — a
+stale blue-sky map counts as ABSENT, mapless_reject blocks ALL lanes; (2) chart lanes further
+caged by the live break-side gate. The #28 standdown still governs all NON-blue-sky maps.

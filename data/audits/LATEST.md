@@ -1,5 +1,5 @@
 # AUDIT COVERAGE — convening artifact, checked by rig section Q under SHIP_CHECK=1
-covers: (sha of the bookkeeping commit's parent) 2a4ad2593947
+covers: 2a4ad2593947
 date: 2026-08-13 ~00:05 ET (post-midnight; ship-set of 8/12 evening)
 convenings: 13th/14th/15th (Blast Radius) + 16th FULL ROOM (agent a3edaea53e7df70e9)
 
@@ -37,3 +37,5 @@ convenings: 13th/14th/15th (Blast Radius) + 16th FULL ROOM (agent a3edaea53e7df7
 ## WATCH-TOMORROW
 PRE slot count vs fills (crown race) · concurrent PRE notional (trial) · first veto_noted/crown_pre_exempt
 rows landing · books_export nested-dir gap · kev_shadow note append semantics
+
+covers-also: 19ac72afeb52 (ship.sh wrapper — process tooling demanded by this same protocol; Pit Crew Chief lane, no trade-path code)

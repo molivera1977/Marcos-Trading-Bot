@@ -10928,20 +10928,20 @@ def main():
                           f"stop floored to ${stop_loss:.2f} ({STOP_LOSS_PCT*100:.0f}% below fill)")
                 elif (STOP_COHERENCE_MIN_PCT > 0
                       and (entry_price - stop_loss) / entry_price < STOP_COHERENCE_MIN_PCT):
-                    # 8/13 F1-EXTEND (auditor BLOCK, convening 17): the BQ 8/12 mechanism lives HERE —
-                    # fire-time stop vs drifted fill leaves the owned position 0.07% above its stop
-                    # (the pre-fill gate can't see this; fire-time width was a sane 5%). Position is
-                    # OWNED, so the remedy is widen-not-refuse: floor the stop like F1, loudly, and
-                    # stamp stop_coherence_widened so Friday grades both faces of the mechanism.
-                    _coh_old = stop_loss
-                    stop_loss = round(entry_price * (1 - STOP_LOSS_PCT), 4)
+                    # 8/13 ~01:15 MARCOS RULING ("keep how we have it and just fix the coherence
+                    # floor" + "no widening to 7%"): the earlier auditor-suggested widen-to-7%
+                    # remedy is DEAD — it changed behavior beyond his approved 0.5% refuse rule
+                    # (a widened stop can lose MORE dollars) and shipped without consultation.
+                    # Post-fill the stop is NEVER touched; this row is observability only, so
+                    # Friday's re-grade can still see every post-fill incoherence occurrence.
                     print(f"🚧 {ticker}: fill ${entry_price:.4f} only "
-                          f"{(entry_price - _coh_old) / entry_price * 100:.3f}% above stop ${_coh_old:.4f} "
-                          f"(< {STOP_COHERENCE_MIN_PCT*100:.1f}% coherence floor) — stop widened to ${stop_loss:.2f}")
-                    _log_decision(ticker, "stop_coherence_widened", price=round(float(entry_price), 4),
-                                  old_stop=round(float(_coh_old), 4), stop=stop_loss,
-                                  width_pct=round((entry_price - _coh_old) / entry_price * 100, 3),
-                                  machine=entry_type)
+                          f"{(entry_price - stop_loss) / entry_price * 100:.3f}% above stop ${stop_loss:.4f} "
+                          f"(< {STOP_COHERENCE_MIN_PCT*100:.1f}% coherence floor) — OBSERVED, not acted on "
+                          f"(remedy = Marcos's Friday call)")
+                    _log_decision(ticker, "stop_coherence_observed", price=round(float(entry_price), 4),
+                                  stop=round(float(stop_loss), 4),
+                                  width_pct=round((entry_price - stop_loss) / entry_price * 100, 3),
+                                  machine=entry_type, enforced=False)
                 # Re-size on the real fill with the SAME risk formula (7/11) — not the old notional formula.
                 # 7/29: SAME includes width-proportional — without it a tight-stop trade would re-inflate here.
                 if RISK_BASED_SIZING and entry_price > stop_loss:

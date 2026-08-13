@@ -1170,17 +1170,18 @@ try:
     for e, s, want in ((1.351, 1.349, True), (13.79, 13.75, True), (1.42, 1.349, False), (1.35, 1.292, False)):
         got = ((e - s) / e) < _floor
         assert got == want, (e, s, got)
-    # F1-EXTEND (17th convening BLOCK): post-fill re-derivation must widen a sub-floor stop —
-    # the BQ mechanism (fill 1.351 vs fire-time stop 1.349 = 0.148%) is caught HERE, not pre-fill.
-    assert '"stop_coherence_widened"' in _r_src
-    _wi = _r_src.find('"stop_coherence_widened"')
-    _wblk = _r_src[_wi-1400:_wi+200]
-    assert "widen-not-refuse" in _wblk and "STOP_LOSS_PCT" in _wblk
-    _e2, _s2 = 1.351, 1.349                     # the owned-position specimen
-    assert (_e2 - _s2) / _e2 < 0.005            # trips the floor...
-    _widened = round(_e2 * (1 - 0.07), 4)       # ...and the F1 remedy yields a real stop
-    assert (_e2 - _widened) / _e2 >= 0.005
-    check("stop-coherence EXECUTED: 0.5% floor pre-fill refuse + post-fill WIDEN (BQ specimen), specimens verified", True)
+    # 8/13 MARCOS RULING ("no widening to 7%"): post-fill is OBSERVE-ONLY — the stop is never
+    # touched after the fill; the widen remedy is dead. Pin both faces as ruled.
+    assert '"stop_coherence_observed"' in _r_src              # post-fill row exists...
+    assert '"stop_coherence_widened"' not in _r_src           # ...and the widen is GONE
+    _oi = _r_src.find('"stop_coherence_observed"')
+    _oblk = _r_src[_oi-1500:_oi+300]
+    assert "NEVER touched" in _oblk and "enforced=False" in _oblk
+    _obranch = _r_src[_oi-900:_oi]              # the elif body itself (F1's own floor sits earlier)
+    assert "stop_loss = round(" not in _obranch  # no stop mutation inside the coherence branch
+    _e2, _s2 = 1.351, 1.349                     # BQ owned-position specimen: floor trips, row only
+    assert (_e2 - _s2) / _e2 < 0.005
+    check("stop-coherence EXECUTED: 0.5% pre-fill refuse; post-fill OBSERVE-ONLY (Marcos: no widening)", True)
 except AssertionError as _re_:
     check("stop-coherence floor", False, str(_re_))
 

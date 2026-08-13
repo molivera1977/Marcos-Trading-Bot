@@ -1481,3 +1481,12 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   FROZEN tonight: data/killtests/level_primacy_ab_PREREG_20260812.md. Standing verdict n>=50;
   Kev win forces reconvening; cold-tape week auto-regrades.
 - Kept conditions: magnet grading (#2), anchor provenance (#4), full ship discipline (#5).
+- SHIPPED (~21:40): the primacy flip, both services, after the 11th audit caught TWO real
+  blockers: (1) _kev_sheet_name was flip-blind — every Kev exemption (daygain floor, tier-0
+  sort, *KEV label) would have silently died at the first 07:00 read; kev_name provenance now
+  honored. (2) Kev's SPOKEN stand-downs ("do not trade"/"leave it alone" — the note channel,
+  the only one he reaches) would have stopped gating post-flip; words->veto-flag conversion at
+  flip time + on morning updates. Both pinned; suite ALL GREEN. Queued: tale-page kev_shadow
+  display (Curator); census annotation (kev_n collapse post-07:00 = experiment artifact, not a
+  sweep failure); pre-reg note: KEV_PRIMACY=1 stops NEW flips but already-flipped rows need a
+  manual kev re-post to fully revert.

@@ -1174,6 +1174,15 @@ try:
                          capture_output=True, text=True).stdout.split()
     _book_only = _tip_files and all(f.startswith("data/audits/") or f == "RESULTS_LEDGER.md" for f in _tip_files)
     _ok = ((_sha in _rec) or (_book_only and _par in _rec)) and not _dirty
+    # 8/12 Marcos ("does this also include a say by all members"): STANDING ROOM enforced —
+    # the artifact must roll-call EVERY office on the roster (touched with findings, or clean
+    # with the reason). A missing name = an officer denied their say = RED.
+    _roster = [ln.strip() for ln in open(os.path.join(ROOT, "data", "audits", "ROSTER.txt"))
+               if ln.strip()]
+    _missing = [nm for nm in _roster if nm not in _rec]
+    _ok = _ok and not _missing
+    if _missing and os.environ.get("SHIP_CHECK") == "1":
+        print("  missing officers in LATEST.md: " + ", ".join(_missing[:8]) + ("…" if len(_missing) > 8 else ""))
     if os.environ.get("SHIP_CHECK") == "1":
         assert _ok, ("HEAD %s%s not covered by data/audits/LATEST.md — convene the Blast Radius "
                      "Auditor, write the artifact, commit, rerun" % (_sha, " (worktree DIRTY)" if _dirty else ""))

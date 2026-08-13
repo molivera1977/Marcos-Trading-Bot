@@ -1989,6 +1989,11 @@ def _merge_kev_levels(existing, incoming, remove=None):
                 kept["kev_shadow"] = _prior_kev             # his numbers, preserved verbatim
                 if ex.get("veto") or _prior_kev.get("veto"):
                     kept["veto"] = True                     # Marcos's veto survives the flip
+                _kn = str(_prior_kev.get("note") or "").lower()
+                if "do-not-trade" in _kn or "do not trade" in _kn or "leave it alone" in _kn:
+                    # auditor blocker 2 (11th): Kev's SPOKEN stand-down lives in his note — the
+                    # only channel he reaches. Flip converts words->flag so it keeps gating.
+                    kept["veto"] = True
                 merged[tk] = kept
         elif isinstance(ex, dict) and ex.get("src") == "kev" and inc.get("src") == "kev":
             # 8/7 (AUDITOR #2 — the morning wipe that nulled NAMI/CLRO + would erase Marcos's
@@ -2014,6 +2019,9 @@ def _merge_kev_levels(existing, incoming, remove=None):
             kept["kev_shadow"] = _ks
             if inc.get("veto"):
                 kept["veto"] = True
+            _kn2 = str(inc.get("note") or "").lower()
+            if "do-not-trade" in _kn2 or "do not trade" in _kn2 or "leave it alone" in _kn2:
+                kept["veto"] = True   # blocker 2: morning spoken stand-down still gates
             merged[tk] = kept
         else:
             inc = dict(inc)

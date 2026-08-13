@@ -3156,7 +3156,10 @@ def _kev_sheet_name(ticker):
     entry anyway (no_marked_level), so this can't strand a Kev entry."""
     try:
         lv = (_fetch_kev_levels() or {}).get(ticker) or {}
-        return bool(lv) and str(lv.get("src") or "") != "vision"
+        # 8/12 primacy flip (auditor blocker 1): a flipped row is src="vision" but STILL Kev's
+        # pick — kev_name carries the provenance; without this, all Kev exemptions (daygain
+        # floor, tier-0 sort, *KEV label) silently die at the first 07:00 read.
+        return bool(lv) and (bool(lv.get("kev_name")) or str(lv.get("src") or "") != "vision")
     except Exception:
         return False
 

@@ -1090,5 +1090,37 @@ try:
 except AssertionError as _pce:
     check("PRE-10 crown exemption EXECUTED", False, str(_pce))
 
+
+print("O) 8/12 level-primacy flip pins (leader decision, 11th audit)")
+try:
+    import screener_app as _sp
+    import os as _o2
+    _o2.environ["KEV_PRIMACY"] = "0"
+    _M = _sp._merge_kev_levels
+    r = _M({}, {"A": {"src":"kev","break":1.8,"targets":[2.4],"note":"kev night"}})
+    r = _M(r, {"A": {"src":"vision","break":1.83,"targets":[2.41]}})
+    assert r["A"]["src"]=="vision" and r["A"]["break"]==1.83 and r["A"]["kev_name"] is True
+    assert r["A"]["kev_shadow"]["break"]==1.8                      # preserved verbatim
+    r = _M(r, {"A": {"src":"kev","break":1.85}})                   # morning update -> shadow only
+    assert r["A"]["break"]==1.83 and r["A"]["kev_shadow"]["break"]==1.85
+    r = _M(r, {"A": {"src":"vision","break":1.9}})                 # re-read carries shadow
+    assert r["A"]["break"]==1.9 and r["A"]["kev_shadow"]["break"]==1.85
+    # spoken stand-down -> veto across flip AND morning update
+    v = _M({}, {"C": {"src":"kev","break":2.0,"note":"do not trade"}})
+    v = _M(v, {"C": {"src":"vision","break":2.05}})
+    assert v["C"]["veto"] is True
+    # kill switch restores old shadow routing
+    _o2.environ["KEV_PRIMACY"] = "1"
+    k = _M({}, {"D": {"src":"kev","break":3.0}})
+    k = _M(k, {"D": {"src":"vision","break":3.1}})
+    assert k["D"]["break"]==3.0 and k["D"]["vision_shadow"]["break"]==3.1
+    _o2.environ["KEV_PRIMACY"] = "0"
+    # blocker 1: flipped rows keep Kev exemptions in the bot
+    _b2 = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    assert 'bool(lv.get("kev_name")) or str(lv.get("src") or "") != "vision"' in _b2
+    check("primacy flip EXECUTED: promote+preserve+morning-shadow+carry+word-veto+killswitch+kev_name", True)
+except AssertionError as _pfe:
+    check("primacy flip EXECUTED", False, str(_pfe))
+
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

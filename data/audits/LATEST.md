@@ -38,3 +38,12 @@ kill-test: data/killtests/stop_coherence_census_20260813.md (0.5% = 3 trades / �
 - Convexity Trader — CLEAN: removes a pure left tail for −$17.50 mean cost
 - Curl Mechanic — CLEAN: refusals refund the slot
 - Project Manager — TOUCHED: Friday re-grade registered; rows added to EOD scorecard pull
+
+## SUPERSEDING — 18th convening (8/13 ~01:30 ET), covers: 30c9a2642489
+MARCOS RULING ("keep how we have it and just fix the coherence floor" / "no widening to 7%"):
+the 17th-convening widen remedy is DEAD. Post-fill = observe-only (stop_coherence_observed row,
+stop NEVER touched); pre-fill 0.5% refuse unchanged. 18th convening verified: no mutation in the
+elif body, F1 untouched, downstream sees the original stop, no live widened reference, rig pins
+honest, ALL GREEN. Delta reviewed: Execution Surgeon, Systems Quant, Statistician, Strength
+Ombudsman, Pit Crew Chief — all PASS. Full room carried from the 17th roll call above.
+VERDICT: SHIP.

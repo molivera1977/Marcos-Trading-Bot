@@ -1156,6 +1156,34 @@ try:
 except AssertionError as _ve:
     check("veto EXECUTED as data-only", False, str(_ve))
 
+print("R) 8/13 stop-coherence floor (Marcos: ship 0.5% tonight, Friday revisit)")
+try:
+    _r_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    assert '"stop_coherence_refused"' in _r_src                      # the refuse row exists
+    assert 'STOP_COHERENCE_MIN_PCT  = float(os.environ.get("STOP_COHERENCE_MIN_PCT", "0.5"))' in _r_src
+    _ri = _r_src.find('"stop_coherence_refused"')
+    _blk = _r_src[_ri-1200:_ri+900]
+    assert "_slot_refund(ticker, entry_type)" in _blk                # refuses cleanly w/ refund
+    assert "return" in _blk
+    # EXECUTED: the predicate math on the real specimens (BQ refuse, sane 5% stop passes)
+    _floor = 0.5 / 100.0
+    for e, s, want in ((1.351, 1.349, True), (13.79, 13.75, True), (1.42, 1.349, False), (1.35, 1.292, False)):
+        got = ((e - s) / e) < _floor
+        assert got == want, (e, s, got)
+    # F1-EXTEND (17th convening BLOCK): post-fill re-derivation must widen a sub-floor stop —
+    # the BQ mechanism (fill 1.351 vs fire-time stop 1.349 = 0.148%) is caught HERE, not pre-fill.
+    assert '"stop_coherence_widened"' in _r_src
+    _wi = _r_src.find('"stop_coherence_widened"')
+    _wblk = _r_src[_wi-1400:_wi+200]
+    assert "widen-not-refuse" in _wblk and "STOP_LOSS_PCT" in _wblk
+    _e2, _s2 = 1.351, 1.349                     # the owned-position specimen
+    assert (_e2 - _s2) / _e2 < 0.005            # trips the floor...
+    _widened = round(_e2 * (1 - 0.07), 4)       # ...and the F1 remedy yields a real stop
+    assert (_e2 - _widened) / _e2 >= 0.005
+    check("stop-coherence EXECUTED: 0.5% floor pre-fill refuse + post-fill WIDEN (BQ specimen), specimens verified", True)
+except AssertionError as _re_:
+    check("stop-coherence floor", False, str(_re_))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

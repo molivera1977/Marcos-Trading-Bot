@@ -6405,6 +6405,14 @@ MAX_STOP_DIST_PCT       = 0.0    # C: Kev tight-setup gate — SKIP entries whos
 # finer-band data below). Live cells 4-5/5-6 from kept trades' stop_width_pct; death zone <4
 # stays shadow-graded via the refined reject bands. Friday 8/8 sets the floor where the edge is.
 MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "4.0")) / 100.0
+# ── 8/13 STOP-COHERENCE FLOOR (Marcos: "ship the 0.5% floor tonight... revisit Friday") ──
+# NOT a setup-quality gate — a does-the-trade-still-exist check (family: liquidity floor).
+# The BQ 8/12 12:46 specimen: hidden fire at $1.42 (stop $1.349, sane 5%) executed 239s later
+# at $1.351 — 0.07% above its own stop → planned risk $0.74, −11.7R blow-through. ALL lanes,
+# no exemptions (min-stop exemptions don't apply; a stop 0.07% wide isn't structural, it's dead).
+# Era census 8/13 (killtests/stop_coherence_census): <0.5% = 3 trades net −$17.50 (pure);
+# 1% would refuse 4 winners (−$51.54). Kill switch: STOP_COHERENCE_MIN_PCT=0. Friday re-grade.
+STOP_COHERENCE_MIN_PCT  = float(os.environ.get("STOP_COHERENCE_MIN_PCT", "0.5")) / 100.0
 # 7/31 MINIMUM MARKED RUNWAY (Marcos): refuse a trade whose road to the next MARKED level is under
 # this many R. Risking a full R to reach 0.1R of reward is a bad bet regardless of setup quality.
 # 0 = gate off. Fail-open: only a NUMERIC runway can block (see the gate site for the evidence).
@@ -10618,6 +10626,23 @@ def main():
                 with trade_lock:
                     reentry["held"].discard(ticker)
                 return
+            # ── 8/13 STOP-COHERENCE FLOOR (see STOP_COHERENCE_MIN_PCT def) — execution-moment
+            # check: fire-time stop + drifted entry can leave the entry ON TOP of the stop
+            # (BQ 8/12: entry $1.351, stop $1.349). A trade entered at its own stop has no
+            # thesis left. All lanes; refuse + refund; Friday re-grades the rows.
+            if STOP_COHERENCE_MIN_PCT > 0 and entry_price > 0 and stop_loss > 0:
+                _coh_w = (entry_price - stop_loss) / entry_price
+                if _coh_w < STOP_COHERENCE_MIN_PCT:
+                    print(f"🚧 {ticker} STOP-COHERENCE refuse: entry ${entry_price:.4f} is "
+                          f"{_coh_w*100:.3f}% above stop ${stop_loss:.4f} (< "
+                          f"{STOP_COHERENCE_MIN_PCT*100:.1f}%) — trade thesis gone [{entry_type}]")
+                    _log_decision(ticker, "stop_coherence_refused", price=round(float(entry_price), 4),
+                                  stop=round(float(stop_loss), 4), width_pct=round(_coh_w * 100, 3),
+                                  machine=entry_type)
+                    _slot_refund(ticker, entry_type)
+                    with trade_lock:
+                        reentry["held"].discard(ticker)
+                    return
             # B: Kev short-003 sizing (LIVE 7/11) — shares = max-loss ÷ risk-per-share; notional-capped. Wide stop →
             # fewer shares, tight stop → more; every full stop-out costs the same RISK_PER_TRADE.
             _clamp = "none"   # CLAMP-CHAIN LOGGING (7/26, log-only — the 7/25 exec-expert rec, built at
@@ -10901,6 +10926,22 @@ def main():
                     stop_loss = round(entry_price * (1 - STOP_LOSS_PCT), 4)
                     print(f"🚨 {ticker}: fill ${entry_price:.2f} at/below the structural stop — "
                           f"stop floored to ${stop_loss:.2f} ({STOP_LOSS_PCT*100:.0f}% below fill)")
+                elif (STOP_COHERENCE_MIN_PCT > 0
+                      and (entry_price - stop_loss) / entry_price < STOP_COHERENCE_MIN_PCT):
+                    # 8/13 F1-EXTEND (auditor BLOCK, convening 17): the BQ 8/12 mechanism lives HERE —
+                    # fire-time stop vs drifted fill leaves the owned position 0.07% above its stop
+                    # (the pre-fill gate can't see this; fire-time width was a sane 5%). Position is
+                    # OWNED, so the remedy is widen-not-refuse: floor the stop like F1, loudly, and
+                    # stamp stop_coherence_widened so Friday grades both faces of the mechanism.
+                    _coh_old = stop_loss
+                    stop_loss = round(entry_price * (1 - STOP_LOSS_PCT), 4)
+                    print(f"🚧 {ticker}: fill ${entry_price:.4f} only "
+                          f"{(entry_price - _coh_old) / entry_price * 100:.3f}% above stop ${_coh_old:.4f} "
+                          f"(< {STOP_COHERENCE_MIN_PCT*100:.1f}% coherence floor) — stop widened to ${stop_loss:.2f}")
+                    _log_decision(ticker, "stop_coherence_widened", price=round(float(entry_price), 4),
+                                  old_stop=round(float(_coh_old), 4), stop=stop_loss,
+                                  width_pct=round((entry_price - _coh_old) / entry_price * 100, 3),
+                                  machine=entry_type)
                 # Re-size on the real fill with the SAME risk formula (7/11) — not the old notional formula.
                 # 7/29: SAME includes width-proportional — without it a tight-stop trade would re-inflate here.
                 if RISK_BASED_SIZING and entry_price > stop_loss:

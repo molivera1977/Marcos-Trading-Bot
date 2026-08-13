@@ -59,3 +59,21 @@ debrief. VERDICT: SHIP.
 - Historian — TOUCHED (first ship on post): the freeze incident, its 13 refused entries, and this
   hardening are chronicled as the 8/13 milestone "the day the kill switch got a clock"; artifact
   trail verified (ledger + OFFICIAL_BOOK current).
+
+## 20th convening — #54 BATCH (8/13 evening), covers: 829aa53bf84a
+Agent a3a13889f18c84082: 7/7 PASS incl. the mandatory day-one walkthroughs (SCKT-quiet-at-7:05 and
+FGI-new-high-at-8:01 traced end to end, no gaps; the 9:31-on-8:05-map replay dies at
+bluesky_ttl_expired as specced). Key verifications: anchor-override ordering beats blue-sky in
+BOTH lanes; _ts stamped on every merge branch; full targets-consumer census (runway/exit-rungs/
+auto-map/zone all safe on advisory targets); B2 touches only the reader todo filter (merge
+untouched); B3 race bounded + self-healing + secret cited; 4 kill switches present.
+Fix-nows: #2 doc addendum DONE; #3 rig TTL-parse executed-check DONE (suite ALL GREEN after);
+#1 = _effective_map auto-map overlay drops am._ts (crowned blue-sky name w/ stale map + fresh
+auto-map gets TTL-expired despite fresh structure — fail-closed crown-privilege leak) = MARCOS'S
+CALL, priced one line, queued to him tonight.
+Delta officers: Systems Quant, Cartographer (flags #1), Crown Steward (wants #1 ruled), Strength
+Ombudsman (approves — batch is a strength-refusal cure), Kev Librarian, Reclaim Architect, Curl
+Mechanic, Integrator, Dashboard Curator, Seam Scientist, Pit Crew Chief, Statistician — clean.
+Historian — TOUCHED: chronicles the Kev-read inversion discovery (the 8/5 billing-saver was the
+true A/B starvation cause, not the liquidity floor). Full room carried from tonight's debrief.
+VERDICT: SHIP.

@@ -1650,3 +1650,20 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   posted manual maps, 68 total, zero blind. TWICE in one session = Build 3 (auto-read on
   fire+no-map) is not an improvement, it's a requirement; evidence attached to task #54.
   Bonus observed: FGI blue-sky rereads self-updating as it climbs (summit maps 16.50 -> 18.45).
+
+## 2026-08-13 ~16:15 — THURSDAY FULL-ROOM DEBRIEF (30/30 offices incl. Historian day-one; agent a005ef56e229b08f3)
+- BOOK VERIFIED IN-CONVENING: RTH +$208.53 / PRE -$10.58, 20 trades, flat; cross-foots w/
+  OFFICIAL_BOOK.md (5th-best RTH day). FGI 8 trades +$155.75 net. Freeze cost RE-VERIFIED on the
+  corrected clock: 13 refused fires in the window (real, not zero).
+- TOP-5 BY MONDAY IMPACT: (1) first-read blue-sky deadlock (crowbar needed TWICE = auto-read is a
+  requirement); (2) freeze = unindicated non-expiring kill lever; (3) refused-strength pile-on
+  (HCTI 5 gates, FGI 4.5h caged crowned) — Ombudsman's best exhibit; (4) 12-hour time-filter bug =
+  all prior time-windowed censuses suspect until re-run; (5) manual-map ceiling side effect —
+  Build 1's extension targets MUST cover manual maps (room amendment, adopted).
+- TONIGHT RESEQUENCED (dependencies): censuses-on-clean-clock FIRST, freeze hardening SECOND,
+  then #54 builds (+manual-map amendment), MAX_TRADE_DOLLARS, staleness review (analysis only,
+  Marcos prices any change), four-arm rerun, Historian backfill, drill re-verify w/ real scheduler.
+- Notable roll-call lines: Crown Steward files 4.5h crown-latency scorecard entry; Handicapper
+  flags daygain-floor INVERSION at cheap entries (HCTI 1.36-1.43) for Friday's gate-vs-outcome;
+  Trade Manager: INHD exit 11.90 before the 10.90 halt-down = capital protected; Convexity: one
+  trade = 40% of RTH — tail-capture poor, the caged names WERE the missing tail.

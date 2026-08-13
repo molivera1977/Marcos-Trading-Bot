@@ -1552,9 +1552,11 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - Also fixed from same convening: dashboard veto line lied ("bot will never enter") → now
   "recorded, NOT gating"; rig section P upgraded from grep-pin to EXECUTED gate run (ast-extracted
   _chart_break_gate with vetoed map → allow/broke_level + veto_noted_not_gating row asserted).
-- Flagged for Marcos, not tonight: Kev DAILY-FIRST veto (#067, marcos_trading_bot.py:7557) still
-  GATES non-ignition entries — different mechanism (daily-chart quality, kill-tested), but under a
-  LITERAL "no one has veto power" it's a live veto twin. Doctrine-scope call is his.
+- CORRECTION (~23:40, Marcos: "explain this choice" -> code re-read, all 4 call-sites): the
+  auditor's "#067 still GATES" claim was WRONG and I relayed it unverified. Every daily_first_ok
+  site is observe-only since 7/26 (Marcos's call, era n=285 non-discriminating 0.98R vs 1.30R) or
+  ignition-exempt since 7/5 (+29.8R vs +16.1R). NO veto of any kind gates anywhere — doctrine
+  already fully clean. Verify-before-speak violation logged against me, not the auditor.
 - Canary this week: 07:00 attempt-exhaustion ("gave up" prints) — 3 early rejects now kill a name
   for the whole day where they previously couldn't start until 08:50.
 - Rig ALL GREEN exit 0, flat book verified 23:31, dashboard redeployed.

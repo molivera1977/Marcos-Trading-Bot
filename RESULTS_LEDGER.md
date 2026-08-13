@@ -1507,7 +1507,7 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - Bot redeployed, book flat in-turn, boot verified. Thursday wakes to: reader 07:00, PRE 10,
   crown-exempt, hidden 5, every new cohort stamped.
 
-## 2026-08-12 ~22:00 — DOCTRINE ENCODED: NO ONE HAS VETO POWER (Marcos; re-grade n=0)
+## 2026-08-12 ~21:30 — DOCTRINE ENCODED (stamp corrected — 2nd clock slip tonight, caught by self-check): NO ONE HAS VETO POWER (Marcos; re-grade n=0)
 - Marcos: "the chart and tape decide. No one has veto power." RE-GRADE RUN FIRST: the chart-lane
   veto branch (veto flag + do-not-trade/pass note language) fired ZERO times era-wide since
   enforcement began — a loaded gun that never fired; removal = zero measured behavior change.

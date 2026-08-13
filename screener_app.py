@@ -1966,12 +1966,30 @@ def _merge_kev_levels(existing, incoming, remove=None):
         # vision_shadow slot. Storage separation unchanged — Kev's record is still never clobbered.
         _now_ts = datetime.now(EASTERN).isoformat()
         if isinstance(ex, dict) and ex.get("src") == "kev" and inc.get("src") != "kev":
-            kept = dict(ex)
-            shadow = {k: v for k, v in inc.items() if k != "vision_shadow"}
-            if shadow:
-                shadow["_ts"] = _now_ts
-                kept["vision_shadow"] = shadow
-            merged[tk] = kept
+            if os.environ.get("KEV_PRIMACY", "0") == "1":
+                # pre-8/12 behavior: Kev's numbers rule, vision rides shadow (kill switch)
+                kept = dict(ex)
+                shadow = {k: v for k, v in inc.items() if k != "vision_shadow"}
+                if shadow:
+                    shadow["_ts"] = _now_ts
+                    kept["vision_shadow"] = shadow
+                merged[tk] = kept
+            else:
+                # 8/12 OUR-NUMBERS PRIMACY (Marcos leader decision: "I'm going to over-ride
+                # Kev's levels with ours... I'd rather let the charts create exact numbers"):
+                # the first vision read PROMOTES to primary; Kev's numbers move VERBATIM to
+                # kev_shadow (source protection: his record is re-shelved, never destroyed;
+                # graded head-to-head at n>=50). His VETO still rules the row. Until a vision
+                # read exists (overnight/pre-07:00), the sheet governs unchanged.
+                kept = {k: v for k, v in inc.items() if k not in ("vision_shadow", "kev_shadow")}
+                kept["_ts"] = _now_ts
+                kept["kev_name"] = True                     # provenance: still Kev's pick
+                _prior_kev = ex.get("kev_shadow") or {k: v for k, v in ex.items()
+                                                      if k not in ("vision_shadow", "kev_shadow")}
+                kept["kev_shadow"] = _prior_kev             # his numbers, preserved verbatim
+                if ex.get("veto") or _prior_kev.get("veto"):
+                    kept["veto"] = True                     # Marcos's veto survives the flip
+                merged[tk] = kept
         elif isinstance(ex, dict) and ex.get("src") == "kev" and inc.get("src") == "kev":
             # 8/7 (AUDITOR #2 — the morning wipe that nulled NAMI/CLRO + would erase Marcos's
             # veto): kev-over-kev is now FIELD-WISE — only keys PRESENT in the incoming write
@@ -1984,9 +2002,28 @@ def _merge_kev_levels(existing, incoming, remove=None):
                     kept[k] = v
             kept["_ts"] = _now_ts
             merged[tk] = kept
+        elif isinstance(ex, dict) and ex.get("kev_name") and inc.get("src") == "kev":
+            # 8/12 primacy: a LATER Kev write (morning update) on a flipped row updates his
+            # SHADOW field-wise — vision primary stands; his veto still promotes to the row.
+            kept = dict(ex)
+            _ks = dict(kept.get("kev_shadow") or {})
+            for k, v in inc.items():
+                if v is not None and k not in ("vision_shadow", "kev_shadow"):
+                    _ks[k] = v
+            _ks["_ts"] = _now_ts
+            kept["kev_shadow"] = _ks
+            if inc.get("veto"):
+                kept["veto"] = True
+            merged[tk] = kept
         else:
             inc = dict(inc)
             inc.setdefault("_ts", _now_ts)
+            if isinstance(ex, dict) and ex.get("kev_name") and inc.get("src") != "kev":
+                # fresh vision re-read replacing a flipped row: carry the preserved shadow
+                inc.setdefault("kev_shadow", ex.get("kev_shadow") or {})
+                inc["kev_name"] = True
+                if ex.get("veto"):
+                    inc["veto"] = True
             merged[tk] = inc
     return merged
 

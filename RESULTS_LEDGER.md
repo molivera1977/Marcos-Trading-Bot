@@ -1465,3 +1465,19 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   standards/discovery seed), not in his level numbers at trade scale. Reader = primary profit
   engine, re-pricing tonight's 07:00-start investment. Friday tracks the true-Kev cohort
   (n too small to judge; "his numbers have power" gets a data conversation if it persists).
+
+## 2026-08-12 ~21:15 — LEADER DECISION: OUR CHART LEVELS GOVERN KEV'S TICKERS (pure A/B)
+- Marcos, exercising the 8/7 veto clause: vision chart-anchored levels become PRIMARY on Kev's
+  names, COMPLETELY UNCHANGED (panel hedge-conditions #1 nearer-of-two-tiers and #3 round-number
+  zone-edges REJECTED for experiment purity); Kev's numbers -> kev_shadow, recorded verbatim
+  daily; veto intact; night sheet governs until first 07:00 read; KEV_PRIMACY=1 kill switch.
+- OFFICERS' PANEL: 8-3 PROCEED. DISSENTS ON PERMANENT RECORD: Tape Veteran (round numbers may
+  be the PRODUCT — nightly broadcast creates real order flow at $4/$5; OFAL halting at exactly
+  his $3.50 today = the exhibit); Statistician (n=13/n=9 front-runs our own n>=50 rule — this
+  is an authority-plus-principle decision, named as such); Execution Surgeon (tiers-no, entries-
+  yes — overruled for purity, dissent stands).
+- FULL-PACKAGE REVIEW: FRIDAY 8/15 AFTER CLOSE — entry-to-exit both books (chart realized vs
+  Kev counterfactual by first-touch replay), magnet-specific level stats, pre-registered and
+  FROZEN tonight: data/killtests/level_primacy_ab_PREREG_20260812.md. Standing verdict n>=50;
+  Kev win forces reconvening; cold-tape week auto-regrades.
+- Kept conditions: magnet grading (#2), anchor provenance (#4), full ship discipline (#5).

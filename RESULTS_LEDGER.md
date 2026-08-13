@@ -1601,3 +1601,14 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - FIRST DEPLOY THROUGH ship.sh — all three gates exercised live: SHIP_CHECK rig green (audited
   sha + 29-office roll call), flat book curled in-run, RTH guard passed (00:56 ET). Kill switch
   STOP_COHERENCE_MIN_PCT=0. Friday 8/15 re-grades both row types + re-runs census on the week.
+
+## 2026-08-13 ~01:20 — MARCOS RULING ENCODED: NO WIDENING (consultation failure owned)
+- Marcos: "i don't like how this was slid in there without consultation" — CORRECT. He approved a
+  0.5% REFUSE rule; the post-fill widen-to-7% was DIFFERENT behavior (can lose MORE dollars — his
+  catch within minutes) shipped on the auditor's word, not his. LAW SHARPENED: auditors close
+  holes in APPROVED behavior; any fix that CHANGES behavior goes back to Marcos first.
+- Rulings: "keep how we have it and just fix the coherence floor" + "no widening to 7%". Encoded:
+  pre-fill 0.5% refuse unchanged; post-fill = observe-only (stop_coherence_observed, enforced=False,
+  stop NEVER touched). 18th convening verified + SHIP; deployed via ship.sh 01:15, SUCCESS, clean
+  boot. Friday: grade refused rows + observed rows (three-way replay: keep/widen/exit) — remedy
+  choice is HIS.

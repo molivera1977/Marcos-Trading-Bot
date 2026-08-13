@@ -1591,3 +1591,13 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - WATCH-TOMORROW (carried from 16th convening + tonight): PRE slot count vs fills (crown race) ·
   concurrent PRE notional · first veto_noted_not_gating/crown_pre_exempt rows · 07:00 reader first
   light on the 5-name Thursday sheet with primacy flip live.
+
+## 2026-08-13 ~01:00 — SHIPPED: STOP-COHERENCE FLOOR 0.5% (Marcos: "ship the 0.5% floor tonight with the audit protocol")
+- Two-faced mechanism: PRE-FILL refuse+refund (thesis gone before ownership) + POST-FILL widen to
+  the 7% floor w/ stop_coherence_widened row (17th convening BLOCKED the first pass: my gate
+  checked FIRE-time width — BQ's incoherence is born post-fill in the stop re-derivation; the
+  gate would have missed its own motivating specimen. F1-EXTEND fixed it; auditor re-verified,
+  VERDICT SHIP). Census: 0.5% = 3 era trades / −$17.50 pure; 1% refuses 4 winners (rejected).
+- FIRST DEPLOY THROUGH ship.sh — all three gates exercised live: SHIP_CHECK rig green (audited
+  sha + 29-office roll call), flat book curled in-run, RTH guard passed (00:56 ET). Kill switch
+  STOP_COHERENCE_MIN_PCT=0. Friday 8/15 re-grades both row types + re-runs census on the week.

@@ -1518,3 +1518,8 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   suite ALL GREEN, bot redeployed (book flat in-turn).
 - Doctrine chain now fully consistent: chart-as-gate decides entries, tape lanes decide
   themselves, maps describe, freshest data rules, crowns earn bullets, NO human blocks a ticker.
+- STANDING TRACKER SHIPPED (8/12 ~21:45): data/killtests/map_source_split_standing.py — Marcos:
+  "I want to see if these numbers continue." Reproduces tonight's baseline exactly (vision 107/
+  +$1,197.44/61%W vs kev 13/+$23.25/46%W) and adds a post-flip section: from 8/13 Kev-name trades
+  are chart-governed, so their realized rows land in the A/B cohort; runs nightly, reads at Friday
+  review alongside the prereg counterfactual replay. No metric added to the frozen prereg.

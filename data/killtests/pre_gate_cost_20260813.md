@@ -1,3 +1,6 @@
+# VOID (8/13 evening) — built on the 24h-vs-12h broken time filter. Direction held but
+# numbers superseded by pre_gate_cost_v2_20260813_RESULTS.txt (clean clock, census_lib.to24).
+
 # PRE CONVERSION-GATE COST (week 8/10-8/13, run 8/13 ~08:25 ET) — Marcos: "we'll review this later today"
 Model: $200 clip, -6% first-touch stop, 35% MFE capture, 9:25 flatten; first refusal/name/day;
 paths from priced decision rows (Friday rerun = full 10s bars).

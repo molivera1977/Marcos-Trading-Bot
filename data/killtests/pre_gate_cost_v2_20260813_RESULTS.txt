@@ -1,0 +1,26 @@
+  2026-08-10 XHLD  reclaim_firevol_reject 07:17 @2.880 mfe +9.7% -> $-12.00
+  2026-08-10 JWEL  stale_fire_suppressed  07:17 @4.960 mfe +17.3% -> $-12.00
+  2026-08-10 HUDI  stale_fire_suppressed  07:22 @1.070 mfe +1.9% -> $-12.00
+  2026-08-10 MB    stale_fire_suppressed  07:32 @6.210 mfe -1.1% -> $-12.00
+  2026-08-10 EVGN  stale_fire_suppressed  07:46 @0.704 mfe +11.6% -> $+8.12
+  2026-08-10 SLN   stale_fire_suppressed  08:00 @17.960 mfe -3.6% -> $-12.00
+  2026-08-10 STI   stale_fire_suppressed  08:10 @8.139 mfe -2.7% -> $-12.00
+  2026-08-11 WXM   stale_fire_suppressed  07:22 @9.110 mfe +26.0% -> $+18.17
+  2026-08-11 PLAG  reclaim_firevol_reject 07:54 @1.050 mfe +41.0% -> $+28.73
+  2026-08-11 PLAG  stale_fire_suppressed  08:36 @1.239 mfe +19.5% -> $+13.67
+  2026-08-12 RMCF  stale_fire_suppressed  07:03 @0.870 mfe +121.6% -> $+85.13
+  2026-08-12 PLAG  reclaim_firevol_reject 07:07 @1.350 mfe -2.2% -> $-12.00
+  2026-08-12 OFAL  stale_fire_suppressed  07:14 @2.360 mfe +22.9% -> $-12.00
+  2026-08-12 HXHX  stale_fire_suppressed  07:16 @0.540 mfe +11.1% -> $-12.00
+  2026-08-12 CHOW  stale_fire_suppressed  08:10 @0.558 mfe +22.3% -> $+15.61
+  2026-08-12 RMCF  reclaim_firevol_reject 08:25 @1.640 mfe +17.6% -> $-12.00
+  2026-08-13 FGI   stale_fire_suppressed  07:16 @7.540 mfe +26.0% -> $+18.19
+  2026-08-13 YXT   reclaim_firevol_reject 07:21 @4.860 mfe +48.1% -> $+33.70
+  2026-08-13 YXT   stale_fire_suppressed  08:04 @6.000 mfe +20.0% -> $+14.00
+  2026-08-13 ELPW  reclaim_firevol_reject 08:07 @4.410 mfe +0.0% -> $-12.00
+  2026-08-13 BOXL  reclaim_firevol_reject 08:16 @6.410 mfe +12.9% -> $+9.06
+  2026-08-13 DFSC  stale_fire_suppressed  09:18 @1.910 mfe +25.1% -> $+17.55
+
+reclaim_firevol_reject: 21 first-refusals, modeled $-21.60
+stale_fire_suppressed: 25 first-refusals, modeled $+59.03
+WEEK TOTAL: $+37.43

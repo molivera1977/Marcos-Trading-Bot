@@ -1667,3 +1667,12 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   flags daygain-floor INVERSION at cheap entries (HCTI 1.36-1.43) for Friday's gate-vs-outcome;
   Trade Manager: INHD exit 11.90 before the 10.90 halt-down = capital protected; Convexity: one
   trade = 40% of RTH — tail-capture poor, the caged names WERE the missing tail.
+
+## 2026-08-13 evening — NIGHT ITEM 1 DONE: CENSUSES ON THE CLEAN CLOCK
+- census_lib.py shipped (to24 verified incl. noon/midnight edges) — every census imports it; no
+  census hand-rolls time handling again. v1 gate-cost artifact VOID-stamped.
+- PRE gate-cost v2 (official): staleness ceiling 25 refusals +$59.03 LEFT ON TABLE (clean clock
+  caught DFSC 9:18 +$17.55 + FGI's fuller run); firevol floor 21 refusals -$21.60 (SAVED money,
+  vindicated again); net +$37.43/week. Conclusions unchanged, numbers now trustworthy: the
+  staleness ceiling is the leak, concentrated 07:00-08:15 + fast movers.
+- Freeze-window accounting already re-verified in the debrief on clean clock (13 refused fires).

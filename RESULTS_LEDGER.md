@@ -1452,3 +1452,8 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - First cut (era 8/4+): Kev-level-anchored trades n=88 +$980.19 (+$11.14/tr, 66% W) = ~80% of
   era profit; auto daily_high +$7.38/tr 39%; generic "level" -$4.44/tr. CAVEAT stated: selection
   confound (Kev maps ride Kev-quality names) — the placebo level-respect grade is the isolator.
+- LEVEL-RESPECT GRADE RUN (Marcos: "how about our levels?"): OUR vision levels 93% respect
+  (n=100) vs placebo random levels 82% (n=322) on the same names/days (8/11-12, 10s tape,
+  touch->reverse/stall-within-5min metric). Gap statistically real (z~2.9, p~0.004). Metric
+  noted as GENEROUS (82% placebo base = choppy-tape stalls everywhere) — Friday's standing
+  weekly runs the sharpened version (reaction magnitude, stricter reversal) + Kev levels + trend.

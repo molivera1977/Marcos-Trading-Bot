@@ -1444,3 +1444,11 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   it: "it's 8:12pm"). Several of tonight's narrated times ("midnight", "12:45am") were fiction.
   The law is date-THIS-turn before any wall-clock claim; I narrated a whole evening off an
   assumed clock. Corrected; no other ledger stamps tonight carried invented absolute times.
+
+## 2026-08-12 ~20:25 — MAP-VALUE GRADING (Marcos: "how can we grade the improvement maps have made")
+- Framework: (1) map-source cohorts [RUN], (2) exit-tier attribution [Friday], (3) LEVEL-RESPECT
+  vs placebo ladder — Marcos's own maps-describe law, overdue, now a STANDING WEEKLY [Friday],
+  (4) freshness cross via the new stamps [Friday].
+- First cut (era 8/4+): Kev-level-anchored trades n=88 +$980.19 (+$11.14/tr, 66% W) = ~80% of
+  era profit; auto daily_high +$7.38/tr 39%; generic "level" -$4.44/tr. CAVEAT stated: selection
+  confound (Kev maps ride Kev-quality names) — the placebo level-respect grade is the isolator.

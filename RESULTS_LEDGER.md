@@ -1612,3 +1612,15 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   stop NEVER touched). 18th convening verified + SHIP; deployed via ship.sh 01:15, SUCCESS, clean
   boot. Friday: grade refused rows + observed rows (three-way replay: keep/widen/exit) — remedy
   choice is HIS.
+
+## 2026-08-13 ~02:00 — MARCOS RATIFIES: PREDETERMINED RESTING SELLS FOR GO-LIVE (task #53)
+- "This is exactly what I want for when we go live. I want the sells predetermined to our plan."
+- Context: spread census showed the 8/04+ book is +$260 live-model if every exit crosses the
+  spread vs +$727 if tier exits rest maker-side — the delta IS the exit tolls. Live code today:
+  entries LIMIT+1% (good), stop resting STOP_LOSS (good), ALL other sells MARKET (:8086 — the gap).
+- Build scoped in task #53: live resting GTC limit tiers off the exit_scaffold (sim's RESTING_BANK
+  already models this exactly), cancel/replace state machine (stop-fire double-sell race, flattens,
+  trail tightens, partial tier fills), share-reservation vs the resting stop, $5 live place+cancel
+  test extended to cover a resting sell + stop pair, kill switch LIVE_RESTING_TIERS. Window:
+  Thu evening/weekend; Broker Desk owns semantics; full protocol ship.
+- Spread-cap decision (1.5-2% entry refuse) still OPEN — Marcos has the census, his call.

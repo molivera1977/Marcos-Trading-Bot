@@ -1457,3 +1457,11 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   touch->reverse/stall-within-5min metric). Gap statistically real (z~2.9, p~0.004). Metric
   noted as GENEROUS (82% placebo base = choppy-tape stalls everywhere) — Friday's standing
   weekly runs the sharpened version (reaction magnitude, stricter reversal) + Kev levels + trend.
+- CORRECTION (Marcos's catch: "kev only levels 3 names per day"): the 'kev_level' cohort label
+  was DOUBLY wrong — the code's supply_src means "any stored map" (store = sheet + vision), and
+  my script's fallback proxy compounded it. TRUE SPLIT (store-mapped era trades by map src):
+  VISION n=107 +$1,197.44 (+$11.19/tr, 61%W) vs TRUE-KEV n=13 +$23.25 (+$1.79/tr, 46%W).
+  THE BOOK RUNS ON OUR OWN CARTOGRAPHY — Kev's value lives upstream (doctrine/lanes/scanner
+  standards/discovery seed), not in his level numbers at trade scale. Reader = primary profit
+  engine, re-pricing tonight's 07:00-start investment. Friday tracks the true-Kev cohort
+  (n too small to judge; "his numbers have power" gets a data conversation if it persists).

@@ -1426,7 +1426,7 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   $60 closed same-night (mapless + cap), $46 behind Friday minstop re-grade (BIVI specimen),
   ~$55 = #48 lane hole (BOXL mid-leg), ~$50 halt-physics give-back (fill-model specimen).
 
-## 2026-08-13 ~00:45 — STALE-CAP REVIEW (Marcos: "review some that haven't been reviewed in a while")
+## 2026-08-12 ~20:10 — STALE-CAP REVIEW (Marcos: "review some that haven't been reviewed in a while")
 - MIN-STOP: live=4% (boot stamp), NOT the 7/27 6% — history: the mystery MIN_STOP_PCT=0 wipe
   (7/28) killed 6%; the 8/2 restore chose 4%, documented. RE-GRADE (post-8/4 era, non-exempt
   lanes): the 4-6% band the 6%-floor would refuse = +$381.65 (+$29.36/trade, 8/13 W) — BEST
@@ -1439,3 +1439,8 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - FLOAT 30M: today's 30-50M skip cohort 1/6 offered (SMWB +13.5% o->h), rest dead. HOLDS.
 - MAX_TRADE_DOLLARS=$1000 HARDCODED = trial-lethal at $578 BP (one position ~170% of account).
   MUST go env + scale (~$150-200) before Monday — tomorrow's window, top priority.
+- CLOCK VIOLATION (mine, repeat offense): the entry above was originally stamped 2026-08-13
+  ~00:45 — a FABRICATED time; actual time was ~20:10 Wed 8/12 (date run 20:13, Marcos caught
+  it: "it's 8:12pm"). Several of tonight's narrated times ("midnight", "12:45am") were fiction.
+  The law is date-THIS-turn before any wall-clock claim; I narrated a whole evening off an
+  assumed clock. Corrected; no other ledger stamps tonight carried invented absolute times.

@@ -1156,5 +1156,33 @@ try:
 except AssertionError as _ve:
     check("veto EXECUTED as data-only", False, str(_ve))
 
+print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
+# Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
+# data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).
+# The convening writes that file as its final act. Edit anything after the audit -> sha/dirty
+# mismatch -> RED -> no deploy. Plain runs (no SHIP_CHECK) only warn, so development iterates.
+try:
+    import subprocess as _sp
+    _sha = _sp.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()[:12]
+    _dirty = bool(_sp.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True).stdout.strip())
+    _lat = os.path.join(ROOT, "data", "audits", "LATEST.md")
+    _rec = open(_lat).read() if os.path.exists(_lat) else ""
+    # the artifact commit itself can't know its own sha: accept HEAD, or HEAD~1 when HEAD
+    # touches ONLY bookkeeping (data/audits/, RESULTS_LEDGER.md) — code changes never ride that exemption
+    _par = _sp.run(["git", "rev-parse", "HEAD~1"], cwd=ROOT, capture_output=True, text=True).stdout.strip()[:12]
+    _tip_files = _sp.run(["git", "diff", "--name-only", "HEAD~1..HEAD"], cwd=ROOT,
+                         capture_output=True, text=True).stdout.split()
+    _book_only = _tip_files and all(f.startswith("data/audits/") or f == "RESULTS_LEDGER.md" for f in _tip_files)
+    _ok = ((_sha in _rec) or (_book_only and _par in _rec)) and not _dirty
+    if os.environ.get("SHIP_CHECK") == "1":
+        assert _ok, ("HEAD %s%s not covered by data/audits/LATEST.md — convene the Blast Radius "
+                     "Auditor, write the artifact, commit, rerun" % (_sha, " (worktree DIRTY)" if _dirty else ""))
+        check("ship-check: HEAD %s audited + tree clean" % _sha, True)
+    else:
+        print(("  ✅ audit current for HEAD " + _sha) if _ok else
+              ("  ⚠️  HEAD " + _sha + (" (dirty)" if _dirty else "") + " NOT yet audited — required before any deploy"))
+except AssertionError as _qe:
+    check("ship-check audit interlock", False, str(_qe))
+
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

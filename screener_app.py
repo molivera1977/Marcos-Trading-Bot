@@ -2254,7 +2254,11 @@ def premarket_dashboard():
             fire_count[t] = fire_count.get(t, 0) + 1
     fires = fires[-60:][::-1]
     # PRE ledger: today's completed premarket trades (corrected pnl) + open PRE positions
-    pre_trades = [t for t in _trades if t.get("date") == today and t.get("entry_session") == "PRE"]
+    # 8/12 (Marcos: "same functionality of the pre-dashboard as I do from the RTH dashboard"):
+    # full PRE book history + stats + equity curve + calendar + reject/shadow strips, all
+    # server-rendered (page stays JS-free by design).
+    all_pre = [t for t in _trades if t.get("entry_session") == "PRE"]
+    pre_trades = [t for t in all_pre if t.get("date") == today]
     pre_pnl = round(sum(_cpnl(t) for t in pre_trades), 2)
     open_pre = []
     try:
@@ -2348,7 +2352,7 @@ def premarket_dashboard():
     entries_open = now.strftime("%H:%M") >= "09:30"
     _in_pre_regime = "04:00" <= now.strftime("%H:%M") < "09:25"
     banner = ("ENTRIES OPEN — RTH live trading" if entries_open
-              else ("PREMARKET REGIME LIVE — hidden-entry + reclaim convert FOR REAL (cap 6 · ≥$250k dvol · 9:25 flatten) · legacy lanes shadow"
+              else ("PREMARKET REGIME LIVE — hidden-entry + reclaim convert FOR REAL (cap 10, crowns exempt · ≥$250k dvol · 9:25 flatten) · legacy lanes shadow"
                     if _in_pre_regime else "9:25–9:30 dead window — no new PRE entries (flatten rule); RTH opens 09:30"))
     bcol = "var(--green)" if entries_open else "var(--yellow)"
     # system-health witnesses (7/26): reader heartbeat + capture/recorder boots, from the store
@@ -2364,6 +2368,142 @@ def premarket_dashboard():
         _hw.append("recorder " + ("up" if (_bd / "ZZRECBOOT~10S.json").exists() else "no boot row"))
     except Exception: pass
     health_line = " · ".join(_hw)
+
+    # ---- RTH-parity blocks (8/12) -------------------------------------------------
+    def _f0(x):
+        try: return float(x or 0)
+        except (TypeError, ValueError): return 0.0
+    _pre_pnls = [_f0(_cpnl(t)) for t in all_pre]
+    _w = [p for p in _pre_pnls if p > 0]; _l = [p for p in _pre_pnls if p < 0]
+    _be_n = len(_pre_pnls) - len(_w) - len(_l)
+    _best_i = max(range(len(_pre_pnls)), key=lambda i: _pre_pnls[i], default=None)
+    _worst_i = min(range(len(_pre_pnls)), key=lambda i: _pre_pnls[i], default=None)
+
+    def _stat(label, val, cls="", sub=""):
+        return ("<div class='stat'><div class='stat-label'>" + label + "</div>"
+                "<div class='stat-value " + cls + "'>" + val + "</div>"
+                + ("<div class='muted' style='font-size:11px'>" + sub + "</div>" if sub else "") + "</div>")
+
+    stats2 = ("<div class='stats'>"
+              + _stat("Avg win (PRE book)", ("$%+.2f" % (sum(_w)/len(_w))) if _w else "—", "green", "per winning trade")
+              + _stat("Avg loss (PRE book)", ("$%+.2f" % (sum(_l)/len(_l))) if _l else "—", "yellow", "per losing trade")
+              + _stat("Best PRE trade", ("$%+.2f" % _pre_pnls[_best_i]) if _best_i is not None else "—", "green",
+                      esc(all_pre[_best_i].get("ticker")) if _best_i is not None else "")
+              + _stat("Worst PRE trade", ("$%+.2f" % _pre_pnls[_worst_i]) if _worst_i is not None else "—", "yellow",
+                      esc(all_pre[_worst_i].get("ticker")) if _worst_i is not None else "")
+              + _stat("W / L / BE", "%d / %d / %d" % (len(_w), len(_l), _be_n), "",
+                      ("%d%% WR" % round(100*len(_w)/len(_pre_pnls))) if _pre_pnls else "")
+              + _stat("PRE book net", ("$%+.2f" % sum(_pre_pnls)) if _pre_pnls else "—",
+                      "green" if sum(_pre_pnls) >= 0 else "yellow", "%d trades all-time" % len(_pre_pnls))
+              + "</div>")
+
+    # equity curve — cumulative PRE P&L per trade, inline SVG (no JS on this page)
+    curve_html = ""
+    if _pre_pnls:
+        cum, s = [], 0.0
+        for p in _pre_pnls:
+            s += p; cum.append(s)
+        W, H, PAD = 820, 150, 8
+        lo, hi = min(0.0, min(cum)), max(0.0, max(cum))
+        rng = (hi - lo) or 1.0
+        n = len(cum)
+        def _xy(i, v):
+            x = PAD + (W - 2*PAD) * (i / max(1, n))    # n+1 points incl. the $0 origin
+            y = PAD + (H - 2*PAD) * (1 - (v - lo) / rng)
+            return "%.1f,%.1f" % (x, y)
+        pts = " ".join(_xy(i, v) for i, v in enumerate([0.0] + cum))
+        zy = PAD + (H - 2*PAD) * (1 - (0 - lo) / rng)
+        zline = ("<line x1='0' y1='%.1f' x2='%d' y2='%.1f' stroke='var(--bg3)' stroke-width='1'/>" % (zy, W, zy))
+        curve_html = ("<div class='section'><div class='card'><h2>PRE equity curve <span>— cumulative $"
+                      + ("%+.2f" % cum[-1]) + " over " + str(n) + " trades</span></h2>"
+                      "<div style='padding:12px 18px'><svg viewBox='0 0 " + str(W) + " " + str(H) + "' "
+                      "style='width:100%;height:auto;display:block'>"
+                      + zline
+                      + "<polyline points='" + pts + "' fill='none' stroke='"
+                      + ("var(--green)" if cum[-1] >= 0 else "var(--yellow)") + "' stroke-width='2'/>"
+                      "</svg></div></div></div>")
+
+    # P&L calendar — per-day PRE net, newest first
+    _bydayp = {}
+    for t in all_pre:
+        _bydayp.setdefault(str(t.get("date") or "?"), []).append(_f0(_cpnl(t)))
+    cal_cells = "".join(
+        "<div class='stat' style='padding:10px 14px'><div class='stat-label'>" + esc(d) + "</div>"
+        "<div class='stat-value " + ("green" if sum(v) >= 0 else "yellow") + "' style='font-size:16px'>"
+        + ("$%+.2f" % sum(v)) + "</div><div class='muted' style='font-size:11px'>" + str(len(v)) + " trades</div></div>"
+        for d, v in sorted(_bydayp.items(), reverse=True)[:14])
+    cal_html = ("<div class='section'><div class='card'><h2>PRE P&L calendar <span>— last 14 sessions</span></h2>"
+                "<div style='display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:14px 18px'>"
+                + (cal_cells or "<span class='muted'>no PRE trades yet</span>") + "</div></div></div>") if _bydayp else ""
+
+    # gate-rejects + shadow-lanes strips, PRE-scoped (same statuses as the RTH strips + premkt_capped)
+    _GATES = {"minstop_reject": "📏 min-stop", "runway_reject": "🛣️ runway", "breakside_reject": "🧱 break-side",
+              "ceiling_reject": "🏔️ ceiling", "premkt_capped": "🎟️ PRE cap"}
+    _SHAD = {"halt_arm": "🪜 halt arm", "halt_early_arm": "🌅 early arm", "seam_shadow_fire": "🧵 seam"}
+    rej_rows, shad_rows = [], []
+    for r in _decisions:
+        if r.get("date") != today:
+            continue
+        _hmr = str(r.get("time") or r.get("time_hm") or str(r.get("recorded_at") or "")[11:16])[:5]
+        if not _hmr or _hmr >= "09:30":
+            continue
+        st = r.get("status") or ""
+        if st in _GATES:
+            rej_rows.append((r, _hmr))
+        elif st in _SHAD:
+            shad_rows.append((r, _hmr))
+    def _strip(title, sub, pairs, lut, empty):
+        body = "".join(
+            "<tr><td class='num muted'>" + esc(hmr) + "</td>"
+            "<td><a class='tk' href='/tale/" + esc(r.get('ticker')) + "'>" + esc(r.get('ticker')) + "</a></td>"
+            "<td>" + lut[r.get('status')] + "</td>"
+            "<td class='muted'>" + esc(r.get('machine') or r.get('entry_type') or '—') + "</td>"
+            "<td class='num'>" + fmt(r.get('price')) + "</td>"
+            "<td class='muted'>" + esc(r.get('why') or r.get('side') or '') + "</td></tr>"
+            for r, hmr in pairs[-40:][::-1])
+        return ("<div class='section'><div class='card'><h2>" + title + " <span>— " + sub + "</span></h2>"
+                "<div class='tw'><table><tr><th>time</th><th>ticker</th><th>row</th><th>lane</th><th>price</th><th>why</th></tr>"
+                + (body or "<tr><td colspan=6 class='muted'>" + empty + "</td></tr>") + "</table></div></div></div>")
+    rej_html = _strip("Gate rejects (PRE)", "today, before 09:30 — every row a logged counterfactual",
+                      rej_rows, _GATES, "no PRE gate rejects yet today")
+    shad_html = _strip("Shadow lanes (PRE)", "halt arms &amp; seam fires before 09:30",
+                       shad_rows, _SHAD, "no PRE shadow fires yet today")
+
+    # full PRE trade history, day-grouped, RTH-parity columns
+    def _pre_hist_row(t):
+        p = _f0(_cpnl(t))
+        pr = _f0(t.get("planned_risk"))
+        r_txt = ("%+.2fR" % (p / pr)) if pr > 0.5 else "—"
+        road = t.get("marked_runway_rr")
+        road_txt = "∞" if road == "above_all_levels" else (("%.1fR" % road) if isinstance(road, (int, float)) else "—")
+        pct = t.get("pnl_pct")
+        return ("<tr><td class='num muted'>" + _hm_et(t.get("entry_ts_utc")) + "</td>"
+                "<td><a class='tk' href='/tale/" + esc(t.get("ticker")) + "'>" + esc(t.get("ticker")) + "</a></td>"
+                "<td class='purple'>" + esc(t.get("entry_type") or "—") + "</td>"
+                "<td class='num'>" + fmt(t.get("entry")) + "</td>"
+                "<td class='num'>" + fmt(t.get("exit")) + "</td>"
+                "<td class='num muted'>" + (str(t.get("recorded_at") or "")[11:16] or "—") + "</td>"
+                "<td class='num muted'>" + esc(t.get("shares") or "—") + "</td>"
+                "<td class='num muted'>" + (("$%.0f" % _f0(t.get("position_size"))) if _f0(t.get("position_size")) else "—") + "</td>"
+                "<td class='num " + ("green" if p >= 0 else "yellow") + "'>$" + ("%+.2f" % p) + "</td>"
+                "<td class='num " + ("green" if p >= 0 else "yellow") + "'>" + (("%+.1f%%" % pct) if isinstance(pct, (int, float)) else "—") + "</td>"
+                "<td class='num'>" + r_txt + "</td>"
+                "<td class='num muted'>" + road_txt + "</td>"
+                "<td class='muted'>" + esc(t.get("exit_reason") or "") + "</td></tr>")
+    hist_parts = []
+    for d, v in sorted(_bydayp.items(), reverse=True)[:10]:
+        daynet = sum(v)
+        hist_parts.append("<tr><td colspan=13 style='background:var(--bg4b);font-weight:600'>" + esc(d)
+                          + " <span class='muted'>· " + str(len(v)) + " trades ·</span> <span class='"
+                          + ("green" if daynet >= 0 else "yellow") + "'>$" + ("%+.2f" % daynet) + "</span></td></tr>")
+        hist_parts.extend(_pre_hist_row(t) for t in reversed([x for x in all_pre if str(x.get("date")) == d]))
+    hist_html = ("<div class='section'><div class='card'>"
+                 "<h2>PRE trade history <span>— all sessions, day-grouped (RTH-table columns)</span></h2>"
+                 "<div class='tw'><table><tr><th>in ⏱</th><th>ticker</th><th>lane</th><th>entry</th><th>exit</th>"
+                 "<th>out ⏱</th><th>sh</th><th>size</th><th>P&L $</th><th>P&L %</th><th>R</th><th>road</th><th>reason</th></tr>"
+                 + ("".join(hist_parts) or "<tr><td colspan=13 class='muted'>no PRE trades yet</td></tr>")
+                 + "</table></div></div></div>") if all_pre else ""
+    # -------------------------------------------------------------------------------
     rows_html = []
     for t in names:
         r = last_row.get(t) or {}
@@ -2449,6 +2589,7 @@ def premarket_dashboard():
             "<div class='stat'><div class='stat-label'>Names watched</div><div class='stat-value'>" + str(len(names)) + "</div></div>"
             "<div class='stat'><div class='stat-label'>Kev sheet</div><div class='stat-value yellow'>" + str(kev_n) + "</div></div>"
             "</div>"
+            + stats2
             + ("<div class='section'>" + "".join(_pre_open_card(_o, lv) for _o in open_pre) + "</div>"
                if open_pre else "")
             + "<div class='section'><div class='card'>"
@@ -2485,7 +2626,8 @@ def premarket_dashboard():
             "<div class='tw'><table><tr><th>ticker</th><th>last px</th><th>latest read</th><th>at</th><th>Kev level → tgts</th><th>fires</th></tr>"
             + ("".join(rows_html) or "<tr><td colspan=6 class='muted'>roster empty — bot not awake yet</td></tr>")
             + "</table></div></div></div>"
-            "<div class='footer'>PRE regime: real hidden/reclaim entries 4:00–9:25 (cap 6, $250k dvol) · flatten 9:25 · dead window 9:25–9:30 · legacy lanes shadow until 9:30</div>"
+            + rej_html + shad_html + hist_html + curve_html + cal_html
+            + "<div class='footer'>PRE regime: real hidden/reclaim entries 7:00–9:25 (cap 10, crowns exempt · $250k dvol) · flatten 9:25 · dead window 9:25–9:30 · legacy lanes shadow until 9:30 · reader first light 07:00</div>"
             "</body></html>")
     # plain string return (NOT render_template_string — this HTML is dynamically built from
     # decision rows; no Jinja pass wanted over data-derived text)

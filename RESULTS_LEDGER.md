@@ -1523,3 +1523,15 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   +$1,197.44/61%W vs kev 13/+$23.25/46%W) and adds a post-flip section: from 8/13 Kev-name trades
   are chart-governed, so their realized rows land in the A/B cohort; runs nightly, reads at Friday
   review alongside the prereg counterfactual replay. No metric added to the frozen prereg.
+
+## 2026-08-12 ~23:00 — PREMARKET BOARD: RTH PARITY (Marcos: "same functionality as the RTH dashboard")
+- /premarket now carries the full RTH feature set, server-rendered (page stays JS-free): PRE-book
+  stats tiles (avg win/loss, best/worst, W/L/BE, net), inline-SVG equity curve, 14-session P&L
+  calendar, PRE-scoped gate-rejects strip (4 gates + premkt_capped, rows <09:30), PRE-scoped
+  shadow-lanes strip (halt arms + seam), and a day-grouped all-sessions PRE trade history with the
+  RTH columns (shares, size, $, %, R via planned_risk, road). Banner/footer refreshed: cap 10
+  crowns exempt, 07:00 reader, 7:00-9:25 window.
+- Blast Radius Auditor (13th convening, agent ae350923b8a4ef7f5): BLOCK → 3 fixes landed before
+  ship — curve x-scale off-by-one (last trade drew off-canvas), two bare float() 500 risks on
+  malformed historical rows (now _f0-guarded, calendar included). Re-verified: poison-row render
+  200, curve max-x 812/820, rig ALL GREEN exit 0 on final code, flat book {"open_trades":[]} at 23:00.

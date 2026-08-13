@@ -1425,3 +1425,17 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - Left-on-table accounting today (coarse): ~$155-165 untaken vs $284 banked (~2/3 capture);
   $60 closed same-night (mapless + cap), $46 behind Friday minstop re-grade (BIVI specimen),
   ~$55 = #48 lane hole (BOXL mid-leg), ~$50 halt-physics give-back (fill-model specimen).
+
+## 2026-08-13 ~00:45 — STALE-CAP REVIEW (Marcos: "review some that haven't been reviewed in a while")
+- MIN-STOP: live=4% (boot stamp), NOT the 7/27 6% — history: the mystery MIN_STOP_PCT=0 wipe
+  (7/28) killed 6%; the 8/2 restore chose 4%, documented. RE-GRADE (post-8/4 era, non-exempt
+  lanes): the 4-6% band the 6%-floor would refuse = +$381.65 (+$29.36/trade, 8/13 W) — BEST
+  cohort; >=6% widths = -$163.70 (-$10.23/trade). The wipe accidentally ran the counter-
+  experiment and 4% WON this regime. VERDICT REC: keep 4%; Friday standing re-confirm per
+  regime. NEW HYPOTHESIS registered: MAX stop-width ceiling (wide stops mark chases — DSY/YXT/
+  BJDX worst prints); kill-test before any knob. Flag: 4 sub-4% non-exempt trades = gate-vs-
+  record width measurement mismatch, n=4, morning check.
+- HIDDEN_NAME_CAP=2: bound ONCE in the era (THH 8/10 15:29, sim says stopped). CLEARED, unchanged.
+- FLOAT 30M: today's 30-50M skip cohort 1/6 offered (SMWB +13.5% o->h), rest dead. HOLDS.
+- MAX_TRADE_DOLLARS=$1000 HARDCODED = trial-lethal at $578 BP (one position ~170% of account).
+  MUST go env + scale (~$150-200) before Monday — tomorrow's window, top priority.

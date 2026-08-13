@@ -1629,3 +1629,19 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   via the existing est_slippage stamp). FRIDAY SLATE ADDS: re-run spread census on the week's tape
   (doctrine model: resting tiers free, entry+safety legs pay) + the Wednesday counter-evidence
   (2% cap would have refused 6 BQ trades summing +$135.66 sim on the best RTH day of the era).
+
+## 2026-08-13 ~11:40 — THE MANUAL-CROWBAR SESSION (logged for tonight's fix, task #54)
+- Marcos unlocked the day by common sense ("why didn't we just make FGI a map"): manual maps posted
+  for FGI (11:11 — fire 33s later, runway question surfaced; reader's reread lane then self-posted a
+  proper summit map 11:13 = BOOTSTRAP PROOF), XHG (back-side protective map), then batch NIVF/WAFU/
+  CMND/PTN/PLRZ (11:35, observed anchors only, thin ones labeled). 58 mapped; zero fired-actives blind.
+- ROOT CAUSE precise: blue-sky output exists ONLY in the reread lane; reread lane reachable ONLY with
+  an existing map -> first-read deadlock. PSQH = third victim (self-resolved). XHG = the counter-face
+  (cage saved 5 fires into a -37% collapse) -> fix = information not removal; gates decide.
+- Tonight (task #54): blue-sky on FIRST reads + Kev names read unconditionally + AUTO-READ trigger
+  (fire+no map -> immediate read request) + mapless-active red chip (Curator). Day-one walkthroughs
+  mandatory in the convening.
+- Marcos: "why dont you remember that we have a manual option?" — the channel was never in my
+  operational memory because we'd never used it intraday; law now written + indexed
+  (feedback_manual_override_first) so it loads EVERY session. The deeper fix is Build 3: the machine
+  asks for its own reads, so remembering stops being load-bearing.

@@ -2431,7 +2431,9 @@ def premarket_dashboard():
     cal_html = ""
     if _bydayp:
         import calendar as _calmod
-        months = sorted({d[:7] for d in _bydayp if len(d) >= 7 and d[0] == "2"}, reverse=True)[:3]
+        import re as _re_cal
+        months = sorted({d[:7] for d in _bydayp
+                         if _re_cal.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", d[:7])}, reverse=True)[:3]
         grids = []
         for ym in months:
             yr, mo = int(ym[:4]), int(ym[5:7])

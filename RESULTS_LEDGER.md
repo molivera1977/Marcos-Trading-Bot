@@ -1560,3 +1560,14 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - Canary this week: 07:00 attempt-exhaustion ("gave up" prints) — 3 early rejects now kill a name
   for the whole day where they previously couldn't start until 08:50.
 - Rig ALL GREEN exit 0, flat book verified 23:31, dashboard redeployed.
+
+## 2026-08-12 ~23:55 — CONVENE-OR-DON'T-SHIP INTERLOCK (Marcos: "I am concerned by the not auditing")
+- The failure was mine twice tonight and both convenings found live bugs (calendar 500 path;
+  the vision-clobber that would have flipped the A/B back to Kev on day one). Discipline that can
+  be skipped under time pressure is not a control — so it's now MECHANICAL: rig section Q, under
+  SHIP_CHECK=1, goes RED unless data/audits/LATEST.md records the exact HEAD sha being shipped
+  with a clean worktree; the convening writes that artifact as its final act. Any post-audit edit
+  breaks the sha and blocks the ship. Bookkeeping-only commits (data/audits/, ledger) exempt.
+- Proven both directions: tampered tree -> RED exit 1; restored -> ALL GREEN exit 0. New ship law:
+  every deploy is preceded by SHIP_CHECK=1 rig, no exceptions, and the rig now enforces the law
+  the way the flat-book law is enforced: by check, not by memory.

@@ -47,3 +47,15 @@ elif body, F1 untouched, downstream sees the original stop, no live widened refe
 honest, ALL GREEN. Delta reviewed: Execution Surgeon, Systems Quant, Statistician, Strength
 Ombudsman, Pit Crew Chief — all PASS. Full room carried from the 17th roll call above.
 VERDICT: SHIP.
+
+## 18th-convening supplement — FREEZE HARDENING (8/13 evening), covers: 84c0d40b93a7
+19th convening (agent af8857d8b255ddf55): all 6 items PASS (cross-midnight isoformat verified by
+execution; double-clear benign; bot resume latency ~20s worst case; input-space sane incl.
+nan/inf probes; XSS clean both paths; widened rig pin intent verified — no other route in window).
+Ledger-note: DST fall-back night ±1h clear skew, bounded, accepted. Delta officers: Pit Crew,
+Curator (satisfied — display ships WITH mechanism), Feed Engineer, Systems Quant, Ombudsman
+(expiry strictly reduces refusal time), Integrator — all clean. Full room carried from tonight's
+debrief. VERDICT: SHIP.
+- Historian — TOUCHED (first ship on post): the freeze incident, its 13 refused entries, and this
+  hardening are chronicled as the 8/13 milestone "the day the kill switch got a clock"; artifact
+  trail verified (ledger + OFFICIAL_BOOK current).

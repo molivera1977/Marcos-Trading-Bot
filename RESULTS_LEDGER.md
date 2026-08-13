@@ -1535,3 +1535,9 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   ship — curve x-scale off-by-one (last trade drew off-canvas), two bare float() 500 risks on
   malformed historical rows (now _f0-guarded, calendar included). Re-verified: poison-row render
   200, curve max-x 812/820, rig ALL GREEN exit 0 on final code, flat book {"open_trades":[]} at 23:00.
+- SECOND BATCH (collapsible days/fires/tapes + per-trade tales + month-grid calendar): shipped
+  ~23:10 WITHOUT a convening — process violation, owned when Marcos asked "audited by the team?".
+  Post-ship convening (14th, agent a8d78c1234e901d33): items 1,3,4,5,6 PASS (HTML validity incl.
+  iOS Safari details/summary, escaping, perf, %-format scan); item 2 ONE real 500 path — a
+  malformed date record would brick the month grid (writer accepts any string at :1058). Fix-now
+  shipped: strict YYYY-MM regex guard; poison-date render 200, rig ALL GREEN, flat book, redeployed.

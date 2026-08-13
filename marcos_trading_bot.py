@@ -3200,7 +3200,13 @@ def _chart_break_gate(ticker, entry_price, entry_type=None):
         # reading the RAWEST map — never got 8/6 freshest nor the contract; missed twin.
         note = str(lv.get("note") or "").lower()
         if lv.get("veto") or "do-not-trade" in note or "do not trade" in note or "pass" == note.strip():
-            return ("skip", "veto_do_not_trade", lv.get("break"), "sheet")   # e.g. VEEE 7/17
+            # 8/12 MARCOS DOCTRINE ("the chart and tape decide. No one has veto power") +
+            # re-grade: this branch fired ZERO times since enforcement began (era-wide row
+            # census, n=0) — removal encodes the law at zero measured cost. Veto/stand-down
+            # language stays RECORDED (row below + kev_shadow) for the Friday A/B and magnet
+            # grading; it gates nothing, anywhere, for anyone.
+            _log_decision(ticker, "veto_noted_not_gating", price=round(float(entry_price), 4),
+                          machine=entry_type)
         brk = lv.get("break")
         try:
             brk = float(brk)

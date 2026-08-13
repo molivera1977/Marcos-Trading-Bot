@@ -1122,5 +1122,17 @@ try:
 except AssertionError as _pfe:
     check("primacy flip EXECUTED", False, str(_pfe))
 
+
+print("P) 8/12 veto-never-gates (Marcos doctrine + n=0 re-grade)")
+try:
+    _v_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    assert '"veto_noted_not_gating"' in _v_src                          # recorded, not gating
+    assert '("skip", "veto_do_not_trade"' not in _v_src                 # the gate branch is GONE
+    _i = _v_src.find('"veto_noted_not_gating"')
+    assert "No one has veto power" in _v_src[_i-700:_i]                 # doctrine cited at site
+    check("veto EXECUTED as data-only: skip branch removed, noted row in its place", True)
+except AssertionError as _ve:
+    check("veto EXECUTED as data-only", False, str(_ve))
+
 print(f"\n{'ALL GREEN' if not FAILS else 'RED: ' + ', '.join(FAILS)}")
 sys.exit(1 if FAILS else 0)

@@ -2427,14 +2427,41 @@ def premarket_dashboard():
     _bydayp = {}
     for t in all_pre:
         _bydayp.setdefault(str(t.get("date") or "?"), []).append(_f0(_cpnl(t)))
-    cal_cells = "".join(
-        "<div class='stat' style='padding:10px 14px'><div class='stat-label'>" + esc(d) + "</div>"
-        "<div class='stat-value " + ("green" if sum(v) >= 0 else "yellow") + "' style='font-size:16px'>"
-        + ("$%+.2f" % sum(v)) + "</div><div class='muted' style='font-size:11px'>" + str(len(v)) + " trades</div></div>"
-        for d, v in sorted(_bydayp.items(), reverse=True)[:14])
-    cal_html = ("<div class='section'><div class='card'><h2>PRE P&L calendar <span>— last 14 sessions</span></h2>"
-                "<div style='display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:14px 18px'>"
-                + (cal_cells or "<span class='muted'>no PRE trades yet</span>") + "</div></div></div>") if _bydayp else ""
+    # month-grid calendar (RTH-style): one weekday grid per month with PRE trades, newest first
+    cal_html = ""
+    if _bydayp:
+        import calendar as _calmod
+        months = sorted({d[:7] for d in _bydayp if len(d) >= 7 and d[0] == "2"}, reverse=True)[:3]
+        grids = []
+        for ym in months:
+            yr, mo = int(ym[:4]), int(ym[5:7])
+            mnet = sum(sum(v) for d, v in _bydayp.items() if d[:7] == ym)
+            cells = ["<div style='font-size:10px;color:var(--muted);text-align:center'>" + w + "</div>"
+                     for w in ("Mon", "Tue", "Wed", "Thu", "Fri")]
+            for week in _calmod.Calendar().monthdayscalendar(yr, mo):
+                for wd in range(5):
+                    day = week[wd]
+                    if not day:
+                        cells.append("<div></div>"); continue
+                    key = "%s-%02d" % (ym, day)
+                    v = _bydayp.get(key)
+                    if v:
+                        net = sum(v)
+                        cells.append("<div style='border:1px solid var(--bg3);border-radius:8px;padding:6px 4px;"
+                                     "text-align:center;background:" + ("color-mix(in srgb, var(--green) 12%, transparent)" if net >= 0
+                                                                        else "color-mix(in srgb, var(--yellow) 12%, transparent)") + "'>"
+                                     "<div class='muted' style='font-size:10px'>" + str(day) + "</div>"
+                                     "<div class='" + ("green" if net >= 0 else "yellow") + "' style='font-size:12px;font-weight:600'>"
+                                     + ("%+.0f" % net) + "</div><div class='muted' style='font-size:9px'>" + str(len(v)) + "t</div></div>")
+                    else:
+                        cells.append("<div style='border:1px dashed var(--bg3);border-radius:8px;padding:6px 4px;"
+                                     "text-align:center'><div class='muted' style='font-size:10px'>" + str(day) + "</div></div>")
+            grids.append("<div><div style='font-weight:600;margin:4px 0 8px'>" + _calmod.month_name[mo] + " " + str(yr)
+                         + " <span class='" + ("green" if mnet >= 0 else "yellow") + "'>$" + ("%+.2f" % mnet) + "</span></div>"
+                         "<div style='display:grid;grid-template-columns:repeat(5,1fr);gap:6px'>" + "".join(cells) + "</div></div>")
+        cal_html = ("<div class='section'><div class='card'><h2>PRE P&L calendar <span>— per-day net, month grid (weekdays)</span></h2>"
+                    "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;padding:14px 18px'>"
+                    + "".join(grids) + "</div></div></div>")
 
     # gate-rejects + shadow-lanes strips, PRE-scoped (same statuses as the RTH strips + premkt_capped)
     _GATES = {"minstop_reject": "📏 min-stop", "runway_reject": "🛣️ runway", "breakside_reject": "🧱 break-side",
@@ -2490,19 +2517,79 @@ def premarket_dashboard():
                 "<td class='num'>" + r_txt + "</td>"
                 "<td class='num muted'>" + road_txt + "</td>"
                 "<td class='muted'>" + esc(t.get("exit_reason") or "") + "</td></tr>")
+    def _pre_story(t):
+        """8/12 (Marcos: 'i dont see tales of the tape') — the RTH storyClosedHTML tale, ported
+        server-side so the JS-free PRE page tells the same story per trade."""
+        try:
+            e = _f0(t.get("entry")); ex = _f0(t.get("exit")); sh = int(_f0(t.get("shares")))
+            p = _f0(_cpnl(t)); pct = _f0(t.get("pnl_pct"))
+            pr = _f0(t.get("planned_risk")) or (sh * (e - _f0(t.get("stop_loss"))) if t.get("stop_loss") else 0)
+            rm = (p / pr) if pr > 0.5 else None
+            hi = _f0(t.get("highest")); infor = _f0(t.get("position_size")) or e * sh
+            if p > 0.005:
+                v = ("✅ WINNER: +$%.2f (%+.1f%%)" % (p, pct)) + ((" — <b>%+.1fR</b> on the ≈$%.0f risked" % (rm, pr)) if rm is not None else "")
+                vc = "green"
+            elif p < -0.005:
+                v = ("❌ LOSER: −$%.2f (%.1f%%)" % (abs(p), pct)) + ((" — <b>%.1fR</b>. " % rm
+                     + ("Right around planned risk — what a loss is supposed to look like." if rm >= -1.2
+                        else "Bigger than planned risk — worth a closer look.")) if rm is not None else "")
+                vc = "yellow"
+            else:
+                v, vc = "➖ SCRATCH — in and out around breakeven.", "muted"
+            li = ["In for <b>$%.0f</b> — %d shares at <b>$%.2f</b>" % (infor, sh, e)
+                  + (", signal <b>" + esc(t.get("entry_type")) + "</b>" if t.get("entry_type") else "")
+                  + ((", safety net $%.2f (≈$%.0f at risk)" % (_f0(t.get("stop_loss")), pr)) if t.get("stop_loss") else "") + "."]
+            road = t.get("marked_runway_rr")
+            if road == "above_all_levels":
+                li.append("🛣️ <b>Road at entry:</b> above ALL marked levels — blue sky.")
+            elif isinstance(road, (int, float)):
+                li.append("🛣️ <b>Road at entry:</b> %.1fR of runway to the next %s%s — known BEFORE the trade."
+                          % (road, esc(str(t.get("marked_runway_cls") or "level")).lower(),
+                             (" ($%.2f)" % _f0(t.get("marked_runway_tgt"))) if t.get("marked_runway_tgt") else ""))
+            fills = [f for f in (t.get("partial_fills") or []) if isinstance(f, (list, tuple)) and len(f) >= 2]
+            sold = 0
+            for q, fp in fills:
+                q = int(_f0(q)); fp = _f0(fp); sold += q
+                li.append("Sold %d at <b>$%.2f</b> → banked <b>%+.2f</b>." % (q, fp, (fp - e) * q))
+            if fills:
+                li.append("The last %d shares went out at <b>$%.2f</b>." % (max(0, sh - sold), ex))
+            else:
+                li.append("Sold everything at <b>$%.2f</b> in one piece." % ex)
+            li.append("<b>Why it ended:</b> " + esc(t.get("exit_reason") or "—"))
+            if hi > e > 0:
+                pk = (hi - e) / e * 100
+                if ex > e and hi > e:
+                    cap = max(0.0, min(100.0, (ex - e) / (hi - e) * 100))
+                    li.append("Peaked at <b>$%.2f</b> (+%.1f%%) — captured %.0f%% of the run." % (hi, pk, cap))
+                else:
+                    li.append("It DID go our way first — peaked $%.2f (+%.1f%%) before turning." % (hi, pk))
+            if t.get("est_slippage"):
+                li.append("Live-money toll (spread): ≈ $%.2f." % _f0(t.get("est_slippage")))
+            return ("<tr><td colspan=13 style='padding:0'><details><summary style='cursor:pointer;padding:6px 18px;"
+                    "color:var(--muted);font-size:12px'>📖 tale of the tape</summary>"
+                    "<div style='padding:4px 18px 12px'><div class='" + vc + "' style='font-weight:700;margin:4px 0'>" + v + "</div>"
+                    "<ul style='margin:4px 0 0 18px;line-height:1.6'>" + "".join("<li>" + x + "</li>" for x in li)
+                    + "</ul></div></details></td></tr>")
+        except Exception:
+            return ""
     hist_parts = []
-    for d, v in sorted(_bydayp.items(), reverse=True)[:10]:
+    for di, (d, v) in enumerate(sorted(_bydayp.items(), reverse=True)[:10]):
         daynet = sum(v)
-        hist_parts.append("<tr><td colspan=13 style='background:var(--bg4b);font-weight:600'>" + esc(d)
-                          + " <span class='muted'>· " + str(len(v)) + " trades ·</span> <span class='"
-                          + ("green" if daynet >= 0 else "yellow") + "'>$" + ("%+.2f" % daynet) + "</span></td></tr>")
-        hist_parts.extend(_pre_hist_row(t) for t in reversed([x for x in all_pre if str(x.get("date")) == d]))
+        day_rows = "".join(_pre_hist_row(t) + _pre_story(t)
+                           for t in reversed([x for x in all_pre if str(x.get("date")) == d]))
+        hist_parts.append(
+            "<details" + (" open" if di == 0 else "") + "><summary style='cursor:pointer;padding:10px 18px;"
+            "background:var(--bg4b);font-weight:600;border-bottom:1px solid var(--bg3)'>" + esc(d)
+            + " <span class='muted'>· " + str(len(v)) + " trades ·</span> <span class='"
+            + ("green" if daynet >= 0 else "yellow") + "'>$" + ("%+.2f" % daynet) + "</span>"
+            + " <span class='muted'>· " + str(round(100 * sum(1 for x in v if x > 0) / len(v))) + "% WR</span></summary>"
+            "<div class='tw'><table><tr><th>in ⏱</th><th>ticker</th><th>lane</th><th>entry</th><th>exit</th>"
+            "<th>out ⏱</th><th>sh</th><th>size</th><th>P&L $</th><th>P&L %</th><th>R</th><th>road</th><th>reason</th></tr>"
+            + day_rows + "</table></div></details>")
     hist_html = ("<div class='section'><div class='card'>"
-                 "<h2>PRE trade history <span>— all sessions, day-grouped (RTH-table columns)</span></h2>"
-                 "<div class='tw'><table><tr><th>in ⏱</th><th>ticker</th><th>lane</th><th>entry</th><th>exit</th>"
-                 "<th>out ⏱</th><th>sh</th><th>size</th><th>P&L $</th><th>P&L %</th><th>R</th><th>road</th><th>reason</th></tr>"
-                 + ("".join(hist_parts) or "<tr><td colspan=13 class='muted'>no PRE trades yet</td></tr>")
-                 + "</table></div></div></div>") if all_pre else ""
+                 "<h2>PRE trade history <span>— all sessions · click a day to expand · 📖 under each trade</span></h2>"
+                 + ("".join(hist_parts) or "<div class='muted' style='padding:12px 18px'>no PRE trades yet</div>")
+                 + "</div></div>") if all_pre else ""
     # -------------------------------------------------------------------------------
     rows_html = []
     for t in names:
@@ -2589,7 +2676,7 @@ def premarket_dashboard():
             "<div class='stat'><div class='stat-label'>Names watched</div><div class='stat-value'>" + str(len(names)) + "</div></div>"
             "<div class='stat'><div class='stat-label'>Kev sheet</div><div class='stat-value yellow'>" + str(kev_n) + "</div></div>"
             "</div>"
-            + stats2
+            + stats2 + curve_html + cal_html
             + ("<div class='section'>" + "".join(_pre_open_card(_o, lv) for _o in open_pre) + "</div>"
                if open_pre else "")
             + "<div class='section'><div class='card'>"
@@ -2616,17 +2703,17 @@ def premarket_dashboard():
                 for o in open_pre)
                or "<tr><td colspan=8 class='muted'>none yet — PRE conversions land here as they fire (hidden + reclaim — Marcos 7/28: reclaim stays LIVE through Friday's grade)</td></tr>")
             + "</table></div></div></div>"
-            "<div class='section'><div class='card'>"
-            "<h2>Fires <span>— ✅ converted = real PRE trade · 👥 shadow rows show WHY they didn't convert</span></h2>"
-            "<div class='tw'><table><tr><th>time</th><th>ticker</th><th>lane</th><th>price</th><th>stop</th><th>row</th></tr>"
+            "<div class='section'><div class='card'><details open>"
+            "<summary style='cursor:pointer'><h2 style='display:inline-block;border-bottom:none'>Fires <span>— ✅ converted = real PRE trade · 👥 shadow rows show WHY they didn't convert</span></h2></summary>"
+            "<div class='tw' style='border-top:1px solid var(--bg3)'><table><tr><th>time</th><th>ticker</th><th>lane</th><th>price</th><th>stop</th><th>row</th></tr>"
             + ("".join(fires_html) or "<tr><td colspan=6 class='muted'>none yet — machines watching</td></tr>")
-            + "</table></div></div></div>"
-            "<div class='section'><div class='card'>"
-            "<h2>The tapes <span>— ★ = Kev sheet · click a ticker for its full Tale</span></h2>"
-            "<div class='tw'><table><tr><th>ticker</th><th>last px</th><th>latest read</th><th>at</th><th>Kev level → tgts</th><th>fires</th></tr>"
+            + "</table></div></details></div></div>"
+            "<div class='section'><div class='card'><details open>"
+            "<summary style='cursor:pointer'><h2 style='display:inline-block;border-bottom:none'>The tapes <span>— ★ = Kev sheet · click a ticker for its full Tale</span></h2></summary>"
+            "<div class='tw' style='border-top:1px solid var(--bg3)'><table><tr><th>ticker</th><th>last px</th><th>latest read</th><th>at</th><th>Kev level → tgts</th><th>fires</th></tr>"
             + ("".join(rows_html) or "<tr><td colspan=6 class='muted'>roster empty — bot not awake yet</td></tr>")
-            + "</table></div></div></div>"
-            + rej_html + shad_html + hist_html + curve_html + cal_html
+            + "</table></div></details></div></div>"
+            + rej_html + shad_html + hist_html
             + "<div class='footer'>PRE regime: real hidden/reclaim entries 7:00–9:25 (cap 10, crowns exempt · $250k dvol) · flatten 9:25 · dead window 9:25–9:30 · legacy lanes shadow until 9:30 · reader first light 07:00</div>"
             "</body></html>")
     # plain string return (NOT render_template_string — this HTML is dynamically built from

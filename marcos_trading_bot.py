@@ -283,7 +283,10 @@ def _get_webull_fundamentals(ticker: str) -> dict:
 
 
 # Trading rules
-MAX_TRADE_DOLLARS     = 1000.00 # Notional cap per trade (~33% of the $3k sim account; tight Kev setups bump it — 7/11)
+# 8/13 (stale-cap review flagged TRIAL-LETHAL; full-scale $4,500-5,000 makes it a silent ceiling):
+# env-tunable notional cap per trade. Sim keeps 1000; Monday's $1,000 trial sets ~150-200; full
+# scale sets ~1000-1500 by Marcos's call. NEVER hardcode account-scale numbers again.
+MAX_TRADE_DOLLARS     = float(os.environ.get("MAX_TRADE_DOLLARS", "1000"))
 MAX_POSITION_SIZE     = 0.70   # Max 70% of account on single trade (HIGH confidence)
 POSITION_SIZE_MEDIUM  = 0.50   # 50% for MEDIUM confidence
 POSITION_SIZE_LOW     = 0.30   # 30% for LOW confidence

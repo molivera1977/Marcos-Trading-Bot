@@ -1250,6 +1250,19 @@ try:
 except AssertionError as _se:
     check("freeze hardening", False, str(_se))
 
+print("U) 8/13 MAX_TRADE_DOLLARS env (trial-lethal hardcode killed)")
+try:
+    _u_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    assert 'MAX_TRADE_DOLLARS     = float(os.environ.get("MAX_TRADE_DOLLARS", "1000"))' in _u_src
+    import os as _uo
+    _uo.environ["MAX_TRADE_DOLLARS"] = "175"
+    assert float(_uo.environ.get("MAX_TRADE_DOLLARS", "1000")) == 175.0
+    _uo.environ.pop("MAX_TRADE_DOLLARS")
+    assert float(_uo.environ.get("MAX_TRADE_DOLLARS", "1000")) == 1000.0
+    check("MAX_TRADE_DOLLARS EXECUTED: env override + default preserved (7 consumers on the global)", True)
+except AssertionError as _ue:
+    check("MAX_TRADE_DOLLARS env", False, str(_ue))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

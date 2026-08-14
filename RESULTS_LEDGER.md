@@ -1692,3 +1692,14 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   folklore corrections incl.: TWO ledger files (killtests 7/23-8/1 + root 8/2+) — citations must
   name which; "28-min freeze" duration uncited (13 refused fires IS cited); first-crown ticker
   unnamed; PRE-lane 7/25 date uncitable as stated. His [UNCITED] tags stand until verified.
+
+## 2026-08-13 ~21:55 — FICTIONAL-FILL FIX SHIPPED (Marcos: "Get to the bottom of it. Now.")
+- BOTTOM REACHED IN ONE PASS: mechanism code-confirmed (tape_hi over the whole fetch window incl.
+  ~45min pre-entry; the "cumulative since entry" comment was FALSE); damage censused to the dollar
+  (226 fills audited: 41 FICTIONAL, +$284.78 fake profit; HUIZ 8/7 $105 -> record day really
+  ~+$425; BQ 8/12 $31; census = the correction ledger, store append-only per ruling); fixed
+  (_tape_birth gate, 15s grace, unparseable-time excluded fail-closed, TAPE_SINCE_ENTRY=0 kill);
+  22nd convening 7/7 SHIP; deployed 21:52 SUCCESS, clean boot.
+- Book impact honest: sim profits were inflated ~$285 era-wide (~2% of gross wins); sim-vs-live
+  delta for the go/no-go shrinks accordingly. Historian owes OFFICIAL_BOOK the inflation footnote.
+- Week-one watch: exit_px_unverified/below_tape counts in first-minutes windows (stricter guard).

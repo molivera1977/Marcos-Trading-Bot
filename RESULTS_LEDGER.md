@@ -1723,3 +1723,19 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   ranking is admissible. MONDAY POSTURE: without v4 the trial runs an unmeasured hidden lane —
   the room cites the 8/8 doctrine (smaller + later, never launch-anyway). MARCOS DECIDES.
 - One env verification owed before Friday: INTRABAR_STOP=1 on the live service (memory-cited only).
+
+## 2026-08-13 ~23:00 — THE VERIFIED BOOK (Marcos: "Verify the entire book RIGHT NOW... every piece of tape")
+- 412 era trades, 245 ticker-days, every fill/entry/exit tape-checked; FULL ROOM verified (30/30,
+  agent aca22242): headlines reproduce TO THE CENT from the per-trade JSON; store cross-foots at
+  era-total $95.78 exactly; 5/5 adversarial spot-checks hold; 2 corrections applied (LEDS 7/17
+  fiction->unverifiable; count typo).
+- THE REAL BOOK (tape-receipted): era RTH CHARITABLE ~+$238 (raw claimed +$497; fiction haircut
+  -$305 -> -$259 post-reclass, concentrated hidden -$194 + ignition -$57); STRICT floor -$189.68.
+  PRE -$683.24 = FULLY REAL (zero fiction — the PRE book never lied). Unverifiable: 66 trades
+  (+$282 raw), dominated by pre-tape 7/13-7/14. Era total everything-as-recorded = $95.78.
+- WHAT SURVIVES VERIFICATION: the recent run is REAL — five straight green RTH days 8/7-8/13 on
+  the charitable book; 8/4 carries ZERO fiction (+$385.78 fully tape-confirmed); 8/7 keeps the
+  day record at +$412.62 verified.
+- STANDING: Friday argues from charitable-with-strict-floor, never raw. OFFICIAL_BOOK headlines
+  charitable (Historian adoption queued). Nightly verified-book job = the standing ritual
+  (Quartermaster+Statistician). Broker-truth reconciliation settles fills definitively once live.

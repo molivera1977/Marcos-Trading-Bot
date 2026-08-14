@@ -1,0 +1,9100 @@
+[
+ {
+  "trade_id": "3623b9a626634642abaa278f3fb20a48",
+  "ticker": "GMM",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 3.19,
+  "exit": 3.15,
+  "pnl_raw": 14.9,
+  "shares": 99,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "15afb86a67634a77abf2abc3b0497db6",
+  "ticker": "SKYQ",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 3.96,
+  "exit": 3.86,
+  "pnl_raw": 15.55,
+  "shares": 103,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "630a4519440948bb8866d597ec33d180",
+  "ticker": "TDTH",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 2.32,
+  "exit": 2.23,
+  "pnl_raw": -5.31,
+  "shares": 59,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "79ae517e14a34f5296dfbe5e0b3735f5",
+  "ticker": "INBS",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 2.3,
+  "exit": 2.16,
+  "pnl_raw": -12.17,
+  "shares": 87,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "2e0c9497d2a84323860a27261df302b9",
+  "ticker": "EHGO",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 2.15,
+  "exit": 2.15,
+  "pnl_raw": 16.12,
+  "shares": 258,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "9ddedc250b384c058a13793f67f83550",
+  "ticker": "SOBR",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 0.56,
+  "exit": 0.72,
+  "pnl_raw": 93.56,
+  "shares": 563,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "74f96becb37b4e289c64ebb2681dea7d",
+  "ticker": "EHGO",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 2.2,
+  "exit": 2.28,
+  "pnl_raw": 15.75,
+  "shares": 451,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "6c13ffad191c410a9f81e02d0bf976f7",
+  "ticker": "EHGO",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 2.26,
+  "exit": 2.29,
+  "pnl_raw": 15.15,
+  "shares": 307,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "d59d5ece890949c2ab37dd3eb0b1e341",
+  "ticker": "CRMT",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 3.6,
+  "exit": 3.37,
+  "pnl_raw": -8.17,
+  "shares": 36,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "d3f5584708b344659391c6c7be6854be",
+  "ticker": "INUV",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 1.28,
+  "exit": 1.26,
+  "pnl_raw": 0.46,
+  "shares": 92,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "df20bee54d0e4fd3ae4855ccc6764b37",
+  "ticker": "FTRK",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 0.52,
+  "exit": 0.54,
+  "pnl_raw": 18.96,
+  "shares": 1006,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "c000f1bd2c074d5db9bb7b3d8f1f54c3",
+  "ticker": "MIMI",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 3.1,
+  "exit": 3.18,
+  "pnl_raw": 14.49,
+  "shares": 322,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "21cdf652e9c04799addd81f86654b135",
+  "ticker": "CPHI",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 0.62,
+  "exit": 0.63,
+  "pnl_raw": 4.26,
+  "shares": 136,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "cfb985f47d52445d89a9211263b30620",
+  "ticker": "TRNR",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 2.72,
+  "exit": 2.85,
+  "pnl_raw": 4.32,
+  "shares": 72,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "f95b4b61c3da42a0a41b6dd7bc481bf2",
+  "ticker": "FTRK",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 0.55,
+  "exit": 0.53,
+  "pnl_raw": -32.41,
+  "shares": 1276,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "7be610d0f7f1433eb13f56c5568898dc",
+  "ticker": "MTVA",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 2.19,
+  "exit": 2.21,
+  "pnl_raw": 30.56,
+  "shares": 195,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "873e714f82e74f75a322a25174f368e3",
+  "ticker": "MIMI",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 3.15,
+  "exit": 2.95,
+  "pnl_raw": -45.7,
+  "shares": 232,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "96eefaa301b8438d849b13937591e75e",
+  "ticker": "CPHI",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 0.68,
+  "exit": 0.64,
+  "pnl_raw": -5.39,
+  "shares": 147,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "0fff0c1782bc4883ba6548828568e849",
+  "ticker": "FTRK",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 0.56,
+  "exit": 0.58,
+  "pnl_raw": 46.2,
+  "shares": 763,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "45e3c2fdcb154ba6b50008459b672687",
+  "ticker": "TRNR",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 2.85,
+  "exit": 2.87,
+  "pnl_raw": 16.22,
+  "shares": 156,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "9f66c0465954464db1e73ee962b940ac",
+  "ticker": "VMAR",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 1.6,
+  "exit": 1.66,
+  "pnl_raw": 15.58,
+  "shares": 153,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "c1de9a8c80874ba7a113de6c09d84583",
+  "ticker": "NVVE",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 17.52,
+  "exit": 16.16,
+  "pnl_raw": 31.25,
+  "shares": 23,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "cd9242a7343e443a932f36322d2e31e6",
+  "ticker": "QTTB",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 20.08,
+  "exit": 20.09,
+  "pnl_raw": 7.92,
+  "shares": 49,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "6d8acc8fd36e47ccb25cc33f0424b0f1",
+  "ticker": "CPHI",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 0.74,
+  "exit": 0.65,
+  "pnl_raw": -28.39,
+  "shares": 296,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "93ec529428a34b52829fa530151a84aa",
+  "ticker": "UCAR",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 1.27,
+  "exit": 1.33,
+  "pnl_raw": 6.16,
+  "shares": 70,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "f0b86eda0c664c5d88b3d9d9affab3fd",
+  "ticker": "PED",
+  "date": "2026-07-13",
+  "session": "RTH",
+  "lane": "unknown",
+  "entry": 13.0,
+  "exit": 13.19,
+  "pnl_raw": 4.28,
+  "shares": 22,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "82386fcdd79a463bbb5b017ae257be92",
+  "ticker": "SUNE",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 3.85,
+  "exit": 3.67,
+  "pnl_raw": -38.85,
+  "shares": 210,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "aeaae774dc314614ac6b5fdb20944770",
+  "ticker": "NVVE",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 17.46,
+  "exit": 14.88,
+  "pnl_raw": -33.47,
+  "shares": 13,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "6722375c776a485aa681fd8453999196",
+  "ticker": "TRNR",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 3.27,
+  "exit": 3.47,
+  "pnl_raw": 26.07,
+  "shares": 132,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "4d8caa779c3f4b7faf0f9b8ea6dbd919",
+  "ticker": "MIMI",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.64,
+  "exit": 2.58,
+  "pnl_raw": -2.46,
+  "shares": 41,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "2a9d67f476474a9ab053f03fd53f35e7",
+  "ticker": "LEDS",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.85,
+  "exit": 2.0,
+  "pnl_raw": 21.85,
+  "shares": 141,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "d01274d89e3347d79939617cc4d55e33",
+  "ticker": "BJDX",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.49,
+  "exit": 1.34,
+  "pnl_raw": -36.54,
+  "shares": 252,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "e100e965faa646f384d4575c8027dd83",
+  "ticker": "SOBR",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.25,
+  "exit": 1.36,
+  "pnl_raw": 30.24,
+  "shares": 224,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "e7b41a6cb4924f119ae0d84f083a2d9b",
+  "ticker": "SDOT",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 19.45,
+  "exit": 19.3,
+  "pnl_raw": 12.81,
+  "shares": 17,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "9890527a985e494d9e05891f3f7c8dde",
+  "ticker": "SOBR",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.38,
+  "exit": 1.14,
+  "pnl_raw": -41.11,
+  "shares": 172,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "ca32abddd1bf4e619d3140bce5af5802",
+  "ticker": "RDGT",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.62,
+  "exit": 1.63,
+  "pnl_raw": 2.37,
+  "shares": 60,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "62765eaaddc641b9b32da73d2f38eeef",
+  "ticker": "YYGH",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.33,
+  "exit": 1.43,
+  "pnl_raw": 39.12,
+  "shares": 287,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "04486544f32f40e2a15ec1bf6350bb94",
+  "ticker": "MGIH",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.81,
+  "exit": 1.57,
+  "pnl_raw": -39.01,
+  "shares": 166,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "0df035ddec3c4523bcc7b78230f69ffd",
+  "ticker": "IVF",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.25,
+  "exit": 1.27,
+  "pnl_raw": 2.96,
+  "shares": 85,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "f520858870994b73bc63b937d9ac3039",
+  "ticker": "HODO",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.58,
+  "exit": 1.65,
+  "pnl_raw": 21.72,
+  "shares": 182,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "4a33f360b3444abc918554e853cb9e91",
+  "ticker": "CNEY",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 0.59,
+  "exit": 0.64,
+  "pnl_raw": 27.02,
+  "shares": 457,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "82783bd008814cb0b9fb612aa074c075",
+  "ticker": "UONEK",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.8,
+  "exit": 3.92,
+  "pnl_raw": 14.12,
+  "shares": 69,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "ac118020ba2e4fd28234ef19baf7a0e8",
+  "ticker": "ELWT",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 7.25,
+  "exit": 7.05,
+  "pnl_raw": 6.56,
+  "shares": 35,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "696feeba125b4a0eb58635861a5b0123",
+  "ticker": "PDC",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 3.87,
+  "exit": 4.01,
+  "pnl_raw": 11.76,
+  "shares": 84,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "c757f6d3a0d24d20b732dd4b7bb7f32b",
+  "ticker": "PCSC",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 12.0,
+  "exit": 11.71,
+  "pnl_raw": -21.95,
+  "shares": 77,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "dc05861b30cf447db5e014de47e98b29",
+  "ticker": "ERNA",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 6.15,
+  "exit": 5.97,
+  "pnl_raw": -6.65,
+  "shares": 38,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "a60175beb9704cc0bb4c66bdfcb9d10a",
+  "ticker": "VS",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 1.57,
+  "exit": 1.59,
+  "pnl_raw": 7.01,
+  "shares": 302,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "8712640f87984bf1b4851cf184704dc9",
+  "ticker": "BNZI",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 2.74,
+  "exit": 2.76,
+  "pnl_raw": 0.62,
+  "shares": 31,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "a16d46f174764c3eb7b4eee46b7d6884",
+  "ticker": "LEDS",
+  "date": "2026-07-14",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 2.31,
+  "exit": 2.29,
+  "pnl_raw": -5.31,
+  "shares": 267,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "375984dbf8834331889d11768c4ac498",
+  "ticker": "XCUR",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.95,
+  "exit": 1.97,
+  "pnl_raw": 3.86,
+  "shares": 193,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": 3.86,
+  "pnl_strict": 3.86
+ },
+ {
+  "trade_id": "2c6a07897c7c4cca8c7b2d00250e3b7d",
+  "ticker": "XCUR",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.9,
+  "exit": 1.89,
+  "pnl_raw": -3.35,
+  "shares": 279,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -3.35,
+  "pnl_strict": -3.35
+ },
+ {
+  "trade_id": "c28700e866ad40d490dcb285a5c17828",
+  "ticker": "LEDS",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.34,
+  "exit": 2.28,
+  "pnl_raw": -6.72,
+  "shares": 112,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -6.72,
+  "pnl_strict": -6.72
+ },
+ {
+  "trade_id": "41d6b5ff9ddf4e649b545d5c479542a9",
+  "ticker": "VTAK",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 0.7,
+  "exit": 0.72,
+  "pnl_raw": 21.83,
+  "shares": 810,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 405,
+    "px": 0.7439,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 21.83,
+  "pnl_strict": 21.83
+ },
+ {
+  "trade_id": "f7efe2325160426f886f2a490e6631b0",
+  "ticker": "UBXG",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 4.98,
+  "exit": 4.64,
+  "pnl_raw": 7.43,
+  "shares": 43,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 21,
+    "px": 5.69,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 7.43,
+  "pnl_strict": 7.43
+ },
+ {
+  "trade_id": "018c9fa0107c4e348a41dcd4fc027e0d",
+  "ticker": "VMAR",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.44,
+  "exit": 1.35,
+  "pnl_raw": -30.15,
+  "shares": 335,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.15,
+  "pnl_strict": -30.15
+ },
+ {
+  "trade_id": "7f3c9b93f94949e394cffc03869d8634",
+  "ticker": "CLRO",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 7.43,
+  "exit": 8.0,
+  "pnl_raw": 26.0,
+  "shares": 50,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 25,
+    "px": 7.9,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 26.0,
+  "pnl_strict": 26.0
+ },
+ {
+  "trade_id": "f730b43fde3d48848dfddf9f49116607",
+  "ticker": "TRT",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 12.58,
+  "exit": 11.65,
+  "pnl_raw": -37.2,
+  "shares": 40,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -37.2,
+  "pnl_strict": -37.2
+ },
+ {
+  "trade_id": "ee4c4e086bdd48bd92086fbe60537761",
+  "ticker": "ACXP",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.88,
+  "exit": 1.76,
+  "pnl_raw": -22.68,
+  "shares": 189,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "1599c34b2f644084a7840035cfd8e12b",
+  "ticker": "LEDS",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.25,
+  "exit": 2.29,
+  "pnl_raw": 27.21,
+  "shares": 419,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 209,
+    "px": 2.33,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 27.21,
+  "pnl_strict": 27.21
+ },
+ {
+  "trade_id": "3ae63c9760ea408784f7b0178fe622ea",
+  "ticker": "MIMI",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.67,
+  "exit": 2.68,
+  "pnl_raw": 12.61,
+  "shares": 181,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 90,
+    "px": 2.8,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 12.61,
+  "pnl_strict": 12.61
+ },
+ {
+  "trade_id": "764e30a4704a4af18674fb0c80e2030c",
+  "ticker": "VTAK",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 0.74,
+  "exit": 0.67,
+  "pnl_raw": -33.92,
+  "shares": 488,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -33.92,
+  "pnl_strict": -33.92
+ },
+ {
+  "trade_id": "8b60642394204b6c8e1354f64d7cfd9d",
+  "ticker": "TGHL",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 0.85,
+  "exit": 0.89,
+  "pnl_raw": 23.27,
+  "shares": 413,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 206,
+    "px": 0.93,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 23.27,
+  "pnl_strict": 23.27
+ },
+ {
+  "trade_id": "13346e8e89714a4aa64f1a93c590fc7b",
+  "ticker": "LEDS",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.36,
+  "exit": 2.24,
+  "pnl_raw": -37.3,
+  "shares": 305,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -37.3,
+  "pnl_strict": -37.3
+ },
+ {
+  "trade_id": "573bb20627c4483487574278e715a171",
+  "ticker": "ZSTK",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.01,
+  "exit": 2.0,
+  "pnl_raw": 2.08,
+  "shares": 36,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "43f718ace7da42fba5252e87ca6efa38",
+  "ticker": "JLHL",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 8.9,
+  "exit": 10.05,
+  "pnl_raw": 50.18,
+  "shares": 44,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 22,
+    "px": 9.59,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 11,
+    "px": 10.25,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 6,
+    "px": 11.3,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 50.18,
+  "pnl_strict": 50.18
+ },
+ {
+  "trade_id": "d6a665ee915a4a5991f72d30d7271b8a",
+  "ticker": "LBGJ",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 1.61,
+  "exit": 1.5,
+  "pnl_raw": -40.99,
+  "shares": 373,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -40.99,
+  "pnl_strict": -40.99
+ },
+ {
+  "trade_id": "beea2881e9bb402782a464bdbe7b27c9",
+  "ticker": "CLRO",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 8.53,
+  "exit": 7.71,
+  "pnl_raw": -0.31,
+  "shares": 35,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 17,
+    "px": 9.38,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -0.31,
+  "pnl_strict": -0.31
+ },
+ {
+  "trade_id": "b171f7b9bcbc456589e3d167476f4469",
+  "ticker": "INDP",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 2.92,
+  "exit": 2.95,
+  "pnl_raw": 4.74,
+  "shares": 158,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "936a48c2c97c4c6e93c73fc7dd40851e",
+  "ticker": "GCTK",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 0.59,
+  "exit": 0.57,
+  "pnl_raw": -24.4,
+  "shares": 914,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -24.4,
+  "pnl_strict": -24.4
+ },
+ {
+  "trade_id": "d017e36763f84ff398b00093cae72bad",
+  "ticker": "JLHL",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 11.01,
+  "exit": 10.12,
+  "pnl_raw": -35.6,
+  "shares": 40,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -35.6,
+  "pnl_strict": -35.6
+ },
+ {
+  "trade_id": "18cbe15b073949ce877e604cca6c6f16",
+  "ticker": "SMX",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 20.85,
+  "exit": 20.85,
+  "pnl_raw": 0.0,
+  "shares": 34,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": 0.0,
+  "pnl_strict": 0.0
+ },
+ {
+  "trade_id": "de70e4db6ba442c9a1cf165b24717a28",
+  "ticker": "BIVI",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.74,
+  "exit": 1.73,
+  "pnl_raw": 7.68,
+  "shares": 306,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "219d0cffefbd4f90ba6a6fe48aeb9fd8",
+  "ticker": "KUST",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.46,
+  "exit": 1.28,
+  "pnl_raw": -47.97,
+  "shares": 265,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -47.97,
+  "pnl_strict": -47.97
+ },
+ {
+  "trade_id": "e1e5e646d9de4f2cbd48e8ac29ddda8f",
+  "ticker": "TJGC",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 4.88,
+  "exit": 4.92,
+  "pnl_raw": 4.92,
+  "shares": 123,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "2a4f130462d742cf8a8ce4b3d8a37c6a",
+  "ticker": "SOBR",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 2.16,
+  "exit": 2.11,
+  "pnl_raw": -6.63,
+  "shares": 130,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -6.63,
+  "pnl_strict": -6.63
+ },
+ {
+  "trade_id": "ff95170df913487fa7e3ffe1ef7ea9e6",
+  "ticker": "WAI",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 2.5,
+  "exit": 2.53,
+  "pnl_raw": 3.04,
+  "shares": 98,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": 3.04,
+  "pnl_strict": 3.04
+ },
+ {
+  "trade_id": "4d80bb4573314150898e09d842dc691b",
+  "ticker": "UBXG",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 5.44,
+  "exit": 5.62,
+  "pnl_raw": 16.65,
+  "shares": 91,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": 16.65,
+  "pnl_strict": 16.65
+ },
+ {
+  "trade_id": "a18e456e5ea741a3afc369291bffb49d",
+  "ticker": "OPAD",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 5.29,
+  "exit": 5.46,
+  "pnl_raw": 16.66,
+  "shares": 98,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "8f49c522b1b74edc927f1bfe8391e057",
+  "ticker": "YYAI",
+  "date": "2026-07-15",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 9.13,
+  "exit": 9.28,
+  "pnl_raw": 6.68,
+  "shares": 46,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "16b22bd6229241cdb7d474b08010c640",
+  "ticker": "IQST",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.22,
+  "exit": 1.31,
+  "pnl_raw": 32.73,
+  "shares": 362,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [
+   {
+    "shares": 181,
+    "px": 1.3096,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": false,
+  "pnl_charitable": 25.56,
+  "pnl_strict": 32.8
+ },
+ {
+  "trade_id": "03547bc7981e4fdab9bb935520d97603",
+  "ticker": "DXST",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.69,
+  "exit": 2.74,
+  "pnl_raw": 21.47,
+  "shares": 226,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [
+   {
+    "shares": 113,
+    "px": 2.82,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 21.47,
+  "pnl_strict": 21.47
+ },
+ {
+  "trade_id": "a0ed539349e348449bdacf9e10d0dfd0",
+  "ticker": "VRAX",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.85,
+  "exit": 3.58,
+  "pnl_raw": -38.34,
+  "shares": 142,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -38.34,
+  "pnl_strict": -38.34
+ },
+ {
+  "trade_id": "721a60f1ce2547d2970d0d615a59500c",
+  "ticker": "EHGO",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.98,
+  "exit": 2.11,
+  "pnl_raw": 28.38,
+  "shares": 267,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 133,
+    "px": 2.06,
+    "cat": "FICTION"
+   },
+   {
+    "shares": 67,
+    "px": 2.12,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": false,
+  "pnl_charitable": 22.36,
+  "pnl_strict": 34.36
+ },
+ {
+  "trade_id": "adbb08e563eb4023b07362faf07a56d9",
+  "ticker": "TGHL",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.43,
+  "exit": 1.33,
+  "pnl_raw": -33.82,
+  "shares": 356,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -33.82,
+  "pnl_strict": -33.82
+ },
+ {
+  "trade_id": "a829c2eb790c4288a7cfe4aa6a002dd7",
+  "ticker": "DXST",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.76,
+  "exit": 2.7,
+  "pnl_raw": 10.36,
+  "shares": 215,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [
+   {
+    "shares": 107,
+    "px": 2.92,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": false,
+  "pnl_charitable": 10.36,
+  "pnl_strict": 10.36
+ },
+ {
+  "trade_id": "65be7caef293443686825d9f20964c48",
+  "ticker": "CMND",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.96,
+  "exit": 2.03,
+  "pnl_raw": 9.58,
+  "shares": 137,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 68,
+    "px": 2.0299,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 8.23,
+  "pnl_strict": 9.59
+ },
+ {
+  "trade_id": "c3b5738507e04ecb85d66f75af3a92e7",
+  "ticker": "VRAX",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.84,
+  "exit": 3.79,
+  "pnl_raw": -10.0,
+  "shares": 168,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -10.0,
+  "pnl_strict": -10.0
+ },
+ {
+  "trade_id": "55b4caaffec144d3a373a27750301195",
+  "ticker": "IQST",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.25,
+  "exit": 1.2,
+  "pnl_raw": -34.4,
+  "shares": 688,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -34.4,
+  "pnl_strict": -34.4
+ },
+ {
+  "trade_id": "dee9c7c5e5494caaa851bb914003eb14",
+  "ticker": "PBM",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.14,
+  "exit": 2.97,
+  "pnl_raw": -21.16,
+  "shares": 123,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -21.16,
+  "pnl_strict": -21.16
+ },
+ {
+  "trade_id": "b823ffda91ff45bab355d54711bad4b6",
+  "ticker": "EHGO",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.13,
+  "exit": 1.9,
+  "pnl_raw": -34.45,
+  "shares": 149,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -34.45,
+  "pnl_strict": -34.45
+ },
+ {
+  "trade_id": "a5a2aa62977346f6af1b3c46b5f83d09",
+  "ticker": "GLMD",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 0.58,
+  "exit": 0.54,
+  "pnl_raw": -44.29,
+  "shares": 1075,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -44.29,
+  "pnl_strict": -44.29
+ },
+ {
+  "trade_id": "41cc5af4174e4cbaa39cd4bd8a1ff86e",
+  "ticker": "TVRD",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 3.21,
+  "exit": 3.32,
+  "pnl_raw": 31.36,
+  "shares": 251,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "eb27172d26b64e40a381b0c0bf6aabd1",
+  "ticker": "CLIK",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.76,
+  "exit": 1.78,
+  "pnl_raw": 17.51,
+  "shares": 146,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 73,
+    "px": 1.9799,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 7.3,
+  "pnl_strict": 2.92
+ },
+ {
+  "trade_id": "dc0024ab6a1e49de84291402211ddb8e",
+  "ticker": "CPHI",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 0.98,
+  "exit": 1.14,
+  "pnl_raw": 62.89,
+  "shares": 810,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 405,
+    "px": 1.0167,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 202,
+    "px": 1.055,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 122,
+    "px": 1.118,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 62.89,
+  "pnl_strict": 62.89
+ },
+ {
+  "trade_id": "e4acef0d1e894a32badbd58aa1074d0b",
+  "ticker": "QNCX",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 20.29,
+  "exit": 19.63,
+  "pnl_raw": -15.07,
+  "shares": 23,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "e0ce93dc44594a32884039b39e528ad3",
+  "ticker": "DXST",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 2.79,
+  "exit": 2.72,
+  "pnl_raw": -23.23,
+  "shares": 359,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [],
+  "exit_verified": false,
+  "pnl_charitable": -23.23,
+  "pnl_strict": -23.23
+ },
+ {
+  "trade_id": "51a0c6cfaad047d2ab5bce9e9ce26ab5",
+  "ticker": "ATPC",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.66,
+  "exit": 4.25,
+  "pnl_raw": 54.71,
+  "shares": 110,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 55,
+    "px": 3.967,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 27,
+    "px": 4.225,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 17,
+    "px": 4.61,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 54.71,
+  "pnl_strict": 54.71
+ },
+ {
+  "trade_id": "64a1c7df1683426693b44ee4c073b707",
+  "ticker": "STAK",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 3.95,
+  "exit": 3.7,
+  "pnl_raw": -8.0,
+  "shares": 32,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -8.0,
+  "pnl_strict": -8.0
+ },
+ {
+  "trade_id": "731cb7c3f6fa4d338fd297dee8363fc4",
+  "ticker": "NYC",
+  "date": "2026-07-16",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 8.63,
+  "exit": 8.63,
+  "pnl_raw": 20.99,
+  "shares": 115,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "93e955d32cd94129b827929ed8ef7a68",
+  "ticker": "JLHL",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 10.12,
+  "exit": 9.64,
+  "pnl_raw": -5.12,
+  "shares": 86,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 43,
+    "px": 10.48,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -5.12,
+  "pnl_strict": -5.12
+ },
+ {
+  "trade_id": "70ecd4a454414f7a9a03f2f6073c73dc",
+  "ticker": "TRUG",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.53,
+  "exit": 1.48,
+  "pnl_raw": 11.68,
+  "shares": 149,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "98c9a129c461426f970ecea384dbb102",
+  "ticker": "SLND",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.1,
+  "exit": 0.93,
+  "pnl_raw": -48.07,
+  "shares": 288,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [],
+  "exit_verified": false,
+  "pnl_charitable": -48.07,
+  "pnl_strict": -48.07
+ },
+ {
+  "trade_id": "7215d3ac02484427be5eeee735380412",
+  "ticker": "TGHL",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.4,
+  "exit": 1.32,
+  "pnl_raw": -45.75,
+  "shares": 610,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -45.75,
+  "pnl_strict": -45.75
+ },
+ {
+  "trade_id": "5c32395d3d304d91870e062e3c6477b3",
+  "ticker": "VEEE",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 42.02,
+  "exit": 41.62,
+  "pnl_raw": 52.2,
+  "shares": 10,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 5,
+    "px": 45.25,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 2,
+    "px": 49.4494,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 2,
+    "px": 52.8,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 52.2,
+  "pnl_strict": 52.2
+ },
+ {
+  "trade_id": "c789f76e17034bc49475f9076b67d611",
+  "ticker": "CJMB",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.25,
+  "exit": 1.24,
+  "pnl_raw": 14.33,
+  "shares": 359,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 179,
+    "px": 1.3399,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 14.33,
+  "pnl_strict": 14.33
+ },
+ {
+  "trade_id": "7c34cad722d34abb84a4cf7785162f3a",
+  "ticker": "GLXG",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.2,
+  "exit": 1.19,
+  "pnl_raw": 1.54,
+  "shares": 88,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 44,
+    "px": 1.2299,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 1.54,
+  "pnl_strict": 1.54
+ },
+ {
+  "trade_id": "c1912c9517234d9c9498fa4cff5800f7",
+  "ticker": "AMST",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.11,
+  "exit": 1.11,
+  "pnl_raw": 5.0,
+  "shares": 167,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "4395e85a4e8a42c38aaa1aa0e658c2ad",
+  "ticker": "VEEE",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 43.0,
+  "exit": 37.37,
+  "pnl_raw": -28.17,
+  "shares": 5,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -28.17,
+  "pnl_strict": -28.17
+ },
+ {
+  "trade_id": "c4517915ecd441eb9bf0cfce1f2e0945",
+  "ticker": "PMAX",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.1,
+  "exit": 1.98,
+  "pnl_raw": -33.91,
+  "shares": 284,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -33.91,
+  "pnl_strict": -33.91
+ },
+ {
+  "trade_id": "7b9e75a7ecc049a9b305c86afccfcb03",
+  "ticker": "CPHI",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.32,
+  "exit": 1.31,
+  "pnl_raw": -1.5,
+  "shares": 146,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [],
+  "exit_verified": false,
+  "pnl_charitable": -1.5,
+  "pnl_strict": -1.5
+ },
+ {
+  "trade_id": "1dec584dbc52484a864ccda6ae7e1fd4",
+  "ticker": "HUBC",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.26,
+  "exit": 1.26,
+  "pnl_raw": 0.81,
+  "shares": 57,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "e1ef85355b4344cfacb2f58ca8dbdfe8",
+  "ticker": "JLHL",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 9.68,
+  "exit": 9.2,
+  "pnl_raw": -26.6,
+  "shares": 56,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -26.6,
+  "pnl_strict": -26.6
+ },
+ {
+  "trade_id": "a3986108c3d14bc18cce33bdf3cf4496",
+  "ticker": "GLXG",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.27,
+  "exit": 1.34,
+  "pnl_raw": 11.06,
+  "shares": 119,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 59,
+    "px": 1.3294,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 30,
+    "px": 1.38,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 18,
+    "px": 1.46,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 11.06,
+  "pnl_strict": 11.06
+ },
+ {
+  "trade_id": "bcb3857fe9804503b42d9be459a81104",
+  "ticker": "VEEE",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 39.36,
+  "exit": 40.56,
+  "pnl_raw": 23.38,
+  "shares": 14,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 7,
+    "px": 41.5,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 23.38,
+  "pnl_strict": 23.38
+ },
+ {
+  "trade_id": "b6bebbce76f9452b8bdeb75354dc7eb9",
+  "ticker": "TVRD",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.21,
+  "exit": 3.14,
+  "pnl_raw": -22.08,
+  "shares": 311,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "ab04488e99ef49caa0c323b9de095fb1",
+  "ticker": "CJMB",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.25,
+  "exit": 1.18,
+  "pnl_raw": -39.69,
+  "shares": 559,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -39.69,
+  "pnl_strict": -39.69
+ },
+ {
+  "trade_id": "227642f7c36f40c4b2b596b586db172d",
+  "ticker": "HPAI",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 0.62,
+  "exit": 0.54,
+  "pnl_raw": -91.26,
+  "shares": 1167,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -91.26,
+  "pnl_strict": -91.26
+ },
+ {
+  "trade_id": "aa267777b1644b5ea63e98b29d25fa32",
+  "ticker": "LEDS",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 3.08,
+  "exit": 3.1,
+  "pnl_raw": 46.89,
+  "shares": 233,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [
+   {
+    "shares": 116,
+    "px": 3.2087,
+    "cat": "FICTION"
+   },
+   {
+    "shares": 58,
+    "px": 3.35,
+    "cat": "FICTION"
+   },
+   {
+    "shares": 35,
+    "px": 3.5294,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": false,
+  "pnl_charitable": 0.57,
+  "pnl_strict": 4.75
+ },
+ {
+  "trade_id": "c0acaa512bd846fbb5b325090b831036",
+  "ticker": "BIYA",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 4.51,
+  "exit": 4.12,
+  "pnl_raw": -25.74,
+  "shares": 66,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -25.74,
+  "pnl_strict": -25.74
+ },
+ {
+  "trade_id": "e8f05ec4f4764dec890faa103933ce6c",
+  "ticker": "NTRP",
+  "date": "2026-07-17",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.87,
+  "exit": 1.88,
+  "pnl_raw": 0.38,
+  "shares": 65,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "3d835d8aecc54890b26d76dae2499ec0",
+  "ticker": "VMAR",
+  "date": "2026-07-20",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.08,
+  "exit": 1.05,
+  "pnl_raw": -23.25,
+  "shares": 930,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -23.25,
+  "pnl_strict": -23.25
+ },
+ {
+  "trade_id": "25b360d9be76447b96d2b903f5ff037c",
+  "ticker": "SKYQ",
+  "date": "2026-07-20",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 4.72,
+  "exit": 4.34,
+  "pnl_raw": -41.32,
+  "shares": 109,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -41.32,
+  "pnl_strict": -41.32
+ },
+ {
+  "trade_id": "a770a14c04b049769fc10c3d6dcbb494",
+  "ticker": "BIYA",
+  "date": "2026-07-20",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 7.5,
+  "exit": 6.87,
+  "pnl_raw": 23.69,
+  "shares": 65,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 32,
+    "px": 8.1101,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 16,
+    "px": 8.43,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 23.69,
+  "pnl_strict": 23.69
+ },
+ {
+  "trade_id": "d902caf1f07943e690f2abde0b70b7f3",
+  "ticker": "ZYBT",
+  "date": "2026-07-20",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.46,
+  "exit": 6.15,
+  "pnl_raw": 164.79,
+  "shares": 109,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [
+   {
+    "shares": 54,
+    "px": 1.7799,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 27,
+    "px": 2.06,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 164.79,
+  "pnl_strict": 164.79
+ },
+ {
+  "trade_id": "93d514a4c8794b75bb4792c196218e37",
+  "ticker": "NCRA",
+  "date": "2026-07-21",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.54,
+  "exit": 1.48,
+  "pnl_raw": -4.26,
+  "shares": 71,
+  "entry_ts_missing": true,
+  "no_bars": true,
+  "entry_verified": null,
+  "exit_verified": null,
+  "fills": [],
+  "pnl_charitable": null,
+  "pnl_strict": null
+ },
+ {
+  "trade_id": "88179dd85a14477ebebf71e362963899",
+  "ticker": "IQMX",
+  "date": "2026-07-21",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 11.95,
+  "exit": 11.72,
+  "pnl_raw": -18.67,
+  "shares": 83,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -18.67,
+  "pnl_strict": -18.67
+ },
+ {
+  "trade_id": "91d520de7b054200bbb7ddbb7aaf6f8f",
+  "ticker": "CJMB",
+  "date": "2026-07-21",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 1.44,
+  "exit": 1.38,
+  "pnl_raw": -23.72,
+  "shares": 414,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -23.72,
+  "pnl_strict": -23.72
+ },
+ {
+  "trade_id": "21d94cc1a897429cbabaf89dc129aa0a",
+  "ticker": "NIKI",
+  "date": "2026-07-21",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 9.01,
+  "exit": 9.32,
+  "pnl_raw": 6.2,
+  "shares": 20,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": 6.2,
+  "pnl_strict": 6.2
+ },
+ {
+  "trade_id": "e930cab8c89a43dab70949ecf9e45891",
+  "ticker": "SKYQ",
+  "date": "2026-07-22",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 4.64,
+  "exit": 4.45,
+  "pnl_raw": -25.54,
+  "shares": 131,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -25.54,
+  "pnl_strict": -25.54
+ },
+ {
+  "trade_id": "13ff1f987f2c4caba3fb76679859c7cc",
+  "ticker": "YHC",
+  "date": "2026-07-22",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.19,
+  "exit": 2.0,
+  "pnl_raw": -54.76,
+  "shares": 296,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -54.76,
+  "pnl_strict": -54.76
+ },
+ {
+  "trade_id": "f08d68c107bf484497bc46e7dad4d158",
+  "ticker": "SNTG",
+  "date": "2026-07-22",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.59,
+  "exit": 2.42,
+  "pnl_raw": 8.26,
+  "shares": 179,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 89,
+    "px": 2.8549,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 8.26,
+  "pnl_strict": 8.26
+ },
+ {
+  "trade_id": "7cd33a74ad8d4e00b25624681f87fafe",
+  "ticker": "MTEN",
+  "date": "2026-07-22",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 1.56,
+  "exit": 1.53,
+  "pnl_raw": 14.27,
+  "shares": 109,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 54,
+    "px": 1.85,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 14.27,
+  "pnl_strict": 14.27
+ },
+ {
+  "trade_id": "2f059523a33f44c195c5ff643e73d080",
+  "ticker": "ADVB",
+  "date": "2026-07-22",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 12.76,
+  "exit": 12.16,
+  "pnl_raw": 31.17,
+  "shares": 19,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 9,
+    "px": 14.77,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 5,
+    "px": 15.9575,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 31.17,
+  "pnl_strict": 31.17
+ },
+ {
+  "trade_id": "110fa187b0ba4cbf99d62ae0f827b22d",
+  "ticker": "PN",
+  "date": "2026-07-22",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 9.02,
+  "exit": 9.06,
+  "pnl_raw": 18.92,
+  "shares": 47,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 23,
+    "px": 9.8001,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 18.92,
+  "pnl_strict": 18.92
+ },
+ {
+  "trade_id": "0dbcb819926d45c6894715f0939c128f",
+  "ticker": "ADVB",
+  "date": "2026-07-23",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 16.82,
+  "exit": 16.89,
+  "pnl_raw": 29.37,
+  "shares": 29,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 14,
+    "px": 17.835,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 7,
+    "px": 18.895,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 29.37,
+  "pnl_strict": 29.37
+ },
+ {
+  "trade_id": "5043906752484350bd7ecca579a204dc",
+  "ticker": "PN",
+  "date": "2026-07-23",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 8.57,
+  "exit": 7.96,
+  "pnl_raw": -30.75,
+  "shares": 50,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.75,
+  "pnl_strict": -30.75
+ },
+ {
+  "trade_id": "8898861f21b6470293ba7a638f76a7c0",
+  "ticker": "NVVE",
+  "date": "2026-07-23",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 9.43,
+  "exit": 6.23,
+  "pnl_raw": -54.4,
+  "shares": 17,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -54.4,
+  "pnl_strict": -54.4
+ },
+ {
+  "trade_id": "2b3b45a775424a0e8c1d16dd4941615f",
+  "ticker": "LVWR",
+  "date": "2026-07-24",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 1.61,
+  "exit": 1.5,
+  "pnl_raw": -0.26,
+  "shares": 265,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 132,
+    "px": 1.7287,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -0.26,
+  "pnl_strict": -0.26
+ },
+ {
+  "trade_id": "4ffc7786e6c049cabf5549a8895c4870",
+  "ticker": "JEM",
+  "date": "2026-07-24",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 6.8,
+  "exit": 6.38,
+  "pnl_raw": -26.38,
+  "shares": 63,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -26.38,
+  "pnl_strict": -26.38
+ },
+ {
+  "trade_id": "587268229a7840569d6885630621319e",
+  "ticker": "BIYA",
+  "date": "2026-07-27",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 2.62,
+  "exit": 1.93,
+  "pnl_raw": -262.89,
+  "shares": 381,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": false,
+  "pnl_charitable": -262.89,
+  "pnl_strict": -262.89
+ },
+ {
+  "trade_id": "e21ccca81c5d4558813d8e0d51765117",
+  "ticker": "LGHL",
+  "date": "2026-07-27",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 1.49,
+  "exit": 0.91,
+  "pnl_raw": -166.4,
+  "shares": 287,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": false,
+  "pnl_charitable": -166.4,
+  "pnl_strict": -166.4
+ },
+ {
+  "trade_id": "6d8e2038f0d449d297d53787d414dc7f",
+  "ticker": "VEEE",
+  "date": "2026-07-27",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 16.4,
+  "exit": 12.97,
+  "pnl_raw": -99.47,
+  "shares": 29,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": false,
+  "pnl_charitable": -99.47,
+  "pnl_strict": -99.47
+ },
+ {
+  "trade_id": "50a7b06eb63549c1ab79b6db49adb4cd",
+  "ticker": "MTNB",
+  "date": "2026-07-27",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 0.43,
+  "exit": 0.24,
+  "pnl_raw": -14.26,
+  "shares": 2142,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 1071,
+    "px": 0.4857,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 535,
+    "px": 0.4884,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": false,
+  "pnl_charitable": -14.26,
+  "pnl_strict": -14.26
+ },
+ {
+  "trade_id": "15c6a19927664c8e800c09c6054a0c94",
+  "ticker": "JZXN",
+  "date": "2026-07-27",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 1.47,
+  "exit": 1.19,
+  "pnl_raw": -81.48,
+  "shares": 291,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": false,
+  "pnl_charitable": -81.48,
+  "pnl_strict": -81.48
+ },
+ {
+  "trade_id": "3d57e5f7658141ed82edc7fc49350d63",
+  "ticker": "LGHL",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "zone_flip",
+  "entry": 1.98,
+  "exit": 1.55,
+  "pnl_raw": -119.7,
+  "shares": 285,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -119.7,
+  "pnl_strict": -119.7
+ },
+ {
+  "trade_id": "8846f34347444cb6903b09a825b6a079",
+  "ticker": "DFNS",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "zone_flip",
+  "entry": 6.71,
+  "exit": 6.34,
+  "pnl_raw": -2.29,
+  "shares": 111,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 55,
+    "px": 7.04,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -2.29,
+  "pnl_strict": -2.29
+ },
+ {
+  "trade_id": "807ab9f50897413fa49fab3e286ad7ca",
+  "ticker": "BIYA",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.19,
+  "exit": 3.24,
+  "pnl_raw": 32.04,
+  "shares": 62,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 31,
+    "px": 3.7101,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 15,
+    "px": 4.2001,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 32.04,
+  "pnl_strict": 32.04
+ },
+ {
+  "trade_id": "2140be4677c14df0989bafd181667c25",
+  "ticker": "LVWR",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 2.88,
+  "exit": 2.67,
+  "pnl_raw": -39.29,
+  "shares": 187,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -39.29,
+  "pnl_strict": -39.29
+ },
+ {
+  "trade_id": "7f825f67d8cf4ed1a908ac5434ed72df",
+  "ticker": "KIDZ",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 0.54,
+  "exit": 0.52,
+  "pnl_raw": -36.71,
+  "shares": 1854,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -36.71,
+  "pnl_strict": -36.71
+ },
+ {
+  "trade_id": "ffae3f54e88f45c280ca9288bc5fca14",
+  "ticker": "JZXN",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.47,
+  "exit": 1.43,
+  "pnl_raw": -30.53,
+  "shares": 680,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.53,
+  "pnl_strict": -30.53
+ },
+ {
+  "trade_id": "eaf42999189242f383f03a014fd6f8ec",
+  "ticker": "BIYA",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 3.36,
+  "exit": 3.58,
+  "pnl_raw": 40.56,
+  "shares": 297,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 148,
+    "px": 3.44,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 74,
+    "px": 3.52,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 40.56,
+  "pnl_strict": 40.56
+ },
+ {
+  "trade_id": "3fab3872762344aeb98ce1397ce16415",
+  "ticker": "VEEE",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 17.3,
+  "exit": 16.56,
+  "pnl_raw": -25.33,
+  "shares": 34,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -25.33,
+  "pnl_strict": -25.33
+ },
+ {
+  "trade_id": "6117048e0e6c4b458b1db34a539938e0",
+  "ticker": "DFNS",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "orb",
+  "entry": 8.88,
+  "exit": 7.97,
+  "pnl_raw": -43.66,
+  "shares": 48,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -43.66,
+  "pnl_strict": -43.66
+ },
+ {
+  "trade_id": "b08ed76f5b69456dae399ee87d15f968",
+  "ticker": "LVWR",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 2.74,
+  "exit": 2.6,
+  "pnl_raw": -25.79,
+  "shares": 178,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -25.79,
+  "pnl_strict": -25.79
+ },
+ {
+  "trade_id": "bca40ea64cd1412bb1b58834476af6ff",
+  "ticker": "NXTC",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 4.78,
+  "exit": 5.1,
+  "pnl_raw": 12.32,
+  "shares": 44,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 22,
+    "px": 4.99,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 11,
+    "px": 5.16,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 12.32,
+  "pnl_strict": 12.32
+ },
+ {
+  "trade_id": "c446b2e6c4c54831b8895c0ea358b24e",
+  "ticker": "WLDS",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 4.78,
+  "exit": 3.79,
+  "pnl_raw": 28.71,
+  "shares": 89,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 44,
+    "px": 5.17,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 22,
+    "px": 6.34,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 28.71,
+  "pnl_strict": 28.71
+ },
+ {
+  "trade_id": "7e353d5b898949178d78ab456f04ff20",
+  "ticker": "LVWR",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 2.73,
+  "exit": 2.58,
+  "pnl_raw": -28.2,
+  "shares": 188,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -28.2,
+  "pnl_strict": -28.2
+ },
+ {
+  "trade_id": "04e0baa72cce456f9e242b95e5f1d13c",
+  "ticker": "DFNS",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 10.71,
+  "exit": 13.54,
+  "pnl_raw": 43.57,
+  "shares": 15,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 7,
+    "px": 12.78,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 4,
+    "px": 15.15,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 43.57,
+  "pnl_strict": 43.57
+ },
+ {
+  "trade_id": "7eb23fb08ed64fec9f4890bd467c977e",
+  "ticker": "PN",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 10.3,
+  "exit": 10.25,
+  "pnl_raw": -1.05,
+  "shares": 21,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -1.05,
+  "pnl_strict": -1.05
+ },
+ {
+  "trade_id": "8d4c4f2b54594c9a8ff8ea2610c1ce02",
+  "ticker": "GMEX",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 1.88,
+  "exit": 1.84,
+  "pnl_raw": -7.92,
+  "shares": 227,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -7.92,
+  "pnl_strict": -7.92
+ },
+ {
+  "trade_id": "0501e6372820481090219a10e7613bd6",
+  "ticker": "BIYA",
+  "date": "2026-07-27",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 3.86,
+  "exit": 4.54,
+  "pnl_raw": 49.55,
+  "shares": 111,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 55,
+    "px": 4.13,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 28,
+    "px": 4.415,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 49.55,
+  "pnl_strict": 49.55
+ },
+ {
+  "trade_id": "d4ee44b5ee73423cb2148366edd9dee9",
+  "ticker": "BIYA",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 6.22,
+  "exit": 5.31,
+  "pnl_raw": -30.8,
+  "shares": 34,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.8,
+  "pnl_strict": -30.8
+ },
+ {
+  "trade_id": "a7372fe836fa416c9884bcd099ab5155",
+  "ticker": "WLDS",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.06,
+  "exit": 3.77,
+  "pnl_raw": -35.89,
+  "shares": 124,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -35.89,
+  "pnl_strict": -35.89
+ },
+ {
+  "trade_id": "46a849467009482c90ade64038e9eb9c",
+  "ticker": "CNET",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.18,
+  "exit": 1.23,
+  "pnl_raw": 24.39,
+  "shares": 265,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 132,
+    "px": 1.3143,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 24.39,
+  "pnl_strict": 24.39
+ },
+ {
+  "trade_id": "b08745651c56409db36ecdc9871736df",
+  "ticker": "KVAC",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 15.4,
+  "exit": 15.1,
+  "pnl_raw": 25.94,
+  "shares": 22,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 11,
+    "px": 16.74,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 5,
+    "px": 17.9999,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 25.94,
+  "pnl_strict": 25.94
+ },
+ {
+  "trade_id": "5d4bd52ccd5648bbb6ba0c538460a53a",
+  "ticker": "WLDS",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 3.95,
+  "exit": 3.9,
+  "pnl_raw": 35.83,
+  "shares": 108,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 54,
+    "px": 4.345,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 27,
+    "px": 4.535,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 35.83,
+  "pnl_strict": 35.83
+ },
+ {
+  "trade_id": "7ff58b3d05e0468895ce8619fcdf711e",
+  "ticker": "FIRY",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 12.45,
+  "exit": 11.56,
+  "pnl_raw": -30.28,
+  "shares": 34,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.28,
+  "pnl_strict": -30.28
+ },
+ {
+  "trade_id": "6f208c2a1ea84cefa6c1295681cd7c97",
+  "ticker": "LGHL",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 1.55,
+  "exit": 1.13,
+  "pnl_raw": -31.5,
+  "shares": 75,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -31.5,
+  "pnl_strict": -31.5
+ },
+ {
+  "trade_id": "3d13672401e54462b946cc301484b065",
+  "ticker": "EGG",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 5.3,
+  "exit": 4.9,
+  "pnl_raw": -32.0,
+  "shares": 80,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -32.0,
+  "pnl_strict": -32.0
+ },
+ {
+  "trade_id": "c0e6df043c7241e48eded69cc69059c5",
+  "ticker": "BIYA",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 5.42,
+  "exit": 5.03,
+  "pnl_raw": -30.41,
+  "shares": 79,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.41,
+  "pnl_strict": -30.41
+ },
+ {
+  "trade_id": "940c42df3d6648659c120e31692436a6",
+  "ticker": "WLDS",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 4.14,
+  "exit": 4.08,
+  "pnl_raw": 12.94,
+  "shares": 103,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 51,
+    "px": 4.46,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 12.94,
+  "pnl_strict": 12.94
+ },
+ {
+  "trade_id": "cd3ec47f705040be88acce683acb7cf8",
+  "ticker": "WBUY",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 0.97,
+  "exit": 0.86,
+  "pnl_raw": -52.99,
+  "shares": 462,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -52.99,
+  "pnl_strict": -52.99
+ },
+ {
+  "trade_id": "97727a74d1e342d8b62f897287b2a3c2",
+  "ticker": "MPLT",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 11.6,
+  "exit": 12.12,
+  "pnl_raw": 29.54,
+  "shares": 55,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 27,
+    "px": 12.16,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 29.54,
+  "pnl_strict": 29.54
+ },
+ {
+  "trade_id": "1adb56d940954ad9aca6d757a65ab766",
+  "ticker": "BIYA",
+  "date": "2026-07-28",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 5.42,
+  "exit": 6.2,
+  "pnl_raw": 51.69,
+  "shares": 79,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 39,
+    "px": 5.93,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 20,
+    "px": 6.2294,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 51.69,
+  "pnl_strict": 51.69
+ },
+ {
+  "trade_id": "39b3fca806d7498798b04d93988d986d",
+  "ticker": "NCRA",
+  "date": "2026-07-29",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 2.65,
+  "exit": 2.21,
+  "pnl_raw": -18.04,
+  "shares": 41,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -18.04,
+  "pnl_strict": -18.04
+ },
+ {
+  "trade_id": "04eb12df8130446aa7b0f3dd15f2b18b",
+  "ticker": "NCRA",
+  "date": "2026-07-29",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 2.76,
+  "exit": 2.55,
+  "pnl_raw": -36.71,
+  "shares": 171,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -36.71,
+  "pnl_strict": -36.71
+ },
+ {
+  "trade_id": "cb442f98eb494c8e83ca03307466dbf8",
+  "ticker": "NCRA",
+  "date": "2026-07-29",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 2.75,
+  "exit": 2.52,
+  "pnl_raw": -49.7,
+  "shares": 218,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -49.7,
+  "pnl_strict": -49.7
+ },
+ {
+  "trade_id": "295bc8933bc3465eb75244c619b165dd",
+  "ticker": "NCRA",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 3.62,
+  "exit": 3.27,
+  "pnl_raw": -37.25,
+  "shares": 106,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -37.25,
+  "pnl_strict": -37.25
+ },
+ {
+  "trade_id": "697bccac02b2451e84ce8ff9859183d2",
+  "ticker": "AMIX",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 5.0,
+  "exit": 4.62,
+  "pnl_raw": -32.41,
+  "shares": 85,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -32.41,
+  "pnl_strict": -32.41
+ },
+ {
+  "trade_id": "0b098796b1034134bbb5d86c85747608",
+  "ticker": "PYPD",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 4.26,
+  "exit": 4.12,
+  "pnl_raw": -32.76,
+  "shares": 234,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -32.76,
+  "pnl_strict": -32.76
+ },
+ {
+  "trade_id": "797eed9ae9c942c9b3314fc9f5082172",
+  "ticker": "GMM",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "zone_flip",
+  "entry": 3.3,
+  "exit": 3.2,
+  "pnl_raw": 4.0,
+  "shares": 303,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 151,
+    "px": 3.43,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.0,
+  "pnl_strict": 4.0
+ },
+ {
+  "trade_id": "1ef43fc74db044e39a4f6cfaa27e73de",
+  "ticker": "ONMD",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "zone_flip",
+  "entry": 0.77,
+  "exit": 0.73,
+  "pnl_raw": -48.03,
+  "shares": 1298,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -48.03,
+  "pnl_strict": -48.03
+ },
+ {
+  "trade_id": "338a41e1a9394e5ea3a5e2cf63129b3d",
+  "ticker": "GMM",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 3.81,
+  "exit": 3.54,
+  "pnl_raw": 1.5,
+  "shares": 120,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 60,
+    "px": 4.1,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 1.5,
+  "pnl_strict": 1.5
+ },
+ {
+  "trade_id": "ab9ba9d1f04c49efab86f28178d6f9b4",
+  "ticker": "AMIX",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 5.58,
+  "exit": 5.28,
+  "pnl_raw": -30.0,
+  "shares": 100,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.0,
+  "pnl_strict": -30.0
+ },
+ {
+  "trade_id": "0ee7d6301f6d434ca5aa6ce86cbeaef8",
+  "ticker": "AMIX",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 5.61,
+  "exit": 5.09,
+  "pnl_raw": -55.23,
+  "shares": 106,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -55.23,
+  "pnl_strict": -55.23
+ },
+ {
+  "trade_id": "d63a2c6cca7843438eac57b3b5099986",
+  "ticker": "LVWR",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 2.31,
+  "exit": 2.24,
+  "pnl_raw": -6.54,
+  "shares": 432,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 216,
+    "px": 2.3497,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -6.54,
+  "pnl_strict": -6.54
+ },
+ {
+  "trade_id": "20ba84c5b73b4133a26a955203b97d24",
+  "ticker": "SKYQ",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 4.34,
+  "exit": 4.33,
+  "pnl_raw": 10.23,
+  "shares": 230,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 115,
+    "px": 4.38,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 57,
+    "px": 4.449,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 10.23,
+  "pnl_strict": 10.23
+ },
+ {
+  "trade_id": "8db3fed01d1f47069e627383534b71af",
+  "ticker": "SPRC",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 7.0,
+  "exit": 6.79,
+  "pnl_raw": 42.27,
+  "shares": 73,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 36,
+    "px": 7.77,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 18,
+    "px": 8.03,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 42.27,
+  "pnl_strict": 42.27
+ },
+ {
+  "trade_id": "d299c8a0330a4b5ab0e96f816d4122f4",
+  "ticker": "STFS",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 5.57,
+  "exit": 4.7,
+  "pnl_raw": -27.84,
+  "shares": 32,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -27.84,
+  "pnl_strict": -27.84
+ },
+ {
+  "trade_id": "7f478872dab6410dad58362335a91a99",
+  "ticker": "YYGH",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.41,
+  "exit": 1.43,
+  "pnl_raw": 14.18,
+  "shares": 709,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": 14.18,
+  "pnl_strict": 14.18
+ },
+ {
+  "trade_id": "4da260d63ae944b8bd3d3da313975878",
+  "ticker": "YYGH",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 1.54,
+  "exit": 1.42,
+  "pnl_raw": -33.3,
+  "shares": 278,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -33.3,
+  "pnl_strict": -33.3
+ },
+ {
+  "trade_id": "059ca1a90ec945f1b313da23503b3a26",
+  "ticker": "AMIX",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 5.35,
+  "exit": 4.95,
+  "pnl_raw": -32.32,
+  "shares": 80,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -32.32,
+  "pnl_strict": -32.32
+ },
+ {
+  "trade_id": "98fb0272749740419080bc272cc94b01",
+  "ticker": "STFS",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "orb",
+  "entry": 5.37,
+  "exit": 4.9,
+  "pnl_raw": -36.9,
+  "shares": 79,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -36.9,
+  "pnl_strict": -36.9
+ },
+ {
+  "trade_id": "53ee8dddb3c64eb78c75a10e05491a25",
+  "ticker": "LVWR",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "orb",
+  "entry": 2.36,
+  "exit": 2.5,
+  "pnl_raw": 28.94,
+  "shares": 181,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 90,
+    "px": 2.54,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 28.94,
+  "pnl_strict": 28.94
+ },
+ {
+  "trade_id": "0ba6250280764cf291377d49465fcc4d",
+  "ticker": "SPRC",
+  "date": "2026-07-29",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 7.97,
+  "exit": 9.85,
+  "pnl_raw": 56.97,
+  "shares": 53,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 26,
+    "px": 8.5921,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 13,
+    "px": 9.101,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 56.97,
+  "pnl_strict": 56.97
+ },
+ {
+  "trade_id": "965cd2ffde234be3aab034f1066fba9c",
+  "ticker": "SKYQ",
+  "date": "2026-07-30",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 4.72,
+  "exit": 4.63,
+  "pnl_raw": -6.86,
+  "shares": 77,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -6.86,
+  "pnl_strict": -6.86
+ },
+ {
+  "trade_id": "8f27ecb0499b4ad0a5561ff08c726fb5",
+  "ticker": "GMEX",
+  "date": "2026-07-30",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 1.63,
+  "exit": 1.61,
+  "pnl_raw": 11.54,
+  "shares": 306,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 153,
+    "px": 1.67,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 76,
+    "px": 1.7195,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 11.54,
+  "pnl_strict": 11.54
+ },
+ {
+  "trade_id": "277ab006bdc443369924a1cd9ebec57e",
+  "ticker": "NUWE",
+  "date": "2026-07-30",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 4.12,
+  "exit": 3.97,
+  "pnl_raw": -18.15,
+  "shares": 121,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -18.15,
+  "pnl_strict": -18.15
+ },
+ {
+  "trade_id": "cc918316f17d4a28bdc766efb9e01ab6",
+  "ticker": "STAK",
+  "date": "2026-07-30",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 2.84,
+  "exit": 2.84,
+  "pnl_raw": 13.2,
+  "shares": 176,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 88,
+    "px": 2.92,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 44,
+    "px": 2.98,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 13.2,
+  "pnl_strict": 13.2
+ },
+ {
+  "trade_id": "6aa67c9b4d5542dd9917232da679a018",
+  "ticker": "NUWE",
+  "date": "2026-07-30",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 5.09,
+  "exit": 5.1,
+  "pnl_raw": 1.2,
+  "shares": 98,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": 1.2,
+  "pnl_strict": 1.2
+ },
+ {
+  "trade_id": "c9dfdd6082874b8da1e6341280eb0ffb",
+  "ticker": "STAK",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "zone_flip",
+  "entry": 2.96,
+  "exit": 2.8,
+  "pnl_raw": -26.88,
+  "shares": 168,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -26.88,
+  "pnl_strict": -26.88
+ },
+ {
+  "trade_id": "961186c98bff41ed867935fb44015de7",
+  "ticker": "BOOM",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "zone_flip",
+  "entry": 6.83,
+  "exit": 6.41,
+  "pnl_raw": -30.58,
+  "shares": 73,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.58,
+  "pnl_strict": -30.58
+ },
+ {
+  "trade_id": "64db894e5e944d468590f5455ddb4f56",
+  "ticker": "GMEX",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.58,
+  "exit": 1.55,
+  "pnl_raw": -9.48,
+  "shares": 316,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -9.48,
+  "pnl_strict": -9.48
+ },
+ {
+  "trade_id": "02511047c51f46e683f2244e8fdfbfeb",
+  "ticker": "NCRA",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 2.53,
+  "exit": 2.4,
+  "pnl_raw": -25.79,
+  "shares": 197,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -25.79,
+  "pnl_strict": -25.79
+ },
+ {
+  "trade_id": "b8932ae727424d01a145ea10759f90a0",
+  "ticker": "PN",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 19.34,
+  "exit": 16.69,
+  "pnl_raw": -31.8,
+  "shares": 12,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -31.8,
+  "pnl_strict": -31.8
+ },
+ {
+  "trade_id": "9be995df00b24635b42a3ce661094b06",
+  "ticker": "DGNX",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.79,
+  "exit": 1.72,
+  "pnl_raw": 8.65,
+  "shares": 279,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 139,
+    "px": 1.8399,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 70,
+    "px": 1.8899,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 8.65,
+  "pnl_strict": 8.65
+ },
+ {
+  "trade_id": "6ca034a710c24c71b019289950b8e9e0",
+  "ticker": "NUWE",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 5.14,
+  "exit": 4.89,
+  "pnl_raw": -5.88,
+  "shares": 97,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 32,
+    "px": 5.4599,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -5.88,
+  "pnl_strict": -5.88
+ },
+ {
+  "trade_id": "f6afc362e4364f16b0a617745511be06",
+  "ticker": "KSCP",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.68,
+  "exit": 1.61,
+  "pnl_raw": -17.88,
+  "shares": 298,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -17.88,
+  "pnl_strict": -17.88
+ },
+ {
+  "trade_id": "a4ed7ad994e64b939193a395cec63076",
+  "ticker": "LESL",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.09,
+  "exit": 1.07,
+  "pnl_raw": -9.16,
+  "shares": 458,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -9.16,
+  "pnl_strict": -9.16
+ },
+ {
+  "trade_id": "c53580102f7d4d1aa0fdfa16fee51e3e",
+  "ticker": "GVH",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.09,
+  "exit": 1.08,
+  "pnl_raw": 2.24,
+  "shares": 458,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 229,
+    "px": 1.11,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 2.24,
+  "pnl_strict": 2.24
+ },
+ {
+  "trade_id": "d9e1ba9f078c49409b16e4bcfba575a0",
+  "ticker": "YHC",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.98,
+  "exit": 1.85,
+  "pnl_raw": -30.0,
+  "shares": 240,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.0,
+  "pnl_strict": -30.0
+ },
+ {
+  "trade_id": "9db3794a06a444fc9e2a8fdb92fdbf45",
+  "ticker": "INLF",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 5.05,
+  "exit": 5.12,
+  "pnl_raw": 11.58,
+  "shares": 99,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 49,
+    "px": 5.22,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 11.58,
+  "pnl_strict": 11.58
+ },
+ {
+  "trade_id": "4e1c62b68bfd4c20a23da4e6065b60c7",
+  "ticker": "GVH",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 1.27,
+  "exit": 1.18,
+  "pnl_raw": -30.23,
+  "shares": 337,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.23,
+  "pnl_strict": -30.23
+ },
+ {
+  "trade_id": "0441118cde0b491b9f72a343e3022617",
+  "ticker": "YHC",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.95,
+  "exit": 1.81,
+  "pnl_raw": -8.72,
+  "shares": 64,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -8.72,
+  "pnl_strict": -8.72
+ },
+ {
+  "trade_id": "bede505f2f894534a672b93c21f3d3e3",
+  "ticker": "PN",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 19.1,
+  "exit": 17.0,
+  "pnl_raw": -46.2,
+  "shares": 22,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -46.2,
+  "pnl_strict": -46.2
+ },
+ {
+  "trade_id": "102ba6bc60344efd885e8f0f204acfcd",
+  "ticker": "PN",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 18.66,
+  "exit": 17.5,
+  "pnl_raw": -30.16,
+  "shares": 26,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.16,
+  "pnl_strict": -30.16
+ },
+ {
+  "trade_id": "2b2d2884362143e7859f281ce4adac8f",
+  "ticker": "INLF",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 5.35,
+  "exit": 5.03,
+  "pnl_raw": -29.74,
+  "shares": 93,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -29.74,
+  "pnl_strict": -29.74
+ },
+ {
+  "trade_id": "0176693394774cedadba3e07731827a1",
+  "ticker": "DGNX",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 1.88,
+  "exit": 1.71,
+  "pnl_raw": -42.19,
+  "shares": 251,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -42.19,
+  "pnl_strict": -42.19
+ },
+ {
+  "trade_id": "d5e7ee2a2db045e9909cbfaa42ffe363",
+  "ticker": "GCTK",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 0.52,
+  "exit": 0.76,
+  "pnl_raw": 66.69,
+  "shares": 327,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 163,
+    "px": 0.6501,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 82,
+    "px": 0.8289,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 66.69,
+  "pnl_strict": 66.69
+ },
+ {
+  "trade_id": "0b09171165d448a18ec0ed9afff854be",
+  "ticker": "KSCP",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 1.83,
+  "exit": 2.02,
+  "pnl_raw": 28.95,
+  "shares": 273,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 136,
+    "px": 1.889,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 68,
+    "px": 1.95,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 28.95,
+  "pnl_strict": 28.95
+ },
+ {
+  "trade_id": "e2c45719ae25431095d86caa1ed50bce",
+  "ticker": "CMCO",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 20.03,
+  "exit": 20.83,
+  "pnl_raw": 14.39,
+  "shares": 18,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": 14.39,
+  "pnl_strict": 14.39
+ },
+ {
+  "trade_id": "f6154e18147943cd94824ba924f13b9e",
+  "ticker": "CYCU",
+  "date": "2026-07-30",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 0.62,
+  "exit": 1.7,
+  "pnl_raw": 127.26,
+  "shares": 312,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 156,
+    "px": 0.7369,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 78,
+    "px": 0.9387,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 127.26,
+  "pnl_strict": 127.26
+ },
+ {
+  "trade_id": "73e05f416bb941418ea531f0efccef01",
+  "ticker": "KUST",
+  "date": "2026-07-31",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 1.89,
+  "exit": 1.82,
+  "pnl_raw": -18.35,
+  "shares": 264,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -18.35,
+  "pnl_strict": -18.35
+ },
+ {
+  "trade_id": "62ca28415f264c71a4e321b00eb838fb",
+  "ticker": "MGRX",
+  "date": "2026-07-31",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 0.56,
+  "exit": 0.6,
+  "pnl_raw": 23.31,
+  "shares": 887,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 443,
+    "px": 0.5808,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 222,
+    "px": 0.5982,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 23.31,
+  "pnl_strict": 23.31
+ },
+ {
+  "trade_id": "4013bbb1deb64c8d80d9f344c17f0a4c",
+  "ticker": "FCUV",
+  "date": "2026-07-31",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 8.97,
+  "exit": 8.89,
+  "pnl_raw": 7.5,
+  "shares": 40,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 13,
+    "px": 9.713,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 7.5,
+  "pnl_strict": 7.5
+ },
+ {
+  "trade_id": "c517ad26fe3f49e7a3ca35e822c0d153",
+  "ticker": "FCUV",
+  "date": "2026-07-31",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 8.8,
+  "exit": 8.01,
+  "pnl_raw": -18.34,
+  "shares": 51,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 16,
+    "px": 9.3825,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -18.34,
+  "pnl_strict": -18.34
+ },
+ {
+  "trade_id": "d6a092157a1847b99d5167aa165624b0",
+  "ticker": "FCUV",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 9.06,
+  "exit": 9.06,
+  "pnl_raw": 4.05,
+  "shares": 55,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 18,
+    "px": 9.2849,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.05,
+  "pnl_strict": 4.05
+ },
+ {
+  "trade_id": "44849be741514f91a748fcc9c3fc4b65",
+  "ticker": "MGRX",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 0.79,
+  "exit": 0.65,
+  "pnl_raw": -30.16,
+  "shares": 215,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.16,
+  "pnl_strict": -30.16
+ },
+ {
+  "trade_id": "0ac701894a284609998ec45c133783f5",
+  "ticker": "CUPR",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 3.31,
+  "exit": 3.2,
+  "pnl_raw": 3.05,
+  "shares": 35,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 17,
+    "px": 3.425,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 9,
+    "px": 3.54,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.05,
+  "pnl_strict": 3.05
+ },
+ {
+  "trade_id": "eb956146b133454aa587c3c47ed5e067",
+  "ticker": "FCUV",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 10.78,
+  "exit": 14.17,
+  "pnl_raw": 46.44,
+  "shares": 16,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 5,
+    "px": 12.6025,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 46.44,
+  "pnl_strict": 46.44
+ },
+ {
+  "trade_id": "280d8726653a4169b98fe4d38f60cf80",
+  "ticker": "FGL",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.13,
+  "exit": 1.11,
+  "pnl_raw": 4.12,
+  "shares": 442,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 145,
+    "px": 1.1957,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -2.51,
+  "pnl_strict": -8.31
+ },
+ {
+  "trade_id": "22071f9b551c4eefb42a0c756acb4aa9",
+  "ticker": "TGHL",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 0.89,
+  "exit": 0.97,
+  "pnl_raw": 39.34,
+  "shares": 561,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 280,
+    "px": 0.9397,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 140,
+    "px": 0.9894,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 39.34,
+  "pnl_strict": 39.34
+ },
+ {
+  "trade_id": "4430700802c24f41ab9a876977c62f67",
+  "ticker": "CYCU",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.09,
+  "exit": 1.09,
+  "pnl_raw": 29.89,
+  "shares": 259,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 129,
+    "px": 1.2044,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 65,
+    "px": 1.3198,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 29.89,
+  "pnl_strict": 29.89
+ },
+ {
+  "trade_id": "d89f63734c534f0a8ae726083eae5232",
+  "ticker": "CUPR",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.59,
+  "exit": 3.47,
+  "pnl_raw": 10.89,
+  "shares": 58,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 29,
+    "px": 3.8169,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 14,
+    "px": 4.0404,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 10.89,
+  "pnl_strict": 10.89
+ },
+ {
+  "trade_id": "7421dd1d738c4da5b5ac946814b0bd91",
+  "ticker": "LNKS",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.2,
+  "exit": 1.3,
+  "pnl_raw": 20.86,
+  "shares": 212,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 106,
+    "px": 1.2734,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 53,
+    "px": 1.3468,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 20.86,
+  "pnl_strict": 20.86
+ },
+ {
+  "trade_id": "c2a9aae8847c491d847a573defcb609b",
+  "ticker": "TGHL",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 1.12,
+  "exit": 1.03,
+  "pnl_raw": -32.47,
+  "shares": 382,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -32.47,
+  "pnl_strict": -32.47
+ },
+ {
+  "trade_id": "40a36ca819014068bdda37f8d0633a58",
+  "ticker": "MGRX",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "orb",
+  "entry": 0.9,
+  "exit": 0.9,
+  "pnl_raw": 29.99,
+  "shares": 476,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 238,
+    "px": 0.9628,
+    "cat": "FICTION"
+   },
+   {
+    "shares": 119,
+    "px": 1.0258,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 21.49,
+  "pnl_strict": 0.07
+ },
+ {
+  "trade_id": "61ee125fd6fc4ee483f55b126d8af423",
+  "ticker": "AEMD",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 0.72,
+  "exit": 0.67,
+  "pnl_raw": -31.35,
+  "shares": 596,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -31.35,
+  "pnl_strict": -31.35
+ },
+ {
+  "trade_id": "12e245fd3b994cab96b506dbcd4498f4",
+  "ticker": "GDC",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.82,
+  "exit": 1.76,
+  "pnl_raw": -0.79,
+  "shares": 79,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 39,
+    "px": 1.8653,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -0.79,
+  "pnl_strict": -0.79
+ },
+ {
+  "trade_id": "c2e239266bde47b3bf3a19134106fb29",
+  "ticker": "LFS",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 2.8,
+  "exit": 3.24,
+  "pnl_raw": 45.96,
+  "shares": 145,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 72,
+    "px": 3.006,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 36,
+    "px": 3.2121,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 45.96,
+  "pnl_strict": 45.96
+ },
+ {
+  "trade_id": "dc5c97ffaee94b8c80c25a0001c11f81",
+  "ticker": "SHPH",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 4.14,
+  "exit": 3.78,
+  "pnl_raw": -36.62,
+  "shares": 103,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -36.62,
+  "pnl_strict": -36.62
+ },
+ {
+  "trade_id": "050c1e6e0f9547cd99aab36059ebbc53",
+  "ticker": "TGHL",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 1.12,
+  "exit": 1.12,
+  "pnl_raw": 29.96,
+  "shares": 300,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 150,
+    "px": 1.2199,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 75,
+    "px": 1.3198,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 29.96,
+  "pnl_strict": 29.96
+ },
+ {
+  "trade_id": "3cb91d25768e496085f1886cb39e311f",
+  "ticker": "FCUV",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 14.79,
+  "exit": 13.25,
+  "pnl_raw": -43.12,
+  "shares": 28,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -43.12,
+  "pnl_strict": -43.12
+ },
+ {
+  "trade_id": "a3ec4ca3f9c548a2bacac2fdc42b0369",
+  "ticker": "FCUV",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 15.81,
+  "exit": 14.76,
+  "pnl_raw": -3.33,
+  "shares": 31,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 15,
+    "px": 16.7097,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -3.33,
+  "pnl_strict": -3.33
+ },
+ {
+  "trade_id": "fdeeda2a48f946f0866a99cd9c44b787",
+  "ticker": "LESL",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 1.09,
+  "exit": 0.99,
+  "pnl_raw": -35.16,
+  "shares": 352,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -35.16,
+  "pnl_strict": -35.16
+ },
+ {
+  "trade_id": "794c14cd2d43440599af0f1881250bf6",
+  "ticker": "ZEO",
+  "date": "2026-07-31",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 0.98,
+  "exit": 0.6,
+  "pnl_raw": -33.47,
+  "shares": 89,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -33.47,
+  "pnl_strict": -33.47
+ },
+ {
+  "trade_id": "dbe7080ca84e4704800df4a4c9681508",
+  "ticker": "HYFM",
+  "date": "2026-08-03",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 3.48,
+  "exit": 3.39,
+  "pnl_raw": 4.82,
+  "shares": 78,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 25,
+    "px": 3.8618,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.82,
+  "pnl_strict": 4.82
+ },
+ {
+  "trade_id": "a8739b784234474591d8ad6a7e521793",
+  "ticker": "HYFM",
+  "date": "2026-08-03",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 3.35,
+  "exit": 3.31,
+  "pnl_raw": 2.78,
+  "shares": 149,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 49,
+    "px": 3.5005,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 2.78,
+  "pnl_strict": 2.78
+ },
+ {
+  "trade_id": "69a7c31023ed4dd581495901034ad31d",
+  "ticker": "EZRA",
+  "date": "2026-08-03",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 2.93,
+  "exit": 2.87,
+  "pnl_raw": 1.89,
+  "shares": 170,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 56,
+    "px": 3.0847,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 1.89,
+  "pnl_strict": 1.89
+ },
+ {
+  "trade_id": "90fccc8ab46345d19606ebe94c86b972",
+  "ticker": "PRZO",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 0.52,
+  "exit": 0.52,
+  "pnl_raw": 3.15,
+  "shares": 957,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 315,
+    "px": 0.5321,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.15,
+  "pnl_strict": 3.15
+ },
+ {
+  "trade_id": "899a5138427e4c8995d395a935fadfec",
+  "ticker": "FCUV",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 15.35,
+  "exit": 15.4,
+  "pnl_raw": 20.99,
+  "shares": 32,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 16,
+    "px": 15.9942,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 8,
+    "px": 16.6384,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 16.68,
+  "pnl_strict": 11.08
+ },
+ {
+  "trade_id": "16923e9f26e74767a077a61813b2f84f",
+  "ticker": "CYCU",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.09,
+  "exit": 1.07,
+  "pnl_raw": 5.27,
+  "shares": 456,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 228,
+    "px": 1.1431,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -2.28,
+  "pnl_strict": -11.4
+ },
+ {
+  "trade_id": "32ae3b68342441ba82565664349f83b3",
+  "ticker": "PRZO",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 0.53,
+  "exit": 0.53,
+  "pnl_raw": 4.99,
+  "shares": 941,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 310,
+    "px": 0.5412,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.99,
+  "pnl_strict": 4.99
+ },
+ {
+  "trade_id": "4edffe353da649068acb54f668b83616",
+  "ticker": "EZRA",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.05,
+  "exit": 4.01,
+  "pnl_raw": 6.81,
+  "shares": 119,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 39,
+    "px": 4.3019,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.4,
+  "pnl_strict": -4.57
+ },
+ {
+  "trade_id": "17566b251d344fcca584b171b26662ab",
+  "ticker": "FUSE",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "dip_rip",
+  "entry": 1.3,
+  "exit": 1.35,
+  "pnl_raw": 16.49,
+  "shares": 66,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 33,
+    "px": 1.7496,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 16.49,
+  "pnl_strict": 16.49
+ },
+ {
+  "trade_id": "ab3a175b0e8943868f3cbc6065de8204",
+  "ticker": "LNAI",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.48,
+  "exit": 2.71,
+  "pnl_raw": 2.59,
+  "shares": 15,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 7,
+    "px": 2.5921,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 4,
+    "px": 2.7042,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 2.59,
+  "pnl_strict": 2.59
+ },
+ {
+  "trade_id": "a5f47b38d3b148a18908da30c0d85d8e",
+  "ticker": "UPC",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 6.74,
+  "exit": 6.0,
+  "pnl_raw": -41.24,
+  "shares": 56,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -41.24,
+  "pnl_strict": -41.24
+ },
+ {
+  "trade_id": "8c751413c59443ad9a585cd16a6b2346",
+  "ticker": "WLDS",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.08,
+  "exit": 3.1,
+  "pnl_raw": 4.82,
+  "shares": 47,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 23,
+    "px": 3.2701,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.82,
+  "pnl_strict": 4.82
+ },
+ {
+  "trade_id": "23f3bbc69fd442dda6701f39e61c06dd",
+  "ticker": "FUSE",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 1.47,
+  "exit": 1.36,
+  "pnl_raw": -30.66,
+  "shares": 292,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.66,
+  "pnl_strict": -30.66
+ },
+ {
+  "trade_id": "0b9d714e920b40b2aadd9f15afa99b43",
+  "ticker": "FUSE",
+  "date": "2026-08-03",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 1.46,
+  "exit": 1.35,
+  "pnl_raw": -33.53,
+  "shares": 316,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -33.53,
+  "pnl_strict": -33.53
+ },
+ {
+  "trade_id": "6d671f06f03d45dbb91baccb8604c0ce",
+  "ticker": "DXST",
+  "date": "2026-08-04",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 3.34,
+  "exit": 3.07,
+  "pnl_raw": -39.68,
+  "shares": 149,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -39.68,
+  "pnl_strict": -39.68
+ },
+ {
+  "trade_id": "a115acb39bf04660a210b26130229fe3",
+  "ticker": "ADGM",
+  "date": "2026-08-04",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 0.68,
+  "exit": 0.65,
+  "pnl_raw": -8.16,
+  "shares": 737,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 243,
+    "px": 0.6923,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -8.16,
+  "pnl_strict": -8.16
+ },
+ {
+  "trade_id": "0bc59b38654f4c48b86a9823ef8a7e38",
+  "ticker": "IPW",
+  "date": "2026-08-04",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 0.58,
+  "exit": 0.57,
+  "pnl_raw": -4.31,
+  "shares": 862,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 284,
+    "px": 0.5929,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -4.31,
+  "pnl_strict": -4.31
+ },
+ {
+  "trade_id": "3ec5931eb69f47b9a78d8737a07eb485",
+  "ticker": "QNME",
+  "date": "2026-08-04",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 1.03,
+  "exit": 1.06,
+  "pnl_raw": 17.21,
+  "shares": 366,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 120,
+    "px": 1.1119,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 17.21,
+  "pnl_strict": 17.21
+ },
+ {
+  "trade_id": "83bbd11b2b8d47098d5d211411668fe8",
+  "ticker": "TNMG",
+  "date": "2026-08-04",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 0.77,
+  "exit": 0.75,
+  "pnl_raw": -10.79,
+  "shares": 631,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -10.79,
+  "pnl_strict": -10.79
+ },
+ {
+  "trade_id": "d211974a356c48e99727ba413b5e995e",
+  "ticker": "NUWE",
+  "date": "2026-08-04",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.04,
+  "exit": 2.0,
+  "pnl_raw": 24.68,
+  "shares": 245,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 122,
+    "px": 2.1508,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 61,
+    "px": 2.2616,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 24.68,
+  "pnl_strict": 24.68
+ },
+ {
+  "trade_id": "aa6fbb93ab4343d4a9ddae58d1b82b5d",
+  "ticker": "ADGM",
+  "date": "2026-08-04",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 0.62,
+  "exit": 0.79,
+  "pnl_raw": 57.54,
+  "shares": 647,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 323,
+    "px": 0.6637,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 162,
+    "px": 0.71,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 57.54,
+  "pnl_strict": 57.54
+ },
+ {
+  "trade_id": "a1e0b3fee2ab448c8f3569a281d2b51d",
+  "ticker": "ADGM",
+  "date": "2026-08-04",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 0.82,
+  "exit": 0.84,
+  "pnl_raw": 16.05,
+  "shares": 608,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 200,
+    "px": 0.864,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 16.05,
+  "pnl_strict": 16.05
+ },
+ {
+  "trade_id": "7705c1ed413c4a6cb90ae035a89dfba0",
+  "ticker": "ADGM",
+  "date": "2026-08-04",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 0.83,
+  "exit": 0.82,
+  "pnl_raw": 4.28,
+  "shares": 602,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 198,
+    "px": 0.8714,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.28,
+  "pnl_strict": 4.28
+ },
+ {
+  "trade_id": "de2455bb5ab9435292c4eaeeed8ec9d5",
+  "ticker": "ZEO",
+  "date": "2026-08-04",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 0.56,
+  "exit": 0.53,
+  "pnl_raw": -8.18,
+  "shares": 891,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 445,
+    "px": 0.5786,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -8.18,
+  "pnl_strict": -8.18
+ },
+ {
+  "trade_id": "b80d403505cb45f9aa4c0850ff9e8434",
+  "ticker": "AMIX",
+  "date": "2026-08-04",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 6.6,
+  "exit": 20.7,
+  "pnl_raw": 291.41,
+  "shares": 75,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 37,
+    "px": 6.9135,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 19,
+    "px": 7.227,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 291.41,
+  "pnl_strict": 291.41
+ },
+ {
+  "trade_id": "5a8f4fb2865b4954b1fe94d66fa0c3e6",
+  "ticker": "INLF",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 7.15,
+  "exit": 6.91,
+  "pnl_raw": -0.87,
+  "shares": 63,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 20,
+    "px": 7.6195,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -0.87,
+  "pnl_strict": -0.87
+ },
+ {
+  "trade_id": "8a0e318c3edc41b2a4c9738d694e7cab",
+  "ticker": "VMAR",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 0.77,
+  "exit": 0.76,
+  "pnl_raw": 7.33,
+  "shares": 646,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 323,
+    "px": 0.8137,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 7.33,
+  "pnl_strict": 7.33
+ },
+ {
+  "trade_id": "4fe2d33021b044178dfa74a74cd7d21f",
+  "ticker": "JDZG",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 3.99,
+  "exit": 4.04,
+  "pnl_raw": 13.87,
+  "shares": 125,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 41,
+    "px": 4.2237,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 13.87,
+  "pnl_strict": 13.87
+ },
+ {
+  "trade_id": "5cebd135dd8f4d32837eb1ac9f46b73d",
+  "ticker": "YXT",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 7.54,
+  "exit": 6.31,
+  "pnl_raw": -33.21,
+  "shares": 27,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -33.21,
+  "pnl_strict": -33.21
+ },
+ {
+  "trade_id": "118d916c1f214925be0d42e1dbd3a199",
+  "ticker": "INLF",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 6.14,
+  "exit": 5.96,
+  "pnl_raw": -4.96,
+  "shares": 81,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 26,
+    "px": 6.3301,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -4.96,
+  "pnl_strict": -4.96
+ },
+ {
+  "trade_id": "62697515fb4a4f9cad54b1bc9490eb7a",
+  "ticker": "CTOR",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 0.77,
+  "exit": 0.79,
+  "pnl_raw": 5.02,
+  "shares": 111,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 55,
+    "px": 0.8407,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 5.02,
+  "pnl_strict": 5.02
+ },
+ {
+  "trade_id": "5a6485a9026e49cfbdcf6428af138378",
+  "ticker": "JDZG",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 4.05,
+  "exit": 3.8,
+  "pnl_raw": -30.75,
+  "shares": 123,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.75,
+  "pnl_strict": -30.75
+ },
+ {
+  "trade_id": "c671cb5b99cc461697bf9521a6edad27",
+  "ticker": "SHPH",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 4.38,
+  "exit": 4.27,
+  "pnl_raw": -12.54,
+  "shares": 114,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -12.54,
+  "pnl_strict": -12.54
+ },
+ {
+  "trade_id": "7a4ab7254f734c26bcd804015e3a089c",
+  "ticker": "YXT",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 14.23,
+  "exit": 13.87,
+  "pnl_raw": -3.93,
+  "shares": 35,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 11,
+    "px": 14.6564,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -3.93,
+  "pnl_strict": -3.93
+ },
+ {
+  "trade_id": "8337cf529665429986889a8878d3612f",
+  "ticker": "YXT",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 14.14,
+  "exit": 13.6,
+  "pnl_raw": -7.06,
+  "shares": 35,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 11,
+    "px": 14.6745,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -7.06,
+  "pnl_strict": -7.06
+ },
+ {
+  "trade_id": "8d17e52ffab64f2d8adc2b39f97a9702",
+  "ticker": "YXT",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 13.46,
+  "exit": 13.1,
+  "pnl_raw": -3.38,
+  "shares": 37,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 12,
+    "px": 13.9287,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -3.38,
+  "pnl_strict": -3.38
+ },
+ {
+  "trade_id": "b5a4ad1fa4644466bee6e5f6cac9fcb8",
+  "ticker": "BJDX",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "orb",
+  "entry": 1.58,
+  "exit": 1.46,
+  "pnl_raw": -32.52,
+  "shares": 271,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -32.52,
+  "pnl_strict": -32.52
+ },
+ {
+  "trade_id": "b7fa3723a6e342d1945bee665ffaf20c",
+  "ticker": "BJDX",
+  "date": "2026-08-05",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 1.53,
+  "exit": 1.44,
+  "pnl_raw": -30.1,
+  "shares": 301,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.1,
+  "pnl_strict": -30.1
+ },
+ {
+  "trade_id": "ae4eea7cc45640fb87f61075c9a8c0f7",
+  "ticker": "WYHG",
+  "date": "2026-08-06",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 7.7,
+  "exit": 7.7,
+  "pnl_raw": 22.39,
+  "shares": 64,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 32,
+    "px": 8.0499,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 16,
+    "px": 8.3998,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 22.39,
+  "pnl_strict": 22.39
+ },
+ {
+  "trade_id": "3f0b111039f04524935a4903a75640b1",
+  "ticker": "PAVS",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 9.2,
+  "exit": 8.5,
+  "pnl_raw": -30.58,
+  "shares": 44,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.58,
+  "pnl_strict": -30.58
+ },
+ {
+  "trade_id": "300ec5ed90e34ba4bedd734504affa38",
+  "ticker": "MGRX",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 0.62,
+  "exit": 0.58,
+  "pnl_raw": -30.5,
+  "shares": 742,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.5,
+  "pnl_strict": -30.5
+ },
+ {
+  "trade_id": "f2ac1e5f074c4018818926add54b9c23",
+  "ticker": "ENSC",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 0.81,
+  "exit": 0.76,
+  "pnl_raw": -9.6,
+  "shares": 620,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 204,
+    "px": 0.851,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -13.88,
+  "pnl_strict": -28.16
+ },
+ {
+  "trade_id": "ffab5f662a8146868b95c4ce803f50af",
+  "ticker": "ENSC",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 0.81,
+  "exit": 0.8,
+  "pnl_raw": 8.84,
+  "shares": 599,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 197,
+    "px": 0.8563,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.66,
+  "pnl_strict": -2.25
+ },
+ {
+  "trade_id": "3d059cc953c94dbe9a17b411e9260cb5",
+  "ticker": "CLRO",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 11.01,
+  "exit": 10.36,
+  "pnl_raw": 5.27,
+  "shares": 30,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 15,
+    "px": 12.0067,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 5.27,
+  "pnl_strict": 5.27
+ },
+ {
+  "trade_id": "65cbb6a3cde445c1884a6894c0677560",
+  "ticker": "AZI",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 2.17,
+  "exit": 2.09,
+  "pnl_raw": -5.68,
+  "shares": 230,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 75,
+    "px": 2.2593,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -10.13,
+  "pnl_strict": -18.38
+ },
+ {
+  "trade_id": "efde4d4867ec4597a42e348b8f10b9b8",
+  "ticker": "FVN",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 15.25,
+  "exit": 13.8,
+  "pnl_raw": -6.48,
+  "shares": 23,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 11,
+    "px": 16.2429,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -17.4,
+  "pnl_strict": -33.35
+ },
+ {
+  "trade_id": "02f889ad901a4dd8b0a8a7c50fce1650",
+  "ticker": "WYHG",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 17.07,
+  "exit": 15.77,
+  "pnl_raw": -5.16,
+  "shares": 16,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 5,
+    "px": 18.8825,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -5.16,
+  "pnl_strict": -5.16
+ },
+ {
+  "trade_id": "31775b54866c4833aafed67f932bbcc3",
+  "ticker": "WYHG",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 15.77,
+  "exit": 15.77,
+  "pnl_raw": 4.09,
+  "shares": 31,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 10,
+    "px": 16.1785,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.09,
+  "pnl_strict": 4.09
+ },
+ {
+  "trade_id": "2ca52108d3324976ad9e586ba0febbb0",
+  "ticker": "CELZ",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 1.18,
+  "exit": 1.49,
+  "pnl_raw": 59.65,
+  "shares": 423,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 211,
+    "px": 1.2457,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 106,
+    "px": 1.3095,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 59.65,
+  "pnl_strict": 59.65
+ },
+ {
+  "trade_id": "aae90c292dbc49b4a5ceec64e6137d2c",
+  "ticker": "PN",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 9.31,
+  "exit": 9.26,
+  "pnl_raw": 3.65,
+  "shares": 53,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 17,
+    "px": 9.6562,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.65,
+  "pnl_strict": 3.65
+ },
+ {
+  "trade_id": "7b311873c7b24434a7c2592fe2579c41",
+  "ticker": "SUGP",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 2.17,
+  "exit": 1.96,
+  "pnl_raw": -30.45,
+  "shares": 145,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.45,
+  "pnl_strict": -30.45
+ },
+ {
+  "trade_id": "d21b57c9919f4bd7ba85886cc3362e36",
+  "ticker": "WYHG",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 16.6,
+  "exit": 22.22,
+  "pnl_raw": 91.92,
+  "shares": 18,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 5,
+    "px": 18.238,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 4,
+    "px": 24.906,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 91.92,
+  "pnl_strict": 91.92
+ },
+ {
+  "trade_id": "58e1f48ceeb349138155085192066f86",
+  "ticker": "WYHG",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 21.83,
+  "exit": 21.5,
+  "pnl_raw": 0.79,
+  "shares": 22,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 7,
+    "px": 22.65,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 0.79,
+  "pnl_strict": 0.79
+ },
+ {
+  "trade_id": "b4520a8c284e44eca32baa5c41bf77b5",
+  "ticker": "WYHG",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 21.7,
+  "exit": 20.26,
+  "pnl_raw": -16.92,
+  "shares": 23,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 7,
+    "px": 22.5706,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -16.92,
+  "pnl_strict": -16.92
+ },
+ {
+  "trade_id": "02e3373db25040498e1652c1a5a9a2c0",
+  "ticker": "PN",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 12.7,
+  "exit": 12.33,
+  "pnl_raw": -4.8,
+  "shares": 39,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 12,
+    "px": 13.116,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -4.8,
+  "pnl_strict": -4.8
+ },
+ {
+  "trade_id": "f530471fd60140e68ce3fd5258b428e5",
+  "ticker": "CELZ",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 1.57,
+  "exit": 1.45,
+  "pnl_raw": -33.18,
+  "shares": 272,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -33.18,
+  "pnl_strict": -33.18
+ },
+ {
+  "trade_id": "ddbf8ca32b3043019441373a53d5804f",
+  "ticker": "FBLG",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.05,
+  "exit": 1.01,
+  "pnl_raw": 0.74,
+  "shares": 476,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 238,
+    "px": 1.0928,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 0.74,
+  "pnl_strict": 0.74
+ },
+ {
+  "trade_id": "53ce2d213fc847b68fa4a6e028916c05",
+  "ticker": "WYHG",
+  "date": "2026-08-06",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 17.48,
+  "exit": 18.26,
+  "pnl_raw": 23.24,
+  "shares": 26,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 8,
+    "px": 18.6295,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 23.24,
+  "pnl_strict": 23.24
+ },
+ {
+  "trade_id": "6c5a0d76fbc04ce5ab8212de3d4229a9",
+  "ticker": "MB",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 13.79,
+  "exit": 13.4,
+  "pnl_raw": -9.31,
+  "shares": 36,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 11,
+    "px": 13.8294,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -9.31,
+  "pnl_strict": -9.31
+ },
+ {
+  "trade_id": "3614b016a2b1455f891bdef0b35b5d0e",
+  "ticker": "VATE",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 11.96,
+  "exit": 11.77,
+  "pnl_raw": -3.04,
+  "shares": 41,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 13,
+    "px": 12.1351,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -3.04,
+  "pnl_strict": -3.04
+ },
+ {
+  "trade_id": "5e26d2fa321e46aaaff5950d87687ee9",
+  "ticker": "DSY",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 5.82,
+  "exit": 5.75,
+  "pnl_raw": 9.79,
+  "shares": 75,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 37,
+    "px": 6.1589,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 9.79,
+  "pnl_strict": 9.79
+ },
+ {
+  "trade_id": "950afc3206194abd9aa622cb8f1394a6",
+  "ticker": "CELZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.66,
+  "exit": 1.62,
+  "pnl_raw": 2.71,
+  "shares": 258,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 85,
+    "px": 1.7761,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -1.21,
+  "pnl_strict": -10.56
+ },
+ {
+  "trade_id": "27d3282483ae42c8a0339b2f9c62a0e6",
+  "ticker": "MB",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 13.79,
+  "exit": 13.1,
+  "pnl_raw": -11.66,
+  "shares": 36,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 11,
+    "px": 14.3038,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -11.66,
+  "pnl_strict": -11.66
+ },
+ {
+  "trade_id": "706e79742db64dd8b3f31bf00fab3acb",
+  "ticker": "DSY",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 6.03,
+  "exit": 5.48,
+  "pnl_raw": -36.56,
+  "shares": 66,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -36.56,
+  "pnl_strict": -36.56
+ },
+ {
+  "trade_id": "0c153de5ce16402dbf9df6aeea525650",
+  "ticker": "CELZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.64,
+  "exit": 1.61,
+  "pnl_raw": 3.3,
+  "shares": 304,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 100,
+    "px": 1.733,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.0,
+  "pnl_strict": -9.0
+ },
+ {
+  "trade_id": "97243082d18a4a53b24ced94bbdccb77",
+  "ticker": "CELZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.64,
+  "exit": 1.64,
+  "pnl_raw": 9.87,
+  "shares": 297,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 98,
+    "px": 1.7404,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 8.85,
+  "pnl_strict": 0.03
+ },
+ {
+  "trade_id": "57b75cd1e73d403fbb6ca80308bf8c0c",
+  "ticker": "AIXI",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "vwap_reclaim",
+  "entry": 1.26,
+  "exit": 1.18,
+  "pnl_raw": -4.95,
+  "shares": 396,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 198,
+    "px": 1.315,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -4.95,
+  "pnl_strict": -4.95
+ },
+ {
+  "trade_id": "c8530d234664470b8f1b0069f3884061",
+  "ticker": "VATE",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 12.18,
+  "exit": 12.52,
+  "pnl_raw": 17.57,
+  "shares": 41,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 13,
+    "px": 12.7973,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 17.57,
+  "pnl_strict": 17.57
+ },
+ {
+  "trade_id": "68bebcf0929a4524a9aa40a7732f5c95",
+  "ticker": "MB",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 13.35,
+  "exit": 12.88,
+  "pnl_raw": -9.54,
+  "shares": 37,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 12,
+    "px": 13.5425,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -9.54,
+  "pnl_strict": -9.54
+ },
+ {
+  "trade_id": "264edb770da34831b84fa7d721867ecd",
+  "ticker": "CELZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.62,
+  "exit": 1.61,
+  "pnl_raw": 5.91,
+  "shares": 308,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 101,
+    "px": 1.7058,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -1.75,
+  "pnl_strict": -3.77
+ },
+ {
+  "trade_id": "ff30f95a16ae4a89864c8c2685db3772",
+  "ticker": "CELZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.59,
+  "exit": 1.57,
+  "pnl_raw": 1.57,
+  "shares": 313,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 103,
+    "px": 1.651,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -1.62,
+  "pnl_strict": -6.77
+ },
+ {
+  "trade_id": "8a726b0617a745a9a373b48e05ed3f39",
+  "ticker": "YJ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 10.95,
+  "exit": 7.15,
+  "pnl_raw": -4.56,
+  "shares": 10,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": false,
+  "fills": [
+   {
+    "shares": 5,
+    "px": 13.8383,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -4.56,
+  "pnl_strict": -4.56
+ },
+ {
+  "trade_id": "ea14cd50ad78453ab453d7c00f335ccf",
+  "ticker": "QNME",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "ma_pullback",
+  "entry": 0.72,
+  "exit": 0.77,
+  "pnl_raw": 33.2,
+  "shares": 313,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 156,
+    "px": 0.8204,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 78,
+    "px": 0.9161,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 33.2,
+  "pnl_strict": 33.2
+ },
+ {
+  "trade_id": "2168ca1d536b4ad6a2cab5035e3163ea",
+  "ticker": "WFF",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 3.83,
+  "exit": 6.45,
+  "pnl_raw": 215.59,
+  "shares": 130,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 42,
+    "px": 3.95,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 29,
+    "px": 5.7375,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 215.59,
+  "pnl_strict": 215.59
+ },
+ {
+  "trade_id": "91babf789f31496bb39c2cb7f50ec5a2",
+  "ticker": "HUIZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.76,
+  "exit": 1.76,
+  "pnl_raw": 56.57,
+  "shares": 284,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 93,
+    "px": 1.7721,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 63,
+    "px": 2.64,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 45.23,
+  "pnl_strict": 1.13
+ },
+ {
+  "trade_id": "be9ec8225a0a4b6e803ee90af60e14ba",
+  "ticker": "HUIZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.94,
+  "exit": 1.94,
+  "pnl_raw": 40.7,
+  "shares": 142,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 46,
+    "px": 2.1493,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 32,
+    "px": 2.9087,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 26.34,
+  "pnl_strict": 9.7
+ },
+ {
+  "trade_id": "a8ba7c91532f4fb6b03a1b6e97abad7f",
+  "ticker": "HUIZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.92,
+  "exit": 1.92,
+  "pnl_raw": 65.46,
+  "shares": 260,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 85,
+    "px": 2.0351,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 58,
+    "px": 2.88,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 41.1,
+  "pnl_strict": 9.78
+ },
+ {
+  "trade_id": "96620763d8824af1a4b108702106f55b",
+  "ticker": "HUIZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.84,
+  "exit": 1.84,
+  "pnl_raw": 59.61,
+  "shares": 246,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 81,
+    "px": 1.9639,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 54,
+    "px": 2.763,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 43.25,
+  "pnl_strict": 9.77
+ },
+ {
+  "trade_id": "11e8bf8a389447caa567c5185a37b79d",
+  "ticker": "HUIZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.88,
+  "exit": 1.88,
+  "pnl_raw": 61.87,
+  "shares": 265,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 87,
+    "px": 1.9645,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 58,
+    "px": 2.82,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 40.99,
+  "pnl_strict": 7.35
+ },
+ {
+  "trade_id": "7f4935c26183474797fc24c6bce2b761",
+  "ticker": "HUIZ",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.8,
+  "exit": 1.8,
+  "pnl_raw": 58.77,
+  "shares": 277,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 91,
+    "px": 1.8425,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 61,
+    "px": 2.7,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 44.13,
+  "pnl_strict": 3.87
+ },
+ {
+  "trade_id": "8091a2820a534c7a9ba5cf6296be9d11",
+  "ticker": "WFF",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 8.0,
+  "exit": 7.36,
+  "pnl_raw": -16.74,
+  "shares": 60,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 19,
+    "px": 8.5,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -16.74,
+  "pnl_strict": -16.74
+ },
+ {
+  "trade_id": "3d1a9009573d44a7a1783389661fdd76",
+  "ticker": "WFF",
+  "date": "2026-08-07",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 7.2,
+  "exit": 6.83,
+  "pnl_raw": -15.48,
+  "shares": 69,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 22,
+    "px": 7.271,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -15.48,
+  "pnl_strict": -15.48
+ },
+ {
+  "trade_id": "5a2f45fa66d24492929f4558d233074b",
+  "ticker": "HUDI",
+  "date": "2026-08-10",
+  "session": "PRE",
+  "lane": "vwap_reclaim",
+  "entry": 1.06,
+  "exit": 1.01,
+  "pnl_raw": -0.35,
+  "shares": 117,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 58,
+    "px": 1.1045,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -0.35,
+  "pnl_strict": -0.35
+ },
+ {
+  "trade_id": "02c9e18d9d1640308a2a516ae8f63001",
+  "ticker": "VIVK",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.57,
+  "exit": 1.55,
+  "pnl_raw": 3.03,
+  "shares": 37,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 18,
+    "px": 1.7526,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.03,
+  "pnl_strict": 3.03
+ },
+ {
+  "trade_id": "f18b593c6cf94163bf7cd54126c47e87",
+  "ticker": "XHLD",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 3.56,
+  "exit": 3.41,
+  "pnl_raw": -6.88,
+  "shares": 140,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 46,
+    "px": 3.723,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -6.88,
+  "pnl_strict": -6.88
+ },
+ {
+  "trade_id": "79e05518ed344d75a9810937aa2a138d",
+  "ticker": "XHLD",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 3.56,
+  "exit": 3.56,
+  "pnl_raw": 9.18,
+  "shares": 127,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 41,
+    "px": 3.7995,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 9.18,
+  "pnl_strict": 9.18
+ },
+ {
+  "trade_id": "7b018be165df427882f18490aeca4677",
+  "ticker": "STKH",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 5.92,
+  "exit": 5.81,
+  "pnl_raw": 0.24,
+  "shares": 21,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 6,
+    "px": 6.235,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -1.17,
+  "pnl_strict": -2.31
+ },
+ {
+  "trade_id": "31ad63a256cf4afc85c3012a8d98d6d1",
+  "ticker": "INHD",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 6.32,
+  "exit": 6.14,
+  "pnl_raw": -3.35,
+  "shares": 19,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -3.35,
+  "pnl_strict": -3.35
+ },
+ {
+  "trade_id": "0bc2120dee564a169d1d47d47ac3cc9d",
+  "ticker": "XHLD",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 3.56,
+  "exit": 3.56,
+  "pnl_raw": 9.01,
+  "shares": 140,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 46,
+    "px": 3.7589,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 9.01,
+  "pnl_strict": 9.01
+ },
+ {
+  "trade_id": "fae733d82bb449d8b6e930a8aed785a1",
+  "ticker": "XHLD",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 3.57,
+  "exit": 3.55,
+  "pnl_raw": 7.88,
+  "shares": 127,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 41,
+    "px": 3.8071,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 7.88,
+  "pnl_strict": 7.88
+ },
+ {
+  "trade_id": "3be211bc4a0a4c74a4ff664f1189dc43",
+  "ticker": "ZJYL",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.4,
+  "exit": 3.37,
+  "pnl_raw": 11.45,
+  "shares": 97,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 48,
+    "px": 3.6766,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 11.45,
+  "pnl_strict": 11.45
+ },
+ {
+  "trade_id": "2c0ef8d65a704cffaa5e5690e5c3516b",
+  "ticker": "PCLA",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 17.4,
+  "exit": 16.69,
+  "pnl_raw": -2.34,
+  "shares": 21,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 6,
+    "px": 18.8021,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -10.15,
+  "pnl_strict": -15.01
+ },
+ {
+  "trade_id": "9c8771048c6a4a28a855527fbf307f73",
+  "ticker": "XHLD",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 3.76,
+  "exit": 3.69,
+  "pnl_raw": 5.6,
+  "shares": 94,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 31,
+    "px": 4.0772,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 5.6,
+  "pnl_strict": 5.6
+ },
+ {
+  "trade_id": "xhld-original-correction-20260810",
+  "ticker": "XHLD",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 3.16,
+  "exit": 3.16,
+  "pnl_raw": 25.43,
+  "shares": 137,
+  "entry_ts_missing": true,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 68,
+    "px": 3.3451,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 34,
+    "px": 3.5321,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 25.43,
+  "pnl_strict": 25.43
+ },
+ {
+  "trade_id": "d7bd65c627b1464ab6a3a58dcc31cd86",
+  "ticker": "THH",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.39,
+  "exit": 4.25,
+  "pnl_raw": 3.6,
+  "shares": 67,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 22,
+    "px": 4.8394,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -0.57,
+  "pnl_strict": -9.37
+ },
+ {
+  "trade_id": "34cd8f020d8e4ca487e42f37bb60fe92",
+  "ticker": "THH",
+  "date": "2026-08-10",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.21,
+  "exit": 4.09,
+  "pnl_raw": -5.57,
+  "shares": 118,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 38,
+    "px": 4.316,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -5.57,
+  "pnl_strict": -5.57
+ },
+ {
+  "trade_id": "61331ed3fe5f4365928118f8c7ff372f",
+  "ticker": "PLAG",
+  "date": "2026-08-11",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 1.42,
+  "exit": 1.4,
+  "pnl_raw": 2.38,
+  "shares": 352,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 116,
+    "px": 1.4809,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 2.38,
+  "pnl_strict": 2.38
+ },
+ {
+  "trade_id": "b28f79747566452fb8e957ce55e6ff75",
+  "ticker": "WXM",
+  "date": "2026-08-11",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 9.6,
+  "exit": 10.13,
+  "pnl_raw": 26.84,
+  "shares": 48,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 15,
+    "px": 10.2225,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 26.84,
+  "pnl_strict": 26.84
+ },
+ {
+  "trade_id": "6d12c8bafe5243498333b2d4f3b8e45f",
+  "ticker": "WXM",
+  "date": "2026-08-11",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 10.72,
+  "exit": 10.43,
+  "pnl_raw": -1.03,
+  "shares": 46,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 15,
+    "px": 11.2387,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -1.03,
+  "pnl_strict": -1.03
+ },
+ {
+  "trade_id": "659426edb49a40d59f53a1c90f45973c",
+  "ticker": "WXM",
+  "date": "2026-08-11",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 10.6,
+  "exit": 10.5,
+  "pnl_raw": 1.76,
+  "shares": 47,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 15,
+    "px": 10.9303,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 1.76,
+  "pnl_strict": 1.76
+ },
+ {
+  "trade_id": "50b6d5e9fe8241178d4b1eb5363375f5",
+  "ticker": "WXM",
+  "date": "2026-08-11",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 10.83,
+  "exit": 11.05,
+  "pnl_raw": 16.31,
+  "shares": 46,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 15,
+    "px": 11.4741,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 16.31,
+  "pnl_strict": 16.31
+ },
+ {
+  "trade_id": "b12772bd06774d26a2b3a14c4b8c1adb",
+  "ticker": "PLAG",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.14,
+  "exit": 1.13,
+  "pnl_raw": 1.21,
+  "shares": 438,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 144,
+    "px": 1.1689,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 1.21,
+  "pnl_strict": 1.21
+ },
+ {
+  "trade_id": "bb4a014de7134a96b7414c363fad6ce3",
+  "ticker": "WXM",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 11.83,
+  "exit": 10.74,
+  "pnl_raw": -29.43,
+  "shares": 27,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -29.43,
+  "pnl_strict": -29.43
+ },
+ {
+  "trade_id": "aabcb72c1ca14b43b38c47ddfec806e8",
+  "ticker": "PLAG",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.15,
+  "exit": 1.16,
+  "pnl_raw": 8.43,
+  "shares": 434,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 143,
+    "px": 1.1886,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 8.43,
+  "pnl_strict": 8.43
+ },
+ {
+  "trade_id": "4cfea94880494cdf83938634da721ad2",
+  "ticker": "ELPW",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 5.18,
+  "exit": 4.92,
+  "pnl_raw": -0.98,
+  "shares": 95,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 47,
+    "px": 5.4302,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -0.98,
+  "pnl_strict": -0.98
+ },
+ {
+  "trade_id": "568da9eddd8146faa3656a0cd7e075ba",
+  "ticker": "PLAG",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.2,
+  "exit": 1.13,
+  "pnl_raw": -27.13,
+  "shares": 418,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -27.13,
+  "pnl_strict": -27.13
+ },
+ {
+  "trade_id": "29af4ee725ab49ceb1bf5578ef8d3d39",
+  "ticker": "PLAG",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.15,
+  "exit": 1.13,
+  "pnl_raw": -0.67,
+  "shares": 434,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 143,
+    "px": 1.1838,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -0.67,
+  "pnl_strict": -0.67
+ },
+ {
+  "trade_id": "169b20eb2f434d15834a02dd4a40a4d6",
+  "ticker": "PLAG",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.16,
+  "exit": 1.15,
+  "pnl_raw": 1.43,
+  "shares": 431,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 142,
+    "px": 1.1896,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 1.43,
+  "pnl_strict": 1.43
+ },
+ {
+  "trade_id": "97dcf63047d849809edcdc2036200f70",
+  "ticker": "MTEN",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.38,
+  "exit": 1.32,
+  "pnl_raw": -0.1,
+  "shares": 89,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 44,
+    "px": 1.4262,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -0.1,
+  "pnl_strict": -0.1
+ },
+ {
+  "trade_id": "3ea6ae20815c49cf82734817f8ce77a3",
+  "ticker": "PLAG",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.17,
+  "exit": 1.16,
+  "pnl_raw": 5.32,
+  "shares": 427,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 140,
+    "px": 1.2238,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 5.32,
+  "pnl_strict": 5.32
+ },
+ {
+  "trade_id": "c7b18467efea46cb802a324fd06627af",
+  "ticker": "PLAG",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.14,
+  "exit": 1.11,
+  "pnl_raw": -5.44,
+  "shares": 438,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 144,
+    "px": 1.1644,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -5.44,
+  "pnl_strict": -5.44
+ },
+ {
+  "trade_id": "8ccb1da63f2b41939a60206a6cb95826",
+  "ticker": "WXM",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 10.68,
+  "exit": 10.33,
+  "pnl_raw": -1.02,
+  "shares": 46,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 15,
+    "px": 11.32,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -1.02,
+  "pnl_strict": -1.02
+ },
+ {
+  "trade_id": "67f415f95d19449c8f7122991cd7f068",
+  "ticker": "ELPW",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 4.85,
+  "exit": 4.99,
+  "pnl_raw": 28.35,
+  "shares": 92,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 46,
+    "px": 5.1257,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 23,
+    "px": 5.4004,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 23.05,
+  "pnl_strict": 18.91
+ },
+ {
+  "trade_id": "70a620c7313d44b49e4fca9886b5c8c4",
+  "ticker": "WAFU",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.75,
+  "exit": 1.74,
+  "pnl_raw": 16.51,
+  "shares": 283,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 141,
+    "px": 1.8075,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 71,
+    "px": 1.8677,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 16.51,
+  "pnl_strict": 16.51
+ },
+ {
+  "trade_id": "40d35037f12d40b7976dddc0be6730dc",
+  "ticker": "WXM",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 10.73,
+  "exit": 10.65,
+  "pnl_raw": 6.88,
+  "shares": 39,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 12,
+    "px": 11.4836,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 6.88,
+  "pnl_strict": 6.88
+ },
+ {
+  "trade_id": "8267891f745947b28e1c64324584b25e",
+  "ticker": "ELPW",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 4.97,
+  "exit": 4.92,
+  "pnl_raw": 16.0,
+  "shares": 99,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 49,
+    "px": 5.144,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 25,
+    "px": 5.3182,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 12.29,
+  "pnl_strict": 6.04
+ },
+ {
+  "trade_id": "17163193ad17446fa2c815c5f42419d8",
+  "ticker": "PLAG",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.29,
+  "exit": 1.54,
+  "pnl_raw": 39.55,
+  "shares": 177,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 58,
+    "px": 1.459,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 39.55,
+  "pnl_strict": 39.55
+ },
+ {
+  "trade_id": "39d2d60774b743e38988dc4851394dde",
+  "ticker": "DXF",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 0.56,
+  "exit": 0.53,
+  "pnl_raw": -16.73,
+  "shares": 577,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -16.73,
+  "pnl_strict": -16.73
+ },
+ {
+  "trade_id": "ee68fd69b8554193a2dc483733fc1780",
+  "ticker": "MSGY",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.47,
+  "exit": 4.7,
+  "pnl_raw": 25.67,
+  "shares": 103,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 33,
+    "px": 4.7602,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 25.67,
+  "pnl_strict": 25.67
+ },
+ {
+  "trade_id": "eaaf49310ee346c1b896610ed3b6e77f",
+  "ticker": "MSGY",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.85,
+  "exit": 4.8,
+  "pnl_raw": 6.52,
+  "shares": 90,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 29,
+    "px": 5.18,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 6.52,
+  "pnl_strict": 6.52
+ },
+ {
+  "trade_id": "db3218fd98a148348469555dc0cbb20a",
+  "ticker": "MSGY",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.87,
+  "exit": 4.84,
+  "pnl_raw": 7.18,
+  "shares": 102,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 33,
+    "px": 5.1535,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 7.18,
+  "pnl_strict": 7.18
+ },
+ {
+  "trade_id": "47bdf409aac3442589e2a54445586bfa",
+  "ticker": "MSGY",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.88,
+  "exit": 4.75,
+  "pnl_raw": 0.53,
+  "shares": 102,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 33,
+    "px": 5.1573,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 0.53,
+  "pnl_strict": 0.53
+ },
+ {
+  "trade_id": "dcaaa8772a7b4838b9644c5e95fb3d25",
+  "ticker": "MSGY",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.8,
+  "exit": 4.66,
+  "pnl_raw": -3.58,
+  "shares": 104,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 34,
+    "px": 4.983,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -3.58,
+  "pnl_strict": -3.58
+ },
+ {
+  "trade_id": "5562b8433a96429aac181ac8687ce4ee",
+  "ticker": "MSGY",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.89,
+  "exit": 4.57,
+  "pnl_raw": -14.16,
+  "shares": 102,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 33,
+    "px": 5.143,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -14.16,
+  "pnl_strict": -14.16
+ },
+ {
+  "trade_id": "46e51dd1156e40048d5cfca63abdbde6",
+  "ticker": "VEEE",
+  "date": "2026-08-11",
+  "session": "RTH",
+  "lane": "flat_top",
+  "entry": 13.78,
+  "exit": 12.93,
+  "pnl_raw": -5.98,
+  "shares": 7,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -5.98,
+  "pnl_strict": -5.98
+ },
+ {
+  "trade_id": "3ed1a9412b8645728b06a742912ce72e",
+  "ticker": "OFAL",
+  "date": "2026-08-12",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 2.75,
+  "exit": 2.74,
+  "pnl_raw": 5.71,
+  "shares": 181,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 59,
+    "px": 2.8675,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 5.71,
+  "pnl_strict": 5.71
+ },
+ {
+  "trade_id": "1f4f6c889e0a44018f384a1d8579de4c",
+  "ticker": "OFAL",
+  "date": "2026-08-12",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 2.71,
+  "exit": 2.69,
+  "pnl_raw": 6.22,
+  "shares": 184,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 60,
+    "px": 2.855,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 6.22,
+  "pnl_strict": 6.22
+ },
+ {
+  "trade_id": "65ef957eff164274ac59f32903f57cf4",
+  "ticker": "OFAL",
+  "date": "2026-08-12",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 2.68,
+  "exit": 2.67,
+  "pnl_raw": 6.47,
+  "shares": 186,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 61,
+    "px": 2.8005,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 6.47,
+  "pnl_strict": 6.47
+ },
+ {
+  "trade_id": "d48bac4b428744fdbbf07ef9c5a703c1",
+  "ticker": "OFAL",
+  "date": "2026-08-12",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 2.73,
+  "exit": 2.68,
+  "pnl_raw": 3.51,
+  "shares": 181,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 59,
+    "px": 2.895,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.51,
+  "pnl_strict": 3.51
+ },
+ {
+  "trade_id": "2ed18bddc0ca47ce8d803aa5e3708dc8",
+  "ticker": "OFAL",
+  "date": "2026-08-12",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 2.71,
+  "exit": 2.66,
+  "pnl_raw": 3.03,
+  "shares": 184,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 60,
+    "px": 2.8645,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.03,
+  "pnl_strict": 3.03
+ },
+ {
+  "trade_id": "722215ae20624aa49969e4d21b1fc37d",
+  "ticker": "OFAL",
+  "date": "2026-08-12",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 2.73,
+  "exit": 2.68,
+  "pnl_raw": 4.24,
+  "shares": 173,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 57,
+    "px": 2.9016,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.24,
+  "pnl_strict": 4.24
+ },
+ {
+  "trade_id": "eacd96c8d5c94fedbf503ce54847a767",
+  "ticker": "DRMA",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.38,
+  "exit": 1.23,
+  "pnl_raw": -30.43,
+  "shares": 209,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [],
+  "exit_verified": true,
+  "pnl_charitable": -30.43,
+  "pnl_strict": -30.43
+ },
+ {
+  "trade_id": "c531bed735e34e839685f77d55fa44be",
+  "ticker": "OFAL",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 2.7,
+  "exit": 2.85,
+  "pnl_raw": 21.32,
+  "shares": 115,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 37,
+    "px": 2.96,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 21.32,
+  "pnl_strict": 21.32
+ },
+ {
+  "trade_id": "86d52a8c5dd14107822512677daf85c0",
+  "ticker": "BQ",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.4,
+  "exit": 1.98,
+  "pnl_raw": 83.23,
+  "shares": 177,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 58,
+    "px": 1.5676,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 39,
+    "px": 2.0982,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 83.23,
+  "pnl_strict": 83.23
+ },
+ {
+  "trade_id": "49a5310cc9b34f2b94fc15ac747c29b0",
+  "ticker": "BQ",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.85,
+  "exit": 1.82,
+  "pnl_raw": 7.73,
+  "shares": 131,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 43,
+    "px": 2.078,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 2.66,
+  "pnl_strict": -3.36
+ },
+ {
+  "trade_id": "90b352c27785418a8e37c66d5f6a21d6",
+  "ticker": "SCKT",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.35,
+  "exit": 1.74,
+  "pnl_raw": 54.75,
+  "shares": 367,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 183,
+    "px": 1.3967,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 92,
+    "px": 1.447,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 54.75,
+  "pnl_strict": 54.75
+ },
+ {
+  "trade_id": "5d943e6847484208a1b9911d80901263",
+  "ticker": "BQ",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.33,
+  "exit": 1.33,
+  "pnl_raw": 61.05,
+  "shares": 375,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 123,
+    "px": 1.3776,
+    "cat": "verified_generous_only"
+   },
+   {
+    "shares": 83,
+    "px": 1.995,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 30.75,
+  "pnl_strict": 5.85
+ },
+ {
+  "trade_id": "05503530f1ad4433a477c99e5b2a7530",
+  "ticker": "BQ",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.36,
+  "exit": 1.31,
+  "pnl_raw": -2.32,
+  "shares": 364,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 120,
+    "px": 1.4423,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -2.32,
+  "pnl_strict": -2.32
+ },
+ {
+  "trade_id": "5c07091b75fc4ee98e3cb812933b9dfb",
+  "ticker": "BQ",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.36,
+  "exit": 1.33,
+  "pnl_raw": 3.72,
+  "shares": 367,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 121,
+    "px": 1.4416,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.72,
+  "pnl_strict": 3.72
+ },
+ {
+  "trade_id": "5c900a98614e427f848848e131473ead",
+  "ticker": "BQ",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.31,
+  "exit": 1.31,
+  "pnl_raw": 2.25,
+  "shares": 381,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 125,
+    "px": 1.328,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 2.25,
+  "pnl_strict": 2.25
+ },
+ {
+  "trade_id": "b69b850d954045b1b89fe3d0037bb917",
+  "ticker": "OFAL",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 2.21,
+  "exit": 2.21,
+  "pnl_raw": 9.8,
+  "shares": 214,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 70,
+    "px": 2.35,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 9.8,
+  "pnl_strict": 9.8
+ },
+ {
+  "trade_id": "5a1f6aff170e4e118e1eb60d11083d7f",
+  "ticker": "BQ",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.35,
+  "exit": 1.39,
+  "pnl_raw": 16.01,
+  "shares": 369,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 121,
+    "px": 1.418,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 16.01,
+  "pnl_strict": 16.01
+ },
+ {
+  "trade_id": "e9bc0179a07c4154bf05481bec558ec3",
+  "ticker": "BQ",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.37,
+  "exit": 1.34,
+  "pnl_raw": -1.37,
+  "shares": 364,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 120,
+    "px": 1.4197,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -1.37,
+  "pnl_strict": -1.37
+ },
+ {
+  "trade_id": "3106a328fa5f4f72850e13f16739d7dc",
+  "ticker": "BQ",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.35,
+  "exit": 1.31,
+  "pnl_raw": -8.65,
+  "shares": 370,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 122,
+    "px": 1.361,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -8.65,
+  "pnl_strict": -8.65
+ },
+ {
+  "trade_id": "a5d0d635057f469cbbb627b222ac1a5b",
+  "ticker": "BQ",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.38,
+  "exit": 1.36,
+  "pnl_raw": 3.56,
+  "shares": 362,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 119,
+    "px": 1.4492,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 0.09,
+  "pnl_strict": -7.05
+ },
+ {
+  "trade_id": "40c384b70848446fb6d2aa73a6c638e4",
+  "ticker": "BOXL",
+  "date": "2026-08-12",
+  "session": "RTH",
+  "lane": "halt_ladder",
+  "entry": 7.35,
+  "exit": 8.0,
+  "pnl_raw": 34.34,
+  "shares": 31,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 15,
+    "px": 8.29,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 8,
+    "px": 9.23,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 34.34,
+  "pnl_strict": 34.34
+ },
+ {
+  "trade_id": "a3a93b123c104b3d864aa44c42c231a7",
+  "ticker": "DFSC",
+  "date": "2026-08-13",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 1.78,
+  "exit": 1.72,
+  "pnl_raw": -9.4,
+  "shares": 280,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 92,
+    "px": 1.8065,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -9.4,
+  "pnl_strict": -9.4
+ },
+ {
+  "trade_id": "c6c727dc43c74ca6a6c6f89830945e86",
+  "ticker": "DFSC",
+  "date": "2026-08-13",
+  "session": "PRE",
+  "lane": "hidden_entry",
+  "entry": 1.82,
+  "exit": 1.76,
+  "pnl_raw": -1.18,
+  "shares": 68,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 22,
+    "px": 1.8916,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -1.18,
+  "pnl_strict": -1.18
+ },
+ {
+  "trade_id": "1a379846002c4a7fb60dab42e50c76bd",
+  "ticker": "GXAI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.28,
+  "exit": 1.27,
+  "pnl_raw": 10.34,
+  "shares": 387,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 193,
+    "px": 1.3379,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 10.34,
+  "pnl_strict": 10.34
+ },
+ {
+  "trade_id": "2775aca9187743a7ada64489575f7ba9",
+  "ticker": "OFAL",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "ignition",
+  "entry": 1.7,
+  "exit": 1.68,
+  "pnl_raw": 13.72,
+  "shares": 291,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 145,
+    "px": 1.7508,
+    "cat": "verified_strict"
+   },
+   {
+    "shares": 73,
+    "px": 1.8037,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 13.72,
+  "pnl_strict": 13.72
+ },
+ {
+  "trade_id": "15b4bb8ca00c465a9142ec9f427f9b54",
+  "ticker": "FGI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 11.59,
+  "exit": 11.4,
+  "pnl_raw": 2.32,
+  "shares": 43,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 14,
+    "px": 12.131,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 2.32,
+  "pnl_strict": 2.32
+ },
+ {
+  "trade_id": "ceb79970f968472fb9fc6d8addc61126",
+  "ticker": "FGI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 11.26,
+  "exit": 11.21,
+  "pnl_raw": 2.05,
+  "shares": 44,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 14,
+    "px": 11.5365,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 2.05,
+  "pnl_strict": 2.05
+ },
+ {
+  "trade_id": "4f95a3b6a74a4209b50f3f5d632fade9",
+  "ticker": "FGI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 11.32,
+  "exit": 11.21,
+  "pnl_raw": 3.56,
+  "shares": 44,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 14,
+    "px": 11.8107,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.56,
+  "pnl_strict": 3.56
+ },
+ {
+  "trade_id": "3cb411183c8041e3bdcb256d528bd9b6",
+  "ticker": "HCTI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.78,
+  "exit": 1.75,
+  "pnl_raw": 3.66,
+  "shares": 281,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 92,
+    "px": 1.8695,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.66,
+  "pnl_strict": 3.66
+ },
+ {
+  "trade_id": "18e2f2337dfd4055ad2db7dd3f1583c0",
+  "ticker": "HCTI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 1.76,
+  "exit": 1.75,
+  "pnl_raw": 4.83,
+  "shares": 283,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 93,
+    "px": 1.8476,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.83,
+  "pnl_strict": 4.83
+ },
+ {
+  "trade_id": "fe2937071b22448da41a124780529510",
+  "ticker": "FGI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 10.77,
+  "exit": 13.38,
+  "pnl_raw": 83.73,
+  "shares": 46,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 15,
+    "px": 10.9477,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 83.73,
+  "pnl_strict": 83.73
+ },
+ {
+  "trade_id": "1688b733b8eb4c1ba0dd45086cd4fc76",
+  "ticker": "FGI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 13.29,
+  "exit": 13.22,
+  "pnl_raw": 4.82,
+  "shares": 37,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 12,
+    "px": 13.8379,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 4.82,
+  "pnl_strict": 4.82
+ },
+ {
+  "trade_id": "615f257b3c054c9484c039df38113615",
+  "ticker": "FGI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 14.01,
+  "exit": 16.45,
+  "pnl_raw": 67.27,
+  "shares": 35,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 11,
+    "px": 14.7866,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 67.27,
+  "pnl_strict": 67.27
+ },
+ {
+  "trade_id": "3f3202493b224924b45e24e9e837c0a0",
+  "ticker": "FGI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 17.57,
+  "exit": 16.64,
+  "pnl_raw": -14.4,
+  "shares": 28,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 9,
+    "px": 17.9449,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -14.4,
+  "pnl_strict": -14.4
+ },
+ {
+  "trade_id": "41d3b9fa67eb4ab19f0763eac1e588b9",
+  "ticker": "DFSC",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 2.45,
+  "exit": 2.44,
+  "pnl_raw": 3.46,
+  "shares": 203,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 66,
+    "px": 2.5367,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 3.46,
+  "pnl_strict": 3.46
+ },
+ {
+  "trade_id": "9e60506e756c4610b1e66014349c28e9",
+  "ticker": "DFSC",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 2.49,
+  "exit": 2.42,
+  "pnl_raw": -1.68,
+  "shares": 200,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 66,
+    "px": 2.6059,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -1.68,
+  "pnl_strict": -1.68
+ },
+ {
+  "trade_id": "e2969ab82e7540799c05e8e46224e312",
+  "ticker": "DFSC",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 2.4,
+  "exit": 2.49,
+  "pnl_raw": 15.31,
+  "shares": 208,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 68,
+    "px": 2.4245,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 15.31,
+  "pnl_strict": 15.31
+ },
+ {
+  "trade_id": "af6cd703b5da4e1fa0637e4835337087",
+  "ticker": "PSQH",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 4.77,
+  "exit": 4.69,
+  "pnl_raw": -1.03,
+  "shares": 104,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 34,
+    "px": 4.9041,
+    "cat": "FICTION"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": -1.85,
+  "pnl_strict": -8.31
+ },
+ {
+  "trade_id": "db3faec28394406287219a5b115ada41",
+  "ticker": "FGI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 12.46,
+  "exit": 12.35,
+  "pnl_raw": 6.44,
+  "shares": 40,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 13,
+    "px": 13.1909,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 6.44,
+  "pnl_strict": 6.44
+ },
+ {
+  "trade_id": "a500330834aa4956af79a8b1c0089fee",
+  "ticker": "FGI",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 12.41,
+  "exit": 12.22,
+  "pnl_raw": 2.28,
+  "shares": 40,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 13,
+    "px": 12.9674,
+    "cat": "verified_generous_only"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 2.28,
+  "pnl_strict": 2.28
+ },
+ {
+  "trade_id": "e31c570b77d9418382a469cd42e49b78",
+  "ticker": "INHD",
+  "date": "2026-08-13",
+  "session": "RTH",
+  "lane": "hidden_entry",
+  "entry": 12.13,
+  "exit": 11.9,
+  "pnl_raw": 1.85,
+  "shares": 41,
+  "entry_ts_missing": false,
+  "no_bars": false,
+  "entry_verified": true,
+  "fills": [
+   {
+    "shares": 13,
+    "px": 12.765,
+    "cat": "verified_strict"
+   }
+  ],
+  "exit_verified": true,
+  "pnl_charitable": 1.85,
+  "pnl_strict": 1.85
+ }
+]

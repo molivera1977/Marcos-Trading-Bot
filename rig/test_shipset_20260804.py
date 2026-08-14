@@ -1286,6 +1286,29 @@ try:
 except AssertionError as _ve2:
     check("fictional-fill fix", False, str(_ve2))
 
+print("W) 8/14 HIDDEN OBSERVE-ONLY (Marcos 01:39: 'we have to move hidden to observe' — F-control -$4,012)")
+try:
+    _wsrc = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    # env pin EXECUTED: default is observe-only; only an explicit HIDDEN_CONVERT=1 opens orders
+    _wenv = {}
+    exec('import os\nos.environ.pop("HIDDEN_CONVERT", None)\nHIDDEN_CONVERT = os.environ.get("HIDDEN_CONVERT", "0") == "1"', _wenv)
+    assert _wenv["HIDDEN_CONVERT"] is False                       # default = observe
+    assert 'HIDDEN_CONVERT    = os.environ.get("HIDDEN_CONVERT", "0") == "1"' in _wsrc
+    # ORDER OF GATES: the observe branch must come BEFORE the cap check, so the crown/leader
+    # bypass ('not _is_leader') can never reach the order path while observing
+    _wi = _wsrc.index("if not HIDDEN_CONVERT:")
+    _wc = _wsrc.index("_he_day[_sess_he] >= HIDDEN_DAILY_CAP")
+    assert _wi < _wc                                              # observe gate upstream of caps
+    _wblk = _wsrc[_wi:_wi + 900]
+    assert "hidden_observe_only" in _wblk                         # evidence row stamped
+    assert "_he_fire = None" in _wblk                             # fire consumed, no retry-spam
+    assert "crown=_is_leader(t)" in _wblk                         # crown coverage recorded
+    # detection stays live: hidden_shadow_fire logging is NOT inside any HIDDEN_CONVERT gate
+    assert "hidden_shadow_fire" in _wsrc
+    check("hidden observe-only: default off + upstream of crown bypass + evidence row", True)
+except AssertionError as _we:
+    check("hidden observe-only split", False, str(_we))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

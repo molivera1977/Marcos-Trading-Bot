@@ -5507,6 +5507,13 @@ HIDDEN_VEL_BARS   = int(os.environ.get("HIDDEN_VEL_BARS", "30"))    # 30 x 10s =
 HIDDEN_TRIM_R     = float(os.environ.get("HIDDEN_TRIM_R", "1.0"))   # 7/27: R-based FIRST trim on the hidden
                             # ladder (the inherited ×1.50 trigger sat above both closed peaks = unreachable).
 HIDDEN_DAILY_CAP  = int(os.environ.get("HIDDEN_DAILY_CAP", "3"))
+# ── 8/14 01:39 (Marcos: "we have to move hidden to observe") — v1 entry signal refuted
+# (F-control −$4,012/13% win, hidden_fix_sweep_20260813; fictional-fill era profits struck).
+# Detection + full evidence stamps stay LIVE for the Architect's v2 program; conversions to
+# real entries require an explicit HIDDEN_CONVERT=1 — default is observe-only, crowns included
+# (an env cap alone leaks through the leader bypass). Kill nothing: HIDDEN_ENTRY still owns
+# detection; this switch owns only the order path.
+HIDDEN_CONVERT    = os.environ.get("HIDDEN_CONVERT", "0") == "1"
 # ── 7/30 A1 (Fable ship, Marcos yes): extension-above-VWAP at entry is BIMODAL on 190 fires —
 # 0–3% = the clean dip-buy, 10%+ = the deep wick inside a genuine vertical (+$1,472, the entire
 # lane), 3–10% = no-man's-land (−$1,942/69 fires, survives BOTH exit configs = an entry property).
@@ -7328,7 +7335,18 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         _he_day["d"] = _heday; _he_day["PRE"] = 0; _he_day["RTH"] = 0
                     _k_he = (_heday, t)
                     _k_he = _k_he + (_sess_he,)
-                    if ((_he_day[_sess_he] >= HIDDEN_DAILY_CAP or _he_name.get(_k_he, 0) >= HIDDEN_NAME_CAP)
+                    if not HIDDEN_CONVERT:
+                        # 8/14 observe-only split (Marcos order): fire consumed BEFORE the cap
+                        # logic so the crown bypass cannot reach the order path; every field the
+                        # v2 rebuild needs rides the row.
+                        _her = _he_fire
+                        _he_fire = None
+                        _log_decision(t, "hidden_observe_only", price=price, stop=_her["stop"],
+                                      anchor=_her["anchor"], ext_vwap=_her["ext_vwap"],
+                                      seq=_her["seq"], fire_px=_her.get("px"),
+                                      wick=_her.get("wick"), crown=_is_leader(t), sess=_sess_he,
+                                      day_n=_he_day[_sess_he], name_n=_he_name.get(_k_he, 0))
+                    elif ((_he_day[_sess_he] >= HIDDEN_DAILY_CAP or _he_name.get(_k_he, 0) >= HIDDEN_NAME_CAP)
                             and not _is_leader(t)):   # 8/5 leader ammo: winners bypass the ration
                         _log_decision(t, "hidden_capped", price=price, day_n=_he_day[_sess_he],
                                       name_n=_he_name.get(_k_he, 0), sess=_sess_he)

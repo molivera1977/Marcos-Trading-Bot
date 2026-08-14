@@ -1019,3 +1019,20 @@ ADVISORIES docketed for the live flip (inert while OFF; Webull Broker Desk owns)
 the resting limit on the software trigger without a broker fill-status read; (b) resting stop + resting
 limits rest against the same shares — coexistence must be exercised in the owed $5 place+cancel test.
 No push, no deploy — audit + bookkeeping only.
+
+## 2026-08-14 (late) — SHIP AUDIT: v2 shadow calibration C1-C5, env-gated (8c40c8ab423c)
+Convening: data/audits/LATEST.md (Blast Radius Auditor chair, 31-office roll call, 31-0 APPROVE, 0 blocking).
+Elevated-error-day protocol: every claim re-verified by direct read/execution this session, nothing trusted
+from the authoring session. VERIFIED: V2_CALIBRATED default "1" (:5683; rig Z-a executes empty-env=True),
+legacy predicate intact behind "0" (rig Z-e executes it — the calibrated-CUT tape fires legacy, calib="legacy").
+Five gates match the Architect's calibration spec (v2_calibration_20260814.md §3): C1 anchor 2% of VWAP
+(consolidation anchor stamped-not-gated, TODO(C1b)), C2 confirm ≤120s from push + ratchet killed, C3 300s
+per-name cooldown, C4 5-min push window (verified EQUIVALENT to spec's 2min==5min-high via the 120s arm
+constraint), C5 0.5% stop floor. Detector (:5691) + caller (:7231): ZERO conversion path re-grepped this
+session — no breakouts.append, no order calls; row schema unchanged + calib field added. Nuance on record:
+a gate-cut confirmation CONSUMES the flush (first-confirmation-is-the-specimen, per spec L2); legacy
+outcomes unchanged. Expected Monday shape: low-tens of v2_shadow_fire rows/day (250/afternoon legacy →
+21 survivors retro), all calib=C1-C5; any legacy-stamped row under default env = defect.
+Rig: python3 rig/test_shipset_20260804.py = ALL GREEN exit 0 incl. Z-a..Z-e executed synthetic tapes
+(both calibrated and legacy exec'd namespaces), run both plain and SHIP_CHECK=1. Owed (non-blocking):
+8/14 bars ferry + 21-survivor exit re-grade (Quartermaster); C1b anchor; strip label. No push, no deploy.

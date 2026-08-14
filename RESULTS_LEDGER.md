@@ -1789,3 +1789,25 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - Program: anticipation-not-confirmation (resting limit BUYS at structure — #53 pointed at
   entries), full gate stack from birth, Kev frequency/sizing, Seam-Scientist method, shadow-only
   until it beats F-control on unseen tape. Roster updated (roll-call enforced by rig Q).
+
+## 2026-08-14 ~01:30 — FULL AUDIT OF EVERY 8/13 SHIP (24th convening, agent ac62dbd6; attack posture, fresh code)
+- ALL 8 SHIPS PASS. 41 commits all ledgered (unledgered check CLEAN); every convening artifact
+  present w/ sha (17th-22nd); 7 deploys all SUCCESS, zero tracebacks day-wide; the deployed build
+  = the fictional-fill fix build, clean boot, sleeping to 03:55.
+- CONCERNS (registered, none blocking): (1) zero veto_noted_not_gating/crown_pre_exempt/
+  premkt_capped rows day-one — paths exist; 2nd zero-day = code-path escalation (canary #7);
+  (2) launchd nightly-verify installed AFTER its own 22:45 trigger — first SCHEDULED run is
+  TONIGHT 8/14 22:45 (yesterday's runs were manual; watch the launchd log); (3) ship.sh is
+  convention-only — bare railway up bypasses it (server-side enforcement = future item); ship.sh
+  also doesn't SET the deploy freeze it was built beside — wire it in; (4) TTL(600s) and
+  FRESH_MAX_MIN(10min) are COINCIDENTALLY equal — align explicitly; thin-tape crown can still
+  TTL-expire when auto-map returns None (known edge); (5) NEWCOMER_BLUESKY kill switch
+  undocumented in the spec (doc debt); (6) git TCC-blocked in this session post-app-update
+  (binary-only; repo intact) — affects ship.sh rig-Q runs from this context until fixed.
+- STILL AWAITING MARCOS (before trial env is set): MAX_TRADE_DOLLARS trial value + the ambient
+  coupling ruling (AMBIENT_DVOL_MULT=86 holds today's $15k/min floor at a $175 clip).
+- FRIDAY CANARIES (11 items) registered: 03:55 boot config/freeze-clear; 07:00 blue-sky first-
+  read day one; auto-read merge check; tape_hi-since-entry proof; coherence first specimen; seam
+  heartbeat; crown-TTL no-false-expiry; strips; 22:45 launchd log line w/ FICTION=0.
+- Day-one tape confirmed the week's stories in data: reader read at 07:00:14; FGI's 21
+  mapless_rejects + 11:17 escape + $155.75; exactly 13 entries_paused rows in the freeze window.

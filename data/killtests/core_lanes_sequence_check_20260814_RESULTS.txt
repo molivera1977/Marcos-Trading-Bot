@@ -1,0 +1,77 @@
+CORE-LANES SEQUENCE-HONEST CHECK (non-hidden, era 7/24+) — run 2026-08-14T00:45:02-04:00
+Engine: v4 timing-corrected benchmark (hidden_exit_fourarm_v4), FILLS-ONLY
+scope: runner legs ALWAYS at recorded exit; only partial fills re-adjudicated.
+Bracket: [TRAIL = strict, hidden-style trail tightens the stop] .. [FLAT-STOP =
+charitable, stop frozen at recorded stop_loss].  Honest number lies between.
+Assumptions + caveats: see docstring.  Read-only run.
+
+Cohort N=144 | status: {'NOT_TIMED': 11, 'NO_FILLS': 70, 'CHECKED': 62, 'NOT_MODELED': 1}
+Leg reconciliation: sum |recorded-legs pnl - recorded pnl| = $31.21
+
+================ PER LANE (era 7/24+) ================
+lane            N w/pf    RAW book  FLAT(char)  TRAIL(str)  fiction fills flat/trail
+dip_rip         1    1  $    16.49  $    16.49  $    16.49  0 / 0
+flat_top       31   10  $  -397.46  $  -393.80  $  -430.08  0 / 3
+halt_ladder     1    1  $    34.34  $    34.34  $    34.34  0 / 0  [NOT MODELED — needs its own pass]
+ignition       50   33  $   129.68  $   -96.02  $  -140.59  10 / 19
+ma_pullback    17   10  $   487.01  $   460.26  $   356.15  1 / 9
+orb             5    2  $   -54.15  $  -109.09  $  -109.09  2 / 2
+vwap_reclaim   33   15  $  -764.89  $  -840.88  $  -859.10  3 / 8
+zone_flip       6    2  $  -223.48  $  -223.05  $  -223.05  0 / 0
+TOTAL era     144   74  $  -772.46  $ -1151.76  $ -1354.93  16 / 41
+
+================ AUGUST CORE HEADLINE (non-hidden, 8/1+) ================
+  RAW book (charitable claim basis):  $242.72   (claim on the table: +$239)
+  SEQUENCE-HONEST BRACKET:            $-93.73 (strict/trail) .. $-27.79 (charitable/flat-stop)
+  Timing-fiction removed:             $336.45 (trail) / $270.51 (flat)
+  Fiction fills (flat/trail):         11 / 20 across 9 trades (flat)
+
+================ BIGGEST SPECIMENS (fiction removed, FLAT variant) ================
+  MGRX  2026-07-31 orb          raw $  +29.99 -> flat $  -24.95 (removed $54.87, 2 fill(s)); trail $  -24.95 | stop-fire 11:01:40 ET
+      FICTION   238.00 sh @ $0.9628 (first touch after/never before stop) -> re-exit $0.8301
+      FICTION   119.00 sh @ $1.0258 (first touch after/never before stop) -> re-exit $0.8301
+  WYHG  2026-08-06 vwap_reclaim raw $  +22.39 -> flat $  -27.38 (removed $49.77, 2 fill(s)); trail $  -27.38 | stop-fire 09:17:40 ET
+      FICTION    32.00 sh @ $8.0499 (first touch after/never before stop) -> re-exit $7.1296
+      FICTION    16.00 sh @ $8.3998 (first touch after/never before stop) -> re-exit $7.1296
+  FCUV  2026-08-03 ignition     raw $  +20.99 -> flat $  -25.65 (removed $46.66, 2 fill(s)); trail $  -25.65 | stop-fire 10:13:20 ET
+      FICTION    16.00 sh @ $15.9942 (first touch after/never before stop) -> re-exit $14.2646
+      FICTION     8.00 sh @ $16.6384 (first touch after/never before stop) -> re-exit $14.2646
+  DSY   2026-08-07 ignition     raw $   +9.79 -> flat $  -19.68 (removed $29.55, 1 fill(s)); trail $  -19.68 | stop-fire 10:24:30 ET
+      FICTION    37.00 sh @ $6.1589 (first touch after/never before stop) -> re-exit $5.3601
+  SPRC  2026-07-29 vwap_reclaim raw $  +42.27 -> flat $  +12.85 (removed $29.42, 1 fill(s)); trail $  +31.47 | stop-fire 10:08:20 ET
+      FICTION    18.00 sh @ $8.0300 (first touch after/never before stop) -> re-exit $6.3955
+  YJ    2026-08-07 ma_pullback  raw $   -4.56 -> flat $  -33.76 (removed $29.21, 1 fill(s)); trail $  -33.76 | stop-fire 12:15:30 ET
+      FICTION     5.00 sh @ $13.8383 (first touch after/never before stop) -> re-exit $7.9972
+  CYCU  2026-08-03 ignition     raw $   +5.27 -> flat $  -21.55 (removed $29.09, 1 fill(s)); trail $  -21.55 | stop-fire 10:13:30 ET
+      FICTION   228.00 sh @ $1.1431 (first touch after/never before stop) -> re-exit $1.0155
+  FBLG  2026-08-06 ignition     raw $   +0.74 -> flat $  -26.94 (removed $27.61, 1 fill(s)); trail $  -26.94 | stop-fire 16:14:50 ET
+      FICTION   238.00 sh @ $1.0928 (first touch after/never before stop) -> re-exit $0.9768
+
+================ UNCHECKABLE TRADES WITH FILLS (recorded pnl kept) ================
+  LVWR  2026-07-24 flat_top     pnl $   -0.26  [NOT_TIMED]
+  MTNB  2026-07-27 vwap_reclaim pnl $  -14.26  [NOT_TIMED]
+  DFNS  2026-07-27 zone_flip    pnl $   -2.29  [NOT_TIMED]
+  BIYA  2026-07-27 ignition     pnl $  +32.04  [NOT_TIMED]
+  BIYA  2026-07-27 vwap_reclaim pnl $  +40.56  [NOT_TIMED]
+  NXTC  2026-07-27 ignition     pnl $  +12.32  [NOT_TIMED]
+  WLDS  2026-07-27 flat_top     pnl $  +28.71  [NOT_TIMED]
+  DFNS  2026-07-27 ma_pullback  pnl $  +43.57  [NOT_TIMED]
+  BIYA  2026-07-27 flat_top     pnl $  +49.55  [NOT_TIMED]
+  VIVK  2026-08-10 ignition     pnl $   +3.03  [NOT_TIMED]
+  XHLD  2026-08-10 ignition     pnl $  +25.43  [NOT_TIMED]
+  BOXL  2026-08-12 halt_ladder  pnl $  +34.34  [NOT_MODELED]
+
+CAVEATS (owed at Friday review):
+ 1. FILLS-ONLY scope: runner legs kept at recorded exits — any runner-leg
+    fiction (exit px never printed post-entry) is NOT tested here.
+ 2. TRAIL variant borrows hidden's trail mechanics (BE-after-2-scales, rung
+    floors); the core lanes' real trail rules differ per lane — treat TRAIL as
+    a strictness bound, not that lane's true replay.
+ 3. Same-bar touch-vs-stop tie favors the fill (v4 A5): bracket is charitable
+    on ties in BOTH variants.
+ 4. halt_ladder [NOT MODELED]; 11 NOT_TIMED + NO_BARS fills-trades keep
+    recorded pnl uncorrected — each is an unverified dollar figure.
+ 5. Bars gaps: any live fill off-SIP that the 10s tape never shows would be
+    wrongly marked fiction (v4 known limitation, both directions).
+
+No recommendation — numbers only; the full room verifies Friday, Marcos decides.

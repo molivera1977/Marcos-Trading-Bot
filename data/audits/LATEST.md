@@ -77,3 +77,10 @@ Mechanic, Integrator, Dashboard Curator, Seam Scientist, Pit Crew Chief, Statist
 Historian — TOUCHED: chronicles the Kev-read inversion discovery (the 8/5 billing-saver was the
 true A/B starvation cause, not the liquidity floor). Full room carried from tonight's debrief.
 VERDICT: SHIP.
+
+## 20th-convening delta — auto-map _ts fix (Marcos-approved), covers: 8880cba772c2
+Delta-verified by the same auditor: stamp scoped to the real-overlay branch only; _freshest_rec
+and _map_freshness read RAW stores (no self-laundering loop possible); cache restamps each 20s
+rebuild (auto-map age <=20s vs 600s TTL). Known behavior delta, intent-aligned + Friday-graded:
+ceiling standdown no longer sticks across rebuilds on a breached crown (re-evaluates on latest
+data — Marcos: "I just want the latest data so the bot can make the proper call"). VERDICT: SHIP.

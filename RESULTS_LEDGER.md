@@ -1909,3 +1909,8 @@ bars10s files data-only. Full artifact data/audits/LATEST.md (roll call 31 offic
 inversion sweep, day-one walkthrough: first-ever auto_map_used=true freshness_breach expected
 this afternoon). Blocking findings: NONE. Owed (non-blocking): crown-roster before/after audit,
 7/26 + meritocracy strict re-runs, flat-book-in-turn at deploy, $5 place+cancel test.
+
+## 2026-08-14 ~13:45 — ROCKET RIDER CHARTER EXTENDED (Marcos: "option 1")
+Owns the afternoon leader regime (grinders + verticals, 10:30-close), the grinder shadow
+program (KT2a shadow-candidate), afternoon census halves, the 10:30 handoff, task #48.
+Afternoon Operator office chartered only if the grinder earns conversions.

@@ -994,6 +994,24 @@ def reread_one(ticker, trigger):
                     rd["reread_latency_min"] = round((_t2 - _t1).total_seconds() / 60.0, 1)
         except Exception as _e:
             print(f"[reread] latency stamp failed {ticker}: {_e}", flush=True)
+        # 8/14 #57b BORN-EXHAUSTED REROUTE: a VALID reread whose top target is already at/under the
+        # live 10s print posts a map exhausted at birth — the bot immediately stands the name down
+        # on a road that never existed. Mirror the BLUESKY_FIRSTREAD branch: stamp blue_sky=True so
+        # the targets are advisory (historical support) and exhaustion standdown is skipped.
+        # Kill: REREAD_BLUESKY=0.
+        try:
+            if (os.environ.get("REREAD_BLUESKY", "1") == "1" and not rd.get("blue_sky")
+                    and _live > 0):
+                _rd_tgts = [float(x) for x in (rd.get("targets") or []) if x]
+                if _rd_tgts and max(_rd_tgts) <= _live:
+                    rd["blue_sky"] = True
+                    rd["note"] = ("[blue-sky " + dt.datetime.now(ET).strftime("%H:%M")
+                                  + "] born-exhausted reread (top target <= live) — "
+                                  + str(rd.get("note") or ""))[:200]
+                    print(f"[reread] {ticker} BORN-EXHAUSTED: top target {max(_rd_tgts)} <= live "
+                          f"{_live} — posting as blue-sky (advisory targets)", flush=True)
+        except Exception as _e:
+            print(f"[reread] born-exhausted check failed {ticker}: {_e}", flush=True)
         post_level(ticker, rd)
         _rr_backoff.pop(ticker, None)   # 8/12 W1: a good post resets the sanity-discard backoff
         print(f"[reread] {ticker} v{rd['read_version']} ({trigger}): break {rd.get('break_level')} "

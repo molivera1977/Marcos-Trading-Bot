@@ -254,6 +254,9 @@ check("blue-sky comeback maps post w/ kill switch", 'rd["blue_sky"] = True' in n
 _bs_sites = [i for i in range(len(nv)) if nv.startswith('rd["blue_sky"] = True', i)]
 check("only exhausted-rejects convert to blue-sky (others still refused) [both lanes, 8/13]",
       len(_bs_sites) >= 2 and all('startswith("map_already_exhausted")' in nv[max(0, i-700):i]
+                                  # 8/14 #57b: born-exhausted reread reroute is an APPROVED third
+                                  # site (top target <= live 10s -> blue-sky), kill REREAD_BLUESKY=0
+                                  or 'REREAD_BLUESKY' in nv[max(0, i-900):i]
                                   for i in _bs_sites))
 check("ring-1 executed (merge/freshest/branch — 8/6 ledger)", True)
 
@@ -408,7 +411,9 @@ _rw_src = open(os.path.join(os.path.dirname(__file__), "..", "marcos_trading_bot
 _rw_seg = _rw_src[_rw_src.index("def _marked_runway"):_rw_src.index("def monitor_trade")]
 def _rw_ns(bars_hi, kev):
     ns={"os":os,"_effective_map":lambda t,px=0: kev,
-        "_curl_feed":lambda t,n=90: {1:{"h":bars_hi,"l":1,"c":1}} if bars_hi else {}}
+        # 8/14: stub matches the REAL contract — _curl_feed returns (bars, src). The old bare-dict
+        # stub is how the missing-unpack bug passed this very rig (rig-tests-spec-not-impl).
+        "_curl_feed":lambda t,n=90: ({1:{"h":bars_hi,"l":1,"c":1}} if bars_hi else {}, "alpaca")}
     exec(_rw_seg, ns); return ns["_marked_runway"]
 os.environ["RUNWAY_WALL"]="1"
 f=_rw_ns(0.0, {"targets":[12.0]})
@@ -600,7 +605,7 @@ def _fc_ns(crowned, bars, kev, now_iso=None):
     E=zoneinfo.ZoneInfo("America/New_York")
     ns={"os":os,"time":time,"datetime":_dtm.datetime,"EASTERN":E,
         "_is_leader":lambda t: crowned,
-        "_curl_feed":lambda t,n=90: bars,
+        "_curl_feed":lambda t,n=90: (bars, "alpaca"),   # 8/14: real tuple contract (see wall stub note)
         "_fetch_kev_levels":lambda: kev,
         "_log_decision":lambda tk,st,**kw: _FCLog.rows.append((tk,st,kw)),
         "_freshest_rec":lambda t: (kev or {}).get(t) or {}}
@@ -1308,6 +1313,130 @@ try:
     check("hidden observe-only: default off + upstream of crown bypass + evidence row", True)
 except AssertionError as _we:
     check("hidden observe-only split", False, str(_we))
+
+print("X) 8/14 APPROVED CHANGE-SET (unpacks+alarm, #57 bundle, cell gate, lane observe splits, warmup seed)")
+try:
+    _x = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    # (a) both missing unpacks fixed — the smoking gun (audit 4): len((d10,src))=2<30 killed
+    # _auto_map since 8/7; tuple .values() AttributeError killed RUNWAY_WALL since 8/8
+    assert "d10, _src = _curl_feed(ticker, n=720)" in _x           # :_auto_map unpacked
+    assert "_wb, _wb_src = _curl_feed(ticker, n=720)" in _x        # :RUNWAY_WALL unpacked
+    # EXECUTED: the unpack pattern against the real tuple contract (_curl_feed returns (bars, src))
+    def _fake_curl(t, n=90): return ({1: {"h": "2.0"}, 2: {"h": "3.0"}, 3: {"h": "1.0"}}, "src")
+    d10, _src = _fake_curl("T", n=720)
+    assert isinstance(d10, dict) and len(d10) == 3                 # dict survives, len = bars not 2
+    _wb, _wb_src = _fake_curl("T", n=720)
+    _whi = max((float(b.get("h") or 0) for b in _wb.values()), default=0.0) if _wb else 0.0
+    assert _whi == 3.0                                             # .values() works on the dict
+    # NO remaining bare call sites: every `= _curl_feed(` line must tuple-unpack (a comma in the
+    # assignment target) — the Integrator's fourth-instance pin
+    _bare = [ln.strip() for ln in _x.splitlines()
+             if "= _curl_feed(" in ln and not ln.strip().startswith("#")
+             and "," not in ln.split("= _curl_feed(")[0]
+             and ln.split("#")[0].rstrip().endswith(")")]   # real call statements only (skips docstring prose)
+    assert not _bare, "bare _curl_feed call sites: %s" % _bare
+    # breach alarm wired where freshness_breach logs, kill-switched, 3rd-consecutive trigger
+    assert '"freshness_alarm"' in _x and 'BREACH_ALARM", "1"' in _x
+    assert "_breach_alarm_streak == 3" in _x
+    check("X-a: both unpacks + no bare call sites + breach alarm", True)
+except AssertionError as _xe:
+    check("X-a: unpacks/alarm", False, str(_xe))
+
+try:
+    # (b) lane observe splits: defaults OFF -> observe rows; UPSTREAM of every crown/leader bypass
+    _xe2 = {}
+    exec('import os\nos.environ.pop("HIDDEN_CONVERT", None)\nos.environ.pop("FLATTOP_CONVERT", None)\n'
+         'os.environ.pop("VWAPRECLAIM_CONVERT", None)\n'
+         'HIDDEN_CONVERT    = os.environ.get("HIDDEN_CONVERT", "0") == "1"\n'
+         'FLATTOP_CONVERT     = os.environ.get("FLATTOP_CONVERT", "0") == "1"\n'
+         'VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT", "0") == "1"', _xe2)
+    assert _xe2["HIDDEN_CONVERT"] is False and _xe2["FLATTOP_CONVERT"] is False \
+        and _xe2["VWAPRECLAIM_CONVERT"] is False
+    assert 'FLATTOP_CONVERT     = os.environ.get("FLATTOP_CONVERT", "0") == "1"' in _x
+    assert 'VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT", "0") == "1"' in _x
+    assert '"flat_top_observe_only"' in _x and '"vwap_reclaim_observe_only"' in _x
+    # upstream-of-bypass: the observe split runs in the breakouts post-pass, BEFORE the worker's
+    # crown/leader bypasses (entry_crown stamp + backside crown paths all come after it)
+    _xo = _x.index("_ob_row = \"flat_top_observe_only\"")
+    assert _xo < _x.index('b[4]["entry_crown"]')                   # before the crown stamp/gates
+    check("X-b: FLATTOP/VWAPRECLAIM/HIDDEN convert default off -> observe rows upstream of caps", True)
+except AssertionError as _xe:
+    check("X-b: lane observe splits", False, str(_xe))
+
+try:
+    # (c) IGNITION_CELL_GATE default "0" = stamp-only; every conversion logs ignition_cell
+    _xe3 = {}
+    exec('import os\nos.environ.pop("IGNITION_CELL_GATE", None)\n'
+         'IGNITION_CELL_GATE = os.environ.get("IGNITION_CELL_GATE", "0")', _xe3)
+    assert _xe3["IGNITION_CELL_GATE"] == "0"                       # default = stamp-only
+    assert '"ignition_cell"' in _x and '"ignition_cell_reject"' in _x
+    _xi = _x.index('_log_decision(b[0], "ignition_cell"')
+    _xr = _x.index('"ignition_cell_reject"')
+    assert _xi < _xr                                               # stamp ALWAYS, reject only enforced
+    assert 'IGNITION_CELL_GATE == "1" and not _in_cell' in _x      # enforce is opt-in
+    assert "_ic_dg < 40.0" in _x and '"10:30"' in _x               # FROZEN cell definition
+    check("X-c: ignition cell gate default stamp-only, frozen cell dg<40 & <10:30", True)
+except AssertionError as _xe:
+    check("X-c: ignition cell gate", False, str(_xe))
+
+try:
+    # (d) reentry at MODULE scope (the boot counter-rebuild NameError killer). Execute the
+    # module-level definition as written and confirm the session loop no longer REBINDS it.
+    _xd = re.search(r'^reentry = \{"held": set\(\), "eligible": set\(\), "givenup": set\(\),\n'
+                    r'\s*"count": \{\}, "consec_loss": \{\}, "lock": threading\.Lock\(\)\}',
+                    _x, re.M)
+    assert _xd, "module-level reentry literal not found at column 0"
+    _xe4 = {"threading": __import__("threading")}
+    exec(_xd.group(0), _xe4)
+    assert set(_xe4["reentry"]) == {"held", "eligible", "givenup", "count", "consec_loss", "lock"}
+    # the session loop must MUTATE, never rebind (a rebind re-localizes the name -> NameError back)
+    _xin = [ln for ln in _x.splitlines()
+            if re.match(r"^\s+reentry\s*=\s*\{", ln)]              # indented rebind = the old bug
+    assert not _xin, "indented reentry rebind found: %s" % _xin
+    assert 'reentry["lock"] = trade_lock' in _x                    # session swaps the lock in place
+    check("X-d: reentry module-scope, session resets in place (no rebind)", True)
+except AssertionError as _xe:
+    check("X-d: reentry scope", False, str(_xe))
+
+try:
+    # (e) exit_ts_utc stamped at the record-write choke point (post_to_dashboard — all record
+    # writers flow through it: normal exits, watchdog force-record, resume records)
+    _xp = _x.index("def post_to_dashboard")
+    _xpb = _x[_xp:_xp + 1500]
+    assert '"exit_ts_utc" not in trade_payload' in _xpb
+    assert 'trade_payload["exit_ts_utc"] = datetime.now(timezone.utc).isoformat()' in _xpb
+    check("X-e: exit_ts_utc stamped in the record-write path", True)
+except AssertionError as _xe:
+    check("X-e: exit_ts_utc", False, str(_xe))
+
+try:
+    # (f) retest fills book a REAL print, not the assumed _rt_lvl (entry-side fictional-fill fix)
+    assert 'RETEST_REAL_PRINT", "1"' in _x                         # default ON, kill available
+    assert "_rt_touch_px = _rl" in _x                              # the touching bar's actual low captured
+    assert "entry_price = round(_rt_fill, 4)" in _x                # fill = live/touch print
+    _xf = _x.index('RETEST_REAL_PRINT", "1"')
+    _xfl = _x[_xf:_xf + 1600]
+    assert "stream.get_price(ticker)" in _xfl                      # live print preferred
+    # the assumed-level booking survives ONLY inside the kill-switch else branch
+    _xleg = _x.index("entry_price = _rt_lvl", _xf)
+    assert "else:" in _x[_xf:_xleg]                                # legacy path behind the switch
+    check("X-f: retest fill books real print (live/touch), assumed level only via kill switch", True)
+except AssertionError as _xe:
+    check("X-f: retest real-print fill", False, str(_xe))
+
+try:
+    # riders: day-gain split adjustment + ma_pullback warmup seed, both kill-switched default ON
+    assert 'DAYGAIN_SPLIT_ADJ", "1"' in _x and '"adjustment": _adj' in _x
+    assert '_adj = "split" if' in _x
+    assert 'MA_WARMUP_SEED     = os.environ.get("MA_WARMUP_SEED", "1") == "1"' in _x
+    assert "warmup_closes=None" in _x                              # seed is opt-in per call
+    assert "closes = _seed + closes_today" in _x                   # EMA series seeded
+    _xm = _x.index("def _detect_ma_pullback")
+    assert "conf = completed[-1]" in _x[_xm:_xm + 2500]            # candle logic still today-only
+    assert "_ma_only_window" in _x                                 # other detectors stay walled
+    check("X-g: daygain split-adj + ma_pullback warmup seed (both switched, default on)", True)
+except AssertionError as _xe:
+    check("X-g: daygain/warmup riders", False, str(_xe))
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

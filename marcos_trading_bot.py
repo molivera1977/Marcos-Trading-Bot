@@ -368,6 +368,13 @@ FLAT_TOP_WINDOW    = 4      # consolidation window (in 3-min bars now → ~12 mi
 # priority on the same names. Suppressions log `pullback_first_suppress` so the counterfactual is
 # exact. Friday grades it next to the 444-fire front-side study. PULLBACK_FIRST=0 reverts.
 PULLBACK_FIRST     = os.environ.get("PULLBACK_FIRST", "1") == "1"
+# ── 8/14 MA_PULLBACK WARMUP SEED (audit 1 F1: the 7/27 multi-day fetch exists but _fresh_session
+# strips to TODAY — the lane cannot fire before ~10:36-10:47 and EMA50/90 are fiction most of the
+# day; the open, Kev's richest window, is structurally invisible). Seed the 3-min EMA series from
+# PRIOR-session closes (the unfiltered fetch) for EMA WARMUP ONLY — the confirmation candle,
+# volume, and price logic still read today-only bars, so no stale bar can fire a detector.
+# Kill: MA_WARMUP_SEED=0 restores the today-only wall exactly.
+MA_WARMUP_SEED     = os.environ.get("MA_WARMUP_SEED", "1") == "1"
 FLAT_TOP_MAX_RANGE = 0.12   # base-width chase-GUARD, not a Kev number. Kev quantifies no % range ("tighter
                             # is better" = tighter stop = better R:R). The ROOM GATE already filters width via
                             # R:R = (supply−entry)/(entry−base_low); a wide base = far stop = poor R:R = rejected
@@ -555,6 +562,14 @@ _halt_state: dict = {}        # (day, sym) -> last logged gap start, so one halt
 # `_reservations` are FUNCTION-LOCAL, unreachable from _curl_feed. The watch loop refreshes this
 # set each cycle; the halt logger reads it. A stale mirror mislabels `held` on one row, never trades.
 _halt_held_mirror: set = set()
+
+# ── 8/14 #57c: `reentry` promoted to MODULE SCOPE. The counter-rebuild path (:~5038) referenced
+# `reentry` as a global while the session loop created it as a LOCAL — NameError on every boot
+# rebuild (caught, so the held-set silently never rebuilt). The session loop now RESETS this dict
+# in place (never rebinds) so every reader shares one object. "lock" is swapped to the session's
+# trade_lock at session start; the placeholder lock keeps pre-session readers safe.
+reentry = {"held": set(), "eligible": set(), "givenup": set(),
+           "count": {}, "consec_loss": {}, "lock": threading.Lock()}
 
 
 def _halt_suspect(sym, d10):
@@ -1252,10 +1267,16 @@ def _alpaca_daily_items(ticker):
     # mid-June close → day_gain +146% on a +7% morning; every day-gain floor/exemption decision on
     # long-history runners was computed against ancient bases). limit 10000 = the whole window in
     # one page. get_daily_levels adds the staleness guard for any future vendor gap.
+    # 8/14 DAY-GAIN BASIS INTEGRITY (audit 4: DFNS day_gain_at_entry=5152.57% — raw-adjustment
+    # prior_day_close on a split name; corrupts the day-gain floor, census cells AND crown
+    # qualification :7842). adjustment="split" makes historical daily closes comparable to today's
+    # tape on split names; volume-derived analytics unaffected here (this shape carries high/close
+    # only). Kill: DAYGAIN_SPLIT_ADJ=0 restores raw.
+    _adj = "split" if os.environ.get("DAYGAIN_SPLIT_ADJ", "1") == "1" else "raw"
     j = _alpaca_rest_get(f"https://data.alpaca.markets/v2/stocks/{ticker}/bars",
                          {"timeframe": "1Day", "limit": 10000,
                           "start": (datetime.now(EASTERN) - timedelta(days=400)).strftime("%Y-%m-%dT00:00:00Z"),
-                          "feed": "sip" if _ALP_FEED == "sip" else "iex", "adjustment": "raw"})
+                          "feed": "sip" if _ALP_FEED == "sip" else "iex", "adjustment": _adj})
     if not j or not j.get("bars"):
         return None
     return [{"high": b.get("h"), "close": b.get("c"), "time": str(b.get("t"))[:10]}
@@ -4566,21 +4587,29 @@ def compute_room(entry_price, stop_loss, bars, daily=None, premarket_high=None, 
 
 def _bar_vol(b): return float(b.get("volume") or b.get("v") or 0)
 
-def detect_ma_pullback(completed, price):
+def detect_ma_pullback(completed, price, warmup_closes=None):
     """Kev's pullback entry off WHICHEVER rising MA the pullback holds (9/20/50/90). Faithful to the
     bible: uptrend (the MA stack) → price dips to a rising MA → a candle WICKS OFF THE LOW and CLOSES
     BACK ABOVE that MA ("a buyer stepped in") → weak pullback, buyers return, price continuing up.
     Risk off the DEEPEST support the low actually reached and held. Returns {ma_name, ma, stop} or None.
-    Any error returns None (no entry) — a detector bug must never crash the scan loop."""
+    Any error returns None (no entry) — a detector bug must never crash the scan loop.
+    warmup_closes (8/14 MA_WARMUP_SEED): prior-session 3-min closes, EMA seeding ONLY — candle/
+    volume/price logic reads `completed` (today-only) unchanged."""
     try:
-        return _detect_ma_pullback(completed, price)
+        return _detect_ma_pullback(completed, price, warmup_closes)
     except Exception as e:
         print(f"⚠️  detect_ma_pullback error ({e}) — no entry this pass")
         return None
 
-def _detect_ma_pullback(completed, price):
-    closes = _extract_closes(completed)
-    if len(closes) < 25:
+def _detect_ma_pullback(completed, price, warmup_closes=None):
+    closes_today = _extract_closes(completed)
+    # 8/14 MA_WARMUP_SEED: EMAs computed over prior-session closes + today (warmup wall killed);
+    # today-only floor of 3 closes keeps a real confirmation candle + some session context. With
+    # no seed (or MA_WARMUP_SEED=0) this is BYTE-IDENTICAL to the old path: closes==closes_today
+    # and the 25-close wall stands.
+    _seed = list(warmup_closes or []) if MA_WARMUP_SEED else []
+    closes = _seed + closes_today
+    if len(closes) < 25 or len(closes_today) < (3 if _seed else 25):
         return None
     ema9 = _calc_ema(closes, EMA_PERIOD)
     ema20 = _calc_ema(closes, EMA20_PERIOD)
@@ -5514,6 +5543,18 @@ HIDDEN_DAILY_CAP  = int(os.environ.get("HIDDEN_DAILY_CAP", "3"))
 # (an env cap alone leaks through the leader bypass). Kill nothing: HIDDEN_ENTRY still owns
 # detection; this switch owns only the order path.
 HIDDEN_CONVERT    = os.environ.get("HIDDEN_CONVERT", "0") == "1"
+# ── 8/14 approved change-set (census-cell + lane observe splits; SESSION_20260814_early #4):
+# IGNITION_CELL_GATE: "0" (default) = STAMP-ONLY — every ignition conversion logs its census cell
+# (in_cell = day_gain<40 AND ET<10:30, the era's paying cell +$105..+$159 vs bleed -$290..-$278);
+# "1" = ENFORCE (consume fire, log ignition_cell_reject, skip conversion when out of cell).
+# Cell definition FROZEN pre-registered; graded on proving-week OOS only (fitted on ~50 trades).
+IGNITION_CELL_GATE = os.environ.get("IGNITION_CELL_GATE", "0")
+# flat_top + vwap_reclaim → observe-only (era books graded CODE-DEFECTS, not designs — audit 3:
+# flat_top/orb bought the break print in a retest costume; coded vwap_reclaim = the refuted
+# just-crossed band). Mirrors HIDDEN_CONVERT: detection/stamps continue; conversion requires an
+# explicit =1, refusals log *_observe_only UPSTREAM of any crown/leader bypass.
+FLATTOP_CONVERT     = os.environ.get("FLATTOP_CONVERT", "0") == "1"
+VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT", "0") == "1"
 # ── 7/30 A1 (Fable ship, Marcos yes): extension-above-VWAP at entry is BIMODAL on 190 fires —
 # 0–3% = the clean dip-buy, 10%+ = the deep wick inside a genuine vertical (+$1,472, the entire
 # lane), 3–10% = no-man's-land (−$1,942/69 fires, survives BOTH exit configs = an entry property).
@@ -6932,9 +6973,23 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                         sessions=_live_sessions()))
                 if fresh:
                     cache[t]["bars"] = fresh
-                full_bars = _fresh_session(get_intraday_bars(t, count=390, sessions=_live_sessions()))
+                _raw_full = get_intraday_bars(t, count=390, sessions=_live_sessions())
+                full_bars = _fresh_session(_raw_full)
                 if full_bars:
                     cache[t]["full_bars"] = full_bars   # RTH 1-min, TODAY-only — room + 3-min agg
+                if MA_WARMUP_SEED and _raw_full:
+                    # 8/14 warmup seed (audit 1 F1): PRIOR-session 3-min closes from the SAME
+                    # multi-day fetch, cached separately — never mixed into full_bars/bars, so
+                    # every live detector still sees today-only. Consumed ONLY by
+                    # detect_ma_pullback for EMA seeding.
+                    try:
+                        _tdy = _today_utc_date()
+                        _wm3 = aggregate_bars(_raw_full, SETUP_TF_MIN)[:-1]
+                        cache[t]["ma_warmup_closes"] = [
+                            _bar_close(b) for b in _wm3
+                            if str(b.get("time") or "")[:10] != _tdy and _bar_close(b) > 0]
+                    except Exception:
+                        cache[t]["ma_warmup_closes"] = []
                     if not ENTRY_VWAP_PREMARKET:
                         # LIVE DEFAULT (validated): RTH session VWAP from full_bars (already fresh-filtered).
                         calc_vwap = calculate_vwap(full_bars)   # SESSION VWAP — never across the day boundary
@@ -7544,9 +7599,19 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             #    (front-side / MA-pullback levels) all read the timeframe Kev actually trades. VWAP,
             #    the live price, room, and the stop/trail/instant-exit stay on the 1-min. ──
             completed = aggregate_bars(cache[t].get("full_bars") or bars, SETUP_TF_MIN)[:-1]
+            # 8/14 MA_WARMUP_SEED (audit 1 F1): the 22-bar wall below blinded EVERY setup until
+            # ~10:36. With prior-session EMA seeds available, the ma_pullback lane ONLY may scan
+            # inside the warmup window (>=3 today bars for a real confirmation candle); all other
+            # detectors stay behind the wall exactly as before. Kill: MA_WARMUP_SEED=0.
+            _wm_seed = (cache[t].get("ma_warmup_closes") or []) if MA_WARMUP_SEED else []
+            _ma_only_window = False
             if len(completed) < EMA20_PERIOD + 2:
-                status_parts.append(f"{t}:${price:.2f} (need more 3-min bars)")
-                continue
+                if (_wm_seed and len(completed) >= 3
+                        and len(_wm_seed) + len(completed) >= EMA20_PERIOD + 2):
+                    _ma_only_window = True   # seeded: ma_pullback may look; everything else waits
+                else:
+                    status_parts.append(f"{t}:${price:.2f} (need more 3-min bars)")
+                    continue
 
             vwap_tag = f" VWAP:${vwap:.2f}" if vwap > 0 else ""
             ema9  = calculate_ema9(completed)
@@ -7562,7 +7627,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # the same pure function and converts through the existing path. No duplicated logic.
             _ma_first_fire = None
             if PULLBACK_FIRST and not found_entry and vwap > 0 and price > vwap:
-                _ma_first_fire = detect_ma_pullback(completed, price)
+                _ma_first_fire = detect_ma_pullback(completed, price, _wm_seed)
                 if _ma_first_fire:
                     _log_decision(t, "pullback_first_suppress", price=price,
                                   ma=_ma_first_fire["ma_name"], stop=_ma_first_fire["stop"])
@@ -7572,7 +7637,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # so slice to the current session or the first ~12 min of RTH would read a base across the
             # overnight gap (prior-day consolidation) and fire a spurious open-gap "breakout".
             _sess3 = _latest_session(completed)
-            if len(_sess3) >= FLAT_TOP_WINDOW and not _ma_first_fire:
+            if len(_sess3) >= FLAT_TOP_WINDOW and not _ma_first_fire and not _ma_only_window:
                 window = _sess3[-FLAT_TOP_WINDOW:]
                 highs = [float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in window]
                 lows  = [float(b.get("low")  or b.get("l") or b.get("close") or b.get("c") or 0) for b in window]
@@ -7685,7 +7750,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             #    other setups (above VWAP + room≥2:1 + daily-first + front-side observed). Fires ONCE per
             #    ticker; later re-breaks of the same level are continuations handled by flat-top/re-entry.
             #    [widen within Kev's realm — feedback_widen_within_kev_realm] ──
-            if (not found_entry and not _ma_first_fire            # 7/31 PULLBACK_FIRST outranks ORB too
+            if (not found_entry and not _ma_first_fire and not _ma_only_window   # 7/31 PULLBACK_FIRST outranks ORB too
                     and vwap > 0 and price > vwap
                     and (now.hour * 60 + now.minute) >= 575 and not cache[t].get("orb_fired")):
                 if "orb" not in cache[t]:
@@ -7748,7 +7813,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # Unified pullback entry (replaced the old narrower EMA9-bounce): one wick-off-low + room logic
             # across all of Kev's MAs.
             if not found_entry and vwap > 0 and price > vwap:   # above VWAP (don't fight below it)
-                ma_pb = detect_ma_pullback(completed, price)
+                ma_pb = detect_ma_pullback(completed, price, _wm_seed)
                 if ma_pb:
                     ma_stop = ma_pb["stop"]
                     if "daily" not in cache[t]:
@@ -7780,7 +7845,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # ── Entry type 4: MEAN-REVERSION BOUNCE (Kev #28) — a dumped former runner reclaims a demand
             #    level (double-bottom / 20 EMA). NOT gated on above-VWAP (it reclaims from below). Managed on
             #    the 3-min chart like the pullback; risk the low, target the prior HOD. ──
-            if not found_entry:
+            if not found_entry and not _ma_only_window:
                 bnc = detect_bounce(completed, price)
                 if bnc:
                     b_stop = bnc["stop"]
@@ -7842,6 +7907,54 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     _leader_gain(b[0], b[4]["day_gain"])       # 8/5 leader ammo: gain-proven probe
             except Exception:
                 pass
+        # ── 8/14 IGNITION CENSUS-CELL GATE (session #4). Default STAMP-ONLY (IGNITION_CELL_GATE=0):
+        # every ignition conversion candidate logs its cell; enforce (=1) consumes the fire and
+        # skips conversion when out of cell. Placed HERE — after the day-gain stamp (needs it),
+        # UPSTREAM of every crown/leader bypass. Cell FROZEN: day_gain<40 AND ET<10:30.
+        _kept_ic = []
+        for b in breakouts:
+            if b[3] != "ignition":
+                _kept_ic.append(b); continue
+            try:
+                _ic_dg = b[4].get("day_gain")
+                _ic_hm = datetime.now(EASTERN).strftime("%H:%M")
+                _in_cell = (_ic_dg is not None and _ic_dg < 40.0) and (_ic_hm < "10:30")
+                _log_decision(b[0], "ignition_cell", price=b[1], in_cell=_in_cell,
+                              day_gain=_ic_dg, hm=_ic_hm, enforce=(IGNITION_CELL_GATE == "1"))
+                if IGNITION_CELL_GATE == "1" and not _in_cell:
+                    # consume the fire (ignition_fired already set at trigger), skip conversion
+                    _log_decision(b[0], "ignition_cell_reject", price=b[1], day_gain=_ic_dg,
+                                  hm=_ic_hm, volx=b[4].get("volx"), ext_pct=b[4].get("ext_pct"),
+                                  stop=b[4].get("zone_stop"), crown=_is_leader(b[0]))
+                    print(f"   ⛔ IGNITION CELL blocked {b[0]} (dg {_ic_dg} / {_ic_hm} outside "
+                          f"dg<40 & <10:30 — census bleeding cohort)")
+                    continue
+            except Exception:
+                pass
+            _kept_ic.append(b)
+        breakouts = _kept_ic
+        # ── 8/14 LANE OBSERVE-ONLY SPLITS (session #4; mirrors hidden_observe_only :7346):
+        # flat_top + vwap_reclaim detection/stamps continue; conversion requires an explicit
+        # FLATTOP_CONVERT=1 / VWAPRECLAIM_CONVERT=1. Refusals consume the conversion with a full-
+        # evidence observe row, UPSTREAM of any crown/leader bypass (which all live downstream).
+        _kept_ob = []
+        for b in breakouts:
+            _ob_row = None
+            if b[3] == "flat_top" and not FLATTOP_CONVERT:
+                _ob_row = "flat_top_observe_only"
+            elif b[3] == "vwap_reclaim" and not VWAPRECLAIM_CONVERT:
+                _ob_row = "vwap_reclaim_observe_only"
+            if _ob_row:
+                try:
+                    _log_decision(b[0], _ob_row, price=b[1], vwap=(b[2] or None),
+                                  stop=b[4].get("zone_stop"), day_gain=b[4].get("day_gain"),
+                                  entry_vel5=b[4].get("entry_vel5"), crown=_is_leader(b[0]))
+                except Exception:
+                    pass
+                print(f"   👁️  {b[0]} {b[3]} OBSERVE-ONLY (8/14 code-defect suspension) — stamped, no order")
+                continue
+            _kept_ob.append(b)
+        breakouts = _kept_ob
         # ── VEL5 FLOOR (7/21 kill-test, n=56 real trades 7/13-7/21): entries with NEGATIVE trailing
         # 5-min velocity ran ~30% win / −$173 total; >=0 ran +$60. Natural sign boundary (tape falling
         # = knife-catch, Kev waits for the curl), sweep-robust F∈[0,1]. HARD gate on legacy BREAKOUT
@@ -8370,7 +8483,7 @@ def _auto_map(ticker, live_px):
     touched >=3x within 0.25% in the last 3 min; fallback last-3-min low); targets = the
     stored map's targets that survive ABOVE the window high. None if tape too thin (<30 bars)."""
     try:
-        d10 = _curl_feed(ticker, n=720)
+        d10, _src = _curl_feed(ticker, n=720)   # 8/14: missing unpack (3rd _curl_feed strike; precedent :8316) — len((d10,src))=2<30 made this return None every call since 8/7
         if not d10 or len(d10) < 30:
             return None
         ks = sorted(d10)
@@ -8394,6 +8507,8 @@ def _auto_map(ticker, live_px):
     except Exception:
         return None
 
+_breach_alarm_day = None     # 8/14 breach alarm: current ET day the streak counts within
+_breach_alarm_streak = 0     # consecutive freshness_breach rows with auto_map_used=false (process-wide)
 _effmap_cache = {}   # ticker -> (expires_epoch, rec)  — 8/7 auditor #6: up to 4 gate reads/fire
 def _effective_map(ticker, live_px=0.0):
     """THE gates' map view. Fresh (or non-crown, or contract off) -> _freshest_rec unchanged.
@@ -8421,6 +8536,25 @@ def _effective_map(ticker, live_px=0.0):
                       map_dist_pct=round(dist, 1), auto_map_used=bool(am),
                       old_break=(rec or {}).get("break"),
                       new_break=(am or {}).get("break"))
+        # ── 8/14 BREACH ALARM (Cartographer's tripwire; kill: BREACH_ALARM=0): the 8/7-8/14 era
+        # logged 28 breaches with auto_map_used=false and NOBODY noticed the contract was dead.
+        # Count CONSECUTIVE unremediated breaches per-day process-wide; on the 3rd, alarm row.
+        if os.environ.get("BREACH_ALARM", "1") == "1":
+            global _breach_alarm_day, _breach_alarm_streak
+            _bd = datetime.now(EASTERN).strftime("%Y-%m-%d")
+            if _breach_alarm_day != _bd:
+                _breach_alarm_day, _breach_alarm_streak = _bd, 0
+            if am:
+                _breach_alarm_streak = 0
+            else:
+                _breach_alarm_streak += 1
+                if _breach_alarm_streak == 3:
+                    _log_decision(ticker, "freshness_alarm",
+                                  consecutive_unremediated=_breach_alarm_streak,
+                                  price=round(float(live_px or 0), 4),
+                                  map_age_min=(round(age, 1) if age is not None else None),
+                                  map_dist_pct=round(dist, 1))
+                    print(f"🚨 FRESHNESS ALARM: 3 consecutive breaches with NO auto-map remediation (latest {ticker}) — contract may be dead")
         print(f"⏱️  {ticker} FRESHNESS BREACH: map age={age if age is None else round(age,1)}m "
               f"dist={dist:.1f}% -> {'AUTO-MAP break $%s' % (am or {}).get('break') if am else 'no tape fallback — stale map kept, breach logged'}")
     if not am:
@@ -8458,7 +8592,7 @@ def _marked_runway(ticker, entry_price, stop_loss):
         # (MB 8/7: "150.1R" to a $19.75 ghost while the wall sat 4% up.) Kill: RUNWAY_WALL=0.
         if os.environ.get("RUNWAY_WALL", "1") == "1":
             try:
-                _wb = _curl_feed(ticker, n=720)
+                _wb, _wb_src = _curl_feed(ticker, n=720)   # 8/14: missing unpack — tuple .values() AttributeError was swallowed below, _whi=0.0, wall inert since 8/8
                 _whi = max((float(b.get("h") or 0) for b in _wb.values()), default=0.0) if _wb else 0.0
             except Exception:
                 _whi = 0.0
@@ -9322,6 +9456,14 @@ def post_to_dashboard(trade_payload: dict) -> bool:
     """
     if not SCREENER_URL:
         return False
+    # 8/14 #57d: every completed trade record carries a UTC exit stamp. This is THE choke point —
+    # all record writers (normal exits, watchdog force-record, resume records) flow through here.
+    # Only stamp if absent so a caller-provided (earlier, more exact) stamp is never overwritten.
+    try:
+        if "exit_ts_utc" not in trade_payload:
+            trade_payload["exit_ts_utc"] = datetime.now(timezone.utc).isoformat()
+    except Exception:
+        pass
     try:
         resp = requests.post(
             f"{SCREENER_URL}/api/record_trade",
@@ -10077,7 +10219,7 @@ def main():
     # restart's behavior is readable from one log line instead of inferred from env vars + absences
     # (the 7/29 midday disarm had to be verified by inference).
     print("🎛️  BOOT CONFIG: "
-          f"HIDDEN_ENTRY={int(HIDDEN_ENTRY)} RECLAIM_LIVE={int(RECLAIM_LIVE)} "
+          f"HIDDEN_ENTRY={int(HIDDEN_ENTRY)} HIDDEN_CONVERT={int(HIDDEN_CONVERT)} RECLAIM_LIVE={int(RECLAIM_LIVE)} "
           f"ZONEFLIP_KEV={int(ZONEFLIP_KEV)} IGNITION_10S={int(IGNITION_10S)} | "
           f"SWAP_MODE={SWAP_MODE} PM_EXT_QUOTE={int(PM_EXT_QUOTE)} DIP_RIP={int(DIP_RIP)} | "
           f"MIN_STOP_PCT={MIN_STOP_DIST_PCT} EXEMPT={sorted(MIN_STOP_EXEMPT)} | "
@@ -10089,7 +10231,10 @@ def main():
           f"RESTING_BANK={int(RESTING_BANK)} IGNITION_CONVERT_MULT={IGNITION_CONVERT_MULT} "
           f"IGNITION_CHART_BYPASS={int(IGNITION_CHART_BYPASS)} ZONEFLIP_CONVERT={int(ZONEFLIP_CONVERT)} "
           f"RECLAIM_FIREVOL={RECLAIM_FIREVOL} MIN_RUNWAY_RR={MIN_RUNWAY_RR} "
-          f"BREAKSIDE_GATE={int(BREAKSIDE_GATE)}({sorted(BREAKSIDE_LANES)})")
+          f"BREAKSIDE_GATE={int(BREAKSIDE_GATE)}({sorted(BREAKSIDE_LANES)}) | "
+          # 8/14 change-set switches:
+          f"IGNITION_CELL_GATE={IGNITION_CELL_GATE} FLATTOP_CONVERT={int(FLATTOP_CONVERT)} "
+          f"VWAPRECLAIM_CONVERT={int(VWAPRECLAIM_CONVERT)} MA_WARMUP_SEED={int(MA_WARMUP_SEED)}")
     # 8/3 (#26): the SAME config, as a DURABLE decision row — Railway's CLI log window is ~500
     # lines, so the printed banner is unreadable hours later ("was the floor really 4% at boot"
     # took env+code inference on 8/3 instead of one query). One row per boot, queryable forever.
@@ -10109,12 +10254,14 @@ def main():
                       breakside_gate=int(BREAKSIDE_GATE), breakside_lanes=sorted(BREAKSIDE_LANES),
                       entry_open_et=ENTRY_OPEN_ET, intrabar_stop=int(INTRABAR_STOP),
                       resting_stop=int(RESTING_STOP), be_floor_after_scale=BE_FLOOR_AFTER_SCALE,
-                      hidden=int(HIDDEN_ENTRY), reclaim=int(RECLAIM_LIVE),
+                      hidden=int(HIDDEN_ENTRY), hidden_convert=int(HIDDEN_CONVERT), reclaim=int(RECLAIM_LIVE),
                       zoneflip_convert=int(ZONEFLIP_CONVERT), ignition_convert=IGNITION_CONVERT_MULT,
                       ignition_bypass=int(IGNITION_CHART_BYPASS), reclaim_firevol=RECLAIM_FIREVOL,
                       swap_mode=SWAP_MODE, crater_floor_r=CRATER_FLOOR_R,
                       tape_prebreak=int(TAPE_PREBREAK_GATE), chart_ceiling=int(CHART_CEILING_GATE),
-                      retest_band=(f"{RETEST_BAND_LO}-{RETEST_BAND_HI}" if RETEST_BAND_GATE else "off"))
+                      retest_band=(f"{RETEST_BAND_LO}-{RETEST_BAND_HI}" if RETEST_BAND_GATE else "off"),
+                      ignition_cell_gate=IGNITION_CELL_GATE, flattop_convert=int(FLATTOP_CONVERT),
+                      vwapreclaim_convert=int(VWAPRECLAIM_CONVERT), ma_warmup_seed=int(MA_WARMUP_SEED))
         _leader_rehydrate()   # 8/5: earned leader status survives restarts
     except Exception as _bc_e:
         print(f"⚠️  boot_config row failed (banner above still printed): {_bc_e}")
@@ -10193,8 +10340,15 @@ def main():
     #    reclaim/pullback while it keeps working; gives up STRUCTURALLY (topping tail = "done with it").
     #    held=in a position now (don't double-enter); eligible=exited, may re-qualify through the SAME
     #    gate; givenup=topping-tail/over-cap, leave alone; count/consec_loss for the rail + observability. ──
-    reentry = {"held": set(), "eligible": set(), "givenup": set(),
-               "count": {}, "consec_loss": {}, "lock": trade_lock}
+    # 8/14 #57c: reentry is MODULE-SCOPE now (see def near _halt_held_mirror) — reset IN PLACE
+    # (never rebind: a rebind would re-localize the name and resurrect the boot-rebuild NameError).
+    # NOTE: the boot counter-rebuild runs BEFORE this point and may have already repopulated
+    # "held" from open records — preserve that, mirroring prior intent (rebuild wrote into the
+    # dict the session would use). Everything else resets exactly as the old literal did.
+    reentry["eligible"].clear(); reentry["givenup"].clear()
+    reentry["count"].clear(); reentry["consec_loss"].clear()
+    reentry.pop("consec_loss_usd", None)
+    reentry["lock"] = trade_lock
     _reservations = {}   # ticker → reserved notional (guard: trade_lock). pop() = exactly-once release; the
                          # worker safety-wrapper repairs any leak if a worker thread dies mid-trade (7/11 review).
     _session_cache = {}  # #81 (7/22): per-name machine state that SURVIVES trade-done rescans —
@@ -10579,6 +10733,8 @@ def main():
                                       map_age_min=(round(_bs_age, 1) if _bs_age is not None else None),
                                       map_dist_pct=round(_bs_dist, 1),
                                       auto_map=bool(_bs_rec.get("auto_map")))
+                        if _bs_gap > 5.0:
+                            _request_auto_read(ticker)   # 8/14 #57a: entry far past the marked break = the map is behind the tape — request a fresh read (own 30-min throttle)
                         _slot_refund(ticker, entry_type)
                         with trade_lock:
                             reentry["held"].discard(ticker)
@@ -10716,6 +10872,7 @@ def main():
                 _log_decision(ticker, "ceiling_reject", price=entry_price,
                               stop=round(stop_loss, 4), last_target=_z_lastT,
                               break_level=_z_brk, machine=entry_type)
+                _request_auto_read(ticker)   # 8/14 #57a: road spent = map stale by definition — request a fresh read (own 30-min throttle)
                 if STANDDOWN_STICKY and str((_z_rec or {}).get("_ts") or ""):
                     _standdown[ticker] = (str(_z_rec["_ts"]), time.time())   # 8/8 #28: binds
                     # auditor #6: never bind on a ts-less map (unliftable forever-hold)
@@ -10930,15 +11087,18 @@ def main():
                 print(f"⏳ {ticker} retest-entry armed: fire ${entry_price:.4f} -> waiting for "
                       f"${_rt_lvl:.4f} (-{RETEST_DEPTH_PCT:g}%, {RETEST_EXPIRY_S}s window)")
                 _rt_t0 = time.time(); _rt_hit = False
+                _rt_touch_px = 0.0   # 8/14 #57f: the REAL print that satisfied the retest
                 while time.time() - _rt_t0 < RETEST_EXPIRY_S:
                     if _entries_paused():
                         break                                    # deploy freeze also cancels waits
                     try:
                         _rd10, _ = _curl_feed(ticker, n=2)
                         if _rd10:
-                            _rl = float((_rd10[max(_rd10)] or {}).get("l") or 0)
+                            _rb = _rd10[max(_rd10)] or {}
+                            _rl = float(_rb.get("l") or 0)
                             if 0 < _rl <= _rt_lvl:
                                 _rt_hit = True
+                                _rt_touch_px = _rl               # the touching bar's actual low
                                 break
                     except Exception:
                         pass
@@ -10952,9 +11112,28 @@ def main():
                         settled_remaining += _reservations.pop(ticker, 0)
                         reentry["held"].discard(ticker)
                     return
-                entry_price = _rt_lvl                            # enter AT the retest level
-                _log_decision(ticker, "retest_fill", price=entry_price, machine=entry_type,
-                              waited_s=round(time.time() - _rt_t0, 1))
+                # ── 8/14 #57f REAL-PRINT FILL (fictional-fill class, ENTRY side — same disease
+                # the 8/13 exit fix cured): booking entry at the ASSUMED _rt_lvl fabricated the
+                # book. Fill at a REAL price: live print at fill moment (what a market order
+                # actually gets), falling back to the touching bar's 10s low (a verified tape
+                # print). Kill: RETEST_REAL_PRINT=0 restores the assumed level.
+                if os.environ.get("RETEST_REAL_PRINT", "1") == "1":
+                    _rt_live = 0.0
+                    try:
+                        _rt_live = float(stream.get_price(ticker) or 0)
+                    except Exception:
+                        _rt_live = 0.0
+                    _rt_fill = _rt_live if _rt_live > 0 else (_rt_touch_px if _rt_touch_px > 0 else _rt_lvl)
+                    _log_decision(ticker, "retest_fill", price=round(_rt_fill, 4), machine=entry_type,
+                                  retest_level=_rt_lvl, touch_low=(_rt_touch_px or None),
+                                  live_px=(_rt_live or None), src=("live" if _rt_live > 0 else
+                                                                   ("touch_low" if _rt_touch_px > 0 else "assumed_lvl")),
+                                  waited_s=round(time.time() - _rt_t0, 1))
+                    entry_price = round(_rt_fill, 4)
+                else:
+                    entry_price = _rt_lvl                        # enter AT the retest level (legacy assumed)
+                    _log_decision(ticker, "retest_fill", price=entry_price, machine=entry_type,
+                                  waited_s=round(time.time() - _rt_t0, 1))
                 print(f"🎯 {ticker} retest touched — entering at ${entry_price:.4f}")
 
             if (extra or {}).get("_pre_convert"):

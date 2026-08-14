@@ -1,0 +1,32 @@
+exempt-lane trades since 8/1 with usable stops: 122 (verified-book joined: 118)
+
+== BY WIDTH BAND (strict..charitable) ==
+  0_<2%    N=12  $55.14 .. $99.24  (raw winners 6)
+  1_2-3%   N=15  $-44.62 .. $2.10  (raw winners 6)
+  2_3-4%   N=18  $195.88 .. $225.93  (raw winners 9)
+  3_>=4%   N=77  $279.17 .. $491.81  (raw winners 57)
+
+SUB-4% COHORT TOTAL: N=45  $206.40 .. $327.27
+>=4% COHORT TOTAL:  N=77  $279.17 .. $491.81
+
+== SUB-4% SPECIMENS (worst 12 by strict) ==
+  2026-08-07 WFF    hidden_entry  width 1.13%  $-15.48..$-15.48
+  2026-08-14 MF     hidden_entry  width 2.17%  $-15.13..$-15.13  [raw-only]
+  2026-08-13 FGI    hidden_entry  width 2.09%  $-14.40..$-14.40
+  2026-08-07 MB     hidden_entry  width 3.73%  $-11.66..$-11.66
+  2026-08-07 MB     hidden_entry  width 1.44%  $-9.54..$-9.54
+  2026-08-13 DFSC   hidden_entry  width 1.26%  $-9.40..$-9.40
+  2026-08-07 MB     hidden_entry  width 0.29%  $-9.31..$-9.31
+  2026-08-12 BQ     hidden_entry  width 0.07%  $-8.65..$-8.65
+  2026-08-13 PSQH   hidden_entry  width 2.81%  $-8.31..$-1.85
+  2026-08-04 ZEO    flat_top      width 2.96%  $-8.18..$-8.18
+  2026-08-04 ADGM   hidden_entry  width 2.43%  $-8.16..$-8.16
+  2026-08-05 YXT    hidden_entry  width 3.79%  $-7.06..$-7.06
+
+MF TRACE (today): entry 14.45, stop 14.00 = 3.11% width (hidden exemption; floor 4%).
+Tape: stop touched within ~10s of entry (bar 14:01:00 low 14.00); price then ran to 15.38
+by 14:02:20 and resumed post-halt at 18.26. A 4%+ stop (<=13.87) survives the first bar's
+14.00 low [whether it survives the full dip needs the intrabar sequence - not claimed].
+
+CAVEATS: hidden timing-layer not per-trade here (strict already strips phantom-price
+fills); N per band SMALL; width from recorded stop_loss (post-clamp). Room votes tonight.

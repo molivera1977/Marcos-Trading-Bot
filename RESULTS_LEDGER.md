@@ -1778,3 +1778,14 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   loses the evidence stream; (b) HIDDEN_CONVERT observe-only split (~3 lines, seam pattern) =
   detection + full rows continue, no orders, $0 cost — needs auditor diff + rig + ship.sh;
   (c) conversions on at reduced cap = live data at ~-$16/trade. AWAITING HIS WORD.
+
+## 2026-08-14 ~00:25 — HIDDEN ENTRY ARCHITECT CHARTERED (14th roster seat; Marcos: "I want a hidden entry expert")
+- Chartered the same night v1 died, with the autopsy as syllabus + the F-control as the bar.
+- FIRST ANATOMY ALREADY RUN (solo, feeds the room Friday): level-proximity hypothesis REFUTED —
+  runners (n=17) median 19.8% FROM marked levels vs corpses 10.8%; 0-2% band = WORST runner rate.
+  Winners were BLUE-SKY/extension regime (FGI-class). Refined hypothesis registered: REGIME (above
+  all structure + volume + front side) is the discriminator, not proximity. Caveat: stale-map
+  distances — re-run vs freshest-at-entry maps = Architect's assignment #1.
+- Program: anticipation-not-confirmation (resting limit BUYS at structure — #53 pointed at
+  entries), full gate stack from birth, Kev frequency/sizing, Seam-Scientist method, shadow-only
+  until it beats F-control on unseen tape. Roster updated (roll-call enforced by rig Q).

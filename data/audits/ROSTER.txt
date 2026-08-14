@@ -28,3 +28,4 @@ Convexity Trader
 Curl Mechanic
 Project Manager
 Historian
+Hidden Entry Architect

@@ -92,3 +92,13 @@ data — Marcos: "I just want the latest data so the bot can make the proper cal
 ## (3) merge vision-first ordering — found+fixed 8/13 (15th); (4) grep tonight of "kev" gating
 ## sites in bot: daygain exemption/tier-0 sort/label = provenance perks (kev_name honored, doctrine-
 ## neutral); veto = data-only since f36c1b2. No further old-doctrine encodings found.
+
+## 21st convening — MAX_TRADE_DOLLARS env, covers: 290bc48c6eff
+Delta audit: 7 consumers on the module global, no re-hardcode; ambient coupling proportionally
+safe (exit coverage constant); rig U upgraded to a real exec pin after the tautology flag.
+doctrine-inversion sweep: n/a (pure parametrization). Day-one walkthrough: trial boot at 175
+traced through config print, ambient floor $2,625/min, settled-cash, sizing 87sh@$2.
+PRICED QUESTION TO MARCOS (not shipped): trial cohort-shift — at $175 the ambient floor admits
+thin names full scale will refuse; AMBIENT_DVOL_MULT=86 for the trial would hold today's $15k/min
+floor (measure-representative) vs default proportional (learn-wide). His call before Monday.
+VERDICT: SHIP. Full room carried from tonight's debrief; Historian chronicles the parametrization.

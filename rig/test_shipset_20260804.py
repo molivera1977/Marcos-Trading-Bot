@@ -1254,12 +1254,14 @@ print("U) 8/13 MAX_TRADE_DOLLARS env (trial-lethal hardcode killed)")
 try:
     _u_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
     assert 'MAX_TRADE_DOLLARS     = float(os.environ.get("MAX_TRADE_DOLLARS", "1000"))' in _u_src
+    # 21st convening fix: exec the MODULE'S OWN line under a patched environ (not a tautology)
     import os as _uo
-    _uo.environ["MAX_TRADE_DOLLARS"] = "175"
-    assert float(_uo.environ.get("MAX_TRADE_DOLLARS", "1000")) == 175.0
-    _uo.environ.pop("MAX_TRADE_DOLLARS")
-    assert float(_uo.environ.get("MAX_TRADE_DOLLARS", "1000")) == 1000.0
-    check("MAX_TRADE_DOLLARS EXECUTED: env override + default preserved (7 consumers on the global)", True)
+    _line = next(l for l in _u_src.splitlines() if l.startswith("MAX_TRADE_DOLLARS     = float"))
+    _ns1 = {"os": type("O", (), {"environ": {"MAX_TRADE_DOLLARS": "175"}})}
+    exec(_line, _ns1); assert _ns1["MAX_TRADE_DOLLARS"] == 175.0
+    _ns2 = {"os": type("O", (), {"environ": {}})}
+    exec(_line, _ns2); assert _ns2["MAX_TRADE_DOLLARS"] == 1000.0
+    check("MAX_TRADE_DOLLARS EXECUTED: the :289 line itself run w/ override + default (7 consumers on the global)", True)
 except AssertionError as _ue:
     check("MAX_TRADE_DOLLARS env", False, str(_ue))
 

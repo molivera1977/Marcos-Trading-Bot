@@ -2514,8 +2514,13 @@ def premarket_dashboard():
 
     # gate-rejects + shadow-lanes strips, PRE-scoped (same statuses as the RTH strips + premkt_capped)
     _GATES = {"minstop_reject": "📏 min-stop", "runway_reject": "🛣️ runway", "breakside_reject": "🧱 break-side",
-              "ceiling_reject": "🏔️ ceiling", "premkt_capped": "🎟️ PRE cap", "entries_paused": "🛑 FROZEN", "mapless_reject": "🗺️ mapless"}
-    _SHAD = {"halt_arm": "🪜 halt arm", "halt_early_arm": "🌅 early arm", "seam_shadow_fire": "🧵 seam"}
+              "ceiling_reject": "🏔️ ceiling", "premkt_capped": "🎟️ PRE cap", "entries_paused": "🛑 FROZEN", "mapless_reject": "🗺️ mapless",
+              # 8/14 repaired-machinery rows (ship WITH display — Curator's law)
+              "freshness_alarm": "🚨 freshness", "ignition_cell_reject": "🔬 ign-cell", "read_requested": "📖 read req"}
+    _SHAD = {"halt_arm": "🪜 halt arm", "halt_early_arm": "🌅 early arm", "seam_shadow_fire": "🧵 seam",
+             # 8/14 observe-only lanes: data-only rows, rendered so Marcos can watch them accumulate
+             "flat_top_observe_only": "👁 flat-top observe", "vwap_reclaim_observe_only": "👁 vwap-reclaim observe",
+             "hidden_observe_only": "👁 hidden observe"}
     rej_rows, shad_rows = [], []
     for r in _decisions:
         if r.get("date") != today:
@@ -3215,6 +3220,9 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="section-title">Shadow Lanes <span style="font-size:12px;font-weight:400;color:var(--muted)">(today — halt arms &amp; seam fires; H2 grading week: watch the evidence accumulate live)</span></div>
   <div id="shadowStrip" style="margin:0 0 18px 0;font-size:13px;color:var(--muted)">loading…</div>
 
+  <div class="section-title">Repairs Watch <span style="font-size:12px;font-weight:400;color:var(--muted)">(today — the repaired machinery, counted live: auto-maps, freshness alarms, auto-reads, observe-only lanes, ignition cells)</span></div>
+  <div id="repairsWatch" style="margin:0 0 18px 0;font-size:13px;color:var(--muted)">loading…</div>
+
   <div class="section-title">Trade History <span style="font-size:12px;font-weight:400;color:var(--muted)">(RTH)</span><span id="preLedgerLink" style="font-size:12px;font-weight:400"></span></div>
   <div class="table-wrap">
     <table>
@@ -3263,8 +3271,9 @@ function loadData(){
   document.getElementById('lastUpdate').textContent = 'Refreshing...';
   (function loadRejects(){
     const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    fetch('/api/decisions_archive?date='+ds+'&status=minstop_reject,runway_reject,breakside_reject,ceiling_reject,entries_paused,mapless_reject&limit=50000').then(r=>r.json()).then(j=>{
-      const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side',ceiling_reject:'🏔️ ceiling',entries_paused:'🛑 FROZEN',mapless_reject:'🗺️ mapless'};
+    fetch('/api/decisions_archive?date='+ds+'&status=minstop_reject,runway_reject,breakside_reject,ceiling_reject,entries_paused,mapless_reject,freshness_alarm,ignition_cell_reject,read_requested&limit=50000').then(r=>r.json()).then(j=>{
+      const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side',ceiling_reject:'🏔️ ceiling',entries_paused:'🛑 FROZEN',mapless_reject:'🗺️ mapless',
+        freshness_alarm:'🚨 freshness',ignition_cell_reject:'🔬 ign-cell',read_requested:'📖 read req'};
       const rows=(j.rows||[]).filter(r=>GATES[r.status]);
       const el=document.getElementById('rejectStrip'); if(!el) return;
       if(!rows.length){ el.innerHTML='<span style="color:var(--muted4)">no gate rejects yet today</span>'; return; }
@@ -3277,6 +3286,10 @@ function loadData(){
           else if(r.status==='mapless_reject') why='fired with NO MAP — auto-read requested (Build 3)';
           else if(r.status==='entries_paused') why='entry refused — freeze active (pause_entries)';
           else if(r.status==='breakside_reject') why='entry '+(r.gap_pct!=null?'+'+r.gap_pct+'% ':'')+'above the marked break'+(r.break_level!=null?' $'+r.break_level:'');
+          else if(r.status==='freshness_alarm') why=r.why||'map stale past alarm threshold — repair machinery paged';
+          else if(r.status==='ignition_cell_reject') why=r.why||('ignition cell'+(r.in_cell!=null?' (in_cell '+r.in_cell+')':'')+' refused the fire');
+          else if(r.status==='read_requested') why=r.why||'auto chart read requested';
+          else why=r.why||'';
           return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
                  '<td><a href="/tale/'+(r.ticker||'')+'" style="color:#58a6ff;text-decoration:none"><b>'+(r.ticker||'—')+'</b></a></td><td>'+GATES[r.status]+'</td><td>'+(r.machine||'—')+'</td>'+
                  '<td>'+(r.price!=null?'$'+Number(r.price).toFixed(2):'—')+'</td><td>'+why+'</td></tr>';
@@ -3285,8 +3298,9 @@ function loadData(){
   })();
   (function loadShadow(){
     const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    fetch('/api/decisions_archive?date='+ds+'&status=halt_arm,halt_early_arm,seam_shadow_fire&limit=50000').then(r=>r.json()).then(j=>{
-      const LANES={halt_arm:'🪜 halt arm',halt_early_arm:'🌅 early arm',seam_shadow_fire:'🧵 seam'};
+    fetch('/api/decisions_archive?date='+ds+'&status=halt_arm,halt_early_arm,seam_shadow_fire,flat_top_observe_only,vwap_reclaim_observe_only,hidden_observe_only&limit=50000').then(r=>r.json()).then(j=>{
+      const LANES={halt_arm:'🪜 halt arm',halt_early_arm:'🌅 early arm',seam_shadow_fire:'🧵 seam',
+        flat_top_observe_only:'👁 flat-top observe',vwap_reclaim_observe_only:'👁 vwap-reclaim observe',hidden_observe_only:'👁 hidden observe'};
       const rows=(j.rows||[]).filter(r=>LANES[r.status]);
       const el=document.getElementById('shadowStrip'); if(!el) return;
       if(!rows.length){ el.innerHTML='<span style="color:var(--muted4)">no shadow fires yet today</span>'; return; }
@@ -3294,9 +3308,11 @@ function loadData(){
         rows.slice(-40).reverse().map(r=>{
           let det='';
           if(r.status==='seam_shadow_fire') det='pull '+(r.pull_pct!=null?r.pull_pct+'%':'—')+(r.stop!=null?' · stop $'+r.stop:'');
+          else if(r.status.endsWith('_observe_only')) det=r.why||r.reason||'observe-only row';
           else det='prox '+(r.prox!=null?r.prox:'—')+' · vel '+(r.vel1m!=null?r.vel1m+'%/m':'—')+
                    (r.status==='halt_arm'?(' · 5s '+(r.confirm5s?'✅':'❌')+(r.upratio!=null?' up '+r.upratio:'')):'');
-          const conv=(r.status==='halt_early_arm')?'<span style="color:var(--muted4)">shadow</span>'
+          const conv=(r.status.endsWith('_observe_only'))?'<span style="color:var(--muted4)">observe</span>'
+                    :(r.status==='halt_early_arm')?'<span style="color:var(--muted4)">shadow</span>'
                     :(r.convert?'<span style="color:var(--green)">LIVE</span>':'<span style="color:var(--muted4)">shadow</span>');
           return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
                  '<td><a href="/tale/'+(r.ticker||'')+'" style="color:#58a6ff;text-decoration:none"><b>'+(r.ticker||'—')+'</b></a></td><td>'+LANES[r.status]+'</td>'+
@@ -3304,6 +3320,35 @@ function loadData(){
                  '<td>'+(r.side||'—')+'</td><td>'+det+'</td><td>'+conv+'</td></tr>';
         }).join('')+'</tbody></table>';
     }).catch(()=>{});
+  })();
+  (function loadRepairsWatch(){
+    /* 8/14 REPAIRS WATCH — today's counts over the repaired machinery's decision rows.
+       Read-only over /api/decisions_archive; every count degrades to 0 when rows are absent. */
+    const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    fetch('/api/decisions_archive?date='+ds+'&status=freshness_breach,freshness_alarm,read_requested,ignition_cell,ignition_cell_reject,flat_top_observe_only,vwap_reclaim_observe_only,hidden_observe_only&limit=50000').then(r=>r.json()).then(j=>{
+      const el=document.getElementById('repairsWatch'); if(!el) return;
+      const rows=j.rows||[];
+      const n=s=>rows.filter(r=>r.status===s).length;
+      const amYes=rows.filter(r=>r.status==='freshness_breach'&&r.auto_map_used===true).length;
+      const amNo =rows.filter(r=>r.status==='freshness_breach'&&r.auto_map_used!==true).length;
+      const cellIn =rows.filter(r=>r.status==='ignition_cell'&&r.in_cell===true).length;
+      const cellOut=rows.filter(r=>r.status==='ignition_cell'&&r.in_cell!==true).length;
+      const tile=(label,val,hot)=>'<div style="border:1px solid var(--bg3);border-radius:8px;padding:8px 12px;text-align:center;min-width:96px">'+
+        '<div style="font-size:18px;font-weight:700;color:'+(hot&&val>0?'var(--yellow)':'var(--fg)')+'">'+val+'</div>'+
+        '<div style="font-size:11px;color:var(--muted)">'+label+'</div></div>';
+      el.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px">'+
+        tile('🗺️ auto-map OK',amYes,false)+
+        tile('🗺️ breach, no auto-map',amNo,true)+
+        tile('🚨 freshness alarms',n('freshness_alarm'),true)+
+        tile('📖 auto-reads req',n('read_requested'),false)+
+        tile('👁 flat-top obs',n('flat_top_observe_only'),false)+
+        tile('👁 vwap-reclaim obs',n('vwap_reclaim_observe_only'),false)+
+        tile('👁 hidden obs',n('hidden_observe_only'),false)+
+        tile('🔬 cell IN',cellIn,false)+
+        tile('🔬 cell OUT',cellOut,false)+
+        tile('🔬 cell rejects',n('ignition_cell_reject'),true)+
+        '</div>';
+    }).catch(()=>{ const el=document.getElementById('repairsWatch'); if(el) el.innerHTML='<span style="color:var(--muted4)">repairs watch unavailable</span>'; });
   })();
   (function freezeBanner(){
     function poll(){

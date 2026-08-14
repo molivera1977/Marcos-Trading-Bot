@@ -8409,6 +8409,12 @@ def _effective_map(ticker, live_px=0.0):
         eff[k] = am.get(k)
     eff["auto_map"] = True
     eff["_freshest_src"] = "auto_map"
+    # 8/13 20th-convening fix #1 (MARCOS: "I just want the latest data so the bot can make the
+    # proper call from it"): the overlay's levels are seconds-old TAPE — carry a fresh timestamp
+    # with them, or the blue-sky TTL reads the OLD map's birth certificate off the new map and
+    # expires a crowned name holding current structure (the FGI-at-1pm leak, fail-closed but
+    # wrong). Freshest-data law: the stamp travels with the data it describes.
+    eff["_ts"] = datetime.now(EASTERN).isoformat()
     _effmap_cache[ticker] = (time.time() + 20, eff)
     return eff
 

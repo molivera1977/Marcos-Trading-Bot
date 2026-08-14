@@ -1222,6 +1222,10 @@ try:
     assert '_cur + [ticker]' in _blk3                            # union, not replacement
     assert '1800' in _blk3                                       # 30-min throttle
     assert '_request_auto_read(ticker)' in _b_src.split('"mapless_reject"')[1][:400]  # wired at the reject
+    # 20th-convening fix #1 (Marcos: "I just want the latest data"): auto-map overlay carries
+    # a FRESH _ts so the blue-sky TTL never expires a crown holding current structure
+    _iam = _b_src.find('eff["_freshest_src"] = "auto_map"')
+    assert 'eff["_ts"] = datetime.now(EASTERN).isoformat()' in _b_src[_iam:_iam+700]
     # Rider — seam heartbeat
     assert '"seam_beat"' in _b_src and 'ZZSEAMBEAT' in _b_src
     check("#54 EXECUTED: blue-sky first-read+TTL specimens, Kev inversion, merge-only auto-read, seam beat", True)

@@ -1,0 +1,100 @@
+FILES: 421  DATES: 36  2026-06-25..2026-08-14
+survivor signals: 419 {'flat_top': 208, 'grinder': 211}  vwap: 103
+
+== TEST I(i) — F config SIZED, ROLLING-60s guard ==
+  H1 frictions: N=331 total=$-1062.93 dailymean=$-29.53 worst=$-431.97
+  fill rates: {'flat_top': '114/208 = 55%', 'grinder': '133/211 = 63%', 'vwap': '84/103 = 82%'}
+  H2 halt-excl: N=331 total=$-1062.93 dailymean=$-29.53 worst=$-431.97
+  halt-gap forced exits: 0
+  H3 dedup: N=326 total=$-969.31 dailymean=$-26.93 worst=$-431.97
+  deduped dropped: 5
+  H4 capacity: N=235 total=$-553.75 dailymean=$-15.38 worst=$-361.68
+  slot-skipped: 91
+  H5: mean=$-15.38 median=$-42.25 green=12/36=33% half1=$-84.98/d half2=$+54.21/d worst=$-361.68 (2026-07-02) best 2026-08-07 $+1157.57 exbest=$-48.89
+  per-entry: {'flat_top': 'N=78 $+692.03', 'grinder': 'N=82 $-200.16', 'vwap': 'N=75 $-1045.62'}
+  daily: {'2026-06-25': -285.63, '2026-06-26': -41.59, '2026-06-29': 105.09, '2026-06-30': -46.47, '2026-07-01': -247.8, '2026-07-02': -361.68, '2026-07-06': -184.83, '2026-07-07': 144.61, '2026-07-08': -12.36, '2026-07-09': -23.2, '2026-07-10': -64.37, '2026-07-13': 24.94, '2026-07-14': -11.73, '2026-07-15': -263.05, '2026-07-16': 58.43, '2026-07-17': -183.88, '2026-07-20': -77.77, '2026-07-21': -58.3, '2026-07-22': -81.88, '2026-07-23': 7.99, '2026-07-24': -91.77, '2026-07-27': -284.86, '2026-07-28': 71.79, '2026-07-29': -42.91, '2026-07-30': 55.35, '2026-07-31': 51.1, '2026-08-03': 26.16, '2026-08-04': -3.65, '2026-08-05': -33.03, '2026-08-06': 394.72, '2026-08-07': 1157.57, '2026-08-10': -317.16, '2026-08-11': 401.31, '2026-08-12': -191.06, '2026-08-13': -79.23, '2026-08-14': -64.59}
+  VERDICT: {'mean': 'FAIL', 'median': 'FAIL', 'green_pct': 'FAIL', 'halves': 'FAIL', 'worst': 'FAIL'} OVERALL FAIL 0/5
+  I(i) SIZE CENSUS (signal level): flat_top: full=116 half=14 skip=78  grinder: full=117 half=16 skip=78  vwap: full=76 half=8 skip=19  
+  post-H4 fills by size:  {'flat_top': {'full': 70, 'half': 8}, 'grinder': {'full': 73, 'half': 9}, 'vwap': {'full': 67, 'half': 8}}
+
+grinder-1030 solo signals: 239
+
+== TEST I(ii) — grinder-1030 SOLO SIZED, ROLLING-60s guard ==
+  H1 frictions: N=147 total=$-392.22 dailymean=$-10.90 worst=$-257.57
+  fill rates: {'grinder': '147/239 = 62%'}
+  H2 halt-excl: N=147 total=$-392.22 dailymean=$-10.90 worst=$-257.57
+  halt-gap forced exits: 0
+  H3 dedup: N=147 total=$-392.22 dailymean=$-10.90 worst=$-257.57
+  deduped dropped: 0
+  H4 capacity: N=95 total=$+76.15 dailymean=$+2.12 worst=$-257.57
+  slot-skipped: 52
+  H5: mean=$+2.12 median=$+0.00 green=15/36=42% half1=$-15.69/d half2=$+19.92/d worst=$-257.57 (2026-07-27) best 2026-07-07 $+198.37 exbest=$-3.49
+  per-entry: {'grinder': 'N=95 $+76.15'}
+  daily: {'2026-06-25': -96.54, '2026-06-26': 0.0, '2026-06-29': 0.0, '2026-06-30': -59.45, '2026-07-01': -129.17, '2026-07-02': -76.25, '2026-07-06': -42.76, '2026-07-07': 198.37, '2026-07-08': 43.75, '2026-07-09': 50.07, '2026-07-10': -20.65, '2026-07-13': 92.24, '2026-07-14': 0.0, '2026-07-15': -55.26, '2026-07-16': 17.5, '2026-07-17': -53.66, '2026-07-20': -90.46, '2026-07-21': -60.21, '2026-07-22': -108.22, '2026-07-23': 0.0, '2026-07-24': -89.95, '2026-07-27': -257.57, '2026-07-28': 187.21, '2026-07-29': 0.0, '2026-07-30': 54.96, '2026-07-31': 78.44, '2026-08-03': 0.0, '2026-08-04': 43.83, '2026-08-05': 44.32, '2026-08-06': 41.64, '2026-08-07': 154.99, '2026-08-10': 0.0, '2026-08-11': 21.27, '2026-08-12': 107.67, '2026-08-13': 80.02, '2026-08-14': 0.0}
+  VERDICT: {'mean': 'FAIL', 'median': 'FAIL', 'green_pct': 'FAIL', 'halves': 'FAIL', 'worst': 'PASS'} OVERALL FAIL 1/5
+  I(ii) SIZE CENSUS (signal level): grinder: full=128 half=19 skip=92  
+  post-H4 fills by size:  {'grinder': {'full': 83, 'half': 12}}
+
+PRE COVERAGE: files=421  with>=1 premkt bar=416  with>=60 window bars=310
+  first-bar time: min=08:00:00 median=08:00:00 max=13:30:00
+  window-bar count (of max 872): min=0 median=455 mean=449 max=871
+  files with first bar at 08:00:xx Z (04:00 ET): 350
+PRE signals: 409 {'pre_flat_top': 311, 'pre_vwap': 98}
+
+== TEST J — PRE STREAM solo ($500 chase, 09:25 flatten) ==
+  H1 frictions: N=409 total=$-923.37 dailymean=$-25.65 worst=$-331.46
+  fill rates: {'pre_flat_top': '311/311 = 100%', 'pre_vwap': '98/98 = 100%'}
+  H2 halt-excl: N=409 total=$-954.81 dailymean=$-26.52 worst=$-331.46
+  halt-gap forced exits: 1
+  H3 dedup: N=399 total=$-1028.68 dailymean=$-28.57 worst=$-300.76
+  deduped dropped: 10
+  H4 capacity: N=303 total=$-698.82 dailymean=$-19.41 worst=$-281.25
+  slot-skipped: 96
+  H5: mean=$-19.41 median=$-29.16 green=15/36=42% half1=$-53.41/d half2=$+14.58/d worst=$-281.25 (2026-07-17) best 2026-07-22 $+374.65 exbest=$-30.67
+  per-entry: {'pre_flat_top': 'N=230 $-1251.00', 'pre_vwap': 'N=73 $+552.18'}
+  daily: {'2026-06-25': 103.97, '2026-06-26': -138.31, '2026-06-29': 5.6, '2026-06-30': -65.23, '2026-07-01': -146.14, '2026-07-02': -123.96, '2026-07-06': 8.47, '2026-07-07': -49.66, '2026-07-08': 13.11, '2026-07-09': -60.0, '2026-07-10': 11.03, '2026-07-13': 7.92, '2026-07-14': -18.22, '2026-07-15': -140.49, '2026-07-16': 79.79, '2026-07-17': -281.25, '2026-07-20': -120.16, '2026-07-21': -47.83, '2026-07-22': 374.65, '2026-07-23': -60.36, '2026-07-24': -37.89, '2026-07-27': -63.15, '2026-07-28': 8.4, '2026-07-29': -39.84, '2026-07-30': 23.05, '2026-07-31': -116.15, '2026-08-03': 50.41, '2026-08-04': 16.13, '2026-08-05': -20.43, '2026-08-06': 136.79, '2026-08-07': -208.94, '2026-08-10': 289.97, '2026-08-11': -2.32, '2026-08-12': 147.41, '2026-08-13': -85.77, '2026-08-14': -149.42}
+  VERDICT: {'mean': 'FAIL', 'median': 'FAIL', 'green_pct': 'FAIL', 'halves': 'FAIL', 'worst': 'PASS'} OVERALL FAIL 1/5
+  J post-H4: N=303 winners=113 win%=37%
+
+== TEST K — grinder-1030 SOLO + PRE STREAM, 2 slots ==
+  H1 frictions: N=648 total=$+1014.65 dailymean=$+28.18 worst=$-305.07
+  fill rates: {'grinder': '239/239 = 100%', 'pre_flat_top': '311/311 = 100%', 'pre_vwap': '98/98 = 100%'}
+  H2 halt-excl: N=648 total=$+983.20 dailymean=$+27.31 worst=$-305.07
+  halt-gap forced exits: 1
+  H3 dedup: N=638 total=$+909.34 dailymean=$+25.26 worst=$-274.38
+  deduped dropped: 10
+  H4 capacity: N=446 total=$+1008.38 dailymean=$+28.01 worst=$-254.86
+  slot-skipped: 192
+  H5: mean=$+28.01 median=$+34.24 green=22/36=61% half1=$+2.32/d half2=$+53.70/d worst=$-254.86 (2026-07-17) best 2026-08-10 $+361.98 exbest=$+18.47
+  per-entry: {'grinder': 'N=143 $+1707.20', 'pre_flat_top': 'N=230 $-1251.00', 'pre_vwap': 'N=73 $+552.18'}
+  daily: {'2026-06-25': 286.64, '2026-06-26': -69.02, '2026-06-29': 61.22, '2026-06-30': 157.78, '2026-07-01': -116.85, '2026-07-02': -156.18, '2026-07-06': 36.56, '2026-07-07': 20.42, '2026-07-08': 78.05, '2026-07-09': -25.14, '2026-07-10': 144.95, '2026-07-13': 56.64, '2026-07-14': 31.92, '2026-07-15': -163.3, '2026-07-16': 88.54, '2026-07-17': -254.86, '2026-07-20': -160.46, '2026-07-21': 24.83, '2026-07-22': 307.38, '2026-07-23': -60.36, '2026-07-24': -56.88, '2026-07-27': -108.18, '2026-07-28': 156.44, '2026-07-29': 68.01, '2026-07-30': 39.72, '2026-07-31': -41.28, '2026-08-03': 80.14, '2026-08-04': 61.84, '2026-08-05': 50.11, '2026-08-06': 212.99, '2026-08-07': -129.91, '2026-08-10': 361.98, '2026-08-11': 20.94, '2026-08-12': 237.79, '2026-08-13': -58.72, '2026-08-14': -175.36}
+  VERDICT: {'mean': 'FAIL', 'median': 'FAIL', 'green_pct': 'PASS', 'halves': 'PASS', 'worst': 'PASS'} OVERALL FAIL 3/5
+
+HAND-TRACE PRE: PRE:KUST 2026-06-25 11:36:00 pre_vwap entry_sig=2.4000 stop=1.6500 pnl=$+42.2040
+    11:36:50 SCALE half at +4% (2.5210)
+    11:53:20 TRAIL exit close 2.7500 < EMA90 2.7611 fill 2.7363
+
+HAND-TRACE K DAY 2026-07-17:
+    11:37:10     PRE:SLND pre_vwap     pnl=$+6.45 exit=trail@11:49:20
+    11:51:00     PRE:CJMB pre_flat_top pnl=$-18.79 exit=stop@12:03:00
+    11:56:30     PRE:TRUG pre_vwap     pnl=$-45.03 exit=stop@11:57:30
+    12:08:00     PRE:GIPR pre_flat_top pnl=$-18.88 exit=stop@12:14:10
+    12:10:50    PRE:PSNYW pre_flat_top pnl=$-60.70 exit=stop@12:40:30
+    12:14:50     PRE:SDOT pre_flat_top pnl=$-41.09 exit=stop@12:20:00
+    12:23:10     PRE:BIYA pre_flat_top pnl=$-13.58 exit=stop@12:28:10
+    12:44:20     PRE:SDOT pre_flat_top pnl=$-16.36 exit=stop@12:45:10
+    13:04:00     PRE:GIPR pre_flat_top pnl=$-7.39 exit=eod
+    13:08:50     PRE:BIYA pre_vwap     pnl=$-23.60 exit=stop@13:11:20
+    13:12:50     PRE:SDOT pre_vwap     pnl=$-25.48 exit=stop@13:13:20
+    13:18:30    PRE:PSNYW pre_flat_top pnl=$-16.81 exit=stop@13:18:40
+    14:36:10         LEDS grinder      pnl=$+16.63 exit=trail@15:07:20
+    15:40:00         LEDS grinder      pnl=$+11.15 exit=trail@16:06:20
+    15:58:50         LEDS grinder      pnl=$-24.38 exit=stop@16:09:50
+    16:59:30         LEDS grinder      pnl=$+19.31 exit=trail@17:54:10
+    17:31:10         LEDS grinder      pnl=$+8.75 exit=stop@17:54:00
+    18:02:50         HPAI grinder      pnl=$+25.62 exit=trail@18:20:20
+    18:18:20         LEDS grinder      pnl=$+8.75 exit=stop@18:38:30
+    18:35:20         LEDS grinder      pnl=$-39.44 exit=stop@18:41:00
+    sum=$-254.86  vs daily table $-254.86
+
+wrote stress_E_out.json + stress_E_coverage.json

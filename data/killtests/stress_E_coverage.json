@@ -1,0 +1,3370 @@
+[
+ {
+  "file": "2026-06-25_AZI.json",
+  "sym": "AZI",
+  "date": "2026-06-25",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-06-25_CIRC.json",
+  "sym": "CIRC",
+  "date": "2026-06-25",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 878,
+  "n_window_bars": 585
+ },
+ {
+  "file": "2026-06-25_FCUV.json",
+  "sym": "FCUV",
+  "date": "2026-06-25",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1874,
+  "n_window_bars": 868
+ },
+ {
+  "file": "2026-06-25_ILLR.json",
+  "sym": "ILLR",
+  "date": "2026-06-25",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 366,
+  "n_window_bars": 322
+ },
+ {
+  "file": "2026-06-25_IQST.json",
+  "sym": "IQST",
+  "date": "2026-06-25",
+  "first_bar": "08:05:00",
+  "n_pre_bars": 552,
+  "n_window_bars": 522
+ },
+ {
+  "file": "2026-06-25_KUST.json",
+  "sym": "KUST",
+  "date": "2026-06-25",
+  "first_bar": "08:00:20",
+  "n_pre_bars": 749,
+  "n_window_bars": 707
+ },
+ {
+  "file": "2026-06-25_NEXR.json",
+  "sym": "NEXR",
+  "date": "2026-06-25",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-06-25_PRFX.json",
+  "sym": "PRFX",
+  "date": "2026-06-25",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 228,
+  "n_window_bars": 152
+ },
+ {
+  "file": "2026-06-25_PTLE.json",
+  "sym": "PTLE",
+  "date": "2026-06-25",
+  "first_bar": "08:04:10",
+  "n_pre_bars": 5,
+  "n_window_bars": 2
+ },
+ {
+  "file": "2026-06-25_TNON.json",
+  "sym": "TNON",
+  "date": "2026-06-25",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 200,
+  "n_window_bars": 109
+ },
+ {
+  "file": "2026-06-25_VNTG.json",
+  "sym": "VNTG",
+  "date": "2026-06-25",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 5,
+  "n_window_bars": 3
+ },
+ {
+  "file": "2026-06-25_XCH.json",
+  "sym": "XCH",
+  "date": "2026-06-25",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 22,
+  "n_window_bars": 9
+ },
+ {
+  "file": "2026-06-26_CMIIW.json",
+  "sym": "CMIIW",
+  "date": "2026-06-26",
+  "first_bar": "09:00:10",
+  "n_pre_bars": 111,
+  "n_window_bars": 109
+ },
+ {
+  "file": "2026-06-26_CNEY.json",
+  "sym": "CNEY",
+  "date": "2026-06-26",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 70,
+  "n_window_bars": 28
+ },
+ {
+  "file": "2026-06-26_ILLR.json",
+  "sym": "ILLR",
+  "date": "2026-06-26",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-06-26_IVF.json",
+  "sym": "IVF",
+  "date": "2026-06-26",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-06-26_LICN.json",
+  "sym": "LICN",
+  "date": "2026-06-26",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 147,
+  "n_window_bars": 95
+ },
+ {
+  "file": "2026-06-26_LVWR.json",
+  "sym": "LVWR",
+  "date": "2026-06-26",
+  "first_bar": "13:12:40",
+  "n_pre_bars": 1,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-06-26_NNOX.json",
+  "sym": "NNOX",
+  "date": "2026-06-26",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 562,
+  "n_window_bars": 245
+ },
+ {
+  "file": "2026-06-26_PCLA.json",
+  "sym": "PCLA",
+  "date": "2026-06-26",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 20,
+  "n_window_bars": 13
+ },
+ {
+  "file": "2026-06-26_RYOJ.json",
+  "sym": "RYOJ",
+  "date": "2026-06-26",
+  "first_bar": "08:00:20",
+  "n_pre_bars": 12,
+  "n_window_bars": 8
+ },
+ {
+  "file": "2026-06-26_SDOT.json",
+  "sym": "SDOT",
+  "date": "2026-06-26",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1740,
+  "n_window_bars": 866
+ },
+ {
+  "file": "2026-06-26_WSHP.json",
+  "sym": "WSHP",
+  "date": "2026-06-26",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 18,
+  "n_window_bars": 10
+ },
+ {
+  "file": "2026-06-26_ZCMD.json",
+  "sym": "ZCMD",
+  "date": "2026-06-26",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 189,
+  "n_window_bars": 63
+ },
+ {
+  "file": "2026-06-29_ASTC.json",
+  "sym": "ASTC",
+  "date": "2026-06-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 120,
+  "n_window_bars": 70
+ },
+ {
+  "file": "2026-06-29_AZI.json",
+  "sym": "AZI",
+  "date": "2026-06-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 643,
+  "n_window_bars": 339
+ },
+ {
+  "file": "2026-06-29_DCOY.json",
+  "sym": "DCOY",
+  "date": "2026-06-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1979,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-06-29_DGNX.json",
+  "sym": "DGNX",
+  "date": "2026-06-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 45,
+  "n_window_bars": 27
+ },
+ {
+  "file": "2026-06-29_JEM.json",
+  "sym": "JEM",
+  "date": "2026-06-29",
+  "first_bar": "08:04:50",
+  "n_pre_bars": 12,
+  "n_window_bars": 2
+ },
+ {
+  "file": "2026-06-29_KUST.json",
+  "sym": "KUST",
+  "date": "2026-06-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 578,
+  "n_window_bars": 430
+ },
+ {
+  "file": "2026-06-29_LGCL.json",
+  "sym": "LGCL",
+  "date": "2026-06-29",
+  "first_bar": "08:00:20",
+  "n_pre_bars": 368,
+  "n_window_bars": 202
+ },
+ {
+  "file": "2026-06-29_NNBR.json",
+  "sym": "NNBR",
+  "date": "2026-06-29",
+  "first_bar": "11:00:00",
+  "n_pre_bars": 897,
+  "n_window_bars": 868
+ },
+ {
+  "file": "2026-06-29_SDOT.json",
+  "sym": "SDOT",
+  "date": "2026-06-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1639,
+  "n_window_bars": 678
+ },
+ {
+  "file": "2026-06-29_TNMG.json",
+  "sym": "TNMG",
+  "date": "2026-06-29",
+  "first_bar": "11:46:50",
+  "n_pre_bars": 533,
+  "n_window_bars": 504
+ },
+ {
+  "file": "2026-06-29_UPC.json",
+  "sym": "UPC",
+  "date": "2026-06-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-06-29_ZCMD.json",
+  "sym": "ZCMD",
+  "date": "2026-06-29",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 58,
+  "n_window_bars": 54
+ },
+ {
+  "file": "2026-06-30_BACCR.json",
+  "sym": "BACCR",
+  "date": "2026-06-30",
+  "first_bar": "11:44:40",
+  "n_pre_bars": 52,
+  "n_window_bars": 47
+ },
+ {
+  "file": "2026-06-30_BTCT.json",
+  "sym": "BTCT",
+  "date": "2026-06-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-06-30_CELZ.json",
+  "sym": "CELZ",
+  "date": "2026-06-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 416,
+  "n_window_bars": 345
+ },
+ {
+  "file": "2026-06-30_CIGL.json",
+  "sym": "CIGL",
+  "date": "2026-06-30",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 22,
+  "n_window_bars": 7
+ },
+ {
+  "file": "2026-06-30_CUPR.json",
+  "sym": "CUPR",
+  "date": "2026-06-30",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 1152,
+  "n_window_bars": 852
+ },
+ {
+  "file": "2026-06-30_GVH.json",
+  "sym": "GVH",
+  "date": "2026-06-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1573,
+  "n_window_bars": 659
+ },
+ {
+  "file": "2026-06-30_INTJ.json",
+  "sym": "INTJ",
+  "date": "2026-06-30",
+  "first_bar": "12:29:30",
+  "n_pre_bars": 1,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-06-30_INTZ.json",
+  "sym": "INTZ",
+  "date": "2026-06-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1979,
+  "n_window_bars": 870
+ },
+ {
+  "file": "2026-06-30_JEM.json",
+  "sym": "JEM",
+  "date": "2026-06-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-06-30_LGCL.json",
+  "sym": "LGCL",
+  "date": "2026-06-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1082,
+  "n_window_bars": 595
+ },
+ {
+  "file": "2026-06-30_PAVS.json",
+  "sym": "PAVS",
+  "date": "2026-06-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1946,
+  "n_window_bars": 851
+ },
+ {
+  "file": "2026-06-30_SVRE.json",
+  "sym": "SVRE",
+  "date": "2026-06-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 367,
+  "n_window_bars": 335
+ },
+ {
+  "file": "2026-07-01_ALIT.json",
+  "sym": "ALIT",
+  "date": "2026-07-01",
+  "first_bar": "13:30:00",
+  "n_pre_bars": 0,
+  "n_window_bars": 0
+ },
+ {
+  "file": "2026-07-01_CANF.json",
+  "sym": "CANF",
+  "date": "2026-07-01",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 951,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-01_DXF.json",
+  "sym": "DXF",
+  "date": "2026-07-01",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-01_EHGO.json",
+  "sym": "EHGO",
+  "date": "2026-07-01",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-01_GSUN.json",
+  "sym": "GSUN",
+  "date": "2026-07-01",
+  "first_bar": "10:12:00",
+  "n_pre_bars": 1184,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-01_JEM.json",
+  "sym": "JEM",
+  "date": "2026-07-01",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-01_KUST.json",
+  "sym": "KUST",
+  "date": "2026-07-01",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 923,
+  "n_window_bars": 781
+ },
+ {
+  "file": "2026-07-01_LHAI.json",
+  "sym": "LHAI",
+  "date": "2026-07-01",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 552,
+  "n_window_bars": 518
+ },
+ {
+  "file": "2026-07-01_MQ.json",
+  "sym": "MQ",
+  "date": "2026-07-01",
+  "first_bar": "13:19:50",
+  "n_pre_bars": 5,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-07-01_PCLA.json",
+  "sym": "PCLA",
+  "date": "2026-07-01",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 74,
+  "n_window_bars": 33
+ },
+ {
+  "file": "2026-07-01_STKE.json",
+  "sym": "STKE",
+  "date": "2026-07-01",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 11,
+  "n_window_bars": 7
+ },
+ {
+  "file": "2026-07-01_TC.json",
+  "sym": "TC",
+  "date": "2026-07-01",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-02_CCTG.json",
+  "sym": "CCTG",
+  "date": "2026-07-02",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 163,
+  "n_window_bars": 76
+ },
+ {
+  "file": "2026-07-02_CLRO.json",
+  "sym": "CLRO",
+  "date": "2026-07-02",
+  "first_bar": "12:20:00",
+  "n_pre_bars": 420,
+  "n_window_bars": 391
+ },
+ {
+  "file": "2026-07-02_CWD.json",
+  "sym": "CWD",
+  "date": "2026-07-02",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 820,
+  "n_window_bars": 782
+ },
+ {
+  "file": "2026-07-02_DSY.json",
+  "sym": "DSY",
+  "date": "2026-07-02",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-02_GMEX.json",
+  "sym": "GMEX",
+  "date": "2026-07-02",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 126,
+  "n_window_bars": 108
+ },
+ {
+  "file": "2026-07-02_HLP.json",
+  "sym": "HLP",
+  "date": "2026-07-02",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 100,
+  "n_window_bars": 51
+ },
+ {
+  "file": "2026-07-02_PPCB.json",
+  "sym": "PPCB",
+  "date": "2026-07-02",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 390,
+  "n_window_bars": 344
+ },
+ {
+  "file": "2026-07-02_SDEV.json",
+  "sym": "SDEV",
+  "date": "2026-07-02",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1946,
+  "n_window_bars": 851
+ },
+ {
+  "file": "2026-07-02_SURG.json",
+  "sym": "SURG",
+  "date": "2026-07-02",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-02_USDE.json",
+  "sym": "USDE",
+  "date": "2026-07-02",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-02_WHLR.json",
+  "sym": "WHLR",
+  "date": "2026-07-02",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-02_YRD.json",
+  "sym": "YRD",
+  "date": "2026-07-02",
+  "first_bar": "09:35:00",
+  "n_pre_bars": 1404,
+  "n_window_bars": 869
+ },
+ {
+  "file": "2026-07-06_ABTC.json",
+  "sym": "ABTC",
+  "date": "2026-07-06",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 100,
+  "n_window_bars": 87
+ },
+ {
+  "file": "2026-07-06_BGM.json",
+  "sym": "BGM",
+  "date": "2026-07-06",
+  "first_bar": "08:00:20",
+  "n_pre_bars": 15,
+  "n_window_bars": 8
+ },
+ {
+  "file": "2026-07-06_BJDX.json",
+  "sym": "BJDX",
+  "date": "2026-07-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 432,
+  "n_window_bars": 370
+ },
+ {
+  "file": "2026-07-06_FXHO.json",
+  "sym": "FXHO",
+  "date": "2026-07-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1970,
+  "n_window_bars": 861
+ },
+ {
+  "file": "2026-07-06_KIDZ.json",
+  "sym": "KIDZ",
+  "date": "2026-07-06",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 818,
+  "n_window_bars": 721
+ },
+ {
+  "file": "2026-07-06_LHSW.json",
+  "sym": "LHSW",
+  "date": "2026-07-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-06_LUCY.json",
+  "sym": "LUCY",
+  "date": "2026-07-06",
+  "first_bar": "08:02:10",
+  "n_pre_bars": 549,
+  "n_window_bars": 514
+ },
+ {
+  "file": "2026-07-06_NIVF.json",
+  "sym": "NIVF",
+  "date": "2026-07-06",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 78,
+  "n_window_bars": 70
+ },
+ {
+  "file": "2026-07-06_TDTH.json",
+  "sym": "TDTH",
+  "date": "2026-07-06",
+  "first_bar": "08:02:10",
+  "n_pre_bars": 466,
+  "n_window_bars": 329
+ },
+ {
+  "file": "2026-07-06_WBX.json",
+  "sym": "WBX",
+  "date": "2026-07-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 155,
+  "n_window_bars": 47
+ },
+ {
+  "file": "2026-07-06_YDES.json",
+  "sym": "YDES",
+  "date": "2026-07-06",
+  "first_bar": "08:03:50",
+  "n_pre_bars": 102,
+  "n_window_bars": 33
+ },
+ {
+  "file": "2026-07-06_ZCMD.json",
+  "sym": "ZCMD",
+  "date": "2026-07-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-07_BJDX.json",
+  "sym": "BJDX",
+  "date": "2026-07-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-07_BYAH.json",
+  "sym": "BYAH",
+  "date": "2026-07-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1468,
+  "n_window_bars": 820
+ },
+ {
+  "file": "2026-07-07_CCHH.json",
+  "sym": "CCHH",
+  "date": "2026-07-07",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 660,
+  "n_window_bars": 500
+ },
+ {
+  "file": "2026-07-07_CLRO.json",
+  "sym": "CLRO",
+  "date": "2026-07-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 790,
+  "n_window_bars": 463
+ },
+ {
+  "file": "2026-07-07_JLHL.json",
+  "sym": "JLHL",
+  "date": "2026-07-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1216,
+  "n_window_bars": 493
+ },
+ {
+  "file": "2026-07-07_NPT.json",
+  "sym": "NPT",
+  "date": "2026-07-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 28,
+  "n_window_bars": 13
+ },
+ {
+  "file": "2026-07-07_PHOE.json",
+  "sym": "PHOE",
+  "date": "2026-07-07",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 6,
+  "n_window_bars": 4
+ },
+ {
+  "file": "2026-07-07_SKIN.json",
+  "sym": "SKIN",
+  "date": "2026-07-07",
+  "first_bar": "10:12:20",
+  "n_pre_bars": 455,
+  "n_window_bars": 433
+ },
+ {
+  "file": "2026-07-07_SKYQ.json",
+  "sym": "SKYQ",
+  "date": "2026-07-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1951,
+  "n_window_bars": 862
+ },
+ {
+  "file": "2026-07-07_SVC.json",
+  "sym": "SVC",
+  "date": "2026-07-07",
+  "first_bar": "13:22:30",
+  "n_pre_bars": 2,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-07-07_TDTH.json",
+  "sym": "TDTH",
+  "date": "2026-07-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-07_TVRD.json",
+  "sym": "TVRD",
+  "date": "2026-07-07",
+  "first_bar": "08:01:00",
+  "n_pre_bars": 84,
+  "n_window_bars": 67
+ },
+ {
+  "file": "2026-07-08_BIYA.json",
+  "sym": "BIYA",
+  "date": "2026-07-08",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 376,
+  "n_window_bars": 241
+ },
+ {
+  "file": "2026-07-08_FRTT.json",
+  "sym": "FRTT",
+  "date": "2026-07-08",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 91,
+  "n_window_bars": 49
+ },
+ {
+  "file": "2026-07-08_IOTR.json",
+  "sym": "IOTR",
+  "date": "2026-07-08",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1977,
+  "n_window_bars": 868
+ },
+ {
+  "file": "2026-07-08_ONFO.json",
+  "sym": "ONFO",
+  "date": "2026-07-08",
+  "first_bar": "08:00:50",
+  "n_pre_bars": 495,
+  "n_window_bars": 465
+ },
+ {
+  "file": "2026-07-08_SKYQ.json",
+  "sym": "SKYQ",
+  "date": "2026-07-08",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1967,
+  "n_window_bars": 865
+ },
+ {
+  "file": "2026-07-08_SRXH.json",
+  "sym": "SRXH",
+  "date": "2026-07-08",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 852,
+  "n_window_bars": 509
+ },
+ {
+  "file": "2026-07-08_TC.json",
+  "sym": "TC",
+  "date": "2026-07-08",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1538,
+  "n_window_bars": 613
+ },
+ {
+  "file": "2026-07-08_TVRD.json",
+  "sym": "TVRD",
+  "date": "2026-07-08",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1114,
+  "n_window_bars": 636
+ },
+ {
+  "file": "2026-07-08_VTAK.json",
+  "sym": "VTAK",
+  "date": "2026-07-08",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1504,
+  "n_window_bars": 845
+ },
+ {
+  "file": "2026-07-09_CIRC.json",
+  "sym": "CIRC",
+  "date": "2026-07-09",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 129,
+  "n_window_bars": 95
+ },
+ {
+  "file": "2026-07-09_FBRX.json",
+  "sym": "FBRX",
+  "date": "2026-07-09",
+  "first_bar": "12:00:00",
+  "n_pre_bars": 214,
+  "n_window_bars": 208
+ },
+ {
+  "file": "2026-07-09_JLHL.json",
+  "sym": "JLHL",
+  "date": "2026-07-09",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1412,
+  "n_window_bars": 597
+ },
+ {
+  "file": "2026-07-09_LGHL.json",
+  "sym": "LGHL",
+  "date": "2026-07-09",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1742,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-09_RKTO.json",
+  "sym": "RKTO",
+  "date": "2026-07-09",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 475,
+  "n_window_bars": 419
+ },
+ {
+  "file": "2026-07-09_RPGL.json",
+  "sym": "RPGL",
+  "date": "2026-07-09",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-09_SDOT.json",
+  "sym": "SDOT",
+  "date": "2026-07-09",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1929,
+  "n_window_bars": 858
+ },
+ {
+  "file": "2026-07-09_SRXH.json",
+  "sym": "SRXH",
+  "date": "2026-07-09",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1748,
+  "n_window_bars": 859
+ },
+ {
+  "file": "2026-07-09_TDTH.json",
+  "sym": "TDTH",
+  "date": "2026-07-09",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 722,
+  "n_window_bars": 532
+ },
+ {
+  "file": "2026-07-09_TRAX.json",
+  "sym": "TRAX",
+  "date": "2026-07-09",
+  "first_bar": "09:09:00",
+  "n_pre_bars": 25,
+  "n_window_bars": 17
+ },
+ {
+  "file": "2026-07-09_VRAX.json",
+  "sym": "VRAX",
+  "date": "2026-07-09",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 729,
+  "n_window_bars": 691
+ },
+ {
+  "file": "2026-07-09_WRAP.json",
+  "sym": "WRAP",
+  "date": "2026-07-09",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 192,
+  "n_window_bars": 155
+ },
+ {
+  "file": "2026-07-10_AARD.json",
+  "sym": "AARD",
+  "date": "2026-07-10",
+  "first_bar": "12:13:10",
+  "n_pre_bars": 2,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-07-10_CPHI.json",
+  "sym": "CPHI",
+  "date": "2026-07-10",
+  "first_bar": "08:01:00",
+  "n_pre_bars": 1,
+  "n_window_bars": 0
+ },
+ {
+  "file": "2026-07-10_ELAB.json",
+  "sym": "ELAB",
+  "date": "2026-07-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1935,
+  "n_window_bars": 862
+ },
+ {
+  "file": "2026-07-10_GMM.json",
+  "sym": "GMM",
+  "date": "2026-07-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-10_HAO.json",
+  "sym": "HAO",
+  "date": "2026-07-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1859,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-10_JZXN.json",
+  "sym": "JZXN",
+  "date": "2026-07-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 448,
+  "n_window_bars": 373
+ },
+ {
+  "file": "2026-07-10_PLBL.json",
+  "sym": "PLBL",
+  "date": "2026-07-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 27,
+  "n_window_bars": 13
+ },
+ {
+  "file": "2026-07-10_PMA.json",
+  "sym": "PMA",
+  "date": "2026-07-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1909,
+  "n_window_bars": 828
+ },
+ {
+  "file": "2026-07-10_SNAL.json",
+  "sym": "SNAL",
+  "date": "2026-07-10",
+  "first_bar": "08:00:20",
+  "n_pre_bars": 72,
+  "n_window_bars": 27
+ },
+ {
+  "file": "2026-07-10_SUNE.json",
+  "sym": "SUNE",
+  "date": "2026-07-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 763,
+  "n_window_bars": 429
+ },
+ {
+  "file": "2026-07-10_YMAT.json",
+  "sym": "YMAT",
+  "date": "2026-07-10",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 118,
+  "n_window_bars": 96
+ },
+ {
+  "file": "2026-07-13_AGEN.json",
+  "sym": "AGEN",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1263,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-13_BRAI.json",
+  "sym": "BRAI",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 658,
+  "n_window_bars": 435
+ },
+ {
+  "file": "2026-07-13_EHGO.json",
+  "sym": "EHGO",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1973,
+  "n_window_bars": 865
+ },
+ {
+  "file": "2026-07-13_ELPW.json",
+  "sym": "ELPW",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1975,
+  "n_window_bars": 866
+ },
+ {
+  "file": "2026-07-13_FTRK.json",
+  "sym": "FTRK",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-13_GFUZ.json",
+  "sym": "GFUZ",
+  "date": "2026-07-13",
+  "first_bar": "08:01:10",
+  "n_pre_bars": 1957,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-13_LGPS.json",
+  "sym": "LGPS",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 803,
+  "n_window_bars": 605
+ },
+ {
+  "file": "2026-07-13_MIMI.json",
+  "sym": "MIMI",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-13_QTTB.json",
+  "sym": "QTTB",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1958,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-13_SOBR.json",
+  "sym": "SOBR",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1838,
+  "n_window_bars": 802
+ },
+ {
+  "file": "2026-07-13_VEEE.json",
+  "sym": "VEEE",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 305,
+  "n_window_bars": 228
+ },
+ {
+  "file": "2026-07-13_VMAR.json",
+  "sym": "VMAR",
+  "date": "2026-07-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 283,
+  "n_window_bars": 156
+ },
+ {
+  "file": "2026-07-14_CNEY.json",
+  "sym": "CNEY",
+  "date": "2026-07-14",
+  "first_bar": "08:03:20",
+  "n_pre_bars": 19,
+  "n_window_bars": 6
+ },
+ {
+  "file": "2026-07-14_HODO.json",
+  "sym": "HODO",
+  "date": "2026-07-14",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 57,
+  "n_window_bars": 37
+ },
+ {
+  "file": "2026-07-14_JEM.json",
+  "sym": "JEM",
+  "date": "2026-07-14",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 151,
+  "n_window_bars": 134
+ },
+ {
+  "file": "2026-07-14_LEDS.json",
+  "sym": "LEDS",
+  "date": "2026-07-14",
+  "first_bar": "09:02:00",
+  "n_pre_bars": 774,
+  "n_window_bars": 261
+ },
+ {
+  "file": "2026-07-14_LHAI.json",
+  "sym": "LHAI",
+  "date": "2026-07-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 606,
+  "n_window_bars": 525
+ },
+ {
+  "file": "2026-07-14_MF.json",
+  "sym": "MF",
+  "date": "2026-07-14",
+  "first_bar": "08:00:20",
+  "n_pre_bars": 219,
+  "n_window_bars": 172
+ },
+ {
+  "file": "2026-07-14_NXTC.json",
+  "sym": "NXTC",
+  "date": "2026-07-14",
+  "first_bar": "10:00:00",
+  "n_pre_bars": 1259,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-14_PHOE.json",
+  "sym": "PHOE",
+  "date": "2026-07-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 16,
+  "n_window_bars": 3
+ },
+ {
+  "file": "2026-07-14_TGHL.json",
+  "sym": "TGHL",
+  "date": "2026-07-14",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 32,
+  "n_window_bars": 19
+ },
+ {
+  "file": "2026-07-14_VEEE.json",
+  "sym": "VEEE",
+  "date": "2026-07-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1959,
+  "n_window_bars": 859
+ },
+ {
+  "file": "2026-07-14_VMAR.json",
+  "sym": "VMAR",
+  "date": "2026-07-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-14_YYGH.json",
+  "sym": "YYGH",
+  "date": "2026-07-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1183,
+  "n_window_bars": 455
+ },
+ {
+  "file": "2026-07-15_AMDD.json",
+  "sym": "AMDD",
+  "date": "2026-07-15",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 10,
+  "n_window_bars": 8
+ },
+ {
+  "file": "2026-07-15_CLRO.json",
+  "sym": "CLRO",
+  "date": "2026-07-15",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 300,
+  "n_window_bars": 177
+ },
+ {
+  "file": "2026-07-15_CPHI.json",
+  "sym": "CPHI",
+  "date": "2026-07-15",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 67,
+  "n_window_bars": 29
+ },
+ {
+  "file": "2026-07-15_ELVA.json",
+  "sym": "ELVA",
+  "date": "2026-07-15",
+  "first_bar": "11:00:10",
+  "n_pre_bars": 775,
+  "n_window_bars": 746
+ },
+ {
+  "file": "2026-07-15_ERNA.json",
+  "sym": "ERNA",
+  "date": "2026-07-15",
+  "first_bar": "08:39:40",
+  "n_pre_bars": 602,
+  "n_window_bars": 572
+ },
+ {
+  "file": "2026-07-15_GGLS.json",
+  "sym": "GGLS",
+  "date": "2026-07-15",
+  "first_bar": "13:20:20",
+  "n_pre_bars": 2,
+  "n_window_bars": 2
+ },
+ {
+  "file": "2026-07-15_JLHL.json",
+  "sym": "JLHL",
+  "date": "2026-07-15",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1795,
+  "n_window_bars": 832
+ },
+ {
+  "file": "2026-07-15_KUST.json",
+  "sym": "KUST",
+  "date": "2026-07-15",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-15_LBGJ.json",
+  "sym": "LBGJ",
+  "date": "2026-07-15",
+  "first_bar": "09:04:50",
+  "n_pre_bars": 3,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-07-15_SOBR.json",
+  "sym": "SOBR",
+  "date": "2026-07-15",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1463,
+  "n_window_bars": 870
+ },
+ {
+  "file": "2026-07-15_TGHL.json",
+  "sym": "TGHL",
+  "date": "2026-07-15",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1622,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-15_VIVS.json",
+  "sym": "VIVS",
+  "date": "2026-07-15",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 530,
+  "n_window_bars": 489
+ },
+ {
+  "file": "2026-07-16_ATPC.json",
+  "sym": "ATPC",
+  "date": "2026-07-16",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1977,
+  "n_window_bars": 868
+ },
+ {
+  "file": "2026-07-16_CLIK.json",
+  "sym": "CLIK",
+  "date": "2026-07-16",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 27,
+  "n_window_bars": 15
+ },
+ {
+  "file": "2026-07-16_DXST.json",
+  "sym": "DXST",
+  "date": "2026-07-16",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1970,
+  "n_window_bars": 863
+ },
+ {
+  "file": "2026-07-16_EDHL.json",
+  "sym": "EDHL",
+  "date": "2026-07-16",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 18,
+  "n_window_bars": 3
+ },
+ {
+  "file": "2026-07-16_IQST.json",
+  "sym": "IQST",
+  "date": "2026-07-16",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 569,
+  "n_window_bars": 523
+ },
+ {
+  "file": "2026-07-16_LVWR.json",
+  "sym": "LVWR",
+  "date": "2026-07-16",
+  "first_bar": "08:01:00",
+  "n_pre_bars": 10,
+  "n_window_bars": 6
+ },
+ {
+  "file": "2026-07-16_RUBI.json",
+  "sym": "RUBI",
+  "date": "2026-07-16",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 441,
+  "n_window_bars": 363
+ },
+ {
+  "file": "2026-07-16_STAK.json",
+  "sym": "STAK",
+  "date": "2026-07-16",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 28,
+  "n_window_bars": 15
+ },
+ {
+  "file": "2026-07-16_TGHL.json",
+  "sym": "TGHL",
+  "date": "2026-07-16",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1976,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-16_VEEE.json",
+  "sym": "VEEE",
+  "date": "2026-07-16",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1967,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-17_BIYA.json",
+  "sym": "BIYA",
+  "date": "2026-07-17",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1960,
+  "n_window_bars": 857
+ },
+ {
+  "file": "2026-07-17_CJMB.json",
+  "sym": "CJMB",
+  "date": "2026-07-17",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-17_GIPR.json",
+  "sym": "GIPR",
+  "date": "2026-07-17",
+  "first_bar": "10:52:30",
+  "n_pre_bars": 79,
+  "n_window_bars": 63
+ },
+ {
+  "file": "2026-07-17_GLXG.json",
+  "sym": "GLXG",
+  "date": "2026-07-17",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1403,
+  "n_window_bars": 532
+ },
+ {
+  "file": "2026-07-17_HPAI.json",
+  "sym": "HPAI",
+  "date": "2026-07-17",
+  "first_bar": "08:08:00",
+  "n_pre_bars": 93,
+  "n_window_bars": 13
+ },
+ {
+  "file": "2026-07-17_LEDS.json",
+  "sym": "LEDS",
+  "date": "2026-07-17",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 78,
+  "n_window_bars": 42
+ },
+ {
+  "file": "2026-07-17_PSNYW.json",
+  "sym": "PSNYW",
+  "date": "2026-07-17",
+  "first_bar": "08:03:30",
+  "n_pre_bars": 1684,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-17_SDOT.json",
+  "sym": "SDOT",
+  "date": "2026-07-17",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1852,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-17_SLND.json",
+  "sym": "SLND",
+  "date": "2026-07-17",
+  "first_bar": "11:30:00",
+  "n_pre_bars": 720,
+  "n_window_bars": 691
+ },
+ {
+  "file": "2026-07-17_TRUG.json",
+  "sym": "TRUG",
+  "date": "2026-07-17",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 535,
+  "n_window_bars": 457
+ },
+ {
+  "file": "2026-07-20_ADVB.json",
+  "sym": "ADVB",
+  "date": "2026-07-20",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1979,
+  "n_window_bars": 870
+ },
+ {
+  "file": "2026-07-20_BIYA.json",
+  "sym": "BIYA",
+  "date": "2026-07-20",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-20_BXBL.json",
+  "sym": "BXBL",
+  "date": "2026-07-20",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 1971,
+  "n_window_bars": 866
+ },
+ {
+  "file": "2026-07-20_GMM.json",
+  "sym": "GMM",
+  "date": "2026-07-20",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 939,
+  "n_window_bars": 527
+ },
+ {
+  "file": "2026-07-20_IREG.json",
+  "sym": "IREG",
+  "date": "2026-07-20",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 302,
+  "n_window_bars": 260
+ },
+ {
+  "file": "2026-07-20_NIKI.json",
+  "sym": "NIKI",
+  "date": "2026-07-20",
+  "first_bar": "13:05:00",
+  "n_pre_bars": 150,
+  "n_window_bars": 121
+ },
+ {
+  "file": "2026-07-20_SDOT.json",
+  "sym": "SDOT",
+  "date": "2026-07-20",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1891,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-20_YOUL.json",
+  "sym": "YOUL",
+  "date": "2026-07-20",
+  "first_bar": "08:13:50",
+  "n_pre_bars": 3,
+  "n_window_bars": 0
+ },
+ {
+  "file": "2026-07-20_ZYBT.json",
+  "sym": "ZYBT",
+  "date": "2026-07-20",
+  "first_bar": "11:22:00",
+  "n_pre_bars": 359,
+  "n_window_bars": 330
+ },
+ {
+  "file": "2026-07-21_CCTG.json",
+  "sym": "CCTG",
+  "date": "2026-07-21",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 1119,
+  "n_window_bars": 481
+ },
+ {
+  "file": "2026-07-21_CPHI.json",
+  "sym": "CPHI",
+  "date": "2026-07-21",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 138,
+  "n_window_bars": 68
+ },
+ {
+  "file": "2026-07-21_DFNS.json",
+  "sym": "DFNS",
+  "date": "2026-07-21",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 341,
+  "n_window_bars": 162
+ },
+ {
+  "file": "2026-07-21_HIHO.json",
+  "sym": "HIHO",
+  "date": "2026-07-21",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1979,
+  "n_window_bars": 870
+ },
+ {
+  "file": "2026-07-21_IPW.json",
+  "sym": "IPW",
+  "date": "2026-07-21",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 52,
+  "n_window_bars": 45
+ },
+ {
+  "file": "2026-07-21_JZXN.json",
+  "sym": "JZXN",
+  "date": "2026-07-21",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 133,
+  "n_window_bars": 56
+ },
+ {
+  "file": "2026-07-21_KIDZ.json",
+  "sym": "KIDZ",
+  "date": "2026-07-21",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 836,
+  "n_window_bars": 759
+ },
+ {
+  "file": "2026-07-21_SLGB.json",
+  "sym": "SLGB",
+  "date": "2026-07-21",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-21_UTZ.json",
+  "sym": "UTZ",
+  "date": "2026-07-21",
+  "first_bar": "09:19:50",
+  "n_pre_bars": 555,
+  "n_window_bars": 510
+ },
+ {
+  "file": "2026-07-21_VIP.json",
+  "sym": "VIP",
+  "date": "2026-07-21",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 59,
+  "n_window_bars": 43
+ },
+ {
+  "file": "2026-07-21_VIVK.json",
+  "sym": "VIVK",
+  "date": "2026-07-21",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 388,
+  "n_window_bars": 197
+ },
+ {
+  "file": "2026-07-22_ADVB.json",
+  "sym": "ADVB",
+  "date": "2026-07-22",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1131,
+  "n_window_bars": 815
+ },
+ {
+  "file": "2026-07-22_CHAI.json",
+  "sym": "CHAI",
+  "date": "2026-07-22",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-22_INLF.json",
+  "sym": "INLF",
+  "date": "2026-07-22",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-22_KSCP.json",
+  "sym": "KSCP",
+  "date": "2026-07-22",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 141,
+  "n_window_bars": 115
+ },
+ {
+  "file": "2026-07-22_KUST.json",
+  "sym": "KUST",
+  "date": "2026-07-22",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1439,
+  "n_window_bars": 724
+ },
+ {
+  "file": "2026-07-22_LABT.json",
+  "sym": "LABT",
+  "date": "2026-07-22",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 571,
+  "n_window_bars": 511
+ },
+ {
+  "file": "2026-07-22_MSS.json",
+  "sym": "MSS",
+  "date": "2026-07-22",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 55,
+  "n_window_bars": 44
+ },
+ {
+  "file": "2026-07-22_MTEN.json",
+  "sym": "MTEN",
+  "date": "2026-07-22",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 71,
+  "n_window_bars": 25
+ },
+ {
+  "file": "2026-07-22_MWC.json",
+  "sym": "MWC",
+  "date": "2026-07-22",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 435,
+  "n_window_bars": 294
+ },
+ {
+  "file": "2026-07-22_PN.json",
+  "sym": "PN",
+  "date": "2026-07-22",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 9,
+  "n_window_bars": 3
+ },
+ {
+  "file": "2026-07-22_QMLS.json",
+  "sym": "QMLS",
+  "date": "2026-07-22",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 387,
+  "n_window_bars": 227
+ },
+ {
+  "file": "2026-07-22_ZCMD.json",
+  "sym": "ZCMD",
+  "date": "2026-07-22",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1946,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-23_ADVB.json",
+  "sym": "ADVB",
+  "date": "2026-07-23",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1253,
+  "n_window_bars": 857
+ },
+ {
+  "file": "2026-07-23_AEHL.json",
+  "sym": "AEHL",
+  "date": "2026-07-23",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1940,
+  "n_window_bars": 855
+ },
+ {
+  "file": "2026-07-23_CJMB.json",
+  "sym": "CJMB",
+  "date": "2026-07-23",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 288,
+  "n_window_bars": 149
+ },
+ {
+  "file": "2026-07-23_EHGO.json",
+  "sym": "EHGO",
+  "date": "2026-07-23",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-23_JEM.json",
+  "sym": "JEM",
+  "date": "2026-07-23",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1890,
+  "n_window_bars": 861
+ },
+ {
+  "file": "2026-07-23_LGCL.json",
+  "sym": "LGCL",
+  "date": "2026-07-23",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-23_PAVS.json",
+  "sym": "PAVS",
+  "date": "2026-07-23",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 81,
+  "n_window_bars": 39
+ },
+ {
+  "file": "2026-07-23_SORA.json",
+  "sym": "SORA",
+  "date": "2026-07-23",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 22,
+  "n_window_bars": 12
+ },
+ {
+  "file": "2026-07-23_VIVK.json",
+  "sym": "VIVK",
+  "date": "2026-07-23",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 802,
+  "n_window_bars": 469
+ },
+ {
+  "file": "2026-07-23_WBUY.json",
+  "sym": "WBUY",
+  "date": "2026-07-23",
+  "first_bar": "08:15:20",
+  "n_pre_bars": 1799,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-23_WLDS.json",
+  "sym": "WLDS",
+  "date": "2026-07-23",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 340,
+  "n_window_bars": 307
+ },
+ {
+  "file": "2026-07-23_YOUL.json",
+  "sym": "YOUL",
+  "date": "2026-07-23",
+  "first_bar": "08:01:30",
+  "n_pre_bars": 10,
+  "n_window_bars": 5
+ },
+ {
+  "file": "2026-07-24_ADVB.json",
+  "sym": "ADVB",
+  "date": "2026-07-24",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1527,
+  "n_window_bars": 868
+ },
+ {
+  "file": "2026-07-24_CJMB.json",
+  "sym": "CJMB",
+  "date": "2026-07-24",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 995,
+  "n_window_bars": 632
+ },
+ {
+  "file": "2026-07-24_CNET.json",
+  "sym": "CNET",
+  "date": "2026-07-24",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 2,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-07-24_GSUN.json",
+  "sym": "GSUN",
+  "date": "2026-07-24",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 533,
+  "n_window_bars": 263
+ },
+ {
+  "file": "2026-07-24_JEM.json",
+  "sym": "JEM",
+  "date": "2026-07-24",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1965,
+  "n_window_bars": 861
+ },
+ {
+  "file": "2026-07-24_LVWR.json",
+  "sym": "LVWR",
+  "date": "2026-07-24",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-24_STAK.json",
+  "sym": "STAK",
+  "date": "2026-07-24",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 281,
+  "n_window_bars": 182
+ },
+ {
+  "file": "2026-07-24_TC.json",
+  "sym": "TC",
+  "date": "2026-07-24",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 48,
+  "n_window_bars": 12
+ },
+ {
+  "file": "2026-07-24_VIVK.json",
+  "sym": "VIVK",
+  "date": "2026-07-24",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1938,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-24_WLDS.json",
+  "sym": "WLDS",
+  "date": "2026-07-24",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1959,
+  "n_window_bars": 856
+ },
+ {
+  "file": "2026-07-27_BIYA.json",
+  "sym": "BIYA",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1966,
+  "n_window_bars": 870
+ },
+ {
+  "file": "2026-07-27_DFNS.json",
+  "sym": "DFNS",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-27_EDBL.json",
+  "sym": "EDBL",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 492,
+  "n_window_bars": 427
+ },
+ {
+  "file": "2026-07-27_ENTX.json",
+  "sym": "ENTX",
+  "date": "2026-07-27",
+  "first_bar": "08:46:50",
+  "n_pre_bars": 409,
+  "n_window_bars": 367
+ },
+ {
+  "file": "2026-07-27_FIEE.json",
+  "sym": "FIEE",
+  "date": "2026-07-27",
+  "first_bar": "12:16:30",
+  "n_pre_bars": 1,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-07-27_KIDZ.json",
+  "sym": "KIDZ",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 960,
+  "n_window_bars": 781
+ },
+ {
+  "file": "2026-07-27_LGHL.json",
+  "sym": "LGHL",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1950,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-27_LVWR.json",
+  "sym": "LVWR",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1364,
+  "n_window_bars": 700
+ },
+ {
+  "file": "2026-07-27_MTNB.json",
+  "sym": "MTNB",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-27_NIPG.json",
+  "sym": "NIPG",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 51,
+  "n_window_bars": 17
+ },
+ {
+  "file": "2026-07-27_NXTC.json",
+  "sym": "NXTC",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 98,
+  "n_window_bars": 36
+ },
+ {
+  "file": "2026-07-27_STAK.json",
+  "sym": "STAK",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1952,
+  "n_window_bars": 855
+ },
+ {
+  "file": "2026-07-27_VEEE.json",
+  "sym": "VEEE",
+  "date": "2026-07-27",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 1702,
+  "n_window_bars": 756
+ },
+ {
+  "file": "2026-07-27_WLDS.json",
+  "sym": "WLDS",
+  "date": "2026-07-27",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 773,
+  "n_window_bars": 373
+ },
+ {
+  "file": "2026-07-27_YARW.json",
+  "sym": "YARW",
+  "date": "2026-07-27",
+  "first_bar": "13:30:00",
+  "n_pre_bars": 0,
+  "n_window_bars": 0
+ },
+ {
+  "file": "2026-07-28_AMSS.json",
+  "sym": "AMSS",
+  "date": "2026-07-28",
+  "first_bar": "08:01:50",
+  "n_pre_bars": 11,
+  "n_window_bars": 6
+ },
+ {
+  "file": "2026-07-28_BIYA.json",
+  "sym": "BIYA",
+  "date": "2026-07-28",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1955,
+  "n_window_bars": 864
+ },
+ {
+  "file": "2026-07-28_DFNS.json",
+  "sym": "DFNS",
+  "date": "2026-07-28",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1970,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-28_EGG.json",
+  "sym": "EGG",
+  "date": "2026-07-28",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 89,
+  "n_window_bars": 44
+ },
+ {
+  "file": "2026-07-28_FIRY.json",
+  "sym": "FIRY",
+  "date": "2026-07-28",
+  "first_bar": "08:08:00",
+  "n_pre_bars": 1589,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-28_INLF.json",
+  "sym": "INLF",
+  "date": "2026-07-28",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1979,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-28_LGHL.json",
+  "sym": "LGHL",
+  "date": "2026-07-28",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 983,
+  "n_window_bars": 452
+ },
+ {
+  "file": "2026-07-28_POLA.json",
+  "sym": "POLA",
+  "date": "2026-07-28",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1961,
+  "n_window_bars": 854
+ },
+ {
+  "file": "2026-07-28_PSQH.json",
+  "sym": "PSQH",
+  "date": "2026-07-28",
+  "first_bar": "08:01:10",
+  "n_pre_bars": 17,
+  "n_window_bars": 14
+ },
+ {
+  "file": "2026-07-28_STFS.json",
+  "sym": "STFS",
+  "date": "2026-07-28",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 36,
+  "n_window_bars": 15
+ },
+ {
+  "file": "2026-07-28_STKH.json",
+  "sym": "STKH",
+  "date": "2026-07-28",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 37,
+  "n_window_bars": 15
+ },
+ {
+  "file": "2026-07-28_WLDS.json",
+  "sym": "WLDS",
+  "date": "2026-07-28",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1122,
+  "n_window_bars": 642
+ },
+ {
+  "file": "2026-07-29_AIXI.json",
+  "sym": "AIXI",
+  "date": "2026-07-29",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 164,
+  "n_window_bars": 60
+ },
+ {
+  "file": "2026-07-29_AMIX.json",
+  "sym": "AMIX",
+  "date": "2026-07-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-29_DFNS.json",
+  "sym": "DFNS",
+  "date": "2026-07-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-29_FIEE.json",
+  "sym": "FIEE",
+  "date": "2026-07-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 248,
+  "n_window_bars": 120
+ },
+ {
+  "file": "2026-07-29_GMM.json",
+  "sym": "GMM",
+  "date": "2026-07-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1978,
+  "n_window_bars": 870
+ },
+ {
+  "file": "2026-07-29_GWAV.json",
+  "sym": "GWAV",
+  "date": "2026-07-29",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 71,
+  "n_window_bars": 30
+ },
+ {
+  "file": "2026-07-29_MSS.json",
+  "sym": "MSS",
+  "date": "2026-07-29",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 107,
+  "n_window_bars": 62
+ },
+ {
+  "file": "2026-07-29_NCRA.json",
+  "sym": "NCRA",
+  "date": "2026-07-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1009,
+  "n_window_bars": 590
+ },
+ {
+  "file": "2026-07-29_SPRC.json",
+  "sym": "SPRC",
+  "date": "2026-07-29",
+  "first_bar": "08:03:20",
+  "n_pre_bars": 277,
+  "n_window_bars": 251
+ },
+ {
+  "file": "2026-07-29_STFS.json",
+  "sym": "STFS",
+  "date": "2026-07-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1975,
+  "n_window_bars": 869
+ },
+ {
+  "file": "2026-07-29_VIVK.json",
+  "sym": "VIVK",
+  "date": "2026-07-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1368,
+  "n_window_bars": 854
+ },
+ {
+  "file": "2026-07-29_VRRM.json",
+  "sym": "VRRM",
+  "date": "2026-07-29",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1695,
+  "n_window_bars": 849
+ },
+ {
+  "file": "2026-07-30_BEG.json",
+  "sym": "BEG",
+  "date": "2026-07-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 345,
+  "n_window_bars": 260
+ },
+ {
+  "file": "2026-07-30_BRUNW.json",
+  "sym": "BRUNW",
+  "date": "2026-07-30",
+  "first_bar": "13:30:00",
+  "n_pre_bars": 0,
+  "n_window_bars": 0
+ },
+ {
+  "file": "2026-07-30_CIFG.json",
+  "sym": "CIFG",
+  "date": "2026-07-30",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 60,
+  "n_window_bars": 44
+ },
+ {
+  "file": "2026-07-30_FXHO.json",
+  "sym": "FXHO",
+  "date": "2026-07-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 87,
+  "n_window_bars": 36
+ },
+ {
+  "file": "2026-07-30_IREG.json",
+  "sym": "IREG",
+  "date": "2026-07-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 305,
+  "n_window_bars": 187
+ },
+ {
+  "file": "2026-07-30_KSCP.json",
+  "sym": "KSCP",
+  "date": "2026-07-30",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 68,
+  "n_window_bars": 42
+ },
+ {
+  "file": "2026-07-30_NBIG.json",
+  "sym": "NBIG",
+  "date": "2026-07-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 798,
+  "n_window_bars": 547
+ },
+ {
+  "file": "2026-07-30_NBIL.json",
+  "sym": "NBIL",
+  "date": "2026-07-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1060,
+  "n_window_bars": 689
+ },
+ {
+  "file": "2026-07-30_NUWE.json",
+  "sym": "NUWE",
+  "date": "2026-07-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-30_PN.json",
+  "sym": "PN",
+  "date": "2026-07-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 659,
+  "n_window_bars": 564
+ },
+ {
+  "file": "2026-07-30_STKH.json",
+  "sym": "STKH",
+  "date": "2026-07-30",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1979,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-07-30_YAAS.json",
+  "sym": "YAAS",
+  "date": "2026-07-30",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 50,
+  "n_window_bars": 41
+ },
+ {
+  "file": "2026-07-31_CIGL.json",
+  "sym": "CIGL",
+  "date": "2026-07-31",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 113,
+  "n_window_bars": 86
+ },
+ {
+  "file": "2026-07-31_CUPR.json",
+  "sym": "CUPR",
+  "date": "2026-07-31",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 39,
+  "n_window_bars": 23
+ },
+ {
+  "file": "2026-07-31_FCHL.json",
+  "sym": "FCHL",
+  "date": "2026-07-31",
+  "first_bar": "08:02:10",
+  "n_pre_bars": 76,
+  "n_window_bars": 49
+ },
+ {
+  "file": "2026-07-31_FCUV.json",
+  "sym": "FCUV",
+  "date": "2026-07-31",
+  "first_bar": "08:50:30",
+  "n_pre_bars": 447,
+  "n_window_bars": 412
+ },
+ {
+  "file": "2026-07-31_FFAI.json",
+  "sym": "FFAI",
+  "date": "2026-07-31",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 249,
+  "n_window_bars": 154
+ },
+ {
+  "file": "2026-07-31_LFS.json",
+  "sym": "LFS",
+  "date": "2026-07-31",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1216,
+  "n_window_bars": 475
+ },
+ {
+  "file": "2026-07-31_MSGY.json",
+  "sym": "MSGY",
+  "date": "2026-07-31",
+  "first_bar": "10:06:50",
+  "n_pre_bars": 25,
+  "n_window_bars": 13
+ },
+ {
+  "file": "2026-07-31_REPL.json",
+  "sym": "REPL",
+  "date": "2026-07-31",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1971,
+  "n_window_bars": 867
+ },
+ {
+  "file": "2026-07-31_TCX.json",
+  "sym": "TCX",
+  "date": "2026-07-31",
+  "first_bar": "08:20:50",
+  "n_pre_bars": 76,
+  "n_window_bars": 54
+ },
+ {
+  "file": "2026-07-31_TGHL.json",
+  "sym": "TGHL",
+  "date": "2026-07-31",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 389,
+  "n_window_bars": 301
+ },
+ {
+  "file": "2026-07-31_ZEO.json",
+  "sym": "ZEO",
+  "date": "2026-07-31",
+  "first_bar": "08:02:10",
+  "n_pre_bars": 1,
+  "n_window_bars": 0
+ },
+ {
+  "file": "2026-07-31_ZTG.json",
+  "sym": "ZTG",
+  "date": "2026-07-31",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 39,
+  "n_window_bars": 12
+ },
+ {
+  "file": "2026-08-03_CNCK.json",
+  "sym": "CNCK",
+  "date": "2026-08-03",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 13,
+  "n_window_bars": 5
+ },
+ {
+  "file": "2026-08-03_DFNS.json",
+  "sym": "DFNS",
+  "date": "2026-08-03",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1787,
+  "n_window_bars": 855
+ },
+ {
+  "file": "2026-08-03_EZRA.json",
+  "sym": "EZRA",
+  "date": "2026-08-03",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 380,
+  "n_window_bars": 342
+ },
+ {
+  "file": "2026-08-03_FCUV.json",
+  "sym": "FCUV",
+  "date": "2026-08-03",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-03_FUSE.json",
+  "sym": "FUSE",
+  "date": "2026-08-03",
+  "first_bar": "11:34:30",
+  "n_pre_bars": 1,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-08-03_HYFM.json",
+  "sym": "HYFM",
+  "date": "2026-08-03",
+  "first_bar": "11:00:00",
+  "n_pre_bars": 720,
+  "n_window_bars": 691
+ },
+ {
+  "file": "2026-08-03_LNAI.json",
+  "sym": "LNAI",
+  "date": "2026-08-03",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 5,
+  "n_window_bars": 2
+ },
+ {
+  "file": "2026-08-03_NEXR.json",
+  "sym": "NEXR",
+  "date": "2026-08-03",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 409,
+  "n_window_bars": 335
+ },
+ {
+  "file": "2026-08-03_SDST.json",
+  "sym": "SDST",
+  "date": "2026-08-03",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 101,
+  "n_window_bars": 60
+ },
+ {
+  "file": "2026-08-03_STKH.json",
+  "sym": "STKH",
+  "date": "2026-08-03",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 278,
+  "n_window_bars": 112
+ },
+ {
+  "file": "2026-08-03_TAOP.json",
+  "sym": "TAOP",
+  "date": "2026-08-03",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 27,
+  "n_window_bars": 14
+ },
+ {
+  "file": "2026-08-03_UPC.json",
+  "sym": "UPC",
+  "date": "2026-08-03",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-04_ADGM.json",
+  "sym": "ADGM",
+  "date": "2026-08-04",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1953,
+  "n_window_bars": 864
+ },
+ {
+  "file": "2026-08-04_AMIX.json",
+  "sym": "AMIX",
+  "date": "2026-08-04",
+  "first_bar": "08:01:00",
+  "n_pre_bars": 498,
+  "n_window_bars": 450
+ },
+ {
+  "file": "2026-08-04_BLZE.json",
+  "sym": "BLZE",
+  "date": "2026-08-04",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 723,
+  "n_window_bars": 450
+ },
+ {
+  "file": "2026-08-04_GCTK.json",
+  "sym": "GCTK",
+  "date": "2026-08-04",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 337,
+  "n_window_bars": 138
+ },
+ {
+  "file": "2026-08-04_IBTA.json",
+  "sym": "IBTA",
+  "date": "2026-08-04",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 102,
+  "n_window_bars": 80
+ },
+ {
+  "file": "2026-08-04_MOVE.json",
+  "sym": "MOVE",
+  "date": "2026-08-04",
+  "first_bar": "08:00:50",
+  "n_pre_bars": 539,
+  "n_window_bars": 509
+ },
+ {
+  "file": "2026-08-04_NUWE.json",
+  "sym": "NUWE",
+  "date": "2026-08-04",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 607,
+  "n_window_bars": 429
+ },
+ {
+  "file": "2026-08-04_PLTG.json",
+  "sym": "PLTG",
+  "date": "2026-08-04",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 433,
+  "n_window_bars": 233
+ },
+ {
+  "file": "2026-08-04_PLTU.json",
+  "sym": "PLTU",
+  "date": "2026-08-04",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1503,
+  "n_window_bars": 781
+ },
+ {
+  "file": "2026-08-04_PTIR.json",
+  "sym": "PTIR",
+  "date": "2026-08-04",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1427,
+  "n_window_bars": 707
+ },
+ {
+  "file": "2026-08-04_QNME.json",
+  "sym": "QNME",
+  "date": "2026-08-04",
+  "first_bar": "08:30:50",
+  "n_pre_bars": 1714,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-04_TNMG.json",
+  "sym": "TNMG",
+  "date": "2026-08-04",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 904,
+  "n_window_bars": 868
+ },
+ {
+  "file": "2026-08-05_APPS.json",
+  "sym": "APPS",
+  "date": "2026-08-05",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1156,
+  "n_window_bars": 637
+ },
+ {
+  "file": "2026-08-05_ASTC.json",
+  "sym": "ASTC",
+  "date": "2026-08-05",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 39,
+  "n_window_bars": 22
+ },
+ {
+  "file": "2026-08-05_BJDX.json",
+  "sym": "BJDX",
+  "date": "2026-08-05",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-05_GTE.json",
+  "sym": "GTE",
+  "date": "2026-08-05",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1887,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-05_INLF.json",
+  "sym": "INLF",
+  "date": "2026-08-05",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1938,
+  "n_window_bars": 848
+ },
+ {
+  "file": "2026-08-05_JDZG.json",
+  "sym": "JDZG",
+  "date": "2026-08-05",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1147,
+  "n_window_bars": 408
+ },
+ {
+  "file": "2026-08-05_JLHL.json",
+  "sym": "JLHL",
+  "date": "2026-08-05",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1974,
+  "n_window_bars": 865
+ },
+ {
+  "file": "2026-08-05_OESX.json",
+  "sym": "OESX",
+  "date": "2026-08-05",
+  "first_bar": "11:00:10",
+  "n_pre_bars": 97,
+  "n_window_bars": 87
+ },
+ {
+  "file": "2026-08-05_SHPU.json",
+  "sym": "SHPU",
+  "date": "2026-08-05",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 816,
+  "n_window_bars": 685
+ },
+ {
+  "file": "2026-08-05_YXT.json",
+  "sym": "YXT",
+  "date": "2026-08-05",
+  "first_bar": "11:24:40",
+  "n_pre_bars": 579,
+  "n_window_bars": 550
+ },
+ {
+  "file": "2026-08-05_ZCMD.json",
+  "sym": "ZCMD",
+  "date": "2026-08-05",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 459,
+  "n_window_bars": 240
+ },
+ {
+  "file": "2026-08-05_ZYBT.json",
+  "sym": "ZYBT",
+  "date": "2026-08-05",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 69,
+  "n_window_bars": 38
+ },
+ {
+  "file": "2026-08-06_AZI.json",
+  "sym": "AZI",
+  "date": "2026-08-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1762,
+  "n_window_bars": 831
+ },
+ {
+  "file": "2026-08-06_BYAH.json",
+  "sym": "BYAH",
+  "date": "2026-08-06",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 50,
+  "n_window_bars": 42
+ },
+ {
+  "file": "2026-08-06_CELZ.json",
+  "sym": "CELZ",
+  "date": "2026-08-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1978,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-06_CLRO.json",
+  "sym": "CLRO",
+  "date": "2026-08-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-06_ENSC.json",
+  "sym": "ENSC",
+  "date": "2026-08-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 861,
+  "n_window_bars": 609
+ },
+ {
+  "file": "2026-08-06_LBGJ.json",
+  "sym": "LBGJ",
+  "date": "2026-08-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 458,
+  "n_window_bars": 274
+ },
+ {
+  "file": "2026-08-06_PAVS.json",
+  "sym": "PAVS",
+  "date": "2026-08-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-06_PN.json",
+  "sym": "PN",
+  "date": "2026-08-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 335,
+  "n_window_bars": 279
+ },
+ {
+  "file": "2026-08-06_SUGP.json",
+  "sym": "SUGP",
+  "date": "2026-08-06",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 53,
+  "n_window_bars": 49
+ },
+ {
+  "file": "2026-08-06_WLDS.json",
+  "sym": "WLDS",
+  "date": "2026-08-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 67,
+  "n_window_bars": 41
+ },
+ {
+  "file": "2026-08-06_WYHG.json",
+  "sym": "WYHG",
+  "date": "2026-08-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-06_XHLD.json",
+  "sym": "XHLD",
+  "date": "2026-08-06",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 8,
+  "n_window_bars": 5
+ },
+ {
+  "file": "2026-08-07_ATGL.json",
+  "sym": "ATGL",
+  "date": "2026-08-07",
+  "first_bar": "13:30:00",
+  "n_pre_bars": 0,
+  "n_window_bars": 0
+ },
+ {
+  "file": "2026-08-07_HUIZ.json",
+  "sym": "HUIZ",
+  "date": "2026-08-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 13,
+  "n_window_bars": 5
+ },
+ {
+  "file": "2026-08-07_IPW.json",
+  "sym": "IPW",
+  "date": "2026-08-07",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 71,
+  "n_window_bars": 60
+ },
+ {
+  "file": "2026-08-07_LZMH.json",
+  "sym": "LZMH",
+  "date": "2026-08-07",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 22,
+  "n_window_bars": 3
+ },
+ {
+  "file": "2026-08-07_MB.json",
+  "sym": "MB",
+  "date": "2026-08-07",
+  "first_bar": "08:59:30",
+  "n_pre_bars": 1623,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-07_NAMI.json",
+  "sym": "NAMI",
+  "date": "2026-08-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-07_QNME.json",
+  "sym": "QNME",
+  "date": "2026-08-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 236,
+  "n_window_bars": 100
+ },
+ {
+  "file": "2026-08-07_VSA.json",
+  "sym": "VSA",
+  "date": "2026-08-07",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 10,
+  "n_window_bars": 2
+ },
+ {
+  "file": "2026-08-07_WAFU.json",
+  "sym": "WAFU",
+  "date": "2026-08-07",
+  "first_bar": "08:10:00",
+  "n_pre_bars": 9,
+  "n_window_bars": 7
+ },
+ {
+  "file": "2026-08-07_WFF.json",
+  "sym": "WFF",
+  "date": "2026-08-07",
+  "first_bar": "13:26:50",
+  "n_pre_bars": 1,
+  "n_window_bars": 0
+ },
+ {
+  "file": "2026-08-07_WWR.json",
+  "sym": "WWR",
+  "date": "2026-08-07",
+  "first_bar": "08:01:10",
+  "n_pre_bars": 38,
+  "n_window_bars": 31
+ },
+ {
+  "file": "2026-08-07_YJ.json",
+  "sym": "YJ",
+  "date": "2026-08-07",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 171,
+  "n_window_bars": 142
+ },
+ {
+  "file": "2026-08-10_AEHL.json",
+  "sym": "AEHL",
+  "date": "2026-08-10",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 32,
+  "n_window_bars": 25
+ },
+ {
+  "file": "2026-08-10_ARTW.json",
+  "sym": "ARTW",
+  "date": "2026-08-10",
+  "first_bar": "12:08:50",
+  "n_pre_bars": 1,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-08-10_AUUD.json",
+  "sym": "AUUD",
+  "date": "2026-08-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 806,
+  "n_window_bars": 748
+ },
+ {
+  "file": "2026-08-10_BCARU.json",
+  "sym": "BCARU",
+  "date": "2026-08-10",
+  "first_bar": "12:14:30",
+  "n_pre_bars": 146,
+  "n_window_bars": 125
+ },
+ {
+  "file": "2026-08-10_JWEL.json",
+  "sym": "JWEL",
+  "date": "2026-08-10",
+  "first_bar": "08:10:30",
+  "n_pre_bars": 1757,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-10_MTEN.json",
+  "sym": "MTEN",
+  "date": "2026-08-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 424,
+  "n_window_bars": 135
+ },
+ {
+  "file": "2026-08-10_PCLA.json",
+  "sym": "PCLA",
+  "date": "2026-08-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 707,
+  "n_window_bars": 269
+ },
+ {
+  "file": "2026-08-10_RDGT.json",
+  "sym": "RDGT",
+  "date": "2026-08-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 89,
+  "n_window_bars": 40
+ },
+ {
+  "file": "2026-08-10_SCKT.json",
+  "sym": "SCKT",
+  "date": "2026-08-10",
+  "first_bar": "08:19:10",
+  "n_pre_bars": 186,
+  "n_window_bars": 155
+ },
+ {
+  "file": "2026-08-10_STKH.json",
+  "sym": "STKH",
+  "date": "2026-08-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1757,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-10_WYHG.json",
+  "sym": "WYHG",
+  "date": "2026-08-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1791,
+  "n_window_bars": 720
+ },
+ {
+  "file": "2026-08-10_XHLD.json",
+  "sym": "XHLD",
+  "date": "2026-08-10",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1962,
+  "n_window_bars": 865
+ },
+ {
+  "file": "2026-08-11_AIFA.json",
+  "sym": "AIFA",
+  "date": "2026-08-11",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 98,
+  "n_window_bars": 78
+ },
+ {
+  "file": "2026-08-11_CIGL.json",
+  "sym": "CIGL",
+  "date": "2026-08-11",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1169,
+  "n_window_bars": 489
+ },
+ {
+  "file": "2026-08-11_FRTT.json",
+  "sym": "FRTT",
+  "date": "2026-08-11",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 551,
+  "n_window_bars": 512
+ },
+ {
+  "file": "2026-08-11_GLE.json",
+  "sym": "GLE",
+  "date": "2026-08-11",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 293,
+  "n_window_bars": 223
+ },
+ {
+  "file": "2026-08-11_GRI.json",
+  "sym": "GRI",
+  "date": "2026-08-11",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 66,
+  "n_window_bars": 41
+ },
+ {
+  "file": "2026-08-11_HXHX.json",
+  "sym": "HXHX",
+  "date": "2026-08-11",
+  "first_bar": "13:30:00",
+  "n_pre_bars": 0,
+  "n_window_bars": 0
+ },
+ {
+  "file": "2026-08-11_NIQ.json",
+  "sym": "NIQ",
+  "date": "2026-08-11",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 72,
+  "n_window_bars": 31
+ },
+ {
+  "file": "2026-08-11_PLAG.json",
+  "sym": "PLAG",
+  "date": "2026-08-11",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 731,
+  "n_window_bars": 673
+ },
+ {
+  "file": "2026-08-11_QMCO.json",
+  "sym": "QMCO",
+  "date": "2026-08-11",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 468,
+  "n_window_bars": 342
+ },
+ {
+  "file": "2026-08-11_STIM.json",
+  "sym": "STIM",
+  "date": "2026-08-11",
+  "first_bar": "08:09:20",
+  "n_pre_bars": 540,
+  "n_window_bars": 506
+ },
+ {
+  "file": "2026-08-11_WXM.json",
+  "sym": "WXM",
+  "date": "2026-08-11",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1826,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-11_WYHG.json",
+  "sym": "WYHG",
+  "date": "2026-08-11",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-12_BIVI.json",
+  "sym": "BIVI",
+  "date": "2026-08-12",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 146,
+  "n_window_bars": 106
+ },
+ {
+  "file": "2026-08-12_BOXL.json",
+  "sym": "BOXL",
+  "date": "2026-08-12",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-12_BQ.json",
+  "sym": "BQ",
+  "date": "2026-08-12",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1608,
+  "n_window_bars": 818
+ },
+ {
+  "file": "2026-08-12_CHOW.json",
+  "sym": "CHOW",
+  "date": "2026-08-12",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 740,
+  "n_window_bars": 698
+ },
+ {
+  "file": "2026-08-12_NBIG.json",
+  "sym": "NBIG",
+  "date": "2026-08-12",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1234,
+  "n_window_bars": 750
+ },
+ {
+  "file": "2026-08-12_NBIL.json",
+  "sym": "NBIL",
+  "date": "2026-08-12",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1488,
+  "n_window_bars": 823
+ },
+ {
+  "file": "2026-08-12_OFAL.json",
+  "sym": "OFAL",
+  "date": "2026-08-12",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1298,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-12_RMCF.json",
+  "sym": "RMCF",
+  "date": "2026-08-12",
+  "first_bar": "08:33:20",
+  "n_pre_bars": 973,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-12_SBEV.json",
+  "sym": "SBEV",
+  "date": "2026-08-12",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 93,
+  "n_window_bars": 66
+ },
+ {
+  "file": "2026-08-12_VBIO.json",
+  "sym": "VBIO",
+  "date": "2026-08-12",
+  "first_bar": "08:29:50",
+  "n_pre_bars": 59,
+  "n_window_bars": 54
+ },
+ {
+  "file": "2026-08-12_WCT.json",
+  "sym": "WCT",
+  "date": "2026-08-12",
+  "first_bar": "08:00:10",
+  "n_pre_bars": 11,
+  "n_window_bars": 10
+ },
+ {
+  "file": "2026-08-12_XHLD.json",
+  "sym": "XHLD",
+  "date": "2026-08-12",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1531,
+  "n_window_bars": 652
+ },
+ {
+  "file": "2026-08-13_BBBY.WS.json",
+  "sym": "BBBY.WS",
+  "date": "2026-08-13",
+  "first_bar": "11:23:10",
+  "n_pre_bars": 5,
+  "n_window_bars": 5
+ },
+ {
+  "file": "2026-08-13_BGIN.json",
+  "sym": "BGIN",
+  "date": "2026-08-13",
+  "first_bar": "12:47:30",
+  "n_pre_bars": 1,
+  "n_window_bars": 1
+ },
+ {
+  "file": "2026-08-13_BYSI.json",
+  "sym": "BYSI",
+  "date": "2026-08-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 5,
+  "n_window_bars": 4
+ },
+ {
+  "file": "2026-08-13_CURI.json",
+  "sym": "CURI",
+  "date": "2026-08-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1951,
+  "n_window_bars": 858
+ },
+ {
+  "file": "2026-08-13_DFSC.json",
+  "sym": "DFSC",
+  "date": "2026-08-13",
+  "first_bar": "08:01:00",
+  "n_pre_bars": 403,
+  "n_window_bars": 363
+ },
+ {
+  "file": "2026-08-13_FGI.json",
+  "sym": "FGI",
+  "date": "2026-08-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1911,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-13_GXAI.json",
+  "sym": "GXAI",
+  "date": "2026-08-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-13_HCTI.json",
+  "sym": "HCTI",
+  "date": "2026-08-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 418,
+  "n_window_bars": 392
+ },
+ {
+  "file": "2026-08-13_INHD.json",
+  "sym": "INHD",
+  "date": "2026-08-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 218,
+  "n_window_bars": 93
+ },
+ {
+  "file": "2026-08-13_IVDA.json",
+  "sym": "IVDA",
+  "date": "2026-08-13",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1979,
+  "n_window_bars": 870
+ },
+ {
+  "file": "2026-08-13_PSQH.json",
+  "sym": "PSQH",
+  "date": "2026-08-13",
+  "first_bar": "11:27:20",
+  "n_pre_bars": 2,
+  "n_window_bars": 2
+ },
+ {
+  "file": "2026-08-13_XHG.json",
+  "sym": "XHG",
+  "date": "2026-08-13",
+  "first_bar": "12:00:00",
+  "n_pre_bars": 532,
+  "n_window_bars": 503
+ },
+ {
+  "file": "2026-08-14_AKAN.json",
+  "sym": "AKAN",
+  "date": "2026-08-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1980,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-14_BANL.json",
+  "sym": "BANL",
+  "date": "2026-08-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 35,
+  "n_window_bars": 22
+ },
+ {
+  "file": "2026-08-14_BOXL.json",
+  "sym": "BOXL",
+  "date": "2026-08-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1932,
+  "n_window_bars": 835
+ },
+ {
+  "file": "2026-08-14_DFSC.json",
+  "sym": "DFSC",
+  "date": "2026-08-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1477,
+  "n_window_bars": 856
+ },
+ {
+  "file": "2026-08-14_GIPR.json",
+  "sym": "GIPR",
+  "date": "2026-08-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 14,
+  "n_window_bars": 9
+ },
+ {
+  "file": "2026-08-14_HAO.json",
+  "sym": "HAO",
+  "date": "2026-08-14",
+  "first_bar": "13:00:00",
+  "n_pre_bars": 152,
+  "n_window_bars": 132
+ },
+ {
+  "file": "2026-08-14_LBGJ.json",
+  "sym": "LBGJ",
+  "date": "2026-08-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1461,
+  "n_window_bars": 870
+ },
+ {
+  "file": "2026-08-14_LEXX.json",
+  "sym": "LEXX",
+  "date": "2026-08-14",
+  "first_bar": "08:01:50",
+  "n_pre_bars": 15,
+  "n_window_bars": 6
+ },
+ {
+  "file": "2026-08-14_MF.json",
+  "sym": "MF",
+  "date": "2026-08-14",
+  "first_bar": "11:02:40",
+  "n_pre_bars": 95,
+  "n_window_bars": 66
+ },
+ {
+  "file": "2026-08-14_TMS.json",
+  "sym": "TMS",
+  "date": "2026-08-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 25,
+  "n_window_bars": 14
+ },
+ {
+  "file": "2026-08-14_WETO.json",
+  "sym": "WETO",
+  "date": "2026-08-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1694,
+  "n_window_bars": 871
+ },
+ {
+  "file": "2026-08-14_XHG.json",
+  "sym": "XHG",
+  "date": "2026-08-14",
+  "first_bar": "08:00:00",
+  "n_pre_bars": 1638,
+  "n_window_bars": 713
+ }
+]

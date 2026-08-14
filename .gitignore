@@ -7,3 +7,4 @@ conf/
 .DS_Store
 data/.DS_Store
 webull_*_sdk.log*
+data/universe/bars10s/

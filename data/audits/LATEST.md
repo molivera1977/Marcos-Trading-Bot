@@ -68,3 +68,5 @@ Room vote on "8c40c8a is ship-clean as audited (shadow-only calibration, legacy 
 — Convening closed 2026-08-14. Blast Radius Auditor, chair.
 
 covers (post-audit bookkeeping): 7d28f758c039 — data/audits/LATEST.md + data/killtests/RESULTS_LEDGER.md entry only, no code.
+
+covers (post-audit bookkeeping): 1717a0eb09df — Quartermaster ferry/backup artifacts + data/universe/ferry script; data/research only, no live-path code.

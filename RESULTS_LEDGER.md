@@ -1914,3 +1914,12 @@ this afternoon). Blocking findings: NONE. Owed (non-blocking): crown-roster befo
 Owns the afternoon leader regime (grinders + verticals, 10:30-close), the grinder shadow
 program (KT2a shadow-candidate), afternoon census halves, the 10:30 handoff, task #48.
 Afternoon Operator office chartered only if the grinder earns conversions.
+
+## 2026-08-14 ~17:20 — v2 ANOMALY RESOLVED + AUTO-DEPLOY HOLE FOUND
+The 14:14 LEXX v2_shadow_fire: Railway GitHub auto-deploy fired on the 13:59:29 push
+(deployment 668dec74 SUCCESS 13:59:31, un-ordered). Tree deployed = the AUDITED e59a2eb
+package (31-0 convening committed prior) — nothing unaudited ran; v2 shadow live since ~14:00
+(free head start), RESTING_SELLS off. PROCESS HOLE: auto-deploys are nondeterministically
+SKIPPED/run -> any push could silently ship. FIX TONIGHT: disable auto-deploy on all three
+services; ship.sh becomes the only deploy path (its convention gap now closed by platform
+setting, not discipline).

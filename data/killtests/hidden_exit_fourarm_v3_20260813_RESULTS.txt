@@ -1,0 +1,58 @@
+FOUR-ARM HIDDEN-EXIT COMPARISON v3 (CORRECTED-BOOK) — run 2026-08-13T22:08:09-04:00
+Cohort: entry_type==hidden_entry, 2026-07-24..2026-08-13. N=131
+
+WHY v3: v2 calibrated against the RAW book and deliberately reproduced the
+fictional-fill quirk (tape_hi seeded with ~45min PRE-ENTRY tape) to hit the
++/-20% gate.  Tonight that quirk was PROVEN A BUG (41 fictional fills,
++$284.78 fake profit; census: fictional_fills_census_20260813.md) and FIXED
+in the live bot (tape since monitor birth only).  Friday's exit decision
+governs the FIXED bot — v3 models POST-ENTRY-TAPE-ONLY fills and calibrates
+against the CORRECTED book.
+
+================ BENCHMARK (corrected book) ================
+  RAW book (recorded pnl):          $880.99
+  Fictional-fill correction:        -$231.15  (28 fictional fills across cohort,
+    recomputed in-script by the census method: fill px > post-entry max high
+    *1.001 -> subtract (fill_px - max(post_entry_hi, entry)) * qty)
+  CORRECTED book (benchmark):       $649.84
+  (0 trades with partial fills had NO post-entry bars -> correction 0 there.)
+
+================ CALIBRATION v3 (model vs CORRECTED book) ================
+Arm-3 model = FIXED live trail replayed: live hidden tiers (33% @ entry+1R,
+cum 55% @ x1.5, cum 75% @ x2), RUNG RATCHET floors, 3-min-close trailing
+stop (BE after tier2 + scale-bar-low), health fold — tape_hi POST-ENTRY ONLY.
+  CORRECTED BOOK: $649.84
+  MODEL (arm 3):  $-954.68   (delta $-1604.52 = -246.9% of corrected)
+  Median |per-trade error| vs corrected per-trade pnl: $26.00 | mean |err|: $31.00
+  GATE (+/-20% of corrected): FAIL
+  Worst-modeled 5 (vs corrected per-trade):
+    FCUV  2026-07-31  corrected $   +4.05  model $ +223.58  err $ 219.53  [bars] exit_reason=Trailing stop 📉
+    HUIZ  2026-08-07  corrected $  +40.52  model $  -69.94  err $ 110.46  [bars] exit_reason=Trailing stop 📉
+    DFSC  2026-08-13  corrected $   -9.40  model $  +94.38  err $ 103.78  [bars] exit_reason=Trailing stop 📉
+    HUIZ  2026-08-07  corrected $  +40.41  model $  -60.68  err $ 101.09  [bars] exit_reason=Trailing stop 📉
+    ENSC  2026-08-06  corrected $   +3.66  model $  -85.78  err $  89.44  [bars] exit_reason=Trailing stop 📉
+
+CALIBRATION GATE FAILED — four-arm numbers WITHHELD per the run spec.
+
+AGGREGATE DIAGNOSIS (the failure is BROAD, not a few outliers):
+  model below corrected: 87 trades, sum $-2832.99
+  model above corrected: 44 trades, sum $+1228.48
+  LIVE booked a partial fill but the post-entry-only model fills NO tier:
+    62 trades, delta sum $-2383.00  <- essentially the whole failure.
+  Leading hypothesis: the census correction removes only PRICE overage
+  (fill px above post-entry high).  Fills that printed instantly on
+  PRE-ENTRY tape at prices the stock later reached post-entry stay in the
+  corrected book at full credit — but the FIXED bot would have filled them
+  later or not before the stop.  The corrected book is therefore an UPPER
+  BOUND on the fixed bot, not a clean benchmark of it; secondary
+  hypothesis: live tier prices differ from the reconstructed entry+1R
+  ladder on some trades (observed live partials at prices well under the
+  reconstructed tier-1), and the model's 3-min trailing stop can exit
+  before the tape trades through tier-1.
+
+Hypotheses for the worst-modeled 5:
+    FCUV  2026-07-31: model rides longer than the live exit did (map-refresh/intraday-rung fidelity gap, or live exited on stream data the 10s tape smooths over)
+    HUIZ  2026-08-07: live fills printed off our SIP 10s tape (stream-quote fills the replay cannot see) or live tier filled on the now-fixed pre-entry-tape bug (real book row still contains it; corrected row subtracts only the above-post-entry-high overage)
+    DFSC  2026-08-13: model rides longer than the live exit did (map-refresh/intraday-rung fidelity gap, or live exited on stream data the 10s tape smooths over)
+    HUIZ  2026-08-07: live fills printed off our SIP 10s tape (stream-quote fills the replay cannot see) or live tier filled on the now-fixed pre-entry-tape bug (real book row still contains it; corrected row subtracts only the above-post-entry-high overage)
+    ENSC  2026-08-06: live fills printed off our SIP 10s tape (stream-quote fills the replay cannot see) or live tier filled on the now-fixed pre-entry-tape bug (real book row still contains it; corrected row subtracts only the above-post-entry-high overage)

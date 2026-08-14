@@ -1703,3 +1703,23 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - Book impact honest: sim profits were inflated ~$285 era-wide (~2% of gross wins); sim-vs-live
   delta for the go/no-go shrinks accordingly. Historian owes OFFICIAL_BOOK the inflation footnote.
 - Week-one watch: exit_px_unverified/below_tape counts in first-minutes windows (stricter guard).
+
+## 2026-08-13 ~22:30 — v3 EXIT RERUN + FULL-ROOM VERIFICATION (30/30; agents aa7356af/af68bff2)
+- Marcos: "rerun the entire test... EVERYONE present to verify." v3 modeled the FIXED bot vs the
+  price-corrected book — CALIBRATION GATE FAILED (model −$954.68 vs corrected +$649.84); per spec
+  ALL four-arm numbers WITHHELD. The room verified the fail is CORRECT AND HONEST (category
+  mismatch: no existing book measures the fixed bot).
+- THE GRAVE FINDING (10/10 hand-checked on real bars, adversarial counter-read defeated): the era
+  hidden-lane book's early tier banks are dominantly TIMING-FICTION — in every sampled trade the
+  honest bot's stop fires BEFORE post-entry tape ever reaches the recorded fill price (7 reach it
+  later, 3 never). The dip comes before the pop; the bug banked before the dip. Resting limit
+  sells (#53) do NOT rescue this — the stop cancels them. Secondary true finding: model's 3-min-
+  close stops are pessimistic vs live intrabar (~1/3 of one specimen's gap) — floor, not flip.
+- THE THREE BOOKS (Statistician's ruling, Historian's labels): raw $880.99 = "bug-era history";
+  $649.84 = "price-corrected CEILING, not an expectancy"; fixed-bot true expectancy = UNMEASURED.
+  Era hidden win-rate = known-inflated. Convexity: lane reverts to true convex shape (fatter left,
+  right tail only if the runner survives — sample says often not).
+- FRIDAY REQUIREMENT (v4): intrabar-stop modeling + timing-corrected benchmark before ANY exit-arm
+  ranking is admissible. MONDAY POSTURE: without v4 the trial runs an unmeasured hidden lane —
+  the room cites the 8/8 doctrine (smaller + later, never launch-anyway). MARCOS DECIDES.
+- One env verification owed before Friday: INTRABAR_STOP=1 on the live service (memory-cited only).

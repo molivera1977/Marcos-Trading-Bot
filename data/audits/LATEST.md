@@ -84,3 +84,11 @@ and _map_freshness read RAW stores (no self-laundering loop possible); cache res
 rebuild (auto-map age <=20s vs 600s TTL). Known behavior delta, intent-aligned + Friday-graded:
 ceiling standdown no longer sticks across rebuilds on a breached crown (re-evaluates on latest
 data — Marcos: "I just want the latest data so the bot can make the proper call"). VERDICT: SHIP.
+
+## DOCTRINE-INVERSION SWEEP (retro-applied to tonight's ships, per Marcos "make sure this is
+## actually implemented"): the #54 batch FOLLOWS the 8/12 level-primacy doctrine flip. Sweep of
+## code encoding the OLD (Kev-rules) doctrine: (1) reader 8/5 skip-if-kev-levels — FOUND+FIXED
+## tonight (Build 2 inversion); (2) _kev_sheet_name flip-blindness — found+fixed 8/12 (11th);
+## (3) merge vision-first ordering — found+fixed 8/13 (15th); (4) grep tonight of "kev" gating
+## sites in bot: daygain exemption/tier-0 sort/label = provenance perks (kev_name honored, doctrine-
+## neutral); veto = data-only since f36c1b2. No further old-doctrine encodings found.

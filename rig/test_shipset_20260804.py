@@ -1274,6 +1274,11 @@ try:
     _roster = [ln.strip() for ln in open(os.path.join(ROOT, "data", "audits", "ROSTER.txt"))
                if ln.strip()]
     _missing = [nm for nm in _roster if nm not in _rec]
+    # 8/13 (Marcos: "make sure this is actually implemented"): the artifact must contain a
+    # doctrine-inversion sweep section — either real content or the literal "n/a" line — per
+    # data/audits/CONVENING_TEMPLATE.md. A missing section = an unasked question = RED.
+    if "doctrine-inversion" not in _rec:
+        _missing.append("(doctrine-inversion sweep section)")
     _ok = _ok and not _missing
     if _missing and os.environ.get("SHIP_CHECK") == "1":
         print("  missing officers in LATEST.md: " + ", ".join(_missing[:8]) + ("…" if len(_missing) > 8 else ""))

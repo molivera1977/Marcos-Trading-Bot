@@ -1004,3 +1004,18 @@ Friday 8/8 -> revert MIN_STOP_PCT to 5 without waiting for the grade; bands keep
 8/1 01:05 — sizing interaction confirmed + demonstrated on loaded code: floor 4% admits the new
 band at AUTO-REDUCED risk (RISK_PROP_REF held at 6%: 4%->$20, 5%->$25, 6%+->$30 full). REF
 revisited with the 8/8 curve. Config live in repo; Railway builds it for Monday's open.
+
+## 2026-08-14 (evening) — SHIP AUDIT: #53 resting sell ladder (default OFF) + v2 confirmed-pullback shadow (e59a2ebb4e6f)
+Convening: data/audits/LATEST.md (Blast Radius Auditor chair, 31-office roll call, 31-0 APPROVE, 0 blocking).
+VERIFIED this session: RESTING_SELLS default "0" (rig Y-a executes the default); with it OFF every new
+call site is env-guarded (:8442, :8908, :9175) and behavior is order-path-identical to before (only
+deltas: banner text, boot_config fields, "ladder": [] in durable state). All 15 market exit paths
+funnel through _safety_close with cancel-ladder-FIRST ordering (rig Y-b pins count=15 + stray-sell
+sweep). v2 detector (:5682) + caller (:7203): ZERO conversion path — no breakouts.append, no order
+calls (rig Y-e); rides reclaim block's fed 10s bars, zero new fetches; writes v2_shadow_fire rows only
+(in_window stamped for the Monday 9:30-10:30 slice vs backtest +$994.76 IN / −$1,539.94 OUT).
+Rig: python3 rig/test_shipset_20260804.py = ALL GREEN incl. Y-a..Y-f (both plain and SHIP_CHECK=1 runs).
+ADVISORIES docketed for the live flip (inert while OFF; Webull Broker Desk owns): (a) tier-fill books
+the resting limit on the software trigger without a broker fill-status read; (b) resting stop + resting
+limits rest against the same shares — coexistence must be exercised in the owed $5 place+cancel test.
+No push, no deploy — audit + bookkeeping only.

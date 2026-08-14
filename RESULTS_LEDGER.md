@@ -1745,3 +1745,22 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   checked against the room-verified book, fixed, now reconciles to the cent: today's true
   fiction = $0.82, expected pre-fix). Appends to VERIFIED_BOOK.md + nightly_verify.log; ANY
   fiction from 8/14 forward = exit-2 regression alarm. First scheduled run: tomorrow 22:45.
+
+## 2026-08-13 ~23:10 — v4 DEFINITIVE + FULL-ROOM VERIFIED (agents a07e5369/ac15fe08): THE HIDDEN LANE IS HONESTLY NEGATIVE
+- Timing-corrected benchmark (all 131 trades, intrabar stops, INTRABAR_STOP=1 env-verified this
+  session): raw +$880.99 -> 81 TIMING-FICTION fills across 75 trades -> bench -$924.70; fully
+  STOP-CONSISTENT construction -$2,376.12; model -$2,155.71 CALIBRATES vs stop-consistent
+  (-9.3%, median error $0.00 -> v3/v4 "gate fails" were benchmark-construction artifacts).
+- Room's executed teeth: cross-foot exact; 5-trade original-stop recheck (fiction NOT overstated —
+  most fiction never printed post-entry AT ALL: HUIZ fills on a $1.92-high trade booked @2.88;
+  ratchet construction live-faithful, HIDDEN_SCALEBAR_STOP=1 code default); Tape Veteran: NO
+  honest construction leaves the lane positive; Convexity: honest shape = 38-40W/131, median
+  -$26/tr, no right tail — a small-loss grinder, not a rocket lane.
+- BOOK vs BENCHMARK ruling (for the record): the Verified Book (+$1,128 charitable August) remains
+  the true HISTORICAL record of what the sim account accrued; the sequence-honest constructions
+  govern EXPECTANCY. Monday is predicted by the latter: hidden honest run-rate -$66 to -$170/day.
+- ROOM RECOMMENDATION (Marcos decides): hidden lane -> OBSERVE-ONLY until re-graded on real fills
+  or resting-limit tiers (#53) ship; four-arm numbers may now be computed against STOP-CONSISTENT.
+- The 7/27 law fulfilled at scale: nine coherent-code reviews once missed a bad mechanism; tonight
+  BOTH sides were replayed and the mechanism confessed. Review-both-sides is why August's OTHER
+  lanes survived verification and this one didn't.

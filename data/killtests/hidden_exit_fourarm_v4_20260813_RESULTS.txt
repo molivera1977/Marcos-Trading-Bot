@@ -1,0 +1,79 @@
+FOUR-ARM HIDDEN-EXIT COMPARISON v4 (TIMING-CORRECTED) — run 2026-08-13T23:00:47-04:00
+Cohort: entry_type==hidden_entry, 2026-07-24..2026-08-13. N=131
+
+Assumptions A1-A12: see the docstring of this script (stated up front).
+Leg reconciliation (A3): sum |recorded-legs pnl - recorded pnl| over cohort = $41.31
+Fidelity: 129 trades on 10s bars, 2 on 3-point fallback (benchmark keeps
+recorded pnl on no-bars trades; 0 of those had partial fills).
+
+================ 1) TIMING-CORRECTED BENCHMARK ================
+Two-stage sequence test on ALL 131 trades: (a) first post-entry touch of each
+recorded fill px on real 10s bars; (b) honest INTRABAR stop-fire (first 10s
+bar low <= effective stop; live trail mechanics: BE after 2 scales, scale-bar-
+low ratchet, rung floors on 1-min closes).  Touch after fire = TIMING-FICTION:
+profit removed, shares exit at the stop * (1 - slip).
+  TIMING-CORRECTED BENCHMARK total:  $-924.70
+  Timing-fiction fills: 81 (across 75 trades)
+  vs RAW book            $880.99 : delta $-1805.69
+  vs PRICE-CORRECTED     $649.84 : delta $-1574.54
+  (this run's fresh raw book: $880.99)
+  Per-day (benchmark | raw):
+    2026-07-27   $   -64.62 | $   -64.62
+    2026-07-28   $   -35.96 | $   -35.89
+    2026-07-29   $  -226.31 | $  -226.93
+    2026-07-30   $    +9.37 | $    +9.71
+    2026-07-31   $   -25.59 | $   +43.77
+    2026-08-03   $   -38.05 | $   +24.44
+    2026-08-04   $   +12.54 | $   +25.07
+    2026-08-05   $  -113.92 | $    -6.33
+    2026-08-06   $   -77.73 | $   +90.37
+    2026-08-07   $  -149.30 | $  +533.73
+    2026-08-10   $   -55.93 | $   +20.72
+    2026-08-11   $   -43.51 | $   +67.55
+    2026-08-12   $  -100.33 | $  +225.51
+    2026-08-13   $   -15.36 | $  +173.89
+
+================ 3) CALIBRATION GATE (arm-3 vs benchmark) ================
+Arm-3 = live model: post-entry-only tape_hi fills, INTRABAR stops (v4),
+live hidden tiers (33%% @ entry+1R, cum 55%% @ x1.5, cum 75%% @ x2), rung
+ratchet, BE-after-scale, health fold on 3-min closes.
+  BENCHMARK:      $-924.70
+  MODEL (arm 3):  $-2155.71   (delta $-1231.01 = +133.1% of benchmark)
+  Median |per-trade error|: $12.42 (gate <= $15) | mean |err|: $15.57
+  GATE: within +/-20%: FAIL | median err <= $15: PASS  ==> FAIL
+  Top-5 divergences (vs benchmark per-trade):
+    WFF   2026-08-07  bench $ +157.41  model $   -1.05  err $ 158.46  [bars] exit_reason=Trailing stop 📉
+    FGI   2026-08-13  bench $  +83.58  model $   +1.73  err $  81.85  [bars] exit_reason=RUNG RATCHET (floor $13.80)
+    NUWE  2026-07-30  bench $   -6.01  model $  +55.22  err $  61.24  [bars] exit_reason=Trailing stop 📉
+    FGI   2026-08-13  bench $  +67.10  model $  +16.27  err $  50.83  [bars] exit_reason=RUNG RATCHET (floor $16.50)
+    WYHG  2026-08-06  bench $  +60.41  model $  +14.63  err $  45.78  [bars] exit_reason=Trailing stop 📉
+
+CALIBRATION GATE FAILED — four-arm numbers WITHHELD per the run spec.
+AGGREGATE: model below bench 100 trades (sum $-1635.42); above 31 (sum $+404.41).
+Hypotheses for the top-5 divergences:
+    WFF   2026-08-07: model stops before the benchmark keeps its honest fills (intrabar stop vs the benchmark's A5 tie rule, or live fills off-SIP the 10s tape never shows)
+    FGI   2026-08-13: model stops before the benchmark keeps its honest fills (intrabar stop vs the benchmark's A5 tie rule, or live fills off-SIP the 10s tape never shows)
+    NUWE  2026-07-30: model rides past the honest stop (rung-ladder/map-refresh fidelity, or tier ladder reconstruction differs from live resting-bank prices)
+    FGI   2026-08-13: model stops before the benchmark keeps its honest fills (intrabar stop vs the benchmark's A5 tie rule, or live fills off-SIP the 10s tape never shows)
+    WYHG  2026-08-06: model stops before the benchmark keeps its honest fills (intrabar stop vs the benchmark's A5 tie rule, or live fills off-SIP the 10s tape never shows)
+
+================ 5) NAMED TRACES (owed even on gate-fail) ================
+Trade: FGI 2026-08-13 | entry $10.7700 x 46 sh | stop 10.5925 | highest 14.4750 | real exit 13.3800
+  raw pnl $83.73 | exit_reason: RUNG RATCHET (floor $13.80) | fidelity: bars | slip 1.8%
+  BENCHMARK $83.58 | honest stop-fire: 11:37:20 ET @ stop 10.9
+    KEPT fill         15.00 sh @ $10.9477  -> $+2.67
+    runner leg        31.00 sh @ recorded exit $13.3800 -> $+80.91
+  ARM 3 — RATCHET-PRIMARY (= LIVE model): pnl $1.73
+    tier1@10.9475                                 15.18 sh @ $10.9475  -> $+2.69
+    trail_stop@10.9400(intrabar)                  30.82 sh @ $10.7387  -> $-0.96
+
+Trade: HUIZ 2026-08-07 | entry $1.9200 x 260 sh | stop 1.8049 | highest 1.9200 | real exit 1.9200
+  raw pnl $65.46 | exit_reason: Trailing stop 📉 | fidelity: bars | slip 3.0%
+  BENCHMARK $-24.20 | honest stop-fire: 14:21:00 ET @ stop 1.80
+    TIMING-FICTION    85.00 sh @ $2.0351  -> re-exited @ $1.7508 = $-14.39 (removed $+24.17)
+    TIMING-FICTION    58.00 sh @ $2.8800  -> re-exited @ $1.7508 = $-9.82 (removed $+65.50)
+    runner leg       117.00 sh @ recorded exit $1.9200 -> $+0.00
+  ARM 3 — RATCHET-PRIMARY (= LIVE model): pnl $-44.00
+    stop_loss@1.8049(intrabar)                   260.00 sh @ $1.7508  -> $-44.00
+
+No recommendation — the full room verifies, Marcos decides.

@@ -1,0 +1,60 @@
+HAND-TRACE 2026-07-13 — post-H4 chronological walk (UTC times; ET = -4h)
+13:30:30 QTTB   v2       TAKEN pnl=+16.27 exit=trail@13:35:00 entry=17.81 stop=17.28
+13:31:00 FTRK   v2       TAKEN pnl=-14.77 exit=stop@13:31:20 entry=0.51 stop=0.5024
+13:31:00 MIMI   v2       SLOT-SKIP entry=3.0295 stop=2.91
+13:31:20 EHGO   v2       SLOT-SKIP entry=2.1062 stop=2.0401
+13:31:20 LGPS   v2       SLOT-SKIP entry=1.1432 stop=1.1
+13:31:30 BRAI   v2       TAKEN pnl=+22.94 exit=trail@13:53:20 entry=6.95 stop=6.6001
+13:32:00 QTTB   v2       DEDUP-DROP entry=18.4531 stop=17.66
+13:32:10 ELPW   v2       SLOT-SKIP entry=0.324 stop=0.319
+13:33:00 GFUZ   v2       SLOT-SKIP entry=12.5 stop=12.2701
+13:33:10 VMAR   v2       SLOT-SKIP entry=1.185 stop=1.18
+13:33:30 SOBR   v2       SLOT-SKIP entry=0.5063 stop=0.4906
+13:34:10 MIMI   v2       DEDUP-DROP entry=3.17 stop=3.04
+13:35:10 LGPS   v2       DEDUP-DROP entry=1.205 stop=1.13
+13:35:20 QTTB   v2       DEDUP-DROP entry=19.08 stop=18.53
+13:35:20 VMAR   v2       DEDUP-DROP entry=1.2 stop=1.185
+13:35:40 AGEN   v2       TAKEN pnl=-14.16 exit=stop@13:36:50 entry=5.485 stop=5.41
+13:36:20 VEEE   v2       SLOT-SKIP entry=11.74 stop=11.07
+13:40:10 ELPW   vwap     TAKEN pnl=-39.60 exit=stop@14:04:50 entry=0.3536 stop=0.3305
+13:41:00 VEEE   v2       DEDUP-DROP entry=13.47 stop=12.45
+13:48:00 SOBR   flat_top SLOT-SKIP entry=0.5259 stop=0.5126
+13:50:20 EHGO   flat_top SLOT-SKIP entry=2.1688 stop=2.1
+13:51:00 VMAR   v2       DEDUP-DROP entry=1.2 stop=1.1701
+13:51:00 VMAR   flat_top SLOT-SKIP entry=1.2 stop=1.1701
+13:53:00 MIMI   v2       SLOT-SKIP entry=3.13 stop=3.05
+13:53:30 MIMI   flat_top DEDUP-DROP entry=3.2 stop=3.05
+13:54:40 MIMI   v2       DEDUP-DROP entry=3.0799 stop=3.04
+13:56:00 BRAI   flat_top TAKEN pnl=+17.02 exit=trail@14:01:20 entry=7.225 stop=7.01
+13:56:10 BRAI   v2       DEDUP-DROP entry=7.33 stop=7.01
+13:56:50 QTTB   flat_top SLOT-SKIP entry=18.82 stop=18.6101
+13:57:00 LGPS   v2       SLOT-SKIP entry=1.2383 stop=1.21
+13:57:50 QTTB   v2       DEDUP-DROP entry=18.8 stop=18.305
+13:58:40 LGPS   v2       DEDUP-DROP entry=1.2676 stop=1.21
+14:02:00 EHGO   v2       TAKEN pnl=+8.60 exit=trail@14:10:50 entry=2.13 stop=2.08
+14:02:10 FTRK   flat_top SLOT-SKIP entry=0.5401 stop=0.5151
+14:03:20 SOBR   v2       SLOT-SKIP entry=0.5662 stop=0.5401
+14:04:10 BRAI   v2       SLOT-SKIP entry=7.56 stop=7.4001
+14:04:40 FTRK   v2       DEDUP-DROP entry=0.525 stop=0.5094
+14:06:40 EHGO   flat_top DEDUP-DROP entry=2.2 stop=2.15
+14:09:40 FTRK   v2       TAKEN pnl=+9.21 exit=trail@14:26:10 entry=0.5139 stop=0.5072
+14:10:40 VMAR   v2       SLOT-SKIP entry=1.185 stop=1.1666
+14:12:10 BRAI   v2       TAKEN pnl=-17.60 exit=stop@14:12:40 entry=7.26 stop=7.11
+14:12:40 VMAR   flat_top DEDUP-DROP entry=1.2001 stop=1.1666
+14:15:10 VEEE   v2       TAKEN pnl=+114.61 exit=trail@14:47:20 entry=12.05 stop=11.51
+14:15:50 GFUZ   v2       SLOT-SKIP entry=11.46 stop=11.11
+14:18:30 VEEE   vwap     DEDUP-DROP entry=13.24 stop=11.63
+14:19:30 SOBR   v2       SLOT-SKIP entry=0.7899 stop=0.7467
+14:19:40 GFUZ   v2       DEDUP-DROP entry=11.3603 stop=10.7901
+14:23:10 EHGO   v2       SLOT-SKIP entry=2.23 stop=2.13
+14:23:30 FTRK   flat_top SLOT-SKIP entry=0.545 stop=0.5072
+14:23:30 LGPS   flat_top SLOT-SKIP entry=1.168 stop=1.14
+14:24:20 QTTB   flat_top SLOT-SKIP entry=18.76 stop=18.46
+14:25:00 VMAR   vwap     SLOT-SKIP entry=1.22 stop=1.1874
+14:27:00 EHGO   flat_top DEDUP-DROP entry=2.24 stop=2.19
+14:28:10 BRAI   v2       TAKEN pnl=+91.82 exit=trail@15:02:10 entry=7.2591 stop=7.12
+14:28:20 BRAI   flat_top DEDUP-DROP entry=7.39 stop=7.15
+14:29:00 LGPS   v2       SLOT-SKIP entry=1.245 stop=1.195
+15:34:40 EHGO   grinder  TAKEN pnl=+19.85 exit=trail@15:50:30 entry=2.3601 stop=2.2301
+15:46:00 FTRK   grinder  TAKEN pnl=+28.87 exit=trail@16:01:10 entry=0.5812 stop=0.5212
+day total: 243.07

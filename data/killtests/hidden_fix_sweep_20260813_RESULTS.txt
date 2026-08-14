@@ -1,0 +1,126 @@
+HIDDEN-LANE FIX SWEEP — run 2026-08-13T23:21:10-04:00
+Cohort: entry_type==hidden_entry 2026-07-24..2026-08-13, N=131 (2 on 3pt fallback).
+Engine: v4 calibrated honest model (intrabar stops, post-entry fills,
+slip=min(3%%,max(0.8%%,est)); certified -9.3%%/$0.00-median vs benchmark).
+QUESTION: entry dead, or exit killing a live signal?  F answers it.
+Assumptions S1-S8 in the script docstring.  NO recommendation.
+
+VARIANT A    BASELINE — current live config (must reproduce ~ -$2,156)
+  total $-2155.71 | median $-25.76 | win 30.5% (40/131) | max-DD-proxy (sum of losses) $-2692.55
+  top-3 tail: NUWE 2026-07-30 $+55.22, FCUV 2026-07-31 $+45.18, WXM 2026-08-11 $+29.61 (tail $+130.01) | ex-top-1 total $-2210.93
+  ENV-MAPPABILITY: live today (HIDDEN_SCALEBAR_STOP=1, BE_FLOOR_AFTER_SCALE=2 env default)
+
+VARIANT B100 WIDER STOP x1.00 — original stop, NO ratchet/BE/rung until tier-2
+  total $-2430.64 | median $-25.76 | win 11.5% (15/131) | max-DD-proxy (sum of losses) $-3186.10
+  top-3 tail: FGI 2026-08-13 $+156.72, FCUV 2026-07-31 $+145.32, WFF 2026-08-07 $+125.69 (tail $+427.72) | ex-top-1 total $-2587.35
+  ENV-MAPPABILITY: PARTIAL tonight: HIDDEN_SCALEBAR_STOP=0 kills the ratchet (bot :5527/:8864); but BE/rung freeze-until-tier-2 NEEDS CODE (BE fires per BE_FLOOR_AFTER_SCALE and rung floors arm on first partial regardless)
+
+VARIANT B95  WIDER STOP x0.95 — stop 5% wider, frozen until tier-2
+  total $-2762.11 | median $-30.83 | win 19.8% (26/131) | max-DD-proxy (sum of losses) $-4241.09
+  top-3 tail: FGI 2026-08-13 $+161.66, FGI 2026-08-13 $+158.70, FGI 2026-08-13 $+156.72 (tail $+477.08) | ex-top-1 total $-2923.77
+  ENV-MAPPABILITY: NEEDS CODE — no env widens the structural stop by a buffer (STOP_LOSS_PCT only moves the -7% catastrophe floor)
+
+VARIANT B90  WIDER STOP x0.90 — stop 10% wider, frozen until tier-2
+  total $-1792.78 | median $-28.96 | win 28.2% (37/131) | max-DD-proxy (sum of losses) $-4609.41
+  top-3 tail: PLAG 2026-08-11 $+171.13, FGI 2026-08-13 $+161.66, FGI 2026-08-13 $+158.70 (tail $+491.49) | ex-top-1 total $-1963.91
+  ENV-MAPPABILITY: NEEDS CODE — same as B95
+
+VARIANT C2   DELAYED BE (BE_FLOOR_AFTER_SCALE=2) — == baseline; env already 2
+  total $-2155.71 | median $-25.76 | win 30.5% (40/131) | max-DD-proxy (sum of losses) $-2692.55
+  top-3 tail: NUWE 2026-07-30 $+55.22, FCUV 2026-07-31 $+45.18, WXM 2026-08-11 $+29.61 (tail $+130.01) | ex-top-1 total $-2210.93
+  ENV-MAPPABILITY: live today — BE_FLOOR_AFTER_SCALE env default is already 2 (bot :455)
+
+VARIANT C1   CONTRAST: BE-after-1 (the code-default-if-unset branch)
+  total $-2145.48 | median $-25.76 | win 30.5% (40/131) | max-DD-proxy (sum of losses) $-2683.13
+  top-3 tail: NUWE 2026-07-30 $+55.22, FCUV 2026-07-31 $+45.18, WXM 2026-08-11 $+29.61 (tail $+130.01) | ex-top-1 total $-2200.71
+  ENV-MAPPABILITY: env-only tonight: BE_FLOOR_AFTER_SCALE=1
+
+VARIANT D    TIME-STOP HYBRID — static stop+(-6%)cat, 45min time-out pre-tier1
+  total $-2471.95 | median $-21.67 | win 9.2% (12/131) | max-DD-proxy (sum of losses) $-3079.83
+  top-3 tail: FCUV 2026-07-31 $+165.81, WFF 2026-08-07 $+152.09, FGI 2026-08-13 $+87.62 (tail $+405.53) | ex-top-1 total $-2637.77
+  ENV-MAPPABILITY: NEEDS CODE — no 45-min time-stop or static-stop mode exists for hidden
+
+VARIANT E    RE-ENTRY-AFTER-STOP — baseline + one 20-min entry-px reclaim re-entry
+  total $-3646.70 | median $-31.10 | win 22.1% (29/131) | max-DD-proxy (sum of losses) $-4537.94
+  top-3 tail: FCUV 2026-07-31 $+137.61, NUWE 2026-07-30 $+104.96, MSGY 2026-08-11 $+59.89 (tail $+302.46) | ex-top-1 total $-3784.30
+  re-entries taken: 94
+  ENV-MAPPABILITY: NEEDS CODE — no re-entry-after-stop mechanism exists
+
+VARIANT F    NO-STOP CONTROL — hold to EOD, only -7% catastrophe (DIAGNOSTIC ONLY)
+  total $-4012.10 | median $-45.61 | win 13.0% (17/131) | max-DD-proxy (sum of losses) $-4663.93
+  top-3 tail: FCUV 2026-07-31 $+237.60, WXM 2026-08-11 $+72.00, FGI 2026-08-13 $+67.62 (tail $+377.22) | ex-top-1 total $-4249.70
+  ENV-MAPPABILITY: NEVER SHIPPABLE (diagnostic); approximable but not honestly: no env removes the structural stop
+
+VARIANT G    F + 1R BANK — 50% off at +1R, rest to EOD with -7% catastrophe
+  total $-2786.30 | median $-19.92 | win 18.3% (24/131) | max-DD-proxy (sum of losses) $-3259.72
+  top-3 tail: FCUV 2026-07-31 $+124.98, WXM 2026-08-11 $+50.94, FGI 2026-08-13 $+37.89 (tail $+213.82) | ex-top-1 total $-2911.28
+  ENV-MAPPABILITY: NEEDS CODE — tier ladder + stop removal both differ from live
+
+================ NAMED TRACES (per-variant verdicts) ================
+FGI 2026-08-13 | entry $10.7700 x 46 sh | stop 10.5925 | highest 14.4750 | real exit 13.3800 | raw pnl $+83.73 (RUNG RATCHET (floor $13.80))
+  A    $    +1.73  [bars]
+        tier1@10.9475                               15.18 sh @ $10.9475 -> $+2.69
+        trail_stop@10.9400(intrabar)                30.82 sh @ $10.7387 -> $-0.96
+  B100 $  +156.72  [bars]
+        tier1@10.9475                               15.18 sh @ $10.9475 -> $+2.69
+        tier2@16.1550                               10.12 sh @ $16.1550 -> $+54.50
+        trail_stop@15.8700(intrabar)                20.70 sh @ $15.5780 -> $+99.53
+  B95  $  +156.72  [bars]
+        tier1@10.9475                               15.18 sh @ $10.9475 -> $+2.69
+        tier2@16.1550                               10.12 sh @ $16.1550 -> $+54.50
+        trail_stop@15.8700(intrabar)                20.70 sh @ $15.5780 -> $+99.53
+  B90  $  +156.72  [bars]
+        tier1@10.9475                               15.18 sh @ $10.9475 -> $+2.69
+        tier2@16.1550                               10.12 sh @ $16.1550 -> $+54.50
+        trail_stop@15.8700(intrabar)                20.70 sh @ $15.5780 -> $+99.53
+  C2   $    +1.73  [bars]
+        tier1@10.9475                               15.18 sh @ $10.9475 -> $+2.69
+        trail_stop@10.9400(intrabar)                30.82 sh @ $10.7387 -> $-0.96
+  C1   $    +1.73  [bars]
+        tier1@10.9475                               15.18 sh @ $10.9475 -> $+2.69
+        trail_stop@10.9400(intrabar)                30.82 sh @ $10.7387 -> $-0.96
+  D    $   +87.62  [bars]
+        tier1@10.9475                               15.18 sh @ $10.9475 -> $+2.69
+        tier2@16.1550                               10.12 sh @ $16.1550 -> $+54.50
+        time_stop_1545@12.2400                      20.70 sh @ $12.2400 -> $+30.43
+  E    $    -3.24  [bars+reentry]
+        tier1@10.9475                               15.18 sh @ $10.9475 -> $+2.69
+        trail_stop@10.9400(intrabar)                30.82 sh @ $10.7387 -> $-0.96
+        REENTRY buy@10.9682
+        re:tier1@10.9475                            15.18 sh @ $10.9475 -> $+2.69
+        re:trail_stop@11.0200(intrabar)             30.82 sh @ $10.8172 -> $+1.46
+  F    $   +67.62  [bars]
+        time_stop_1545@12.2400                      46.00 sh @ $12.2400 -> $+67.62
+  G    $   +37.89  [bars]
+        tier1@10.9475                               23.00 sh @ $10.9475 -> $+4.08
+        time_stop_1545@12.2400                      23.00 sh @ $12.2400 -> $+33.81
+
+HUIZ 2026-08-07 | entry $1.9200 x 260 sh | stop 1.8049 | highest 1.9200 | real exit 1.9200 | raw pnl $+65.46 (Trailing stop 📉)
+  A    $   -44.00  [bars]
+        stop_loss@1.8049(intrabar)                 260.00 sh @ $1.7508 -> $-44.00
+  B100 $   -44.00  [bars]
+        stop_loss@1.8049(intrabar)                 260.00 sh @ $1.7508 -> $-44.00
+  B95  $   -66.76  [bars]
+        stop_loss@1.7147(intrabar)                 260.00 sh @ $1.6632 -> $-66.76
+  B90  $   -89.52  [bars]
+        stop_loss@1.6244(intrabar)                 260.00 sh @ $1.5757 -> $-89.52
+  C2   $   -44.00  [bars]
+        stop_loss@1.8049(intrabar)                 260.00 sh @ $1.7508 -> $-44.00
+  C1   $   -44.00  [bars]
+        stop_loss@1.8049(intrabar)                 260.00 sh @ $1.7508 -> $-44.00
+  D    $   -44.00  [bars]
+        stop_loss@1.8049(intrabar)                 260.00 sh @ $1.7508 -> $-44.00
+  E    $  -102.98  [bars+reentry]
+        stop_loss@1.8049(intrabar)                 260.00 sh @ $1.7508 -> $-44.00
+        REENTRY buy@1.9776
+        re:stop_loss@1.8049(intrabar)              260.00 sh @ $1.7508 -> $-44.00
+  F    $   -48.87  [bars]
+        stop_loss@1.7856(intrabar)                 260.00 sh @ $1.7320 -> $-48.87
+  G    $   -48.87  [bars]
+        stop_loss@1.7856(intrabar)                 260.00 sh @ $1.7320 -> $-48.87
+
+READING F: if F is NEGATIVE the entries are dead and no exit fixes
+them; if F is strongly POSITIVE the signal lives and the exit is the
+killer.  G is the minimal realistic harvest of F.  F itself is a
+DIAGNOSTIC CONTROL and is never shippable.
+NO recommendation — the full room verifies, Marcos decides before 03:55.

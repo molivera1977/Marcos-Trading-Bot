@@ -1764,3 +1764,17 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - The 7/27 law fulfilled at scale: nine coherent-code reviews once missed a bad mechanism; tonight
   BOTH sides were replayed and the mechanism confessed. Review-both-sides is why August's OTHER
   lanes survived verification and this one didn't.
+
+## 2026-08-13 ~23:25 — FIX SWEEP + FULL-ROOM VERIFIED (agents aadfd1d6/a202d384): THE HIDDEN ENTRY SIGNAL IS DEAD AS TESTED
+- Marcos: "hidden as an entry is broken? Well, fix it." The sweep answered WHICH part is broken:
+  variant F (no-stop control, the pure entry test) = -$4,012, 13% win, median -$45.61 — and the
+  room's adversarial slices ALL negative: every week, ex-PRE (-$3,533 RTH-only, worse), CROWNED
+  subset (-$1,853 on 62), no exit variant positive (best B90 -$1,793 w/ deepest loss pool), no
+  size case (left side dominates), execution-independent (#53 can't flip it). Baseline reproduced
+  the certified -$2,155.71 EXACTLY. Honest caveat: 20 trading days, one regime.
+- Bonus corrections: BE_FLOOR_AFTER_SCALE live default = 2 (the "7/29 2->1 ship" memory was
+  superseded by Marcos's 7/28 pre-open revert — code :455 + Railway env read this turn).
+- OPTIONS PRICED TO MARCOS (his call before 03:55): (a) HIDDEN_ENTRY=0 = lane fully off, env-only,
+  loses the evidence stream; (b) HIDDEN_CONVERT observe-only split (~3 lines, seam pattern) =
+  detection + full rows continue, no orders, $0 cost — needs auditor diff + rig + ship.sh;
+  (c) conversions on at reduced cap = live data at ~-$16/trade. AWAITING HIS WORD.

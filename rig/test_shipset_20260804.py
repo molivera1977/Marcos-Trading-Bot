@@ -1277,7 +1277,7 @@ try:
     # 8/13 (Marcos: "make sure this is actually implemented"): the artifact must contain a
     # doctrine-inversion sweep section — either real content or the literal "n/a" line — per
     # data/audits/CONVENING_TEMPLATE.md. A missing section = an unasked question = RED.
-    if "doctrine-inversion" not in _rec:
+    if "doctrine-inversion" not in _rec.lower():
         _missing.append("(doctrine-inversion sweep section)")
     _ok = _ok and not _missing
     if _missing and os.environ.get("SHIP_CHECK") == "1":

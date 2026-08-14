@@ -1923,3 +1923,4 @@ package (31-0 convening committed prior) — nothing unaudited ran; v2 shadow li
 SKIPPED/run -> any push could silently ship. FIX TONIGHT: disable auto-deploy on all three
 services; ship.sh becomes the only deploy path (its convention gap now closed by platform
 setting, not discipline).
+# auto-deploy seal test 2026-08-14 (no-op)

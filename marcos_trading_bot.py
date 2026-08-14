@@ -8503,6 +8503,12 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     _entry_hm          = datetime.now(EASTERN).strftime("%H:%M:%S")  # monitor start ≈ fill time (card display)
 
     _tape_lo = _tape_hi = None     # 7/27 off-tape guard: the price range this monitor has SEEN in bars
+    _tape_birth = time.time() - 15 # 8/13 FICTIONAL-FILL FIX (Marcos: "Get to the bottom of it. Now."):
+    # tape_hi/lo may only accumulate bars printed SINCE THIS MONITOR EXISTED (15s grace covers the
+    # bar overlapping entry). The old code accumulated the whole fetch window (~45min pre-entry),
+    # so a resting tier below the MORNING high "filled" at prices the post-entry tape never printed
+    # — census 8/13: 41 fictional fills, +$284.78 fake profit era-wide (HUIZ 8/7 = $105 of it).
+    # A resting order cannot fill on tape that predates its placement. Kill: TAPE_SINCE_ENTRY=0.
     _last_bars_ok  = time.time()   # B11: when the stop logic last actually SAW a completed bar
     _below_since   = None          # B11: first moment the stream printed below the current stop
     _ib_below_since = None         # intrabar-confirm ledger: first print AT OR BELOW the stop (<=, not <)
@@ -8888,6 +8894,17 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             # checked against at the bottom of the loop.
             for _tb in (bars or []):
                 try:
+                    # 8/13 FICTIONAL-FILL FIX: only tape printed since this monitor existed counts.
+                    # Unparseable bar time = EXCLUDED (fail-closed: no fill on unproven tape).
+                    if os.environ.get("TAPE_SINCE_ENTRY", "1") == "1":
+                        _bts = _tb.get("time") or _tb.get("t")
+                        try:
+                            _bep = datetime.fromisoformat(
+                                str(_bts).replace("Z", "+0000").replace("+0000", "+00:00")).timestamp()
+                        except Exception:
+                            continue
+                        if _bep < _tape_birth:
+                            continue
                     _tl = float(_tb.get("low") or _tb.get("l") or 0)
                     _th = float(_tb.get("high") or _tb.get("h") or 0)
                     if _tl > 0:

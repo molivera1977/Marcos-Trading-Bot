@@ -34,6 +34,9 @@ this run — trades store ISO timestamps — but the import is the law).
 """
 import json, os, sys, shutil, urllib.request, urllib.parse
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+EASTERN_TZ = ZoneInfo('America/New_York')
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -80,23 +83,21 @@ def parse_ts(s):
         return None
 
 
-def get_bars(ticker, date, t_ent, t_exit):
-    """[(ts, o, h, l, c)] 10s bars in [t_ent, t_exit+60s], else None."""
+def get_bars(ticker, date):
+    """Full-day [(ts, o, h, l, c, v)] 10s bars, else None.
+    (v2: the WHOLE day — entry_ts_utc is trustworthy but recorded_at is NOT an
+    exit time on resumed/rewritten records, so the model runs to its OWN exit.)"""
     for suf in ('~10S', '~ALP10S'):
         key = f'bars_{ticker}{suf}_{date}.json'
         d = get(f'{BASE}/api/bars?ticker={urllib.parse.quote(ticker + suf)}&date={date}', key)
         bars = (d or {}).get('bars') or []
-        if not bars:
-            continue
         out = []
         for b in bars:
             t = parse_ts(b['time'])
-            if t is None or t < t_ent:
+            if t is None:
                 continue
-            if t_exit and (t - t_exit).total_seconds() > 60:
-                continue
-            out.append((t, float(b['open']), float(b['high']),
-                        float(b['low']), float(b['close'])))
+            out.append((t, float(b['open']), float(b['high']), float(b['low']),
+                        float(b['close']), float(b.get('volume') or 0)))
         if len(out) >= 3:
             return out
     return None
@@ -164,20 +165,20 @@ class MinuteAgg:
         self.cur = None          # [o,h,l,c]
         self.completed = []      # list of (o,h,l,c)
 
-    def push(self, ts, o, h, l, c):
-        """Returns the just-COMPLETED bar (o,h,l,c) if this 10s bar opened a new bucket."""
-        k = (ts.date(), ts.hour * 60 + ts.minute - (ts.minute % self.n)
-             if self.n > 1 else ts.hour * 60 + ts.minute)
+    def push(self, ts, o, h, l, c, v=0.0):
+        """Returns the just-COMPLETED bar (o,h,l,c,v) if this 10s bar opened a new bucket."""
+        k = (ts.date(), ts.hour * 60 + ts.minute - (ts.minute % self.n))
         done = None
         if k != self.key:
             if self.cur is not None:
                 done = tuple(self.cur)
                 self.completed.append(done)
-            self.key, self.cur = k, [o, h, l, c]
+            self.key, self.cur = k, [o, h, l, c, v]
         else:
             self.cur[1] = max(self.cur[1], h)
             self.cur[2] = min(self.cur[2], l)
             self.cur[3] = c
+            self.cur[4] += v
         return done
 
 
@@ -191,19 +192,30 @@ def ema9(closes):
     return e
 
 
-def live_replay(t, tiers, rungs, path, real_exit, slip):
-    """Replay the LIVE runner model on 10s bars.
+def live_replay(t, tiers, rungs, day_bars, t_ent, slip):
+    """Replay the LIVE runner model on full-day 10s bars from the entry timestamp
+    until the model's OWN exit (or the session time stops / end of tape).
     tiers: [(price, cum_frac)] resting-limit ladder (arm-specific).
     rungs: map ladder for the RUNG RATCHET (may be empty).
+
+    LIVE QUIRK REPRODUCED (:8886 + :8809): _tape_hi accumulates from the bars the
+    monitor FETCHES — a ~45-minute window that includes PRE-ENTRY tape — so a tier
+    below the recent pre-entry high fills immediately (measured live: every HUIZ
+    8/7 tier-1 filled 1-4s after entry at entry+1R). tape_hi is therefore seeded
+    with the 45 minutes of highs BEFORE entry.
     Returns (pnl, fills [(label, shares, price)])."""
     entry, shares = t['entry'], float(t['shares'])
     stop0 = t.get('stop_loss') or entry * 0.94
     remaining, sold_cum = shares, 0.0
     tier_idx, partial_taken = 0, False
     current_stop, floor = stop0, 0.0
-    tape_hi = None
+    pre = [b for b in day_bars if b[0] < t_ent]
+    path = [b for b in day_bars if b[0] >= t_ent]
+    seed = [b[2] for b in pre if (t_ent - b[0]).total_seconds() <= 45 * 60]
+    tape_hi = max(seed) if seed else None
+    is_pre = (t.get('entry_session') == 'PRE')
     m1, m3 = MinuteAgg(1), MinuteAgg(3)
-    m1v = []                      # (typ_price, approx) for rolling VWAP: use 1-min closes
+    m1v = []                      # completed 1-min (close, vol) for rolling VWAP
     fills = []
 
     def sell(label, qty, px):
@@ -214,8 +226,16 @@ def live_replay(t, tiers, rungs, path, real_exit, slip):
         fills.append((label, qty, px))
         remaining -= qty
 
-    for ts, o, h, l, c in path:
+    for ts, o, h, l, c, v in path:
         if remaining <= 0:
+            break
+        et_min = ts.astimezone(EASTERN_TZ).hour * 60 + ts.astimezone(EASTERN_TZ).minute
+        # session time stops (live: PRE 9:25 flatten; 3:45pm EOD flatten)
+        if is_pre and et_min >= 9 * 60 + 25:
+            sell('time_stop_925@%.4f' % o, remaining, o)
+            break
+        if et_min >= 15 * 60 + 45:
+            sell('time_stop_1545@%.4f' % o, remaining, o)
             break
         tape_hi = h if tape_hi is None else max(tape_hi, h)
         # 1) resting-bank tier fills (tape strictly through the level)
@@ -242,15 +262,15 @@ def live_replay(t, tiers, rungs, path, real_exit, slip):
             sell(f'rung_ratchet@{floor:.4f}', remaining, floor * (1 - slip))
             break
         # 3) completed 1-min bar -> rung clears + VWAP window
-        b1 = m1.push(ts, o, h, l, c)
+        b1 = m1.push(ts, o, h, l, c, v)
         if b1 is not None:
-            m1v.append(b1[3])
+            m1v.append((b1[3], b1[4]))
             if partial_taken:
                 for r in rungs:
                     if b1[3] > r > floor:
                         floor = r
         # 4) completed 3-min bar -> stop close / health fold
-        b3 = m3.push(ts, o, h, l, c)
+        b3 = m3.push(ts, o, h, l, c, v)
         if b3 is not None:
             c3 = b3[3]
             if c3 <= current_stop:
@@ -259,12 +279,15 @@ def live_replay(t, tiers, rungs, path, real_exit, slip):
                 break
             if partial_taken and len(m3.completed) >= 3:
                 e9 = ema9([b[3] for b in m3.completed[-12:]])
-                vw = (sum(m1v[-45:]) / len(m1v[-45:])) if m1v else 0.0
+                w = m1v[-45:]
+                vsum = sum(x[1] for x in w)
+                vw = (sum(x[0] * x[1] for x in w) / vsum) if vsum > 0 else 0.0
                 if e9 > 0 and vw > 0 and c3 < e9 and c3 < vw:
                     sell(f'health_fold@{c3:.4f}', remaining, c3)
                     break
     if remaining > 0:
-        sell('end-of-data(real exit)', remaining, real_exit)
+        px = path[-1][4] if path else entry
+        sell('end-of-tape@%.4f' % px, remaining, px)
     pnl = sum(q * (p - entry) for _, q, p in fills)
     return pnl, fills
 
@@ -322,11 +345,12 @@ def run():
     fidelity_count = {'bars': 0, '3pt': 0}
     for t in cohort:
         t_ent = parse_ts(t.get('entry_ts_utc'))
-        t_exit = parse_ts(t.get('recorded_at'))
-        path = get_bars(t['ticker'], t['date'], t_ent, t_exit) if t_ent else None
+        path = get_bars(t['ticker'], t['date']) if t_ent else None
+        if path and not any(b[0] >= t_ent for b in path):
+            path = None          # tape ends before the entry — no post-entry bars
         fid = 'bars' if path else '3pt'
         fidelity_count[fid] += 1
-        prep.append({'t': t, 'path': path, 'fid': fid,
+        prep.append({'t': t, 'path': path, 'fid': fid, 't_ent': t_ent,
                      'rungs': map_rungs(levels_by_date, t) or [],
                      'lv': level_targets(levels_by_date, t),
                      'slip': trade_slip(t)})
@@ -337,7 +361,7 @@ def run():
         t = p['t']
         tiers = live_tiers(t)
         if p['path']:
-            pnl, fills = live_replay(t, tiers, p['rungs'], p['path'], t['exit'], p['slip'])
+            pnl, fills = live_replay(t, tiers, p['rungs'], p['path'], p['t_ent'], p['slip'])
         else:
             pnl, fills = three_point_replay(t, tiers, t['exit'])
         cal_rows.append((t, pnl, fills, p['fid']))
@@ -354,8 +378,8 @@ def run():
              % (START, END, len(cohort)))
     L.append('')
     L.append('================ CALIBRATION FIRST (model vs real book) ================')
-    L.append('Arm-3 model = the LIVE trail replayed: live hidden tiers (33%%@entry+1R,')
-    L.append('cum55%%@x1.5, cum75%%@x2), RUNG RATCHET floors (map rungs cleared by 1-min')
+    L.append('Arm-3 model = the LIVE trail replayed: live hidden tiers (33% @ entry+1R,')
+    L.append('cum 55% @ x1.5, cum 75% @ x2), RUNG RATCHET floors (map rungs cleared by 1-min')
     L.append('close, incl. break), 3-min-close trailing stop (BE after tier2 + scale-bar-low),')
     L.append('health fold (3-min close < EMA9 AND < rolling VWAP).')
     L.append('  REAL BOOK  (recorded): $%.2f' % real_total)
@@ -396,7 +420,7 @@ def run():
 
         def replay(tiers):
             if p['path']:
-                return live_replay(t, tiers, p['rungs'], p['path'], t['exit'], p['slip'])
+                return live_replay(t, tiers, p['rungs'], p['path'], p['t_ent'], p['slip'])
             return three_point_replay(t, tiers, t['exit'])
 
         # Arm 1 GRID: thirds at ft / x1.5 / x2 (cum 1/3, 2/3, 1.0? no — runner rides: cum .33/.67 keeps 1/3 runner)
@@ -421,14 +445,24 @@ def run():
 
     L.append('================ ASSUMPTIONS ================')
     L.append(' - Read-only replay; sizing = each trade\'s REAL shares; dollars end-to-end.')
-    L.append(' - Path: 10s bars (~10S pref, ~ALP10S fallback), entry_ts_utc..recorded_at+60s;')
+    L.append(' - Path: FULL-DAY 10s bars (~10S pref, ~ALP10S fallback) from entry_ts_utc to the')
+    L.append('   model\'s OWN exit / time stop / end of tape (recorded_at is NOT trusted as an')
+    L.append('   exit time — resumed/rewritten records carry recorded_at ~ entry).')
     L.append('   %d trades on 10s bars, %d on 3-point fallback (fallback runner leg exits at' % (fidelity_count['bars'], fidelity_count['3pt']))
     L.append('   the REAL exit price — calibration-neutral by construction).')
+    L.append(' - LIVE QUIRK REPRODUCED: tape_hi seeded with the 45 min of PRE-ENTRY highs —')
+    L.append('   the monitor\'s _tape_hi accumulates over its fetched bar window, which includes')
+    L.append('   pre-entry tape, so tiers below the recent high fill immediately (measured live:')
+    L.append('   every HUIZ 8/7 tier-1 filled 1-4s after entry). Without this seed the model was')
+    L.append('   -$1,186 off the book; with it, calibration passes.')
+    L.append(' - Known irreducible gap: a few live fills printed OFF our SIP 10s tape')
+    L.append('   (HUIZ 8/7 58sh@2.88; post-entry tape high 2.46) — stream-quote fills the')
+    L.append('   replay cannot see; they bias the model LOW on those trades.')
     L.append(' - Tier fills: resting-bank semantics — tape strictly THROUGH the level, fill AT it.')
     L.append(' - Runner model (ALL arms) = the live trail (see calibration header). Arms differ')
     L.append('   ONLY in the tier ladder handed to it.')
-    L.append(' - Ratchet fills: floor*(1-slip), slip = min(3%%, max(0.8%%, est_slippage%%));')
-    L.append('   no est_slippage recorded -> 3%% (conservative). Stop/health fills at the 3-min close.')
+    L.append(' - Ratchet fills: floor*(1-slip), slip = min(3%, max(0.8%, est_slippage%));')
+    L.append('   no est_slippage recorded -> 3% (conservative). Stop/health fills at the 3-min close.')
     L.append(' - Rung ladder = current _levels snapshot (targets+next_supply+break > entry);')
     L.append('   intraday map refreshes NOT reconstructed (known fidelity gap, both directions).')
     L.append(' - Arm 2: no map record = %d trades (runner-only); map but no level above entry = %d.' % (mapless, no_level_above))

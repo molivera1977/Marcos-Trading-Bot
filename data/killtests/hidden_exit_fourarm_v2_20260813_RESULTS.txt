@@ -1,0 +1,99 @@
+FOUR-ARM HIDDEN-EXIT COMPARISON v2 (CALIBRATED) — run 2026-08-13T21:36:24-04:00
+Cohort: entry_type==hidden_entry, 2026-07-24..2026-08-13 (8/13 INCLUDED). N=131
+
+================ CALIBRATION FIRST (model vs real book) ================
+Arm-3 model = the LIVE trail replayed: live hidden tiers (33% @ entry+1R,
+cum 55% @ x1.5, cum 75% @ x2), RUNG RATCHET floors (map rungs cleared by 1-min
+close, incl. break), 3-min-close trailing stop (BE after tier2 + scale-bar-low),
+health fold (3-min close < EMA9 AND < rolling VWAP).
+  REAL BOOK  (recorded): $880.99
+  MODEL      (arm 3):    $713.03   (delta $-167.96 = -19.1% of real)
+  Median |per-trade error|: $11.98  | mean |err|: $21.35
+  GATE (+/-20% of real): PASS
+  Worst-modeled 5:
+    FCUV  2026-07-31  real $   +4.05  model $ +223.58  err $ 219.53  [bars] exit_reason=Trailing stop 📉
+    DFSC  2026-08-13  real $   -9.40  model $  +94.38  err $ 103.78  [bars] exit_reason=Trailing stop 📉
+    HUIZ  2026-08-07  real $  +65.46  model $  -36.98  err $ 102.44  [bars] exit_reason=Trailing stop 📉
+    HUIZ  2026-08-07  real $  +61.87  model $  -33.27  err $  95.14  [bars] exit_reason=Trailing stop 📉
+    OFAL  2026-08-12  real $   +9.80  model $  -77.04  err $  86.84  [bars] exit_reason=Trailing stop 📉
+
+================ ASSUMPTIONS ================
+ - Read-only replay; sizing = each trade's REAL shares; dollars end-to-end.
+ - Path: FULL-DAY 10s bars (~10S pref, ~ALP10S fallback) from entry_ts_utc to the
+   model's OWN exit / time stop / end of tape (recorded_at is NOT trusted as an
+   exit time — resumed/rewritten records carry recorded_at ~ entry).
+   129 trades on 10s bars, 2 on 3-point fallback (fallback runner leg exits at
+   the REAL exit price — calibration-neutral by construction).
+ - LIVE QUIRK REPRODUCED: tape_hi seeded with the 45 min of PRE-ENTRY highs —
+   the monitor's _tape_hi accumulates over its fetched bar window, which includes
+   pre-entry tape, so tiers below the recent high fill immediately (measured live:
+   every HUIZ 8/7 tier-1 filled 1-4s after entry). Without this seed the model was
+   -$1,186 off the book; with it, calibration passes.
+ - Known irreducible gap: a few live fills printed OFF our SIP 10s tape
+   (HUIZ 8/7 58sh@2.88; post-entry tape high 2.46) — stream-quote fills the
+   replay cannot see; they bias the model LOW on those trades.
+ - Tier fills: resting-bank semantics — tape strictly THROUGH the level, fill AT it.
+ - Runner model (ALL arms) = the live trail (see calibration header). Arms differ
+   ONLY in the tier ladder handed to it.
+ - Ratchet fills: floor*(1-slip), slip = min(3%, max(0.8%, est_slippage%));
+   no est_slippage recorded -> 3% (conservative). Stop/health fills at the 3-min close.
+ - Rung ladder = current _levels snapshot (targets+next_supply+break > entry);
+   intraday map refreshes NOT reconstructed (known fidelity gap, both directions).
+ - Arm 2: no map record = 0 trades (runner-only); map but no level above entry = 2.
+ - Arm-1 grid keeps a 1/3-equivalent runner only until x2 (cum 1.0 at x2 = fully out);
+   arm-4 hybrid mirrors that ladder on substituted levels.
+ - No commissions/borrow. census_lib.to24 imported (12-hour store law); no decision
+   rows consumed this run — trades carry ISO timestamps.
+
+REAL BOOK (recorded pnl, cohort): $880.99
+
+================ ALL TRADES (N=131) ================
+ARM 1 — GRID (thirds @ trim1/x1.5/x2)
+  total $738.47 | mean $5.64/trade | win rate 51.9% (68/131)
+  worst OFAL 2026-08-12 $-77.04 | top-3 tail: WFF 2026-08-07 $254.58, FCUV 2026-07-31 $209.16, DFSC 2026-08-13 $93.94 (tail $557.69)
+
+ARM 2 — LEVEL-TIERS (quarters @ map levels)
+  total $-1105.50 | mean $-8.44/trade | win rate 30.5% (40/131)
+  worst WFF 2026-08-07 $-102.12 | top-3 tail: FCUV 2026-07-31 $329.86, PN 2026-08-06 $270.21, DFSC 2026-08-13 $137.76 (tail $737.84)
+
+ARM 3 — RATCHET-PRIMARY (= LIVE model)
+  total $713.03 | mean $5.44/trade | win rate 51.9% (68/131)
+  worst OFAL 2026-08-12 $-77.04 | top-3 tail: WFF 2026-08-07 $257.75, FCUV 2026-07-31 $223.58, DFSC 2026-08-13 $94.38 (tail $575.71)
+
+ARM 4 — HYBRID (rungs -> nearest map level below)
+  total $1815.55 | mean $13.86/trade | win rate 62.6% (82/131)
+  worst OFAL 2026-08-12 $-77.04 | top-3 tail: WFF 2026-08-07 $254.58, FCUV 2026-07-31 $218.07, HUIZ 2026-08-07 $190.48 (tail $663.14)
+
+================ MONSTER SUBSET (MFE >= +30%): N=7 ================
+ARM 1 — GRID (thirds @ trim1/x1.5/x2)
+  total $403.56 | mean $57.65/trade | win rate 85.7% (6/7)
+  worst VEEE 2026-07-27 $-7.02 | top-3 tail: WFF 2026-08-07 $254.58, FCUV 2026-07-31 $65.85, BQ 2026-08-12 $47.42 (tail $367.86)
+
+ARM 2 — LEVEL-TIERS (quarters @ map levels)
+  total $-4.20 | mean $-0.60/trade | win rate 57.1% (4/7)
+  worst WFF 2026-08-07 $-88.40 | top-3 tail: FCUV 2026-07-31 $68.44, FGI 2026-08-13 $67.62, BQ 2026-08-12 $49.56 (tail $185.62)
+
+ARM 3 — RATCHET-PRIMARY (= LIVE model)
+  total $406.22 | mean $58.03/trade | win rate 85.7% (6/7)
+  worst VEEE 2026-07-27 $-7.21 | top-3 tail: WFF 2026-08-07 $257.75, FCUV 2026-07-31 $65.56, BQ 2026-08-12 $47.51 (tail $370.83)
+
+ARM 4 — HYBRID (rungs -> nearest map level below)
+  total $432.80 | mean $61.83/trade | win rate 100.0% (7/7)
+  worst FGI 2026-08-13 $8.24 | top-3 tail: WFF 2026-08-07 $254.58, FCUV 2026-07-31 $56.92, BQ 2026-08-12 $46.61 (tail $358.11)
+
+================ NAMED TRACE (dollars-not-R law) ================
+Trade: FGI 2026-08-13 | entry $10.7700 x 46 sh | stop 10.5925 | highest 14.4750 | real exit 13.3800
+  real pnl $83.73 | exit_reason: RUNG RATCHET (floor $13.80) | fidelity: bars | slip used: 1.8%
+ ARM 1 — GRID (thirds @ trim1/x1.5/x2): pnl $8.24
+    tier1@10.9475                               15.33 sh @ $10.9475  -> $+2.72
+    health_fold@10.9500                         30.67 sh @ $10.9500  -> $+5.52
+ ARM 2 — LEVEL-TIERS (quarters @ map levels): pnl $67.62
+    time_stop_1545@12.2400                      46.00 sh @ $12.2400  -> $+67.62
+ ARM 3 — RATCHET-PRIMARY (= LIVE model): pnl $8.24
+    tier1@10.9475                               15.18 sh @ $10.9475  -> $+2.69
+    health_fold@10.9500                         30.82 sh @ $10.9500  -> $+5.55
+ ARM 4 — HYBRID (rungs -> nearest map level below): pnl $8.24
+    tier1@10.9475                               15.33 sh @ $10.9475  -> $+2.72
+    health_fold@10.9500                         30.67 sh @ $10.9500  -> $+5.52
+
+No recommendation — numbers only; the decision is Marcos's on Friday.

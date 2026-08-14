@@ -1265,6 +1265,27 @@ try:
 except AssertionError as _ue:
     check("MAX_TRADE_DOLLARS env", False, str(_ue))
 
+print("V) 8/13 fictional-fill fix (41 fills / +$284.78 fake profit census)")
+try:
+    _v2 = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    assert "_tape_birth = time.time() - 15" in _v2
+    _iv = _v2.find('TAPE_SINCE_ENTRY", "1"')     # the env CHECK site, not the comment mention
+    assert _iv > 0 and "_bep < _tape_birth" in _v2[_iv:_iv+700]      # pre-birth bars excluded
+    assert "continue" in _v2[_iv:_iv+700]
+    # EXECUTED: the exclusion predicate on real bar-time formats (+0000 store format + garbage)
+    from datetime import datetime as _dv
+    def _bep(s):
+        try: return _dv.fromisoformat(str(s).replace("Z", "+0000").replace("+0000", "+00:00")).timestamp()
+        except Exception: return None
+    assert _bep("2026-08-07T16:19:50.000+0000") is not None          # store format parses
+    assert _bep("garbage") is None                                   # unparseable -> excluded path
+    _birth = _dv.fromisoformat("2026-08-07T16:00:00+00:00").timestamp() - 15
+    assert _bep("2026-08-07T15:30:00.000+0000") < _birth             # pre-entry bar -> excluded
+    assert _bep("2026-08-07T16:19:50.000+0000") > _birth             # post-entry bar -> counts
+    check("fictional-fill fix EXECUTED: birth gate + store-format parse + pre-entry exclusion", True)
+except AssertionError as _ve2:
+    check("fictional-fill fix", False, str(_ve2))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

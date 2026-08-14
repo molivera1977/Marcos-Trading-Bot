@@ -84,3 +84,35 @@ Proposals (Friday room): (1) census-cell gate — convert only dg<40 AND <10:30 
 (2) stamp day_gain/side/crown on below_convert rows + gate-match before any 2.0x verdict;
 (3) fix silent anchors: persist true 9:30 open across restarts; require non-degenerate base
 (min base dollar-vol); completed-bucket retest touch.
+
+## AUDIT 3: DEAD LANES (vwap_reclaim / flat_top / orb / zone_flip)
+- FLAT_TOP + ORB: CODE-DEFECT — retrial deserved. "Pullback" test counted price 1% ABOVE the
+  level as a dip (:7602, PULLBACK_TOL=1%) and _confirm_reclaim (:5903-5925) is satisfied by the
+  break bar itself -> the era bought the break print in a retest costume (~48-72s later). The
+  -$394..-$430 book grades break-chasing, not the design. Post-8/6 RETEST_ENTRY books entry at
+  ASSUMED _rt_lvl price (:10955) — fictional-fill class on the ENTRY side, still live.
+- VWAP_RECLAIM: MIXED. Coded machine honest (3-gate seek/extend/retest) but fires ~30-40s after
+  the cross — inside the just-crossed band the 7/31 study refuted; the study's 2-5min HELD
+  band-pass was never encoded. Replay passes build state vs anachronistic current-vwap (:7036,
+  :7042). Coded variant fairly condemned; band-pass design never stood trial (harvester-testable).
+- ZONE_FLIP: DESIGN-DEAD. Faithful port of its kill-tested spec; didn't replicate (n=6). Stays
+  shadowed under pre-registered re-arm. Minor: PM vols leak into rolling baseline (:5625 vs :5630).
+
+## AUDIT 4: GATE STACK — THE SMOKING GUN
+_curl_feed returns a TUPLE (d10, src) (:1149); TWO call sites never unpack it:
+- :8373 _auto_map: len((tuple))=2 < 30 -> returns None EVERY CALL SINCE SHIPPED. The 8/7
+  FRESHNESS CONTRACT has NEVER refreshed a map in production. Today: 26 freshness_breach rows,
+  8 tickers, auto_map_used=false on all. ONFO actually refused 11x (not 7) vs a 70-min-old break
+  while 6-49% past it.
+- :8461 RUNWAY_WALL: tuple .values() -> AttributeError swallowed -> _whi=0.0 -> spent-rung
+  demotion + wall insertion INERT since 8/8. DFSC's 0.14R refusal (rung 2c overhead) = signature.
+Same class as the 8/8 _side_state missing-unpack (comment :8316 records the precedent).
+Per-gate: backside CLEAN (coverage caveat: off-curl names ungated); breakside predicate CLEAN
+(defect upstream); min-stop DESIGN-SMELL (hidden exemption priced at the 6% era, admits 3.1%
+stops at today's 4% floor — MF specimen); runway DEFECT (dead wall); day-gain DEFECT (raw
+adjustment -> split names corrupt prior_day_close; floor vacuous/inverted AND feeds crown
+qualification :7842 — DFNS 5152% class); extension near-vacuous by exemption accretion;
+ambient CLEAN; chart gate CLEAN + ENFORCE proven ON from live rows (52 enforced:true today).
+Top proposals: (1) fix both unpacks + rig case + ONFO/DFSC replay + freshness_breach-without-
+remediation alarm; (2) day-gain basis integrity (adjustment=split or cross-check, touches
+crowning -> Marcos); (3) re-grade min-stop exempt cohort at 4% floor (query only).

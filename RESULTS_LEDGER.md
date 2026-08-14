@@ -1875,3 +1875,15 @@ Two separate-context Systems Quant audits complete (full texts in data/audits/me
   cohort, not computation error. Proposals: census-cell gate (dg<40 & <10:30 + side term);
   stamp shadow rows; fix anchors + degenerate base + completed-bucket retest.
 Both feed tonight's #56/#57 session; nothing ships unconvened/unpriced.
+
+## 2026-08-14 ~12:30 — RE-ANALYSIS COMPLETE: ALL LANES + GATE STACK (4 audits, one day)
+Full texts data/audits/mechanism_audits_20260814.md. HEADLINE: two missing tuple unpacks
+(:8373 _auto_map, :8461 RUNWAY_WALL) = the 8/7 freshness contract NEVER refreshed a map and the
+8/8 wall NEVER demoted a spent rung — both silent since ship, same class as the 8/8 _side_state
+bug (Three-Rings violated at the _curl_feed signature). ONFO 11 stale rejects + DFSC 0.14R
+refusal both explained. flat_top/orb: era graded break-chasing (vacuous dip test), not their
+design — retrial after real-touch dip + real-print retest fills. vwap_reclaim: coded variant =
+the refuted just-crossed band; 7/31 band-pass (2-5min hold) never encoded — the retrial build.
+zone_flip: fairly dead. day-gain floor + crown qualification corruptible by raw-adjustment
+splits (DFNS 5152%). Min-stop hidden exemption evidence stale (6%-era pricing, 4% floor today).
+All fixes/proposals queue to tonight's #56/#57 room, priced for Marcos. Nothing shipped intraday.

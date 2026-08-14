@@ -1837,3 +1837,21 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   noted (leader meritocracy + 7/24 convert-at-detection, both priced by Marcos's order).
   Friday canary: hidden_observe_only rows present, ZERO triggered_hidden_entry rows.
 - Rig ALL GREEN incl. new section W. Deploy via ship.sh in main session; not pushed here.
+
+## 2026-08-14 09:52 — MARCOS OVERRIDE: HIDDEN CONVERTS TODAY (live-tape arbitration)
+- Verbatim: "no, lets let today's tape decide. Have the hidden lane run today and prove that
+  you are right" + "it's 9:52am. but i dont care" + "no make it live". Marcos explicitly
+  overrode (once, today): the RTH-push law and the flat-book law (LBGJ runner open at the
+  order; it closed itself on the trail +$14.51 before the swap — book flat at restart).
+- Mechanics: HIDDEN_CONVERT=1 set 09:52 (staged --skip-deploys, then redeploy 09:52:44,
+  deployment 3f59abab). Caps as-env (HIDDEN_DAILY_CAP=5). Fictional-fill fix LIVE — every
+  fill today books tape-since-birth honest.
+- PRE-REGISTERED TERMS (one-day humility applies BOTH ways):
+  (1) Every hidden fill today gets tape-verified at 22:45 (nightly verifier). Marcos watches
+      live on Webull; any fill he sees disputed -> pull raw 10s bars, his eyes vs tape.
+  (2) F-control expectation: honest hidden ≈ bleed. If hidden banks honest profit today,
+      the era condemnation gets a fresh hearing (feed-gap/capture-defect hypothesis rises).
+  (3) One green or red day does NOT settle expectancy alone — it arbitrates the ACCOUNTING
+      dispute (are honest fills real when watched live), which is the question Marcos posed.
+- Fills-vs-eyes is the test: dashboard fills should now match what Marcos sees on the chart,
+  in real time, every time. Any mismatch = defect, chased same night.

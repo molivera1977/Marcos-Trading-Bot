@@ -1895,3 +1895,17 @@ Defaults set pending his word: item 4 = STAMP-ONLY (enforce = env flip); item 7 
 to observe-only AT this deploy. Rebuild track launched in parallel (flat_top/orb real-touch
 retrial, vwap_reclaim band-pass, v2 confirmed-pullback) — all universe-backtested before any
 live path; results due for the weekend session, live candidates Monday.
+
+## 2026-08-14 ~13:1x — SHIP CONVENING RENDERED: 8/14 approved change-set AUDITED, 31-0 APPROVE
+Blast Radius Auditor convening vs the actual diffs (ef55647 code, f09c13f dashboard, 99f0c966
+bars ferry). All nine audit dimensions VERIFIED by direct read: both unpacks correct + no bare
+_curl_feed call sites (rig X-a pin); observe splits upstream of every crown/leader bypass (X-b
+positional pin); cell gate default stamp-only, cell FROZEN dg<40 & <10:30; reentry module-scope
+with in-place reset (no rebind, X-d regex pin); exit_ts_utc at post_to_dashboard choke point;
+retest real-print fill (live -> touch-low -> assumed, src stamped); warmup seed EMA-only with
+_ma_only_window walling other detectors; born-exhausted reread reroute (_live in scope);
+dashboard panel read-only. Rig run this session: ALL GREEN incl. all 7 section-X pins. 38
+bars10s files data-only. Full artifact data/audits/LATEST.md (roll call 31 offices, doctrine-
+inversion sweep, day-one walkthrough: first-ever auto_map_used=true freshness_breach expected
+this afternoon). Blocking findings: NONE. Owed (non-blocking): crown-roster before/after audit,
+7/26 + meritocracy strict re-runs, flat-book-in-turn at deploy, $5 place+cancel test.

@@ -3323,7 +3323,10 @@ function loadData(){
   })();
   (function loadRepairsWatch(){
     /* 8/14 REPAIRS WATCH — today's counts over the repaired machinery's decision rows.
-       Read-only over /api/decisions_archive; every count degrades to 0 when rows are absent. */
+       Read-only over /api/decisions_archive; every count degrades to 0 when rows are absent.
+       8/14 pm: whole body inside try/catch so ANY panel failure (sync or async) can never
+       kill the rest of the loadData() poll chain — panel isolation, not just bug-fixing. */
+    try{
     const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     fetch('/api/decisions_archive?date='+ds+'&status=freshness_breach,freshness_alarm,read_requested,ignition_cell,ignition_cell_reject,flat_top_observe_only,vwap_reclaim_observe_only,hidden_observe_only&limit=50000').then(r=>r.json()).then(j=>{
       const el=document.getElementById('repairsWatch'); if(!el) return;
@@ -3349,6 +3352,7 @@ function loadData(){
         tile('🔬 cell rejects',n('ignition_cell_reject'),true)+
         '</div>';
     }).catch(()=>{ const el=document.getElementById('repairsWatch'); if(el) el.innerHTML='<span style="color:var(--muted4)">repairs watch unavailable</span>'; });
+    }catch(e){ try{ const el=document.getElementById('repairsWatch'); if(el) el.innerHTML='<span style="color:var(--muted4)">repairs watch unavailable</span>'; }catch(_){} }
   })();
   (function freezeBanner(){
     function poll(){

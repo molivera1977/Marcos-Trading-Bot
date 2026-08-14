@@ -66,3 +66,5 @@ doctrine-inversion sweep: **n/a** — no doctrine touched. Chart-as-gate governs
 Room vote on "8c40c8a is ship-clean as audited (shadow-only calibration, legacy path intact behind V2_CALIBRATED=0)": **31-0 APPROVE**. 0 blocking findings. Owed items (non-blocking, tracked): 8/14 bars ferry + 21-survivor exit re-grade; TODO(C1b) consolidation anchor; v2_shadow_fire strip label; flat-book verification in-turn at deploy; Monday grade counts calibrated in-window rows vs the backtest cohort anatomy.
 
 — Convening closed 2026-08-14. Blast Radius Auditor, chair.
+
+covers (post-audit bookkeeping): 7d28f758c039 — data/audits/LATEST.md + data/killtests/RESULTS_LEDGER.md entry only, no code.

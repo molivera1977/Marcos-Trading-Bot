@@ -5677,6 +5677,14 @@ V2_SHADOW      = os.environ.get("V2_SHADOW", "1") == "1"
 V2_FLUSH_PCT   = float(os.environ.get("V2_FLUSH_PCT", "3.0"))    # % drop from the 2-min local high
 V2_FLUSH_SECS  = int(os.environ.get("V2_FLUSH_SECS", "120"))     # flush must complete within 2 min
 V2_EXPIRE_SECS = int(os.environ.get("V2_EXPIRE_SECS", "180"))    # armed flush dies after 3 min
+# ── 8/14 CALIBRATION C1-C5 (v2_calibration_20260814.md; Hidden Entry Architect). Default ON.
+# V2_CALIBRATED=0 restores the loose 8/14-morning behavior for comparison runs.
+V2_CALIBRATED   = os.environ.get("V2_CALIBRATED", "1") == "1"
+V2_ANCHOR_PCT   = 2.0    # C1: flush low must sit within 2% of session VWAP
+V2_CONFIRM_SECS = 120    # C2: confirmation must land <=120s from the push
+V2_COOL_SECS    = 300    # C3: per-name cooldown after any fire
+V2_PUSH_WIN     = 300 if V2_CALIBRATED else 120   # C4: push high = 5-min high (legacy: 2-min)
+V2_MINSTOP_PCT  = 0.5    # C5: reject degenerate stops (< 0.5% of price)
 _v2_st: dict = {}   # sym -> machine state (module-level: survives rescans)
 
 def v2_pullback_step(sym, new_bars, vwap):
@@ -5691,7 +5699,7 @@ def v2_pullback_step(sym, new_bars, vwap):
     fired = None
     for k, o, h, l, c, v in new_bars:
         st["win"].append((k, h))
-        while st["win"] and k - st["win"][0][0] > 120:      # rolling 2-min local-high window
+        while st["win"] and k - st["win"][0][0] > V2_PUSH_WIN:   # C4: push high over 5-min (legacy 2-min)
             st["win"].pop(0)
         fl = st["flush"]
         if fl and k - fl["k"] > V2_EXPIRE_SECS:             # armed flush expired un-confirmed
@@ -5701,7 +5709,10 @@ def v2_pullback_step(sym, new_bars, vwap):
                 and 0 < k - push_k <= V2_FLUSH_SECS):
             # fast flush from the push high — arm (or deepen an armed flush; low ratchets down)
             if fl and l < fl["low"]:
-                fl["low"] = l; fl["k"] = k
+                fl["low"] = l
+                if not V2_CALIBRATED:
+                    fl["k"] = k     # LEGACY ratchet: deepening reset the expiry clock (C2 kills this;
+                                    # calibrated arm life = V2_EXPIRE_SECS from FIRST arm, never reset)
             elif not fl:
                 fl = st["flush"] = {"k": k, "low": l, "hi": push_hi, "push_k": push_k}
         prev = st["prev"]
@@ -5709,14 +5720,34 @@ def v2_pullback_step(sym, new_bars, vwap):
         if fired is None and fl is not None and prev is not None:
             _pk, _ph, _pl, _pc = prev
             if l > _pl and c > _ph:                         # buyers step in: higher low + close > prior high
-                fired = {"px": round(c, 4), "k": k,
-                         "flush_low": round(fl["low"], 4),
-                         "flush_depth": round((fl["hi"] - fl["low"]) / fl["hi"] * 100.0, 2)
-                                        if fl["hi"] > 0 else 0.0,
-                         "secs_from_push": int(k - fl["push_k"]),
-                         "would_stop": round(fl["low"], 4), "seq": st["n"]}
-                st["n"] += 1
-                st["flush"] = None                          # one confirmation per flush
+                st["flush"] = None                          # one confirmation per flush (pass or cut)
+                _ok = True
+                if V2_CALIBRATED:
+                    # C2: confirmation must land within 120s of the push
+                    if k - fl["push_k"] > V2_CONFIRM_SECS:
+                        _ok = False
+                    # C1: anchor proximity — flush low within 2% of session VWAP.
+                    # TODO(C1b): consolidation-high anchor (prior 4x3min base) stays STAMPED-not-gated
+                    # until the 4x3min base tracker exists; VWAP-only is the conservative subset.
+                    if _ok and not (vwap and vwap > 0
+                                    and abs(fl["low"] - vwap) / vwap * 100.0 <= V2_ANCHOR_PCT):
+                        _ok = False
+                    # C5: stop-degeneracy floor — reject stops < 0.5% of price
+                    if _ok and (c <= 0 or (c - fl["low"]) / c * 100.0 < V2_MINSTOP_PCT):
+                        _ok = False
+                    # C3: per-name cooldown 300s after any fire
+                    if _ok and st.get("cool_k") is not None and k - st["cool_k"] < V2_COOL_SECS:
+                        _ok = False
+                if _ok:
+                    fired = {"px": round(c, 4), "k": k,
+                             "flush_low": round(fl["low"], 4),
+                             "flush_depth": round((fl["hi"] - fl["low"]) / fl["hi"] * 100.0, 2)
+                                            if fl["hi"] > 0 else 0.0,
+                             "secs_from_push": int(k - fl["push_k"]),
+                             "would_stop": round(fl["low"], 4), "seq": st["n"],
+                             "calib": "C1-C5" if V2_CALIBRATED else "legacy"}
+                    st["n"] += 1
+                    st["cool_k"] = k                        # C3 clock starts on the FIRE
     return fired
 
 
@@ -7213,6 +7244,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                   near_vwap=bool(_vr_sv > 0 and abs(_v2f["flush_low"] - _vr_sv) / _vr_sv <= 0.02),
                                                   in_window=bool("09:30" <= _hm_v2 < "10:30"),
                                                   would_stop=_v2f["would_stop"],
+                                                  calib=_v2f.get("calib", "legacy"),
                                                   seq=_v2f["seq"], time_hm=_hm_v2)
                             except Exception:
                                 pass

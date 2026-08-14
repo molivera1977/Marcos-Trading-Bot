@@ -1551,6 +1551,91 @@ try:
 except (AssertionError, ValueError) as _yx:
     check("Y-f: v2 detector execution", False, str(_yx))
 
+print("Z) 8/14 v2 shadow calibration C1-C5 (env-gated V2_CALIBRATED, default ON)")
+_ZSEG = _y[_y.index('V2_SHADOW      = os.environ.get'):_y.index("def kev_zoneflip_step")]
+
+def _z_make(env):
+    """exec the v2 segment with a controlled fake-os environ; returns the namespace."""
+    from zoneinfo import ZoneInfo as _Z
+    import types as _t, datetime as _dt
+    _fo = _t.SimpleNamespace(environ=env)
+    ns = {"os": _fo, "datetime": _dt.datetime, "EASTERN": _Z("America/New_York")}
+    exec(_ZSEG, ns)
+    return ns
+
+try:
+    # (a) DEFAULT-ON: no env -> V2_CALIBRATED True, 5-min push window (C4); calibrated synthetic
+    # tape (anchor-near, tight timing, sane stop) still FIRES and stamps calib="C1-C5"
+    _zn = _z_make({})
+    assert _zn["V2_CALIBRATED"] is True and _zn["V2_PUSH_WIN"] == 300
+    _zt = [(0, 9.8, 10.0, 9.7, 9.9, 100),      # push high 10.0
+           (10, 9.9, 9.9, 9.5, 9.55, 100),     # flush -5% -> armed, low 9.5 (vwap 9.6: 1.0% near)
+           (20, 9.55, 9.6, 9.52, 9.58, 100),   # drift
+           (30, 9.58, 9.75, 9.55, 9.72, 100)]  # higher low + close > prior high -> FIRE
+    _zf = _zn["v2_pullback_step"]("ZA", _zt, 9.6)
+    assert _zf and _zf["calib"] == "C1-C5" and _zf["would_stop"] == 9.5 and _zf["secs_from_push"] == 30
+    check("Z-a: V2_CALIBRATED default ON; calibrated tape fires through C1-C5", True)
+except (AssertionError, ValueError) as _ze:
+    check("Z-a: default-on calibrated fire", False, str(_ze))
+
+try:
+    # (b) C2 EXECUTED: confirmation landing >120s from the push is CUT (arm still alive at 30s,
+    # anchor near, stop sane — the only failing gate is secs_from_push)
+    _zn = _z_make({})
+    _zt = [(0, 9.9, 10.0, 9.9, 9.95, 100),         # push high 10.0
+           (100, 9.6, 9.6, 9.5, 9.52, 100),        # flush arms 100s after push, low 9.5
+           (120, 9.5, 9.55, 9.48, 9.5, 100),       # deepens to 9.48 (no expiry reset — C2)
+           (130, 9.5, 9.7, 9.49, 9.65, 100)]       # confirm shape, but 130s from push -> CUT
+    assert _zn["v2_pullback_step"]("ZB", _zt, 9.5) is None
+    check("Z-b: 120s secs_from_push gate cuts the late confirmation", True)
+except (AssertionError, ValueError) as _ze:
+    check("Z-b: 120s gate", False, str(_ze))
+
+try:
+    # (c) C3 EXECUTED: second qualifying fire inside 300s is CUT; third after cooldown fires
+    _zn = _z_make({})
+    _zp = _zn["v2_pullback_step"]
+    _zt1 = [(0, 9.8, 10.0, 9.7, 9.9, 100), (10, 9.9, 9.9, 9.5, 9.55, 100),
+            (20, 9.55, 9.6, 9.52, 9.58, 100), (30, 9.58, 9.75, 9.55, 9.72, 100)]
+    assert _zp("ZC", _zt1, 9.6) is not None                       # fire #1 at k=30
+    _zt2 = [(200, 10.4, 10.5, 10.4, 10.45, 100), (210, 10.1, 10.1, 10.0, 10.02, 100),
+            (220, 10.05, 10.1, 10.02, 10.05, 100), (230, 10.06, 10.25, 10.03, 10.15, 100)]
+    assert _zp("ZC", _zt2, 10.0) is None                          # k=230-30=200s < 300 -> cooldown CUT
+    _zt3 = [(400, 10.9, 11.0, 10.9, 10.95, 100), (410, 10.6, 10.6, 10.5, 10.52, 100),
+            (420, 10.55, 10.6, 10.52, 10.58, 100), (430, 10.58, 10.75, 10.55, 10.72, 100)]
+    assert _zp("ZC", _zt3, 10.5) is not None                      # 400s since fire #1 -> fires again
+    check("Z-c: 300s per-name cooldown cuts the churn re-fire, releases after", True)
+except (AssertionError, ValueError) as _ze:
+    check("Z-c: cooldown", False, str(_ze))
+
+try:
+    # (d) shadow-only scan STILL passes on the calibrated detector + caller block
+    _zv = _y[_y.index("def v2_pullback_step"):_y.index("def kev_zoneflip_step")]
+    assert "breakouts.append" not in _zv and "execute_trade" not in _zv
+    _zc = _y[_y.index("V2 CONFIRMED-PULLBACK shadow"):_y.index("IGNITION-10S feed")]
+    assert "breakouts.append" not in _zc and "execute_trade" not in _zc
+    assert "calib=" in _zc                                        # rows now stamp the calib tag
+    check("Z-d: calibrated v2 still has NO conversion path; calib stamped", True)
+except (AssertionError, ValueError) as _ze:
+    check("Z-d: no-conversion scan", False, str(_ze))
+
+try:
+    # (e) V2_CALIBRATED=0 restores the LEGACY predicate: string anchors + the Z-b late-confirm
+    # tape (cut when calibrated) FIRES legacy with calib="legacy"
+    assert 'os.environ.get("V2_CALIBRATED", "1") == "1"' in _y    # default ON
+    assert "if not V2_CALIBRATED:" in _zv and 'fl["k"] = k' in _zv          # legacy ratchet kept behind the switch
+    assert '"C1-C5" if V2_CALIBRATED else "legacy"' in _zv
+    assert "TODO(C1b)" in _zv                                     # consolidation anchor stamped-not-gated
+    _zn0 = _z_make({"V2_CALIBRATED": "0"})
+    assert _zn0["V2_CALIBRATED"] is False and _zn0["V2_PUSH_WIN"] == 120
+    _zt = [(0, 9.9, 10.0, 9.9, 9.95, 100), (100, 9.6, 9.6, 9.5, 9.52, 100),
+           (120, 9.5, 9.55, 9.48, 9.5, 100), (130, 9.5, 9.7, 9.49, 9.65, 100)]
+    _zf0 = _zn0["v2_pullback_step"]("ZE", _zt, 9.5)
+    assert _zf0 is not None and _zf0["calib"] == "legacy" and _zf0["secs_from_push"] == 130
+    check("Z-e: V2_CALIBRATED=0 restores legacy predicate (late confirm fires, calib=legacy)", True)
+except (AssertionError, ValueError) as _ze:
+    check("Z-e: legacy restore", False, str(_ze))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

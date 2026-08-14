@@ -1811,3 +1811,17 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   heartbeat; crown-TTL no-false-expiry; strips; 22:45 launchd log line w/ FICTION=0.
 - Day-one tape confirmed the week's stories in data: reader read at 07:00:14; FGI's 21
   mapless_rejects + 11:17 escape + $155.75; exactly 13 entries_paused rows in the freeze window.
+
+## 2026-08-14 ~01:35 — MARCOS'S CALL: REAL MONEY POSTPONED; PAPER EXTENDS INTO NEXT WEEK
+- Verbatim: "if we can't fix hidden and with it being our biggest earner, this paper trading has
+  no choice but to extend into next week. Real money has to wait until this bot shows what it
+  really is." The 8/8 doctrine ("smaller + later, never launch-anyway") executed by its author.
+- THE PROVING WEEK (8/14 + 8/17-8/21, honest books from day one): (1) core lanes measured clean
+  (ma_pullback + PRE + the graded rest) under the nightly tape verifier; (2) hidden observe-only
+  pending Marcos's ship word — evidence stream feeds the v2 rebuild; (3) v2 confirmed-pullback
+  prototype in SHADOW against the F-control wall; (4) #53 resting-limit sells built + rig-tested
+  (the structural cure — real orders cannot fill on fiction); (5) trial-bridge math on the week's
+  honest results -> the go/no-go reads a bot that "shows what it really is."
+- Timeline note: school resumes ~8/20 — the proving week doubles as the UNATTENDED-OPERATION
+  test the mission always required; the bot earning trust while Marcos is back in the classroom
+  IS the autonomy gate, not a delay of it.

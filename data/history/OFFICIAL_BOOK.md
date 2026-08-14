@@ -33,3 +33,18 @@ date | RTH | PRE | trades
 3. 2026-08-12  +254.99
 4. 2026-07-13  +234.15
 5. 2026-08-13  +208.53
+
+## WEEKLY ROLLUP (RTH official / PRE separate; sums of the day table above)
+week of 2026-07-13 (Mon-Fri) | RTH  -32.75 | PRE    0.00
+week of 2026-07-20 (Mon-Fri) | RTH   -6.64 | PRE    0.00
+week of 2026-07-27 (Mon-Fri) | RTH -528.60 | PRE -733.90  (7/27 blackout -624.50 dominates PRE)
+week of 2026-08-03 (Mon-Fri) | RTH +767.85 | PRE  -13.85
+week of 2026-08-10 (Mon-Thu, 4 days, in progress) | RTH +579.16 | PRE  +64.51
+
+## RANK HISTORY (what was #1 when — RTH official)
+- 2026-07-13 sets the era record at +234.15; it stands as #1 for three weeks (through 8/3).
+- 2026-08-04 +385.78 takes #1 (first day to beat 7/13). [day table above]
+- 2026-08-07 +530.65 takes #1 and holds it to date. [day table above]
+- 2026-08-12 +254.99 enters at #3; 2026-08-13 +208.53 enters at #5 — NOT 2nd; the "second-best"
+  claim made in-session 8/13 was folklore, corrected by Marcos and this table.
+  [persona_historian.md founding exhibits]

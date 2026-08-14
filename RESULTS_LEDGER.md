@@ -1676,3 +1676,19 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
   vindicated again); net +$37.43/week. Conclusions unchanged, numbers now trustworthy: the
   staleness ceiling is the leak, concentrated 07:00-08:15 + fast movers.
 - Freeze-window accounting already re-verified in the debrief on clean clock (13 refused fires).
+
+## 2026-08-13 night — SLATE ITEMS 2-5 SHIPPED (curing the Historian's finding #8: ledger the ships)
+- ITEM 2 freeze hardening (19th convening SHIP): auto-expiry server-side + banners both boards +
+  entries_paused/mapless on strips; proven live (60s drill self-cleared 16:27:47... deploy 16:20).
+- ITEM 3 #54 batch, all three services 16:48 (20th convening SHIP, day-one walkthroughs passed):
+  blue-sky first-reads + 600s TTL + ceiling exemption; KEV-READ INVERSION (the 8/5 skip rule =
+  the TRUE A/B starvation cause, found in-build); merge-only auto-read on mapless fires; seam
+  heartbeat. + Marcos-approved crown _ts fix 21:00 ("I just want the latest data").
+- ITEM 4 MAX_TRADE_DOLLARS env 21:15 (21st convening SHIP; real exec pin). Trial sets ~150-200.
+- ITEM 5 staleness review SAVED (analysis only; options A-E priced; B+D ~ $100/wk; Friday decides).
+- PROTOCOL HARDENED (Marcos: "make sure this is actually implemented"): CONVENING_TEMPLATE.md +
+  rig-enforced doctrine-inversion sweep section (case-insensitive, proven both directions).
+- HISTORIAN FIRST ASSIGNMENT DELIVERED: data/history/CHRONICLE.md + OFFICIAL_BOOK extended; 10
+  folklore corrections incl.: TWO ledger files (killtests 7/23-8/1 + root 8/2+) — citations must
+  name which; "28-min freeze" duration uncited (13 refused fires IS cited); first-crown ticker
+  unnamed; PRE-lane 7/25 date uncitable as stated. His [UNCITED] tags stand until verified.

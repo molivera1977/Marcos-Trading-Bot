@@ -1825,3 +1825,15 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - Timeline note: school resumes ~8/20 — the proving week doubles as the UNATTENDED-OPERATION
   test the mission always required; the bot earning trust while Marcos is back in the classroom
   IS the autonomy gate, not a delay of it.
+
+## 8/14 — HIDDEN OBSERVE-ONLY SPLIT + 25TH CONVENING
+- Marcos 01:39 AM ET: "we have to move hidden to observe." v1 entry signal refuted (F-control
+  −$4,012, 13% win, hidden_fix_sweep_20260813); era profits were fictional fills (struck 8/13).
+- Ship (commit a3032f670982): HIDDEN_CONVERT env, default 0 = observe-only INCLUDING crowns
+  (observe branch sits upstream of the `not _is_leader` cap bypass — env-cap-only rejected as
+  leaky). Detection + hidden_shadow_fire fully live for the Hidden Entry Architect's v2 program;
+  new hidden_observe_only decision row carries stop/anchor/ext_vwap/seq/fire_px/wick/crown/sess.
+- 25th convening (data/audits/LATEST.md): SHIP unanimous 31/31; intentional doctrine inversions
+  noted (leader meritocracy + 7/24 convert-at-detection, both priced by Marcos's order).
+  Friday canary: hidden_observe_only rows present, ZERO triggered_hidden_entry rows.
+- Rig ALL GREEN incl. new section W. Deploy via ship.sh in main session; not pushed here.

@@ -1,116 +1,67 @@
-# AUDIT COVERAGE — checked by rig section Q under SHIP_CHECK=1
-covers: ad3f842461fd
-date: 2026-08-13 ~00:45 ET
-change: STOP-COHERENCE FLOOR 0.5% (Marcos: "ship the 0.5% floor tonight with the audit protocol")
-convening: 17th (pre-ship, agent a0051604f3837bcbf) — BLOCKED first pass (gate missed its own
-motivating specimen: BQ incoherence is born POST-FILL in the stop re-derivation), F1-EXTEND
-applied (widen-not-refuse + stop_coherence_widened row), re-verified, VERDICT: SHIP.
-kill-test: data/killtests/stop_coherence_census_20260813.md (0.5% = 3 trades / −$17.50 pure;
-1% refuses 4 winners). Kill switch STOP_COHERENCE_MIN_PCT=0. Friday 8/15 re-grades the rows.
+# 25TH CONVENING — HIDDEN OBSERVE-ONLY SPLIT (8/14)
+covers: a3032f670982  (code+rig commit "hidden observe-only split (HIDDEN_CONVERT, default 0) — Marcos order 8/14 01:39")
 
-## ROLL CALL (17th convening, all offices)
-- Blast Radius Auditor — TOUCHED: found the post-fill twin (the BLOCK), F1-EXTEND verified
-- Dashboard Curator — TOUCHED: refused/widened rows not on reject strips yet (queued debt)
-- Systems Quant — TOUCHED: gate-predicate vs census-predicate mismatch caught; closed
-- Pit Crew Chief — TOUCHED: kill switch real; ship in one batch tonight
-- Integrator — TOUCHED: single worker call-site confirmed; converts route through it; no twin left
-- Side Marshal — CLEAN: refusal rows get SIDE via suffix match
-- Crown Steward — TOUCHED advisory: refused-crown counterfactuals priced Friday
-- Feed Engineer — TOUCHED: root cause = 239s-stale fire data; staleness ledger entry owed
-- Webull Broker Desk — CLEAN: no order-semantics change
-- Quartermaster — CLEAN: no storage surface
-- Kev Librarian — CLEAN: rule is Kev-consistent
-- First Hour — TOUCHED advisory: refusals cluster at the open; attribute refused-$ in daily brief
-- Opening Bell — CLEAN: PRE worker shares the gate
-- Seam Scientist — CLEAN: shadow-only lane unaffected
-- Strength Ombudsman — TOUCHED advisory: BIAS LEDGER row Friday
-- Forward Architect — CLEAN: protocol followed (census attached)
-- Momentum Operator — CLEAN: tradeability floor, census-backed, not setup-quality
-- Trade Manager — TOUCHED: post-fill stop ownership; widen keeps exit math sane
-- Tape Veteran — CLEAN: matches the BQ tape
-- Reclaim Architect — CLEAN: behind the 4% minstop
-- Execution Surgeon — TOUCHED: planned-R = realized-R restored only WITH F1-EXTEND
-- Handicapper — CLEAN: no selection change
-- Rocket Rider — CLEAN: 0.5% far below any parabolic stop
-- Cartographer — CLEAN: no map surface
-- Wind Tunnel Engineer — TOUCHED minor: re-run census with widen semantics before Friday
-- Statistician — CLEAN: census ledgered; rows append-path
-- Convexity Trader — CLEAN: removes a pure left tail for −$17.50 mean cost
-- Curl Mechanic — CLEAN: refusals refund the slot
-- Project Manager — TOUCHED: Friday re-grade registered; rows added to EOD scorecard pull
+## THE SHIP
+Marcos's verbatim order, 8/14 01:39 AM ET: **"we have to move hidden to observe"**.
+Context: hidden v1's entry signal is REFUTED (F-control −$4,012, 13% win — data/killtests/hidden_fix_sweep_20260813_RESULTS*); its era profits were fictional-fill accounting (struck 8/13). The split:
+- New env `HIDDEN_CONVERT` (marcos_trading_bot.py:5516), default "0" → observe-only.
+- New `if not HIDDEN_CONVERT:` branch (:7338) consumes the fire and stamps a `hidden_observe_only` decision row BEFORE the cap check, so the crown/leader bypass (`not _is_leader(t)` at :7350) can never reach `breakouts.append`.
+- Detection stays fully LIVE: `hidden_entry_step` (:7058) and `hidden_shadow_fire` logging (:7063) are outside any HIDDEN_CONVERT gate — the v2 rebuild's evidence stream is untouched.
+- Rig section W added (rig/test_shipset_20260804.py:1289): executes the env-pin default, asserts observe-branch ordering upstream of the cap/crown check, evidence row, fire consumption, crown stamp, detection ungated.
 
-## SUPERSEDING — 18th convening (8/13 ~01:30 ET), covers: 30c9a2642489
-MARCOS RULING ("keep how we have it and just fix the coherence floor" / "no widening to 7%"):
-the 17th-convening widen remedy is DEAD. Post-fill = observe-only (stop_coherence_observed row,
-stop NEVER touched); pre-fill 0.5% refuse unchanged. 18th convening verified: no mutation in the
-elif body, F1 untouched, downstream sees the original stop, no live widened reference, rig pins
-honest, ALL GREEN. Delta reviewed: Execution Surgeon, Systems Quant, Statistician, Strength
-Ombudsman, Pit Crew Chief — all PASS. Full room carried from the 17th roll call above.
-VERDICT: SHIP.
+## FINDINGS PER DIMENSION
+1. **Correctness — PASS (verified by read, :7331–7396).** `HIDDEN_CONVERT = os.environ.get("HIDDEN_CONVERT", "0") == "1"` → default False. The observe branch is the FIRST arm of the if/elif chain inside `if _he_fire and HIDDEN_ENTRY and _hm_curl >= ENTRY_OPEN_ET:`; the crown-bypass cap check (:7349), the ext-gate arm (:7353), and the convert else-arm (:7371, the only `breakouts.append` for hidden, :7383) are all `elif`/`else` — unreachable when HIDDEN_CONVERT is False. No other path appends `"hidden_entry"` to breakouts (grep confirms :7383 is the sole site).
+2. **Detection unharmed — PASS.** `hidden_entry_step` call (:7058) and `hidden_shadow_fire` row (:7063) sit in the detection block, ungated by HIDDEN_CONVERT. The combined-fire block (:7109) still sees `_he_fire` non-None (consumption happens at :7343, inside the entry-window gate) — identical to how hidden_capped/hidden_ext_reject fires flowed before.
+3. **Blast radius — PASS.** All `_he_fire` consumers enumerated (:7013 init, :7058 set, :7109/:7112/:7116 combined-fire reads, :7331 gate, :7338/:7342-43 observe consume, :7353/:7366-67 ext-reject consume, :7372-73 convert consume). The new `_log_decision(t, "hidden_observe_only", ...)` uses only keys present on the `hidden_entry_step` fire dict (:5601-5602: stop, wick, anchor, ext_vwap, seq, px, k) — wick/px via .get, others direct, all exist. `_sess_he`, `_k_he`, `_he_day` (reset defensively :7334-35), `_he_name`, `_is_leader` all defined before the branch. No NameError path. Stale-price-fix block behavior unchanged.
+4. **Restart semantics — PASS.** No counters mutated in the observe branch (`_he_day`/`_he_name` are read-only there); rows are decision-log only. Nothing new to rehydrate.
+5. **Rig — PASS.** `python3 rig/test_shipset_20260804.py` run in this convening: ALL GREEN; section W passes ("hidden observe-only: default off + upstream of crown bypass + evidence row").
+6. **Doctrine — see doctrine-inversion sweep below.**
+7. **Strength/weakness bias — Marcos-priced.** Observe-only removes the hidden lane's strength access (crowns included). This is NOT auditor-authorized: it is Marcos's direct verbatim order above, priced by the F-control (−$4,012 vs don't-trade). Ombudsman records it as a priced strength refusal, graded by the v2 program.
 
-## 18th-convening supplement — FREEZE HARDENING (8/13 evening), covers: 84c0d40b93a7
-19th convening (agent af8857d8b255ddf55): all 6 items PASS (cross-midnight isoformat verified by
-execution; double-clear benign; bot resume latency ~20s worst case; input-space sane incl.
-nan/inf probes; XSS clean both paths; widened rig pin intent verified — no other route in window).
-Ledger-note: DST fall-back night ±1h clear skew, bounded, accepted. Delta officers: Pit Crew,
-Curator (satisfied — display ships WITH mechanism), Feed Engineer, Systems Quant, Ombudsman
-(expiry strictly reduces refusal time), Integrator — all clean. Full room carried from tonight's
-debrief. VERDICT: SHIP.
-- Historian — TOUCHED (first ship on post): the freeze incident, its 13 refused entries, and this
-  hardening are chronicled as the 8/13 milestone "the day the kill switch got a clock"; artifact
-  trail verified (ledger + OFFICIAL_BOOK current).
+Non-blocking pre-existing note: a hidden fire arriving before ENTRY_OPEN_ET is neither consumed nor observe-rowed (the :7331 window gate) — unchanged behavior from before this ship; hidden_shadow_fire still records it at detection. Logged for the Hidden Entry Architect, no fix authorized here.
 
-## 20th convening — #54 BATCH (8/13 evening), covers: 829aa53bf84a
-Agent a3a13889f18c84082: 7/7 PASS incl. the mandatory day-one walkthroughs (SCKT-quiet-at-7:05 and
-FGI-new-high-at-8:01 traced end to end, no gaps; the 9:31-on-8:05-map replay dies at
-bluesky_ttl_expired as specced). Key verifications: anchor-override ordering beats blue-sky in
-BOTH lanes; _ts stamped on every merge branch; full targets-consumer census (runway/exit-rungs/
-auto-map/zone all safe on advisory targets); B2 touches only the reader todo filter (merge
-untouched); B3 race bounded + self-healing + secret cited; 4 kill switches present.
-Fix-nows: #2 doc addendum DONE; #3 rig TTL-parse executed-check DONE (suite ALL GREEN after);
-#1 = _effective_map auto-map overlay drops am._ts (crowned blue-sky name w/ stale map + fresh
-auto-map gets TTL-expired despite fresh structure — fail-closed crown-privilege leak) = MARCOS'S
-CALL, priced one line, queued to him tonight.
-Delta officers: Systems Quant, Cartographer (flags #1), Crown Steward (wants #1 ruled), Strength
-Ombudsman (approves — batch is a strength-refusal cure), Kev Librarian, Reclaim Architect, Curl
-Mechanic, Integrator, Dashboard Curator, Seam Scientist, Pit Crew Chief, Statistician — clean.
-Historian — TOUCHED: chronicles the Kev-read inversion discovery (the 8/5 billing-saver was the
-true A/B starvation cause, not the liquidity floor). Full room carried from tonight's debrief.
-VERDICT: SHIP.
+## DOCTRINE-INVERSION SWEEP
+This ship deliberately inverts standing doctrine — enumerated, all priced by Marcos's order, none accidental:
+- **Leader meritocracy ("winners bypass rations", 8/5):** the crown bypass at :7350 and the crown ext-band bypass (HIDDEN_EXT_CROWN_BYPASS, :7362) are now unreachable for hidden while observing. INTENTIONAL — the order explicitly includes crowns ("env-cap-only was rejected as leaky: crowns bypass caps via not _is_leader(t)").
+- **Convert-at-detection (7/24 Marcos: "we see it triggered but now do nothing!!"):** hidden returns to detect-but-don't-trade. INTENTIONAL — the 7/24 doctrine assumed the signal had edge; the F-control refuted that premise for hidden v1 specifically. Zone-flip/reclaim/dip-rip conversion paths untouched.
+- **8/12 cap raise (hidden 5) and 8/6 crown-scoped ext gate:** idle (downstream of the observe gate), not repealed — they re-arm verbatim if HIDDEN_CONVERT=1 is ever set.
+- Swept the rest of the system for old-doctrine encodings: monitor/exit paths for already-open hidden trades unchanged (correct — no open hidden positions are created going forward; existing ones exit normally); dashboards will show observe rows via the decision log (Curator queue item below). No other doctrine touched.
 
-## 20th-convening delta — auto-map _ts fix (Marcos-approved), covers: 8880cba772c2
-Delta-verified by the same auditor: stamp scoped to the real-overlay branch only; _freshest_rec
-and _map_freshness read RAW stores (no self-laundering loop possible); cache restamps each 20s
-rebuild (auto-map age <=20s vs 600s TTL). Known behavior delta, intent-aligned + Friday-graded:
-ceiling standdown no longer sticks across rebuilds on a breached crown (re-evaluates on latest
-data — Marcos: "I just want the latest data so the bot can make the proper call"). VERDICT: SHIP.
+## DAY-ONE WALKTHROUGH (Friday 8/15)
+A hidden wick fires on some runner at, say, 09:47: `hidden_entry_step` returns the fire → `hidden_shadow_fire` row stamps at detection (unchanged) → combined-fire block runs stale-price logic (unchanged) → :7331 gate passes (RTH, past ENTRY_OPEN_ET) → :7338 `not HIDDEN_CONVERT` is True → fire consumed, **`hidden_observe_only` row** with price/stop/anchor/ext_vwap/seq/fire_px/wick/crown/sess/day_n/name_n → `continue` never reached, loop proceeds to other detectors for t. Expected Friday: `hidden_observe_only` rows wherever hidden would previously have converted, capped, or ext-rejected (all three prior arms now funnel to observe); **ZERO `triggered_hidden_entry` rows all day — that is the canary.** Also expect zero hidden_capped / hidden_ext_reject / cap_raise_slot rows (their arms are downstream). hidden_shadow_fire rows continue at normal cadence (detection-health check).
 
-## DOCTRINE-INVERSION SWEEP (retro-applied to tonight's ships, per Marcos "make sure this is
-## actually implemented"): the #54 batch FOLLOWS the 8/12 level-primacy doctrine flip. Sweep of
-## code encoding the OLD (Kev-rules) doctrine: (1) reader 8/5 skip-if-kev-levels — FOUND+FIXED
-## tonight (Build 2 inversion); (2) _kev_sheet_name flip-blindness — found+fixed 8/12 (11th);
-## (3) merge vision-first ordering — found+fixed 8/13 (15th); (4) grep tonight of "kev" gating
-## sites in bot: daygain exemption/tier-0 sort/label = provenance perks (kev_name honored, doctrine-
-## neutral); veto = data-only since f36c1b2. No further old-doctrine encodings found.
+## ROLL CALL (STANDING ROOM — every office, 8/10 law)
+- Blast Radius Auditor — convener; findings above; SHIP.
+- Hidden Entry Architect — TOUCHED: this ship is the v1 shutdown their charter requires; observe rows + shadow fires = the v2 evidence stream; confirms every v2-needed field rides the row. SHIP.
+- Crown Steward — TOUCHED: crowned names lose hidden access by design; recorded as a Marcos-priced client-service reduction, crown= stamp on every observe row preserves the crown ledger. SHIP.
+- Strength Ombudsman — TOUCHED: priced strength refusal (F-control −$4,012); enters the BIAS LEDGER as Marcos-authorized, graded by v2. SHIP.
+- Side Marshal — clean: no side/gate logic touched; observe rows carry sess for their books.
+- Systems Quant — TOUCHED: verified the code computes what the name claims (default-0 env pin executed in rig W; branch ordering asserted against source). SHIP.
+- Integrator — TOUCHED: all consumers/seams of _he_fire enumerated (finding 3); no parallel-logic copy of the hidden convert path exists. SHIP.
+- Pit Crew Chief — clean: no restart/rehydrate surface changed; deploy via ship.sh in main session, not here.
+- Dashboard Curator — clean w/ queue item: hidden_observe_only rows surface via existing decision-log views; a dedicated observe-lane tile goes on the upgrade queue, not this ship.
+- Feed Engineer — clean: no feed/vendor path touched.
+- Webull Broker Desk — clean: fewer real orders, no order-semantics change.
+- Quartermaster — clean: no data/storage path touched; decision log grows normally.
+- Kev Librarian — clean: Kev corpus untouched; hidden v2 remains Kev flush-entry grounded.
+- First Hour — TOUCHED (minor): the 9:30–10:30 window loses hidden conversions; attribution will show the lane's absence — expected, priced.
+- Opening Bell — clean: pre-open prep unchanged; pre-ENTRY_OPEN_ET fires behave as before.
+- Seam Scientist — clean: seam program untouched; observe rows are new specimen material.
+- Forward Architect — clean: no new hypothesis shipped; v2 rebuild owns the follow-on.
+- Momentum Operator — clean: ships on evidence (F-control), not noise.
+- Trade Manager — clean: exits/monitors for any legacy open hidden trade unchanged.
+- Tape Veteran — clean: outside hypothesis (v1 fired on exhaustion wicks in blue-sky) already registered with the Architect.
+- Reclaim Architect — clean: reclaim shares the 10s feed but its fire path is untouched (verified :7051).
+- Execution Surgeon — clean: no orders from this lane → no planned-vs-realized surface.
+- Handicapper — clean: selection/character book untouched.
+- Rocket Rider — clean: rocket_catcher stays superseded; parabolic regime unaffected.
+- Cartographer — clean: maps/levels untouched.
+- Wind Tunnel Engineer — TOUCHED: the F-control kill-test (hidden_fix_sweep_20260813) is the evidence basis; fidelity already graded there.
+- Statistician — TOUCHED: RESULTS_LEDGER entry appended this convening; hidden P&L now cleanly partitioned (no new fills to contaminate).
+- Convexity Trader — clean: 13% win with negative mean = no tail worth keeping; concurs with shutdown.
+- Curl Mechanic — TOUCHED: fire-count acceptance shifts to hidden_observe_only + hidden_shadow_fire rows; Friday cadence check owned here.
+- Project Manager — clean: morning brief adds the canary check (zero triggered_hidden_entry).
+- Historian — TOUCHED: records 8/14 as hidden v1's end-of-conversion date; era hidden profits already struck 8/13.
 
-## 21st convening — MAX_TRADE_DOLLARS env, covers: 290bc48c6eff
-Delta audit: 7 consumers on the module global, no re-hardcode; ambient coupling proportionally
-safe (exit coverage constant); rig U upgraded to a real exec pin after the tautology flag.
-doctrine-inversion sweep: n/a (pure parametrization). Day-one walkthrough: trial boot at 175
-traced through config print, ambient floor $2,625/min, settled-cash, sizing 87sh@$2.
-PRICED QUESTION TO MARCOS (not shipped): trial cohort-shift — at $175 the ambient floor admits
-thin names full scale will refuse; AMBIENT_DVOL_MULT=86 for the trial would hold today's $15k/min
-floor (measure-representative) vs default proportional (learn-wide). His call before Monday.
-VERDICT: SHIP. Full room carried from tonight's debrief; Historian chronicles the parametrization.
-
-## 22nd convening — FICTIONAL-FILL FIX, covers: 935039097222
-Agent aa05fd783032a8ef7: 7/7 verified (both feeds' formats parse aware; consumers enumerated —
-resting fills fixed, _verify_exit_px stricter w/ visible unverified stamps, watchdog consistent;
-resumed monitors cannot bypass; 15s grace net-conservative vs bar-start times; kill switch = exact
-restore; rig V executes the predicate on real formats). Day-one walkthrough: 07:05 PRE entry can
-no longer see the 06:30 spike high. doctrine-inversion sweep: n/a (correctness fix — removes fake
-PROFIT; book gets honest). Follow-ups ledgered: week-one watch on exit_px_unverified/below_tape
-counts in first-minutes; rig V parse chain is a copy (update in same diff if bot chain changes).
-Roll call delta: Surgeon, Statistician+Historian (census = correction ledger, OFFICIAL_BOOK
-footnote owed), Trade Manager, Pit Crew, Systems Quant, Wind Tunnel — touched; rest clean/carried.
-VERDICT: SHIP.
+## VERDICT
+**SHIP — unanimous, 31/31.** No blocking findings. Deploy via ship.sh in the main session only; do not push from this convening.

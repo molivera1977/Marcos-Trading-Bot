@@ -1,0 +1,39 @@
+era ignition trades in verified book: 50
+
+== VWAP SIDE AT ENTRY ==
+  above_vwap             N=23  honest $-7.71 .. $8.24  (raw winners 12)
+  below_vwap             N=22  honest $79.81 .. $104.92  (raw winners 15)
+  unknown                N=5   honest $-15.27 .. $-15.27  (raw winners 2)
+
+== TIME OF DAY (ET) ==
+  1_930-1000             N=16  honest $12.65 .. $12.65  (raw winners 7)
+  2_1000-1030            N=18  honest $87.11 .. $112.22  (raw winners 14)
+  3_1030-1200            N=10  honest $-111.35 .. $-95.40  (raw winners 4)
+  unknown                N=6   honest $68.42 .. $68.42  (raw winners 4)
+
+== FRONT/BACK STAMP ==
+  back_side              N=37  honest $145.39 .. $186.45  (raw winners 24)
+  front_side             N=8   honest $-73.29 .. $-73.29  (raw winners 3)
+  unknown                N=5   honest $-15.27 .. $-15.27  (raw winners 2)
+
+== CROWN ==
+  crowned                N=4   honest $50.12 .. $60.51  (raw winners 4)
+  uncrowned              N=46  honest $6.71 .. $37.38  (raw winners 25)
+
+== DAY GAIN AT ENTRY ==
+  dg40-100%              N=9   honest $-162.01 .. $-146.06  (raw winners 3)
+  dg<40%                 N=29  honest $290.43 .. $315.54  (raw winners 21)
+  dg>100%                N=7   honest $-56.32 .. $-56.32  (raw winners 3)
+  unknown                N=5   honest $-15.27 .. $-15.27  (raw winners 2)
+
+== COMBO: VWAP x EARLY ==
+  above_vwap + early     N=13  honest $13.94 .. $13.94  (raw winners 7)
+  above_vwap + late/unk  N=10  honest $-21.65 .. $-5.70  (raw winners 5)
+  below_vwap + early     N=19  honest $126.20 .. $151.31  (raw winners 14)
+  below_vwap + late/unk  N=3   honest $-46.39 .. $-46.39  (raw winners 1)
+  unknown + early        N=2   honest $-40.38 .. $-40.38  (raw winners 0)
+  unknown + late/unk     N=3   honest $25.11 .. $25.11  (raw winners 2)
+
+CAVEATS: strict..charitable excludes the v4 TIMING layer (lane-level -$226..-$271 deeper);
+stamps missing on early-era trades land in 'unknown'; N per cell is SMALL - Friday's room
+must vote before any gate ships. No recommendation from this run alone.

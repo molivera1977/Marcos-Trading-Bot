@@ -1,0 +1,26 @@
+ignition rows: 50, matched store: 50
+
+== VWAP SIDE (timing-corrected trail..flat) ==
+  above_vwap             N=23  honest $-99.50 .. $-71.72  (raw winners 12)
+  below_vwap             N=23  honest $-45.00 .. $-7.11  (raw winners 15)
+  unknown                N=4   honest $-40.70 .. $-40.70  (raw winners 1)
+
+== TIME OF DAY (timing-corrected trail..flat) ==
+  0_PRE                  N=1   honest $45.05 .. $56.24  (raw winners 1)
+  1_930-1000             N=17  honest $-52.91 .. $-17.36  (raw winners 9)
+  2_1000-1030            N=16  honest $-54.35 .. $-36.15  (raw winners 11)
+  3_1030-1200            N=11  honest $-165.98 .. $-165.25  (raw winners 4)
+  unknown                N=5   honest $42.99 .. $42.99  (raw winners 3)
+
+== DAY GAIN AT ENTRY (timing-corrected trail..flat) ==
+  dg40-100%              N=11  honest $-131.80 .. $-120.62  (raw winners 4)
+  dg<40%                 N=28  honest $43.69 .. $98.17  (raw winners 20)
+  dg>100%                N=7   honest $-56.39 .. $-56.39  (raw winners 3)
+  unknown                N=4   honest $-40.70 .. $-40.70  (raw winners 1)
+
+== COMBO dg<40 x EARLY(<1030) (timing-corrected trail..flat) ==
+  False                  N=30  honest $-290.16 .. $-278.24  (raw winners 12)
+  True                   N=20  honest $104.96 .. $158.71  (raw winners 16)
+
+LANE TOTAL timing-corrected: $-185.20 .. $-119.54
+CAVEATS: NOT_TIMED/NO_FILLS keep raw pnl; small cells; join by (ticker,date) may merge same-day repeats.

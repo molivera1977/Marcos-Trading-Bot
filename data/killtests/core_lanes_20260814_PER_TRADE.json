@@ -1,0 +1,1472 @@
+[
+ {
+  "ticker": "LVWR",
+  "date": "2026-07-24",
+  "trade_id": "2b3b45a775424a0e8c1d16dd4941615f",
+  "lane": "flat_top",
+  "status": "NOT_TIMED",
+  "raw": -0.26,
+  "trail": -0.26,
+  "flat": -0.26
+ },
+ {
+  "ticker": "JEM",
+  "date": "2026-07-24",
+  "trade_id": "4ffc7786e6c049cabf5549a8895c4870",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -26.38,
+  "trail": -26.38,
+  "flat": -26.38
+ },
+ {
+  "ticker": "BIYA",
+  "date": "2026-07-27",
+  "trade_id": "587268229a7840569d6885630621319e",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -262.89,
+  "trail": -262.89,
+  "flat": -262.89
+ },
+ {
+  "ticker": "LGHL",
+  "date": "2026-07-27",
+  "trade_id": "e21ccca81c5d4558813d8e0d51765117",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -166.4,
+  "trail": -166.4,
+  "flat": -166.4
+ },
+ {
+  "ticker": "VEEE",
+  "date": "2026-07-27",
+  "trade_id": "6d8e2038f0d449d297d53787d414dc7f",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -99.47,
+  "trail": -99.47,
+  "flat": -99.47
+ },
+ {
+  "ticker": "MTNB",
+  "date": "2026-07-27",
+  "trade_id": "50a7b06eb63549c1ab79b6db49adb4cd",
+  "lane": "vwap_reclaim",
+  "status": "NOT_TIMED",
+  "raw": -14.26,
+  "trail": -14.26,
+  "flat": -14.26
+ },
+ {
+  "ticker": "JZXN",
+  "date": "2026-07-27",
+  "trade_id": "15c6a19927664c8e800c09c6054a0c94",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -81.48,
+  "trail": -81.48,
+  "flat": -81.48
+ },
+ {
+  "ticker": "LGHL",
+  "date": "2026-07-27",
+  "trade_id": "3d57e5f7658141ed82edc7fc49350d63",
+  "lane": "zone_flip",
+  "status": "NO_FILLS",
+  "raw": -119.7,
+  "trail": -119.7,
+  "flat": -119.7
+ },
+ {
+  "ticker": "DFNS",
+  "date": "2026-07-27",
+  "trade_id": "8846f34347444cb6903b09a825b6a079",
+  "lane": "zone_flip",
+  "status": "NOT_TIMED",
+  "raw": -2.29,
+  "trail": -2.29,
+  "flat": -2.29
+ },
+ {
+  "ticker": "BIYA",
+  "date": "2026-07-27",
+  "trade_id": "807ab9f50897413fa49fab3e286ad7ca",
+  "lane": "ignition",
+  "status": "NOT_TIMED",
+  "raw": 32.04,
+  "trail": 32.04,
+  "flat": 32.04
+ },
+ {
+  "ticker": "KIDZ",
+  "date": "2026-07-27",
+  "trade_id": "7f825f67d8cf4ed1a908ac5434ed72df",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -36.71,
+  "trail": -36.71,
+  "flat": -36.71
+ },
+ {
+  "ticker": "JZXN",
+  "date": "2026-07-27",
+  "trade_id": "ffae3f54e88f45c280ca9288bc5fca14",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -30.53,
+  "trail": -30.53,
+  "flat": -30.53
+ },
+ {
+  "ticker": "BIYA",
+  "date": "2026-07-27",
+  "trade_id": "eaf42999189242f383f03a014fd6f8ec",
+  "lane": "vwap_reclaim",
+  "status": "NOT_TIMED",
+  "raw": 40.56,
+  "trail": 40.56,
+  "flat": 40.56
+ },
+ {
+  "ticker": "DFNS",
+  "date": "2026-07-27",
+  "trade_id": "6117048e0e6c4b458b1db34a539938e0",
+  "lane": "orb",
+  "status": "NO_FILLS",
+  "raw": -43.66,
+  "trail": -43.66,
+  "flat": -43.66
+ },
+ {
+  "ticker": "LVWR",
+  "date": "2026-07-27",
+  "trade_id": "b08ed76f5b69456dae399ee87d15f968",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -25.79,
+  "trail": -25.79,
+  "flat": -25.79
+ },
+ {
+  "ticker": "NXTC",
+  "date": "2026-07-27",
+  "trade_id": "bca40ea64cd1412bb1b58834476af6ff",
+  "lane": "ignition",
+  "status": "NOT_TIMED",
+  "raw": 12.32,
+  "trail": 12.32,
+  "flat": 12.32
+ },
+ {
+  "ticker": "WLDS",
+  "date": "2026-07-27",
+  "trade_id": "c446b2e6c4c54831b8895c0ea358b24e",
+  "lane": "flat_top",
+  "status": "NOT_TIMED",
+  "raw": 28.71,
+  "trail": 28.71,
+  "flat": 28.71
+ },
+ {
+  "ticker": "LVWR",
+  "date": "2026-07-27",
+  "trade_id": "7e353d5b898949178d78ab456f04ff20",
+  "lane": "ma_pullback",
+  "status": "NO_FILLS",
+  "raw": -28.2,
+  "trail": -28.2,
+  "flat": -28.2
+ },
+ {
+  "ticker": "DFNS",
+  "date": "2026-07-27",
+  "trade_id": "04e0baa72cce456f9e242b95e5f1d13c",
+  "lane": "ma_pullback",
+  "status": "NOT_TIMED",
+  "raw": 43.57,
+  "trail": 43.57,
+  "flat": 43.57
+ },
+ {
+  "ticker": "PN",
+  "date": "2026-07-27",
+  "trade_id": "7eb23fb08ed64fec9f4890bd467c977e",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -1.05,
+  "trail": -1.05,
+  "flat": -1.05
+ },
+ {
+  "ticker": "GMEX",
+  "date": "2026-07-27",
+  "trade_id": "8d4c4f2b54594c9a8ff8ea2610c1ce02",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -7.92,
+  "trail": -7.92,
+  "flat": -7.92
+ },
+ {
+  "ticker": "BIYA",
+  "date": "2026-07-27",
+  "trade_id": "0501e6372820481090219a10e7613bd6",
+  "lane": "flat_top",
+  "status": "NOT_TIMED",
+  "raw": 49.55,
+  "trail": 49.55,
+  "flat": 49.55
+ },
+ {
+  "ticker": "BIYA",
+  "date": "2026-07-28",
+  "trade_id": "d4ee44b5ee73423cb2148366edd9dee9",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -30.8,
+  "trail": -30.8,
+  "flat": -30.8
+ },
+ {
+  "ticker": "CNET",
+  "date": "2026-07-28",
+  "trade_id": "46a849467009482c90ade64038e9eb9c",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 24.39,
+  "trail": 24.377600000000015,
+  "flat": 24.377600000000015
+ },
+ {
+  "ticker": "KVAC",
+  "date": "2026-07-28",
+  "trade_id": "b08745651c56409db36ecdc9871736df",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 25.94,
+  "trail": 11.017999999999969,
+  "flat": 25.939499999999974
+ },
+ {
+  "ticker": "LGHL",
+  "date": "2026-07-28",
+  "trade_id": "6f208c2a1ea84cefa6c1295681cd7c97",
+  "lane": "ma_pullback",
+  "status": "NO_FILLS",
+  "raw": -31.5,
+  "trail": -31.5,
+  "flat": -31.5
+ },
+ {
+  "ticker": "WLDS",
+  "date": "2026-07-28",
+  "trade_id": "5d4bd52ccd5648bbb6ba0c538460a53a",
+  "lane": "flat_top",
+  "status": "CHECKED",
+  "raw": 35.83,
+  "trail": 23.48513999999998,
+  "flat": 35.77499999999996
+ },
+ {
+  "ticker": "FIRY",
+  "date": "2026-07-28",
+  "trade_id": "7ff58b3d05e0468895ce8619fcdf711e",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -30.28,
+  "trail": -30.28,
+  "flat": -30.28
+ },
+ {
+  "ticker": "EGG",
+  "date": "2026-07-28",
+  "trade_id": "3d13672401e54462b946cc301484b065",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -32.0,
+  "trail": -32.0,
+  "flat": -32.0
+ },
+ {
+  "ticker": "BIYA",
+  "date": "2026-07-28",
+  "trade_id": "c0e6df043c7241e48eded69cc69059c5",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -30.41,
+  "trail": -30.41,
+  "flat": -30.41
+ },
+ {
+  "ticker": "WLDS",
+  "date": "2026-07-28",
+  "trade_id": "940c42df3d6648659c120e31692436a6",
+  "lane": "flat_top",
+  "status": "CHECKED",
+  "raw": 12.94,
+  "trail": 13.200000000000035,
+  "flat": 13.200000000000035
+ },
+ {
+  "ticker": "BIYA",
+  "date": "2026-07-28",
+  "trade_id": "1adb56d940954ad9aca6d757a65ab766",
+  "lane": "flat_top",
+  "status": "CHECKED",
+  "raw": 51.69,
+  "trail": 40.579999999999984,
+  "flat": 51.678
+ },
+ {
+  "ticker": "WBUY",
+  "date": "2026-07-28",
+  "trade_id": "cd3ec47f705040be88acce683acb7cf8",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -52.99,
+  "trail": -52.99,
+  "flat": -52.99
+ },
+ {
+  "ticker": "MPLT",
+  "date": "2026-07-28",
+  "trade_id": "97727a74d1e342d8b62f897287b2a3c2",
+  "lane": "flat_top",
+  "status": "CHECKED",
+  "raw": 29.54,
+  "trail": 29.68,
+  "flat": 29.68
+ },
+ {
+  "ticker": "AMIX",
+  "date": "2026-07-29",
+  "trade_id": "697bccac02b2451e84ce8ff9859183d2",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -32.41,
+  "trail": -32.41,
+  "flat": -32.41
+ },
+ {
+  "ticker": "PYPD",
+  "date": "2026-07-29",
+  "trade_id": "0b098796b1034134bbb5d86c85747608",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -32.76,
+  "trail": -32.76,
+  "flat": -32.76
+ },
+ {
+  "ticker": "GMM",
+  "date": "2026-07-29",
+  "trade_id": "797eed9ae9c942c9b3314fc9f5082172",
+  "lane": "zone_flip",
+  "status": "CHECKED",
+  "raw": 4.0,
+  "trail": 4.430000000000106,
+  "flat": 4.430000000000106
+ },
+ {
+  "ticker": "STFS",
+  "date": "2026-07-29",
+  "trade_id": "d299c8a0330a4b5ab0e96f816d4122f4",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -27.84,
+  "trail": -27.84,
+  "flat": -27.84
+ },
+ {
+  "ticker": "ONMD",
+  "date": "2026-07-29",
+  "trade_id": "1ef43fc74db044e39a4f6cfaa27e73de",
+  "lane": "zone_flip",
+  "status": "NO_FILLS",
+  "raw": -48.03,
+  "trail": -48.03,
+  "flat": -48.03
+ },
+ {
+  "ticker": "SPRC",
+  "date": "2026-07-29",
+  "trade_id": "8db3fed01d1f47069e627383534b71af",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": 42.27,
+  "trail": 31.473599999999987,
+  "flat": 12.84901799999999
+ },
+ {
+  "ticker": "GMM",
+  "date": "2026-07-29",
+  "trade_id": "338a41e1a9394e5ea3a5e2cf63129b3d",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": 1.5,
+  "trail": 1.1999999999999744,
+  "flat": 1.1999999999999744
+ },
+ {
+  "ticker": "LVWR",
+  "date": "2026-07-29",
+  "trade_id": "d63a2c6cca7843438eac57b3b5099986",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": -6.54,
+  "trail": -6.544799999999999,
+  "flat": -6.544799999999999
+ },
+ {
+  "ticker": "SKYQ",
+  "date": "2026-07-29",
+  "trade_id": "20ba84c5b73b4133a26a955203b97d24",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": 10.23,
+  "trail": -1.189799999999992,
+  "flat": 10.233000000000015
+ },
+ {
+  "ticker": "YYGH",
+  "date": "2026-07-29",
+  "trade_id": "7f478872dab6410dad58362335a91a99",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": 14.18,
+  "trail": 14.18,
+  "flat": 14.18
+ },
+ {
+  "ticker": "YYGH",
+  "date": "2026-07-29",
+  "trade_id": "4da260d63ae944b8bd3d3da313975878",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -33.3,
+  "trail": -33.3,
+  "flat": -33.3
+ },
+ {
+  "ticker": "LVWR",
+  "date": "2026-07-29",
+  "trade_id": "53ee8dddb3c64eb78c75a10e05491a25",
+  "lane": "orb",
+  "status": "CHECKED",
+  "raw": 28.94,
+  "trail": 28.940000000000026,
+  "flat": 28.940000000000026
+ },
+ {
+  "ticker": "AMIX",
+  "date": "2026-07-29",
+  "trade_id": "059ca1a90ec945f1b313da23503b3a26",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -32.32,
+  "trail": -32.32,
+  "flat": -32.32
+ },
+ {
+  "ticker": "SPRC",
+  "date": "2026-07-29",
+  "trade_id": "0ba6250280764cf291377d49465fcc4d",
+  "lane": "flat_top",
+  "status": "CHECKED",
+  "raw": 56.97,
+  "trail": 44.30420000000001,
+  "flat": 57.19760000000002
+ },
+ {
+  "ticker": "STFS",
+  "date": "2026-07-29",
+  "trade_id": "98fb0272749740419080bc272cc94b01",
+  "lane": "orb",
+  "status": "NO_FILLS",
+  "raw": -36.9,
+  "trail": -36.9,
+  "flat": -36.9
+ },
+ {
+  "ticker": "SKYQ",
+  "date": "2026-07-30",
+  "trade_id": "965cd2ffde234be3aab034f1066fba9c",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -6.86,
+  "trail": -6.86,
+  "flat": -6.86
+ },
+ {
+  "ticker": "GMEX",
+  "date": "2026-07-30",
+  "trade_id": "8f27ecb0499b4ad0a5561ff08c726fb5",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": 11.54,
+  "trail": 3.0752000000000184,
+  "flat": 11.38200000000003
+ },
+ {
+  "ticker": "NUWE",
+  "date": "2026-07-30",
+  "trade_id": "277ab006bdc443369924a1cd9ebec57e",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -18.15,
+  "trail": -18.15,
+  "flat": -18.15
+ },
+ {
+  "ticker": "STAK",
+  "date": "2026-07-30",
+  "trade_id": "cc918316f17d4a28bdc766efb9e01ab6",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": 13.2,
+  "trail": 5.359411200000022,
+  "flat": 13.200000000000012
+ },
+ {
+  "ticker": "STAK",
+  "date": "2026-07-30",
+  "trade_id": "c9dfdd6082874b8da1e6341280eb0ffb",
+  "lane": "zone_flip",
+  "status": "NO_FILLS",
+  "raw": -26.88,
+  "trail": -26.88,
+  "flat": -26.88
+ },
+ {
+  "ticker": "BOOM",
+  "date": "2026-07-30",
+  "trade_id": "961186c98bff41ed867935fb44015de7",
+  "lane": "zone_flip",
+  "status": "NO_FILLS",
+  "raw": -30.58,
+  "trail": -30.58,
+  "flat": -30.58
+ },
+ {
+  "ticker": "PN",
+  "date": "2026-07-30",
+  "trade_id": "b8932ae727424d01a145ea10759f90a0",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -31.8,
+  "trail": -31.8,
+  "flat": -31.8
+ },
+ {
+  "ticker": "NCRA",
+  "date": "2026-07-30",
+  "trade_id": "02511047c51f46e683f2244e8fdfbfeb",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -25.79,
+  "trail": -25.79,
+  "flat": -25.79
+ },
+ {
+  "ticker": "GMEX",
+  "date": "2026-07-30",
+  "trade_id": "64db894e5e944d468590f5455ddb4f56",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -9.48,
+  "trail": -9.48,
+  "flat": -9.48
+ },
+ {
+  "ticker": "DGNX",
+  "date": "2026-07-30",
+  "trade_id": "9be995df00b24635b42a3ce661094b06",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": 8.65,
+  "trail": 1.2621099999999972,
+  "flat": 9.029099999999994
+ },
+ {
+  "ticker": "KSCP",
+  "date": "2026-07-30",
+  "trade_id": "f6afc362e4364f16b0a617745511be06",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -17.88,
+  "trail": -17.88,
+  "flat": -17.88
+ },
+ {
+  "ticker": "LESL",
+  "date": "2026-07-30",
+  "trade_id": "a4ed7ad994e64b939193a395cec63076",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -9.16,
+  "trail": -9.16,
+  "flat": -9.16
+ },
+ {
+  "ticker": "GVH",
+  "date": "2026-07-30",
+  "trade_id": "c53580102f7d4d1aa0fdfa16fee51e3e",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": 2.24,
+  "trail": 2.290000000000002,
+  "flat": 2.290000000000002
+ },
+ {
+  "ticker": "YHC",
+  "date": "2026-07-30",
+  "trade_id": "d9e1ba9f078c49409b16e4bcfba575a0",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -30.0,
+  "trail": -30.0,
+  "flat": -30.0
+ },
+ {
+  "ticker": "INLF",
+  "date": "2026-07-30",
+  "trade_id": "9db3794a06a444fc9e2a8fdb92fdbf45",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 11.58,
+  "trail": 11.83000000000001,
+  "flat": 11.83000000000001
+ },
+ {
+  "ticker": "YHC",
+  "date": "2026-07-30",
+  "trade_id": "0441118cde0b491b9f72a343e3022617",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -8.72,
+  "trail": -8.72,
+  "flat": -8.72
+ },
+ {
+  "ticker": "GVH",
+  "date": "2026-07-30",
+  "trade_id": "4e1c62b68bfd4c20a23da4e6065b60c7",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -30.23,
+  "trail": -30.23,
+  "flat": -30.23
+ },
+ {
+  "ticker": "CYCU",
+  "date": "2026-07-30",
+  "trade_id": "f6154e18147943cd94824ba924f13b9e",
+  "lane": "ma_pullback",
+  "status": "CHECKED",
+  "raw": 127.26,
+  "trail": 109.20822120000001,
+  "flat": 127.33500000000001
+ },
+ {
+  "ticker": "DGNX",
+  "date": "2026-07-30",
+  "trade_id": "0176693394774cedadba3e07731827a1",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -42.19,
+  "trail": -42.19,
+  "flat": -42.19
+ },
+ {
+  "ticker": "PN",
+  "date": "2026-07-30",
+  "trade_id": "bede505f2f894534a672b93c21f3d3e3",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -46.2,
+  "trail": -46.2,
+  "flat": -46.2
+ },
+ {
+  "ticker": "INLF",
+  "date": "2026-07-30",
+  "trade_id": "2b2d2884362143e7859f281ce4adac8f",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -29.74,
+  "trail": -29.74,
+  "flat": -29.74
+ },
+ {
+  "ticker": "GCTK",
+  "date": "2026-07-30",
+  "trade_id": "d5e7ee2a2db045e9909cbfaa42ffe363",
+  "lane": "ma_pullback",
+  "status": "CHECKED",
+  "raw": 66.69,
+  "trail": 48.929187999999996,
+  "flat": 66.21609999999998
+ },
+ {
+  "ticker": "PN",
+  "date": "2026-07-30",
+  "trade_id": "102ba6bc60344efd885e8f0f204acfcd",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -30.16,
+  "trail": -30.16,
+  "flat": -30.16
+ },
+ {
+  "ticker": "KSCP",
+  "date": "2026-07-30",
+  "trade_id": "0b09171165d448a18ec0ed9afff854be",
+  "lane": "ma_pullback",
+  "status": "CHECKED",
+  "raw": 28.95,
+  "trail": 20.698799999999977,
+  "flat": 29.29399999999998
+ },
+ {
+  "ticker": "KUST",
+  "date": "2026-07-31",
+  "trade_id": "73e05f416bb941418ea531f0efccef01",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -18.35,
+  "trail": -18.35,
+  "flat": -18.35
+ },
+ {
+  "ticker": "MGRX",
+  "date": "2026-07-31",
+  "trade_id": "62ca28415f264c71a4e321b00eb838fb",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": 23.31,
+  "trail": 26.574799999999932,
+  "flat": 26.574799999999932
+ },
+ {
+  "ticker": "CUPR",
+  "date": "2026-07-31",
+  "trade_id": "0ac701894a284609998ec45c133783f5",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": 3.05,
+  "trail": 1.5292099999999964,
+  "flat": 3.034999999999997
+ },
+ {
+  "ticker": "MGRX",
+  "date": "2026-07-31",
+  "trade_id": "44849be741514f91a748fcc9c3fc4b65",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -30.16,
+  "trail": -30.16,
+  "flat": -30.16
+ },
+ {
+  "ticker": "TGHL",
+  "date": "2026-07-31",
+  "trade_id": "22071f9b551c4eefb42a0c756acb4aa9",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 39.34,
+  "trail": 39.11199999999997,
+  "flat": 39.11199999999997
+ },
+ {
+  "ticker": "LNKS",
+  "date": "2026-07-31",
+  "trade_id": "7421dd1d738c4da5b5ac946814b0bd91",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 20.86,
+  "trail": 14.514050000000019,
+  "flat": 20.86080000000002
+ },
+ {
+  "ticker": "CUPR",
+  "date": "2026-07-31",
+  "trade_id": "d89f63734c534f0a8ae726083eae5232",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 10.89,
+  "trail": 5.309300000000013,
+  "flat": 11.08570000000001
+ },
+ {
+  "ticker": "CYCU",
+  "date": "2026-07-31",
+  "trade_id": "4430700802c24f41ab9a876977c62f67",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 29.89,
+  "trail": 18.62106999999997,
+  "flat": 5.5525443999999755
+ },
+ {
+  "ticker": "TGHL",
+  "date": "2026-07-31",
+  "trade_id": "c2a9aae8847c491d847a573defcb609b",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -32.47,
+  "trail": -32.47,
+  "flat": -32.47
+ },
+ {
+  "ticker": "MGRX",
+  "date": "2026-07-31",
+  "trade_id": "40a36ca819014068bdda37f8d0633a58",
+  "lane": "orb",
+  "status": "CHECKED",
+  "raw": 29.99,
+  "trail": -24.95230080000001,
+  "flat": -24.95230080000001
+ },
+ {
+  "ticker": "GDC",
+  "date": "2026-07-31",
+  "trade_id": "12e245fd3b994cab96b506dbcd4498f4",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": -0.79,
+  "trail": -5.260270140000008,
+  "flat": -5.260270140000008
+ },
+ {
+  "ticker": "AEMD",
+  "date": "2026-07-31",
+  "trade_id": "61ee125fd6fc4ee483f55b126d8af423",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -31.35,
+  "trail": -31.35,
+  "flat": -31.35
+ },
+ {
+  "ticker": "LFS",
+  "date": "2026-07-31",
+  "trade_id": "c2e239266bde47b3bf3a19134106fb29",
+  "lane": "ma_pullback",
+  "status": "CHECKED",
+  "raw": 45.96,
+  "trail": 35.072000000000024,
+  "flat": 45.947600000000016
+ },
+ {
+  "ticker": "SHPH",
+  "date": "2026-07-31",
+  "trade_id": "dc5c97ffaee94b8c80c25a0001c11f81",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -36.62,
+  "trail": -36.62,
+  "flat": -36.62
+ },
+ {
+  "ticker": "TGHL",
+  "date": "2026-07-31",
+  "trade_id": "050c1e6e0f9547cd99aab36059ebbc53",
+  "lane": "ma_pullback",
+  "status": "CHECKED",
+  "raw": 29.96,
+  "trail": 16.10249999999996,
+  "flat": 29.969999999999978
+ },
+ {
+  "ticker": "FCUV",
+  "date": "2026-07-31",
+  "trade_id": "3cb91d25768e496085f1886cb39e311f",
+  "lane": "ma_pullback",
+  "status": "NO_FILLS",
+  "raw": -43.12,
+  "trail": -43.12,
+  "flat": -43.12
+ },
+ {
+  "ticker": "LESL",
+  "date": "2026-07-31",
+  "trade_id": "fdeeda2a48f946f0866a99cd9c44b787",
+  "lane": "ma_pullback",
+  "status": "NO_FILLS",
+  "raw": -35.16,
+  "trail": -35.16,
+  "flat": -35.16
+ },
+ {
+  "ticker": "FCUV",
+  "date": "2026-07-31",
+  "trade_id": "a3ec4ca3f9c548a2bacac2fdc42b0369",
+  "lane": "flat_top",
+  "status": "CHECKED",
+  "raw": -3.33,
+  "trail": -3.3044999999999956,
+  "flat": -3.3044999999999956
+ },
+ {
+  "ticker": "ZEO",
+  "date": "2026-07-31",
+  "trade_id": "794c14cd2d43440599af0f1881250bf6",
+  "lane": "ma_pullback",
+  "status": "NO_FILLS",
+  "raw": -33.47,
+  "trail": -33.47,
+  "flat": -33.47
+ },
+ {
+  "ticker": "WLDS",
+  "date": "2026-08-03",
+  "trade_id": "8c751413c59443ad9a585cd16a6b2346",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 4.82,
+  "trail": 4.852299999999994,
+  "flat": 4.852299999999994
+ },
+ {
+  "ticker": "FCUV",
+  "date": "2026-08-03",
+  "trade_id": "899a5138427e4c8995d395a935fadfec",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 20.99,
+  "trail": -25.64897599999999,
+  "flat": -25.64897599999999
+ },
+ {
+  "ticker": "CYCU",
+  "date": "2026-08-03",
+  "trade_id": "16923e9f26e74767a077a61813b2f84f",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 5.27,
+  "trail": -21.547596000000027,
+  "flat": -21.547596000000027
+ },
+ {
+  "ticker": "FUSE",
+  "date": "2026-08-03",
+  "trade_id": "17566b251d344fcca584b171b26662ab",
+  "lane": "dip_rip",
+  "status": "CHECKED",
+  "raw": 16.49,
+  "trail": 16.486800000000002,
+  "flat": 16.486800000000002
+ },
+ {
+  "ticker": "LNAI",
+  "date": "2026-08-03",
+  "trade_id": "ab3a175b0e8943868f3cbc6065de8204",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 2.59,
+  "trail": 1.8710999999999984,
+  "flat": 2.6014999999999997
+ },
+ {
+  "ticker": "UPC",
+  "date": "2026-08-03",
+  "trade_id": "a5f47b38d3b148a18908da30c0d85d8e",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -41.24,
+  "trail": -41.24,
+  "flat": -41.24
+ },
+ {
+  "ticker": "FUSE",
+  "date": "2026-08-03",
+  "trade_id": "23f3bbc69fd442dda6701f39e61c06dd",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -30.66,
+  "trail": -30.66,
+  "flat": -30.66
+ },
+ {
+  "ticker": "FUSE",
+  "date": "2026-08-03",
+  "trade_id": "0b9d714e920b40b2aadd9f15afa99b43",
+  "lane": "ma_pullback",
+  "status": "NO_FILLS",
+  "raw": -33.53,
+  "trail": -33.53,
+  "flat": -33.53
+ },
+ {
+  "ticker": "DXST",
+  "date": "2026-08-04",
+  "trade_id": "6d671f06f03d45dbb91baccb8604c0ce",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -39.68,
+  "trail": -39.68,
+  "flat": -39.68
+ },
+ {
+  "ticker": "TNMG",
+  "date": "2026-08-04",
+  "trade_id": "83bbd11b2b8d47098d5d211411668fe8",
+  "lane": "vwap_reclaim",
+  "status": "NO_FILLS",
+  "raw": -10.79,
+  "trail": -10.79,
+  "flat": -10.79
+ },
+ {
+  "ticker": "ADGM",
+  "date": "2026-08-04",
+  "trade_id": "aa6fbb93ab4343d4a9ddae58d1b82b5d",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 57.54,
+  "trail": 45.053211999999995,
+  "flat": 56.23509999999999
+ },
+ {
+  "ticker": "NUWE",
+  "date": "2026-08-04",
+  "trade_id": "d211974a356c48e99727ba413b5e995e",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 24.68,
+  "trail": 12.629699999999971,
+  "flat": 24.55519999999997
+ },
+ {
+  "ticker": "AMIX",
+  "date": "2026-08-04",
+  "trade_id": "b80d403505cb45f9aa4c0850ff9e8434",
+  "lane": "ma_pullback",
+  "status": "CHECKED",
+  "raw": 291.41,
+  "trail": 279.6078,
+  "flat": 291.4125
+ },
+ {
+  "ticker": "ZEO",
+  "date": "2026-08-04",
+  "trade_id": "de2455bb5ab9435292c4eaeeed8ec9d5",
+  "lane": "flat_top",
+  "status": "CHECKED",
+  "raw": -8.18,
+  "trail": -5.1030000000000335,
+  "flat": -5.1030000000000335
+ },
+ {
+  "ticker": "VMAR",
+  "date": "2026-08-05",
+  "trade_id": "8a0e318c3edc41b2a4c9738d694e7cab",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 7.33,
+  "trail": 10.885099999999984,
+  "flat": 10.885099999999984
+ },
+ {
+  "ticker": "YXT",
+  "date": "2026-08-05",
+  "trade_id": "5cebd135dd8f4d32837eb1ac9f46b73d",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -33.21,
+  "trail": -33.21,
+  "flat": -33.21
+ },
+ {
+  "ticker": "SHPH",
+  "date": "2026-08-05",
+  "trade_id": "c671cb5b99cc461697bf9521a6edad27",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -12.54,
+  "trail": -12.54,
+  "flat": -12.54
+ },
+ {
+  "ticker": "CTOR",
+  "date": "2026-08-05",
+  "trade_id": "62697515fb4a4f9cad54b1bc9490eb7a",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 5.02,
+  "trail": 5.0085,
+  "flat": 5.0085
+ },
+ {
+  "ticker": "JDZG",
+  "date": "2026-08-05",
+  "trade_id": "5a6485a9026e49cfbdcf6428af138378",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -30.75,
+  "trail": -30.75,
+  "flat": -30.75
+ },
+ {
+  "ticker": "BJDX",
+  "date": "2026-08-05",
+  "trade_id": "b5a4ad1fa4644466bee6e5f6cac9fcb8",
+  "lane": "orb",
+  "status": "NO_FILLS",
+  "raw": -32.52,
+  "trail": -32.52,
+  "flat": -32.52
+ },
+ {
+  "ticker": "BJDX",
+  "date": "2026-08-05",
+  "trade_id": "b7fa3723a6e342d1945bee665ffaf20c",
+  "lane": "ma_pullback",
+  "status": "NO_FILLS",
+  "raw": -30.1,
+  "trail": -30.1,
+  "flat": -30.1
+ },
+ {
+  "ticker": "WYHG",
+  "date": "2026-08-06",
+  "trade_id": "ae4eea7cc45640fb87f61075c9a8c0f7",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": 22.39,
+  "trail": -27.37934399999999,
+  "flat": -27.37934399999999
+ },
+ {
+  "ticker": "PAVS",
+  "date": "2026-08-06",
+  "trade_id": "3f0b111039f04524935a4903a75640b1",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -30.58,
+  "trail": -30.58,
+  "flat": -30.58
+ },
+ {
+  "ticker": "MGRX",
+  "date": "2026-08-06",
+  "trade_id": "300ec5ed90e34ba4bedd734504affa38",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -30.5,
+  "trail": -30.5,
+  "flat": -30.5
+ },
+ {
+  "ticker": "CLRO",
+  "date": "2026-08-06",
+  "trade_id": "3d059cc953c94dbe9a17b411e9260cb5",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 5.27,
+  "trail": 5.2005000000000035,
+  "flat": 5.2005000000000035
+ },
+ {
+  "ticker": "FVN",
+  "date": "2026-08-06",
+  "trade_id": "efde4d4867ec4597a42e348b8f10b9b8",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": -6.48,
+  "trail": -33.026743,
+  "flat": -33.026743
+ },
+ {
+  "ticker": "CELZ",
+  "date": "2026-08-06",
+  "trade_id": "2ca52108d3324976ad9e586ba0febbb0",
+  "lane": "ma_pullback",
+  "status": "CHECKED",
+  "raw": 59.65,
+  "trail": 46.56900000000003,
+  "flat": 60.44970000000004
+ },
+ {
+  "ticker": "FBLG",
+  "date": "2026-08-06",
+  "trade_id": "ddbf8ca32b3043019441373a53d5804f",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 0.74,
+  "trail": -26.94398000000006,
+  "flat": -26.94398000000006
+ },
+ {
+  "ticker": "SUGP",
+  "date": "2026-08-06",
+  "trade_id": "7b311873c7b24434a7c2592fe2579c41",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -30.45,
+  "trail": -30.45,
+  "flat": -30.45
+ },
+ {
+  "ticker": "CELZ",
+  "date": "2026-08-06",
+  "trade_id": "f530471fd60140e68ce3fd5258b428e5",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -33.18,
+  "trail": -33.18,
+  "flat": -33.18
+ },
+ {
+  "ticker": "DSY",
+  "date": "2026-08-07",
+  "trade_id": "5e26d2fa321e46aaaff5950d87687ee9",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 9.79,
+  "trail": -19.67551375,
+  "flat": -19.67551375
+ },
+ {
+  "ticker": "AIXI",
+  "date": "2026-08-07",
+  "trade_id": "57b75cd1e73d403fbb6ca80308bf8c0c",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": -4.95,
+  "trail": -4.950000000000026,
+  "flat": -4.950000000000026
+ },
+ {
+  "ticker": "DSY",
+  "date": "2026-08-07",
+  "trade_id": "706e79742db64dd8b3f31bf00fab3acb",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -36.56,
+  "trail": -36.56,
+  "flat": -36.56
+ },
+ {
+  "ticker": "YJ",
+  "date": "2026-08-07",
+  "trade_id": "8a726b0617a745a9a373b48e05ed3f39",
+  "lane": "ma_pullback",
+  "status": "CHECKED",
+  "raw": -4.56,
+  "trail": -33.76396799999999,
+  "flat": -33.76396799999999
+ },
+ {
+  "ticker": "QNME",
+  "date": "2026-08-07",
+  "trade_id": "ea14cd50ad78453ab453d7c00f335ccf",
+  "lane": "ma_pullback",
+  "status": "CHECKED",
+  "raw": 33.2,
+  "trail": 25.240181120000013,
+  "flat": 34.908200000000015
+ },
+ {
+  "ticker": "VIVK",
+  "date": "2026-08-10",
+  "trade_id": "02c9e18d9d1640308a2a516ae8f63001",
+  "lane": "ignition",
+  "status": "NOT_TIMED",
+  "raw": 3.03,
+  "trail": 3.03,
+  "flat": 3.03
+ },
+ {
+  "ticker": "INHD",
+  "date": "2026-08-10",
+  "trade_id": "31ad63a256cf4afc85c3012a8d98d6d1",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -3.35,
+  "trail": -3.35,
+  "flat": -3.35
+ },
+ {
+  "ticker": "XHLD",
+  "date": "2026-08-10",
+  "trade_id": "xhld-original-correction-20260810",
+  "lane": "ignition",
+  "status": "NOT_TIMED",
+  "raw": 25.43,
+  "trail": 25.43,
+  "flat": 25.43
+ },
+ {
+  "ticker": "HUDI",
+  "date": "2026-08-10",
+  "trade_id": "5a2f45fa66d24492929f4558d233074b",
+  "lane": "vwap_reclaim",
+  "status": "CHECKED",
+  "raw": -0.35,
+  "trail": -0.36900000000000377,
+  "flat": -0.36900000000000377
+ },
+ {
+  "ticker": "ZJYL",
+  "date": "2026-08-10",
+  "trade_id": "3be211bc4a0a4c74a4ff664f1189dc43",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 11.45,
+  "trail": 11.806800000000019,
+  "flat": 11.806800000000019
+ },
+ {
+  "ticker": "ELPW",
+  "date": "2026-08-11",
+  "trade_id": "4cfea94880494cdf83938634da721ad2",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": -0.98,
+  "trail": -0.720599999999969,
+  "flat": -0.720599999999969
+ },
+ {
+  "ticker": "MTEN",
+  "date": "2026-08-11",
+  "trade_id": "97dcf63047d849809edcdc2036200f70",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": -0.1,
+  "trail": -0.6671999999999914,
+  "flat": -0.6671999999999914
+ },
+ {
+  "ticker": "ELPW",
+  "date": "2026-08-11",
+  "trade_id": "67f415f95d19449c8f7122991cd7f068",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 28.35,
+  "trail": 18.802500000000038,
+  "flat": 6.449453000000041
+ },
+ {
+  "ticker": "WAFU",
+  "date": "2026-08-11",
+  "trade_id": "70a620c7313d44b49e4fca9886b5c8c4",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 16.51,
+  "trail": 7.399750700000006,
+  "flat": 15.754200000000012
+ },
+ {
+  "ticker": "ELPW",
+  "date": "2026-08-11",
+  "trade_id": "8267891f745947b28e1c64324584b25e",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 16.0,
+  "trail": 7.428500000000022,
+  "flat": -0.6806999999999723
+ },
+ {
+  "ticker": "DXF",
+  "date": "2026-08-11",
+  "trade_id": "39d2d60774b743e38988dc4851394dde",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -16.73,
+  "trail": -16.73,
+  "flat": -16.73
+ },
+ {
+  "ticker": "VEEE",
+  "date": "2026-08-11",
+  "trade_id": "46e51dd1156e40048d5cfca63abdbde6",
+  "lane": "flat_top",
+  "status": "NO_FILLS",
+  "raw": -5.98,
+  "trail": -5.98,
+  "flat": -5.98
+ },
+ {
+  "ticker": "DRMA",
+  "date": "2026-08-12",
+  "trade_id": "eacd96c8d5c94fedbf503ce54847a767",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -30.43,
+  "trail": -30.43,
+  "flat": -30.43
+ },
+ {
+  "ticker": "SCKT",
+  "date": "2026-08-12",
+  "trade_id": "90b352c27785418a8e37c66d5f6a21d6",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 54.75,
+  "trail": 42.48489999999997,
+  "flat": 53.35009999999998
+ },
+ {
+  "ticker": "BOXL",
+  "date": "2026-08-12",
+  "trade_id": "40c384b70848446fb6d2aa73a6c638e4",
+  "lane": "halt_ladder",
+  "status": "NOT_MODELED",
+  "raw": 34.34,
+  "trail": 34.34,
+  "flat": 34.34
+ },
+ {
+  "ticker": "GXAI",
+  "date": "2026-08-13",
+  "trade_id": "1a379846002c4a7fb60dab42e50c76bd",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 10.34,
+  "trail": 9.23470000000001,
+  "flat": 9.23470000000001
+ },
+ {
+  "ticker": "OFAL",
+  "date": "2026-08-13",
+  "trade_id": "2775aca9187743a7ada64489575f7ba9",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 13.72,
+  "trail": 5.484096500000005,
+  "flat": 13.476100000000002
+ },
+ {
+  "ticker": "LBGJ",
+  "date": "2026-08-14",
+  "trade_id": "b83e5e7be9294425a3f812a21c9e2e98",
+  "lane": "ignition",
+  "status": "CHECKED",
+  "raw": 14.51,
+  "trail": 6.174889999999956,
+  "flat": 14.922199999999961
+ },
+ {
+  "ticker": "AKAN",
+  "date": "2026-08-14",
+  "trade_id": "d6a038e259b14ca6a39c457c22f9112c",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -30.06,
+  "trail": -30.06,
+  "flat": -30.06
+ },
+ {
+  "ticker": "BOXL",
+  "date": "2026-08-14",
+  "trade_id": "cb276ab959e44b25aca9b0707c0b6225",
+  "lane": "ignition",
+  "status": "NO_FILLS",
+  "raw": -22.32,
+  "trail": -22.32,
+  "flat": -22.32
+ }
+]

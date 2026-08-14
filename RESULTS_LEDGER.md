@@ -1855,3 +1855,23 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
       dispute (are honest fills real when watched live), which is the question Marcos posed.
 - Fills-vs-eyes is the test: dashboard fills should now match what Marcos sees on the chart,
   in real time, every time. Any mismatch = defect, chased same night.
+
+## 2026-08-14 ~12:00 — MECHANISM RE-ANALYSIS BEGUN (Marcos: "let's begin")
+Two separate-context Systems Quant audits complete (full texts in data/audits/mechanism_audits_20260814.md):
+- MA_PULLBACK: mechanism HONEST (2 era winners reproduced to the tick) but (F1 DEFECT) warmup wall —
+  _fresh_session strips the 7-day EMA-warm fetch to today-only; lane blind until ~10:36-10:47 ET,
+  EMA50/90 nonexistent until 12:05/14:00 (docstring claims 9/20/50/90); "best cell 10:30-12" partly
+  artifact; above-VWAP cell tautological (precondition). (F3) ma_held lost from records. (F4) no
+  upper stop bound (DFNS 18.2% stop). (F5) DFNS day_gain stamp 5152% corrupt. Green record REAL but
+  concentrated (AMIX+CYCU = majority; ex-top-2 ~flat). Confirmation entry, not Kev's dip-buy —
+  pays ~1 candle premium vs the corpus blueprint. Proposals: kill warmup wall; restore telemetry;
+  anticipation-shadow rows.
+- IGNITION: detector HONEST (units/window/session-scoped correctly; 2.0/4.5 split works; all 3 live
+  specimens walked the coded path). Edge defects: degenerate zero-volume base fabricates volx (:5758);
+  session-open anchor wrong after post-10:10 restart/late-join (in-memory, 40-min rehydrate);
+  below_convert shadow rows missing day_gain/side fields (census cell not computable on shadow;
+  cohorts not gate-matched); retest fills instant on fire-bar noise (AKAN waited_s=0.0);
+  MIN_EXT=-5% admits below-open back-side entries (BOXL). Losses = design admitting the bleeding
+  cohort, not computation error. Proposals: census-cell gate (dg<40 & <10:30 + side term);
+  stamp shadow rows; fix anchors + degenerate base + completed-bucket retest.
+Both feed tonight's #56/#57 session; nothing ships unconvened/unpriced.

@@ -287,6 +287,13 @@ def run():
         if (i + 1) % 20 == 0:
             print('  %d/%d trades processed' % (i + 1, len(cohort)), flush=True)
 
+    json.dump([{ "ticker": r["t"]["ticker"], "date": r["t"]["date"],
+                 "trade_id": r["t"].get("trade_id"), "lane": r["lane"],
+                 "status": r["status"], "raw": r["t"]["pnl"],
+                 "trail": r.get("trail"), "flat": r.get("flat")} for r in rows],
+              open("core_lanes_20260814_PER_TRADE.json", "w"), indent=1, default=str)
+    print("per-trade dump written: %d rows" % len(rows), flush=True)
+
     def agg(sub):
         raw = sum(r['t']['pnl'] for r in sub)
         trail = sum(r['trail'] for r in sub)

@@ -1,5 +1,5 @@
 # SHIP CONVENING — 2026-08-14 approved change-set (unpacks+alarm · #57 bundle · daygain split · cell-gate stamp · lane observe splits · ma_pullback warmup seed) + dashboard repairs-watch
-covers: 99f0c9667326  (tree = code commits ef556471fdc4 + f09c13f5fe86 + data-only bars10s ferry 99f0c966; audited vs the actual diffs f09c13f~1..ef55647 and the ferry files)
+covers: 40f8a784088c (incl. harvester bars ferry; prior audited tree 99f0c9667326)  (tree = code commits ef556471fdc4 + f09c13f5fe86 + data-only bars10s ferry 99f0c966; audited vs the actual diffs f09c13f~1..ef55647 and the ferry files)
 Chair: Blast Radius Auditor. Separate-context convening; every finding below from reads/executions run this session.
 
 ## SHIP DESCRIPTION + AUTHORIZATION

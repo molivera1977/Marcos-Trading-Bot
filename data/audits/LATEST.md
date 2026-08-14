@@ -102,3 +102,15 @@ PRICED QUESTION TO MARCOS (not shipped): trial cohort-shift — at $175 the ambi
 thin names full scale will refuse; AMBIENT_DVOL_MULT=86 for the trial would hold today's $15k/min
 floor (measure-representative) vs default proportional (learn-wide). His call before Monday.
 VERDICT: SHIP. Full room carried from tonight's debrief; Historian chronicles the parametrization.
+
+## 22nd convening — FICTIONAL-FILL FIX, covers: 935039097222
+Agent aa05fd783032a8ef7: 7/7 verified (both feeds' formats parse aware; consumers enumerated —
+resting fills fixed, _verify_exit_px stricter w/ visible unverified stamps, watchdog consistent;
+resumed monitors cannot bypass; 15s grace net-conservative vs bar-start times; kill switch = exact
+restore; rig V executes the predicate on real formats). Day-one walkthrough: 07:05 PRE entry can
+no longer see the 06:30 spike high. doctrine-inversion sweep: n/a (correctness fix — removes fake
+PROFIT; book gets honest). Follow-ups ledgered: week-one watch on exit_px_unverified/below_tape
+counts in first-minutes; rig V parse chain is a copy (update in same diff if bot chain changes).
+Roll call delta: Surgeon, Statistician+Historian (census = correction ledger, OFFICIAL_BOOK
+footnote owed), Trade Manager, Pit Crew, Systems Quant, Wind Tunnel — touched; rest clean/carried.
+VERDICT: SHIP.

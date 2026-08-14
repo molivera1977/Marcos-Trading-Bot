@@ -1888,7 +1888,7 @@ zone_flip: fairly dead. day-gain floor + crown qualification corruptible by raw-
 splits (DFNS 5152%). Min-stop hidden exemption evidence stale (6%-era pricing, 4% floor today).
 All fixes/proposals queue to tonight's #56/#57 room, priced for Marcos. Nothing shipped intraday.
 
-## 2026-08-14 ~13:15 — MARCOS: ALL SEVEN APPROVED + PUSH NOW + REBUILD ALL ENTRIES
+## 2026-08-14 12:18 — MARCOS: ALL SEVEN APPROVED + PUSH NOW + REBUILD ALL ENTRIES
 Verbatim: "i will approve all, but I want it pushed now and I want all entries to be rebuilt
 and rebacktested now to be put in for next week." Second explicit RTH-push override today.
 Defaults set pending his word: item 4 = STAMP-ONLY (enforce = env flip); item 7 = hidden back

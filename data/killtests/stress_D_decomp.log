@@ -1,0 +1,14 @@
+G signals decomposed at FLAT $500 / F-mix execution (no capacity, H2 halt on):
+  flat_top FULL(dv>=20k): signals=94 filled=83 total@$500flat=$+123.53 per-trade=$+1.49
+  flat_top HALF(10-20k): signals=13 filled=12 total@$500flat=$-17.94 per-trade=$-1.49
+  flat_top SKIP(dv<10k): signals=101 filled=83 total@$500flat=$+304.51 per-trade=$+3.67
+  grinder FULL(dv>=20k): signals=92 filled=92 total@$500flat=$-203.36 per-trade=$-2.21
+  grinder HALF(10-20k): signals=25 filled=25 total@$500flat=$+64.16 per-trade=$+2.57
+  grinder SKIP(dv<10k): signals=94 filled=94 total@$500flat=$+1641.74 per-trade=$+17.47
+  vwap FULL(dv>=20k): signals=68 filled=68 total@$500flat=$-639.23 per-trade=$-9.40
+  vwap HALF(10-20k): signals=7 filled=7 total@$500flat=$-3.11 per-trade=$-0.44
+  vwap SKIP(dv<10k): signals=28 filled=28 total@$500flat=$+1752.56 per-trade=$+62.59
+H (grinder-1030 solo) cohorts at FLAT $500 chase:
+  grinder1030 FULL(dv>=20k): signals=101 filled=101 total@$500flat=$-191.18 per-trade=$-1.89
+  grinder1030 HALF(10-20k): signals=27 filled=27 total@$500flat=$+132.74 per-trade=$+4.92
+  grinder1030 SKIP(dv<10k): signals=111 filled=111 total@$500flat=$+1996.46 per-trade=$+17.99

@@ -1924,3 +1924,16 @@ SKIPPED/run -> any push could silently ship. FIX TONIGHT: disable auto-deploy on
 services; ship.sh becomes the only deploy path (its convention gap now closed by platform
 setting, not discipline).
 # auto-deploy seal test 2026-08-14 (no-op)
+
+## 2026-08-14 NIGHT — THE BAR FALLS: E3 PASSES ALL FIVE (first full pass, round six of six)
+Marcos: "we are not exiting this weekend without finding the fucking edge" + "Where are the
+runners and rockets?!" -> the exit sweep. E3 (grinder-1030 + flat_top retest entries unchanged;
+exits: bank 1/2 at +10%, trail rest 10%-off-high) at $500/2-slot through ALL haircuts:
+mean +$94.96/d · median +$62.09/d · green 81% · halves +$81/+$109 · worst -$115.
+Six-round arc: entries proven (rounds 1-3) -> sizing refuted, thin-tape edge (round 4, fair
+guard confirmed round 5) -> PRE dilutes except pre_vwap +$552 registrable (round 5) -> EXITS
+were the lever (round 6): the EMA90 trail sold the middle of the move.
+STATUS: NOMINATED, NOT LICENSED — best-of-5 selection risk (median margin +$12/d), capacity
+flag stands, exit-slip model weakest at E3's exits. OOS wall = the proving week in shadow.
+All artifacts data/killtests/edge_stresstest_[A-F]_20260815.*, engines committed, every round
+pre-registered before running. The edge: found, priced, and awaiting its five honest days.

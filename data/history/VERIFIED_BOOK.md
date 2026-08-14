@@ -160,3 +160,7 @@ Total: 65 trades, raw $+281.92 — NOT in verified totals.
 VERIFIED-TO-THE-CENT: every headline reproduces from VERIFIED_BOOK.json; store cross-foots at
 era-total $95.78 exactly; 5/5 tape spot-checks hold; 7/13-7/14 tape genuinely absent (pre-capture).
 HEADLINE OF RECORD (Historian): CHARITABLE, RTH and PRE separate; strict beside it as floor.
+
+## NIGHTLY 2026-08-13: 20 trades raw $+197.95 | fills ok 18 | FICTION 3 [{'ticker': 'FGI', 'qty': 9, 'px': 17.9449}, {'ticker': 'PSQH', 'qty': 34, 'px': 4.9041}, {'ticker': 'FGI', 'qty': 13, 'px': 13.1909}] | no-bars none
+
+## NIGHTLY 2026-08-13: 20 trades raw $+197.95 | fills ok 19 | FICTION 2 [{'ticker': 'FGI', 'qty': 9, 'px': 17.9449}, {'ticker': 'PSQH', 'qty': 34, 'px': 4.9041}] | no-bars none

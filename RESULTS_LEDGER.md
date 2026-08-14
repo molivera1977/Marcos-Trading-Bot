@@ -1739,3 +1739,9 @@ first-reject per ticker-day, 15:30-capped offers, coarse $ model ($200 clip, 35%
 - STANDING: Friday argues from charitable-with-strict-floor, never raw. OFFICIAL_BOOK headlines
   charitable (Historian adoption queued). Nightly verified-book job = the standing ritual
   (Quartermaster+Statistician). Broker-truth reconciliation settles fills definitively once live.
+- NIGHTLY BOOK VERIFICATION INSTALLED (Marcos: "make sure this nightly verification is done
+  nightly"): launchd com.marcos.tradingbot.bookverify, 22:45 ET daily (after the 22:30 books
+  backup), unions BOTH tape feeds (first-feed-only falsely branded 3 fills on run #1 — checker
+  checked against the room-verified book, fixed, now reconciles to the cent: today's true
+  fiction = $0.82, expected pre-fix). Appends to VERIFIED_BOOK.md + nightly_verify.log; ANY
+  fiction from 8/14 forward = exit-2 regression alarm. First scheduled run: tomorrow 22:45.

@@ -1438,6 +1438,119 @@ try:
 except AssertionError as _xe:
     check("X-g: daygain/warmup riders", False, str(_xe))
 
+print("Y) 8/14 #53 resting ladder (default OFF) + v2 confirmed-pullback shadow")
+try:
+    _y = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    # (a) env defaults EXECUTED: RESTING_SELLS off until Marcos + the $5 live place+cancel test;
+    # V2_SHADOW on (shadow rows are free)
+    _ye = {}
+    exec('import os\nos.environ.pop("RESTING_SELLS", None)\nos.environ.pop("V2_SHADOW", None)\n'
+         'RESTING_SELLS = os.environ.get("RESTING_SELLS", "0") == "1"\n'
+         'V2_SHADOW = os.environ.get("V2_SHADOW", "1") == "1"', _ye)
+    assert _ye["RESTING_SELLS"] is False and _ye["V2_SHADOW"] is True
+    assert 'RESTING_SELLS   = os.environ.get("RESTING_SELLS", "0") == "1"' in _y
+    assert 'V2_SHADOW      = os.environ.get("V2_SHADOW", "1") == "1"' in _y
+    check("Y-a: RESTING_SELLS default OFF, V2_SHADOW default ON", True)
+except AssertionError as _yx:
+    check("Y-a: env defaults", False, str(_yx))
+
+try:
+    # (b) EVERY market exit path funnels through _safety_close (ladder-cancel FIRST, then stop,
+    # then market) — string anchor per path; and the monitor region has NO stray close_position
+    # outside _safety_close + the ladder-aware tier branch.
+    _ym = _y[_y.index("def monitor_trade"):_y.index("def check_token_expiry")]
+    assert "_cancel_sell_ladder(ticker, _ladder)" in _ym.split("def _safety_close")[1][:400]
+    assert _ym.count("_safety_close(remaining_shares)") == 15, _ym.count("_safety_close(remaining_shares)")
+    for _anchor in ["premarket flatten: closing", "Force closing all positions",
+                    "force-closing {remaining_shares} sh", "Instant cut (Kev",
+                    "Cutting loss now.", "≤ stop ${current_stop:.2f}\")",
+                    "Kev INSTANT EXIT.", "prev-bar-low trail exit (runner)",
+                    "Topping tail off the high", "RUNG RATCHET exit",
+                    "fold the runner.", "BLIND-STOP FAILSAFE: no bars",
+                    "no 3-min-close wait", "CRATER FLOOR: ${current_price",
+                    "hit! Selling {remaining_shares}"]:
+        _yi = _ym.index(_anchor)
+        assert "_safety_close(remaining_shares)" in _ym[_yi:_yi + 600], "path missing cancel: " + _anchor
+    # stray-sell sweep: close_position inside the monitor ONLY via _safety_close + tier branch
+    assert _ym.count("close_position(ticker") == 2, _ym.count("close_position(ticker")
+    check("Y-b: 15 market exit paths funnel through _safety_close (ladder cancelled first)", True)
+except (AssertionError, ValueError) as _yx:
+    check("Y-b: exit-path ladder cancel", False, str(_yx))
+
+try:
+    # (c) ladder helpers EXECUTED (three-rings ring 1): quantities from the tier math, share
+    # budget never exceeded, runner tail unladdered, cancel marks done exactly once
+    _rows = []
+    _yn = {"RESTING_SELLS": True, "DRY_RUN": True,
+           "place_limit_sell": lambda t, q, p: f"FAKE-{q}@{p}",
+           "cancel_order": lambda oid: _rows.append(("cancel", oid)) or True,
+           "_log_decision": lambda t, s, **kw: _rows.append((s, kw)),
+           "print": lambda *a, **k: None}
+    _yb = _y[_y.index("def _place_sell_ladder"):_y.index("def update_stop_order")]
+    exec(_yb, _yn)
+    _lad = _yn["_place_sell_ladder"]("TT", [(5.0, 0.5), (6.0, 0.75)], 100, 100, 0, 4.0, 3.5, "x")
+    assert [r["qty"] for r in _lad] == [50, 25]                    # 50% then trim to 25% runner
+    assert sum(r["qty"] for r in _lad) <= 100                      # share-count guard
+    assert all(r["id"] for r in _lad) and not any(r["done"] for r in _lad)
+    assert any(s == "resting_ladder_placed" for s, _ in _rows)     # durable row stamped
+    _n1 = _yn["_cancel_sell_ladder"]("TT", _lad)
+    _n2 = _yn["_cancel_sell_ladder"]("TT", _lad)                   # second pass = nothing left
+    assert _n1 == 2 and _n2 == 0 and all(r["done"] for r in _lad)
+    # resume: already-sold tiers (start_tier=1) never re-place
+    _lad2 = _yn["_place_sell_ladder"]("TT", [(5.0, 0.5), (6.0, 0.75)], 100, 50, 1, 4.0, 3.5, "x")
+    assert _lad2[0]["qty"] == 0 and _lad2[0]["done"] and _lad2[1]["qty"] == 25
+    check("Y-c: ladder helpers executed — tier math, budget, cancel-once, resume skip", True)
+except (AssertionError, ValueError) as _yx:
+    check("Y-c: ladder helpers", False, str(_yx))
+
+try:
+    # (d) double-sell race guards: planned tier fill books the RESTING limit (no second market
+    # sell); DRY_RUN placement returns a fake id (test-push parity); ladder ids persist and are
+    # cancelled on resume AND on orphan close+record (restart semantics)
+    assert '"ladder_tier_fill"' in _y
+    _yt = _y.index('_l_rung.get("id") and not _l_rung.get("done")')
+    assert '_l_rung["done"] = True' in _y[_yt:_yt + 700]
+    assert "close_position" not in _y[_yt:_y.index("else:", _yt)]  # resting branch never market-sells
+    assert 'f"DRY-LIM-{uuid.uuid4().hex[:8]}"' in _y
+    assert '"ladder": [{"tier": r["tier"], "id": r["id"]' in _y    # persisted in durable state
+    assert 'resume_state.get("ladder")' in _y                      # resume cancels the prior ladder
+    _yo = _y.index("closed-and-recorded orphan")
+    assert 'cancel_order(_lr["id"])' in _y[_yo:_yo + 500]          # orphan close cancels rungs
+    check("Y-d: double-sell guards + DRY_RUN parity + restart ladder cancel", True)
+except (AssertionError, ValueError) as _yx:
+    check("Y-d: double-sell/restart guards", False, str(_yx))
+
+try:
+    # (e) v2 shadow is SHADOW ONLY: no breakouts.append in the detector OR its caller block;
+    # rows stamp in_window + would_stop
+    _yv = _y[_y.index("def v2_pullback_step"):_y.index("def kev_zoneflip_step")]
+    assert "breakouts.append" not in _yv
+    _yc = _y[_y.index("V2 CONFIRMED-PULLBACK shadow"):_y.index("IGNITION-10S feed")]
+    assert "breakouts.append" not in _yc and "execute_trade" not in _yc
+    assert '"v2_shadow_fire"' in _yc and "in_window=" in _yc and "would_stop=" in _yc
+    assert "flush_low=" in _yc and "flush_depth=" in _yc and "secs_from_push=" in _yc
+    check("Y-e: v2 shadow has NO conversion path; rows stamp in_window/would_stop", True)
+except (AssertionError, ValueError) as _yx:
+    check("Y-e: v2 shadow-only", False, str(_yx))
+
+try:
+    # (f) v2 detector EXECUTED on a synthetic flush->confirmation tape (three-rings ring 1)
+    from zoneinfo import ZoneInfo as _YZ
+    import datetime as _ydt
+    _yd = {"os": os, "datetime": _ydt.datetime, "EASTERN": _YZ("America/New_York")}
+    exec(_y[_y.index('V2_SHADOW      = os.environ.get'):_y.index("def kev_zoneflip_step")], _yd)
+    _bars = [(0, 9.8, 10.0, 9.7, 9.9, 100),      # push high 10.0
+             (10, 9.9, 9.9, 9.5, 9.55, 100),     # flush -5% within 10s -> armed, low 9.5
+             (20, 9.55, 9.6, 9.52, 9.58, 100),   # drifting, no confirmation
+             (30, 9.58, 9.75, 9.55, 9.72, 100)]  # higher low + close > prior high -> FIRE
+    _yf = _yd["v2_pullback_step"]("TT", _bars, 9.6)
+    assert _yf and _yf["would_stop"] == 9.5 and _yf["flush_low"] == 9.5
+    assert _yf["secs_from_push"] == 30 and _yf["px"] == 9.72 and _yf["flush_depth"] == 5.0
+    assert _yd["v2_pullback_step"]("TT", [(40, 9.7, 9.8, 9.6, 9.75, 100)], 9.6) is None  # one per flush
+    check("Y-f: v2 detector executed — flush armed, confirmation fired, stop = flush low", True)
+except (AssertionError, ValueError) as _yx:
+    check("Y-f: v2 detector execution", False, str(_yx))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

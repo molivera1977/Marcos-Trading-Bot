@@ -500,6 +500,15 @@ VRIDE_EXEMPT    = set(filter(None, (s.strip() for s in os.environ.get(
 # FAILURE CONDITION (pre-registered): wrong if wick-trimmed runners cost more than banked-at-number
 # gains — gradeable from the fill-source stamp on every partial.
 RESTING_BANK    = os.environ.get("RESTING_BANK", "1") == "1"
+# ── 8/14 #53 RESTING LIMIT TIER SELLS (Marcos: "I want the sells predetermined to our plan...
+# nothing left to chance"). Go-live architecture: at entry fill the ENTIRE predetermined scale-out
+# ladder (the kev_tiers rungs) is placed as RESTING SELL LIMIT orders at the broker. Planned exits
+# = resting limits; safety exits (stop / EOD flatten / trails / failsafes) stay MARKET via the
+# existing paths, and every market exit CANCELS outstanding ladder rungs FIRST (_safety_close —
+# the double-sell race is the known killer; share counts guarded). In DRY_RUN placement is
+# simulated with fake ids so the full path exercises on paper (test-push parity law).
+# DEFAULT OFF — stays 0 until Marcos's word + the $5 live place+cancel test (go-live week owes it).
+RESTING_SELLS   = os.environ.get("RESTING_SELLS", "0") == "1"
 MIN_RR             = 2.0    # minimum reward:risk ratio for EMA bounce
 VWAP_ENTRY_TIMEOUT     = 15    # No new entries after 3:30pm ET (not enough time to run)
 VWAP_ENTRY_TIMEOUT_MIN = 30   # minute component of final cutoff
@@ -2905,6 +2914,14 @@ def _recover_orphaned_trades():
             remaining = int(o.get("remaining_shares") or 0)
             initial   = int(o.get("initial_shares") or remaining or 1)
             partials  = o.get("partial_fills") or []   # [[qty, price], ...]
+            # #53: a closed-and-recorded orphan must not leave resting ladder rungs alive at
+            # the broker (double-sell race in restart costume) — cancel persisted ids first.
+            for _lr in (o.get("ladder") or []):
+                try:
+                    if isinstance(_lr, dict) and _lr.get("id") and not _lr.get("done"):
+                        cancel_order(_lr["id"])
+                except Exception:
+                    pass
             # For an OVERNIGHT/stale orphan, the persisted last-known price reflects the trade far
             # better than a fresh next-morning quote (which can gap). Fresh quote only for same-day.
             if o.get("entry_date") == datetime.now(EASTERN).strftime("%Y-%m-%d"):
@@ -5645,6 +5662,64 @@ def hidden_entry_step(sym, new_bars, vwap):
     return fired
 
 
+# ── 8/14 V2 CONFIRMED-PULLBACK SHADOW (Hidden Entry Architect's Kev flush-entry blueprint).
+# Backtest entry_rebuilds_20260814_RESULTS.md: IN-window 9:30-10:30 ET +$994.76 / 112 trades /
+# 41% wr / mean +$8.88 (3 of 4 days green); the SAME detector outside the window bled -$1,539.94.
+# SHADOW ONLY — HARD-CODED: there is no conversion path, no breakouts.append, no order flow of
+# any kind from this detector; it writes v2_shadow_fire rows and nothing else. Monday grades it.
+# Detector (per the backtest spec): established runner -> fast flush >= V2_FLUSH_PCT from the
+# 2-min local high within <= V2_FLUSH_SECS -> buyers step in: first completed 10s bar with a
+# HIGHER LOW and a CLOSE above the prior bar's high -> fire; would_stop = the flush low.
+# Flush arm expires after V2_EXPIRE_SECS. Rides the reclaim block's already-fed 10s bars +
+# session line — zero new fetches. Anchor proximity (VWAP) is STAMPED, not gated, so the
+# backtested VWAP/consolidation-anchor cohorts stay sliceable from the rows.
+V2_SHADOW      = os.environ.get("V2_SHADOW", "1") == "1"
+V2_FLUSH_PCT   = float(os.environ.get("V2_FLUSH_PCT", "3.0"))    # % drop from the 2-min local high
+V2_FLUSH_SECS  = int(os.environ.get("V2_FLUSH_SECS", "120"))     # flush must complete within 2 min
+V2_EXPIRE_SECS = int(os.environ.get("V2_EXPIRE_SECS", "180"))    # armed flush dies after 3 min
+_v2_st: dict = {}   # sym -> machine state (module-level: survives rescans)
+
+def v2_pullback_step(sym, new_bars, vwap):
+    """Advance sym's v2 confirmed-pullback SHADOW machine over NEW completed 10s bars
+    [(k,o,h,l,c,vol),...]. Detection only — the caller logs the row; nothing converts.
+    Returns at most one fire dict per call, else None."""
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    st = _v2_st.get(sym)
+    if not st or st.get("day") != day:
+        st = {"day": day, "win": [], "flush": None, "prev": None, "n": 0}
+        _v2_st[sym] = st
+    fired = None
+    for k, o, h, l, c, v in new_bars:
+        st["win"].append((k, h))
+        while st["win"] and k - st["win"][0][0] > 120:      # rolling 2-min local-high window
+            st["win"].pop(0)
+        fl = st["flush"]
+        if fl and k - fl["k"] > V2_EXPIRE_SECS:             # armed flush expired un-confirmed
+            fl = st["flush"] = None
+        push_k, push_hi = max(st["win"], key=lambda w: w[1])
+        if (push_hi > 0 and (push_hi - l) / push_hi * 100.0 >= V2_FLUSH_PCT
+                and 0 < k - push_k <= V2_FLUSH_SECS):
+            # fast flush from the push high — arm (or deepen an armed flush; low ratchets down)
+            if fl and l < fl["low"]:
+                fl["low"] = l; fl["k"] = k
+            elif not fl:
+                fl = st["flush"] = {"k": k, "low": l, "hi": push_hi, "push_k": push_k}
+        prev = st["prev"]
+        st["prev"] = (k, h, l, c)
+        if fired is None and fl is not None and prev is not None:
+            _pk, _ph, _pl, _pc = prev
+            if l > _pl and c > _ph:                         # buyers step in: higher low + close > prior high
+                fired = {"px": round(c, 4), "k": k,
+                         "flush_low": round(fl["low"], 4),
+                         "flush_depth": round((fl["hi"] - fl["low"]) / fl["hi"] * 100.0, 2)
+                                        if fl["hi"] > 0 else 0.0,
+                         "secs_from_push": int(k - fl["push_k"]),
+                         "would_stop": round(fl["low"], 4), "seq": st["n"]}
+                st["n"] += 1
+                st["flush"] = None                          # one confirmation per flush
+    return fired
+
+
 def kev_zoneflip_step(sym, new_bars):
     """Advance sym's Z1–Z3 machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
     Z1 arm: 9:30–9:45 flush ≥ZONEFLIP_FLUSH from the 9:30 open, low inside zone±band, vol ≥2×
@@ -7122,6 +7197,25 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                   level_gap_pct=_hg, ballpark=_hbp)
                                 except Exception:
                                     pass
+                        # ── 8/14 V2 CONFIRMED-PULLBACK shadow: same fed 10s bars + session line
+                        # as hidden (zero new fetches). SHADOW ONLY — this block logs a row and
+                        # STOPS; it never touches breakouts, slots, or any order path.
+                        if V2_SHADOW:
+                            try:
+                                _v2f = v2_pullback_step(t, _nb, _vr_sv)
+                                if _v2f:
+                                    _hm_v2 = datetime.now(EASTERN).strftime("%H:%M")
+                                    _log_decision(t, "v2_shadow_fire", price=_v2f["px"],
+                                                  flush_low=_v2f["flush_low"],
+                                                  flush_depth=_v2f["flush_depth"],
+                                                  secs_from_push=_v2f["secs_from_push"],
+                                                  vwap=round(_vr_sv, 4),
+                                                  near_vwap=bool(_vr_sv > 0 and abs(_v2f["flush_low"] - _vr_sv) / _vr_sv <= 0.02),
+                                                  in_window=bool("09:30" <= _hm_v2 < "10:30"),
+                                                  would_stop=_v2f["would_stop"],
+                                                  seq=_v2f["seq"], time_hm=_hm_v2)
+                            except Exception:
+                                pass
 
             # ── IGNITION-10S feed (7/26): VWAP-INDEPENDENT (the quiet base sits below VWAP by thesis),
             #    so it must NOT live inside the reclaim block's _vr_sv>0 gate. Own cursor; fire is
@@ -8318,6 +8412,77 @@ def place_stop_order(ticker, shares, stop_price):
     return result
 
 
+def place_limit_sell(ticker, shares, limit_price):
+    """#53 resting-ladder rung: a resting SELL LIMIT at a predetermined tier price
+    (Webull v2: order_type=LIMIT + limit_price — same field contract the entry buy uses).
+    DRY_RUN returns a fake id so the entire ladder path exercises on paper (test-push parity)."""
+    shares = max(1, int(shares))
+    if DRY_RUN:
+        print(f"🧪 DRY RUN — simulated resting SELL LIMIT: ${limit_price:.4f} × {shares} shares")
+        return f"DRY-LIM-{uuid.uuid4().hex[:8]}"
+    result = _place_order(ticker, shares, "SELL", "LIMIT", limit_price=limit_price)
+    if result:
+        print(f"🎯 Resting sell limit placed: ${limit_price:.4f} × {shares} shares")
+    else:
+        print(f"⚠️  Resting sell limit REJECTED (${limit_price:.4f} × {shares}) — "
+              f"software tier path covers this rung on {ticker}")
+    return result
+
+
+def _place_sell_ladder(ticker, kev_tiers, initial_shares, remaining_shares, start_tier,
+                       entry_price, stop_loss, entry_type):
+    """#53: place the full predetermined sell ladder as resting limits at entry.
+    Rung quantities derive from the SAME cumulative math the software tier-fill path uses,
+    and their sum can never exceed remaining_shares (share-count guard — the double-sell
+    race killer). The runner tail (cumulative < 1.0) stays unladdered: trail/stop manage it.
+    A rejected rung reserves its shares anyway (id=None) so the software path sells exactly
+    that quantity — the next rung can never absorb them into a second order.
+    Returns [{tier, id, price, qty, done}]; logs one durable resting_ladder_placed row."""
+    ladder = []
+    if not RESTING_SELLS:
+        return ladder
+    sold_so_far = initial_shares - remaining_shares
+    budget = remaining_shares
+    for i, (p, cum) in enumerate(kev_tiers):
+        if i < start_tier:                      # resume: already-sold tiers never re-place
+            ladder.append({"tier": i, "id": None, "price": p, "qty": 0, "done": True})
+            continue
+        target_sold = initial_shares if cum >= 1.0 else int(initial_shares * cum)
+        qty = min(max(1, target_sold - sold_so_far), budget)
+        if qty <= 0 or budget <= 0:
+            ladder.append({"tier": i, "id": None, "price": p, "qty": 0, "done": True})
+            continue
+        oid = place_limit_sell(ticker, qty, p)
+        ladder.append({"tier": i, "id": oid, "price": p, "qty": qty, "done": False})
+        sold_so_far += qty                      # reserved for this rung whether or not it placed
+        budget -= qty
+    try:
+        _log_decision(ticker, "resting_ladder_placed", price=round(entry_price, 4),
+                      stop=round(stop_loss, 4), entry_type=entry_type,
+                      rungs=[[r["tier"] + 1, r["price"], r["qty"],
+                              (r["id"] or "REJECTED")[:12]] for r in ladder if r["qty"] > 0],
+                      placed=sum(1 for r in ladder if r["id"]), of=len(kev_tiers),
+                      shares=remaining_shares, dry_run=bool(DRY_RUN))
+    except Exception:
+        pass
+    return ladder
+
+
+def _cancel_sell_ladder(ticker, ladder):
+    """#53: cancel every OUTSTANDING (not done) ladder rung. Called FIRST on any market exit —
+    an uncancelled resting limit + a market sell = the double-sell race. Marks rungs done so
+    no rung is ever cancelled (or counted) twice."""
+    n = 0
+    for r in (ladder or []):
+        if r.get("id") and not r.get("done"):
+            if cancel_order(r["id"]):
+                n += 1
+            r["done"] = True
+    if n:
+        print(f"🧹 {ticker}: cancelled {n} resting ladder rung(s) ahead of market exit")
+    return n
+
+
 def update_stop_order(ticker, shares, new_price, old_client_order_id):
     """
     Cancel the existing exchange stop order and place a new one.
@@ -8736,6 +8901,27 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         _log_decision(ticker, "exit_scaffold", price=round(entry_price, 4),
                       stop=round(stop_loss, 4), entry_type=entry_type,
                       rungs=[[p, c] for p, c in kev_tiers], shares=total_shares)
+    # ── 8/14 #53: the predetermined sell plan RESTS at the broker from the entry fill.
+    # A resume first cancels the PRIOR process's persisted ladder ids (unknown fill state ->
+    # cancel, then re-place fresh with correct quantities) so a restart can never leave two
+    # ladders resting. DRY_RUN uses fake ids end-to-end (test-push parity).
+    if RESTING_SELLS and isinstance(resume_state, dict):
+        for _lr in (resume_state.get("ladder") or []):
+            try:
+                if isinstance(_lr, dict) and _lr.get("id") and not _lr.get("done"):
+                    cancel_order(_lr["id"])
+            except Exception:
+                pass
+    _ladder = _place_sell_ladder(ticker, kev_tiers, initial_shares, remaining_shares,
+                                 tier_idx, entry_price, stop_loss, entry_type)
+
+    def _safety_close(_qty):
+        """#53 three-rings choke point: EVERY market exit in this monitor funnels here —
+        outstanding ladder rungs are cancelled FIRST (double-sell race guard), then the
+        resting stop, then the market sell. Planned tier fills do NOT come through here."""
+        _cancel_sell_ladder(ticker, _ladder)
+        cancel_order(placed_stop_id)
+        close_position(ticker, _qty)
     last_ema_check     = 0.0           # epoch of last EMA9 bar fetch
 
     result = {"exit_price": entry_price, "exit_reason": "Unknown",
@@ -8767,8 +8953,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             if not current_price or current_price <= 0:
                 current_price = last_good_price   # F3 (7/26): a dead quote at flatten must not book the runner as a $0 total loss
             if remaining_shares > 0:
-                cancel_order(placed_stop_id)
-                close_position(ticker, remaining_shares)
+                _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
             result["exit_price"]  = current_price
             result["exit_reason"] = f"{PRE_FLAT_HHMM} premarket time stop"
             break
@@ -8782,8 +8967,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             if not current_price or current_price <= 0:
                 current_price = last_good_price   # F3 (7/26): same guard as the premarket flatten
             if remaining_shares > 0:
-                cancel_order(placed_stop_id)
-                close_position(ticker, remaining_shares)
+                _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
             result["exit_price"]  = current_price
             result["exit_reason"] = "3:45pm time stop"
             break
@@ -8822,8 +9006,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             if remaining_shares > 0 and stale_secs > STALE_FEED_EXIT_SECS:
                 print(f"🛑 {ticker} price feed dead {stale_secs:.0f}s (> {STALE_FEED_EXIT_SECS}s) — "
                       f"force-closing {remaining_shares} sh at last price ${last_good_price:.2f} for safety.")
-                cancel_order(placed_stop_id)
-                close_position(ticker, remaining_shares)
+                _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
                 result["exit_price"]  = last_good_price
                 result["exit_reason"] = "STALE FEED SAFETY EXIT"
                 remaining_shares = 0
@@ -8846,8 +9029,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 and current_price <= entry_price):
             print(f"✂️  Failed breakout — {ticker} faded to ${current_price:.2f} (≤ entry ${entry_price:.2f}) "
                   f"without confirming, {elapsed:.0f}s in. Instant cut (Kev's rule).")
-            cancel_order(placed_stop_id)
-            close_position(ticker, remaining_shares)
+            _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
             result["exit_price"]  = current_price
             result["exit_reason"] = "Failed breakout ✂️"
             remaining_shares = 0
@@ -8857,8 +9039,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if vwap > 0 and not EXITS_ON_3MIN and elapsed <= EARLY_FADE_SECS and current_price < vwap:
             print(f"⚡ Early fade — {ticker} dropped below VWAP (${vwap:.2f}) "
                   f"within {elapsed:.0f}s of entry. Cutting loss now.")
-            cancel_order(placed_stop_id)
-            close_position(ticker, remaining_shares)
+            _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
             result["exit_price"]  = current_price
             result["exit_reason"] = "Early VWAP fade ⚡"
             remaining_shares = 0
@@ -8945,6 +9126,10 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             # Static plan fields for the dashboard's tale-of-the-tape (constant per trade)
             "tiers": [[p, c] for p, c in kev_tiers], "risk_ps": round(R, 4),
             "entry_session": ("PRE" if _entered_premkt else "RTH"),   # 8/7 (#17; auditor #9)
+            # #53: ladder ids persist so a restart (resume OR orphan close) can cancel them —
+            # a resting sell surviving its position is the double-sell race in restart costume.
+            "ladder": [{"tier": r["tier"], "id": r["id"], "price": r["price"],
+                        "qty": r["qty"], "done": bool(r.get("done"))} for r in _ladder],
         })
         # Refresh the watchdog's recordable context (heartbeat itself is set at the loop top).
         _m = _active_monitors.get(_mon_key)
@@ -8987,8 +9172,21 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                              else ("resting_stream" if RESTING_BANK else "poll"))
                 print(f"💰 {tier_label}: selling {sell_qty} of {remaining_shares} shares "
                       f"at ${_fill_px:.2f} [{_fill_src}] (+{profit_pct:.1f}%) — {'+1R risk-free' if tier_idx == 0 else 'trim to runner'}")
-                cancel_order(placed_stop_id)
-                close_position(ticker, sell_qty)
+                _l_rung = (_ladder[tier_idx] if (RESTING_SELLS and tier_idx < len(_ladder))
+                           else None)
+                if _l_rung and _l_rung.get("id") and not _l_rung.get("done"):
+                    # #53: the resting limit at the broker IS the executor of this planned exit —
+                    # a second market sell here would be the double-sell race. Book only; the
+                    # share-count guard caps the booking at the rung's actual resting quantity.
+                    _l_rung["done"] = True
+                    sell_qty = min(sell_qty, max(1, int(_l_rung.get("qty") or sell_qty)))
+                    cancel_order(placed_stop_id)   # stop resizes to remaining below
+                    _log_decision(ticker, "ladder_tier_fill", price=round(_fill_px, 4),
+                                  tier=tier_idx + 1, qty=sell_qty, src=_fill_src,
+                                  order_id=(_l_rung.get("id") or "")[:12])
+                else:
+                    cancel_order(placed_stop_id)
+                    close_position(ticker, sell_qty)
                 partial_price    = _fill_px
                 partial_taken    = True
                 partial_fills.append((sell_qty, _fill_px))
@@ -9093,8 +9291,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                             pass
                         _lbl = "Trailing stop 📉" if partial_taken else "Stop loss 🛑"
                         print(f"🛑 {_lbl} — 3-min close ${_c3:.2f} ≤ stop ${current_stop:.2f}")
-                        cancel_order(placed_stop_id)
-                        close_position(ticker, remaining_shares)
+                        _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
                         result["exit_price"]  = current_price
                         result["exit_reason"] = _lbl
                         remaining_shares = 0
@@ -9110,8 +9307,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     if _lh > _ph > 0 and 0 < _lcl < _ph:
                         print(f"🚫 {ticker}: new high ${_lh:.2f} rejected back below prior-bar high ${_ph:.2f} "
                               f"(close ${_lcl:.2f}) — Kev INSTANT EXIT.")
-                        cancel_order(placed_stop_id)
-                        close_position(ticker, remaining_shares)
+                        _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
                         result["exit_price"]  = current_price
                         result["exit_reason"] = "INSTANT EXIT (failed new high)"
                         remaining_shares = 0
@@ -9125,8 +9321,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     if _pl > 0 and 0 < _lcl2 < _pl:
                         print(f"📉 {ticker}: bar closed ${_lcl2:.2f} below prior-bar low ${_pl:.2f} "
                               f"— prev-bar-low trail exit (runner).")
-                        cancel_order(placed_stop_id)
-                        close_position(ticker, remaining_shares)
+                        _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
                         result["exit_price"]  = current_price
                         result["exit_reason"] = "PREV-BAR-LOW TRAIL"
                         remaining_shares = 0
@@ -9145,8 +9340,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     if last_high >= highest_price * 0.99 and is_topping_tail(completed[-1]):
                         print(f"🔻 Topping tail off the high: {ticker} rejected at ${last_high:.2f} "
                               f"in profit — taking full exit (Kev exit).")
-                        cancel_order(placed_stop_id)
-                        close_position(ticker, remaining_shares)
+                        _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
                         result["exit_price"]  = current_price
                         result["exit_reason"] = "TOPPING TAIL"
                         remaining_shares = 0
@@ -9188,8 +9382,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                             print(f"🪜 {ticker}: ${current_price:.2f} back at/below the highest cleared rung "
                                   f"${_ratchet_floor:.2f} — RUNG RATCHET exit (crossed resistance = support; "
                                   f"defend it, don't watch it go).")
-                            cancel_order(placed_stop_id)
-                            close_position(ticker, remaining_shares)
+                            _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
                             result["exit_price"]  = current_price
                             result["exit_reason"] = f"RUNG RATCHET (floor ${_ratchet_floor:.2f})"
                             remaining_shares = 0
@@ -9230,8 +9423,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     if _hc > 0 and _e9 > 0 and _vw > 0 and _hc < _e9 and _hc < _vw:
                         print(f"🩺 {ticker}: 3-min close ${_hc:.2f} below EMA9 ${_e9:.2f} AND session-VWAP ${_vw:.2f} "
                               f"(rolling-45 was ${_vw_roll:.2f}) — pullback structure gone, fold the runner.")
-                        cancel_order(placed_stop_id)
-                        close_position(ticker, remaining_shares)
+                        _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
                         result["exit_price"]  = current_price
                         result["exit_reason"] = "HEALTH FOLD (lost VWAP+EMA)"
                         remaining_shares = 0
@@ -9262,8 +9454,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 print(f"🛟 {ticker} BLIND-STOP FAILSAFE: no bars for {time.time()-_last_bars_ok:.0f}s "
                       f"({_fetch_fail_n} consecutive fetch failures) and stream ${current_price:.2f} < "
                       f"stop ${current_stop:.2f} for {time.time()-_below_since:.0f}s — exiting on stream.")
-                cancel_order(placed_stop_id)
-                close_position(ticker, remaining_shares)
+                _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
                 result["exit_price"]  = current_price
                 result["exit_reason"] = "BLIND-STOP FAILSAFE 🛟"
                 remaining_shares = 0
@@ -9290,8 +9481,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             label = "Trailing stop 📉" if partial_taken else "Stop loss 🛑"
             print(f"🛑 INTRABAR {label} — {ticker} traded ${current_price:.2f} ≤ stop ${current_stop:.2f}; "
                   f"selling {remaining_shares} sh now (no 3-min-close wait).")
-            cancel_order(placed_stop_id)
-            close_position(ticker, remaining_shares)
+            _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
             result["exit_price"]  = current_price
             result["exit_reason"] = label
             remaining_shares = 0
@@ -9301,8 +9491,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 and current_price <= entry_price - CRATER_FLOOR_R * R):
             print(f"🕳️  {ticker} CRATER FLOOR: ${current_price:.2f} ≤ entry ${entry_price:.2f} − "
                   f"{CRATER_FLOOR_R:.1f}R (${CRATER_FLOOR_R * R:.2f}) — force exit (stop was not actionable).")
-            cancel_order(placed_stop_id)
-            close_position(ticker, remaining_shares)
+            _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
             result["exit_price"]  = current_price
             result["exit_reason"] = "CRATER FLOOR 🕳️"
             remaining_shares = 0
@@ -9314,8 +9503,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         if (not EXITS_ON_3MIN) and current_price <= current_stop and remaining_shares > 0:
             label = "Trailing stop 📉" if partial_taken else "Stop loss 🛑"
             print(f"🛑 {label} hit! Selling {remaining_shares} shares at ${current_price:.2f}")
-            cancel_order(placed_stop_id)
-            close_position(ticker, remaining_shares)
+            _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market
             result["exit_price"]  = current_price
             result["exit_reason"] = label
             remaining_shares = 0
@@ -10234,7 +10422,8 @@ def main():
           f"BREAKSIDE_GATE={int(BREAKSIDE_GATE)}({sorted(BREAKSIDE_LANES)}) | "
           # 8/14 change-set switches:
           f"IGNITION_CELL_GATE={IGNITION_CELL_GATE} FLATTOP_CONVERT={int(FLATTOP_CONVERT)} "
-          f"VWAPRECLAIM_CONVERT={int(VWAPRECLAIM_CONVERT)} MA_WARMUP_SEED={int(MA_WARMUP_SEED)}")
+          f"VWAPRECLAIM_CONVERT={int(VWAPRECLAIM_CONVERT)} MA_WARMUP_SEED={int(MA_WARMUP_SEED)} "
+          f"RESTING_SELLS={int(RESTING_SELLS)} V2_SHADOW={int(V2_SHADOW)}")
     # 8/3 (#26): the SAME config, as a DURABLE decision row — Railway's CLI log window is ~500
     # lines, so the printed banner is unreadable hours later ("was the floor really 4% at boot"
     # took env+code inference on 8/3 instead of one query). One row per boot, queryable forever.
@@ -10261,7 +10450,8 @@ def main():
                       tape_prebreak=int(TAPE_PREBREAK_GATE), chart_ceiling=int(CHART_CEILING_GATE),
                       retest_band=(f"{RETEST_BAND_LO}-{RETEST_BAND_HI}" if RETEST_BAND_GATE else "off"),
                       ignition_cell_gate=IGNITION_CELL_GATE, flattop_convert=int(FLATTOP_CONVERT),
-                      vwapreclaim_convert=int(VWAPRECLAIM_CONVERT), ma_warmup_seed=int(MA_WARMUP_SEED))
+                      vwapreclaim_convert=int(VWAPRECLAIM_CONVERT), ma_warmup_seed=int(MA_WARMUP_SEED),
+                      resting_sells=int(RESTING_SELLS), v2_shadow=int(V2_SHADOW))
         _leader_rehydrate()   # 8/5: earned leader status survives restarts
     except Exception as _bc_e:
         print(f"⚠️  boot_config row failed (banner above still printed): {_bc_e}")

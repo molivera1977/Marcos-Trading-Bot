@@ -75,3 +75,5 @@ This ship follows doctrine changes (lane suspensions, gate addition, freshness r
 Room vote on "these commits are ship-clean as audited": **31-0 APPROVE** (0 blocking findings; Strength Ombudsman's item-7 dissent is against the hidden-observe policy, recorded in the early session — he approves the CODE as faithfully implementing the approved menu). Open owed items (non-blocking, tracked): crown-roster before/after audit, weekly bias ledger on any cell enforcement, 7/26 + meritocracy strict re-runs, flat-book verification in-turn at the deploy step, $5 place+cancel test.
 
 — Convening closed 2026-08-14. Blast Radius Auditor, chair.
+
+covers (post-audit bookkeeping): 3fd1cbb9fdba — gitignore universe cache only, no code.

@@ -1665,6 +1665,22 @@ def get_bars():
                 out[dd.name] = sorted(f.stem for f in dd.glob("*.json"))
     return jsonify({"days": len(out), "archived": out})
 
+@app.route("/api/oos_wall", methods=["GET"])
+def api_oos_wall():
+    """8/14 pm: OOS WALL tile feed — last line of data/history/OOS_WALL.md (the >=5-day E3 wall
+    ledger, appended nightly by nightly_shadow_grade.py). Repo-relative read: the deployed file
+    is as fresh as the last deploy — the tile labels it with the line's own date, so staleness
+    is visible, never silent. Read-only; no secret needed (display data only)."""
+    try:
+        fp = pathlib.Path(__file__).resolve().parent / "data" / "history" / "OOS_WALL.md"
+        last = ""
+        for line in fp.read_text().splitlines():
+            if line.strip().startswith("- "):
+                last = line.strip()
+        return jsonify({"line": last or "(no wall days yet)", "file": "data/history/OOS_WALL.md"})
+    except Exception as e:
+        return jsonify({"line": "", "error": str(e)})
+
 @app.route("/api/daily", methods=["GET"])
 def api_daily():
     """Webull DAILY bars for an ARBITRARY ticker — covers the small-caps free yfinance drops (delisted/absent).
@@ -2516,11 +2532,14 @@ def premarket_dashboard():
     _GATES = {"minstop_reject": "📏 min-stop", "runway_reject": "🛣️ runway", "breakside_reject": "🧱 break-side",
               "ceiling_reject": "🏔️ ceiling", "premkt_capped": "🎟️ PRE cap", "entries_paused": "🛑 FROZEN", "mapless_reject": "🗺️ mapless",
               # 8/14 repaired-machinery rows (ship WITH display — Curator's law)
-              "freshness_alarm": "🚨 freshness", "ignition_cell_reject": "🔬 ign-cell", "read_requested": "📖 read req"}
+              "freshness_alarm": "🚨 freshness", "ignition_cell_reject": "🔬 ign-cell", "read_requested": "📖 read req",
+              "standdown_active": "🛑 stand-down"}
     _SHAD = {"halt_arm": "🪜 halt arm", "halt_early_arm": "🌅 early arm", "seam_shadow_fire": "🧵 seam",
              # 8/14 observe-only lanes: data-only rows, rendered so Marcos can watch them accumulate
              "flat_top_observe_only": "👁 flat-top observe", "vwap_reclaim_observe_only": "👁 vwap-reclaim observe",
-             "hidden_observe_only": "👁 hidden observe"}
+             "hidden_observe_only": "👁 hidden observe",
+             # 8/14 pm: v2 flush + grinder lanes (grinder is post-10:30 by construction, listed for parity)
+             "v2_shadow_fire": "🌊 v2 flush", "grinder_shadow_fire": "🏔 grinder", "triggered_grinder": "🏔 grinder LIVE"}
     rej_rows, shad_rows = [], []
     for r in _decisions:
         if r.get("date") != today:
@@ -3223,6 +3242,9 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="section-title">Repairs Watch <span style="font-size:12px;font-weight:400;color:var(--muted)">(today — the repaired machinery, counted live: auto-maps, freshness alarms, auto-reads, observe-only lanes, ignition cells)</span></div>
   <div id="repairsWatch" style="margin:0 0 18px 0;font-size:13px;color:var(--muted)">loading…</div>
 
+  <div class="section-title">OOS Wall <span style="font-size:12px;font-weight:400;color:var(--muted)">(E3 shadow portfolio — latest nightly line; &ge;5 forward days before any live talk)</span></div>
+  <div id="oosWall" style="margin:0 0 18px 0;font-size:13px;color:var(--muted);border:1px solid var(--bg3);border-radius:8px;padding:8px 12px;font-family:ui-monospace,monospace;overflow-x:auto;white-space:nowrap">loading…</div>
+
   <div class="section-title">Trade History <span style="font-size:12px;font-weight:400;color:var(--muted)">(RTH)</span><span id="preLedgerLink" style="font-size:12px;font-weight:400"></span></div>
   <div class="table-wrap">
     <table>
@@ -3271,9 +3293,9 @@ function loadData(){
   document.getElementById('lastUpdate').textContent = 'Refreshing...';
   (function loadRejects(){
     const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    fetch('/api/decisions_archive?date='+ds+'&status=minstop_reject,runway_reject,breakside_reject,ceiling_reject,entries_paused,mapless_reject,freshness_alarm,ignition_cell_reject,read_requested&limit=50000').then(r=>r.json()).then(j=>{
+    fetch('/api/decisions_archive?date='+ds+'&status=minstop_reject,runway_reject,breakside_reject,ceiling_reject,entries_paused,mapless_reject,freshness_alarm,ignition_cell_reject,read_requested,standdown_active&limit=50000').then(r=>r.json()).then(j=>{
       const GATES={minstop_reject:'📏 min-stop',runway_reject:'🛣️ runway',breakside_reject:'🧱 break-side',ceiling_reject:'🏔️ ceiling',entries_paused:'🛑 FROZEN',mapless_reject:'🗺️ mapless',
-        freshness_alarm:'🚨 freshness',ignition_cell_reject:'🔬 ign-cell',read_requested:'📖 read req'};
+        freshness_alarm:'🚨 freshness',ignition_cell_reject:'🔬 ign-cell',read_requested:'📖 read req',standdown_active:'🛑 stand-down'};
       const rows=(j.rows||[]).filter(r=>GATES[r.status]);
       const el=document.getElementById('rejectStrip'); if(!el) return;
       if(!rows.length){ el.innerHTML='<span style="color:var(--muted4)">no gate rejects yet today</span>'; return; }
@@ -3289,6 +3311,7 @@ function loadData(){
           else if(r.status==='freshness_alarm') why=r.why||'map stale past alarm threshold — repair machinery paged';
           else if(r.status==='ignition_cell_reject') why=r.why||('ignition cell'+(r.in_cell!=null?' (in_cell '+r.in_cell+')':'')+' refused the fire');
           else if(r.status==='read_requested') why=r.why||'auto chart read requested';
+          else if(r.status==='standdown_active') why='stand-down — read unchanged since ceiling'+(r.since_ts?' (since '+r.since_ts+')':'');
           else why=r.why||'';
           return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
                  '<td><a href="/tale/'+(r.ticker||'')+'" style="color:#58a6ff;text-decoration:none"><b>'+(r.ticker||'—')+'</b></a></td><td>'+GATES[r.status]+'</td><td>'+(r.machine||'—')+'</td>'+
@@ -3298,9 +3321,10 @@ function loadData(){
   })();
   (function loadShadow(){
     const d=new Date(); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    fetch('/api/decisions_archive?date='+ds+'&status=halt_arm,halt_early_arm,seam_shadow_fire,flat_top_observe_only,vwap_reclaim_observe_only,hidden_observe_only&limit=50000').then(r=>r.json()).then(j=>{
+    fetch('/api/decisions_archive?date='+ds+'&status=halt_arm,halt_early_arm,seam_shadow_fire,flat_top_observe_only,vwap_reclaim_observe_only,hidden_observe_only,v2_shadow_fire,grinder_shadow_fire,triggered_grinder&limit=50000').then(r=>r.json()).then(j=>{
       const LANES={halt_arm:'🪜 halt arm',halt_early_arm:'🌅 early arm',seam_shadow_fire:'🧵 seam',
-        flat_top_observe_only:'👁 flat-top observe',vwap_reclaim_observe_only:'👁 vwap-reclaim observe',hidden_observe_only:'👁 hidden observe'};
+        flat_top_observe_only:'👁 flat-top observe',vwap_reclaim_observe_only:'👁 vwap-reclaim observe',hidden_observe_only:'👁 hidden observe',
+        v2_shadow_fire:'🌊 v2 flush',grinder_shadow_fire:'🏔 grinder',triggered_grinder:'🏔 grinder LIVE'};
       const rows=(j.rows||[]).filter(r=>LANES[r.status]);
       const el=document.getElementById('shadowStrip'); if(!el) return;
       if(!rows.length){ el.innerHTML='<span style="color:var(--muted4)">no shadow fires yet today</span>'; return; }
@@ -3308,10 +3332,14 @@ function loadData(){
         rows.slice(-40).reverse().map(r=>{
           let det='';
           if(r.status==='seam_shadow_fire') det='pull '+(r.pull_pct!=null?r.pull_pct+'%':'—')+(r.stop!=null?' · stop $'+r.stop:'');
+          else if(r.status==='v2_shadow_fire') det='flush '+(r.flush_depth!=null?r.flush_depth+'%':'—')+(r.flush_low!=null?' low $'+r.flush_low:'')+(r.would_stop!=null?' · stop $'+r.would_stop:'');
+          else if(r.status==='grinder_shadow_fire') det='sess-hi '+(r.session_hi!=null?'$'+r.session_hi:'—')+(r.would_stop!=null?' · stop $'+r.would_stop:'')+(r.mins_since_1030!=null?' · +'+r.mins_since_1030+'m':'');
+          else if(r.status==='triggered_grinder') det='sess-hi '+(r.session_hi!=null?'$'+r.session_hi:'—')+(r.stop!=null?' · stop $'+r.stop:'')+(r.day_n!=null?' · #'+r.day_n:'');
           else if(r.status.endsWith('_observe_only')) det=r.why||r.reason||'observe-only row';
           else det='prox '+(r.prox!=null?r.prox:'—')+' · vel '+(r.vel1m!=null?r.vel1m+'%/m':'—')+
                    (r.status==='halt_arm'?(' · 5s '+(r.confirm5s?'✅':'❌')+(r.upratio!=null?' up '+r.upratio:'')):'');
-          const conv=(r.status.endsWith('_observe_only'))?'<span style="color:var(--muted4)">observe</span>'
+          const conv=(r.status==='triggered_grinder')?'<span style="color:var(--green)">LIVE</span>'
+                    :(r.status.endsWith('_observe_only'))?'<span style="color:var(--muted4)">observe</span>'
                     :(r.status==='halt_early_arm')?'<span style="color:var(--muted4)">shadow</span>'
                     :(r.convert?'<span style="color:var(--green)">LIVE</span>':'<span style="color:var(--muted4)">shadow</span>');
           return '<tr><td style="white-space:nowrap">'+(r.time||String(r.recorded_at||'').slice(11,19))+'</td>'+
@@ -3353,6 +3381,17 @@ function loadData(){
         '</div>';
     }).catch(()=>{ const el=document.getElementById('repairsWatch'); if(el) el.innerHTML='<span style="color:var(--muted4)">repairs watch unavailable</span>'; });
     }catch(e){ try{ const el=document.getElementById('repairsWatch'); if(el) el.innerHTML='<span style="color:var(--muted4)">repairs watch unavailable</span>'; }catch(_){} }
+  })();
+  (function loadOosWall(){
+    /* 8/14 pm OOS WALL tile — last nightly line of data/history/OOS_WALL.md via /api/oos_wall.
+       Panel-isolated like repairsWatch: any failure degrades to a muted note, never kills the chain. */
+    try{
+    fetch('/api/oos_wall').then(r=>r.json()).then(j=>{
+      const el=document.getElementById('oosWall'); if(!el) return;
+      if(!j.line){ el.innerHTML='<span style="color:var(--muted4)">OOS wall ledger unavailable'+(j.error?' ('+j.error+')':'')+'</span>'; return; }
+      el.textContent=j.line;
+    }).catch(()=>{ const el=document.getElementById('oosWall'); if(el) el.innerHTML='<span style="color:var(--muted4)">OOS wall unavailable</span>'; });
+    }catch(e){}
   })();
   (function freezeBanner(){
     function poll(){

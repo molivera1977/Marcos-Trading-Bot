@@ -1937,3 +1937,15 @@ STATUS: NOMINATED, NOT LICENSED — best-of-5 selection risk (median margin +$12
 flag stands, exit-slip model weakest at E3's exits. OOS wall = the proving week in shadow.
 All artifacts data/killtests/edge_stresstest_[A-F]_20260815.*, engines committed, every round
 pre-registered before running. The edge: found, priced, and awaiting its five honest days.
+
+## 2026-08-14 ~20:45 — ROUND SEVEN: KEV'S AGGRESSION BEATS E3, PASSES 5/5
+Marcos's second instinct of the night ("taking multiple chunks and attacking the break-side")
+tested under the proven E3 exits: O portfolio (flat_top BREAK-attack + grinder full-clip
+re-attack) = mean +$156.64/d, MEDIAN +$134.44/d, green 89%, halves +$168/+$146, worst -$110,
+ex-best +$141.50/d — vs E3 baseline +$94.96/+$62.09. Break-attack beats retest in EVERY column
+(the retest was filtering OUT the strongest breaks). Multi-chunk REFUTED for grinder (the
+signal is already the confirmation; adds just raise basis). Re-attack marginal cohort thin
+positive (N=14). CAVEATS: round-7 selection risk (OOS wall grades it, no-ship); break-print
+chase slip least trustworthy at the break; [CAPACITY-SUSPECT] amplified (328 slot-skips).
+STATUS: O joins E3 as co-nominee; Monday's wall grades BOTH in parallel; conversion = evidence
++ Marcos's word only. Artifacts edge_stresstest_G_20260815.* committed 17dea1b.

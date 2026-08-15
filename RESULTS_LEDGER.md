@@ -1992,3 +1992,14 @@ exit (Kev treats losing VWAP as the story ending — E3 currently blind to it), 
 target updates (fresh map -> new rungs -> ratchet floors), topping-tail (already built, E3-guarded
 off — join owed), crown-aware runner patience. Each proposal = universe kill-test vs the E3
 incumbent before any wiring; Sunday menu carries the exit matrix beside the entry matrix.
+
+## 2026-08-15 ~00:40 — SUNDAY BUILD #0 SPEC (Marcos): FULL EYES SNAPSHOT AT ENTRY *AND* EXIT
+Verbatim: "i want to be able to answer the question of where each ticker was at entry and exit
+and that includes every element of the EYES." Spec: every trade record carries TWO complete
+context blocks — entry_context and exit_context — each with EVERY eye: price + session VWAP
+(side/distance/slope-5m) + SIDE stamp (front/back) + map state (zone, break dist, next rung,
+road R post-wall, map age/freshness) + day-gain + crown + lens state + halt distance + spread
+state + ambient median + session/window + time. Same block on shadow fires (entry side).
+Rendered in the ticker's tale-of-the-tape page + trade history detail so Marcos can answer the
+question from the dashboard, not a query. Ships Sunday morning batch, BEFORE the matrix (which
+consumes these blocks). Rig pin: a synthetic trade's record must contain both blocks complete.

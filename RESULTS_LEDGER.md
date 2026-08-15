@@ -1972,3 +1972,13 @@ EYES_AUDIT_20260815.md: ALIVE 55 / UNPROVEN 10 / DEAD 4 / NEVER-BUILT 5(+1 needs
 Auto-deploy: Marcos clicked Disable on all three services ~17:30-17:40; verified by the 17:40
 no-op push producing ZERO deployments (seal test in ledger above). Item closed.
 Weekend order per the mandate: fix the 4 dead first -> 10 proving drills -> build queue.
+
+## 2026-08-15 ~00:05 — MARCOS MANDATE #2: ENTRIES MUST PROPERLY USE THE EYES
+Verbatim: "I also want to make sure this weekend that each entry PROPERLY utilizes the EYES
+that this system has created for them." Deliverable: the ENTRY x EYES MATRIX — every lane
+(live, shadow, queued) x every eye (VWAP, side, break-side, back-side, chart map/levels,
+runway+wall, freshness/auto-map, crowns, lens, day-gain, ambient floor, halt-distance, spread
+state) classified WIRED-AS-GATE / STAMPED-ONLY / NOT-CONSULTED, with a join-backed proposal
+wherever an unconsulted eye demonstrably pays (and explicit LEAVE-ALONE where joins say so —
+tonight's VWAP verdicts + runway vindication are the first entries). Matrix + priced wiring
+proposals = the centerpiece of Sunday's menu,每 proposal needing Marcos's word.

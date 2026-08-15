@@ -83,19 +83,27 @@ def det_flat_top_break(bars, emas, gaps):
 
 # ---- TEST L(b) detector: grinder EARLY-ATTACK (close above prior 15-min high) ----
 def det_grinder_early(bars, emas, gaps):
+    from collections import deque
+    from bisect import bisect_left
     trades = []
     cv = cpv = 0.0; last_entry_s = None
+    secs_list = [E.secs(x) for x in bars]
+    dq = deque()  # sliding-window max of highs over prior 900s (front = max)
     for i, b in enumerate(bars):
         tp = (b["h"] + b["l"] + b["c"]) / 3.0
         cv += b["v"]; cpv += tp * b["v"]
         vw = cpv / cv if cv else b["c"]
-        if E.hhmm_b(b) < "14:30:00": continue
-        s = E.secs(b)
-        w30 = [x for x in bars[:i + 1] if E.secs(x) >= s - 1800]
-        w15 = [x for x in w30 if E.secs(x) >= s - 900]
-        prior15 = [x for x in bars[:i] if E.secs(x) >= s - 900]
-        if len(w30) < 2 or len(w15) < 2 or not prior15: continue
-        if b["c"] <= max(x["h"] for x in prior15): continue  # first close above prior 15-min high
+        s = secs_list[i]
+        while dq and dq[0][0] < s - 900: dq.popleft()
+        prior_hi = dq[0][1] if dq else None
+        trigger = (E.hhmm_b(b) >= "14:30:00" and prior_hi is not None and b["c"] > prior_hi)
+        # push current bar into the prior-window structure for the NEXT bar
+        while dq and dq[-1][1] <= b["h"]: dq.pop()
+        dq.append((s, b["h"]))
+        if not trigger: continue
+        j30 = bisect_left(secs_list, s - 1800); j15 = bisect_left(secs_list, s - 900)
+        w30 = bars[j30:i + 1]; w15 = bars[j15:i + 1]
+        if len(w30) < 2 or len(w15) < 2: continue
         net_up = b["c"] > w30[0]["c"]
         above_vwap = b["c"] > vw
         run_hi = w15[0]["h"]; max_dd = 0.0

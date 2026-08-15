@@ -307,8 +307,8 @@ check("ambient: exactly-at-floor passes (boundary inclusive)", _adv(_mkb(1000,15
 check("ambient: liquid whale passes", _adv(_mkb(200000,17.0))[0] is True)
 check("ambient: sparse bars fail-open", _adv(_mkb(1000,1.0)[:4])[0] is True)
 check("ambient: kill switch (mult 0)", (lambda: (_ns.__setitem__("AMBIENT_DVOL_MULT",0.0), _ns["_ambient_dvol_ok"](_mkb(10,0.5)))[1][0])() is True)
-check("ambient applied in check_momentum", "_ambient_dvol_ok(bars)" in src2)
-check("ambient applied on universal gate INCL ignition", "_ambient_dvol_ok(_gb)" in src2
+check("ambient applied in check_momentum", "_ambient_dvol_ok(bars, ticker)" in src2)   # 8/15: ticker-aware
+check("ambient applied on universal gate INCL ignition", "_ambient_dvol_ok(_gb, ticker)" in src2
       and "INCLUDING ignition" in src2)
 check("ambient stamped in boot row", "ambient_dvol_mult=AMBIENT_DVOL_MULT" in src2)
 
@@ -532,7 +532,9 @@ check("perimeter: test-path 3-tuple unpack fixed", "_tt_fill = execute_trade(TES
 # ── 8/8 #28 STICKY STAND-DOWN pins (blow-off guard; YJ 11:44->11:51 specimen) ──
 _sd_src = open(os.path.join(os.path.dirname(__file__), "..", "marcos_trading_bot.py")).read()
 check("standdown: ceiling fire BINDS the ticker (ts + bind time; never binds ts-less)",
-      '_standdown[ticker] = (str(_z_rec["_ts"]), time.time())' in _sd_src)
+      '_standdown[ticker] = (str(ts), time.time())' in _sd_src            # 8/15: via helper
+      and '_standdown_bind(ticker, _z_rec["_ts"])' in _sd_src
+      and 'STANDDOWN_STICKY and str((_z_rec or {}).get("_ts") or "")' in _sd_src)
 check("standdown: same read -> standdown_active reject + full refunds",
       '"standdown_active"' in _sd_src
       and _sd_src.split('"standdown_active"')[1][:400].count("_slot_refund") == 1
@@ -1790,6 +1792,79 @@ try:
     check("AB-e: non-E3 lanes' exits untouched (guards inert), default ladders + E3 block all present", True)
 except (AssertionError, ValueError) as _abe:
     check("AB-e: other-lane exit integrity", False, str(_abe))
+
+print("AC) 8/15 FOUR DEAD EYES — stand-down rows, crown pre-exempt, ambient floor, premkt heartbeat")
+# EXECUTES the real production source (extracted verbatim, exec'd — the rig's exec-pin
+# convention): heartbeat once-per-day law, bind/lift rows, ambient reject arithmetic + rows.
+_ey = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+try:
+    _eydt = __import__("datetime")           # a prior section rebinds the name 'datetime'
+    _eyn = {"datetime": _eydt.datetime, "time": __import__("time"),
+            "AMBIENT_DVOL_MULT": 15.0, "MAX_TRADE_DOLLARS": 1000.0}
+    import zoneinfo as _zi
+    _eyn["EASTERN"] = _zi.ZoneInfo("America/New_York")
+    _ey_rows = []
+    _eyn["_log_decision"] = lambda tk, st, **f: _ey_rows.append((tk, st, f))
+    _eyn["_gate_failopen"] = lambda *a, **k: None
+    # real helper block (from _standdown = {} through _standdown_lift)
+    _hb = _ey[_ey.index("_standdown = {}"):_ey.index("# 8/4 ~01:15 RETEST DEPTH BAND")]
+    exec(_hb, _eyn)
+    # real ambient function
+    exec(_ey[_ey.index("def _ambient_dvol_ok"):_ey.index("def check_momentum")], _eyn)
+
+    # (a) heartbeat: exactly ONE row per status per ET day, second call refuses
+    assert _eyn["_eye_heartbeat"]("standdown_armed", "TT", sticky=1) is True
+    assert _eyn["_eye_heartbeat"]("standdown_armed", "UU", sticky=1) is False
+    assert len([r for r in _ey_rows if r[1] == "standdown_armed"]) == 1
+    # (b) bind writes the dict entry AND the standdown_bound row; lift pops AND writes its row
+    _eyn["_standdown_bind"]("TT", "2026-08-15T10:00:00")
+    assert "TT" in _eyn["_standdown"] and _eyn["_standdown"]["TT"][0] == "2026-08-15T10:00:00"
+    assert any(r[1] == "standdown_bound" and r[0] == "TT" for r in _ey_rows)
+    _eyn["_standdown_lift"]("TT", "fresh_read")
+    assert "TT" not in _eyn["_standdown"]
+    assert any(r[1] == "standdown_lifted" and r[2].get("why") == "fresh_read" for r in _ey_rows)
+    check("AC-a: heartbeat once/day; standdown bind+lift write rows via the REAL functions", True)
+except (AssertionError, ValueError, KeyError) as _ace:
+    check("AC-a: standdown helpers exec", False, str(_ace))
+
+try:
+    # (c) ambient EXECUTED: thin tape rejects (median math), thick passes, heartbeat stamps once
+    _thin = [{"volume": 100, "close": 2.0}] * 11            # $200/min << $15k need
+    _ok, _med, _need = _eyn["_ambient_dvol_ok"](_thin, "AMB")
+    assert _ok is False and _med == 200.0 and _need == 15000.0
+    _thick = [{"volume": 20000, "close": 2.0}] * 11         # $40k/min
+    _ok2, _med2, _need2 = _eyn["_ambient_dvol_ok"](_thick, "AMB")
+    assert _ok2 is True and _med2 == 40000.0
+    assert len([r for r in _ey_rows if r[1] == "ambient_checked"]) == 1   # daily heartbeat, not per-call
+    assert _ey_rows[[r[1] for r in _ey_rows].index("ambient_checked")][2]["need"] == 15000
+    # <5 bars still fail-open, no crash without ticker
+    assert _eyn["_ambient_dvol_ok"]([{"volume": 1, "close": 1}] * 3)[0] is True
+    check("AC-b: _ambient_dvol_ok EXECUTED — thin rejects, thick passes, ambient_checked heartbeat", True)
+except (AssertionError, ValueError, KeyError) as _ace:
+    check("AC-b: ambient exec", False, str(_ace))
+
+# (d) three-rings call-site enumeration (source pins — the wiring the exec above can't reach)
+check("AC-c: ALL 4 _ambient_dvol_ok call sites pass ticker",
+      _ey.count("_ambient_dvol_ok(bars, ticker)") == 2 and _ey.count("_ambient_dvol_ok(_gb, ticker)") == 2
+      and "_ambient_dvol_ok(bars)\n" not in _ey and "_ambient_dvol_ok(_gb)\n" not in _ey)
+check("AC-d: distinct ambient_reject rows at BOTH reject sites (check_momentum + universal gate)",
+      _ey.count('"ambient_reject"') == 2 and 'src="check_momentum"' in _ey and 'src="universal_gate"' in _ey)
+check("AC-e: worker binds/lifts via the row-writing helpers (no silent dict ops left)",
+      '_standdown_bind(ticker, _z_rec["_ts"])' in _ey and '_standdown_lift(ticker, "fresh_read"' in _ey
+      and "_standdown.pop(ticker, None)   # fresh read arrived" not in _ey)
+check("AC-f: standdown_armed heartbeat sits BEFORE the sticky check, chart lanes only",
+      '_eye_heartbeat("standdown_armed", ticker' in _ey
+      and _ey.index('_eye_heartbeat("standdown_armed"') < _ey.index('and ticker in _standdown'))
+check("AC-g: standdown_active row + _z_rec pre-bound against NameError",
+      '"standdown_active"' in _ey and "_z_rec = None   # 8/15 eyes" in _ey)
+check("AC-h: crown_pre_exempt logs on EVERY crowned PRE pass with cap_full stamp",
+      'if _is_leader(entry[0]):\n                        _log_decision(entry[0], "crown_pre_exempt"' in _ey
+      and 'cap_full=bool(_pre_day["n"] >= PRE_MAX_TRADES)' in _ey)
+check("AC-i: premkt_gate_armed daily heartbeat inside the PRE window with cap/slots",
+      '_eye_heartbeat("premkt_gate_armed", breakouts[0][0], cap=PRE_MAX_TRADES' in _ey
+      and 'slots_used=_pre_day["n"]' in _ey)
+check("AC-j: premkt_capped row-writer intact (cap-1 reachability: kept-branch condition unchanged)",
+      '"premkt_capped"' in _ey and '_pre_day["n"] < PRE_MAX_TRADES or _is_leader(entry[0])' in _ey)
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

@@ -3956,10 +3956,13 @@ def check_level2(ticker, entry_price) -> tuple[bool, dict]:
 # live slippage mostly eats). Era cohort under the floor: 25 trades, -$66.95 net.
 AMBIENT_DVOL_MULT = float(os.environ.get("AMBIENT_DVOL_MULT", "15.0"))
 
-def _ambient_dvol_ok(bars):
+def _ambient_dvol_ok(bars, ticker=None):
     """(ok, median_dvol, need). Median $ volume of the last 10 COMPLETED bars vs the floor.
     Fail-OPEN on missing data (<5 completed bars) — a data gap is not evidence of thin tape;
-    the read-list floor and PRE_MIN_DVOL own the sparse-tape cases."""
+    the read-list floor and PRE_MIN_DVOL own the sparse-tape cases.
+    8/15 eyes: pass ticker so the day's first REAL computation stamps an ambient_checked
+    heartbeat (the 8/6-8/14 era had zero queryable ambient rows: rejects surfaced only as
+    generic momentum_reject text, so 'dead vs never-binds' was undecidable)."""
     try:
         if not AMBIENT_DVOL_MULT:
             return True, 0.0, 0.0
@@ -3971,6 +3974,9 @@ def _ambient_dvol_ok(bars):
             return True, 0.0, 0.0
         med = dv[len(dv) // 2]
         need = AMBIENT_DVOL_MULT * MAX_TRADE_DOLLARS
+        if ticker:
+            _eye_heartbeat("ambient_checked", ticker, median_dvol=round(med),
+                           need=round(need), mult=AMBIENT_DVOL_MULT, ok=bool(med >= need))
         return med >= need, med, need
     except Exception:
         _gate_failopen("ambient", why="exception")
@@ -4029,17 +4035,21 @@ def check_momentum(ticker) -> tuple[bool, dict]:
             # price-blind — 5,748/bar of a $9.74 name is $56k/min of REAL liquidity, while 2,400
             # of SUGP was $5k. The ambient DOLLAR floor is the correct measure; when it passes,
             # the share floor is waived. When ambient data is missing both floors stand.
-            _sf_ok, _sf_med, _sf_need = _ambient_dvol_ok(bars)
+            _sf_ok, _sf_med, _sf_need = _ambient_dvol_ok(bars, ticker)
             if _sf_ok and _sf_med >= _sf_need > 0:
                 print(f"💵 {ticker} share floor waived — ambient ${int(_sf_med):,}/min >= ${int(_sf_need):,} (dollar floor supersedes)")
             else:
                 details["reason"] = f"illiquid — avg vol {int(avg_vol):,}/bar < {MOMENTUM_MIN_AVG_VOL:,} floor, skip"
                 print(f"❌ {ticker} momentum FAIL: {details['reason']}")
                 return False, details
-        _am_ok, _am_med, _am_need = _ambient_dvol_ok(bars)           # 8/6 ambient floor (spike-proof)
+        _am_ok, _am_med, _am_need = _ambient_dvol_ok(bars, ticker)   # 8/6 ambient floor (spike-proof)
         if not _am_ok:
             details["reason"] = (f"thin ambient tape — median ${int(_am_med):,}/min over prior 10 bars "
                                  f"< ${int(_am_need):,} exit floor ({AMBIENT_DVOL_MULT:g}x position cap)")
+            # 8/15 eyes: distinct queryable row — this reject previously surfaced ONLY as
+            # truncated momentum_reject text, invisible to every status census
+            _log_decision(ticker, "ambient_reject", median_dvol=round(_am_med),
+                          need=round(_am_need), src="check_momentum")
             print(f"❌ {ticker} momentum FAIL: {details['reason']}")
             return False, details
 
@@ -6943,6 +6953,35 @@ def _halt5_confirm(t):
     except Exception:
         return False, None, None
 _standdown = {}   # ticker -> map _ts at stand-down; cleared when the map's _ts moves
+
+# ── 8/15 FOUR-DEAD-EYES (Marcos: "these are the eyes of the bot"): daily heartbeat rows so a
+# mechanism's SILENCE is interpretable. Zero reject rows + heartbeat present = genuinely never
+# bound; zero rows + NO heartbeat = the code path is dead (the tuple-unpack class). One row per
+# ET day per status, written at the day's FIRST real evaluation with that evaluation's values. ──
+_eye_beat_day = {}   # status -> ET date already stamped
+
+def _eye_heartbeat(status, ticker, **fields):
+    """Once-per-ET-day proof-of-evaluation row. Returns True when THIS call wrote the stamp."""
+    try:
+        _d = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        if _eye_beat_day.get(status) == _d:
+            return False
+        _eye_beat_day[status] = _d
+        _log_decision(ticker, status, **fields)
+        return True
+    except Exception:
+        return False
+
+def _standdown_bind(ticker, ts):
+    """#28 bind + the bind-time row the 8/8 ship never wrote (binds/lifts were invisible, so
+    'zero standdown_active rows' was undecidable between dead-code and never-rebound)."""
+    _standdown[ticker] = (str(ts), time.time())
+    _log_decision(ticker, "standdown_bound", bound_ts=str(ts)[-19:])
+
+def _standdown_lift(ticker, why):
+    """#28 lift + row (was a silent dict.pop)."""
+    _standdown.pop(ticker, None)
+    _log_decision(ticker, "standdown_lifted", why=why)
 # 8/4 ~01:15 RETEST DEPTH BAND (Marcos override #3: "set the retest level to 5%-12% and shadow
 # the lanes both above and below"). SIP-complete reclassification (zone_reclass_audit_20260803):
 # retest entries <=5% under an already-touched break = the BATTLE ZONE, -$13.66/t 31% win n=13
@@ -10909,6 +10948,12 @@ def main():
             _pmday = datetime.now(EASTERN).strftime("%Y-%m-%d")
             if _pre_day["d"] != _pmday:
                 _pre_day["d"] = _pmday; _pre_day["n"] = 0
+            # 8/15 eyes: proof-of-evaluation — the day's first PRE-gate pass stamps cap state,
+            # so zero premkt_capped / crown_pre_exempt rows reads as "never bound", not "dead"
+            if breakouts:
+                _eye_heartbeat("premkt_gate_armed", breakouts[0][0], cap=PRE_MAX_TRADES,
+                               slots_used=_pre_day["n"], candidates=len(breakouts),
+                               flat_hhmm=PRE_FLAT_HHMM)
             _kept_pm = []
             _shadow_pm = []
             for entry in breakouts:
@@ -10925,9 +10970,15 @@ def main():
                     # 8/12 CROWN EXEMPTION (Marcos: "if a name gets crowned, it doesn't count
                     # against the 10"): meritocracy extended to the SESSION cap — crowns pass it
                     # AND don't consume slots (see worker recheck); the cap rations the unproven.
-                    if _is_leader(entry[0]) and _pre_day["n"] >= PRE_MAX_TRADES:
+                    # 8/15 eyes fix: the row fired ONLY when the cap was already full — with
+                    # ~5-9 PRE trades/day vs cap 10 that condition is structurally unreachable,
+                    # so the exemption ran invisibly for two days. Now EVERY crowned PRE pass
+                    # logs (the promise: "crown_pre_exempt rows for visibility"); cap_full says
+                    # whether the exemption actually did work or rode along.
+                    if _is_leader(entry[0]):
                         _log_decision(entry[0], "crown_pre_exempt", price=entry[1],
-                                      slots_used=_pre_day["n"])
+                                      slots_used=_pre_day["n"],
+                                      cap_full=bool(_pre_day["n"] >= PRE_MAX_TRADES))
                     # 8/12 CAP RAISE (Marcos verdict: hidden 5 + PRE 8; era kill-test cap_cost_
                     # 20260812): slots beyond the OLD caps get their own row so Friday grades
                     # the marginal cohort in isolation. Busy window = 8:30-9:25 (Marcos's read,
@@ -11251,7 +11302,8 @@ def main():
             #    Kill switch: TAPE_PREBREAK_GATE=0. FAILURE CONDITION (pre-registered): wrong if
             #    prebreak_reject rows' forward counterfactual out-earns the blocked cohort's −$12/t.
             _z_zone, _z_brk, _z_lastT, _z_dayhi, _z_depth = "no_map", 0.0, None, None, None
-            try:
+            _z_rec = None   # 8/15 eyes: _effective_map raising left _z_rec UNBOUND -> NameError
+            try:            # in the standdown/ceiling checks below (silent worker death class)
                 _z_rec = _effective_map(ticker, entry_price)   # 8/7 freshness contract (was _freshest_rec)
                 _z_brk = float(_z_rec.get("break") or 0)
                 _z_tg = [float(x) for x in (_z_rec.get("targets") or []) if float(x) > 0]
@@ -11304,12 +11356,17 @@ def main():
                 with trade_lock:
                     reentry["held"].discard(ticker)
                 return
+            if entry_type in CHART_CEILING_LANES:
+                # 8/15 eyes: proof-of-evaluation — the day's first chart-lane candidate stamps
+                # that the stand-down check RAN (zero standdown rows was undecidable without it)
+                _eye_heartbeat("standdown_armed", ticker, sticky=int(STANDDOWN_STICKY),
+                               bound_now=len(_standdown), machine=entry_type)
             if (STANDDOWN_STICKY and entry_type in CHART_CEILING_LANES
                     and ticker in _standdown):
                 _sd_ts = str((_z_rec or {}).get("_ts") or "")
                 _sd_bound, _sd_at = _standdown[ticker]
                 if (_sd_ts and _sd_ts != _sd_bound) or (not _sd_ts and time.time() - _sd_at > 1800):
-                    _standdown.pop(ticker, None)   # fresh read arrived (or ts unknown 30 min) -> lifts
+                    _standdown_lift(ticker, "fresh_read" if _sd_ts else "ts_unknown_timeout")
                     print(f"🟢 {ticker} stand-down LIFTED — {'fresh read' if _sd_ts else 'ts-unknown timeout'}")
                 else:
                     print(f"🛑 {ticker} STAND-DOWN active (read unchanged since ceiling) — no chart-lane trade")
@@ -11333,7 +11390,7 @@ def main():
                               break_level=_z_brk, machine=entry_type)
                 _request_auto_read(ticker)   # 8/14 #57a: road spent = map stale by definition — request a fresh read (own 30-min throttle)
                 if STANDDOWN_STICKY and str((_z_rec or {}).get("_ts") or ""):
-                    _standdown[ticker] = (str(_z_rec["_ts"]), time.time())   # 8/8 #28: binds
+                    _standdown_bind(ticker, _z_rec["_ts"])   # 8/8 #28: binds (+ row, 8/15 eyes)
                     # auditor #6: never bind on a ts-less map (unliftable forever-hold)
                 _slot_refund(ticker, entry_type)
                 with trade_lock:
@@ -11510,7 +11567,7 @@ def main():
                         _gav = sum(float(b.get("volume") or b.get("v") or 0) for b in _g3) / max(len(_g3), 1)
                         if _gav < MOMENTUM_MIN_AVG_VOL:
                             # 8/6 supersession — see check_momentum twin: dollar floor outranks shares
-                            _sf_ok, _sf_med, _sf_need = _ambient_dvol_ok(_gb)
+                            _sf_ok, _sf_med, _sf_need = _ambient_dvol_ok(_gb, ticker)
                             if _sf_ok and _sf_med >= _sf_need > 0:
                                 print(f"💵 {ticker} share floor waived — ambient ${int(_sf_med):,}/min (universal gate)")
                             else:
@@ -11520,8 +11577,12 @@ def main():
                     # illiquid; the MEDIAN of 10 is spike-proof so a liquid quiet base still passes).
                     if mom_ok and ENTRY_GATE_LIQUIDITY and len(_gb) >= 6 \
                             and datetime.now(EASTERN).strftime("%H:%M") >= "09:30":
-                        _am_ok, _am_med, _am_need = _ambient_dvol_ok(_gb)
+                        _am_ok, _am_med, _am_need = _ambient_dvol_ok(_gb, ticker)
                         if not _am_ok:
+                            # 8/15 eyes: distinct queryable row (see check_momentum twin)
+                            _log_decision(ticker, "ambient_reject", median_dvol=round(_am_med),
+                                          need=round(_am_need), machine=entry_type,
+                                          src="universal_gate")
                             mom_ok, mom_details = False, {"reason": (
                                 f"thin ambient tape — median ${int(_am_med):,}/min over prior 10 bars "
                                 f"< ${int(_am_need):,} exit floor (universal gate)")}

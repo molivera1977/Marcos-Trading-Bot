@@ -1982,3 +1982,13 @@ state) classified WIRED-AS-GATE / STAMPED-ONLY / NOT-CONSULTED, with a join-back
 wherever an unconsulted eye demonstrably pays (and explicit LEAVE-ALONE where joins say so —
 tonight's VWAP verdicts + runway vindication are the first entries). Matrix + priced wiring
 proposals = the centerpiece of Sunday's menu,每 proposal needing Marcos's word.
+
+## 2026-08-15 ~00:10 — MANDATE #2 EXTENDED TO EXITS (Marcos: "the exits need to use the EYES as well")
+The matrix gains an exit dimension: every exit mechanism (E3 bank+trail, kev tiers, trailing
+stop, rung ratchet, stops, EOD/session flattens, topping-tail, resting ladder) x every eye —
+same classification, same join-backed standard. Known candidates already in evidence: VWAP-loss
+exit (Kev treats losing VWAP as the story ending — E3 currently blind to it), sell-INTO-structure
+(rungs/walls as exit targets instead of blind %), halt-distance tightening, freshness-aware
+target updates (fresh map -> new rungs -> ratchet floors), topping-tail (already built, E3-guarded
+off — join owed), crown-aware runner patience. Each proposal = universe kill-test vs the E3
+incumbent before any wiring; Sunday menu carries the exit matrix beside the entry matrix.

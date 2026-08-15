@@ -1949,3 +1949,11 @@ positive (N=14). CAVEATS: round-7 selection risk (OOS wall grades it, no-ship); 
 chase slip least trustworthy at the break; [CAPACITY-SUSPECT] amplified (328 slot-skips).
 STATUS: O joins E3 as co-nominee; Monday's wall grades BOTH in parallel; conversion = evidence
 + Marcos's word only. Artifacts edge_stresstest_G_20260815.* committed 17dea1b.
+
+## 2026-08-14 ~20:40 — MARCOS RULING (re-affirmed + sharpened): FULL SIM WEEK 8/17-8/21
+Verbatim: "My thinking is we are doing only sim trading for this next entire week. We need to
+tweak and improve. Real money is off the table until proven." DRY_RUN stays true all week.
+The week's shape: O-config trades LIVE-SIM (grinder + flat_top break-attack conversions w/ E3
+exits, shipping tonight), shadows + nightly wall grade in parallel, tweak-and-improve through
+the full protocol only (pre-registered tests, convened ships), go/no-go re-argued Friday 8/21
+on the proven week. Micro-live/full-live both OFF the table this week by this ruling.

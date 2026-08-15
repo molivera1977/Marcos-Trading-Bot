@@ -1957,3 +1957,12 @@ The week's shape: O-config trades LIVE-SIM (grinder + flat_top break-attack conv
 exits, shipping tonight), shadows + nightly wall grade in parallel, tweak-and-improve through
 the full protocol only (pre-registered tests, convened ships), go/no-go re-argued Friday 8/21
 on the proven week. Micro-live/full-live both OFF the table this week by this ruling.
+
+## 2026-08-14 ~23:00 — MARCOS MANDATE: THE EYES AUDIT
+Verbatim: "my mandate is pretty clear I want all of these ideas that I developed, was promised,
+and okayed for build actually built. These are the eyes of the bot." Program: enumerate EVERY
+approved/promised mechanism from the ledger + memory; for each, prove aliveness with a
+PRODUCTION ROW or drill (not code reading): ALIVE (row cited) / BUILT-UNPROVEN (drill owed) /
+DEAD (fix immediately) / NEVER-BUILT (build queue, priced). The tuple-unpack class (freshness
+contract + runway wall dead-at-birth for ~a week) is the founding exhibit. Weekend centerpiece;
+report due before Sunday's menu.

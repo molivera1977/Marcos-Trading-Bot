@@ -1036,3 +1036,19 @@ outcomes unchanged. Expected Monday shape: low-tens of v2_shadow_fire rows/day (
 Rig: python3 rig/test_shipset_20260804.py = ALL GREEN exit 0 incl. Z-a..Z-e executed synthetic tapes
 (both calibrated and legacy exec'd namespaces), run both plain and SHIP_CHECK=1. Owed (non-blocking):
 8/14 bars ferry + 21-survivor exit re-grade (Quartermaster); C1b anchor; strip label. No push, no deploy.
+
+## 2026-08-14 SHIP AUDIT — aa3ff9f E3 OOS-wall machinery (grinder-1030 shadow + nightly grader)
+Convening (Blast Radius Auditor chair, separate context): GRINDER_SHADOW default "1" verified by
+read + rig AA-a execution (empty env -> True). Detector matches KT2a/TEST-H spec: post-10:30 ET
+new-session-high candidate, 30-min net-up (c > w30[0].close), close > session VWAP, no >=3%
+pullback-from-running-high in last 15 min, 900s per-name cooldown, would_stop = 15-min low with
+degenerate-stop guard. ZERO conversion: detector + caller block scanned this session — no
+breakouts.append, no execute_trade, no order path; logs grinder_shadow_fire and stops.
+Grader sim_e3 = E3 exactly (chase +1%, $500, EOD-flatten -> stop-first -> bank 1/2 at +10% limit
+exact (consumes bar) -> run-high update post-entry only -> 10%-off-high closes-through trail,
+-0.5% slip on every market exit, no lookahead: bars strictly after fire only). INDEPENDENT WETO
+spot-check run this session: fire 14:03:03 px 7.935 stop 7.77 -> bank at 18:03:10Z (h 9.38),
+trail exit c 8.73 vs run_hi 9.94 -> $+45.9624, grader and hand-replication match to the penny.
+Plist exists + LOADED (launchctl list: com.marcos.tradingbot.shadowgrade, 23:00 daily).
+Rig: python3 rig/test_shipset_20260804.py ALL GREEN exit 0 (incl. AA-a..AA-d); 11 broader-sweep
+reds documented pre-existing at baseline, not this ship's. No push, no deploy.

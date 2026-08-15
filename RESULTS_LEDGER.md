@@ -1966,3 +1966,9 @@ PRODUCTION ROW or drill (not code reading): ALIVE (row cited) / BUILT-UNPROVEN (
 DEAD (fix immediately) / NEVER-BUILT (build queue, priced). The tuple-unpack class (freshness
 contract + runway wall dead-at-birth for ~a week) is the founding exhibit. Weekend centerpiece;
 report due before Sunday's menu.
+
+## 2026-08-14 ~23:20 — EYES AUDIT FILED + auto-deploy disable RECORDED COMPLETE
+EYES_AUDIT_20260815.md: ALIVE 55 / UNPROVEN 10 / DEAD 4 / NEVER-BUILT 5(+1 needs word).
+Auto-deploy: Marcos clicked Disable on all three services ~17:30-17:40; verified by the 17:40
+no-op push producing ZERO deployments (seal test in ledger above). Item closed.
+Weekend order per the mandate: fix the 4 dead first -> 10 proving drills -> build queue.

@@ -2003,3 +2003,17 @@ state + ambient median + session/window + time. Same block on shadow fires (entr
 Rendered in the ticker's tale-of-the-tape page + trade history detail so Marcos can answer the
 question from the dashboard, not a query. Ships Sunday morning batch, BEFORE the matrix (which
 consumes these blocks). Rig pin: a synthetic trade's record must contain both blocks complete.
+
+## 2026-08-15 ~01:25 — SUNDAY AGENDA FINAL (Marcos: "Add these to the sunday agenda")
+0. BUILD #0: full eyes snapshot at entry AND exit on every trade + shadow (Marcos spec) + tale-page render.
+1. Entry x Eyes + Exit x Eyes MATRIX (mandates #1+#2) — joins on complete stamps, wiring proposals priced.
+2. BUILDS: band-pass RTH detector (sim-live candidate) + pre-VWAP reclaim (Kev 8AM trade, shadow) +
+   serial-halt stand-down (stamp-only) + halt-distance stamp + PBL trail variant (wall A/B) + v2 clauses
+   (consolidation anchor C1b + falling-slope veto).
+3. AFTERNOON STUDIES (Marcos addition): power-hour 15:00-16:00 window join (re-bucket existing runs, all
+   lanes) + halt-resumption RETEST re-run at full 729-day cache + day-2 continuation spec (design; kill-test
+   Sunday if slate allows, else first in next week's queue).
+4. DRILLS: stop-coherence forced-width, kill-under-fire, EOD-sweep log, premkt heartbeat verify.
+5. Librarian: E3/O-config graded vs corpus verbatim.
+6. EVENING MENU: Monday configuration, every open decision one word each (band-pass convert? cell-gate
+   enforce? etc.), with the week's frozen-nominee discipline restated.

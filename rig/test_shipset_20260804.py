@@ -69,7 +69,8 @@ check("floor init in monitor", "_ratchet_floor     = 0.0" in src)
 check("close-above clears rung", "cleared rung" in src and "_ratchet_floor = _r_" in src)
 check("exit at floor", "RUNG RATCHET (floor" in src)
 check("break joins the ladder (HB, replay-passed 8/4)", "_bk_r > entry_price" in src)
-check("health fold NOT replaced", "RUNNER_HEALTH_EXIT and remaining_shares > 0" in src)
+check("health fold NOT replaced (8/14: E3 lanes exempt via not _e3_mode; others identical)",
+      "RUNNER_HEALTH_EXIT and not _e3_mode and remaining_shares > 0" in src)
 
 # ── 4) DXST surgery ──
 print("4) DXST price-path surgery")
@@ -1460,7 +1461,7 @@ try:
     # outside _safety_close + the ladder-aware tier branch.
     _ym = _y[_y.index("def monitor_trade"):_y.index("def check_token_expiry")]
     assert "_cancel_sell_ladder(ticker, _ladder)" in _ym.split("def _safety_close")[1][:400]
-    assert _ym.count("_safety_close(remaining_shares)") == 15, _ym.count("_safety_close(remaining_shares)")
+    assert _ym.count("_safety_close(remaining_shares)") == 16, _ym.count("_safety_close(remaining_shares)")  # 8/14: +1 = the E3 stop/trail path
     for _anchor in ["premarket flatten: closing", "Force closing all positions",
                     "force-closing {remaining_shares} sh", "Instant cut (Kev",
                     "Cutting loss now.", "≤ stop ${current_stop:.2f}\")",
@@ -1468,7 +1469,8 @@ try:
                     "Topping tail off the high", "RUNG RATCHET exit",
                     "fold the runner.", "BLIND-STOP FAILSAFE: no bars",
                     "no 3-min-close wait", "CRATER FLOOR: ${current_price",
-                    "hit! Selling {remaining_shares}"]:
+                    "hit! Selling {remaining_shares}",
+                    "90% of run-high"]:   # 8/14 E3 stop/trail path funnels through _safety_close too
         _yi = _ym.index(_anchor)
         assert "_safety_close(remaining_shares)" in _ym[_yi:_yi + 600], "path missing cancel: " + _anchor
     # stray-sell sweep: close_position inside the monitor ONLY via _safety_close + tier branch
@@ -1525,7 +1527,7 @@ try:
     # rows stamp in_window + would_stop
     _yv = _y[_y.index("def v2_pullback_step"):_y.index("def kev_zoneflip_step")]
     assert "breakouts.append" not in _yv
-    _yc = _y[_y.index("V2 CONFIRMED-PULLBACK shadow"):_y.index("IGNITION-10S feed")]
+    _yc = _y[_y.index("V2 CONFIRMED-PULLBACK shadow"):_y.index("GRINDER-1030 shadow")]  # 8/14: grinder converts now — scan v2 block only
     assert "breakouts.append" not in _yc and "execute_trade" not in _yc
     assert '"v2_shadow_fire"' in _yc and "in_window=" in _yc and "would_stop=" in _yc
     assert "flush_low=" in _yc and "flush_depth=" in _yc and "secs_from_push=" in _yc
@@ -1612,7 +1614,7 @@ try:
     # (d) shadow-only scan STILL passes on the calibrated detector + caller block
     _zv = _y[_y.index("def v2_pullback_step"):_y.index("def kev_zoneflip_step")]
     assert "breakouts.append" not in _zv and "execute_trade" not in _zv
-    _zc = _y[_y.index("V2 CONFIRMED-PULLBACK shadow"):_y.index("IGNITION-10S feed")]
+    _zc = _y[_y.index("V2 CONFIRMED-PULLBACK shadow"):_y.index("GRINDER-1030 shadow")]  # 8/14: grinder converts now — scan v2 block only
     assert "breakouts.append" not in _zc and "execute_trade" not in _zc
     assert "calib=" in _zc                                        # rows now stamp the calib tag
     check("Z-d: calibrated v2 still has NO conversion path; calib stamped", True)
@@ -1666,16 +1668,21 @@ except (AssertionError, ValueError) as _aae:
     check("AA-a: grinder shadow detector", False, str(_aae))
 
 try:
-    # (b) ZERO CONVERSION: detector + caller block never touch breakouts/orders
+    # (b) 8/14-night REVISION (Marcos: "i am saying sim money live not real life money" — the
+    # zero-conversion pin is SUPERSEDED by his order; section AB pins the conversion itself):
+    # the DETECTOR stays conversion-free; the CALLER's append exists but only under the
+    # GRINDER_CONVERT guard, and the shadow row still stamps the full E3-grader schema.
     _aav = _y[_y.index("def grinder_shadow_step"):_y.index("def kev_zoneflip_step")]
     assert "breakouts.append" not in _aav and "execute_trade" not in _aav
     _aac = _y[_y.index("GRINDER-1030 shadow (#48 lane"):_y.index("IGNITION-10S feed")]
-    assert "breakouts.append" not in _aac and "execute_trade" not in _aac
+    assert "execute_trade" not in _aac
+    assert "if GRINDER_CONVERT:" in _aac and "breakouts.append" in _aac
+    assert _aac.index("if GRINDER_CONVERT:") < _aac.index("breakouts.append")
     assert '"grinder_shadow_fire"' in _aac and "would_stop=" in _aac
     assert "session_hi=" in _aac and "mins_since_1030=" in _aac and "in_lane=True" in _aac
-    check("AA-b: grinder shadow has NO conversion path; row stamps full E3-grader schema", True)
+    check("AA-b: detector conversion-free; caller append exists ONLY under GRINDER_CONVERT; row schema intact", True)
 except (AssertionError, ValueError) as _aae:
-    check("AA-b: zero-conversion scan", False, str(_aae))
+    check("AA-b: conversion-guard scan", False, str(_aae))
 
 # (c) nightly grader script exists + carries the E3 exit constants; (d) 23:00 plist exists
 _aag = os.path.join(ROOT, "data", "killtests", "nightly_shadow_grade.py")
@@ -1687,6 +1694,102 @@ _aap = os.path.expanduser("~/Library/LaunchAgents/com.marcos.tradingbot.shadowgr
 _aax = open(_aap).read() if os.path.exists(_aap) else ""
 check("AA-d: shadowgrade launchd plist exists (23:00 daily, points at the grader)",
       "nightly_shadow_grade.py" in _aax and "<integer>23</integer>" in _aax)
+
+print("AB) 8/14 night O-config SIM conversions (Marcos: 'sim money live') — grinder + flat_top break-attack + E3 exits")
+# (a) envs default-on pins (empty env -> converts live-sim, Marcos's order)
+try:
+    assert 'FLATTOP_BREAK_ATTACK = os.environ.get("FLATTOP_BREAK_ATTACK", "1") == "1"' in _y
+    assert 'GRINDER_CONVERT      = os.environ.get("GRINDER_CONVERT", "1") == "1"' in _y
+    assert 'GRINDER_DAILY_CAP    = int(os.environ.get("GRINDER_DAILY_CAP", "3"))' in _y
+    assert 'E3_EXITS             = os.environ.get("E3_EXITS", "1") == "1"' in _y
+    check("AB-a: GRINDER_CONVERT / FLATTOP_BREAK_ATTACK / E3_EXITS default ON, cap default 3", True)
+except (AssertionError, ValueError) as _abe:
+    check("AB-a: env default pins", False, str(_abe))
+
+# (b) grinder conversion appends lane 'grinder' with exit_mode=E3, stop=would_stop, capped
+try:
+    _abc = _y[_y.index("GRINDER-1030 shadow (#48 lane"):_y.index("IGNITION-10S feed")]
+    _abg = _abc[_abc.index("if GRINDER_CONVERT:"):]
+    assert '"grinder", {' in _abg and '"exit_mode": "E3"' in _abg
+    assert '"zone_stop": _grf["would_stop"]' in _abg
+    assert '_gr_conv_day["n"] >= GRINDER_DAILY_CAP' in _abg and '"grinder_capped"' in _abg
+    assert '"triggered_grinder"' in _abg
+    assert '_grf["would_stop"] < _grf["px"]' in _abg          # degenerate-stop guard on convert
+    # gate-stack normality: grinder is NOT exempted from backside/min-stop/retest sets
+    assert "grinder" not in _y[_y.index("MIN_STOP_EXEMPT"):_y.index("MIN_STOP_EXEMPT") + 400]
+    _abrl = _y[_y.index('RETEST_LANES     = set('):_y.index('RETEST_LANES     = set(') + 120]
+    assert "grinder" not in _abrl
+    check("AB-b: grinder converts (lane 'grinder', exit_mode=E3, stop=would_stop, 3/day cap, gates normal)", True)
+except (AssertionError, ValueError) as _abe:
+    check("AB-b: grinder conversion", False, str(_abe))
+
+# (c) flat_top break-attack: in-window-only conversion at the break print; out-of-window arm
+# machinery + observe-only both intact; retest wait + observe strip bypassed ONLY for break_attack
+try:
+    assert '"09:30" <= _hm_ft < "10:30"' in _y                # the tested cell, exactly
+    assert '_log_decision(t, "break_attack"' in _y
+    assert '"break_armed"' in _y                              # out-of-window arm path retained
+    assert "if _pb_enter or _ft_attack:" in _y
+    assert "_stop = round(w_low, 4)   # TEST L spec: stop = base low, exact" in _y
+    assert '_ft_extra["exit_mode"] = "E3"' in _y and '_ft_extra["break_attack"] = True' in _y
+    assert 'b[3] == "flat_top" and not FLATTOP_CONVERT and not b[4].get("break_attack")' in _y
+    assert 'entry_type in RETEST_LANES and not (extra or {}).get("break_attack")' in _y
+    # the attack fires only from the fresh-break branch (inside `if is_flat and price > w_high`)
+    _abf = _y[_y.index("FLAT_TOP BREAK-ATTACK"):_y.index("if _pb_enter or _ft_attack:")]
+    assert "if is_flat and price > w_high and not _pb:" in _abf
+    check("AB-c: flat_top break-attack converts in-window at the break print; observe/arm out-of-window", True)
+except (AssertionError, ValueError) as _abe:
+    check("AB-c: flat_top break-attack", False, str(_abe))
+
+# (d) E3 exit mode EXECUTED on a synthetic monitor scenario via the pure evaluator:
+# stop-first, run-high update, 10%-off-run-high closes-through trail; bank tier = single
+# [entry*1.10, 0.5] rung (string anchor); persistence + call-site plumbing present
+try:
+    _abn = {}
+    exec(_y[_y.index("def _e3_eval"):_y.index("def monitor_trade")], _abn)
+    _e3 = _abn["_e3_eval"]
+    # entry 10.00 stop 9.50: quiet bar -> no action, run high tracks the high
+    _rh, _act = _e3(9.50, 10.00, 10.50, 10.80)
+    assert (_rh, _act) == (10.80, None)
+    # +10% bank rung is the tier machinery's job — evaluator must NOT trail at the bank print
+    _rh, _act = _e3(9.50, _rh, 11.00, 11.20)
+    assert (_rh, _act) == (11.20, None)
+    # run-high 12.00 then a close 10.70 < 0.90*12.00=10.80 -> TRAIL
+    _rh, _act = _e3(9.50, _rh, 11.90, 12.00)
+    assert (_rh, _act) == (12.00, None)
+    _rh, _act = _e3(9.50, _rh, 10.70, 10.75)
+    assert _act == "trail" and _rh == 12.00
+    # STOP-FIRST: close at/below the stop wins even when it is also 10% off the high
+    _rh2, _act2 = _e3(9.50, 12.00, 9.40, 9.60)
+    assert _act2 == "stop" and _rh2 == 12.00                  # run high NOT polluted by a stop bar
+    # closes-through law: a WICK 10% off the high with a close holding above never trails
+    _rh3, _act3 = _e3(9.50, 12.00, 11.00, 11.10)
+    assert _act3 is None
+    # monitor wiring anchors: single bank rung, mode gate, kill switch, 10s trail, persistence
+    assert "kev_tiers = [(round(entry_price * 1.10, 4), 0.50)]" in _y
+    assert "_e3_mode  = bool(E3_EXITS and exit_mode == \"E3\")" in _y
+    assert "_e3_runhi, _e3_act = _e3_eval(current_stop, _e3_runhi, _e3_c, _e3_h)" in _y
+    assert "_e3_k < _tape_birth" in _y                        # tape-since-birth honest register
+    assert '"exit_mode": exit_mode,' in _y                    # durable resume contract
+    assert 'exit_mode=(extra or {}).get("exit_mode")' in _y   # worker call site
+    assert 'exit_mode = resume_state.get("exit_mode")' in _y  # restart pickup
+    check("AB-d: E3 executed — bank rung anchored, trail fires, stop-first, closes-through, resume plumbed", True)
+except (AssertionError, ValueError, KeyError) as _abe:
+    check("AB-d: E3 exit mode", False, str(_abe))
+
+# (e) every OTHER lane's exit path unchanged: the five soft exits carry `not _e3_mode` guards
+# (False for non-E3 lanes = byte-identical behavior) and all default ladder branches survive
+try:
+    assert _y.count("(not RUNNER_HEALTH_EXIT) and not _e3_mode and remaining_shares > 0 and partial_taken") == 2
+    assert "(not RUNNER_HEALTH_EXIT) and not _e3_mode and remaining_shares > 0 and current_price > entry_price" in _y
+    assert "RUNG_RATCHET and not _e3_mode and remaining_shares > 0 and partial_taken" in _y
+    assert "RUNNER_HEALTH_EXIT and not _e3_mode and remaining_shares > 0 and partial_taken" in _y
+    assert 'elif entry_type in ("rocket_catcher", "hidden_entry"):' in _y   # rocket ladder intact
+    assert "elif SCALE_TIERS:" in _y                                        # R-grid ladder intact
+    assert "if _e3_mode and remaining_shares > 0 and time.time() - _e3_t >= 10:" in _y
+    check("AB-e: non-E3 lanes' exits untouched (guards inert), default ladders + E3 block all present", True)
+except (AssertionError, ValueError) as _abe:
+    check("AB-e: other-lane exit integrity", False, str(_abe))
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

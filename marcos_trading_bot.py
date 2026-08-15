@@ -2873,7 +2873,7 @@ def _recover_orphaned_trades():
                                           vwap=float(_o.get("vwap") or 0),
                                           entry_type=_o.get("entry_type") or "flat_top",
                                           entered_premkt=(_o.get("entry_session") == "PRE") or None,
-                                          resume_state=_o,
+                                          resume_state=_o,   # exit_mode rides in here (8/14 E3)
                                           trade_id=_o.get("trade_id"))
                             # 8/10 C2 (the unrecorded XHLD original): a resumed monitor's result
                             # reaches the books like every other exit — entry/partials from the
@@ -5572,6 +5572,25 @@ IGNITION_CELL_GATE = os.environ.get("IGNITION_CELL_GATE", "0")
 # explicit =1, refusals log *_observe_only UPSTREAM of any crown/leader bypass.
 FLATTOP_CONVERT     = os.environ.get("FLATTOP_CONVERT", "0") == "1"
 VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT", "0") == "1"
+# ── 8/14 SIM CONVERSION PATHS for the nominated O config (Marcos: "i am saying sim money live
+# not real life money" — the OOS wall now runs as PAPER TRADES, not shadow rows; DRY_RUN stays
+# true, every fill sims through the tape-since-birth honest register). Evidence chain:
+# edge_stresstest_F_20260815.md (E3 exits PASS 5/5) -> edge_stresstest_G_20260815.md (TEST O:
+# flat_top BREAK-attack + grinder full-clip re-attack, all E3, mean +$156.64/d median +$134.44/d).
+# GRINDER_CONVERT: grinder_shadow_step fires ALSO convert (lane "grinder", exit_mode=E3,
+#   stop = would_stop, cap GRINDER_DAILY_CAP/day, 15-min per-name cooldown lives in the detector).
+#   Post-10:30 by construction; the ignition-cell/backside/min-stop gates apply to it NORMALLY.
+# FLATTOP_BREAK_ATTACK: in-window (9:30-10:30 ET) flat_top breaks convert AT the break print
+#   (TEST L: break beats retest on every column — 61% win vs 37%, +$9,220 vs +$1,280), skipping
+#   the dip/confirm machinery and the RETEST_ENTRY wait FOR THIS LANE ONLY; stop = base low;
+#   overrides FLATTOP_CONVERT for the in-window break-attack only — out-of-window stays observe.
+# E3_EXITS: exit_mode="E3" trades bank 1/2 at +10% then trail the rest 10%-off-run-high on
+#   completed 10s closes (stop always live, EOD flatten unchanged). E3_EXITS=0 reverts to ladder.
+FLATTOP_BREAK_ATTACK = os.environ.get("FLATTOP_BREAK_ATTACK", "1") == "1"
+GRINDER_CONVERT      = os.environ.get("GRINDER_CONVERT", "1") == "1"
+GRINDER_DAILY_CAP    = int(os.environ.get("GRINDER_DAILY_CAP", "3"))
+E3_EXITS             = os.environ.get("E3_EXITS", "1") == "1"
+_gr_conv_day = {"d": None, "n": 0}   # grinder conversions charged per day (cap ledger)
 # ── 7/30 A1 (Fable ship, Marcos yes): extension-above-VWAP at entry is BIMODAL on 190 fires —
 # 0–3% = the clean dip-buy, 10%+ = the deep wick inside a genuine vertical (+$1,472, the entire
 # lane), 3–10% = no-man's-land (−$1,942/69 fires, survives BOTH exit configs = an entry property).
@@ -5755,8 +5774,9 @@ def v2_pullback_step(sym, new_bars, vwap):
 # Evidence chain: missing_regimes_20260814.md KT2(a) SHADOW-CANDIDATE (+$815.68/64, 67% win,
 # both halves positive) -> edge_stresstest_D TEST H spec (det_grinder_1030, post-10:30 ET) ->
 # edge_stresstest_F_20260815.md E3 PASS 5/5 (grinder+flat_top portfolio, mean +$94.96/d,
-# median +$62.09/d, 81% green). SHADOW ONLY — HARD-CODED: no conversion path, no
-# breakout-list append, no order flow; writes grinder_shadow_fire rows and nothing else.
+# median +$62.09/d, 81% green). 8/14 NIGHT UPDATE (Marcos: "sim money live"): the detector is
+# UNCHANGED and still writes grinder_shadow_fire rows; the CALLER now also converts fires to
+# paper trades when GRINDER_CONVERT=1 (see the conversion-path constants block above).
 # The >=5-day OOS wall (nightly_shadow_grade.py -> data/history/OOS_WALL.md) grades it.
 # Candidate (checked at each NEW SESSION HIGH print after 10:30 ET): last-30-min net-up
 # (close > close ~30 min ago) AND close > session VWAP AND no >=3% pullback from the running
@@ -7318,9 +7338,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             except Exception:
                                 pass
                         # ── 8/14 GRINDER-1030 shadow (#48 lane; E3 OOS-wall nominee): same fed
-                        # 10s bars + session line as hidden/v2 (zero new fetches). SHADOW ONLY —
-                        # this block logs a row and STOPS; it never touches breakouts, slots, or
-                        # any order path. nightly_shadow_grade.py grades the rows.
+                        # 10s bars + session line as hidden/v2 (zero new fetches). The shadow row
+                        # ALWAYS logs (evidence ledger rides along). 8/14 night (Marcos: "sim
+                        # money live not real life money"): GRINDER_CONVERT=1 ALSO converts the
+                        # fire to a paper trade — lane "grinder", stop = would_stop, exit_mode=E3,
+                        # cap GRINDER_DAILY_CAP/day (15-min per-name cooldown is in the detector).
+                        # Post-10:30 by construction; ignition-cell/backside/min-stop gates apply
+                        # to it NORMALLY downstream. nightly_shadow_grade.py grades the rows.
                         if GRINDER_SHADOW:
                             try:
                                 _grf = grinder_shadow_step(t, _nb, _vr_sv)
@@ -7332,6 +7356,33 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                   would_stop=_grf["would_stop"],
                                                   in_lane=True, seq=_grf["seq"],
                                                   time_hm=datetime.now(EASTERN).strftime("%H:%M"))
+                                    if GRINDER_CONVERT:
+                                        _grday = datetime.now(EASTERN).strftime("%Y-%m-%d")
+                                        if _gr_conv_day.get("d") != _grday:
+                                            _gr_conv_day["d"] = _grday; _gr_conv_day["n"] = 0
+                                        if _gr_conv_day["n"] >= GRINDER_DAILY_CAP:
+                                            _log_decision(t, "grinder_capped", price=_grf["px"],
+                                                          day_n=_gr_conv_day["n"], cap=GRINDER_DAILY_CAP)
+                                        elif _grf["would_stop"] < _grf["px"]:
+                                            _gr_px = price if price and price > 0 else _grf["px"]
+                                            _gr_conv_day["n"] += 1
+                                            print(f"\n🧗 {t} GRINDER (post-10:30 grind, new session hi "
+                                                  f"${_grf['session_hi']:.2f})! ${_gr_px:.2f} — stop "
+                                                  f"${_grf['would_stop']:.2f} (15-min low), E3 exits "
+                                                  f"[#{_gr_conv_day['n']}/{GRINDER_DAILY_CAP}]")
+                                            # follows the hidden_entry append pattern: (t, price,
+                                            # anchor, lane, extra) — $500 sizing comes from the
+                                            # width-proportional sizing chain automatically.
+                                            breakouts.append((t, _gr_px, _grf["session_hi"], "grinder", {
+                                                "zone_stop": _grf["would_stop"], "exit_mode": "E3",
+                                                "session_hi": _grf["session_hi"], "gr_seq": _grf["seq"],
+                                                "mins_since_1030": _grf["mins_since_1030"],
+                                            }))
+                                            _log_decision(t, "triggered_grinder", price=_gr_px,
+                                                          stop=_grf["would_stop"],
+                                                          session_hi=_grf["session_hi"],
+                                                          fire_px=_grf["px"], seq=_grf["seq"],
+                                                          day_n=_gr_conv_day["n"])
                             except Exception:
                                 pass
 
@@ -7865,11 +7916,26 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     #    added filter (green-close, front-side, wick) HURT it. Dead-duck data: break bars carry
                     #    a median 4% of the day's peak volume, so chasing the tick buys the exhaustion top. ──
                     _pb = cache[t].get("pb")
+                    # ── 8/14 FLAT_TOP BREAK-ATTACK (Marcos: "sim money live"; TEST L,
+                    # edge_stresstest_G_20260815.md: break-attack beats the retest on EVERY column
+                    # — 61% win vs 37%, +$9,220 vs +$1,280, shallower worst day; the retest was
+                    # filtering OUT the breaks that never pull back). In the tested cell ONLY
+                    # (9:30-10:30 ET): convert AT the break print — skip the dip/confirm machinery
+                    # and (downstream) the RETEST_ENTRY wait for this lane; stop = base low;
+                    # exit_mode=E3. Out-of-window: the arm/observe machinery continues unchanged
+                    # (FLATTOP_CONVERT still governs it). Kill: FLATTOP_BREAK_ATTACK=0. ──
+                    _ft_attack = False
+                    _hm_ft = datetime.now(EASTERN).strftime("%H:%M")
                     if is_flat and price > w_high and not _pb:
-                        cache[t]["pb"] = {"level": w_high, "zone": w_low, "ts": time.time(), "dipped": False}
-                        _log_decision(t, "break_armed", price=price, w_high=w_high)
-                        status_parts.append(f"{t}:${price:.2f} broke ${w_high:.2f} → waiting for pullback")
-                        continue
+                        if FLATTOP_BREAK_ATTACK and "09:30" <= _hm_ft < "10:30":
+                            _ft_attack = True
+                            _log_decision(t, "break_attack", price=price, w_high=w_high,
+                                          w_low=w_low, time_hm=_hm_ft)
+                        else:
+                            cache[t]["pb"] = {"level": w_high, "zone": w_low, "ts": time.time(), "dipped": False}
+                            _log_decision(t, "break_armed", price=price, w_high=w_high)
+                            status_parts.append(f"{t}:${price:.2f} broke ${w_high:.2f} → waiting for pullback")
+                            continue
                     _pb_enter = False
                     if _pb:
                         if time.time() - _pb["ts"] > PULLBACK_TIMEOUT_SECS:
@@ -7887,7 +7953,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 status_parts.append(f"{t}:${price:.2f} armed → {_rc} (dipped={_pb['dipped']})")
                                 continue
 
-                    if _pb_enter:
+                    if _pb_enter or _ft_attack:
                         if vwap <= 0:
                             status_parts.append(f"{t}:${price:.2f} BREAK but no VWAP — skipped")
                             _log_decision(t, "broke_no_vwap", price=price, w_high=w_high)
@@ -7906,6 +7972,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # stop, used consistently for the room gate, R, and the broker stop.
                         _zone = round(w_low * (1 - ZONE_STOP_BUFFER), 4)
                         _stop = max(_zone, round(price * (1 - STOP_LOSS_PCT), 4))
+                        if _ft_attack:
+                            _stop = round(w_low, 4)   # TEST L spec: stop = base low, exact
                         # ── Kev DAILY-FIRST veto (#067 "if the daily is bad I will not take the trade")
                         #    + room to the next SIGNIFICANT level on the DAILY chart (#057). Daily levels
                         #    fetched once per ticker per session and cached. ──
@@ -7939,10 +8007,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # carry it to the exit record so we can learn from DATA whether back-side (9<20) breakouts
                         # underperform, THEN decide whether to hard-gate. [revisit — feedback_widen_within_kev_realm]
                         _front = ema9 > ema20 > 0
-                        breakouts.append((t, price, vwap, "flat_top",
-                                          {"ema90": round(ema90, 4), "room": room, "zone_stop": _stop,
-                                           "front_side": _front, "ema9": round(ema9, 4), "ema20": round(ema20, 4)}))
-                        _log_decision(t, "triggered_flat_top", price=price, room_rr=rr, w_high=w_high, front_side=_front)
+                        _ft_extra = {"ema90": round(ema90, 4), "room": room, "zone_stop": _stop,
+                                     "front_side": _front, "ema9": round(ema9, 4), "ema20": round(ema20, 4)}
+                        if _ft_attack:
+                            # break-attack rides E3 exits + bypasses observe-only/retest downstream
+                            _ft_extra["exit_mode"] = "E3"
+                            _ft_extra["break_attack"] = True
+                        breakouts.append((t, price, vwap, "flat_top", _ft_extra))
+                        _log_decision(t, "triggered_flat_top", price=price, room_rr=rr, w_high=w_high,
+                                      front_side=_front, break_attack=_ft_attack)
                         cache[t]["pb"] = None          # armed pullback consumed by the entry
                         found_entry = True
                     elif is_flat:
@@ -8152,7 +8225,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         _kept_ob = []
         for b in breakouts:
             _ob_row = None
-            if b[3] == "flat_top" and not FLATTOP_CONVERT:
+            if b[3] == "flat_top" and not FLATTOP_CONVERT and not b[4].get("break_attack"):
+                # 8/14 night: in-window BREAK-ATTACK rows override the observe-only suspension
+                # (Marcos: sim money live); out-of-window flat_top stays observe as before.
                 _ob_row = "flat_top_observe_only"
             elif b[3] == "vwap_reclaim" and not VWAPRECLAIM_CONVERT:
                 _ob_row = "vwap_reclaim_observe_only"
@@ -8895,9 +8970,23 @@ def _marked_runway(ticker, entry_price, stop_loss):
     return None, None
 
 
+def _e3_eval(current_stop, runhi, bar_close, bar_high):
+    """E3 per-10s-bar evaluator (PURE — rig section AB executes it). Spec =
+    edge_stresstest_F_20260815.md E3: stop-first, then run-high update from post-entry bar
+    highs only, then the 10%-off-run-high closes-through trail. Returns (new_runhi, action)
+    with action in (None, "stop", "trail")."""
+    if 0 < bar_close <= current_stop:
+        return runhi, "stop"                        # stop-first ties (F method note 1)
+    if bar_high > runhi:
+        runhi = bar_high
+    if bar_close > 0 and runhi > 0 and bar_close < 0.90 * runhi:
+        return runhi, "trail"
+    return runhi, None
+
+
 def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                   stream: WebullStream, stop_order_id, vwap=0, next_supply=None, entry_type="flat_top",
-                  entered_premkt=None, runway=None, resume_state=None, trade_id=None):
+                  entered_premkt=None, runway=None, resume_state=None, trade_id=None, exit_mode=None):
     _mon_key = trade_id or ticker   # 8/10 per-trade-id books: registry key (XHLD collision fix)
     """
     Monitors the trade using the real-time stream.
@@ -8973,6 +9062,18 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             print(f"⚠️ {ticker} resume-state restore failed ({_rse}) — monitoring fresh")
     if not isinstance(resume_state, dict):
         tier_idx = 0        # fresh trade default; a resume keeps its restored index (auditor #1)
+    # ── 8/14 E3 EXIT MODE (edge_stresstest_F E3, PASS 5/5; Marcos: "sim money live"): lanes whose
+    # extra carried exit_mode="E3" (grinder / flat_top break-attack) replace the tier ladder with
+    # bank 1/2 at +10% + a 10%-off-run-high closes-through trail on completed 10s closes.
+    # Stop machinery + EOD flatten UNCHANGED. Kill: E3_EXITS=0 reverts these lanes to the ladder. ──
+    if not exit_mode and isinstance(resume_state, dict):
+        exit_mode = resume_state.get("exit_mode")   # restart keeps the trade's exit contract
+    _e3_mode  = bool(E3_EXITS and exit_mode == "E3")
+    _e3_runhi = entry_price                        # run high FROM ENTRY (no lookahead — F note 2)
+    _e3_last  = 0                                  # last consumed completed-10s-bar key
+    _e3_t     = 0.0                                # feed-poll throttle
+    if _e3_mode and isinstance(resume_state, dict):
+        _e3_runhi = max(_e3_runhi, float(resume_state.get("highest") or 0))
     # ── Kev's R-based exits (SUPPLY_EXIT_DESIGN.md): R = entry − initial stop. Sell HALF at +1R
     # (risk-free → stop to break-even), trim to a ~1/4 runner at the next supply (or +2R if open room),
     # then the 1/4 runner trails the PREVIOUS-BAR LOW. Replaces the made-up +8/12/20% tiers + TRAIL_PCT. ──
@@ -8984,7 +9085,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     if isinstance(resume_state, dict) and float(resume_state.get("risk_ps") or 0) > 0:
         R = float(resume_state["risk_ps"])   # auditor #1: R from the ORIGINAL risk, never the
         # ratcheted stop — else tiers collapse onto entry and already-sold tiers re-fire
-    if entry_type in ("rocket_catcher", "hidden_entry"):   # ROCKET scale-out ladder (Fable 7/21): %-of-entry, NOT R —
+    if _e3_mode:
+        # E3 ladder = ONE tier: bank 1/2 at +10% (resting limit fills exactly, per F method notes);
+        # the remainder is managed by the 10s off-high trail below, stop always live.
+        kev_tiers = [(round(entry_price * 1.10, 4), 0.50)]
+    elif entry_type in ("rocket_catcher", "hidden_entry"):   # ROCKET scale-out ladder (Fable 7/21): %-of-entry, NOT R —
         # a parabola round-trips, so bank 1/3 @ +50%, 1/3 @ +100% on the way up; runner health-trails.
         # Fable evidence: detection-entry + scale-out = +32% mean vs trail20 = +1.5% noise. Runner trail
         # kept as health-trail (hold-above-9EMA) for v1; trail30 vs health-trail = a replay calibration.
@@ -9243,6 +9348,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             "last_price": round(current_price, 4),
             # Static plan fields for the dashboard's tale-of-the-tape (constant per trade)
             "tiers": [[p, c] for p, c in kev_tiers], "risk_ps": round(R, 4),
+            "exit_mode": exit_mode,   # 8/14: E3 lanes must resume with their exit contract intact
             "entry_session": ("PRE" if _entered_premkt else "RTH"),   # 8/7 (#17; auditor #9)
             # #53: ladder ids persist so a restart (resume OR orphan close) can cancel them —
             # a resting sell surviving its position is the double-sell race in restart costume.
@@ -9418,7 +9524,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 # high = a major reversal → full exit. ONLY armed AFTER the first scale (partial_taken):
                 # real-bar backtest (6/26 Webull bars) showed firing it pre-scale on 1-min noise cut runners
                 # for tiny gains (SDOT +1.1% vs the +60% move). Post-scale ~tripled SDOT/BDRX. ──
-                if (not RUNNER_HEALTH_EXIT) and remaining_shares > 0 and partial_taken and len(completed) >= 2:
+                if (not RUNNER_HEALTH_EXIT) and not _e3_mode and remaining_shares > 0 and partial_taken and len(completed) >= 2:
                     _lh  = float(completed[-1].get("high")  or completed[-1].get("h") or 0)
                     _lcl = float(completed[-1].get("close") or completed[-1].get("c") or 0)
                     _ph  = float(completed[-2].get("high")  or completed[-2].get("h") or 0)
@@ -9433,7 +9539,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 # ── Kev's prev-bar-low TRAIL (close-based — the runner's structural trail after we've
                 # scaled). A completed bar CLOSING below the PRIOR bar's low = the up-structure broke →
                 # exit the runner. Close-based (not intrabar) so normal pullbacks don't snipe it. ──
-                if (not RUNNER_HEALTH_EXIT) and remaining_shares > 0 and partial_taken and len(completed) >= 2:
+                if (not RUNNER_HEALTH_EXIT) and not _e3_mode and remaining_shares > 0 and partial_taken and len(completed) >= 2:
                     _pl   = float(completed[-2].get("low")   or completed[-2].get("l") or 0)
                     _lcl2 = float(completed[-1].get("close") or completed[-1].get("c") or 0)
                     if _pl > 0 and 0 < _lcl2 < _pl:
@@ -9453,7 +9559,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 # Kev "topping tail off the high" — his #1 exit. If the last completed bar
                 # made a fresh high then got rejected (long upper wick) AND we're in profit,
                 # take the money. Only protects a winner — never exits a loser on a wick.
-                if (not RUNNER_HEALTH_EXIT) and remaining_shares > 0 and current_price > entry_price:
+                if (not RUNNER_HEALTH_EXIT) and not _e3_mode and remaining_shares > 0 and current_price > entry_price:
                     last_high = float(completed[-1].get("high") or completed[-1].get("h") or 0)
                     if last_high >= highest_price * 0.99 and is_topping_tail(completed[-1]):
                         print(f"🔻 Topping tail off the high: {ticker} rejected at ${last_high:.2f} "
@@ -9476,7 +9582,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 # wins. Map refreshes ride the ~90s _fetch_kev_levels TTL, so a fresh re-read's
                 # rungs join the ladder mid-trade (held-name uncapped re-reads, same batch).
                 # Kill switch: RUNG_RATCHET=0.
-                if RUNG_RATCHET and remaining_shares > 0 and partial_taken and len(completed) >= 1:
+                # E3 lanes (not _e3_mode guards, 8/14): instant-exit / prev-bar-low / topping-tail /
+                # rung-ratchet / health-fold are the DEFAULT ladder's runner management — E3's contract
+                # is bank + 10s off-high trail + stop + EOD only (F round: the EMA-era soft exits were
+                # selling the middle of the move). Every other lane: guards are False, byte-identical.
+                if RUNG_RATCHET and not _e3_mode and remaining_shares > 0 and partial_taken and len(completed) >= 1:
                     try:
                         _rl = (_fetch_kev_levels() or {}).get(ticker) or {}
                         _rungs = sorted(set(float(x) for x in (_rl.get("targets") or []) if float(x) > entry_price))
@@ -9507,7 +9617,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     except Exception as _rex:
                         print(f"   ⚠️ {ticker} ratchet check error (non-fatal): {_rex}")
 
-                if RUNNER_HEALTH_EXIT and remaining_shares > 0 and partial_taken and len(completed) >= 2:
+                if RUNNER_HEALTH_EXIT and not _e3_mode and remaining_shares > 0 and partial_taken and len(completed) >= 2:
                     _hc = float(completed[-1].get("close") or completed[-1].get("c") or 0)
                     _e9 = calculate_ema9(completed)
                     # VWAP for the health read. LIVE DEFAULT (HEALTH_VWAP_SESSION=False) = the shipped/validated
@@ -9546,6 +9656,40 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                         result["exit_reason"] = "HEALTH FOLD (lost VWAP+EMA)"
                         remaining_shares = 0
             last_ema_check = time.time()
+
+        # ── 8/14 E3 TRAIL (E3 lanes ONLY; every other lane never enters this block): completed
+        # 10s closes from the bot's own tape store (_curl_feed — the same feed the detectors ride).
+        # Per bar, stop-first then run-high update then the 10%-off-run-high closes-through trail
+        # (_e3_eval, pure + rig-pinned). Bars predating the monitor are excluded (tape-since-birth,
+        # the 8/13 fictional-fill law). The still-forming bucket never counts. ──
+        if _e3_mode and remaining_shares > 0 and time.time() - _e3_t >= 10:
+            _e3_t = time.time()
+            try:
+                _e3_d, _ = _curl_feed(ticker, n=12)
+                _e3_cut = int(time.time()) // 10 * 10          # exclude the forming bucket
+                for _e3_k in sorted(_e3_d or {}):
+                    if _e3_k <= _e3_last or _e3_k >= _e3_cut or _e3_k < _tape_birth:
+                        continue
+                    _e3_last = _e3_k
+                    _e3_b = _e3_d[_e3_k] or {}
+                    _e3_c = float(_e3_b.get("c") or 0)
+                    _e3_h = float(_e3_b.get("h") or 0)
+                    _e3_runhi, _e3_act = _e3_eval(current_stop, _e3_runhi, _e3_c, _e3_h)
+                    if _e3_act and remaining_shares > 0:
+                        if _e3_act == "stop":
+                            print(f"🛑 {ticker} E3 stop — 10s close ${_e3_c:.4f} ≤ stop ${current_stop:.4f}")
+                            _rsn = "Stop loss 🛑 (E3 10s close)"
+                        else:
+                            print(f"📉 {ticker} E3 TRAIL — 10s close ${_e3_c:.4f} < 90% of run-high "
+                                  f"${_e3_runhi:.4f} (trail ${0.90 * _e3_runhi:.4f})")
+                            _rsn = f"E3 TRAIL (10% off run-high ${_e3_runhi:.4f})"
+                        _safety_close(remaining_shares)   # #53: ladder-cancel first, stop, then market
+                        result["exit_price"]  = _e3_c if _e3_c > 0 else current_price
+                        result["exit_reason"] = _rsn
+                        remaining_shares = 0
+                        break
+            except Exception as _e3e:
+                print(f"   ⚠️ {ticker} E3 trail check error (non-fatal): {_e3e}")
 
         if remaining_shares == 0:
             break
@@ -10542,7 +10686,10 @@ def main():
           f"IGNITION_CELL_GATE={IGNITION_CELL_GATE} FLATTOP_CONVERT={int(FLATTOP_CONVERT)} "
           f"VWAPRECLAIM_CONVERT={int(VWAPRECLAIM_CONVERT)} MA_WARMUP_SEED={int(MA_WARMUP_SEED)} "
           f"RESTING_SELLS={int(RESTING_SELLS)} V2_SHADOW={int(V2_SHADOW)} "
-          f"GRINDER_SHADOW={int(GRINDER_SHADOW)}")
+          f"GRINDER_SHADOW={int(GRINDER_SHADOW)} | "
+          # 8/14 night O-config sim conversions (Marcos: "sim money live"):
+          f"GRINDER_CONVERT={int(GRINDER_CONVERT)}(cap {GRINDER_DAILY_CAP}) "
+          f"FLATTOP_BREAK_ATTACK={int(FLATTOP_BREAK_ATTACK)} E3_EXITS={int(E3_EXITS)}")
     # 8/3 (#26): the SAME config, as a DURABLE decision row — Railway's CLI log window is ~500
     # lines, so the printed banner is unreadable hours later ("was the floor really 4% at boot"
     # took env+code inference on 8/3 instead of one query). One row per boot, queryable forever.
@@ -10571,7 +10718,9 @@ def main():
                       ignition_cell_gate=IGNITION_CELL_GATE, flattop_convert=int(FLATTOP_CONVERT),
                       vwapreclaim_convert=int(VWAPRECLAIM_CONVERT), ma_warmup_seed=int(MA_WARMUP_SEED),
                       resting_sells=int(RESTING_SELLS), v2_shadow=int(V2_SHADOW),
-                      grinder_shadow=int(GRINDER_SHADOW))
+                      grinder_shadow=int(GRINDER_SHADOW),
+                      grinder_convert=int(GRINDER_CONVERT), grinder_daily_cap=GRINDER_DAILY_CAP,
+                      flattop_break_attack=int(FLATTOP_BREAK_ATTACK), e3_exits=int(E3_EXITS))
         _leader_rehydrate()   # 8/5: earned leader status survives restarts
     except Exception as _bc_e:
         print(f"⚠️  boot_config row failed (banner above still printed): {_bc_e}")
@@ -11390,7 +11539,9 @@ def main():
                 return
 
             # ── 8/6 RETEST ENTRY: wait for the pullback instead of buying the print ──
-            if RETEST_ENTRY and entry_type in RETEST_LANES:
+            if RETEST_ENTRY and entry_type in RETEST_LANES and not (extra or {}).get("break_attack"):
+                # 8/14: BREAK-ATTACK enters AT the break print by design (TEST L) — the retest
+                # wait is exactly the machinery that lane exists to skip.
                 _rt_lvl = round(entry_price * (1 - RETEST_DEPTH_PCT / 100.0), 4)
                 _log_decision(ticker, "retest_wait", price=entry_price, retest_level=_rt_lvl,
                               machine=entry_type, expiry_s=RETEST_EXPIRY_S)
@@ -11600,6 +11751,7 @@ def main():
                 entry_type=entry_type,               # rocket_catcher → %-based scale-out ladder in monitor_trade
                 entered_premkt=(True if (extra or {}).get("_pre_convert") else None),   # F1b: None → clock fallback
                 runway=_rw_rr,
+                exit_mode=(extra or {}).get("exit_mode"),   # 8/14: E3 lanes carry their exit contract
             )
             _active_monitors.pop(trade_id, None)   # monitor returned — deregister from watchdog
 

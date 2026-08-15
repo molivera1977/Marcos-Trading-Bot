@@ -1636,6 +1636,58 @@ try:
 except (AssertionError, ValueError) as _ze:
     check("Z-e: legacy restore", False, str(_ze))
 
+print("AA) 8/14 E3 OOS-wall machinery: grinder-1030 shadow + nightly grader")
+try:
+    # (a) GRINDER_SHADOW default ON + detector EXECUTED on a synthetic post-10:30 grind tape
+    # (new session high, 30-min net-up, above VWAP, <3% pullback -> FIRE; would_stop = 15-min low)
+    from zoneinfo import ZoneInfo as _AAZ
+    import types as _aat, datetime as _aadt
+    _AA_SEG = _y[_y.index('GRINDER_SHADOW   = os.environ.get'):_y.index("def kev_zoneflip_step")]
+    _aan = {"os": _aat.SimpleNamespace(environ={}), "datetime": _aadt.datetime,
+            "EASTERN": _AAZ("America/New_York")}
+    exec(_AA_SEG, _aan)
+    assert _aan["GRINDER_SHADOW"] is True                          # default ON with empty env
+    _aaE = _AAZ("America/New_York")
+    _k0 = int(_aadt.datetime(2026, 8, 14, 10, 40, 0, tzinfo=_aaE).timestamp())
+    _tape = [(_k0,       9.00, 9.10, 8.98, 9.05, 100),             # establishes session high 9.10
+             (_k0 + 600, 9.05, 9.12, 9.02, 9.10, 100),             # 10:50 new hi 9.12 -> FIRE shape
+             (_k0 + 900, 9.10, 9.20, 9.08, 9.18, 100)]             # inside 15-min cooldown
+    _aaf = _aan["grinder_shadow_step"]("AA", _tape, 8.50)
+    assert _aaf and _aaf["px"] == 9.10 and _aaf["session_hi"] == 9.12
+    assert _aaf["would_stop"] == 8.98 and _aaf["mins_since_1030"] == 20 and _aaf["seq"] == 0
+    # cooldown: the _k0+900 new hi (9.20) was inside 900s of the fire -> only ONE fire returned;
+    # a later qualifying new high after the cooldown fires again
+    _aaf2 = _aan["grinder_shadow_step"]("AA", [(_k0 + 1600, 9.18, 9.30, 9.15, 9.28, 100)], 8.50)
+    assert _aaf2 and _aaf2["seq"] == 1 and _aaf2["px"] == 9.28
+    # below-VWAP candidate never fires
+    assert _aan["grinder_shadow_step"]("AB", _tape, 20.0) is None
+    check("AA-a: GRINDER_SHADOW default ON; detector executed (fire, stop, cooldown, VWAP gate)", True)
+except (AssertionError, ValueError) as _aae:
+    check("AA-a: grinder shadow detector", False, str(_aae))
+
+try:
+    # (b) ZERO CONVERSION: detector + caller block never touch breakouts/orders
+    _aav = _y[_y.index("def grinder_shadow_step"):_y.index("def kev_zoneflip_step")]
+    assert "breakouts.append" not in _aav and "execute_trade" not in _aav
+    _aac = _y[_y.index("GRINDER-1030 shadow (#48 lane"):_y.index("IGNITION-10S feed")]
+    assert "breakouts.append" not in _aac and "execute_trade" not in _aac
+    assert '"grinder_shadow_fire"' in _aac and "would_stop=" in _aac
+    assert "session_hi=" in _aac and "mins_since_1030=" in _aac and "in_lane=True" in _aac
+    check("AA-b: grinder shadow has NO conversion path; row stamps full E3-grader schema", True)
+except (AssertionError, ValueError) as _aae:
+    check("AA-b: zero-conversion scan", False, str(_aae))
+
+# (c) nightly grader script exists + carries the E3 exit constants; (d) 23:00 plist exists
+_aag = os.path.join(ROOT, "data", "killtests", "nightly_shadow_grade.py")
+_aas = open(_aag).read() if os.path.exists(_aag) else ""
+check("AA-c: nightly_shadow_grade.py exists with the E3 model (bank 1.10 / trail 0.90 / slip 0.995)",
+      bool(_aas) and "BANK_PCT" in _aas and "1.10" in _aas and "0.90" in _aas
+      and "0.995" in _aas and "OOS_WALL.md" in _aas and "grinder_shadow_fire" in _aas)
+_aap = os.path.expanduser("~/Library/LaunchAgents/com.marcos.tradingbot.shadowgrade.plist")
+_aax = open(_aap).read() if os.path.exists(_aap) else ""
+check("AA-d: shadowgrade launchd plist exists (23:00 daily, points at the grader)",
+      "nightly_shadow_grade.py" in _aax and "<integer>23</integer>" in _aax)
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

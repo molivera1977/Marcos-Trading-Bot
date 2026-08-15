@@ -5751,6 +5751,75 @@ def v2_pullback_step(sym, new_bars, vwap):
     return fired
 
 
+# ── 8/14 GRINDER-1030 SHADOW (#48 vertical-regime lane; E3 OOS-wall nominee).
+# Evidence chain: missing_regimes_20260814.md KT2(a) SHADOW-CANDIDATE (+$815.68/64, 67% win,
+# both halves positive) -> edge_stresstest_D TEST H spec (det_grinder_1030, post-10:30 ET) ->
+# edge_stresstest_F_20260815.md E3 PASS 5/5 (grinder+flat_top portfolio, mean +$94.96/d,
+# median +$62.09/d, 81% green). SHADOW ONLY — HARD-CODED: no conversion path, no
+# breakout-list append, no order flow; writes grinder_shadow_fire rows and nothing else.
+# The >=5-day OOS wall (nightly_shadow_grade.py -> data/history/OOS_WALL.md) grades it.
+# Candidate (checked at each NEW SESSION HIGH print after 10:30 ET): last-30-min net-up
+# (close > close ~30 min ago) AND close > session VWAP AND no >=3% pullback from the running
+# high in the last 15 min; 15-min per-name cooldown; would_stop = last-15-min low.
+GRINDER_SHADOW   = os.environ.get("GRINDER_SHADOW", "1") == "1"
+GRINDER_COOL_SECS = 900          # KT2 spec: 15-min per-name entry cooldown (registry: invented, KT2-tested)
+GRINDER_W30_SECS  = 1800         # net-up lookback
+GRINDER_W15_SECS  = 900          # pullback / would-stop window
+GRINDER_MAX_DD    = 0.03         # no >=3% pullback from running high in last 15 min
+_gr_st: dict = {}   # sym -> machine state (module-level: survives rescans)
+
+def grinder_shadow_step(sym, new_bars, vwap):
+    """Advance sym's grinder-1030 SHADOW machine over NEW completed 10s bars
+    [(k,o,h,l,c,vol),...]. Detection only — the caller logs the row; nothing converts.
+    Returns at most one fire dict per call, else None."""
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    st = _gr_st.get(sym)
+    if not st or st.get("day") != day:
+        st = {"day": day, "win": [], "sess_hi": None, "cool_k": None, "n": 0}
+        _gr_st[sym] = st
+    fired = None
+    for k, o, h, l, c, v in new_bars:
+        st["win"].append((k, h, l, c))
+        while st["win"] and k - st["win"][0][0] > GRINDER_W30_SECS:
+            st["win"].pop(0)
+        prev_hi = st["sess_hi"]
+        new_hi = prev_hi is None or h > prev_hi
+        if new_hi:
+            st["sess_hi"] = h
+        _t = datetime.fromtimestamp(k, EASTERN)
+        if _t.hour * 60 + _t.minute < 630:                 # post-10:30 ET only (TEST H spec)
+            continue
+        if not (new_hi and prev_hi is not None):           # candidate = a NEW session high print
+            continue
+        if fired is not None or not (vwap and vwap > 0 and c > vwap):
+            continue
+        if st.get("cool_k") is not None and k - st["cool_k"] < GRINDER_COOL_SECS:
+            continue
+        w30 = st["win"]
+        w15 = [x for x in w30 if x[0] >= k - GRINDER_W15_SECS]
+        if len(w30) < 2 or len(w15) < 2:
+            continue
+        if not (c > w30[0][3]):                            # last-30-min net-up
+            continue
+        run_hi = w15[0][1]; max_dd = 0.0
+        for _, xh, xl, _c in w15:
+            run_hi = max(run_hi, xh)
+            if run_hi > 0:
+                max_dd = max(max_dd, (run_hi - xl) / run_hi)
+        if max_dd >= GRINDER_MAX_DD:
+            continue
+        lo15 = min(x[2] for x in w15)
+        if not (lo15 < c):                                 # degenerate-stop guard (TEST H spec)
+            continue
+        _1030 = _t.replace(hour=10, minute=30, second=0, microsecond=0)
+        fired = {"px": round(c, 4), "k": k, "session_hi": round(st["sess_hi"], 4),
+                 "would_stop": round(lo15, 4),
+                 "mins_since_1030": int((_t - _1030).total_seconds() // 60), "seq": st["n"]}
+        st["n"] += 1
+        st["cool_k"] = k
+    return fired
+
+
 def kev_zoneflip_step(sym, new_bars):
     """Advance sym's Z1–Z3 machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
     Z1 arm: 9:30–9:45 flush ≥ZONEFLIP_FLUSH from the 9:30 open, low inside zone±band, vol ≥2×
@@ -7246,6 +7315,23 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                   would_stop=_v2f["would_stop"],
                                                   calib=_v2f.get("calib", "legacy"),
                                                   seq=_v2f["seq"], time_hm=_hm_v2)
+                            except Exception:
+                                pass
+                        # ── 8/14 GRINDER-1030 shadow (#48 lane; E3 OOS-wall nominee): same fed
+                        # 10s bars + session line as hidden/v2 (zero new fetches). SHADOW ONLY —
+                        # this block logs a row and STOPS; it never touches breakouts, slots, or
+                        # any order path. nightly_shadow_grade.py grades the rows.
+                        if GRINDER_SHADOW:
+                            try:
+                                _grf = grinder_shadow_step(t, _nb, _vr_sv)
+                                if _grf:
+                                    _log_decision(t, "grinder_shadow_fire", price=_grf["px"],
+                                                  session_hi=_grf["session_hi"],
+                                                  vwap=round(_vr_sv, 4),
+                                                  mins_since_1030=_grf["mins_since_1030"],
+                                                  would_stop=_grf["would_stop"],
+                                                  in_lane=True, seq=_grf["seq"],
+                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"))
                             except Exception:
                                 pass
 
@@ -10455,7 +10541,8 @@ def main():
           # 8/14 change-set switches:
           f"IGNITION_CELL_GATE={IGNITION_CELL_GATE} FLATTOP_CONVERT={int(FLATTOP_CONVERT)} "
           f"VWAPRECLAIM_CONVERT={int(VWAPRECLAIM_CONVERT)} MA_WARMUP_SEED={int(MA_WARMUP_SEED)} "
-          f"RESTING_SELLS={int(RESTING_SELLS)} V2_SHADOW={int(V2_SHADOW)}")
+          f"RESTING_SELLS={int(RESTING_SELLS)} V2_SHADOW={int(V2_SHADOW)} "
+          f"GRINDER_SHADOW={int(GRINDER_SHADOW)}")
     # 8/3 (#26): the SAME config, as a DURABLE decision row — Railway's CLI log window is ~500
     # lines, so the printed banner is unreadable hours later ("was the floor really 4% at boot"
     # took env+code inference on 8/3 instead of one query). One row per boot, queryable forever.
@@ -10483,7 +10570,8 @@ def main():
                       retest_band=(f"{RETEST_BAND_LO}-{RETEST_BAND_HI}" if RETEST_BAND_GATE else "off"),
                       ignition_cell_gate=IGNITION_CELL_GATE, flattop_convert=int(FLATTOP_CONVERT),
                       vwapreclaim_convert=int(VWAPRECLAIM_CONVERT), ma_warmup_seed=int(MA_WARMUP_SEED),
-                      resting_sells=int(RESTING_SELLS), v2_shadow=int(V2_SHADOW))
+                      resting_sells=int(RESTING_SELLS), v2_shadow=int(V2_SHADOW),
+                      grinder_shadow=int(GRINDER_SHADOW))
         _leader_rehydrate()   # 8/5: earned leader status survives restarts
     except Exception as _bc_e:
         print(f"⚠️  boot_config row failed (banner above still printed): {_bc_e}")

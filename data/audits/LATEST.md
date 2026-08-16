@@ -71,3 +71,5 @@ Room vote on "7ead311 is ship-clean as audited (shadow default-on = observe-only
 SHIP_CHECK result (run after the bookkeeping commit): see the chair's return message.
 
 — Convening closed 2026-08-16 (clock cited above). Blast Radius Auditor, chair.
+
+covers (post-audit bookkeeping): 457237f62951 — catalyst probe artifacts, data/killtests only, no code.

@@ -8,3 +8,4 @@ conf/
 data/.DS_Store
 webull_*_sdk.log*
 data/universe/bars10s/
+data/universe/ticks_precursor/

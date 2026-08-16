@@ -1,0 +1,46 @@
+# FLATTEN PARITY 8/16 — X1: sim 15:59/last-bar flatten vs LIVE 15:45 flatten + 15:30 entry cutoff
+LIVE rule read this run: marcos_trading_bot.py :513-517 VWAP_ENTRY_TIMEOUT=15:30 (no new entries, :7190/:11145/:12416-12448), TRADE_WINDOW_END=15:45 (force close all, :9495). Sim NEW = flatten first bar >= 19:44:50Z close, drop signals >= 19:30:00Z.
+36-date universe: 36 dates 2026-06-25..2026-08-14; signals grinder1030=239 flat_top_retest=208 BA=384
+signals at/after 15:30 ET (dropped in NEW): grinder 8, retest 0, BA 0
+
+## Solo lanes, 36 dates (dedup, no capacity) — E3
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+reconcile: OLD grinder1030 must be N=239 +$5,483.15; OLD BA N=384 +$9,220.01; OLD retest N=208 +$1,279.62
+affected cohorts:
+  grinder1030: open@15:45 cohort N=75 (of 239); OLD $+1615.28 -> NEW $+1477.60 (delta $-137.68; 67 matched, 8 not in NEW set e.g. dropped by 15:30 cutoff/slot walk); OLD trades entered >=15:30 ET: 8
+  flat_top retest: open@15:45 cohort N=9 (of 208); OLD $+458.28 -> NEW $+396.18 (delta $-62.10; 9 matched, 0 not in NEW set e.g. dropped by 15:30 cutoff/slot walk); OLD trades entered >=15:30 ET: 0
+  flat_top BREAK-attack: open@15:45 cohort N=35 (of 384); OLD $+1579.10 -> NEW $+1414.80 (delta $-164.30; 35 matched, 0 not in NEW set e.g. dropped by 15:30 cutoff/slot walk); OLD trades entered >=15:30 ET: 0
+
+## Portfolios, 36 dates, 2-slot H1-H4 (B.pipeline)
+| config | N | day mean | day median | green | halves $/d | worst | verdict [fails] |
+|---|---|---|---|---|---|---|---|
+| OLD round-F E3 baseline (grinder1030+retest) | 238 | $+94.96 | $+62.09 | 29/36 (81%) | $+81.03/$+108.90 | $-115.00 | PASS [all 5] |
+| NEW round-F E3 baseline (15:45 flat, 15:30 cut) | 235 | $+93.29 | $+74.38 | 29/36 (81%) | $+80.45/$+106.13 | $-115.00 | PASS [all 5] |
+| OLD round-G O-config (BA+grinder re-attack) | 156 | $+156.64 | $+134.44 | 32/36 (89%) | $+167.62/$+145.66 | $-109.55 | PASS [all 5] |
+| NEW round-G O-config (15:45 flat, 15:30 cut) | 154 | $+156.76 | $+130.35 | 33/36 (92%) | $+169.15/$+144.36 | $-109.55 | PASS [all 5] |
+reconcile: OLD O-config must be N=156 mean +$156.64 median +$134.44 green 32/36 worst -$109.55; OLD baseline N=238 mean +$94.96 median +$62.09
+portfolio affected cohorts (H4 trades open at 15:45 in OLD):
+  round-F baseline H4: open@15:45 cohort N=22 (of 238); OLD $+790.67 -> NEW $+730.33 (delta $-60.34; 19 matched, 3 not in NEW set e.g. dropped by 15:30 cutoff/slot walk); OLD trades entered >=15:30 ET: 3
+  O-config H4: open@15:45 cohort N=22 (of 156); OLD $+827.65 -> NEW $+831.83 (delta $+4.18; 20 matched, 2 not in NEW set e.g. dropped by 15:30 cutoff/slot walk); OLD trades entered >=15:30 ET: 2
+  O-config flat_top: OLD N=107 $+3931.30 -> NEW N=107 $+3883.08
+  O-config grinder: OLD N=49 $+1707.73 -> NEW N=47 $+1760.14
+
+## ORB 15-min ORL (Sunday T5), full cache
+full cache: 729 files, 729 day-files, 62 dates 2026-05-18..2026-08-14
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+reconcile: OLD ORB 15-min ORL solo must be N=371 +$12,114.57 mean +$195.40 median +$145.30
+  ORB15 solo: open@15:45 cohort N=41 (of 371); OLD $+157.73 -> NEW $-158.84 (delta $-316.57; 41 matched, 0 not in NEW set e.g. dropped by 15:30 cutoff/slot walk); OLD trades entered >=15:30 ET: 0
+| config | N | day mean | day median | green | halves $/d | worst | verdict [fails] |
+|---|---|---|---|---|---|---|---|
+| OLD ORB 15-min ORL 2-slot | 180 | $+114.59 | $+125.57 | 46/62 (74%) | $+128.06/$+101.12 | $-174.35 | PASS [all 5] |
+| NEW ORB 15-min ORL 2-slot | 180 | $+112.53 | $+128.09 | 46/62 (74%) | $+123.35/$+101.70 | $-244.93 | PASS [all 5] |
+reconcile: OLD ORB 15-min 2-slot must be N=180 mean +$114.59 median +$125.57 green 46/62 worst -$174.35
+  ORB15 2-slot H4: open@15:45 cohort N=15 (of 180); OLD $+528.72 -> NEW $+400.55 (delta $-128.17; 15 matched, 0 not in NEW set e.g. dropped by 15:30 cutoff/slot walk); OLD trades entered >=15:30 ET: 0
+
+## Hand-trace (largest |old-new| among O-config H4 trades open at 15:45)
+DXST 2026-07-16 flat_top entry-bar 13:42:00Z sig 2.6890 stop 2.4900: OLD $+46.57 eod | NEW $+22.07 eod1545
+   OLD 19:53:00 BANK 0.50 at +10% (2.9875)
+   OLD 20:00:00 EOD exit at 2.9502
+   NEW 19:44:50 FLATTEN 15:45ET at 2.8357

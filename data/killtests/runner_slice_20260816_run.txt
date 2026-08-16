@@ -1,0 +1,67 @@
+# RUNNER SLICE 8/16 — exit-only variants on O-config entries (live parity: -1% chase, 15:30 cutoff, 15:45 flatten)
+Reconcile target (flatten_parity NEW O-config, 36 dates): N=154 mean +$156.76 median +$130.35 green 33/36 worst -$109.55 PASS.
+
+## 36-DATE UNIVERSE (pre-registered): 36 dates 2026-06-25..2026-08-14, O-config signals N=483
+| variant | N | day mean | day MEDIAN | green | halves $/d | worst | 5-crit | HR>=100/250/500 | slice total | premium (median vs S0) | HR$/median$ | max bleed streak |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| S0 E3 baseline (bank 1/2 @+10%, trail 1/2 10%-off-high) | 154 | $+156.76 | $+130.35 | 33/36 (92%) | $+169.15/$+144.36 | $-109.55 | PASS | 0/0/0 | $+0.00 | $+0.00/d | 0.00 | 0d (0 neg / 0 pos days) |
+| S1 70/30 slice, runner E4 10%-off-high | 154 | $+153.91 | $+132.18 | 33/36 (92%) | $+163.47/$+144.36 | $-107.16 | PASS | 0/0/0 | $-102.43 | $-1.82/d | 0.00 | 2d (11 neg / 17 pos days) |
+| S2 80/20 slice | 154 | $+154.86 | $+131.20 | 33/36 (92%) | $+165.36/$+144.36 | $-107.96 | PASS | 0/0/0 | $-68.29 | $-0.84/d | 0.00 | 2d (10 neg / 15 pos days) |
+| S3 60/40 slice | 154 | $+152.96 | $+133.16 | 33/36 (92%) | $+161.57/$+144.35 | $-106.36 | PASS | 0/0/0 | $-136.58 | $-2.80/d | 0.00 | 2d (7 neg / 21 pos days) |
+| S4 70/30, runner trail 15%-off-high | 142 | $+146.02 | $+140.66 | 32/36 (89%) | $+122.28/$+169.76 | $-109.55 | PASS | 2/0/0 | $+373.00 | $-10.31/d | 0.00 | 6d (21 neg / 13 pos days) |
+| S5 70/30, runner trail arms only after +20% | 143 | $+163.32 | $+134.72 | 34/36 (94%) | $+165.78/$+160.86 | $-109.55 | PASS | 1/0/0 | $+527.88 | $-4.37/d | 0.00 | 3d (7 neg / 20 pos days) |
+  S1 top slice contributions (slice$, sym, date, t, det, trade$, S0$): [(11.67, 'OESX', '2026-08-05', '13:48:20', 'flat_top', -46.61, -58.28), (9.05, 'SDST', '2026-08-03', '13:45:10', 'flat_top', -38.7, -47.75), (5.88, 'MSS', '2026-07-22', '13:43:30', 'flat_top', -48.76, -54.63), (5.06, 'BIYA', '2026-07-17', '13:45:40', 'flat_top', -27.11, -32.17), (5.0, 'CWD', '2026-07-02', '14:16:00', 'flat_top', -65.39, -70.39)]
+  S2 top slice contributions (slice$, sym, date, t, det, trade$, S0$): [(7.78, 'OESX', '2026-08-05', '13:48:20', 'flat_top', -50.5, -58.28), (6.03, 'SDST', '2026-08-03', '13:45:10', 'flat_top', -41.72, -47.75), (3.92, 'MSS', '2026-07-22', '13:43:30', 'flat_top', -50.72, -54.63), (3.37, 'BIYA', '2026-07-17', '13:45:40', 'flat_top', -28.79, -32.17), (3.33, 'CWD', '2026-07-02', '14:16:00', 'flat_top', -67.05, -70.39)]
+  S3 top slice contributions (slice$, sym, date, t, det, trade$, S0$): [(15.56, 'OESX', '2026-08-05', '13:48:20', 'flat_top', -42.72, -58.28), (12.07, 'SDST', '2026-08-03', '13:45:10', 'flat_top', -35.68, -47.75), (7.84, 'MSS', '2026-07-22', '13:43:30', 'flat_top', -46.8, -54.63), (6.75, 'BIYA', '2026-07-17', '13:45:40', 'flat_top', -25.42, -32.17), (6.67, 'CWD', '2026-07-02', '14:16:00', 'flat_top', -63.72, -70.39)]
+  S4 top slice contributions (slice$, sym, date, t, det, trade$, S0$): [(183.55, 'CIGL', '2026-06-30', '16:14:20', 'grinder', 231.33, 47.78), (156.37, 'STFS', '2026-07-28', '15:26:20', 'grinder', 182.06, 25.7), (73.37, 'WYHG', '2026-08-10', '14:00:30', 'flat_top', 101.24, 27.86), (60.89, 'DGNX', '2026-06-29', '13:46:00', 'flat_top', 124.31, 63.42), (59.76, 'GWAV', '2026-07-29', '15:17:00', 'grinder', 92.52, 32.76)]
+  S5 top slice contributions (slice$, sym, date, t, det, trade$, S0$): [(156.37, 'STFS', '2026-07-28', '15:26:20', 'grinder', 182.06, 25.7), (76.56, 'GWAV', '2026-07-29', '15:17:00', 'grinder', 109.32, 32.76), (54.61, 'TC', '2026-07-24', '17:38:10', 'grinder', 90.77, 36.16), (54.47, 'BRAI', '2026-07-13', '13:43:00', 'flat_top', 81.19, 26.72), (48.0, 'SORA', '2026-07-23', '13:43:30', 'flat_top', 60.46, 12.46)]
+reconcile S0: N=154 mean +156.76 median +130.35 green 33/36 worst -109.55 -> OK
+
+## Hand-trace YJ 2026-08-07 (S0 vs each slice)
+  YJ 2026-08-07 O-config signals: [('flat_top', '13:48:10', 1.58, 1.43)]; in S0 H4: []
+  (S0: YJ 2026-08-07 not in H4 set — standalone trace of its flat_top signal, 1 signal(s) that day, first taken)
+  S0: YJ 2026-08-07 flat_top sig-bar 13:48:10Z sig 1.5800 fill 1.5958 (313.3 sh) stop 1.4300 -> $+227.05 [trail@14:21:10] runner-leg $+0.00
+     13:53:30 BANK 0.50 at +10% (1.7554)
+     14:21:10 TRAIL[e3 off10] close 2.9000 fill 2.8855 (156.7 sh)
+  (S1: YJ 2026-08-07 not in H4 set — standalone trace of its flat_top signal, 1 signal(s) that day, first taken)
+  S1: YJ 2026-08-07 flat_top sig-bar 13:48:10Z sig 1.5800 fill 1.5958 (313.3 sh) stop 1.4300 -> $+227.05 [rtrail@14:21:10] runner-leg $+121.23
+     13:53:30 BANK 0.50 at +10% (1.7554)
+     14:21:10 TRAIL[e3 off10] close 2.9000 fill 2.8855 (62.7 sh)
+     14:21:10 RUNNER-TRAIL[off10] close 2.9000 fill 2.8855 hi 3.3000 (94.0 sh)
+  (S2: YJ 2026-08-07 not in H4 set — standalone trace of its flat_top signal, 1 signal(s) that day, first taken)
+  S2: YJ 2026-08-07 flat_top sig-bar 13:48:10Z sig 1.5800 fill 1.5958 (313.3 sh) stop 1.4300 -> $+227.05 [rtrail@14:21:10] runner-leg $+80.82
+     13:53:30 BANK 0.50 at +10% (1.7554)
+     14:21:10 TRAIL[e3 off10] close 2.9000 fill 2.8855 (94.0 sh)
+     14:21:10 RUNNER-TRAIL[off10] close 2.9000 fill 2.8855 hi 3.3000 (62.7 sh)
+  (S3: YJ 2026-08-07 not in H4 set — standalone trace of its flat_top signal, 1 signal(s) that day, first taken)
+  S3: YJ 2026-08-07 flat_top sig-bar 13:48:10Z sig 1.5800 fill 1.5958 (313.3 sh) stop 1.4300 -> $+227.05 [rtrail@14:21:10] runner-leg $+161.64
+     13:53:30 BANK 0.50 at +10% (1.7554)
+     14:21:10 TRAIL[e3 off10] close 2.9000 fill 2.8855 (31.3 sh)
+     14:21:10 RUNNER-TRAIL[off10] close 2.9000 fill 2.8855 hi 3.3000 (125.3 sh)
+  (S4: YJ 2026-08-07 not in H4 set — standalone trace of its flat_top signal, 1 signal(s) that day, first taken)
+  S4: YJ 2026-08-07 flat_top sig-bar 13:48:10Z sig 1.5800 fill 1.5958 (313.3 sh) stop 1.4300 -> $+253.23 [rtrail@14:27:00] runner-leg $+147.42
+     13:53:30 BANK 0.50 at +10% (1.7554)
+     14:21:10 TRAIL[e3 off10] close 2.9000 fill 2.8855 (62.7 sh)
+     14:27:00 RUNNER-TRAIL[off15] close 3.1800 fill 3.1641 hi 3.9700 (94.0 sh)
+  (S5: YJ 2026-08-07 not in H4 set — standalone trace of its flat_top signal, 1 signal(s) that day, first taken)
+  S5: YJ 2026-08-07 flat_top sig-bar 13:48:10Z sig 1.5800 fill 1.5958 (313.3 sh) stop 1.4300 -> $+227.05 [rtrail@14:21:10] runner-leg $+121.23
+     13:53:30 BANK 0.50 at +10% (1.7554)
+     14:21:10 TRAIL[e3 off10] close 2.9000 fill 2.8855 (62.7 sh)
+     14:21:10 RUNNER-TRAIL[off10] close 2.9000 fill 2.8855 hi 3.3000 (94.0 sh)
+
+full cache: 729 files, 729 day-files; grinder1030 sigs 387 (re-attack kept 172), BA sigs 634
+
+## 62-DATE FULL CACHE: 62 dates 2026-05-18..2026-08-14, O-config signals N=806
+| variant | N | day mean | day MEDIAN | green | halves $/d | worst | 5-crit | HR>=100/250/500 | slice total | premium (median vs S0) | HR$/median$ | max bleed streak |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| S0 E3 baseline (bank 1/2 @+10%, trail 1/2 10%-off-high) | 277 | $+153.51 | $+126.03 | 53/62 (85%) | $+168.78/$+138.25 | $-109.55 | PASS | 0/0/0 | $+0.00 | $+0.00/d | 0.00 | 0d (0 neg / 0 pos days) |
+| S1 70/30 slice, runner E4 10%-off-high | 277 | $+148.45 | $+129.56 | 53/62 (85%) | $+161.29/$+135.62 | $-112.49 | PASS | 0/0/0 | $-313.69 | $-3.53/d | 0.00 | 2d (18 neg / 31 pos days) |
+| S2 80/20 slice | 277 | $+150.14 | $+128.38 | 53/62 (85%) | $+163.78/$+136.50 | $-109.37 | PASS | 0/0/0 | $-209.13 | $-2.35/d | 0.00 | 2d (17 neg / 29 pos days) |
+| S3 60/40 slice | 277 | $+146.77 | $+130.73 | 53/62 (85%) | $+158.79/$+134.75 | $-115.61 | PASS | 0/0/0 | $-418.25 | $-4.70/d | 0.00 | 2d (13 neg / 39 pos days) |
+| S4 70/30, runner trail 15%-off-high | 255 | $+165.54 | $+160.79 | 55/62 (89%) | $+195.69/$+135.39 | $-112.43 | PASS | 7/0/0 | $+1330.31 | $-34.76/d | 0.00 | 6d (31 neg / 28 pos days) |
+| S5 70/30, runner trail arms only after +20% | 256 | $+164.58 | $+145.79 | 56/62 (90%) | $+185.24/$+143.93 | $-109.55 | PASS | 2/0/0 | $+846.24 | $-19.76/d | 0.00 | 3d (11 neg / 34 pos days) |
+  S1 top slice contributions (slice$, sym, date, t, det, trade$, S0$): [(12.62, 'FTHM', '2026-06-17', '14:27:50', 'flat_top', -52.08, -64.7), (11.67, 'OESX', '2026-08-05', '13:48:20', 'flat_top', -46.61, -58.28), (10.3, 'BGMS', '2026-06-05', '14:06:00', 'flat_top', -34.76, -45.06), (9.05, 'SDST', '2026-08-03', '13:45:10', 'flat_top', -38.7, -47.75), (8.49, 'CHAI', '2026-06-09', '13:57:10', 'flat_top', -47.06, -55.55)]
+  S2 top slice contributions (slice$, sym, date, t, det, trade$, S0$): [(8.42, 'FTHM', '2026-06-17', '14:27:50', 'flat_top', -56.29, -64.7), (7.78, 'OESX', '2026-08-05', '13:48:20', 'flat_top', -50.5, -58.28), (6.87, 'BGMS', '2026-06-05', '14:06:00', 'flat_top', -38.19, -45.06), (6.03, 'SDST', '2026-08-03', '13:45:10', 'flat_top', -41.72, -47.75), (5.66, 'CHAI', '2026-06-09', '13:57:10', 'flat_top', -49.89, -55.55)]
+  S3 top slice contributions (slice$, sym, date, t, det, trade$, S0$): [(16.83, 'FTHM', '2026-06-17', '14:27:50', 'flat_top', -47.87, -64.7), (15.56, 'OESX', '2026-08-05', '13:48:20', 'flat_top', -42.72, -58.28), (13.73, 'BGMS', '2026-06-05', '14:06:00', 'flat_top', -31.33, -45.06), (12.07, 'SDST', '2026-08-03', '13:45:10', 'flat_top', -35.68, -47.75), (11.32, 'CHAI', '2026-06-09', '13:57:10', 'flat_top', -44.23, -55.55)]
+  S4 top slice contributions (slice$, sym, date, t, det, trade$, S0$): [(238.52, 'MTEN', '2026-06-08', '17:27:50', 'grinder', 325.98, 87.45), (183.55, 'CIGL', '2026-06-30', '16:14:20', 'grinder', 231.33, 47.78), (163.62, 'PRFX', '2026-06-15', '16:22:50', 'grinder', 238.27, 74.64), (156.37, 'STFS', '2026-07-28', '15:26:20', 'grinder', 182.06, 25.7), (154.64, 'PAVS', '2026-06-08', '14:27:40', 'flat_top', 199.77, 45.13)]
+  S5 top slice contributions (slice$, sym, date, t, det, trade$, S0$): [(156.37, 'STFS', '2026-07-28', '15:26:20', 'grinder', 182.06, 25.7), (125.01, 'ELTX', '2026-06-17', '13:49:10', 'flat_top', 143.32, 18.31), (79.48, 'WCT', '2026-06-10', '13:43:50', 'flat_top', 91.12, 11.64), (76.56, 'GWAV', '2026-07-29', '15:17:00', 'grinder', 109.32, 32.76), (54.61, 'TC', '2026-07-24', '17:38:10', 'grinder', 90.77, 36.16)]

@@ -2017,3 +2017,22 @@ consumes these blocks). Rig pin: a synthetic trade's record must contain both bl
 5. Librarian: E3/O-config graded vs corpus verbatim.
 6. EVENING MENU: Monday configuration, every open decision one word each (band-pass convert? cell-gate
    enforce? etc.), with the week's frozen-nominee discipline restated.
+
+## 2026-08-15 ~02:00 — EXTERNAL-PLAYBOOK HYPOTHESIS REGISTRY (Marcos: "make sure we test any new info")
+From three articles Marcos supplied (Warrior/tradethatswing/tradingsim/snappchart/arongroups). Every
+item = HYPOTHESIS until its join/kill-test runs on the universe; none ships on citation alone.
+NEW EYES (stamp in build #0, join in the matrix): rel-vol vs same-time-of-day; SPY/QQQ regime vs
+its own VWAP; extension-from-VWAP in ATR units; spread state; catalyst flag [NEEDS MARCOS WORD to
+gate]. NEW ENTRY SPECS to grade: classic bull-flag (2-6 red pullback bars, declining vol, first new
+high); midday range breakout (13:00-15:00 lunch consolidation, = break-attack unwindowed);
+afternoon VWAP reclaim WITH survivor precondition (morning runner held VWAP through lunch); ORB
+fair re-run (5 vs 15 min ranges, close-above + vol >=1.5x). RULES to test on our tape: "no HOD
+breaks in final hour" (80-85% no-new-high claim); failed-break exit (breakout bar closes back
+inside range -> exit); declining-pullback-volume as flag confirmation; volume clause on
+break-attack ("non-negotiable" per article — currently ABSENT); "power hour = exit into
+strength" (E3 runner behavior after 15:00). ORGANIZING PRINCIPLE to grade: morning=expansion /
+afternoon=survival — test survivor filter on all afternoon signals. RISK-ENGINE items (broker
+desk, pre-trial): consecutive-loss stop, correlation cap, first-30-min double-stop cooldown,
+broker-level kill switch. Where our data already DISAGREES: tight-stop=big-size (thin-tape
+refutes at $500+), 5-min reclaim candles (blind to our sub-minute holds).
+All -> Sunday agenda items 1 (matrix) and 3 (afternoon studies).

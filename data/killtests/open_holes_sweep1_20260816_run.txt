@@ -1,0 +1,60 @@
+# OPEN-HOLES SWEEP #1 — 8/16 (analysis only; live-parity E3 via flatten_parity chain)
+universe: 729 files, 729 name-days with >=60 RTH bars, 62 dates 2026-05-18..2026-08-14; E3 = +1% chase, 0.5% mkt, $500 clip, bank 1/2 at +10%, 10%-off-high trail, halt-gap rule, 15:30 cutoff, 15:45 flatten
+
+# HOLE A — DAY-2/3 CONTINUATION
+census: 729 name-days with RTH bars; REPEAT (appeared as a runner on 1-3 prior trading days) = 124 (17.0%); day-1 = 605
+repeat depth (prior appearances within 3 days): {1: 105, 2: 18, 3: 1}
+repeat name-days (first 40): ADVB@2026-07-22, ADVB@2026-07-23, ADVB@2026-07-24, AKTX@2026-05-22, AKTX@2026-05-28, ASTC@2026-05-28, ASTC@2026-05-29, AZI@2026-06-29, BIYA@2026-07-20, BIYA@2026-07-28, BJDX@2026-07-07, BOXL@2026-06-24, BOXL@2026-08-14, CAST@2026-06-15, CAST@2026-06-18, CDT@2026-06-22, CIIT@2026-06-12, CIRC@2026-06-25, CJMB@2026-07-24, CLRO@2026-07-07, CODX@2026-05-21, CODX@2026-05-26, CODX@2026-05-28, CPHI@2026-07-15, CRVO@2026-06-18, CUPR@2026-06-15, DBGI@2026-06-03, DFNS@2026-07-28, DFNS@2026-07-29, DFNS@2026-08-03, DFSC@2026-08-14, DSY@2026-06-12, EDHL@2026-06-12, EHGO@2026-06-22, EHGO@2026-06-24, FCUV@2026-06-25, FCUV@2026-08-03, FIEE@2026-07-29, FOFO@2026-06-03, FTHM@2026-06-17
+
+## Lanes split day-1 vs repeat (solo, dedup, live parity, 62 dates)
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+  reload day1: N=487 win 39% mean/tr $+10.24 total $+4984.91 best $+584.23 worst $-101.78
+  reload repeat: N=108 win 37% mean/tr $+7.47 total $+806.97 best $+193.15 worst $-58.93
+  reload day1 ACTIVE-DAYS: 62 days, day mean $+80.40 median $+71.34 green 61%; per-trade mean SE $3.08
+  reload repeat ACTIVE-DAYS: 48 days, day mean $+16.81 median $-5.61 green 44%; per-trade mean SE $5.12
+  break-attack 9:30-10:30 day1: N=524 win 62% mean/tr $+26.05 total $+13650.02 best $+500.96 worst $-71.99
+  break-attack 9:30-10:30 repeat: N=108 win 64% mean/tr $+29.07 total $+3139.16 best $+221.28 worst $-69.91
+  break-attack 9:30-10:30 day1 ACTIVE-DAYS: 62 days, day mean $+220.16 median $+211.30 green 85%; per-trade mean SE $2.98
+  break-attack 9:30-10:30 repeat ACTIVE-DAYS: 42 days, day mean $+74.74 median $+76.00 green 71%; per-trade mean SE $6.53
+  grinder1030 day1: N=338 win 59% mean/tr $+27.03 total $+9136.02 best $+377.19 worst $-59.55
+  grinder1030 repeat: N=35 win 57% mean/tr $+37.32 total $+1306.10 best $+163.75 worst $-59.24
+  grinder1030 day1 ACTIVE-DAYS: 57 days, day mean $+160.28 median $+98.13 green 81%; per-trade mean SE $2.95
+  grinder1030 repeat ACTIVE-DAYS: 13 days, day mean $+100.47 median $+82.15 green 85%; per-trade mean SE $11.58
+
+## Hand-trace A: PCLA 2026-06-26 reload entry-bar 13:37:00Z sig 3.1500 stop 3.0900 repeat=False prior=[] -> $+584.23 trail@16:02:30
+   RTH open 3.0100; fill = sig x1.01 = 3.1815; shares 157.2
+   13:50:10 BANK 0.50 at +10% (3.4996)
+   16:02:30 TRAIL[off10] close 10.3500 fill 10.2982
+
+# HOLE B — SEAM H2 micro-pullback (10s resolution; 5s bars are NOT in the universe cache)
+resolution limit: the 5s program (task #38) is graded here on 10s bars — a 4% single-10s-bar surge is a coarser event than the 5s seam; sub-10s micro-pullbacks are invisible. Verdict applies to the 10s form only.
+signals: seam 299 name-days; break-attack 9:30-9:40 0
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+seam stop width %: median 1.95 min 0.00 max 18.84; win 19%; per-trade mean $-3.35
+overlap: seam name-days 299, BA name-days 0, both 0
+  seam-only name-days: N=299 $-1003.12
+seam exits: {'stop': 240, 'trail': 54, 'eod1545': 3, 'haltgap': 2}
+
+## Hand-trace B: ZCMD 2026-07-22 surge bar 13:30:20Z 2.1700->2.3000 (+6.0%), entry bar 13:30:30Z low 2.2600 > prev low 2.1600, sig 2.3800 fill 2.4038 -> $+377.78 trail@14:27:00
+   13:31:00 BANK 0.50 at +10% (2.6442)
+   14:27:00 TRAIL[off10] close 5.8250 fill 5.7959
+
+# HOLE C — EX-HIDDEN v1 ENTRIES RE-GRADED UNDER E3 EXITS
+trigger read this run: marcos_trading_bot.py :5662 hidden_entry_step — ARM 25%/30 bars; FIRE wick-reclaim of max(EMA90,VWAP), close>=anchor & >=VWAP, close top-half, body > -0.5%; nbars>=90; stop=min(low-0.01, 5%). Fed FULL-day bars (premarket VWAP anchor).
+raw RTH fires: 19207 across 445 name-days
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+
+by window (all fires, dedup):
+  09:30-10:30: N=875 total $-3827.18 mean $-4.37 win 37%
+  10:30-12:00: N=1241 total $+125.87 mean $+0.10 win 38%
+  12:00-13:00: N=705 total $-3811.00 mean $-5.41 win 34%
+  13:00-15:00: N=1402 total $-12592.58 mean $-8.98 win 29%
+  15:00-16:00: N=361 total $-4108.04 mean $-11.38 win 27%
+exits (all-day dedup): {'trail': 1197, 'stop': 2863, 'eod1545': 516, 'haltgap': 8}
+
+## Hand-trace C: NPT 2026-06-08 hidden fire 17:43:20Z bar o 3.0500 h 3.1300 l 3.0100 c 3.1200 ext_vwap +2.81% stop 2.9640 (5.0% risk) fill 3.1512 -> $+407.29 trail@18:11:50
+   17:46:20 BANK 0.50 at +10% (3.4663)
+   18:11:50 TRAIL[off10] close 8.0100 fill 7.9699

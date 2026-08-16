@@ -2036,3 +2036,13 @@ desk, pre-trial): consecutive-loss stop, correlation cap, first-30-min double-st
 broker-level kill switch. Where our data already DISAGREES: tight-stop=big-size (thin-tape
 refutes at $500+), 5-min reclaim candles (blind to our sub-minute holds).
 All -> Sunday agenda items 1 (matrix) and 3 (afternoon studies).
+
+## 2026-08-16 ~11:50 — MARCOS ORDER: KEV LESSONS REPORT WITH EVERY SWEEP
+Verbatim: "When we download Kev's picks, I want to also make sure we download his shorts and
+videos and get a report about what lessons have been taught and what we learned that can be
+usable for improving the bot." Build: extend the nightly kev sweep — after picks + transcript
+pull (videos AND shorts, YouTube + TikTok), auto-generate data/kev/LESSONS_YYYYMMDD.md: new
+items only (delta vs corpus), verbatim quotes w/ dates, tagged by theme (entries/exits/
+premarket/halts/sizing/regime), each mapped to a bot mechanism (HAVE / PARTIAL / MISSING) with a
+one-line testable hypothesis + owning officer; appended to a rolling KEV_LESSONS_LEDGER.md;
+surfaced on the dashboard (latest lessons tile) + in the morning brief. Librarian owns.

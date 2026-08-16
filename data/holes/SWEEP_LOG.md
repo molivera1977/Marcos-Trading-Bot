@@ -1,0 +1,4 @@
+# HOLES SWEEP LOG (append-only; one line per nightly run)
+
+- 2026-08-16 13:12 | DRY picked=['H02', 'H21'] | ran=['H02 DRY-SELECTED (data/killtests/ride_seams_week10s_20260807.py)', 'H21 DRY-SELECTED (data/killtests/sunday_afternoon_studies_20260816.py)'] | oos=['H09 oos day 0/5', 'H10 oos day 0/5', 'H11 oos day 0/5', 'H12 oos day 0/5', 'H20 oos day 0/5', 'H27 oos day 0/5'] | counts={'RUNNING': 8, 'OPEN': 10, 'BLOCKED': 5, 'REFUTED': 4}
+- 2026-08-16 13:12 | DRY picked=['H02', 'H26'] | ran=['H02 DRY-SELECTED (data/killtests/ride_seams_week10s_20260807.py)', 'H26 DRY-SELECTED (data/killtests/killtest_minstop.py)'] | oos=['H09 oos day 0/5', 'H10 oos day 0/5', 'H11 oos day 0/5', 'H12 oos day 0/5', 'H20 oos day 0/5', 'H27 oos day 0/5'] | counts={'RUNNING': 8, 'OPEN': 10, 'BLOCKED': 5, 'REFUTED': 4}

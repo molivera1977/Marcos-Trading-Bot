@@ -1,0 +1,84 @@
+{
+ "run_at": "2026-08-16T13:12",
+ "dry": true,
+ "counts": {
+  "RUNNING": 8,
+  "OPEN": 10,
+  "BLOCKED": 5,
+  "REFUTED": 4
+ },
+ "picked": [
+  "H02",
+  "H26"
+ ],
+ "ran": [
+  "H02 DRY-SELECTED (data/killtests/ride_seams_week10s_20260807.py)",
+  "H26 DRY-SELECTED (data/killtests/killtest_minstop.py)"
+ ],
+ "oos": [
+  "H09 oos day 0/5",
+  "H10 oos day 0/5",
+  "H11 oos day 0/5",
+  "H12 oos day 0/5",
+  "H20 oos day 0/5",
+  "H27 oos day 0/5"
+ ],
+ "top_open": [
+  {
+   "id": "H01",
+   "title": "Vertical / rocket regime entries (#48)",
+   "owner": "Rocket Rider + Hidden Entry Architect"
+  },
+  {
+   "id": "H02",
+   "title": "Seam / beginning-entry (#38)",
+   "owner": "Seam Scientist"
+  },
+  {
+   "id": "H03",
+   "title": "Day-2 continuation",
+   "owner": "Handicapper + Seam Scientist"
+  },
+  {
+   "id": "H04",
+   "title": "Ex-hidden names under E3 exits (sweep #1)",
+   "owner": "Hidden Entry Architect + Trade Manager"
+  },
+  {
+   "id": "H09",
+   "title": "Band-pass VWAP reclaim OOS",
+   "owner": "Reclaim Architect + Side Marshal"
+  }
+ ],
+ "latest_verdicts": [
+  {
+   "id": "H16",
+   "title": "No-progress rule (15-min time stop)",
+   "status": "REFUTED",
+   "last_run": "2026-08-16",
+   "verdict": "REFUTED hard. Grinder fired 222/387: rule -$913.27 vs default +$5,835.69 (lane +$10,676 -> +$3,927). Break-attack fired 342/634: rule -$3,221.00 vs default +$11,126.55 (lane +$17,031 -> +$2,683). Slow starters carry the winners; time-stops kill the E3 runner shape. Do NOT re-run."
+  },
+  {
+   "id": "H17",
+   "title": "Power hour lane (15:00-16:00)",
+   "status": "REFUTED",
+   "last_run": "2026-08-16",
+   "verdict": "REFUTED as a lane. Worst bucket for every lane (grinder +$7.75/tr 44% win; break-attack -$10.02/tr; band-pass +$0.24/tr; v2cal -$12.90/tr). Only 13.4% of universe days make a new RTH high after 15:00 (~86% do not; article claim reproduced). Distribution window, nothing to build."
+  },
+  {
+   "id": "H18",
+   "title": "ORB (15-min opening range breakout)",
+   "status": "REFUTED",
+   "last_run": "2026-08-16",
+   "verdict": "REDUNDANT (letter: additive by $0.05/d mean). Solo ORB-15 passes bar (371 tr, 78% win, +$12,114.57, +$32.65/tr) but 51% of signals = the BA break re-confirmed ~100s later; r=+0.623 with BA; green% and worst day degrade at 2 slots; BA dominates at 3 slots. BA keeps the slot. Only ORB-only remainder ("
+  },
+  {
+   "id": "H19",
+   "title": "Halt retest (10s mechanical)",
+   "status": "REFUTED",
+   "last_run": "2026-08-16",
+   "verdict": "REFUTED at full cache. N=36 (26 up/10 down), 19% win, -$1,078.81 total, -$29.97/tr; up-halts -$855.15, down-halts -$223.66; controls also negative. Halt-lane doctrine (arm-only converts, 5s feed, crowns, half size) untouched."
+  }
+ ],
+ "file": "data/holes/HOLES.md"
+}

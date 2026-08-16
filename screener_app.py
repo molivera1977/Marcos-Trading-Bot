@@ -1736,6 +1736,20 @@ def api_kev_lessons():
     except Exception as e:
         return jsonify({"top": [], "error": str(e)})
 
+@app.route("/api/holes", methods=["GET"])
+def api_holes():
+    """8/16: HOLES tile feed — data/holes/holes_latest.json written by data/holes/holes_sweep.py
+    (nightly 23:30 open-holes sweep). Display only; same pattern as kev_lessons/oos_wall."""
+    try:
+        cands = [pathlib.Path("/data/holes/holes_latest.json"),
+                 pathlib.Path(__file__).resolve().parent / "data" / "holes" / "holes_latest.json"]
+        for fp in cands:
+            if fp.exists():
+                return jsonify(json.loads(fp.read_text()))
+        return jsonify({"top_open": [], "latest_verdicts": [], "error": "no sweep yet"})
+    except Exception as e:
+        return jsonify({"top_open": [], "latest_verdicts": [], "error": str(e)})
+
 @app.route("/api/oos_wall", methods=["GET"])
 def api_oos_wall():
     """8/14 pm: OOS WALL tile feed — last line of data/history/OOS_WALL.md (the >=5-day E3 wall
@@ -3334,6 +3348,8 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="section-title">OOS Wall <span style="font-size:12px;font-weight:400;color:var(--muted)">(E3 shadow portfolio — latest nightly line; &ge;5 forward days before any live talk)</span></div>
   <div id="oosWall" style="margin:0 0 18px 0;font-size:13px;color:var(--muted);border:1px solid var(--bg3);border-radius:8px;padding:8px 12px;font-family:ui-monospace,monospace;overflow-x:auto;white-space:nowrap">loading…</div>
 
+  <div class="section-title">Holes <span style="font-size:12px;font-weight:400;color:var(--muted)">(nightly open-holes sweep 23:30 — top OPEN + latest verdicts; data/holes/HOLES.md)</span></div>
+  <div id="holesTile" style="margin:0 0 18px 0;font-size:13px;color:var(--muted);border:1px solid var(--bg3);border-radius:8px;padding:8px 12px">loading…</div>
   <div class="section-title">Kev Lessons <span style="font-size:12px;font-weight:400;color:var(--muted)">(latest nightly sweep — top actionable, MISSING first; psychology skipped)</span></div>
   <div id="kevLessons" style="margin:0 0 18px 0;font-size:13px;color:var(--muted);border:1px solid var(--bg3);border-radius:8px;padding:8px 12px">loading…</div>
 
@@ -3486,6 +3502,21 @@ function loadData(){
       j.top.slice(0,5).forEach(l=>{ h+='<div style="margin:3px 0"><span style="font-weight:600;color:'+(col[l.bot_mapping]||'inherit')+'">'+esc(l.bot_mapping)+'</span> <span style="color:var(--muted4)">['+esc(l.theme)+' · '+esc(l.mechanism)+']</span> '+esc(l.lesson)+' <span style="color:var(--muted4)">— '+esc(l.officer)+'</span></div>'; });
       el.innerHTML=h;
     }).catch(()=>{ const el=document.getElementById('kevLessons'); if(el) el.innerHTML='<span style="color:var(--muted4)">Kev lessons unavailable</span>'; });
+    }catch(e){}
+  })();
+  (function loadHoles(){
+    /* 8/16 HOLES tile — /api/holes (holes_latest.json from the nightly sweep). Panel-isolated. */
+    try{
+    fetch('/api/holes').then(r=>r.json()).then(j=>{
+      const el=document.getElementById('holesTile'); if(!el) return;
+      const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      if(!j.run_at){ el.innerHTML='<span style="color:var(--muted4)">no holes sweep yet'+(j.error?' ('+esc(j.error)+')':'')+'</span>'; return; }
+      const c=j.counts||{};
+      let h='<div style="margin-bottom:4px;color:var(--muted4)">sweep '+esc(j.run_at)+(j.dry?' (DRY)':'')+' · OPEN '+(c.OPEN||0)+' · RUNNING '+(c.RUNNING||0)+' · VERDICT/RAN '+((c.VERDICT||0)+(c.RAN||0))+' · REFUTED '+(c.REFUTED||0)+' · BLOCKED '+(c.BLOCKED||0)+' · picked '+esc((j.picked||[]).join(','))+'</div>';
+      (j.top_open||[]).slice(0,4).forEach(x=>{ h+='<div style="margin:3px 0"><span style="font-weight:600;color:#d9a441">'+esc(x.id)+'</span> '+esc(x.title)+' <span style="color:var(--muted4)">— '+esc(x.owner)+'</span></div>'; });
+      (j.latest_verdicts||[]).slice(0,3).forEach(x=>{ h+='<div style="margin:3px 0"><span style="font-weight:600;color:'+(x.status==='REFUTED'?'#e0574f':'#4caf7d')+'">'+esc(x.id)+' '+esc(x.status)+'</span> '+esc(x.title)+' <span style="color:var(--muted4)">'+esc(String(x.verdict||'').slice(0,160))+'</span></div>'; });
+      el.innerHTML=h;
+    }).catch(()=>{ const el=document.getElementById('holesTile'); if(el) el.innerHTML='<span style="color:var(--muted4)">holes unavailable</span>'; });
     }catch(e){}
   })();
   (function loadOosWall(){

@@ -1,0 +1,156 @@
+# Sunday afternoon studies 2026-08-16 — engine chain G->F->C->B->E, E3 exits, FULL cache
+FILES: 729 in data/universe/bars10s; usable RTH days (>=60 bars): 729; DATES: 62 2026-05-18..2026-08-14
+day-gain reference = first bar open of each file (premarket ~08:00Z); no prior close in cache (CAVEAT)
+
+detector parity: band_pass ann=414 vs engine=414; flat_top_break ann=4452 vs G=4452
+
+## T1 — POWER-HOUR JOIN (every lane, unwindowed signals, bucketed by SIGNAL time ET, E3 exits, dedup same-name<=5min)
+(grinder lane fires only post-10:30 by spec and flattens 15:59; per-lane tables, no capacity)
+
+### grinder  (N=387)
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| 09:30-10:30 | 0 | - | - | - | - | - | - |
+| 10:30-12:00 | 157 | 69% | $+7070.56 | $+45.04 | $+114.04 | $+73.20 | $-93.85 |
+| 12:00-13:00 | 91 | 55% | $+1843.48 | $+20.26 | $+29.73 | $+0.00 | $-121.95 |
+| 13:00-15:00 | 107 | 48% | $+1514.11 | $+14.15 | $+24.42 | $+0.00 | $-82.09 |
+| 15:00-16:00 | 32 | 44% | $+248.16 | $+7.75 | $+4.00 | $+0.00 | $-57.24 |
+| ALL | 387 | 58% | $+10676.31 | $+27.59 | $+172.20 | $+101.77 | $-175.04 |
+
+### flat_top_break  (N=4452)
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| 09:30-10:30 | 632 | 62% | $+16978.32 | $+26.86 | $+273.84 | $+280.19 | $-121.42 |
+| 10:30-12:00 | 1019 | 44% | $+5080.00 | $+4.99 | $+81.94 | $+11.97 | $-460.06 |
+| 12:00-13:00 | 696 | 39% | $-1327.97 | $-1.91 | $-21.42 | $-31.14 | $-313.47 |
+| 13:00-15:00 | 1356 | 36% | $-7483.94 | $-5.52 | $-120.71 | $-109.23 | $-639.76 |
+| 15:00-16:00 | 749 | 30% | $-7502.11 | $-10.02 | $-121.00 | $-108.31 | $-366.13 |
+| ALL | 4452 | 41% | $+5744.30 | $+1.29 | $+92.65 | $+120.17 | $-1046.99 |
+
+### band_pass  (N=412)
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| 09:30-10:30 | 182 | 53% | $+2248.46 | $+12.35 | $+36.27 | $+8.21 | $-293.37 |
+| 10:30-12:00 | 95 | 44% | $+474.42 | $+4.99 | $+7.65 | $+0.00 | $-145.96 |
+| 12:00-13:00 | 44 | 32% | $-113.38 | $-2.58 | $-1.83 | $+0.00 | $-156.36 |
+| 13:00-15:00 | 65 | 37% | $+374.30 | $+5.76 | $+6.04 | $+0.00 | $-193.79 |
+| 15:00-16:00 | 26 | 27% | $+6.29 | $+0.24 | $+0.10 | $+0.00 | $-58.85 |
+| ALL | 412 | 44% | $+2990.09 | $+7.26 | $+48.23 | $+10.97 | $-338.36 |
+
+### v2cal  (N=6159)
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| 09:30-10:30 | 2206 | 29% | $+3095.52 | $+1.40 | $+49.93 | $-33.00 | $-435.68 |
+| 10:30-12:00 | 1545 | 23% | $-3019.93 | $-1.95 | $-48.71 | $-59.66 | $-683.65 |
+| 12:00-13:00 | 647 | 17% | $-5346.34 | $-8.26 | $-86.23 | $-74.00 | $-656.19 |
+| 13:00-15:00 | 1178 | 18% | $-8974.02 | $-7.62 | $-144.74 | $-126.46 | $-679.13 |
+| 15:00-16:00 | 583 | 14% | $-7520.17 | $-12.90 | $-121.29 | $-107.95 | $-441.78 |
+| ALL | 6159 | 23% | $-21764.93 | $-3.53 | $-351.05 | $-370.93 | $-1685.70 |
+
+### 'No new high after 15:00' claim — direct test on the cache
+| cohort | days | new RTH high after 15:00 | % | new high incl. premarket | % |
+|---|---|---|---|---|---|
+| all universe days | 729 | 98 | 13.4% | 82 | 11.2% |
+| runner-days (RTH high >= +20% vs file-open ref) | 661 | 93 | 14.1% | 80 | 12.1% |
+| runner-days (>= +50%) | 541 | 71 | 13.1% | 64 | 11.8% |
+| closed >= +20% (strong close) | 449 | 85 | 18.9% | 74 | 16.5% |
+
+T1 hand-trace (largest |pnl| power-hour grinder): VIDA 2026-06-02 sig 19:04:30Z entry 4.5000 stop 4.2500 -> $+99.56 eod
+    19:45:50 BANK 0.50 at +10% (4.9995)
+    20:00:00 FLATTEN 15:59ET at 5.9004
+
+## T2 — HALT-RESUMPTION RETEST (KT1b) at full cache, E3 exits
+halt = zero-trade gap >= 240s in RTH (pre-bar 13:30-19:45Z) with pre AND post bar volume >= 5x day median 10s volume (KT1 definition); up-halt = resumption close > pre-halt close
+halts detected: 351; retest entries: 36 (up 26 / down 10)
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| (b) resumption retest ALL | 36 | 19% | $-1078.81 | $-29.97 | $-17.40 | $+0.00 | $-232.64 | green 6% halves $-691/$-388 -> FAIL |
+| (b) up-halts | 26 | 19% | $-855.15 | $-32.89 | $-13.79 | $+0.00 | $-193.61 |
+| (b) down-halts | 10 | 20% | $-223.66 | $-22.37 | $-3.61 | $+0.00 | $-51.83 |
+| (a) gap-up-go (reference) | 108 | 22% | $-2073.52 | $-19.20 | $-33.44 | $-14.22 | $-266.28 |
+| (c) control every resumption (reference) | 296 | 21% | $-3569.01 | $-12.06 | $-57.56 | $-44.94 | $-398.27 |
+
+T2 hand-trace: RPGL 2026-06-04 resumption 14:10:30Z open 4.0300; reclaim bar 14:21:20Z close 5.4700 > prior high 4.8700; stop 4.4200 -> $-101.98 stop@14:36:50
+    14:36:50 STOP 4.4200 fill 4.3979 (low 4.0500)
+
+## T3 — MIDDAY RANGE BREAKOUT: flat_top break-attack UNWINDOWED, per window (E3)
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| 09:30-10:30 | 632 | 62% | $+16978.32 | $+26.86 | $+273.84 | $+280.19 | $-121.42 |
+| 10:30-12:00 | 1019 | 44% | $+5080.00 | $+4.99 | $+81.94 | $+11.97 | $-460.06 |
+| 12:00-13:00 | 696 | 39% | $-1327.97 | $-1.91 | $-21.42 | $-31.14 | $-313.47 |
+| 13:00-15:00 | 1356 | 36% | $-7483.94 | $-5.52 | $-120.71 | $-109.23 | $-639.76 |
+| 15:00-16:00 | 749 | 30% | $-7502.11 | $-10.02 | $-121.00 | $-108.31 | $-366.13 |
+| ALL windows | 4452 | 41% | $+5744.30 | $+1.29 | $+92.65 | $+120.17 | $-1046.99 | green 58% halves $+5360/$+384 -> FAIL |
+
+### 13:00-15:00 lunch-consolidation cell: survivor precondition (held above VWAP 11:30-13:00 AND >= +20% day gain at signal)
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| cell, no precondition | 1356 | 36% | $-7483.94 | $-5.52 | $-120.71 | $-109.23 | $-639.76 | green 24% halves $-3830/$-3654 -> FAIL |
+| SURVIVOR (100% closes > VWAP 11:30-13:00, gain>=+20%) | 99 | 41% | $+164.41 | $+1.66 | $+2.65 | $+0.00 | $-198.25 | green 21% halves $+199/$-35 -> FAIL |
+| survivor loose (>=90% closes > VWAP) | 183 | 44% | $+206.83 | $+1.13 | $+3.34 | $+0.00 | $-147.22 |
+| NON-survivor | 1257 | 35% | $-7648.35 | $-6.08 | $-123.36 | $-137.52 | $-639.76 |
+| survivor, all signals >= 13:00 | 152 | 37% | $-425.95 | $-2.80 | $-6.87 | $+0.00 | $-288.00 |
+
+T3 hand-trace (best 13:00-15:00 break-attack): NPT 2026-06-08 sig 17:47:10Z level 3.5000 entry 3.5900 stop 3.1300 survivor=False -> $+324.52 trail@18:11:50
+    17:51:10 BANK 0.50 at +10% (3.9885)
+    18:11:50 TRAIL[off10] close 8.0100 (runhi 9.0300, ema 5.4289) fill 7.9699
+
+## T4 — AFTERNOON VWAP RECLAIM (band-pass 12-30 bars) 12:00-14:30 ET, leaders-only cell (E3)
+leader = >= +40% at 10:30 ET (14:30Z close vs file-open ref) OR top-3 gain-at-10:30 among that date's files; chop = >=3 VWAP side-flips in the prior 120 bars (20 min) -> skip; two-bars-below = >=2 consecutive closes below VWAP before the reclaim episode
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| unrestricted afternoon reclaim 12:00-14:30 | 95 | 33% | $+219.04 | $+2.31 | $+3.53 | $+0.00 | $-220.16 | green 29% halves $+685/$-466 -> FAIL |
+| leaders-only | 24 | 21% | $-265.77 | $-11.07 | $-4.29 | $+0.00 | $-66.24 | green 6% halves $-141/$-125 -> FAIL |
+| leaders + chop exclusion | 2 | 0% | $-34.73 | $-17.37 | $-0.56 | $+0.00 | $-21.11 | green 0% halves $+0/$-35 -> FAIL |
+| leaders + chop excl + two-bars-below | 2 | 0% | $-34.73 | $-17.37 | $-0.56 | $+0.00 | $-21.11 | green 0% halves $+0/$-35 -> FAIL |
+| unrestricted + chop excl + two-bars-below | 3 | 0% | $-43.54 | $-14.51 | $-0.70 | $+0.00 | $-21.11 |
+| non-leaders | 71 | 37% | $+484.81 | $+6.83 | $+7.82 | $+0.00 | $-182.25 |
+leader days: 252 of 729 name-days
+
+T4 hand-trace: SLND 2026-07-17 sig 17:59:00Z entry 1.0800 stop 1.0500 gain@10:30 +51% crosses20=2 bars_below=4 -> $-21.11 stop@18:15:20
+    18:15:20 STOP 1.0500 fill 1.0448 (low 1.0500)
+
+## T5 — ORB FAIR RE-RUN (5-min and 15-min ranges, SEPARATE tests, E3, window 9:35/9:45-10:30 ET)
+trigger = first completed 1-min bar (6x10s, minute-keyed) closing > ORH with 1-min volume >= 1.5x OR per-minute avg volume AND close > RTH VWAP; stop = ORL (also mid-range variant); one attempt/name/day
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| ORB 5-min, stop=ORL | 454 | 73% | $+13436.54 | $+29.60 | $+216.72 | $+179.45 | $-227.46 | green 85% halves $+8195/$+5242 -> PASS |
+| ORB 5-min, stop=MID | 454 | 61% | $+10328.01 | $+22.75 | $+166.58 | $+167.25 | $-315.23 | green 85% halves $+6323/$+4005 -> FAIL |
+| ORB 15-min, stop=ORL | 371 | 78% | $+12114.57 | $+32.65 | $+195.40 | $+145.30 | $-160.57 | green 82% halves $+7109/$+5005 -> PASS |
+| ORB 15-min, stop=MID | 371 | 67% | $+9492.15 | $+25.59 | $+153.10 | $+124.98 | $-172.16 | green 82% halves $+5880/$+3612 -> PASS |
+ORB 5-min ORL, 2-slot H1-H4 portfolio: N=220 mean=$+82.86 median=$+81.28 green=46/62 halves $+97.25/$+68.47/d worst=$-344.25 slot-skipped=234 -> FAIL
+ORB 15-min ORL, 2-slot H1-H4 portfolio: N=180 mean=$+114.59 median=$+125.57 green=46/62 halves $+128.06/$+101.12/d worst=$-174.35 slot-skipped=191 -> PASS
+
+T5 hand-trace (5-min ORL, largest |pnl|): PCLA 2026-06-26 trigger-minute close 13:37:30Z entry 3.2600 stop 3.0100 -> $+556.92 trail@16:02:30
+    13:50:10 BANK 0.50 at +10% (3.6219)
+    16:02:30 TRAIL[off10] close 10.3500 (runhi 11.5700, ema 4.0636) fill 10.2982
+
+## T6 — REGISTRY QUICK-CHECKS on champion signals (grinder-1030 + flat_top break-attack IN-WINDOW 9:30-10:30 ET, as round G)
+
+### (a) failed-break exit — break-attack: first completed 3-min bar after entry closes back below base high -> exit vs E3 default
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| break-attack E3 default | 634 | 62% | $+17031.01 | $+26.86 | $+274.69 | $+280.19 | $-121.42 |
+| break-attack + failed-break exit | 634 | 46% | $+10527.31 | $+16.60 | $+169.80 | $+167.30 | $-247.09 |
+failed-break rule fired on 219/634 trades; those trades: rule $-4716.58 vs default $+1787.13
+sanity: sim_e3_rule(None) vs F.sim_var E3 abs diff = 0.000000
+
+### (b) no-progress rule — grinder + break trades not reaching +1R (1x stop distance) within 15 min -> exit at 15 vs default
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| grinder E3 default | 387 | 58% | $+10676.31 | $+27.59 | $+172.20 | $+101.77 | $-175.04 |
+| grinder + no-progress-15 | 387 | 41% | $+3927.35 | $+10.15 | $+63.34 | $+25.55 | $-96.21 |
+grinder: rule fired 222/387; those trades rule $-913.27 vs default $+5835.69
+| break-attack E3 default | 634 | 62% | $+17031.01 | $+26.86 | $+274.69 | $+280.19 | $-121.42 |
+| break-attack + no-progress-15 | 634 | 40% | $+2683.47 | $+4.23 | $+43.28 | $+42.07 | $-191.48 |
+break-attack: rule fired 342/634; those trades rule $-3221.00 vs default $+11126.55
+
+### (c) break-attack volume clause — signal-bar dollar volume vs prior-10-bar median dollar volume
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+| >=1.5x prior-10 median $vol | 487 | 62% | $+12008.69 | $+24.66 | $+193.69 | $+202.64 | $-220.23 |
+| <1.5x | 147 | 64% | $+5022.33 | $+34.17 | $+81.01 | $+73.22 | $-155.50 |
+
+T6 hand-trace (first failed-break firing): HIVE 2026-05-18 sig 13:45:50Z level 3.8100 entry 3.8350 stop 3.5000 -> rule $-18.33 fbexit@13:50:50 vs default $-50.45 stop@14:18:10
+    13:50:50 FAILED-BREAK exit close 3.7501 < level 3.8100 fill 3.7313

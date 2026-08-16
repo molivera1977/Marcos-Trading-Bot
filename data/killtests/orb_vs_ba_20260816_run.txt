@@ -1,0 +1,47 @@
+# ORB-15 (ORL) vs flat_top BREAK-ATTACK head-to-head — 2026-08-16, LIVE-parity sim (15:30 no-entry, 15:45 flatten)
+full cache: 729 files, 729 day-files, 62 dates 2026-05-18..2026-08-14; E3 exits; chain FP->S->G->F->C->B->E unchanged
+signals: ORB15 371  BA in-window(13:30-14:30Z) 634  (post 15:30 cutoff; none expected dropped)
+
+## Solo lanes (dedup, no capacity)
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+reconcile: NEW ORB15 solo from flatten_parity = N=371 (see flatten_parity run); BA 62-date solo is new here
+
+## T1 — OVERLAP: ORB15 signal on a name-day where BA also fired within +-10 min
+ORB15 trades 371: 191 (51%) overlap BA within +-10min; 274 (74%) share a name-day with any BA trade
+ORB minus BA signal time on overlaps: median +100s, ORB later in 168/191
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+
+## T2 — 2-SLOT PORTFOLIOS (B.pipeline H1-H4, first-signal-wins same-name dedup, E3)
+| portfolio | N | day mean | day median | green | halves $/d | worst | 5/5 bar |
+|---|---|---|---|---|---|---|---|
+| BA-only 2-slot | 197 | $+109.67 | $+86.77 | 49/62 (79%) | $+130.11/$+89.24 | $-109.55 | PASS |
+| ORB15-only 2-slot | 180 | $+112.53 | $+128.09 | 46/62 (74%) | $+123.35/$+101.70 | $-244.93 | PASS |
+| COMBINED BA+ORB15 2-slot | 209 | $+109.73 | $+102.67 | 45/62 (73%) | $+126.19/$+93.26 | $-218.69 | PASS |
+combined 2-slot per-lane: flat_top N=154 $+4880.74, orb N=55 $+1922.29; slot-skipped 653
+local 2-slot walker reconciled to B.pipeline on all three (asserted)
+lift vs BA-only: mean $+0.05/d, median $+15.91/d
+combined-minus-BA daily: 21 up / 17 down / 24 tie; worst delta $-316.16 best $+313.59
+
+## T3 — 3-SLOT variant (local walker)
+| portfolio | N | day mean | day median | green | halves $/d | worst | 5/5 bar |
+|---|---|---|---|---|---|---|---|
+| BA-only 3-slot | 292 | $+164.08 | $+167.52 | 52/62 (84%) | $+178.04/$+150.12 | $-175.75 | PASS |
+| ORB15-only 3-slot | 250 | $+129.49 | $+111.79 | 42/62 (68%) | $+153.20/$+105.77 | $-210.36 | PASS |
+| COMBINED BA+ORB15 3-slot | 319 | $+165.80 | $+159.71 | 50/62 (81%) | $+179.59/$+152.01 | $-303.08 | FAIL |
+combined 3-slot per-lane: flat_top N=231 $+7618.37, orb N=88 $+2661.02; slot-skipped 543
+
+## T4 — daily P&L correlation ORB15 vs BA
+solo lanes (no capacity): Pearson r = +0.623 over 62 days
+2-slot portfolios: Pearson r = +0.195; sign agreement 41/62
+BA-only red days: 13; of those ORB green: 9
+
+## VERDICT (pre-registered: ADDITIVE = combined 2-slot beats BA-only on mean AND median)
+-> ADDITIVE: BA-only mean $+109.67/med $+86.77 | ORB-only $+112.53/$+128.09 | combined $+109.73/$+102.67 | combined 3-slot $+165.80/$+159.71
+
+hand-trace overlap pair: PCLA 2026-06-26 ORB sig 13:50:50Z entry 3.5200 stop 3.0100 -> $+499.17 trail@16:02:30 | BA sig 13:50:10Z entry 3.5350 stop 3.0100 -> $+496.10 trail@16:02:30
+    [orb] 14:03:40 BANK 0.50 at +10% (3.9107)
+    [orb] 16:02:30 TRAIL[off10] close 10.3500 fill 10.2982
+    [flat_top] 14:03:40 BANK 0.50 at +10% (3.9274)
+    [flat_top] 16:02:30 TRAIL[off10] close 10.3500 fill 10.2982

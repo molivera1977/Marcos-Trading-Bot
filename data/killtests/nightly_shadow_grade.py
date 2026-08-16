@@ -52,7 +52,7 @@ def bars(tk):
     return sorted(seen.values(), key=lambda b: iso(b["time"]))
 
 
-def sim_e3(B, t0, sig_px, stop):
+def sim_e3(B, t0, sig_px, stop, flatten_hm=959):
     """E3 exit sim, no lookahead: only bars strictly after the fire timestamp. Returns $ P&L
     (or None = ungradable: degenerate stop / no post-fire bars)."""
     entry = sig_px * CHASE
@@ -68,7 +68,7 @@ def sim_e3(B, t0, sig_px, stop):
             continue
         last_c = c
         et = iso(b["time"])
-        if et.hour * 60 + et.minute >= 959:            # 15:59 ET flatten
+        if et.hour * 60 + et.minute >= flatten_hm:      # 15:59 ET flatten (PRE fires: 09:25)
             return pnl + rem * (c * SLIP - entry)
         if l <= stop:                                   # stop-first, market exit slip
             return pnl + rem * (stop * SLIP - entry)
@@ -87,9 +87,10 @@ def sim_e3(B, t0, sig_px, stop):
 
 def main():
     d = get(f"{U}/api/decisions_archive?date={DAY}"
-            "&status=grinder_shadow_fire,flat_top_observe_only,v2_shadow_fire&limit=50000")
+            "&status=grinder_shadow_fire,flat_top_observe_only,v2_shadow_fire,"
+            "bandpass_shadow_fire,prevwap_shadow_fire&limit=50000")
     rows = d.get("rows") or []
-    lanes = {"grinder": [], "flat_top": [], "flat_top_oow": [], "v2": []}
+    lanes = {"grinder": [], "flat_top": [], "flat_top_oow": [], "v2": [], "bandpass": [], "bandpass_oow": [], "prevwap": []}
     for r in rows:
         st = r.get("status")
         try:
@@ -105,6 +106,10 @@ def main():
             lanes["flat_top" if 570 <= hm < 630 else "flat_top_oow"].append(rec)
         elif st == "v2_shadow_fire":
             lanes["v2"].append(rec)
+        elif st == "bandpass_shadow_fire":              # 8/16 RTH band-pass (in-window = paying cell)
+            lanes["bandpass" if 570 <= hm < 630 else "bandpass_oow"].append(rec)
+        elif st == "prevwap_shadow_fire":               # 8/16 Kev 8AM PRE lane — flatten 09:25
+            lanes["prevwap"].append(rec)
     cache, res = {}, {}
     for lane, fires in lanes.items():
         n, tot, skip = 0, 0.0, 0
@@ -114,7 +119,7 @@ def main():
                 continue
             if tk not in cache:
                 cache[tk] = bars(tk)
-            p = sim_e3(cache[tk], t0, px, stop)
+            p = sim_e3(cache[tk], t0, px, stop, flatten_hm=(565 if lane == "prevwap" else 959))
             if p is None:
                 skip += 1
                 continue
@@ -136,6 +141,9 @@ def main():
             f" | flat_top(in-win) N={res['flat_top'][0]} ${res['flat_top'][1]:+.2f}"
             f" (oow N={res['flat_top_oow'][0]} ${res['flat_top_oow'][1]:+.2f})"
             f" | v2 N={res['v2'][0]} ${res['v2'][1]:+.2f}"
+            f" | bandpass(in-win) N={res['bandpass'][0]} ${res['bandpass'][1]:+.2f}"
+            f" (oow N={res['bandpass_oow'][0]} ${res['bandpass_oow'][1]:+.2f})"
+            f" | prevwap(PRE,flat 09:25) N={res['prevwap'][0]} ${res['prevwap'][1]:+.2f}"
             f" | E3 PORTFOLIO ${port:+.2f} | wall day {prior + 1}"
             f" | skipped {sum(v[2] for v in res.values())}\n")
     with WALL.open("a") as f:

@@ -5874,6 +5874,96 @@ def grinder_shadow_step(sym, new_bars, vwap):
     return fired
 
 
+# ── 8/16 BAND-PASS VWAP RECLAIM (RTH lane) + PRE-VWAP RECLAIM (Kev's 8AM trade) — SHADOW.
+# Evidence: entry_rebuilds_v2_fullcache_20260814.md §2 (12-30 closes hold, new-minor-high entry):
+# IN 9:30-10:30 ET +$1,619.61 / 73 tr / 58% wr / +$22.19 per trade (both halves green, survives
+# the YJ excision); OUT-of-window -$274.79 (bleeds). Mechanics = edge_stresstest_B det_vwap.
+# Kev 8/10 (kev_latest_mining_20260815.md): "caught a good play on the pullback to VWAP" at 8:00 a.m.
+# — confirmed pullback over VWAP, entry when it finds a buyer, risk at VWAP, spread must tighten.
+# Detector (shared by both lanes, separate state maps): price crosses ABOVE the line after >=
+# BP_BELOW_MIN completed 10s closes BELOW it (reclaim, not bounce), HOLDS above for
+# BP_HOLD_MIN..BP_HOLD_MAX consecutive closes, then prints a NEW MINOR HIGH above the hold-period
+# high -> fire; would_stop = hold-period low. Chop exclusion: skip if >= BP_CHOP_CROSSES line
+# crosses in the prior BP_CHOP_SECS. Per-name cooldown BP_COOL_SECS. One fire per hold episode.
+# BANDPASS_SHADOW: RTH detector (bars >= 09:30 ET) writes bandpass_shadow_fire rows all day
+#   (in_window stamped). BANDPASS_CONVERT (default OFF — Marcos's evening call): in-window
+#   (09:30-10:30 ET) fires ALSO append to breakouts as lane "bandpass", exit_mode=E3, stop =
+#   would_stop, cap BANDPASS_DAILY_CAP/day; NOT in any exempt set -> the normal gate stack applies.
+# PREVWAP_SHADOW: 07:00-09:25 ET detector on the same fed 10s bars + the bot's PRE line; writes
+#   prevwap_shadow_fire rows with a spread stamp (L1 if available; STAMPED not gated) and
+#   catalyst=None (TODO). SHADOW ONLY — HARD-CODED: no conversion path exists for PRE fires
+#   (premarket fills are unmodeled). nightly_shadow_grade.py grades both (PRE flattens 09:25).
+BANDPASS_SHADOW    = os.environ.get("BANDPASS_SHADOW", "1") == "1"
+BANDPASS_CONVERT   = os.environ.get("BANDPASS_CONVERT", "0") == "1"
+BANDPASS_DAILY_CAP = int(os.environ.get("BANDPASS_DAILY_CAP", "3"))
+PREVWAP_SHADOW     = os.environ.get("PREVWAP_SHADOW", "1") == "1"
+BP_HOLD_MIN     = 12      # closes above (2 min)     — band-pass low edge (backtested)
+BP_HOLD_MAX     = 30      # closes above (5 min)     — band-pass high edge (backtested)
+BP_BELOW_MIN    = 2       # completed closes below before the cross ("two-bars-below" = reclaim not bounce)
+BP_CHOP_CROSSES = 3       # >= this many line crosses in the prior BP_CHOP_SECS = chop, skip
+BP_CHOP_SECS    = 1200    # 20 min
+BP_COOL_SECS    = 900     # 15-min per-name cooldown
+_bp_st: dict = {}   # sym -> RTH band-pass machine state (module-level: survives rescans)
+_pv_st: dict = {}   # sym -> PRE band-pass machine state
+_bp_conv_day = {"d": None, "n": 0}   # bandpass conversions charged per day (cap ledger)
+
+def bandpass_step(sym, new_bars, vwap, st_map, hm_lo, hm_hi):
+    """Advance sym's band-pass VWAP-reclaim SHADOW machine over NEW completed 10s bars
+    [(k,o,h,l,c,vol),...] whose ET minute-of-day is in [hm_lo, hm_hi). Detection only — the
+    caller logs the row (and, for the RTH lane, converts ONLY under BANDPASS_CONVERT).
+    Returns at most one fire dict per call, else None."""
+    if not (vwap and vwap > 0):
+        return None
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    st = st_map.get(sym)
+    if not st or st.get("day") != day:
+        st = {"day": day, "prev_above": None, "below_n": 0, "streak": 0, "armed": False,
+              "hold_lo": None, "hold_hi": None, "done": False, "crosses": [], "cool_k": None, "n": 0}
+        st_map[sym] = st
+    fired = None
+    for k, o, h, l, c, v in new_bars:
+        _t = datetime.fromtimestamp(k, EASTERN)
+        hm = _t.hour * 60 + _t.minute
+        if not (hm_lo <= hm < hm_hi):
+            continue
+        above = c > vwap
+        pa = st["prev_above"]
+        if above:
+            if not pa:                                     # cross UP (or first bar)
+                if pa is not None:
+                    st["crosses"].append(k)
+                st["armed"] = pa is not None and st["below_n"] >= BP_BELOW_MIN
+                st["streak"] = 1; st["hold_lo"] = l; st["hold_hi"] = h; st["done"] = False
+                st["below_n"] = 0
+            else:
+                if (fired is None and not st["done"] and st["armed"] and h > st["hold_hi"]
+                        and BP_HOLD_MIN <= st["streak"] <= BP_HOLD_MAX):
+                    st["done"] = True                      # one attempt per hold episode
+                    st["crosses"] = [x for x in st["crosses"] if k - x <= BP_CHOP_SECS]
+                    n_cross = len(st["crosses"])
+                    stop = st["hold_lo"]
+                    cool = st.get("cool_k") is not None and k - st["cool_k"] < BP_COOL_SECS
+                    if stop < c and n_cross < BP_CHOP_CROSSES and not cool:
+                        fired = {"px": round(c, 4), "k": k, "would_stop": round(stop, 4),
+                                 "hold_n": st["streak"], "hold_hi": round(st["hold_hi"], 4),
+                                 "crosses_20m": n_cross, "seq": st["n"]}
+                        st["n"] += 1
+                        st["cool_k"] = k
+                st["streak"] += 1
+                st["hold_lo"] = min(st["hold_lo"], l); st["hold_hi"] = max(st["hold_hi"], h)
+                if st["streak"] > BP_HOLD_MAX:
+                    st["done"] = True                      # band expired — no late fires
+        else:
+            if pa:                                         # cross DOWN
+                st["crosses"].append(k)
+                st["crosses"] = [x for x in st["crosses"] if k - x <= BP_CHOP_SECS]
+            st["below_n"] += 1
+            st["streak"] = 0; st["armed"] = False; st["done"] = False
+            st["hold_lo"] = None; st["hold_hi"] = None
+        st["prev_above"] = above
+    return fired
+
+
 def kev_zoneflip_step(sym, new_bars):
     """Advance sym's Z1–Z3 machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
     Z1 arm: 9:30–9:45 flush ≥ZONEFLIP_FLUSH from the 9:30 open, low inside zone±band, vol ≥2×
@@ -7448,6 +7538,72 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                           session_hi=_grf["session_hi"],
                                                           fire_px=_grf["px"], seq=_grf["seq"],
                                                           day_n=_gr_conv_day["n"])
+                            except Exception:
+                                pass
+                        # ── 8/16 BAND-PASS VWAP RECLAIM (RTH) shadow + PRE-VWAP RECLAIM (Kev 8AM)
+                        # shadow: same fed 10s bars + session line (zero new fetches). Rows always
+                        # log. RTH conversion ONLY under BANDPASS_CONVERT=1 (default OFF) and ONLY
+                        # in-window 09:30-10:30 ET — lane "bandpass", stop = would_stop, exit_mode
+                        # E3, cap BANDPASS_DAILY_CAP/day; not in any exempt set -> normal gates.
+                        # PRE lane has NO conversion path (hard-coded shadow).
+                        if BANDPASS_SHADOW:
+                            try:
+                                _bpf = bandpass_step(t, _nb, _vr_sv, _bp_st, 570, 960)
+                                if _bpf:
+                                    _hm_bp = datetime.now(EASTERN).strftime("%H:%M")
+                                    _bp_in = bool("09:30" <= _hm_bp < "10:30")
+                                    _log_decision(t, "bandpass_shadow_fire", price=_bpf["px"],
+                                                  eyes=_eyes_compact(_eyes_snapshot(t, _bpf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _bpf.get("would_stop")})),
+                                                  vwap=round(_vr_sv, 4), hold_n=_bpf["hold_n"],
+                                                  hold_hi=_bpf["hold_hi"], crosses_20m=_bpf["crosses_20m"],
+                                                  would_stop=_bpf["would_stop"], in_window=_bp_in,
+                                                  convert_on=bool(BANDPASS_CONVERT),
+                                                  seq=_bpf["seq"], time_hm=_hm_bp)
+                                    if BANDPASS_CONVERT and _bp_in:
+                                        _bpday = datetime.now(EASTERN).strftime("%Y-%m-%d")
+                                        if _bp_conv_day.get("d") != _bpday:
+                                            _bp_conv_day["d"] = _bpday; _bp_conv_day["n"] = 0
+                                        if _bp_conv_day["n"] >= BANDPASS_DAILY_CAP:
+                                            _log_decision(t, "bandpass_capped", price=_bpf["px"],
+                                                          day_n=_bp_conv_day["n"], cap=BANDPASS_DAILY_CAP)
+                                        elif _bpf["would_stop"] < _bpf["px"]:
+                                            _bp_px = price if price and price > 0 else _bpf["px"]
+                                            _bp_conv_day["n"] += 1
+                                            print(f"\n🎯 {t} BAND-PASS VWAP RECLAIM (hold {_bpf['hold_n']} closes, "
+                                                  f"new minor hi > ${_bpf['hold_hi']:.2f})! ${_bp_px:.2f} — stop "
+                                                  f"${_bpf['would_stop']:.2f} (hold low), E3 exits "
+                                                  f"[#{_bp_conv_day['n']}/{BANDPASS_DAILY_CAP}]")
+                                            breakouts.append((t, _bp_px, round(_vr_sv, 4), "bandpass", {
+                                                "zone_stop": _bpf["would_stop"], "exit_mode": "E3",
+                                                "hold_n": _bpf["hold_n"], "hold_hi": _bpf["hold_hi"],
+                                                "bp_seq": _bpf["seq"], "crosses_20m": _bpf["crosses_20m"],
+                                            }))
+                                            _log_decision(t, "triggered_bandpass", price=_bp_px,
+                                                          stop=_bpf["would_stop"], hold_n=_bpf["hold_n"],
+                                                          fire_px=_bpf["px"], seq=_bpf["seq"],
+                                                          day_n=_bp_conv_day["n"])
+                            except Exception:
+                                pass
+                        if PREVWAP_SHADOW:
+                            try:
+                                _pvf = bandpass_step(t, _nb, _vr_sv, _pv_st, 420, 565)
+                                if _pvf:
+                                    _pv_sp = None
+                                    try:
+                                        _q = _get_webull_quote(t) or {}
+                                        _bq, _aq = float(_q.get("bid") or 0), float(_q.get("ask") or 0)
+                                        if _bq > 0 and _aq > 0:
+                                            _pv_sp = round((_aq - _bq) / _aq * 100.0, 3)
+                                    except Exception:
+                                        _pv_sp = None
+                                    _log_decision(t, "prevwap_shadow_fire", price=_pvf["px"],
+                                                  eyes=_eyes_compact(_eyes_snapshot(t, _pvf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _pvf.get("would_stop")})),
+                                                  vwap=round(_vr_sv, 4), hold_n=_pvf["hold_n"],
+                                                  hold_hi=_pvf["hold_hi"], crosses_20m=_pvf["crosses_20m"],
+                                                  would_stop=_pvf["would_stop"],
+                                                  spread_pct=_pv_sp, catalyst=None,
+                                                  seq=_pvf["seq"],
+                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"))
                             except Exception:
                                 pass
 
@@ -11012,7 +11168,8 @@ def main():
           f"IGNITION_CELL_GATE={IGNITION_CELL_GATE} FLATTOP_CONVERT={int(FLATTOP_CONVERT)} "
           f"VWAPRECLAIM_CONVERT={int(VWAPRECLAIM_CONVERT)} MA_WARMUP_SEED={int(MA_WARMUP_SEED)} "
           f"RESTING_SELLS={int(RESTING_SELLS)} V2_SHADOW={int(V2_SHADOW)} "
-          f"GRINDER_SHADOW={int(GRINDER_SHADOW)} | "
+          f"GRINDER_SHADOW={int(GRINDER_SHADOW)} BANDPASS_SHADOW={int(BANDPASS_SHADOW)} "
+          f"BANDPASS_CONVERT={int(BANDPASS_CONVERT)}(cap {BANDPASS_DAILY_CAP}) PREVWAP_SHADOW={int(PREVWAP_SHADOW)} | "
           # 8/14 night O-config sim conversions (Marcos: "sim money live"):
           f"GRINDER_CONVERT={int(GRINDER_CONVERT)}(cap {GRINDER_DAILY_CAP}) "
           f"FLATTOP_BREAK_ATTACK={int(FLATTOP_BREAK_ATTACK)} E3_EXITS={int(E3_EXITS)}")
@@ -11045,6 +11202,8 @@ def main():
                       vwapreclaim_convert=int(VWAPRECLAIM_CONVERT), ma_warmup_seed=int(MA_WARMUP_SEED),
                       resting_sells=int(RESTING_SELLS), v2_shadow=int(V2_SHADOW),
                       grinder_shadow=int(GRINDER_SHADOW),
+                      bandpass_shadow=int(BANDPASS_SHADOW), bandpass_convert=int(BANDPASS_CONVERT),
+                      bandpass_daily_cap=BANDPASS_DAILY_CAP, prevwap_shadow=int(PREVWAP_SHADOW),
                       grinder_convert=int(GRINDER_CONVERT), grinder_daily_cap=GRINDER_DAILY_CAP,
                       flattop_break_attack=int(FLATTOP_BREAK_ATTACK), e3_exits=int(E3_EXITS))
         _leader_rehydrate()   # 8/5: earned leader status survives restarts

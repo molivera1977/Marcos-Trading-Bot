@@ -2043,6 +2043,108 @@ try:
 except (AssertionError, ValueError, KeyError) as _aee:
     check("AE: hardening", False, str(_aee))
 
+print("AF) 8/16 BAND-PASS RTH lane (shadow ON, convert env-OFF) + PRE-VWAP Kev-8AM shadow + grader")
+try:
+    from zoneinfo import ZoneInfo as _AFZ
+    import types as _aft, datetime as _afdt
+    _af_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _AF_SEG = _af_src[_af_src.index('BANDPASS_SHADOW    = os.environ.get'):_af_src.index("def kev_zoneflip_step")]
+    _afn = {"os": _aft.SimpleNamespace(environ={}), "datetime": _afdt.datetime,
+            "EASTERN": _AFZ("America/New_York")}
+    exec(_AF_SEG, _afn)
+    check("AF-a: envs default — BANDPASS_SHADOW on, BANDPASS_CONVERT OFF, PREVWAP_SHADOW on, cap 3",
+          _afn["BANDPASS_SHADOW"] is True and _afn["BANDPASS_CONVERT"] is False
+          and _afn["PREVWAP_SHADOW"] is True and _afn["BANDPASS_DAILY_CAP"] == 3)
+    _afE = _AFZ("America/New_York")
+    _k0 = int(_afdt.datetime(2026, 8, 14, 9, 40, 0, tzinfo=_afE).timestamp())
+    _bp = _afn["bandpass_step"]
+    # (b) EXECUTED: 2 below -> cross -> hold 15 closes (highs flat 10.10, lows ratchet) -> new high -> FIRE
+    _tape = [(_k0,      9.95, 9.98, 9.90, 9.95, 100),   # below 1
+             (_k0 + 10, 9.95, 9.98, 9.90, 9.96, 100)]   # below 2
+    _tape.append((_k0 + 20, 9.99, 10.10, 9.97, 10.05, 100))            # cross UP, streak 1, hold hi 10.10 lo 9.97
+    for i in range(1, 15):                                             # streak 2..15, no new high
+        _tape.append((_k0 + 20 + 10 * i, 10.05, 10.10, 10.00, 10.05, 100))
+    _tape.append((_k0 + 20 + 150, 10.05, 10.15, 10.02, 10.12, 100))    # streak 16: NEW minor high -> FIRE
+    _f = _bp("BP", _tape, 10.00, {}, 570, 960)
+    check("AF-b: EXECUTED — 2-below -> hold 15 -> new high fires; stop = hold low 9.97; px 10.12",
+          bool(_f) and _f["px"] == 10.12 and _f["would_stop"] == 9.97 and _f["hold_n"] == 15
+          and _f["crosses_20m"] == 1 and _f["seq"] == 0, str(_f))
+    # (c) bounce tape: only ONE bar below -> not armed -> no fire on the same hold+new-high shape
+    _bounce = [(_k0, 10.05, 10.10, 10.00, 10.05, 100),                # above (establishes prev_above)
+               (_k0 + 10, 9.95, 9.98, 9.90, 9.96, 100)]               # ONE below
+    _bounce.append((_k0 + 20, 9.99, 10.10, 9.97, 10.05, 100))
+    for i in range(1, 15):
+        _bounce.append((_k0 + 20 + 10 * i, 10.05, 10.10, 10.00, 10.05, 100))
+    _bounce.append((_k0 + 170, 10.05, 10.15, 10.02, 10.12, 100))
+    check("AF-c: bounce tape (1 bar below) -> NO fire (two-bars-below rule)",
+          _bp("BN", _bounce, 10.00, {}, 570, 960) is None)
+    # (d) chop tape: 3 crosses inside 20 min before the would-be fire -> excluded
+    _chop = [(_k0, 10.05, 10.10, 10.00, 10.05, 100),
+             (_k0 + 10, 9.95, 9.98, 9.90, 9.96, 100), (_k0 + 20, 9.95, 9.98, 9.90, 9.96, 100),   # cross DOWN (1)
+             (_k0 + 30, 10.05, 10.10, 10.00, 10.05, 100),                                        # cross UP (2)
+             (_k0 + 40, 9.95, 9.98, 9.90, 9.96, 100), (_k0 + 50, 9.95, 9.98, 9.90, 9.96, 100),   # cross DOWN (3)
+             (_k0 + 60, 9.99, 10.10, 9.97, 10.05, 100)]                                          # cross UP (4), armed
+    for i in range(1, 15):
+        _chop.append((_k0 + 60 + 10 * i, 10.05, 10.10, 10.00, 10.05, 100))
+    _chop.append((_k0 + 210, 10.05, 10.15, 10.02, 10.12, 100))
+    check("AF-d: chop tape (>=3 crosses / 20 min) -> NO fire",
+          _bp("BC", _chop, 10.00, {}, 570, 960) is None)
+    # (e) hold too long (31+ closes) -> band expired, no fire; too short (<12) -> no fire
+    _long = list(_tape[:3])
+    for i in range(1, 32):
+        _long.append((_k0 + 20 + 10 * i, 10.05, 10.10, 10.00, 10.05, 100))
+    _long.append((_k0 + 20 + 320, 10.05, 10.15, 10.02, 10.12, 100))
+    _short = list(_tape[:3]) + [(_k0 + 30, 10.05, 10.10, 10.00, 10.05, 100),
+                                (_k0 + 40, 10.05, 10.15, 10.02, 10.12, 100)]
+    check("AF-e: band-pass edges — 31-close hold no fire; 3-close hold no fire",
+          _bp("BL", _long, 10.00, {}, 570, 960) is None and _bp("BS", _short, 10.00, {}, 570, 960) is None)
+    # (f) window arg: the same winning tape at 09:40 is invisible to the PRE detector (07:00-09:25)
+    check("AF-f: PRE window arg excludes 09:40 bars", _bp("BW", _tape, 10.00, {}, 420, 565) is None)
+    # (g) cooldown: re-fire inside 15 min on a fresh episode is suppressed; state maps are separate
+    _stm = {}
+    _bp("BD", _tape, 10.00, _stm, 570, 960)
+    _k1 = _k0 + 400
+    _re = [(_k1, 9.95, 9.98, 9.90, 9.95, 100), (_k1 + 10, 9.95, 9.98, 9.90, 9.96, 100),
+           (_k1 + 20, 9.99, 10.10, 9.97, 10.05, 100)]
+    for i in range(1, 15):
+        _re.append((_k1 + 20 + 10 * i, 10.05, 10.10, 10.00, 10.05, 100))
+    _re.append((_k1 + 170, 10.05, 10.15, 10.02, 10.12, 100))
+    check("AF-g: 15-min per-name cooldown suppresses the second episode", _bp("BD", _re, 10.00, _stm, 570, 960) is None)
+    # (h) caller: RTH conversion exists ONLY under BANDPASS_CONVERT and in-window; PRE has ZERO conversion path
+    _cal = _af_src[_af_src.index("8/16 BAND-PASS VWAP RECLAIM (RTH) shadow"):_af_src.index("IGNITION-10S feed (7/26)")]
+    _bp_blk = _cal[:_cal.index("if PREVWAP_SHADOW:")]
+    _pv_blk = _cal[_cal.index("if PREVWAP_SHADOW:"):]
+    check("AF-h: RTH append guarded by BANDPASS_CONVERT and _bp_in; lane 'bandpass' E3; triggered row",
+          "if BANDPASS_CONVERT and _bp_in:" in _bp_blk
+          and _bp_blk.index("if BANDPASS_CONVERT and _bp_in:") < _bp_blk.index('breakouts.append((t, _bp_px, round(_vr_sv, 4), "bandpass", {')
+          and '"exit_mode": "E3"' in _bp_blk and '"triggered_bandpass"' in _bp_blk and '"bandpass_capped"' in _bp_blk)
+    check("AF-i: PRE lane has ZERO conversion path (no append/execute/triggered), stamps spread_pct + catalyst",
+          "breakouts.append" not in _pv_blk and "execute_trade" not in _pv_blk and "triggered" not in _pv_blk
+          and "spread_pct=_pv_sp" in _pv_blk and "catalyst=None" in _pv_blk and '"prevwap_shadow_fire"' in _pv_blk)
+    check("AF-j: detector itself conversion-free", "breakouts.append" not in _AF_SEG and "execute_trade" not in _AF_SEG)
+    # (k) no-conversion under BANDPASS_CONVERT=0: exec the caller's convert guard shape with a stub
+    _bo = []; _cd = {"d": None, "n": 0}
+    _ns_c = {"BANDPASS_CONVERT": False, "_bp_in": True, "breakouts": _bo}
+    exec("if BANDPASS_CONVERT and _bp_in:\n    breakouts.append(1)", _ns_c)
+    check("AF-k: BANDPASS_CONVERT=0 -> zero appends", _bo == [])
+    # (l) not exempt anywhere: 'bandpass' absent from every exempt/bypass set + BREAKOUT_ENTRIES full bag
+    check("AF-l: 'bandpass' not in MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT/_STALE_EXEMPT defaults; BREAKOUT_ENTRIES True",
+          '"bandpass"' not in _af_src[_af_src.index("MIN_STOP_EXEMPT = set("):_af_src.index("MIN_STOP_EXEMPT = set(") + 200]
+          and 'BACKSIDE_EXEMPT   = {"dip_rip"}' in _af_src and "bandpass" not in _af_src[_af_src.index("VRIDE_EXEMPT    = set("):_af_src.index("VRIDE_EXEMPT    = set(") + 150]
+          and 'bandpass' not in _af_src[_af_src.index("_STALE_EXEMPT = ("):_af_src.index("_STALE_EXEMPT = (") + 120]
+          and "BREAKOUT_ENTRIES   = True" in _af_src)
+    # (m) grader status list contains both + PRE flatten 09:25
+    _g = open(os.path.join(ROOT, "data", "killtests", "nightly_shadow_grade.py")).read()
+    check("AF-m: grader lists bandpass_shadow_fire + prevwap_shadow_fire; PRE flatten 565 (09:25)",
+          "bandpass_shadow_fire,prevwap_shadow_fire" in _g and 'flatten_hm=(565 if lane == "prevwap" else 959)' in _g
+          and 'lanes["prevwap"].append(rec)' in _g)
+    # (n) boot banner + durable boot row carry the new switches
+    check("AF-n: boot banner + boot_config row stamp the new envs",
+          "BANDPASS_SHADOW={int(BANDPASS_SHADOW)}" in _af_src and "bandpass_convert=int(BANDPASS_CONVERT)" in _af_src
+          and "prevwap_shadow=int(PREVWAP_SHADOW)" in _af_src)
+except (AssertionError, ValueError, KeyError) as _afe:
+    check("AF: band-pass lanes", False, str(_afe))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

@@ -622,6 +622,17 @@ def run_once(kind):
                   posted=posted, secs=round(time.time() - t0),
                   tiktok_new=_tt_new, tiktok_errors=_tt_err)
         print(f"[kev-sweep] {kind}: {tally} sheet={'none' if not f else f.name} posted={posted}", flush=True)
+        # 8/16 Marcos order: NIGHTLY KEV LESSONS REPORT rides the end of every sweep. Fail-soft:
+        # a lessons failure must NEVER break the sweep (sheet already posted above).
+        try:
+            import importlib.util as _ilu
+            _lp = Path(__file__).resolve().parent / "data" / "kev" / "kev_lessons.py"
+            _spec = _ilu.spec_from_file_location("kev_lessons", _lp)
+            _kl = _ilu.module_from_spec(_spec); _spec.loader.exec_module(_kl)
+            _rc = _kl.run_safe()
+            print(f"[kev-sweep] {kind}: lessons report rc={_rc}", flush=True)
+        except Exception as _le:
+            print(f"[kev-sweep] {kind}: lessons report skipped ({_le})", flush=True)
     except Exception as e:
         _decision("kev_sweep_error", kind=kind, error=str(e)[:200])
         print(f"[kev-sweep] {kind} FAILED: {e}", flush=True)

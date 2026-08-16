@@ -1722,6 +1722,20 @@ def get_bars():
                 out[dd.name] = sorted(f.stem for f in dd.glob("*.json"))
     return jsonify({"days": len(out), "archived": out})
 
+@app.route("/api/kev_lessons", methods=["GET"])
+def api_kev_lessons():
+    """8/16: KEV LESSONS tile feed — data/kev/lessons_latest.json written by data/kev/kev_lessons.py
+    at the end of every sweep (volume copy /data/kev preferred: survives redeploys). Display only."""
+    try:
+        cands = [pathlib.Path("/data/kev/lessons_latest.json"),
+                 pathlib.Path(__file__).resolve().parent / "data" / "kev" / "lessons_latest.json"]
+        for fp in cands:
+            if fp.exists():
+                return jsonify(json.loads(fp.read_text()))
+        return jsonify({"top": [], "error": "no lessons yet"})
+    except Exception as e:
+        return jsonify({"top": [], "error": str(e)})
+
 @app.route("/api/oos_wall", methods=["GET"])
 def api_oos_wall():
     """8/14 pm: OOS WALL tile feed — last line of data/history/OOS_WALL.md (the >=5-day E3 wall
@@ -3320,6 +3334,9 @@ a.watch-chip:hover{filter:brightness(1.25)}
   <div class="section-title">OOS Wall <span style="font-size:12px;font-weight:400;color:var(--muted)">(E3 shadow portfolio — latest nightly line; &ge;5 forward days before any live talk)</span></div>
   <div id="oosWall" style="margin:0 0 18px 0;font-size:13px;color:var(--muted);border:1px solid var(--bg3);border-radius:8px;padding:8px 12px;font-family:ui-monospace,monospace;overflow-x:auto;white-space:nowrap">loading…</div>
 
+  <div class="section-title">Kev Lessons <span style="font-size:12px;font-weight:400;color:var(--muted)">(latest nightly sweep — top actionable, MISSING first; psychology skipped)</span></div>
+  <div id="kevLessons" style="margin:0 0 18px 0;font-size:13px;color:var(--muted);border:1px solid var(--bg3);border-radius:8px;padding:8px 12px">loading…</div>
+
   <div class="section-title">Trade History <span style="font-size:12px;font-weight:400;color:var(--muted)">(RTH)</span><span id="preLedgerLink" style="font-size:12px;font-weight:400"></span></div>
   <div class="table-wrap">
     <table>
@@ -3456,6 +3473,20 @@ function loadData(){
         '</div>';
     }).catch(()=>{ const el=document.getElementById('repairsWatch'); if(el) el.innerHTML='<span style="color:var(--muted4)">repairs watch unavailable</span>'; });
     }catch(e){ try{ const el=document.getElementById('repairsWatch'); if(el) el.innerHTML='<span style="color:var(--muted4)">repairs watch unavailable</span>'; }catch(_){} }
+  })();
+  (function loadKevLessons(){
+    /* 8/16 KEV LESSONS tile — top 5 actionable from /api/kev_lessons (lessons_latest.json). Panel-isolated. */
+    try{
+    fetch('/api/kev_lessons').then(r=>r.json()).then(j=>{
+      const el=document.getElementById('kevLessons'); if(!el) return;
+      const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      if(!j.top||!j.top.length){ el.innerHTML='<span style="color:var(--muted4)">no lessons yet'+(j.error?' ('+esc(j.error)+')':'')+'</span>'; return; }
+      const col={MISSING:'#e0574f',PARTIAL:'#d9a441',HAVE:'#4caf7d'};
+      let h='<div style="margin-bottom:4px;color:var(--muted4)">run '+esc(j.day)+' · '+esc(j.sources)+' sources · '+esc(j.n_actionable)+' actionable</div>';
+      j.top.slice(0,5).forEach(l=>{ h+='<div style="margin:3px 0"><span style="font-weight:600;color:'+(col[l.bot_mapping]||'inherit')+'">'+esc(l.bot_mapping)+'</span> <span style="color:var(--muted4)">['+esc(l.theme)+' · '+esc(l.mechanism)+']</span> '+esc(l.lesson)+' <span style="color:var(--muted4)">— '+esc(l.officer)+'</span></div>'; });
+      el.innerHTML=h;
+    }).catch(()=>{ const el=document.getElementById('kevLessons'); if(el) el.innerHTML='<span style="color:var(--muted4)">Kev lessons unavailable</span>'; });
+    }catch(e){}
   })();
   (function loadOosWall(){
     /* 8/14 pm OOS WALL tile — last nightly line of data/history/OOS_WALL.md via /api/oos_wall.

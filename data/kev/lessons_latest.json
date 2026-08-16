@@ -1,0 +1,119 @@
+{
+ "day": "2026-08-16",
+ "run_at": "2026-08-16T12:49:09",
+ "model": "claude-sonnet-4-6",
+ "sources": 58,
+ "n_actionable": 299,
+ "n_psych": 62,
+ "top": [
+  {
+   "theme": "entries",
+   "lesson": "Use prior-day's same-stock playbook \u2014 mapping the flush depth, base level, and reclaim structure \u2014 to pre-identify entry zones on a repeat setup.",
+   "bot_mapping": "MISSING",
+   "mechanism": "character_book",
+   "officer": "Seam Scientist",
+   "source_title": "Over 1300 in 5 SECONDS This is how daytrading tradingeducation momentum",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "entries",
+   "lesson": "Treat MACD as a lagging trend-context filter only, not as a real-time buy or sell trigger.",
+   "bot_mapping": "MISSING",
+   "mechanism": "none",
+   "officer": "Execution Surgeon",
+   "source_title": "Ranking the MOST POPULAR trading indicators that you shouldnt be using daytradin",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "entries",
+   "lesson": "Accept partial fills at the entry price and do not chase unfilled orders at extended prices during a fast squeeze.",
+   "bot_mapping": "MISSING",
+   "mechanism": "none",
+   "officer": "Execution Surgeon",
+   "source_title": "A 230 SQUEEZE in 5 SECONDS daytrading momentum",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "entries",
+   "lesson": "Use climactic listing-day volume as a baseline and watch for comparable volume returning off lows as a buy signal.",
+   "bot_mapping": "MISSING",
+   "mechanism": "liquidity_floor",
+   "officer": "Seam Scientist",
+   "source_title": "Is it time to buy SPCX daytrading spacex stockmarket investing",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "entries",
+   "lesson": "Use a tightening wedge compression pattern into the weekend as the primary setup trigger for a day-two breakout entry.",
+   "bot_mapping": "MISSING",
+   "mechanism": "none",
+   "officer": "Seam Scientist",
+   "source_title": "TOP 3 STOCKS FOR MONDAY 81026 daytrading stockstowatch momentum tradingeducation",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "entries",
+   "lesson": "Do not chase price up into a halt; wait to confirm the level holds before entry.",
+   "bot_mapping": "MISSING",
+   "mechanism": "halt_lane",
+   "officer": "Execution Surgeon",
+   "source_title": "The BEST micro pullback strategy daytrading howtotrade momentum tradingeducation",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "entries",
+   "lesson": "Use a real-time volume-based scanner to find stocks just beginning to move, not a static screener, because volume confirms live trader participation.",
+   "bot_mapping": "MISSING",
+   "mechanism": "none",
+   "officer": "Opening Bell",
+   "source_title": "The BEST Tools to find the BEST Stocks daytrading stockstowatch momentum trading",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "entries",
+   "lesson": "When price action on the standard 1-minute chart looks like a pure chase with no pullback, open the 10-second chart before rejecting the trade \u2014 a valid micro structure may exist that makes the entry non-extended.",
+   "bot_mapping": "MISSING",
+   "mechanism": "hidden_entry",
+   "officer": "Execution Surgeon",
+   "source_title": "How to find HIDDEN pullback entries daytrading tradingeducation momentum",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "entries",
+   "lesson": "Do not enter a pullback setup when price is approaching a daily 50 or 200 MA overhead; skip the trade until price breaks and holds above that moving-average level.",
+   "bot_mapping": "MISSING",
+   "mechanism": "none",
+   "officer": "Cartographer",
+   "source_title": "A 1300 SQUEEZE in 5 seconds Heres How",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "exits",
+   "lesson": "Treat RSI overbought/oversold readings as unreliable exit or entry signals; an oversold reading does not confirm a buy and an overbought reading does not confirm a sell.",
+   "bot_mapping": "MISSING",
+   "mechanism": "none",
+   "officer": "Trade Manager",
+   "source_title": "Ranking the MOST POPULAR trading indicators that you shouldnt be using daytradin",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "exits",
+   "lesson": "Record full exit price range as entry-to-exit percentage to benchmark the trade as a repeatable system outcome.",
+   "bot_mapping": "MISSING",
+   "mechanism": "none",
+   "officer": "Kev Librarian",
+   "source_title": "A 230 SQUEEZE in 5 SECONDS daytrading momentum",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  },
+  {
+   "theme": "exits",
+   "lesson": "Do not freeze on a legitimate explosive move assuming it is a data glitch; execute the scale-out ladder in real time.",
+   "bot_mapping": "MISSING",
+   "mechanism": "scale_out_ladder",
+   "officer": "Execution Surgeon",
+   "source_title": "230 in 5 SECONDS daytrading stockmarket tradingeducation",
+   "date": "2026-08-14 (file date; publish date UNVERIFIED)"
+  }
+ ],
+ "report": "data/kev/LESSONS_20260816.md"
+}

@@ -1,5 +1,5 @@
 # SHIP CONVENING — 2026-08-16 (Sunday, 11:15 ET) HARDENING: `_curl_feed` 2s memo + entry snapshot AFTER the durable save (+ auditor fix: durable row re-carries entry_context)
-covers: 3af620733e4e (HEAD at audit = the auditor's code fix "audit fix (070ed5d caveat)"; audited ship = 070ed5d647a8 "harden: _curl_feed 2s memo + entry snapshot after durable save" on top of acf89f85c11b build #0, audited 31-0 in SESSION_20260816_build0.md). Prior convening archived to SESSION_20260816_build0.md.
+covers: e7c58951d8af (HEAD at audit = analysis-only killtests tip data/killtests/exit_eyes_join_20260816*, zero runtime files, verified by `git show --stat`) on 3af620733e4e (the auditor's code fix "audit fix (070ed5d caveat)"; audited ship = 070ed5d647a8 "harden: _curl_feed 2s memo + entry snapshot after durable save" on top of acf89f85c11b build #0, audited 31-0 in SESSION_20260816_build0.md). Prior convening archived to SESSION_20260816_build0.md.
 Chair: Blast Radius Auditor. Separate-context convening: every claim below is from a `git show`/file read or an execution run THIS session. Clock: `date` run this turn = Sun Aug 16 11:15:15 EDT 2026. No push, no deploy from this convening.
 
 ## SHIP DESCRIPTION + AUTHORIZATION

@@ -2009,7 +2009,7 @@ try:
     _ns = {"CURL_SOURCE": "alpaca", "CURL_FEED_MEMO_SECS": 2.0, "_curl_memo": {}, "_curl_memo_lock": _aeth.Lock(),
            "time": _aet, "_bf_done": set(), "_curl_canary_t": {}, "_halt_suspect": lambda t, d: (False, 0, 0),
            "_leader_high_probe": lambda *a: None, "_halt_credit": {}, "_halt_credit_note": lambda *a: None,
-           "_alp10_bars": _mk(_bars), "print": lambda *a, **k: None, "_archive10_backfill": lambda t, n=0: {}}
+           "_alp10_bars": _mk(_bars), "print": lambda *a, **k: None, "_bump": lambda *a, **k: None, "_archive10_backfill": lambda t, n=0: {}}
     exec(_blk, _ns)
     _r1 = _ns["_curl_feed"]("TT", 90); _r2 = _ns["_curl_feed"]("TT", 90)
     check("AE-b: EXECUTED — two calls within TTL = ONE fetch, same (bars, src) tuple shape",
@@ -2036,6 +2036,10 @@ try:
     check("AE-g: watchdog ctx built after snapshot (carries entry_context)", _i_snap < _i_wd
           and '"entry_context": (extra or {}).get("entry_context")' in _ae_src[_i_wd:_i_wd+400]
           and 'trade_payload["entry_context"] = _entry_ctx_by_trade.get(_tid)' in _ae_src)
+    # auditor: durable row re-carries entry_context (sync merge post) AFTER snapshot, BEFORE monitor
+    _i_re = _ae_src.index('_save_open_trade_sync({"ticker": ticker, "trade_id": trade_id,\n                                           "entry_context": extra["entry_context"]})')
+    check("AE-h: durable entry_context re-post sits snapshot < re-post < monitor_trade", _i_snap < _i_re < _i_mon, str((_i_snap, _i_re, _i_mon)))
+    check("AE-i: memo_hits on the EXEC HEALTH line", "memo_hits={_eh.get('memo_hits', 0)}" in _ae_src)
 except (AssertionError, ValueError, KeyError) as _aee:
     check("AE: hardening", False, str(_aee))
 

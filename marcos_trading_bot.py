@@ -1124,6 +1124,8 @@ def _curl_feed(t, n=90):
     if CURL_FEED_MEMO_SECS > 0:
         _m = _curl_memo.get((t, n))
         if _m and (time.time() - _m[0]) < CURL_FEED_MEMO_SECS:
+            try: _bump("memo_hits")     # 8/16 auditor: hit ratio observable on the EXEC HEALTH line
+            except Exception: pass
             return dict(_m[1]), _m[2]     # 8/16 memo hit — copy so callers can't mutate the cache
     if CURL_SOURCE == "alpaca":
         d10, src = _alp10_bars(t, n)
@@ -8400,7 +8402,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             with _exec_health_lock:
                 _eh = dict(_exec_health)
             print(f"⚙️  EXEC HEALTH: 429={_eh['api_429']} api_err={_eh['api_err']} timeouts={_eh['timeouts']} "
-                  f"fail_open={_eh.get('fail_open', 0)} "
+                  f"fail_open={_eh.get('fail_open', 0)} memo_hits={_eh.get('memo_hits', 0)} "
                   f"| positions now {len(_active_monitors)} (peak {_eh['peak_positions']})")
             _log_decision("_exec_health", "ok", api_429=_eh["api_429"], api_err=_eh["api_err"],
                           timeouts=_eh["timeouts"], peak_positions=_eh["peak_positions"])
@@ -12091,6 +12093,13 @@ def main():
                 _ec_seed.setdefault("l1_spread", l2_details.get("spread"))
                 extra["entry_context"] = _eyes_snapshot(ticker, entry_price, "entry", _ec_seed)
                 _entry_ctx_by_trade[trade_id] = extra["entry_context"]
+                # 8/16 auditor (070ed5d caveat): the durable row must ALSO carry the eyes, or a
+                # restart-recovery record (_recover_orphaned_trades / _post_resume_record) loses
+                # them — the registry is process memory. MERGE-only endpoint; SYNC (not the async
+                # poster) so it can never land after the trade's own clear and leave a ghost row.
+                if extra.get("entry_context"):
+                    _save_open_trade_sync({"ticker": ticker, "trade_id": trade_id,
+                                           "entry_context": extra["entry_context"]})
             except Exception:
                 pass
             # Register with the stale-trade watchdog (full ctx so it can record if the monitor freezes).

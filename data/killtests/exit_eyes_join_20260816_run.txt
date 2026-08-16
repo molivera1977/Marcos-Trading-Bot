@@ -1,0 +1,17 @@
+FILES: 421 DATES: 36 2026-06-25..2026-08-14
+
+== grinder1030 E3 BASELINE: N=239 win=56% total=$+5483.15 mean/tr=$+22.94 dmean=$+152.31 dmed=$+108.09 green=83% worst=$-73.21
+  V1: N=239 win=56% total=$+5406.81 (delta $-76.34) mean/tr=$+22.62 dmean=$+150.19 dmed=$+117.39 green=83% worst=$-73.21 | rule fired 29/239: rule $+1541.50 vs E3-on-same $+1617.83
+  V2: N=239 win=51% total=$+4211.26 (delta $-1271.89) mean/tr=$+17.62 dmean=$+116.98 dmed=$+88.65 green=75% worst=$-73.21 | rule fired 52/239: rule $+1043.24 vs E3-on-same $+2315.13
+  V3: N=239 win=56% total=$+5590.38 (delta $+107.23) mean/tr=$+23.39 dmean=$+155.29 dmed=$+120.06 green=83% worst=$-73.21 | rule fired 11/239: rule $+1211.19 vs E3-on-same $+1103.96
+  V3b: N=239 win=56% total=$+5590.38 (delta $+107.23) mean/tr=$+23.39 dmean=$+155.29 dmed=$+120.06 green=83% worst=$-73.21 | rule fired 11/239: rule $+1211.19 vs E3-on-same $+1103.96
+  hand-trace V2 AARD 2026-07-10 sig 14:46:30 entry 5.3300 stop 5.1190: V2 $-19.44 vs E3 $+117.63 (eod) | 14:46:40 VWAP-LOSS close 5.2000 < vwap 5.2068 fill 5.1740
+  hand-trace V3 PSQH 2026-07-28 sig 14:45:20 entry 3.1100 stop 3.0250: V3 $+131.30 vs E3 $+105.14 (trail@18:13:50) | 17:00:10 BANK 1/2 at 3.4552 ; 18:13:40 TRAIL-TIGHT close 4.4992 runhi 4.7500 fill 4.4767
+
+== flat_top_break E3 BASELINE: N=384 win=61% total=$+9220.01 mean/tr=$+24.01 dmean=$+256.11 dmed=$+254.49 green=81% worst=$-119.26
+  V1: N=384 win=61% total=$+8180.07 (delta $-1039.94) mean/tr=$+21.30 dmean=$+227.22 dmed=$+227.39 green=83% worst=$-109.93 | rule fired 108/384: rule $+4522.34 vs E3-on-same $+5562.28
+  V2: N=384 win=27% total=$-359.03 (delta $-9579.04) mean/tr=$-0.93 dmean=$-9.97 dmed=$-16.53 green=47% worst=$-193.59 | rule fired 320/384: rule $-2565.21 vs E3-on-same $+7013.83
+  V3: N=384 win=61% total=$+8907.39 (delta $-312.63) mean/tr=$+23.20 dmean=$+247.43 dmed=$+254.49 green=83% worst=$-119.26 | rule fired 34/384: rule $+3834.89 vs E3-on-same $+4147.51
+  V3b: N=384 win=61% total=$+8833.74 (delta $-386.27) mean/tr=$+23.00 dmean=$+245.38 dmed=$+254.49 green=83% worst=$-119.26 | rule fired 36/384: rule $+3825.65 vs E3-on-same $+4211.92
+  hand-trace V2 PCLA 2026-06-26 sig 13:50:10 entry 3.5350 stop 3.0100: V2 $-33.90 vs E3 $+496.10 (trail@16:02:30) | 13:51:00 VWAP-LOSS close 3.3450 < vwap 3.3738 fill 3.3283
+  hand-trace V3 PCLA 2026-06-26 sig 13:50:10 entry 3.5350 stop 3.0100: V3 $+188.85 vs E3 $+496.10 (trail@16:02:30) | 14:03:40 BANK 1/2 at 3.9274 ; 15:06:40 TRAIL-TIGHT close 5.9400 runhi 6.6000 fill 5.9103

@@ -2046,3 +2046,14 @@ items only (delta vs corpus), verbatim quotes w/ dates, tagged by theme (entries
 premarket/halts/sizing/regime), each mapped to a bot mechanism (HAVE / PARTIAL / MISSING) with a
 one-line testable hypothesis + owning officer; appended to a rolling KEV_LESSONS_LEDGER.md;
 surfaced on the dashboard (latest lessons tile) + in the morning brief. Librarian owns.
+
+## 2026-08-16 ~13:30 — MARCOS THESIS: ROCKETS ARE THE DIFFERENTIATOR (convexity mandate)
+Verbatim: "The rockets are the differentiator for this bot. We are going to bleed money but we
+NEED these to pay for everything else." Recorded as a strategic thesis = TWO-TIER design:
+Tier 1 core (consistency; grinder+break-attack+ma_pullback; the 5-criterion median bar) +
+Tier 2 ROCKET SLEEVE (convexity; E4-style never-bank trail, day-2 reloads, anticipation entry
+if a precursor proves enriched; graded on a CONVEXITY BAR — tail-adjusted monthly expectancy
+with a max-bleed budget — NOT the median bar, which would kill it before it pays). Bleed
+budget = Marcos's sizing call (a number, owed). Rocket anatomy study (running) = the sleeve's
+foundation; Rocket Rider + Architect own; spec + bar + budget = the next docket item.
+Evidence for the tail: YJ +$1,613/one $500 clip; E4 exit = highest total $ of the sweep.

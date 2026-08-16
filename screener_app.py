@@ -11,6 +11,7 @@ import pathlib
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, render_template_string, request
 import pytz
+import html as html_mod
 
 # Webull SDK
 try:
@@ -39,6 +40,62 @@ def _hm_et(ts):
         return dt.strftime("%H:%M")
     except Exception:
         return "—"
+
+# ── 8/16 BUILD #0 (Marcos 8/15: "where each ticker was at entry and exit ... every element of
+# the EYES"): plain, robust key/value renderer for the entry_context / exit_context blocks the
+# bot stamps on every trade record. Missing keys/blocks render as "—", never raise.
+_EYES_ROWS = [("time_et", "time (ET)"), ("session", "session"), ("window", "window"),
+              ("price", "price"), ("vwap", "VWAP"), ("vwap_side", "vs VWAP"),
+              ("vwap_dist_pct", "VWAP dist %"), ("vwap_slope_5m", "VWAP slope 5m %"),
+              ("side_stamp", "SIDE"), ("map.break", "map break"), ("map.break_dist_pct", "break dist %"),
+              ("map.zone", "map zone"), ("map.next_rung", "next rung"), ("map.road_r", "road (R, post-wall)"),
+              ("map.map_age_min", "map age (min)"), ("map.map_src", "map src"),
+              ("day_gain_pct", "day gain %"), ("crown.crowned", "crown"), ("crown.since", "crown since"),
+              ("lens_state", "lens"), ("ext_pct_vs_ema90", "ext vs EMA90 %"), ("ext_atr_units", "ext (ATR)"),
+              ("halt_distance_pct", "halt distance %"), ("spread_pct", "spread %"),
+              ("ambient_dvol_median", "ambient $vol median"), ("relvol_same_tod", "rel-vol (same TOD)"),
+              ("spy_regime", "SPY regime"), ("catalyst", "catalyst"), ("gates_hit", "gates hit (5m)")]
+
+def _eyes_get(ctx, dotted):
+    cur = ctx
+    for part in dotted.split("."):
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(part)
+    return cur
+
+def _eyes_fmt(v):
+    if v is None or v == "" or v == []:
+        return "—"
+    if isinstance(v, bool):
+        return "yes" if v else "no"
+    if isinstance(v, float):
+        return ("%.4f" % v).rstrip("0").rstrip(".") if abs(v) < 1000 else ("%.0f" % v)
+    if isinstance(v, (list, tuple)):
+        return ", ".join(str(x) for x in v)
+    return str(v)
+
+def _eyes_table_html(ctx, title):
+    ctx = ctx if isinstance(ctx, dict) else {}
+    body = "".join("<tr><td>%s</td><td>%s</td></tr>" % (lbl, html_mod.escape(_eyes_fmt(_eyes_get(ctx, k))))
+                   for k, lbl in _EYES_ROWS)
+    if not ctx:
+        body = "<tr><td colspan=2 class='muted'>no eyes block on this record (pre-8/16 or not stamped)</td></tr>"
+    return "<div class='eyes-col'><h4>%s</h4><table class='eyes'>%s</table></div>" % (title, body)
+
+def eyes_blocks_html(t):
+    """Two side-by-side blocks (entry_context | exit_context) + exit_layer line for one trade record."""
+    t = t if isinstance(t, dict) else {}
+    layer = t.get("exit_layer")
+    return ("<div class='eyes-wrap'>" + _eyes_table_html(t.get("entry_context"), "👁 at ENTRY")
+            + _eyes_table_html(t.get("exit_context"), "👁 at EXIT") + "</div>"
+            + "<div class='muted' style='font-size:12px;margin:4px 0 10px'>exit layer: <b>"
+            + html_mod.escape(str(layer or "—")) + "</b> · " + html_mod.escape(str(t.get("exit_reason") or "")) + "</div>")
+
+EYES_CSS = (".eyes-wrap{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0}"
+            ".eyes-col{flex:1 1 260px;min-width:240px}.eyes-col h4{margin:4px 0;font-size:12px;color:var(--muted);text-transform:uppercase}"
+            "table.eyes td{padding:3px 8px;font-size:12px}table.eyes td:first-child{width:52%}")
+
 TRADES_FILE         = pathlib.Path("/data/marcos_trades.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/marcos_trades.json")
 API_SECRET          = os.environ.get("DASHBOARD_SECRET", "marcos2026")
 
@@ -2245,9 +2302,25 @@ def tale_of_the_ticker(ticker):
                        + "<tr><td>Read at</td><td>" + str(sh.get("read_at") or "—") + " by " + str(sh.get("model") or "—") + "</td></tr>"
                        + "<tr><td>Its words</td><td>" + str(sh.get("reason") or "—") + "</td></tr></table>")
 
+    # 8/16 BUILD #0: this name's trades with the eyes at entry AND exit, side by side (newest first).
+    eyes_html = ""
+    try:
+        _mine = [t for t in _trades if str(t.get("ticker") or "").upper() == tk][-10:][::-1]
+        if _mine:
+            _blocks = ""
+            for t in _mine:
+                _blocks += ("<div class='note' style='margin-bottom:10px'><b>" + str(t.get("date") or "")
+                            + " " + _hm_et(t.get("entry_ts_utc")) + "→" + (str(t.get("recorded_at") or "")[11:16] or "—")
+                            + "</b> · " + html_mod.escape(str(t.get("entry_type") or "—"))
+                            + " · $%.2f → $%.2f · P&amp;L $%+.2f" % (float(t.get("entry") or 0), float(t.get("exit") or 0), float(t.get("pnl") or 0))
+                            + eyes_blocks_html(t) + "</div>")
+            eyes_html = "<h3>Where it was — the eyes at entry and exit</h3>" + _blocks
+    except Exception as _ee:
+        eyes_html = "<h3>Where it was — the eyes at entry and exit</h3><div class='note'>render error: " + html_mod.escape(str(_ee)) + "</div>"
+
     return ("<!doctype html><html><head><meta charset='utf-8'><meta http-equiv='refresh' content='60'>"
             "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-            "<title>Tale of " + tk + "</title><style>"
+            "<title>Tale of " + tk + "</title><style>" + EYES_CSS +
             "body{background:var(--bg);color:var(--fg);font-family:-apple-system,Segoe UI,sans-serif;max-width:640px;margin:24px auto;padding:0 16px}"
             "h1{font-size:26px;margin:6px 0} h3{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin:22px 0 6px}"
             ".gate{border-left:4px solid " + gate_color + ";background:var(--bg2);padding:12px 14px;border-radius:6px;font-weight:600}"
@@ -2268,7 +2341,7 @@ def tale_of_the_ticker(ticker):
             + ("<table>" + rows + "</table>" if rows else "<div class='note'>No read stored for " + tk + " on " + date +
                ". Newcomers are read within ~2 minutes of joining the scanner (8:50 ET onward).</div>")
             + ("<h3>The read's words</h3><div class='note'>" + note + "</div>" if note else "")
-            + shadow_html +
+            + shadow_html + eyes_html +
             "<h3>Links</h3><div class='note'><a target='_blank' rel='noopener' href='https://www.tradingview.com/chart/?symbol="
             + tk + "'>chart ↗</a></div>"
             "</body></html>")
@@ -2628,7 +2701,8 @@ def premarket_dashboard():
                 li.append("The last %d shares went out at <b>$%.2f</b>." % (max(0, sh - sold), ex))
             else:
                 li.append("Sold everything at <b>$%.2f</b> in one piece." % ex)
-            li.append("<b>Why it ended:</b> " + esc(t.get("exit_reason") or "—"))
+            li.append("<b>Why it ended:</b> " + esc(t.get("exit_reason") or "—")
+                      + ((" · layer <b>" + esc(t.get("exit_layer")) + "</b>") if t.get("exit_layer") else ""))
             if hi > e > 0:
                 pk = (hi - e) / e * 100
                 if ex > e and hi > e:
@@ -2642,7 +2716,8 @@ def premarket_dashboard():
                     "color:var(--muted);font-size:12px'>📖 tale of the tape</summary>"
                     "<div style='padding:4px 18px 12px'><div class='" + vc + "' style='font-weight:700;margin:4px 0'>" + v + "</div>"
                     "<ul style='margin:4px 0 0 18px;line-height:1.6'>" + "".join("<li>" + x + "</li>" for x in li)
-                    + "</ul></div></details></td></tr>")
+                    + "</ul>" + (eyes_blocks_html(t) if (t.get("entry_context") or t.get("exit_context")) else "")
+                    + "</div></details></td></tr>")
         except Exception:
             return ""
     hist_parts = []
@@ -2701,7 +2776,7 @@ def premarket_dashboard():
             "<meta name='viewport' content='width=device-width, initial-scale=1'>"
             "<link rel='preconnect' href='https://fonts.googleapis.com'>"
             "<link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' rel='stylesheet'>"
-            "<style>"
+            "<style>" + EYES_CSS +
             "*{box-sizing:border-box;margin:0;padding:0}"
             "body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}"
             ".header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;"
@@ -3914,8 +3989,26 @@ function storyClosedHTML(t){
     else if(isLast)
       li.push(`👀 <b>Heads up:</b> ${t.ticker} is back on the re-entry list — if it sets up cleanly again (a fresh pullback that holds), the bot can take another swing.`);
   }
-  return `<div class="verdict ${vCls}">${vTxt}</div><ul>${li.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  return `<div class="verdict ${vCls}">${vTxt}</div><ul>${li.map(x=>`<li>${x}</li>`).join('')}</ul>`+eyesHTML(t);
 }
+
+// 8/16 BUILD #0 — the eyes at entry AND exit, side by side (plain key/value; robust to missing keys).
+const EYES_ROWS=[["time_et","time (ET)"],["session","session"],["window","window"],["price","price"],["vwap","VWAP"],["vwap_side","vs VWAP"],
+ ["vwap_dist_pct","VWAP dist %"],["vwap_slope_5m","VWAP slope 5m %"],["side_stamp","SIDE"],["map.break","map break"],["map.break_dist_pct","break dist %"],
+ ["map.zone","map zone"],["map.next_rung","next rung"],["map.road_r","road (R, post-wall)"],["map.map_age_min","map age (min)"],["map.map_src","map src"],
+ ["day_gain_pct","day gain %"],["crown.crowned","crown"],["crown.since","crown since"],["lens_state","lens"],["ext_pct_vs_ema90","ext vs EMA90 %"],
+ ["ext_atr_units","ext (ATR)"],["halt_distance_pct","halt distance %"],["spread_pct","spread %"],["ambient_dvol_median","ambient $vol median"],
+ ["relvol_same_tod","rel-vol (same TOD)"],["spy_regime","SPY regime"],["catalyst","catalyst"],["gates_hit","gates hit (5m)"]];
+function eyesGet(ctx,k){ let c=ctx; for(const p of k.split('.')){ if(!c||typeof c!=='object') return null; c=c[p]; } return c; }
+function eyesFmt(v){ if(v===null||v===undefined||v===''||(Array.isArray(v)&&!v.length)) return '—'; if(typeof v==='boolean') return v?'yes':'no';
+  if(Array.isArray(v)) return v.map(String).join(', '); if(typeof v==='number') return Math.abs(v)<1000?String(+v.toFixed(4)):v.toFixed(0); return String(v); }
+function eyesTable(ctx,title){ const esc=s=>String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const body=(ctx&&typeof ctx==='object')?EYES_ROWS.map(([k,l])=>`<tr><td style="color:var(--muted);padding:2px 8px;width:52%">${l}</td><td style="padding:2px 8px">${esc(eyesFmt(eyesGet(ctx,k)))}</td></tr>`).join('')
+    :`<tr><td colspan=2 style="color:var(--muted);padding:2px 8px">no eyes block on this record (pre-8/16 or not stamped)</td></tr>`;
+  return `<div style="flex:1 1 260px;min-width:240px"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin:4px 0">${title}</div><table style="width:100%;border-collapse:collapse;font-size:12px;background:var(--bg2)">${body}</table></div>`; }
+function eyesHTML(t){ try{ if(!t||(!t.entry_context&&!t.exit_context&&!t.exit_layer)) return '';
+  return `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0">${eyesTable(t.entry_context,'👁 at ENTRY')}${eyesTable(t.exit_context,'👁 at EXIT')}</div>`+
+    `<div style="font-size:12px;color:var(--muted);margin:2px 0 8px">exit layer: <b>${t.exit_layer||'—'}</b></div>`; }catch(e){ return ''; } }
 
 window._tapeOpen=window._tapeOpen||new Set();
 function toggleTape(tk){

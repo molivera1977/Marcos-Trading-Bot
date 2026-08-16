@@ -2399,6 +2399,7 @@ def _log_decision(ticker, status, **fields):
                 _sv = _side_state(ticker)
                 _side_memo[ticker] = (time.time() + 20, _sv)
                 fields["side"] = _sv
+        _eyes_note_gate(ticker, status)   # 8/16 build #0: feeds gates_hit on the eyes snapshot
         prev = _decision_last.get(ticker)
         now = time.time()
         if prev and prev[0] == status and (now - prev[1]) < DECISION_HEARTBEAT_SECS:
@@ -2712,6 +2713,7 @@ def _post_resume_record(o: dict, result) -> None:
             "partial_fills": partials, "position_size": round(cost, 2),
             "entry_session": o.get("entry_session") or "RTH",
             "entry_crown": o.get("entry_crown"),
+            "entry_context": o.get("entry_context"),   # 8/16 build #0: carried through durable state
         })
         if _rec_ok:
             _clear_open_trade(tk, trade_id=o.get("trade_id"))
@@ -2753,6 +2755,7 @@ def _watchdog_force_record(ctx: dict):
     print(f"🛟 WATCHDOG recording {ticker}: entry ${entry:.2f} → ${px:.2f} ({pnl_pct:+.1f}%, ${pnl:+.2f})")
     _rec_ok = post_trade_record_reliably({
         "entry_crown":     ctx.get("entry_crown"),
+        "entry_context":   ctx.get("entry_context"),   # 8/16 build #0 (watchdog ctx carries it)
         "date": ctx.get("entry_date") or datetime.now(EASTERN).strftime("%Y-%m-%d"),
         "ticker": ticker, "entry_type": ctx.get("entry_type", ""),
         "entry": entry, "exit": round(px, 4), "shares": initial,
@@ -2950,6 +2953,7 @@ def _recover_orphaned_trades():
                 "trade_id":        o.get("trade_id"),
                 "entry_ts_utc":    o.get("entry_ts_utc"),   # 7/27: carried through durable state
                 "partial_fills":   partials, "highest": o.get("highest"),
+                "entry_context":   o.get("entry_context"),   # 8/16 build #0
             })
             send_alert_email(f"♻️ Recovered trade: {ticker} {pnl_pct:+.1f}%",
                              f"{ticker} was still open when the bot restarted. Closed and recorded "
@@ -7365,6 +7369,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 if _v2f:
                                     _hm_v2 = datetime.now(EASTERN).strftime("%H:%M")
                                     _log_decision(t, "v2_shadow_fire", price=_v2f["px"],
+                                                  eyes=_eyes_compact(_eyes_snapshot(t, _v2f["px"], "entry", {"vwap": _vr_sv, "zone_stop": _v2f.get("would_stop")})),
                                                   flush_low=_v2f["flush_low"],
                                                   flush_depth=_v2f["flush_depth"],
                                                   secs_from_push=_v2f["secs_from_push"],
@@ -7389,6 +7394,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 _grf = grinder_shadow_step(t, _nb, _vr_sv)
                                 if _grf:
                                     _log_decision(t, "grinder_shadow_fire", price=_grf["px"],
+                                                  eyes=_eyes_compact(_eyes_snapshot(t, _grf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _grf.get("would_stop")})),
                                                   session_hi=_grf["session_hi"],
                                                   vwap=round(_vr_sv, 4),
                                                   mins_since_1030=_grf["mins_since_1030"],
@@ -7699,6 +7705,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         _her = _he_fire
                         _he_fire = None
                         _log_decision(t, "hidden_observe_only", price=price, stop=_her["stop"],
+                                      eyes=_eyes_compact(_eyes_snapshot(t, price, "entry", {"zone_stop": _her.get("stop")})),
                                       anchor=_her["anchor"], ext_vwap=_her["ext_vwap"],
                                       seq=_her["seq"], fire_px=_her.get("px"),
                                       wick=_her.get("wick"), crown=_is_leader(t), sess=_sess_he,
@@ -8273,6 +8280,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             if _ob_row:
                 try:
                     _log_decision(b[0], _ob_row, price=b[1], vwap=(b[2] or None),
+                                  eyes=_eyes_compact(_eyes_snapshot(b[0], b[1], "entry", dict(b[4] or {}, vwap=(b[2] or None)))),
                                   stop=b[4].get("zone_stop"), day_gain=b[4].get("day_gain"),
                                   entry_vel5=b[4].get("entry_vel5"), crown=_is_leader(b[0]))
                 except Exception:
@@ -9007,6 +9015,249 @@ def _marked_runway(ticker, entry_price, stop_loss):
     except Exception:
         _gate_failopen("runway", why="exception")   # 8/8 #33
     return None, None
+
+
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# 8/16 BUILD #0 — THE EYES SNAPSHOT (Marcos 8/15: "i want to be able to answer the question of
+# where each ticker was at entry and exit and that includes every element of the EYES").
+# ONE function assembles EVERY eye into one block from data the process ALREADY holds (cached
+# feeds/maps/registries — no new vendor fetches). Every eye fails soft to None; the block itself
+# never throws into the hot path. Wired at: every conversion (entry_context), every completed
+# record via post_to_dashboard (exit_context + exit_layer), every shadow fire (compact eyes).
+# TODO eyes (registered, stamped None until their data source exists):
+#   relvol_same_tod (needs 20-day same-time-of-day baseline), spy_regime (needs index quote),
+#   catalyst (Alpaca News probe pending), ext_atr_units (ATR not cheap in-process).
+# ══════════════════════════════════════════════════════════════════════════════════════════
+EYES_TODO = ("relvol_same_tod", "spy_regime", "catalyst", "ext_atr_units")
+_EYES_KEYS = ("ts_utc", "time_et", "session", "window", "price", "vwap", "vwap_src", "vwap_side",
+              "vwap_dist_pct", "vwap_slope_5m", "side_stamp", "map", "day_gain_pct",
+              "prior_close_src", "crown", "lens_state", "ext_pct_vs_ema90", "ext_atr_units",
+              "halt_distance_pct", "spread_pct", "ambient_dvol_median", "relvol_same_tod",
+              "spy_regime", "catalyst", "gates_hit", "when")
+_EYES_MAP_KEYS = ("zone", "break", "break_dist_pct", "next_rung", "road_r", "road_tgt",
+                  "map_age_min", "map_src")
+_entry_ctx_by_trade: dict = {}   # trade_id -> entry_context (choke-point fallback for the record)
+_gate_seen: dict = {}            # ticker -> [(epoch, status)] last-5-min gate statuses (cheap ring)
+
+def _eyes_window(hm):
+    """Session window label from an ET HH:MM string."""
+    if hm < "09:30": return "pre"
+    if hm < "10:30": return "open_9:30-10:30"
+    if hm < "13:00": return "mid"
+    if hm < "15:00": return "afternoon"
+    if hm < "16:00": return "power_hour"
+    return "post"
+
+def _exit_layer(exit_reason):
+    """Which MECHANISM closed the trade (the article's 'log which layer closed every trade').
+    Pure string classifier over the exit_reason the monitor already writes."""
+    r = str(exit_reason or "").lower()
+    if not r or r in ("n/a", "unknown"): return "unknown"
+    if "watchdog" in r or "recovered" in r or "resumed" in r: return "safety"
+    if "blind-stop" in r or "stale feed" in r or "crater" in r: return "safety"
+    if "time stop" in r or "flatten" in r or "eod" in r or "3:45" in r: return "eod"
+    if "topping tail" in r: return "topping_tail"
+    if "e3" in r or "run-high" in r or "runhi" in r: return "e3_trail"
+    if "trail" in r or "prev-bar-low" in r: return "trail"
+    if "ratchet" in r: return "rung_ratchet"
+    if "health fold" in r or "vwap fade" in r or "lost vwap" in r: return "health"
+    if "failed breakout" in r or "instant exit" in r or "failed new high" in r: return "failed_break"
+    if "full exit" in r or "tier" in r or "target" in r: return "tier"
+    if "stop" in r: return "stop"
+    return "other"
+
+def _eyes_note_gate(ticker, status):
+    """Cheap ring of gate statuses per ticker (feeds gates_hit). Called from _log_decision."""
+    try:
+        now = time.time()
+        lst = _gate_seen.setdefault(ticker, [])
+        lst.append((now, str(status)))
+        if len(lst) > 40:
+            del lst[:len(lst) - 40]
+    except Exception:
+        pass
+
+def _eyes_snapshot(ticker, price, when="entry", extra=None) -> dict:
+    """EVERY eye, one block. price=0/None -> best cached price. extra (the lane's extra dict)
+    donates what it already knows (vwap, ema90, day_gain, spread) so entry stamps match the
+    numbers the gates actually saw. Never raises. Every top-level key ALWAYS present."""
+    ex = extra if isinstance(extra, dict) else {}
+    snap = {k: None for k in _EYES_KEYS}
+    snap["map"] = {k: None for k in _EYES_MAP_KEYS}
+    snap["gates_hit"] = []
+    snap["when"] = when
+    try:
+        _now = datetime.now(EASTERN)
+        _hm = _now.strftime("%H:%M")
+        snap["ts_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        snap["time_et"] = _now.strftime("%H:%M:%S")
+        snap["session"] = "PRE" if _hm < "09:30" else "RTH"
+        snap["window"] = _eyes_window(_hm)
+    except Exception:
+        pass
+    # ── price (caller's, else cached stream tick) ──
+    px = 0.0
+    try:
+        px = float(price or 0)
+        if px <= 0:
+            px = float(_lens_px(ticker) or 0)
+        snap["price"] = round(px, 4) if px > 0 else None
+    except Exception:
+        pass
+    # ── 10s feed: read ONCE (cached choke point) for slope / halt / side ──
+    d10 = {}
+    try:
+        d10, _src10 = _curl_feed(ticker, n=720)
+    except Exception:
+        d10 = {}
+    # ── VWAP + side + distance + 5m slope ──
+    try:
+        v = float(ex.get("vwap") or 0)
+        vsrc = "lane" if v > 0 else None
+        if v <= 0:
+            v = float(_recorder_tick_vwap(ticker) or 0)
+            vsrc = "tick_vwap" if v > 0 else None
+        if v > 0:
+            snap["vwap"] = round(v, 4); snap["vwap_src"] = vsrc
+            if px > 0:
+                snap["vwap_side"] = "above" if px >= v else "below"
+                snap["vwap_dist_pct"] = round((px - v) / v * 100, 2)
+        # slope: cumulative PV/V over the fed window now vs 5 min ago (feed-cum proxy)
+        if d10 and len(d10) >= 36:
+            ks = sorted(d10)
+            def _cum(upto):
+                pv = vv = 0.0
+                for k in ks:
+                    if k > upto: break
+                    b = d10[k]; vol = max(0.0, float(b.get("v1") or 0) - float(b.get("v0") or 0))
+                    pv += float(b.get("c") or 0) * vol; vv += vol
+                return (pv / vv) if vv > 0 else 0.0
+            v_now, v_5 = _cum(ks[-1]), _cum(ks[-1] - 300)
+            if v_now > 0 and v_5 > 0:
+                snap["vwap_slope_5m"] = round((v_now - v_5) / v_5 * 100, 3)
+    except Exception:
+        pass
+    # ── SIDE stamp (Side Marshal's variable) ──
+    try:
+        snap["side_stamp"] = _side_state(ticker, px)
+    except Exception:
+        snap["side_stamp"] = "unknown"
+    # ── MAP: zone / break / next rung / road (post-wall) / age / src ──
+    try:
+        rec = _effective_map(ticker, px) or {}
+        m = snap["map"]
+        brk = float(rec.get("break") or 0)
+        m["break"] = brk or None
+        if brk > 0 and px > 0:
+            m["break_dist_pct"] = round((px - brk) / brk * 100, 2)
+        tg = sorted(float(x) for x in (rec.get("targets") or []) if float(x) > 0)
+        m["next_rung"] = next((x for x in tg if x > px), None) if px > 0 else (tg[0] if tg else None)
+        m["zone"] = rec.get("zone") or rec.get("stop") or None
+        m["map_src"] = rec.get("_freshest_src") or rec.get("src") or ("kev" if rec else None)
+        try:
+            age, _dist = _map_freshness(rec, px)
+            m["map_age_min"] = round(age, 1) if age is not None else None
+        except Exception:
+            pass
+        stop_hint = float(ex.get("zone_stop") or ex.get("stop") or 0)
+        if px > 0 and stop_hint > 0 and stop_hint < px:
+            rr, tgt = _marked_runway(ticker, px, stop_hint)
+            m["road_r"] = rr; m["road_tgt"] = tgt
+    except Exception:
+        pass
+    # ── day gain vs prior close ──
+    try:
+        dg = ex.get("day_gain")
+        if dg is not None:
+            snap["day_gain_pct"] = round(float(dg), 2); snap["prior_close_src"] = "lane"
+        else:
+            pdc = float(_pdc_map.get(ticker) or 0)
+            if pdc > 0 and px > 0:
+                snap["day_gain_pct"] = round((px / pdc - 1) * 100, 2); snap["prior_close_src"] = "pdc_map"
+    except Exception:
+        pass
+    # ── crown ──
+    try:
+        rec_l = _leader_day.get((datetime.now(EASTERN).strftime("%Y-%m-%d"), ticker)) or {}
+        snap["crown"] = {"crowned": bool(rec_l.get("since")), "since": rec_l.get("since"),
+                         "why": rec_l.get("viol")}
+    except Exception:
+        snap["crown"] = {"crowned": None, "since": None, "why": None}
+    # ── lens ──
+    try:
+        ls = _lens_state.get(ticker)
+        snap["lens_state"] = None if ls is None else ("in_focus" if ls else "out_of_focus")
+    except Exception:
+        pass
+    # ── extension vs EMA90 (lane's ema90 if provided; else 1-min aggregate of the fed 10s bars) ──
+    try:
+        e90 = float(ex.get("ema90") or 0)
+        if e90 <= 0 and d10 and len(d10) >= 540:
+            mins = {}
+            for k in sorted(d10):
+                mins[int(k) // 60] = float(d10[k].get("c") or 0)
+            closes = [c for c in mins.values() if c > 0]
+            if len(closes) >= EMA90_PERIOD:
+                e90 = float(_calc_ema(closes, EMA90_PERIOD) or 0)
+        if e90 > 0 and px > 0:
+            snap["ext_pct_vs_ema90"] = round((px - e90) / e90 * 100, 2)
+    except Exception:
+        pass
+    # ── halt distance: % to the upper LULD band (5-min ref mean, tiered band) ──
+    try:
+        if d10 and px > 0:
+            ks = sorted(d10)
+            w5 = [float(d10[k].get("c") or 0) for k in ks if k >= ks[-1] - 300]
+            w5 = [c for c in w5 if c > 0]
+            if w5:
+                ref = sum(w5) / len(w5)
+                band = 0.10 if px >= 3 else (0.20 if px >= 0.75 else 0.75)
+                snap["halt_distance_pct"] = round((ref * (1 + band) - px) / px * 100, 2)
+    except Exception:
+        pass
+    # ── spread (lane's L1 read at conversion; never a fresh quote here) ──
+    try:
+        sp = ex.get("spread_pct")
+        if sp is None and ex.get("l1_spread") is not None and px > 0:
+            sp = float(ex.get("l1_spread")) / px * 100
+        snap["spread_pct"] = round(float(sp), 3) if sp is not None else None
+    except Exception:
+        pass
+    # ── ambient dollar-volume median (from the fed 10s bars, 1-min buckets) ──
+    try:
+        if d10 and len(d10) >= 30:
+            per = {}
+            for k in sorted(d10):
+                b = d10[k]; vol = max(0.0, float(b.get("v1") or 0) - float(b.get("v0") or 0))
+                per[int(k) // 60] = per.get(int(k) // 60, 0.0) + vol * float(b.get("c") or 0)
+            vals = sorted(per.values())
+            if vals:
+                snap["ambient_dvol_median"] = round(vals[len(vals) // 2], 0)
+    except Exception:
+        pass
+    # ── gates_hit: last-5-min statuses seen for this name ──
+    try:
+        cut = time.time() - 300
+        snap["gates_hit"] = [s for (t0, s) in _gate_seen.get(ticker, []) if t0 >= cut][-12:]
+    except Exception:
+        pass
+    # TODO eyes stay None (registered in EYES_TODO)
+    return snap
+
+def _eyes_compact(snap):
+    """Compact form for shadow-fire rows (flat, small)."""
+    try:
+        m = snap.get("map") or {}
+        c = snap.get("crown") or {}
+        return {"px": snap.get("price"), "vwap": snap.get("vwap"), "vside": snap.get("vwap_side"),
+                "vdist": snap.get("vwap_dist_pct"), "vslope": snap.get("vwap_slope_5m"),
+                "side": snap.get("side_stamp"), "brk": m.get("break"), "brk_dist": m.get("break_dist_pct"),
+                "rung": m.get("next_rung"), "map_age": m.get("map_age_min"), "map_src": m.get("map_src"),
+                "dg": snap.get("day_gain_pct"), "crown": c.get("crowned"), "lens": snap.get("lens_state"),
+                "ext90": snap.get("ext_pct_vs_ema90"), "halt_d": snap.get("halt_distance_pct"),
+                "amb": snap.get("ambient_dvol_median"), "win": snap.get("window")}
+    except Exception:
+        return {}
 
 
 def _e3_eval(current_stop, runhi, bar_close, bar_high):
@@ -9951,6 +10202,22 @@ def post_to_dashboard(trade_payload: dict) -> bool:
     try:
         if "exit_ts_utc" not in trade_payload:
             trade_payload["exit_ts_utc"] = datetime.now(timezone.utc).isoformat()
+    except Exception:
+        pass
+    # 8/16 BUILD #0 — WIRE SITE 2 (choke point): every completed record carries exit_context +
+    # exit_layer, and entry_context (from the registry / durable state) when the writer didn't.
+    try:
+        _tk = str(trade_payload.get("ticker") or "").upper()
+        if not trade_payload.get("exit_context"):
+            trade_payload["exit_context"] = _eyes_snapshot(_tk, trade_payload.get("exit"), "exit",
+                                                           {"zone_stop": trade_payload.get("stop_loss")})
+        if not trade_payload.get("exit_layer"):
+            trade_payload["exit_layer"] = _exit_layer(trade_payload.get("exit_reason"))
+        if not trade_payload.get("entry_context"):
+            _tid = trade_payload.get("trade_id")
+            trade_payload["entry_context"] = _entry_ctx_by_trade.get(_tid) or trade_payload.get("entry_context")
+        if trade_payload.get("trade_id") in _entry_ctx_by_trade and trade_payload.get("entry_context"):
+            _entry_ctx_by_trade.pop(trade_payload.get("trade_id"), None)
     except Exception:
         pass
     try:
@@ -11779,7 +12046,21 @@ def main():
             # and the exit record so all three paths agree.
             _entry_ts_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             _shadow_keep.add(ticker)   # B12: this trade's 10s anatomy persists tonight no matter its tick rank
+            # 8/16 BUILD #0 — WIRE SITE 1 (entry): every eye at the fill, stamped into the lane's
+            # extra + the durable open-trade state + the choke-point registry (record fallback).
+            try:
+                if extra is None:
+                    extra = {}
+                _ec_seed = dict(extra)
+                _ec_seed.setdefault("vwap", vwap)
+                _ec_seed.setdefault("zone_stop", stop_loss)
+                _ec_seed.setdefault("l1_spread", l2_details.get("spread"))
+                extra["entry_context"] = _eyes_snapshot(ticker, entry_price, "entry", _ec_seed)
+                _entry_ctx_by_trade[trade_id] = extra["entry_context"]
+            except Exception:
+                pass
             _save_open_trade_sync({
+                "entry_context": (extra or {}).get("entry_context"),   # 8/16 build #0
                 "entry_crown": (extra or {}).get("entry_crown"),   # mini-audit 3b
                 "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
                 "target": round(target_price, 4), "stop": round(stop_loss, 4),
@@ -11796,6 +12077,7 @@ def main():
             _monitor_abort.discard(ticker)   # 7/11 audit A8: a stale abort flag from a never-thawed prior
                                              # monitor would insta-kill THIS trade's monitor on iteration 1
             _active_monitors[trade_id] = {"heartbeat": time.time(), "alerted": False, "ctx": {
+                "entry_context": (extra or {}).get("entry_context"),   # 8/16 build #0
                 "entry_crown": (extra or {}).get("entry_crown"),   # mini-audit 3a
                 "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
                 "stop": round(stop_loss, 4), "initial_shares": shares, "remaining_shares": shares,
@@ -11917,6 +12199,13 @@ def main():
                 # the tape this monitor saw. exit_px_raw = what the stream claimed; `exit` = booked.
                 "exit_px_unverified": trade_result.get("exit_px_unverified"),
                 "exit_px_raw":        trade_result.get("exit_px_raw"),
+                # 8/16 BUILD #0 — WIRE SITE 2 (exit): both eyes blocks + the layer that closed it.
+                # exit_context/exit_layer are ALSO stamped at the post_to_dashboard choke point
+                # (watchdog/resume records get them too); explicit here so the normal path is exact.
+                "entry_context":      (extra or {}).get("entry_context") or _entry_ctx_by_trade.get(trade_id),
+                "exit_context":       _eyes_snapshot(ticker, trade_result.get("exit_price", entry_price), "exit",
+                                                     {"vwap": vwap, "zone_stop": stop_loss}),
+                "exit_layer":         _exit_layer(exit_reason),
                 "est_slippage":    round(shares * float(l2_details.get("spread") or 0), 2),  # shares × L1 spread @ entry
                 "entry_ema90":        round(entry_ema90, 4) if entry_ema90 > 0 else None,
                 "entry_vs_ema90_pct": entry_vs_ema90_pct,

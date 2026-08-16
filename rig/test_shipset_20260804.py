@@ -387,7 +387,7 @@ check("side: stamped on fills + heartbeats + ALL rejects (memoized), consumed by
       'side=_side_state(ticker, entry_price)' in _sv_src
       and 'side=_side_state(ticker, current_price)' in _sv_src
       and '_SIDE_STAMPED = ("_reject", "_capped", "_skip")' in _sv_src
-      and _sv_src.count("_side_state(") == 4)
+      and _sv_src.count("_side_state(") == 5)   # 8/16: +1 = the eyes snapshot's side_stamp (still a stamp)
 
 # ── 8/8 VWAP-SIDE SIZING pins (Marcos "Go with B", crown-exempt) ──
 _vs = open(os.path.join(os.path.dirname(__file__), "..", "marcos_trading_bot.py")).read()
@@ -1865,6 +1865,134 @@ check("AC-i: premkt_gate_armed daily heartbeat inside the PRE window with cap/sl
       and 'slots_used=_pre_day["n"]' in _ey)
 check("AC-j: premkt_capped row-writer intact (cap-1 reachability: kept-branch condition unchanged)",
       '"premkt_capped"' in _ey and '_pre_day["n"] < PRE_MAX_TRADES or _is_leader(entry[0])' in _ey)
+
+
+print("AD) 8/16 BUILD #0 — EYES SNAPSHOT at entry/exit + exit_layer + tale render (Marcos 8/15 spec)")
+# EXECUTES the real _eyes_snapshot / _exit_layer / _eyes_compact on a SYNTHETIC scan state
+# (stubbed feed/map/registries — no network), asserts every top-level key present (None allowed
+# for TODO eyes), asserts a synthetic completed record carries entry_context + exit_context +
+# exit_layer, and string-anchors the three wire sites + the render.
+_ey2 = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+_sc = open(os.path.join(ROOT, "screener_app.py")).read()
+try:
+    import time as _tm, pytz as _pytz
+    from datetime import datetime as _dt, timezone as _tz
+    _adn = {"datetime": _dt, "timezone": _tz, "time": _tm, "EASTERN": _pytz.timezone("America/New_York"),
+            "EMA90_PERIOD": 90, "_pdc_map": {"EYEX": 2.00}, "_leader_day": {}, "_lens_state": {"EYEX": True}}
+    # synthetic 10s scan state: 720 bars, rising tape, cumulative volume v0/v1
+    _now = int(_tm.time()) // 10 * 10
+    _d10, _cv = {}, 0.0
+    for _i in range(720):
+        _k = _now - (719 - _i) * 10
+        _c = 3.00 + _i * 0.001
+        _cv += 500.0
+        _d10[_k] = {"o": _c - 0.001, "h": _c + 0.002, "l": _c - 0.002, "c": _c, "v0": _cv - 500.0, "v1": _cv}
+    _adn["_curl_feed"] = lambda t, n=90: (_d10, "rig")
+    _adn["_lens_px"] = lambda t: 3.70
+    _adn["_recorder_tick_vwap"] = lambda t: 3.40
+    _adn["_side_state"] = lambda t, px=0.0: "front_side"
+    _adn["_effective_map"] = lambda t, px=0.0: {"break": 3.50, "targets": [3.60, 3.90, 4.20], "stop": 3.30,
+                                                "_ts": _dt.now(_pytz.timezone("America/New_York")).isoformat(), "src": "vision"}
+    _adn["_map_freshness"] = lambda rec, px: (2.0, 0.0)
+    _adn["_marked_runway"] = lambda t, e, sl: (1.5, 3.90)
+    _adn["_calc_ema"] = lambda closes, period: sum(closes[-period:]) / period
+    _adn["_gate_failopen"] = lambda *a, **k: None
+    exec(_ey2[_ey2.index("EYES_TODO = ("):_ey2.index("def _e3_eval")], _adn)
+    _snap = _adn["_eyes_snapshot"]("EYEX", 3.72, "entry", {"vwap": 3.40, "zone_stop": 3.30, "day_gain": 86.0, "l1_spread": 0.01})
+    _keys = _adn["_EYES_KEYS"]
+    _missing = [k for k in _keys if k not in _snap]
+    assert not _missing, "missing top-level keys: %s" % _missing
+    for _k in ("ts_utc", "time_et", "session", "window", "price", "vwap", "vwap_side", "vwap_dist_pct",
+               "vwap_slope_5m", "side_stamp", "day_gain_pct", "crown", "lens_state", "ext_pct_vs_ema90",
+               "halt_distance_pct", "spread_pct", "ambient_dvol_median"):
+        assert _snap.get(_k) is not None, "eye %s came back None on the synthetic state" % _k
+    assert _snap["vwap_side"] == "above" and abs(_snap["vwap_dist_pct"] - round((3.72 - 3.40) / 3.40 * 100, 2)) < 1e-6
+    assert _snap["side_stamp"] == "front_side" and _snap["lens_state"] == "in_focus"
+    assert _snap["map"]["break"] == 3.50 and _snap["map"]["next_rung"] == 3.90 and _snap["map"]["road_r"] == 1.5
+    assert _snap["map"]["map_age_min"] == 2.0 and _snap["map"]["map_src"] == "vision"
+    assert _snap["day_gain_pct"] == 86.0 and _snap["prior_close_src"] == "lane"
+    assert _snap["crown"]["crowned"] is False
+    assert _snap["halt_distance_pct"] > 0
+    assert _snap["when"] == "entry"
+    for _k in _adn["EYES_TODO"]:
+        assert _k in _snap and _snap[_k] is None, "TODO eye %s must be present + None" % _k
+    # gates_hit ring feeds the snapshot
+    _adn["_eyes_note_gate"]("EYEX", "spread_reject"); _adn["_eyes_note_gate"]("EYEX", "filled")
+    _snap2 = _adn["_eyes_snapshot"]("EYEX", 0, "exit", None)   # price 0 -> cached _lens_px
+    assert _snap2["price"] == 3.70 and _snap2["gates_hit"][-2:] == ["spread_reject", "filled"]
+    assert _snap2["prior_close_src"] == "pdc_map" and _snap2["day_gain_pct"] == round((3.70 / 2.0 - 1) * 100, 2)
+    assert _snap2["vwap_src"] == "tick_vwap" and _snap2["vwap"] == 3.40
+    # exit_layer classifier
+    _xl = _adn["_exit_layer"]
+    assert _xl("Full exit (T2 +10%) ✅") == "tier" and _xl("3:45pm time stop") == "eod"
+    assert _xl("TOPPING TAIL") == "topping_tail" and _xl("PREV-BAR-LOW TRAIL") == "trail"
+    assert _xl("RUNG RATCHET (floor $3.10)") == "rung_ratchet" and _xl("BLIND-STOP FAILSAFE 🛟") == "safety"
+    assert _xl("RECOVERED — monitor froze (watchdog)") == "safety" and _xl("Stop loss hit") == "stop"
+    assert _xl("E3 trail 10% off run-high") == "e3_trail" and _xl("Failed breakout ✂️") == "failed_break"
+    assert _xl(None) == "unknown"
+    # compact form is flat + small
+    _cp = _adn["_eyes_compact"](_snap)
+    assert _cp["px"] == 3.72 and _cp["side"] == "front_side" and _cp["brk"] == 3.50 and len(_cp) <= 20
+    # synthetic completed record through the choke-point logic (mirrors post_to_dashboard's stamp block)
+    _rec = {"ticker": "EYEX", "trade_id": "t-1", "entry": 3.72, "exit": 3.95, "exit_reason": "Full exit (T2 +10%) ✅"}
+    _adn["_entry_ctx_by_trade"]["t-1"] = _snap
+    if not _rec.get("exit_context"):
+        _rec["exit_context"] = _adn["_eyes_snapshot"](_rec["ticker"], _rec["exit"], "exit", {"zone_stop": 3.30})
+    if not _rec.get("exit_layer"):
+        _rec["exit_layer"] = _xl(_rec["exit_reason"])
+    if not _rec.get("entry_context"):
+        _rec["entry_context"] = _adn["_entry_ctx_by_trade"].get(_rec["trade_id"])
+    assert _rec["entry_context"] and _rec["exit_context"] and _rec["exit_layer"] == "tier"
+    assert _rec["entry_context"]["when"] == "entry" and _rec["exit_context"]["when"] == "exit"
+    assert all(k in _rec["exit_context"] for k in _keys)
+    json.dumps(_rec)   # record must serialize for the POST
+    check("AD-a: _eyes_snapshot EXECUTED — every top-level key present, TODO eyes None, math checks", True)
+except (AssertionError, ValueError, KeyError) as _ade:
+    check("AD-a: _eyes_snapshot executed", False, str(_ade))
+try:
+    # wire site 1: entry (fill) -> extra + durable state + registry + watchdog ctx
+    assert 'extra["entry_context"] = _eyes_snapshot(ticker, entry_price, "entry", _ec_seed)' in _ey2
+    assert '_entry_ctx_by_trade[trade_id] = extra["entry_context"]' in _ey2
+    assert '"entry_context": (extra or {}).get("entry_context"),   # 8/16 build #0' in _ey2
+    assert '"entry_context": (extra or {}).get("entry_context"),   # 8/16 build #0\n                "entry_crown"' in _ey2   # watchdog ctx
+    # wire site 2: exit record + choke point
+    assert '"exit_context":       _eyes_snapshot(ticker, trade_result.get("exit_price", entry_price), "exit",' in _ey2
+    assert '"exit_layer":         _exit_layer(exit_reason),' in _ey2
+    _ptd = _ey2[_ey2.index("def post_to_dashboard"):_ey2.index("def post_trade_record_reliably")]
+    assert 'trade_payload["exit_context"] = _eyes_snapshot(_tk, trade_payload.get("exit"), "exit",' in _ptd
+    assert 'trade_payload["exit_layer"] = _exit_layer(trade_payload.get("exit_reason"))' in _ptd
+    assert '_entry_ctx_by_trade.get(_tid)' in _ptd
+    # recovery writers carry entry_context from durable state / watchdog ctx
+    assert _ey2.count('"entry_context": o.get("entry_context")') + _ey2.count('"entry_context":   o.get("entry_context")') == 2
+    assert '"entry_context":   ctx.get("entry_context")' in _ey2
+    # wire site 3: shadow fires (compact eyes on the row)
+    for _st in ('"v2_shadow_fire", price=_v2f["px"],\n                                                  eyes=_eyes_compact(',
+                '"grinder_shadow_fire", price=_grf["px"],\n                                                  eyes=_eyes_compact(',
+                '"hidden_observe_only", price=price, stop=_her["stop"],\n                                      eyes=_eyes_compact(',
+                '_log_decision(b[0], _ob_row, price=b[1], vwap=(b[2] or None),\n                                  eyes=_eyes_compact('):
+        assert _st in _ey2, "shadow wire missing: " + _st[:30]
+    # gates_hit ring fed from _log_decision
+    assert "_eyes_note_gate(ticker, status)" in _ey2
+    check("AD-b: three wire sites anchored (entry fill, exit record+choke point, 4 shadow rows) + recovery carry", True)
+except (AssertionError, ValueError) as _ade:
+    check("AD-b: wire sites", False, str(_ade))
+try:
+    # render: tale page + trade-history detail (JS) + PRE story, robust to missing keys
+    assert "def eyes_blocks_html(t):" in _sc and "eyes_html = \"<h3>Where it was — the eyes at entry and exit</h3>\"" in _sc
+    assert "+ shadow_html + eyes_html +" in _sc
+    assert "function eyesHTML(t)" in _sc and "+eyesHTML(t);" in _sc
+    assert "eyes_blocks_html(t) if (t.get(\"entry_context\") or t.get(\"exit_context\"))" in _sc
+    _scn = {"html_mod": __import__("html")}
+    exec(_sc[_sc.index("_EYES_ROWS = ["):_sc.index("EYES_CSS = (")], _scn)
+    _h1 = _scn["eyes_blocks_html"]({"entry_context": _snap, "exit_context": None, "exit_layer": "tier"})
+    assert "at ENTRY" in _h1 and "at EXIT" in _h1 and "front_side" in _h1 and "no eyes block" in _h1 and "tier" in _h1
+    _h0 = _scn["eyes_blocks_html"]({})   # pre-8/16 record: never raises
+    assert "no eyes block" in _h0
+    _h2 = _scn["eyes_blocks_html"]({"entry_context": {"map": "not-a-dict", "crown": None}})   # malformed
+    assert "at ENTRY" in _h2
+    check("AD-c: tale + history render EXECUTED — side-by-side blocks, exit layer, robust to missing/malformed", True)
+except (AssertionError, ValueError, KeyError) as _ade:
+    check("AD-c: render", False, str(_ade))
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

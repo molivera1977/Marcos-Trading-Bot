@@ -2057,3 +2057,16 @@ with a max-bleed budget — NOT the median bar, which would kill it before it pa
 budget = Marcos's sizing call (a number, owed). Rocket anatomy study (running) = the sleeve's
 foundation; Rocket Rider + Architect own; spec + bar + budget = the next docket item.
 Evidence for the tail: YJ +$1,613/one $500 clip; E4 exit = highest total $ of the sweep.
+
+## 2026-08-16 ~14:15 — MARCOS METHOD LAW: REVERSE-ENGINEER THE REPLAY, PER LANE
+Verbatim: "we are throwing darts at the board... we have seen the replay of all these winners.
+Break down the replay and the patterns should show themselves." + "this reverse engineering
+could be done with each type of entry we have to maximize all of their potential."
+STANDING METHOD (replaces hypothesis-first testing as the default): for the big rides AND for
+EACH lane separately — fingerprint every trade's pre-entry/entry context with NEUTRAL features
+(VWAP relation, % from session hi/lo, range+volume vs baseline, low sequence, gap, time, halts,
+day-2, spread if known), cluster winners vs losers, contrast vs base rate, let the discriminating
+shape EMERGE, THEN name it, THEN kill-test the emergent clause. Per-lane program (holes registry
+H28+): break-attack, grinder, ma_pullback, ignition, band-pass, v2, prevwap — each gets its
+winners/losers fingerprint study on the universe; results = the lane's "maximization spec",
+proposals priced to Marcos. Big-rides study (running) is instance #1.

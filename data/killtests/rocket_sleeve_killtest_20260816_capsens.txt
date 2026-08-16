@@ -1,0 +1,27 @@
+cap=2 E4 exit post11=True: N=79 tot=-808 halves -529/-278 HR=1 worst=-93 mdd=1046 prem=[-926, -404, -770] big 42/-361 nonbig 37/-446
+cap=2 E4 hold post11=True: N=79 tot=-746 halves -560/-187 HR=1 worst=-87 mdd=998 prem=[-945, -404, -750] big 42/-270 nonbig 37/-476
+cap=2 E4W exit post11=True: N=77 tot=-431 halves -303/-127 HR=3 worst=-108 mdd=1204 prem=[-1382, -716, -1042] big 41/+740 nonbig 36/-1171
+cap=2 E4W hold post11=True: N=75 tot=-82 halves -401/+319 HR=4 worst=-110 mdd=1272 prem=[-1431, -721, -979] big 39/+1166 nonbig 36/-1247
+cap=2 STRUCT exit post11=True: N=77 tot=-1259 halves -573/-686 HR=1 worst=-110 mdd=1259 prem=[-1156, -430, -899] big 42/-620 nonbig 35/-639
+cap=2 STRUCT hold post11=True: N=77 tot=-830 halves -573/-257 HR=1 worst=-110 mdd=1135 prem=[-1156, -430, -798] big 42/-203 nonbig 35/-628
+cap=4 E4 exit post11=True: N=95 tot=-481 halves -801/+320 HR=2 worst=-93 mdd=1155 prem=[-1113, -589, -843] big 49/+300 nonbig 46/-781
+cap=4 E4 hold post11=True: N=95 tot=-502 halves -831/+329 HR=2 worst=-87 mdd=1185 prem=[-1132, -589, -824] big 49/+309 nonbig 46/-811
+cap=4 E4W exit post11=True: N=86 tot=-705 halves -566/-140 HR=3 worst=-108 mdd=1403 prem=[-1644, -762, -1089] big 46/+635 nonbig 40/-1340
+cap=4 E4W hold post11=True: N=84 tot=-343 halves -652/+309 HR=4 worst=-110 mdd=1459 prem=[-1682, -766, -1026] big 44/+1062 nonbig 40/-1405
+cap=4 STRUCT exit post11=True: N=91 tot=-1543 halves -784/-759 HR=1 worst=-110 mdd=1543 prem=[-1396, -531, -1012] big 49/-665 nonbig 42/-878
+cap=4 STRUCT hold post11=True: N=90 tot=-975 halves -746/-228 HR=1 worst=-110 mdd=1213 prem=[-1359, -531, -911] big 49/-145 nonbig 41/-829
+cap=99 E4 exit post11=True: N=98 tot=+213 halves -107/+320 HR=3 worst=-93 mdd=984 prem=[-1166, -589, -843] big 51/+1044 nonbig 47/-832
+cap=99 E4 hold post11=True: N=98 tot=+192 halves -137/+329 HR=3 worst=-87 mdd=1014 prem=[-1186, -589, -824] big 51/+1054 nonbig 47/-862
+cap=99 E4W exit post11=True: N=87 tot=+42 halves +182/-140 HR=4 worst=-108 mdd=1403 prem=[-1644, -762, -1089] big 47/+1382 nonbig 40/-1340
+cap=99 E4W hold post11=True: N=85 tot=+404 halves +95/+309 HR=5 worst=-110 mdd=1459 prem=[-1682, -766, -1026] big 45/+1810 nonbig 40/-1405
+cap=99 STRUCT exit post11=True: N=93 tot=-1107 halves -348/-759 HR=2 worst=-110 mdd=1410 prem=[-1465, -531, -1012] big 50/-161 nonbig 43/-947
+cap=99 STRUCT hold post11=True: N=92 tot=-539 halves -311/-228 HR=2 worst=-110 mdd=1106 prem=[-1428, -531, -911] big 50/+359 nonbig 42/-898
+cap=99 E4W hold post11=True: N=85 tot=+404 halves +95/+309 HR=5 worst=-110 mdd=1459 prem=[-1682, -766, -1026] big 45/+1810 nonbig 40/-1405
+INHD 15:00:00 3.993 trail@15:52:10 414
+INHD 15:52:30 7.78 stop@15:53:30 -34
+INHD 16:22:30 7.38 stop@16:35:40 -49
+INHD 17:12:50 12.155 trail@17:18:40 -61
+INHD 17:33:00 15.559 eod1545 747
+PAVS 15:08:00 7.695 trail@15:49:50 765
+ZYBT 17:09:00 2.89 stop@17:20:30 -45
+ZYBT 17:32:40 2.95 eod1545 719

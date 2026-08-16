@@ -1994,6 +1994,51 @@ try:
 except (AssertionError, ValueError, KeyError) as _ade:
     check("AD-c: render", False, str(_ade))
 
+print("AE) 8/16 HARDENING — _curl_feed 2s memo + entry snapshot AFTER durable save")
+import threading as _aeth, time as _aet
+try:
+    _ae_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    check("AE-a: env knob CURL_FEED_MEMO_SECS default 2", 'os.environ.get("CURL_FEED_MEMO_SECS", "2")' in _ae_src)
+    # EXECUTED: exec the real _curl_feed with a counting stub for _alp10_bars
+    _blk = _ae_src[_ae_src.index("def _curl_feed("):_ae_src.index("def _et_session_of_utc")]
+    _calls = {"n": 0}
+    _bars = {1000.0: {"h": 2, "l": 1, "c": 1.5}}
+    def _mk(ret):
+        def _f(t, n): _calls["n"] += 1; return (ret, "alpaca")
+        return _f
+    _ns = {"CURL_SOURCE": "alpaca", "CURL_FEED_MEMO_SECS": 2.0, "_curl_memo": {}, "_curl_memo_lock": _aeth.Lock(),
+           "time": _aet, "_bf_done": set(), "_curl_canary_t": {}, "_halt_suspect": lambda t, d: (False, 0, 0),
+           "_leader_high_probe": lambda *a: None, "_halt_credit": {}, "_halt_credit_note": lambda *a: None,
+           "_alp10_bars": _mk(_bars), "print": lambda *a, **k: None, "_archive10_backfill": lambda t, n=0: {}}
+    exec(_blk, _ns)
+    _r1 = _ns["_curl_feed"]("TT", 90); _r2 = _ns["_curl_feed"]("TT", 90)
+    check("AE-b: EXECUTED — two calls within TTL = ONE fetch, same (bars, src) tuple shape",
+          _calls["n"] == 1 and _r1 == _r2 == (_bars, "alpaca") and isinstance(_r2, tuple) and len(_r2) == 2, str((_calls, _r2)))
+    _ns["_curl_feed"]("TT", 360)
+    check("AE-c: different n = separate key (fetch again)", _calls["n"] == 2)
+    # empty result must NOT be cached
+    _ns2 = dict(_ns); _ns2["_curl_memo"] = {}; _calls["n"] = 0; _ns2["_alp10_bars"] = _mk({})
+    exec(_blk, _ns2)
+    _e1 = _ns2["_curl_feed"]("EE", 90); _e2 = _ns2["_curl_feed"]("EE", 90)
+    check("AE-d: EXECUTED — empty result never cached (fail-through, 2 fetches)", _calls["n"] == 2 and _e1 == ({}, "alpaca") and not _ns2["_curl_memo"], str(_calls))
+    # disabled memo
+    _ns3 = dict(_ns); _ns3["_curl_memo"] = {}; _ns3["CURL_FEED_MEMO_SECS"] = 0.0; _calls["n"] = 0; _ns3["_alp10_bars"] = _mk(_bars)
+    exec(_blk, _ns3)
+    _ns3["_curl_feed"]("TT", 90); _ns3["_curl_feed"]("TT", 90)
+    check("AE-e: CURL_FEED_MEMO_SECS=0 disables (2 fetches)", _calls["n"] == 2 and not _ns3["_curl_memo"])
+    # ordering: durable save BEFORE the entry snapshot at the fill site
+    _i_save = _ae_src.index('_save_open_trade_sync({\n                "entry_crown"')
+    _i_snap = _ae_src.index('extra["entry_context"] = _eyes_snapshot(ticker, entry_price, "entry", _ec_seed)')
+    _i_mon = _ae_src.index("trade_result = monitor_trade(", _i_save)
+    check("AE-f: entry snapshot AFTER _save_open_trade_sync and BEFORE monitor_trade", _i_save < _i_snap < _i_mon, str((_i_save, _i_snap, _i_mon)))
+    # the watchdog ctx (after snapshot) + exit record + post_to_dashboard fallback still carry it
+    _i_wd = _ae_src.index('_active_monitors[trade_id] = {"heartbeat"')
+    check("AE-g: watchdog ctx built after snapshot (carries entry_context)", _i_snap < _i_wd
+          and '"entry_context": (extra or {}).get("entry_context")' in _ae_src[_i_wd:_i_wd+400]
+          and 'trade_payload["entry_context"] = _entry_ctx_by_trade.get(_tid)' in _ae_src)
+except (AssertionError, ValueError, KeyError) as _aee:
+    check("AE: hardening", False, str(_aee))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

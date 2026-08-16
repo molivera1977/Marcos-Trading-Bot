@@ -1081,6 +1081,13 @@ _curl_canary_t = {}   # ticker -> last canary log ts (throttle)
 REHYDRATE_BARS = int(os.environ.get("REHYDRATE_BARS", "240"))
 
 _bf_done: set = set()   # 8/10: one backfill per name per process
+# 8/16 build #0 hardening: short-TTL memo on _curl_feed keyed (ticker, n). The entry site
+# (_eyes_snapshot + _side_state + _marked_runway) can issue ~3 GETs back-to-back before
+# monitor_trade starts; within the TTL they share ONE fetch. Empty/error results are NEVER
+# cached (fail-through). "0" disables.
+CURL_FEED_MEMO_SECS = float(os.environ.get("CURL_FEED_MEMO_SECS", "2") or 0)
+_curl_memo: dict = {}          # (ticker, n) -> (ts, bars, src)
+_curl_memo_lock = threading.Lock()
 
 def _archive10_backfill(t, n=240):
     """8/10 FULL-WARM (Marcos: rehydration is mandatory): the hot feed only knows bars since
@@ -1114,12 +1121,23 @@ def _curl_feed(t, n=90):
     AGE per name (Curl Mechanic condition: 'stale' vs 'absent' must be visible in the log —
     never again a week of guessing which starved the lanes). n: zone computation passes 720
     (2h — the hot bound) to reach the 9:00–9:29 window; step consumers use the 15-min default."""
+    if CURL_FEED_MEMO_SECS > 0:
+        _m = _curl_memo.get((t, n))
+        if _m and (time.time() - _m[0]) < CURL_FEED_MEMO_SECS:
+            return dict(_m[1]), _m[2]     # 8/16 memo hit — copy so callers can't mutate the cache
     if CURL_SOURCE == "alpaca":
         d10, src = _alp10_bars(t, n)
     else:
         with _shadow_lock:
             d10 = dict(_shadow_bars[10].get(t) or {})
         src = "webull-shadow"
+    if CURL_FEED_MEMO_SECS > 0 and d10:      # never cache empty/error (fail-through)
+        with _curl_memo_lock:
+            _curl_memo[(t, n)] = (time.time(), dict(d10), src)
+            if len(_curl_memo) > 512:        # bound it: drop stale entries
+                _cut = time.time() - CURL_FEED_MEMO_SECS
+                for _k in [k for k, v in _curl_memo.items() if v[0] < _cut]:
+                    _curl_memo.pop(_k, None)
     # 8/10 FULL-WARM: a DEEP request answered thin = an adopted/rebooted name whose history
     # lives in the archive, not the hot feed. Backfill the past (lag-safe by definition);
     # hot bars win every overlapping key. One-shot per name per session via _bf_done.
@@ -12046,21 +12064,7 @@ def main():
             # and the exit record so all three paths agree.
             _entry_ts_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             _shadow_keep.add(ticker)   # B12: this trade's 10s anatomy persists tonight no matter its tick rank
-            # 8/16 BUILD #0 — WIRE SITE 1 (entry): every eye at the fill, stamped into the lane's
-            # extra + the durable open-trade state + the choke-point registry (record fallback).
-            try:
-                if extra is None:
-                    extra = {}
-                _ec_seed = dict(extra)
-                _ec_seed.setdefault("vwap", vwap)
-                _ec_seed.setdefault("zone_stop", stop_loss)
-                _ec_seed.setdefault("l1_spread", l2_details.get("spread"))
-                extra["entry_context"] = _eyes_snapshot(ticker, entry_price, "entry", _ec_seed)
-                _entry_ctx_by_trade[trade_id] = extra["entry_context"]
-            except Exception:
-                pass
             _save_open_trade_sync({
-                "entry_context": (extra or {}).get("entry_context"),   # 8/16 build #0
                 "entry_crown": (extra or {}).get("entry_crown"),   # mini-audit 3b
                 "ticker": ticker, "trade_id": trade_id, "entry_price": round(entry_price, 4),
                 "target": round(target_price, 4), "stop": round(stop_loss, 4),
@@ -12073,6 +12077,22 @@ def main():
                 "risk_per_share": round(entry_price - stop_loss, 4),
                 "planned_risk": round(shares * (entry_price - stop_loss), 2),
             })
+            # 8/16 BUILD #0 — WIRE SITE 1 (entry): every eye at the fill, stamped into the lane's
+            # extra + the watchdog ctx + the choke-point registry (record fallback via
+            # post_to_dashboard set-if-absent). Runs AFTER the durable save (8/16 hardening) so
+            # the snapshot's feed GETs never delay the persist; the durable row itself does not
+            # carry entry_context — the registry + exit-record path do.
+            try:
+                if extra is None:
+                    extra = {}
+                _ec_seed = dict(extra)
+                _ec_seed.setdefault("vwap", vwap)
+                _ec_seed.setdefault("zone_stop", stop_loss)
+                _ec_seed.setdefault("l1_spread", l2_details.get("spread"))
+                extra["entry_context"] = _eyes_snapshot(ticker, entry_price, "entry", _ec_seed)
+                _entry_ctx_by_trade[trade_id] = extra["entry_context"]
+            except Exception:
+                pass
             # Register with the stale-trade watchdog (full ctx so it can record if the monitor freezes).
             _monitor_abort.discard(ticker)   # 7/11 audit A8: a stale abort flag from a never-thawed prior
                                              # monitor would insta-kill THIS trade's monitor on iteration 1

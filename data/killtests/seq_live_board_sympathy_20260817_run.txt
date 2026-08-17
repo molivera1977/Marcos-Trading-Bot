@@ -1,0 +1,189 @@
+# LIVE-BOARD SYMPATHY STUDY — 8/17/26
+H1 re-run with the bot's REAL board (dashboard decisions archive) instead of the
+gain>=40% runner-filtered universe proxy. Engine chain UNCHANGED (E3 $500 live-parity).
+Analysis only — no bot edits, no env changes.
+
+Universe bars cache: 729 files, 729 name-days, 62 dates 2026-05-18..2026-08-14.
+Archive: 35 substantive days 2026-06-29..2026-08-17.
+
+---
+
+## 1. ARCHIVE SCHEMA INVENTORY
+Distinct statuses across all cached days: 127. Every row carries `date`, `recorded_at`, `status`, `ticker`, `time` (ET, 12-hour).
+
+Board-relevant statuses (fields beyond the universal five):
+
+| status | rows (all days) | extra fields | what it reconstructs |
+|---|---|---|---|
+| `consolidating` | 93370 | `price`, `rng_pct`, `vwap`, `w_high` | per-cycle scan tick on a watched name -> MEMBERSHIP |
+| `watching` | 13654 | `price`, `vwap` | per-cycle scan tick -> MEMBERSHIP |
+| `break_armed` | 9378 | `price`, `w_high` | live break detection on a real-board name -> LEADER/BREAK events |
+| `orb_break_armed` | 13563 | `orb_high`, `price` | ORB break detection -> LEADER/BREAK events |
+| `daily_loaded` | 53859 | (none) | name's daily bars loaded -> board JOIN time |
+| `lens_focus` | 2798 | `dist_pct`, `zone`, `zone_px` | lens attention on a name -> membership + attention |
+| `lens_unfocus` | 2097 | `dist_pct`, `zone`, `zone_px` | lens attention released -> membership |
+| `halt_suspect` | 4385 | `gap_secs`, `held`, `last_bar_ts` | feed-gap stamp on a watched name -> membership |
+| `broke_below_vwap` | 2947 | `price`, `vwap`, `w_high` | per-cycle structural stamp -> membership |
+| `leader_armed` | 103 | `why` | explicit LEADER/CROWN arm event (why=fresh_highs etc.) |
+| `crown_eod_report` | 300 | `captured_usd`, `freshness_breaches`, `offered_pct`, `refusals_post_crown`, `trades`, `worst_map_age_min`, `worst_map_dist_pct` | EOD crown scorecard per crowned name |
+| `board_funnel_fallback` | 22 | (none) | board funnel fell back (sentinel _BOARD; no membership list) |
+| `lens_dark` | 81 | `n` | lens dark, count only (sentinel __LENS__; no per-name list) |
+
+**HONEST SCHEMA FINDING — there is NO board-snapshot row.** No status emits the
+scanner's membership list at a point in time (`board_funnel_fallback` and `lens_dark`
+are counters on sentinel tickers, not rosters). Board membership must be INFERRED from
+per-name rows. The bot cycles every watched name through `consolidating`/`watching`/
+`break_armed`/`daily_loaded` etc., so the defensible reconstruction is:
+
+  * BOARD MEMBERSHIP (coarse, minute-resolution NOT guaranteed): a name is on the board
+    at time t if it has a per-cycle row and one of those rows falls within +/-60 min of t.
+    LIMITATION: a name the bot loaded but that emitted no cycle row in a given hour is
+    invisible; membership is a LOWER BOUND, and its resolution is the cycle cadence, not
+    the minute. The coarsest defensible fallback (used as a robustness arm) is the SET of
+    names with any row that day.
+  * REAL-BOARD BREAK EVENTS: `break_armed` / `orb_break_armed` are the bot's own live
+    break detections on real-board names, timestamped. These are used for the LEADER.
+    LIMITATION: they carry `price`/`w_high` but NO volume, so the prior study's
+    burst-volume qualifier cannot be applied to non-universe board names. Arm B below
+    keeps burst-volume by restricting the bars-side leader to real-board names.
+  * LEADER/CROWN: `leader_armed` (with `why`) and `crown_eod_report` are the explicit
+    real-board leader events; `leader_armed` is sparse (14 rows on 8/14) and mostly
+    PREMARKET, so it is reported, not used as the H1 leader.
+
+---
+
+## 2. OVERLAP AND OOS SPLIT
+Dates in BOTH the archive and the bars10s universe cache: **34** (2026-06-29..2026-08-14).
+Archive-only dates (no bars): ['2026-08-17']
+Bars-only dates (pre-archive): 28 dates 2026-05-18..2026-06-26
+
+Chronological split (same discipline as the prior study, 1/3 held out):
+- MINE: 23 dates 2026-06-29..2026-07-30
+- HOLD-OUT: 11 dates 2026-07-31..2026-08-14
+- BOUNDARY: **2026-07-30 | 2026-07-31**
+
+### Board coverage on the overlap dates
+| date | board names (archive) | universe names (bars) | on both | real-board leader | leader time ET |
+|---|---|---|---|---|---|
+| 2026-06-29 | 42 | 12 | 10 | - | - |
+| 2026-06-30 | 51 | 12 | 9 | - | - |
+| 2026-07-01 | 57 | 12 | 8 | - | - |
+| 2026-07-02 | 64 | 12 | 10 | CLRO | 11:57 |
+| 2026-07-06 | 50 | 12 | 10 | FXHO | 09:30 |
+| 2026-07-07 | 70 | 12 | 8 | BJDX | 09:30 |
+| 2026-07-08 | 95 | 9 | 8 | IOTR | 09:30 |
+| 2026-07-09 | 111 | 12 | 7 | BJDX | 09:30 |
+| 2026-07-10 | 109 | 11 | 11 | ATRA | 09:30 |
+| 2026-07-13 | 111 | 12 | 9 | MIMI | 09:30 |
+| 2026-07-14 | 125 | 12 | 9 | BJDX | 09:30 |
+| 2026-07-15 | 116 | 12 | 9 | ERNA | 09:30 |
+| 2026-07-16 | 113 | 10 | 9 | CPHI | 10:37 |
+| 2026-07-17 | 111 | 10 | 9 | LBGJ | 10:38 |
+| 2026-07-20 | 108 | 9 | 6 | ADVB | 10:37 |
+| 2026-07-21 | 102 | 11 | 9 | GREE | 10:37 |
+| 2026-07-22 | 91 | 12 | 11 | SLGB | 10:37 |
+| 2026-07-23 | 103 | 12 | 10 | WLDS | 10:37 |
+| 2026-07-24 | 158 | 10 | 9 | DFNS | 10:55 |
+| 2026-07-27 | 151 | 15 | 13 | JZXN | 10:38 |
+| 2026-07-28 | 132 | 12 | 11 | CODX | 09:30 |
+| 2026-07-29 | 144 | 12 | 10 | STKH | 09:31 |
+| 2026-07-30 | 164 | 12 | 5 | GMEX | 09:30 |
+| 2026-07-31 | 150 | 12 | 9 | TCX | 10:37 |
+| 2026-08-03 | 152 | 12 | 9 | TGHL | 09:30 |
+| 2026-08-04 | 174 | 12 | 7 | DXST | 10:38 |
+| 2026-08-05 | 124 | 12 | 10 | AMIX | 09:30 |
+| 2026-08-06 | 142 | 12 | 12 | MGRX | 09:31 |
+| 2026-08-07 | 117 | 12 | 11 | AMIX | 09:30 |
+| 2026-08-10 | 129 | 12 | 11 | CLRO | 10:38 |
+| 2026-08-11 | 117 | 12 | 9 | MTEN | 09:30 |
+| 2026-08-12 | 119 | 12 | 10 | EROC | 10:37 |
+| 2026-08-13 | 131 | 12 | 9 | FFAI | 10:37 |
+| 2026-08-14 | 126 | 12 | 12 | BOXL | 09:31 |
+
+Mean real board = **113.5 names/day** vs universe proxy **11.7 names/day** (9.7x wider). 31/34 dates have a post-09:30 real-board break leader.
+On **10/31** of those dates the real-board leader is ALSO a universe (40%+ runner) name — i.e. the proxy would have found a DIFFERENT leader on 21 dates.
+
+Fires: 1021 total (break-attack + grinder, E3-graded, deduped) across all 62 bars dates.
+Fires on the 34 OVERLAP dates: **591**.
+Arm B (burst-volume leader restricted to real-board names): leader found on 34/34 dates.
+
+---
+
+## 3A. REAL-BOARD H1 — ARM A
+LEADER = first REAL-BOARD name to print a break event (`break_armed`/`orb_break_armed`) after 09:30 ET. No volume qualifier available.
+SYMPATHY WINDOW = fire on a DIFFERENT real-board name within 30 min after the leader's break.
+
+Qualifying fires (date has a leader AND the fire's name was ON the real board at fire time): **221** of 591 overlap fires.
+
+### MINE (153 fires)
+| side | N | win | $/tr | median $ | total |
+|---|---|---|---|---|---|
+| sympathy window | 19 | 74% | $+35.33 | $+36.87 | $+671.34 |
+| outside window | 134 | 66% | $+14.61 | $+26.31 | $+1957.65 |
+MINE lift: **$+20.72/tr**.
+
+### HOLD-OUT (68 fires) — window definition FROZEN from MINE
+| side | N | win | $/tr | median $ | total |
+|---|---|---|---|---|---|
+| sympathy window | 12 | 67% | $+36.03 | $+46.61 | $+432.31 |
+| outside window | 56 | 66% | $+17.84 | $+26.25 | $+998.92 |
+HOLD-OUT lift: **$+18.19/tr**.
+- HOLD-OUT sympathy: day mean $+61.76, day median $+50.65, WORST day $-74.83 (7 days)
+- HOLD-OUT outside: day mean $+90.81, day median $+99.49, WORST day $-151.48 (11 days)
+
+### POOLED (all 34 overlap dates, descriptive)
+| side | N | win | $/tr | median $ | total |
+|---|---|---|---|---|---|
+| sympathy window | 31 | 71% | $+35.60 | $+36.87 | $+1103.65 |
+| outside window | 190 | 66% | $+15.56 | $+26.25 | $+2956.57 |
+Pooled lift: **$+20.04/tr**.
+
+NULL (within-date shuffle of the (sym,time) board context, 5000x, hold-out): observed sympathy $/tr $+36.03 vs random-mean $+21.35, **p=0.211**.
+NULL (pooled, all overlap dates, 5000x): observed $+35.60 vs random-mean $+22.00, **p=0.076**.
+
+---
+
+## 3B. REAL-BOARD H1 — ARM B
+LEADER = first name that is ON THE REAL BOARD to print a burst-volume (>=3x prior-30-bar mean) new session high after 09:30 ET, prices from bars10s.
+SYMPATHY WINDOW = fire on a DIFFERENT real-board name within 30 min after the leader's break.
+
+Qualifying fires (date has a leader AND the fire's name was ON the real board at fire time): **234** of 591 overlap fires.
+
+### MINE (166 fires)
+| side | N | win | $/tr | median $ | total |
+|---|---|---|---|---|---|
+| sympathy window | 61 | 72% | $+23.57 | $+31.28 | $+1437.49 |
+| outside window | 105 | 65% | $+13.70 | $+24.55 | $+1438.32 |
+MINE lift: **$+9.87/tr**.
+
+### HOLD-OUT (68 fires) — window definition FROZEN from MINE
+| side | N | win | $/tr | median $ | total |
+|---|---|---|---|---|---|
+| sympathy window | 28 | 82% | $+38.18 | $+37.37 | $+1069.05 |
+| outside window | 40 | 55% | $+9.05 | $-14.62 | $+362.18 |
+HOLD-OUT lift: **$+29.13/tr**.
+- HOLD-OUT sympathy: day mean $+118.78, day median $+104.53, WORST day $-77.79 (9 days)
+- HOLD-OUT outside: day mean $+32.93, day median $+46.61, WORST day $-151.48 (11 days)
+
+### POOLED (all 34 overlap dates, descriptive)
+| side | N | win | $/tr | median $ | total |
+|---|---|---|---|---|---|
+| sympathy window | 89 | 75% | $+28.16 | $+34.49 | $+2506.54 |
+| outside window | 145 | 62% | $+12.42 | $+22.92 | $+1800.50 |
+Pooled lift: **$+15.75/tr**.
+
+NULL (within-date shuffle of the (sym,time) board context, 5000x, hold-out): observed sympathy $/tr $+38.18 vs random-mean $+27.28, **p=0.127**.
+NULL (pooled, all overlap dates, 5000x): observed $+28.16 vs random-mean $+20.40, **p=0.046**.
+
+---
+
+## 4. TRADEABLE FRACTION
+A sympathy-window fire is TRADEABLE only if (a) the name was on the bot's real board at
+fire time and (b) it passes the live liquidity floor `_ambient_dvol_ok`: median $-volume
+of the trailing 10 completed bars >= AMBIENT_DVOL_MULT(15) x MAX_TRADE_DOLLARS($500) = $7,500. NOTE: applied to 10s bars, so this is a ~6x STRICTER floor than the live 1-min version — the tradeable fraction below is a conservative LOWER bound.
+
+**Arm A**: window fires (any name) 92 -> on real board at fire time 31 (34%) -> also passing the 10s liquidity floor **13 (14% of window fires, 42% of on-board ones)**; 0 fail-open (<5 bars).
+  tradeable-only sympathy cohort: N=13 win 54% $/tr $+0.88 median $+16.38 total $+11.38
+
+**Arm B**: window fires (any name) 196 -> on real board at fire time 89 (45%) -> also passing the 10s liquidity floor **48 (24% of window fires, 54% of on-board ones)**; 0 fail-open (<5 bars).
+  tradeable-only sympathy cohort: N=48 win 62% $/tr $+3.49 median $+19.39 total $+167.37

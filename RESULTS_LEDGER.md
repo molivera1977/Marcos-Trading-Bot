@@ -2086,3 +2086,8 @@ v2 250->21 warning). TEST = the RESOLUTION TWIN inside the Kev fast-chart replay
 Kev-A/B/C detectors at 10s (Kev's) and 5s (Marcos's) on the same crowned-name tape (our 5s
 capture since 8/12 + 1s rebuilt to both), graded on entry price, stop distance, false-fire
 rate, dollars under Kev's ride rules. Winner by tape. Headline build of the week (Architect).
+- CORRECTION (Marcos): "1-3 entries per leg" is PER TICKER PER LEG, not a daily total. Leg = a fresh
+  push to new highs; count resets each leg; multiple names each carry their own legs -> Kev's
+  5-8/day emerges from selectivity-within-a-move, not a day ration. The replay spec carries
+  per-ticker/per-leg throttling; the day is governed only by slots + the risk engine. v1's sin
+  = context-free fires on any wiggle, not the count itself.

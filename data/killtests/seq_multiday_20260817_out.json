@@ -1,0 +1,17 @@
+{
+ "pairs": 68,
+ "mine_pairs": 49,
+ "hold_pairs": 19,
+ "verdicts": {
+  "H1 CONTINUATION": "UNDERPOWERED",
+  "H2 DAY-2 FADE": "UNDERPOWERED",
+  "H3 GAP-HOLD": "UNDERPOWERED",
+  "H4 QUIET-THEN-LOUD": "UNDERPOWERED"
+ },
+ "why": {
+  "H1 CONTINUATION": "cell too thin (MINE 18/44, HOLD 0/18)",
+  "H2 DAY-2 FADE": "cell too thin (MINE 27/35, HOLD 7/11)",
+  "H3 GAP-HOLD": "cell too thin (MINE 23/5, HOLD 2/3)",
+  "H4 QUIET-THEN-LOUD": "cell too thin (MINE 39/23, HOLD 6/12)"
+ }
+}

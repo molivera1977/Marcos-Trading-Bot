@@ -1,0 +1,59 @@
+# MULTI-DAY SEQUENCE STUDY — day-1 character vs day-2 fires (8/17/26)
+Universe: 729 files, 729 name-days, 62 dates 2026-05-18..2026-08-14.
+
+## PAIR INVENTORY
+- **68 pairs** (same ticker on consecutive universe trading dates, both days loaded).
+- Distinct tickers with >=1 pair: 53.
+- Split by DAY-2 date: MINE (d2<= 2026-07-21) 49 | HOLD-OUT 19.
+- Universe median of per-day median 10s ranges: 0.766% (H4 threshold).
+
+### Label prevalence across 68 pairs
+- H1 strong-close (top 25% of range): 10 pairs
+- H2 halt-ladder day-1 (>=2 gaps >=60s): 38 pairs
+- day-2 gapped above day-1 high: 30 (held 15 min: 22, failed: 8)
+- H4 quiet day-1 tape: 30 pairs
+
+## FIRES (break-attack + grinder, E3 $500 live-parity)
+Total fires 1021; on a PAIR's day-2 tape: 80 (58 BA / 22 grinder).
+MINE fires 62 | HOLD-OUT fires 18.
+
+---
+## H1 CONTINUATION (one-sided(+))
+| cohort | A | B | $/tr diff |
+|---|---|---|---|
+| MINE | strong-close d1 N=18 win 78% $+24.71/tr (tot $+445) | weak-close d1 N=44 win 61% $+12.44/tr (tot $+548) | diff $+12.26 |
+| HOLD-OUT | strong-close d1 N=0 win 0% $+0.00/tr (tot $+0) | weak-close d1 N=18 win 72% $+42.84/tr (tot $+771) | diff $-42.84 |
+**VERDICT: UNDERPOWERED** — cell too thin (MINE 18/44, HOLD 0/18).
+
+---
+## H2 DAY-2 FADE (two-sided)
+| cohort | A | B | $/tr diff |
+|---|---|---|---|
+| MINE | halt-ladder d1 N=27 win 70% $+21.98/tr (tot $+594) | no-ladder d1 N=35 win 63% $+11.39/tr (tot $+399) | diff $+10.59 |
+| HOLD-OUT | halt-ladder d1 N=7 win 71% $+6.71/tr (tot $+47) | no-ladder d1 N=11 win 73% $+65.82/tr (tot $+724) | diff $-59.11 |
+**VERDICT: UNDERPOWERED** — cell too thin (MINE 27/35, HOLD 7/11).
+
+---
+## H3 GAP-HOLD (one-sided(+))
+| cohort | A | B | $/tr diff |
+|---|---|---|---|
+| MINE | gap-hold N=23 win 57% $-1.58/tr (tot $-36) | gap-fail N=5 win 20% $-31.02/tr (tot $-155) | diff $+29.44 |
+| HOLD-OUT | gap-hold N=2 win 100% $+10.03/tr (tot $+20) | gap-fail N=3 win 67% $+16.13/tr (tot $+48) | diff $-6.10 |
+**VERDICT: UNDERPOWERED** — cell too thin (MINE 23/5, HOLD 2/3).
+
+---
+## H4 QUIET-THEN-LOUD (one-sided(+))
+| cohort | A | B | $/tr diff |
+|---|---|---|---|
+| MINE | quiet d1 N=39 win 67% $+10.70/tr (tot $+417) | loud d1 N=23 win 65% $+25.00/tr (tot $+575) | diff $-14.29 |
+| HOLD-OUT | quiet d1 N=6 win 50% $+22.81/tr (tot $+137) | loud d1 N=12 win 83% $+52.85/tr (tot $+634) | diff $-30.04 |
+**VERDICT: UNDERPOWERED** — cell too thin (MINE 39/23, HOLD 6/12).
+
+---
+## SUMMARY
+| hypothesis | verdict | why |
+|---|---|---|
+| H1 CONTINUATION | UNDERPOWERED | cell too thin (MINE 18/44, HOLD 0/18) |
+| H2 DAY-2 FADE | UNDERPOWERED | cell too thin (MINE 27/35, HOLD 7/11) |
+| H3 GAP-HOLD | UNDERPOWERED | cell too thin (MINE 23/5, HOLD 2/3) |
+| H4 QUIET-THEN-LOUD | UNDERPOWERED | cell too thin (MINE 39/23, HOLD 6/12) |

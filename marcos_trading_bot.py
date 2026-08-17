@@ -5740,6 +5740,56 @@ V2_PUSH_WIN     = 300 if V2_CALIBRATED else 120   # C4: push high = 5-min high (
 V2_MINSTOP_PCT  = 0.5    # C5: reject degenerate stops (< 0.5% of price)
 _v2_st: dict = {}   # sym -> machine state (module-level: survives rescans)
 
+# ── 8/16 V2 QUIET-TAPE CONVERT GATE (joint_door_20260816.md; Hidden Entry Architect lead).
+# The joint-door study found NO Kev fingerprint, but a real SELECTION lift: the v2 flush entry in
+# the 07:00-10:00 window pays +$15.95/trade E3 on QUIET-premarket-tape names vs -$3.95 on the
+# busy/extended ones (both 0/200 in a label-shuffle null; monotone in the calm threshold; the
+# whole lift is the CALM clause, the spread proxy adds nothing — §2/§Robustness). It is a
+# front-side / not-yet-extended filter (a cousin of the back-side gate), NOT Kev's fingerprint.
+# Conversion is ALL SIM (DRY_RUN stays true); Marcos flips the env in Railway ("have them all
+# pre-market live").
+#   V2_CONVERT  (default 0): v2 fires ALSO append to breakouts as lane "v2conv", exit_mode E3,
+#     stop = would_stop, session PRE (<09:30, 09:25 flatten) or RTH; NOT in any exempt set ->
+#     the normal gate stack applies. Cap V2_DAILY_CAP fires/day. Kill: env=0.
+#   V2_QUIET_ONLY (default 1): when converting, require the quiet-tape gate to pass; =0 converts
+#     every fire (the quiet_tape bool + metric are STAMPED on every fire row regardless).
+# THRESHOLD: joint_door §1 calibrated the calm cutoff at the 30th percentile of the 09:30 stamp =
+# 89.9 bps, on median 1-min range/close. V2_QUIET_BPS defaults to that value.
+# ── CAUSALITY (the §6 caveat, critical): the study's calm was DESCRIPTIVE — the 09:00-09:30 (or
+# 07:30-08:00) median 1-min range/close. For a 07:00-09:00 fire, 09:00-09:30 is FUTURE data =
+# lookahead. The live gate therefore does NOT replicate the study window; it computes a CAUSAL
+# TRAILING metric: the median 10s bar range/close over the last V2_QUIET_LOOK completed bars
+# STRICTLY BEFORE the fire bar (k < fire_k). Deviation #2 (disclosed): the study measured on
+# 1-min bars, the live gate on 10s bars — 10s ranges run smaller than 1-min ranges, so 89.9 bps
+# is a GENEROUS ceiling on the 10s metric; the metric is stamped on every fire so the threshold
+# can be recalibrated from real rows without a code change. No future bar is ever read.
+V2_CONVERT      = os.environ.get("V2_CONVERT", "0") == "1"
+V2_QUIET_ONLY   = os.environ.get("V2_QUIET_ONLY", "1") == "1"
+V2_DAILY_CAP    = int(os.environ.get("V2_DAILY_CAP", "5"))
+V2_QUIET_BPS    = float(os.environ.get("V2_QUIET_BPS", "89.9"))   # joint_door §1 calm p30 (1-min); see caveat
+V2_QUIET_LOOK   = int(os.environ.get("V2_QUIET_LOOK", "30"))      # trailing COMPLETED bars before the fire
+V2_QUIET_MINB   = int(os.environ.get("V2_QUIET_MINB", "10"))      # need >= this many prior bars to judge calm
+_v2_hist: dict = {}   # sym -> rolling recent 10s bars (causal trailing-calm buffer; survives rescans)
+_v2_conv_day = {"d": None, "n": 0}   # V2_DAILY_CAP counter (per-day, across all names)
+
+
+def v2_trailing_calm(sym, fire_k):
+    """CAUSAL quiet-tape metric: median 10s bar range/close (bps) over the last V2_QUIET_LOOK
+    COMPLETED bars STRICTLY BEFORE the fire bar (k < fire_k). Reads ONLY bars before the fire —
+    no lookahead (deviates from joint_door's descriptive 09:00-09:30 window on purpose; see the
+    block comment above). Returns (metric_bps | None, n_prior_bars). None when < V2_QUIET_MINB
+    prior bars exist (too little tape to judge -> treated as NOT quiet by the caller)."""
+    hist = _v2_hist.get(sym) or []
+    prior = [b for b in hist if b[0] < fire_k][-V2_QUIET_LOOK:]
+    if len(prior) < V2_QUIET_MINB:
+        return None, len(prior)
+    rngs = sorted((h - l) / c * 10000.0 for (k, o, h, l, c, v) in prior if c > 0)
+    if not rngs:
+        return None, len(prior)
+    n = len(rngs)
+    med = rngs[n // 2] if n % 2 else (rngs[n // 2 - 1] + rngs[n // 2]) / 2.0
+    return round(med, 2), len(prior)
+
 def v2_pullback_step(sym, new_bars, vwap):
     """Advance sym's v2 confirmed-pullback SHADOW machine over NEW completed 10s bars
     [(k,o,h,l,c,vol),...]. Detection only — the caller logs the row; nothing converts.
@@ -5891,12 +5941,17 @@ def grinder_shadow_step(sym, new_bars, vwap):
 #   would_stop, cap BANDPASS_DAILY_CAP/day; NOT in any exempt set -> the normal gate stack applies.
 # PREVWAP_SHADOW: 07:00-09:25 ET detector on the same fed 10s bars + the bot's PRE line; writes
 #   prevwap_shadow_fire rows with a spread stamp (L1 if available; STAMPED not gated) and
-#   catalyst=None (TODO). SHADOW ONLY — HARD-CODED: no conversion path exists for PRE fires
-#   (premarket fills are unmodeled). nightly_shadow_grade.py grades both (PRE flattens 09:25).
+#   catalyst=None (TODO). nightly_shadow_grade.py grades both (PRE flattens 09:25).
+# PREVWAP_CONVERT (8/16, Marcos's order — ALL SIM, DRY_RUN stays true; default OFF, he flips the
+#   env in Railway): PRE fires ALSO append to breakouts as lane "prevwap", exit_mode=E3, stop =
+#   would_stop, session="PRE" (09:25 flatten via the PRE session rules); NOT in any exempt set
+#   -> the normal gate stack applies. Kill: env=0. (Supersedes the pre-8/16 "no conversion path
+#   exists for PRE fires" hard-coding.)
 BANDPASS_SHADOW    = os.environ.get("BANDPASS_SHADOW", "1") == "1"
 BANDPASS_CONVERT   = os.environ.get("BANDPASS_CONVERT", "0") == "1"
 BANDPASS_DAILY_CAP = int(os.environ.get("BANDPASS_DAILY_CAP", "3"))
 PREVWAP_SHADOW     = os.environ.get("PREVWAP_SHADOW", "1") == "1"
+PREVWAP_CONVERT    = os.environ.get("PREVWAP_CONVERT", "0") == "1"
 BP_HOLD_MIN     = 12      # closes above (2 min)     — band-pass low edge (backtested)
 BP_HOLD_MAX     = 30      # closes above (5 min)     — band-pass high edge (backtested)
 BP_BELOW_MIN    = 2       # completed closes below before the cross ("two-bars-below" = reclaim not bounce)
@@ -7653,22 +7708,69 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # ── 8/14 V2 CONFIRMED-PULLBACK shadow: same fed 10s bars + session line
                         # as hidden (zero new fetches). SHADOW ONLY — this block logs a row and
                         # STOPS; it never touches breakouts, slots, or any order path.
-                        if V2_SHADOW:
+                        if V2_SHADOW or V2_CONVERT:
                             try:
+                                # CAUSAL trailing-calm buffer: append this call's completed bars
+                                # BEFORE the step, trim to a small window (only need V2_QUIET_LOOK
+                                # bars strictly before the fire). Maintained every call so the
+                                # quiet metric never has to read a future bar.
+                                if _nb:
+                                    _v2h = _v2_hist.setdefault(t, [])
+                                    _v2h.extend(_nb)
+                                    if len(_v2h) > 90:
+                                        del _v2h[:-90]
                                 _v2f = v2_pullback_step(t, _nb, _vr_sv)
                                 if _v2f:
                                     _hm_v2 = datetime.now(EASTERN).strftime("%H:%M")
-                                    _log_decision(t, "v2_shadow_fire", price=_v2f["px"],
-                                                  eyes=_eyes_compact(_eyes_snapshot(t, _v2f["px"], "entry", {"vwap": _vr_sv, "zone_stop": _v2f.get("would_stop")})),
-                                                  flush_low=_v2f["flush_low"],
-                                                  flush_depth=_v2f["flush_depth"],
-                                                  secs_from_push=_v2f["secs_from_push"],
-                                                  vwap=round(_vr_sv, 4),
-                                                  near_vwap=bool(_vr_sv > 0 and abs(_v2f["flush_low"] - _vr_sv) / _vr_sv <= 0.02),
-                                                  in_window=bool("09:30" <= _hm_v2 < "10:30"),
-                                                  would_stop=_v2f["would_stop"],
-                                                  calib=_v2f.get("calib", "legacy"),
-                                                  seq=_v2f["seq"], time_hm=_hm_v2)
+                                    # quiet-tape gate — computed from bars STRICTLY BEFORE fire_k
+                                    _q_bps, _q_n = v2_trailing_calm(t, _v2f["k"])
+                                    _v2_quiet = bool(_q_bps is not None and _q_bps <= V2_QUIET_BPS)
+                                    if V2_SHADOW:
+                                        _log_decision(t, "v2_shadow_fire", price=_v2f["px"],
+                                                      eyes=_eyes_compact(_eyes_snapshot(t, _v2f["px"], "entry", {"vwap": _vr_sv, "zone_stop": _v2f.get("would_stop")})),
+                                                      flush_low=_v2f["flush_low"],
+                                                      flush_depth=_v2f["flush_depth"],
+                                                      secs_from_push=_v2f["secs_from_push"],
+                                                      vwap=round(_vr_sv, 4),
+                                                      near_vwap=bool(_vr_sv > 0 and abs(_v2f["flush_low"] - _vr_sv) / _vr_sv <= 0.02),
+                                                      in_window=bool("09:30" <= _hm_v2 < "10:30"),
+                                                      would_stop=_v2f["would_stop"],
+                                                      calib=_v2f.get("calib", "legacy"),
+                                                      quiet_tape=_v2_quiet, quiet_bps=_q_bps, quiet_n=_q_n,
+                                                      convert_on=bool(V2_CONVERT),
+                                                      seq=_v2f["seq"], time_hm=_hm_v2)
+                                    # ── 8/16 V2 QUIET-TAPE conversion (joint_door_20260816.md; ALL
+                                    # SIM). Convert when V2_CONVERT and (not V2_QUIET_ONLY or the
+                                    # causal quiet gate passes) and the stop sits below entry. Lane
+                                    # "v2conv", E3, session PRE (<09:30, 09:25 flatten) or RTH; NOT
+                                    # in any exempt set -> normal gate stack. Cap V2_DAILY_CAP/day.
+                                    if (V2_CONVERT and (not V2_QUIET_ONLY or _v2_quiet)
+                                            and _v2f["would_stop"] < _v2f["px"]):
+                                        _v2day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+                                        if _v2_conv_day.get("d") != _v2day:
+                                            _v2_conv_day["d"] = _v2day; _v2_conv_day["n"] = 0
+                                        if _v2_conv_day["n"] >= V2_DAILY_CAP:
+                                            _log_decision(t, "v2conv_capped", price=_v2f["px"],
+                                                          day_n=_v2_conv_day["n"], cap=V2_DAILY_CAP)
+                                        else:
+                                            _v2_conv_day["n"] += 1
+                                            _v2_px = price if price and price > 0 else _v2f["px"]
+                                            _v2_sess = "PRE" if _hm_v2 < "09:30" else "RTH"
+                                            print(f"\n🤫 {t} V2 QUIET-TAPE FLUSH (calm {_q_bps} bps"
+                                                  f"{'' if _v2_quiet else ' NOT-quiet'}, depth {_v2f['flush_depth']}%)! "
+                                                  f"${_v2_px:.2f} — stop ${_v2f['would_stop']:.2f} (flush low), "
+                                                  f"E3 exits, {_v2_sess} [#{_v2_conv_day['n']}/{V2_DAILY_CAP}]")
+                                            breakouts.append((t, _v2_px, round(_vr_sv, 4), "v2conv", {
+                                                "zone_stop": _v2f["would_stop"], "exit_mode": "E3",
+                                                "session": _v2_sess, "quiet_tape": _v2_quiet,
+                                                "quiet_bps": _q_bps, "flush_depth": _v2f["flush_depth"],
+                                                "v2_seq": _v2f["seq"],
+                                            }))
+                                            _log_decision(t, "triggered_v2conv", price=_v2_px,
+                                                          stop=_v2f["would_stop"], fire_px=_v2f["px"],
+                                                          vwap=round(_vr_sv, 4), quiet_tape=_v2_quiet,
+                                                          quiet_bps=_q_bps, session=_v2_sess,
+                                                          day_n=_v2_conv_day["n"], seq=_v2f["seq"])
                             except Exception:
                                 pass
                         # ── 8/14 GRINDER-1030 shadow (#48 lane; E3 OOS-wall nominee): same fed
@@ -7847,8 +7949,28 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                   hold_hi=_pvf["hold_hi"], crosses_20m=_pvf["crosses_20m"],
                                                   would_stop=_pvf["would_stop"],
                                                   spread_pct=_pv_sp, catalyst=None,
+                                                  convert_on=bool(PREVWAP_CONVERT),
                                                   seq=_pvf["seq"],
                                                   time_hm=datetime.now(EASTERN).strftime("%H:%M"))
+                                    # ── 8/16 PREVWAP conversion (Marcos: "switch pre-vwap ... to live
+                                    # in pre" — ALL SIM, DRY_RUN true): lane "prevwap", stop =
+                                    # would_stop, E3 exits, session PRE (09:25 flatten); not in any
+                                    # exempt set -> the normal gate stack applies. Kill: env=0.
+                                    if PREVWAP_CONVERT and _pvf["would_stop"] < _pvf["px"]:
+                                        _pv_px = price if price and price > 0 else _pvf["px"]
+                                        print(f"\n🌅 {t} PRE-VWAP RECLAIM (hold {_pvf['hold_n']}, "
+                                              f"crosses {_pvf['crosses_20m']})! ${_pv_px:.2f} — "
+                                              f"stop ${_pvf['would_stop']:.2f} (hold low), E3 exits, PRE")
+                                        breakouts.append((t, _pv_px, round(_vr_sv, 4), "prevwap", {
+                                            "zone_stop": _pvf["would_stop"], "exit_mode": "E3",
+                                            "session": "PRE", "hold_n": _pvf["hold_n"],
+                                            "crosses_20m": _pvf["crosses_20m"],
+                                            "spread_pct": _pv_sp, "pv_seq": _pvf["seq"],
+                                        }))
+                                        _log_decision(t, "triggered_prevwap", price=_pv_px,
+                                                      stop=_pvf["would_stop"], hold_n=_pvf["hold_n"],
+                                                      fire_px=_pvf["px"], vwap=round(_vr_sv, 4),
+                                                      spread_pct=_pv_sp, seq=_pvf["seq"])
                             except Exception:
                                 pass
 
@@ -11415,7 +11537,9 @@ def main():
           f"RESTING_SELLS={int(RESTING_SELLS)} V2_SHADOW={int(V2_SHADOW)} "
           f"GRINDER_SHADOW={int(GRINDER_SHADOW)} BANDPASS_SHADOW={int(BANDPASS_SHADOW)} "
           f"BANDPASS_CONVERT={int(BANDPASS_CONVERT)}(cap {BANDPASS_DAILY_CAP}) PREVWAP_SHADOW={int(PREVWAP_SHADOW)} "
-          f"KEVSEQ_SHADOW={int(KEVSEQ_SHADOW)} KEVSEQ_CONVERT={int(KEVSEQ_CONVERT)}(leg cap {KEVSEQ_LEG_MAX}) | "
+          f"PREVWAP_CONVERT={int(PREVWAP_CONVERT)} "
+          f"KEVSEQ_SHADOW={int(KEVSEQ_SHADOW)} KEVSEQ_CONVERT={int(KEVSEQ_CONVERT)}(leg cap {KEVSEQ_LEG_MAX}) "
+          f"V2_CONVERT={int(V2_CONVERT)}(quiet_only {int(V2_QUIET_ONLY)}, <={V2_QUIET_BPS}bps, cap {V2_DAILY_CAP}) | "
           # 8/14 night O-config sim conversions (Marcos: "sim money live"):
           f"GRINDER_CONVERT={int(GRINDER_CONVERT)}(cap {GRINDER_DAILY_CAP}) "
           f"FLATTOP_BREAK_ATTACK={int(FLATTOP_BREAK_ATTACK)} E3_EXITS={int(E3_EXITS)}")
@@ -11450,8 +11574,11 @@ def main():
                       grinder_shadow=int(GRINDER_SHADOW),
                       bandpass_shadow=int(BANDPASS_SHADOW), bandpass_convert=int(BANDPASS_CONVERT),
                       bandpass_daily_cap=BANDPASS_DAILY_CAP, prevwap_shadow=int(PREVWAP_SHADOW),
+                      prevwap_convert=int(PREVWAP_CONVERT),
                       kevseq_shadow=int(KEVSEQ_SHADOW), kevseq_convert=int(KEVSEQ_CONVERT),
                       kevseq_leg_max=KEVSEQ_LEG_MAX,
+                      v2_convert=int(V2_CONVERT), v2_quiet_only=int(V2_QUIET_ONLY),
+                      v2_quiet_bps=V2_QUIET_BPS, v2_daily_cap=V2_DAILY_CAP,
                       grinder_convert=int(GRINDER_CONVERT), grinder_daily_cap=GRINDER_DAILY_CAP,
                       flattop_break_attack=int(FLATTOP_BREAK_ATTACK), e3_exits=int(E3_EXITS))
         _leader_rehydrate()   # 8/5: earned leader status survives restarts
@@ -12807,6 +12934,16 @@ except Exception:
 ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "09:30").strip()
 # 7/25 premarket-paper profile (Marcos: premarket != RTH): only 10s live-structure lanes, tiny cap.
 PRE_LANES = set((os.environ.get("PRE_LANES", "hidden_entry,vwap_reclaim")).split(","))
+# 8/16 PREVWAP conversion (Marcos: "switch pre-vwap ... to live in pre" — ALL SIM): the prevwap
+# lane fires ONLY 07:00-09:25, so it must be a PRE lane or the premarket gate shadows every fire.
+# Rides the convert switch — PREVWAP_CONVERT=0 (default) leaves PRE_LANES exactly as before.
+if PREVWAP_CONVERT:
+    PRE_LANES.add("prevwap")
+# 8/16 V2 QUIET-TAPE conversion (joint_door_20260816.md; ALL SIM): the v2conv lane fires across
+# 07:00-10:00, so premarket fires (<09:30) must be a PRE lane or the premarket gate shadows them.
+# Rides the convert switch — V2_CONVERT=0 (default) leaves PRE_LANES exactly as before.
+if V2_CONVERT:
+    PRE_LANES.add("v2conv")
 # 7/25 calibrated on Friday's 27 premarket fires: the 2 thinnest (NEUP $12k, LGCL $131k cum
 # $vol) were the untradeable ones; every real candidate cleared $200k+. Floor does the quality
 # gating -> cap loosened 2->4. Homegrown numbers (n=1 day) — registry, recalibrate weekly.

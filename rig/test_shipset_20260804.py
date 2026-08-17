@@ -1525,17 +1525,19 @@ except (AssertionError, ValueError) as _yx:
     check("Y-d: double-sell/restart guards", False, str(_yx))
 
 try:
-    # (e) v2 shadow is SHADOW ONLY: no breakouts.append in the detector OR its caller block;
-    # rows stamp in_window + would_stop
+    # (e) v2 DETECTOR is conversion-free (order path lives ONLY in the caller, guarded by
+    # V2_CONVERT — 8/16 quiet-tape convert gate). Rows still stamp in_window + would_stop.
     _yv = _y[_y.index("def v2_pullback_step"):_y.index("def kev_zoneflip_step")]
-    assert "breakouts.append" not in _yv
-    _yc = _y[_y.index("V2 CONFIRMED-PULLBACK shadow"):_y.index("GRINDER-1030 shadow")]  # 8/14: grinder converts now — scan v2 block only
-    assert "breakouts.append" not in _yc and "execute_trade" not in _yc
+    assert "breakouts.append" not in _yv and "execute_trade" not in _yv   # detector + trailing-calm helper
+    _yc = _y[_y.index("V2 CONFIRMED-PULLBACK shadow"):_y.index("GRINDER-1030 shadow")]  # 8/16: v2 converts now under V2_CONVERT
     assert '"v2_shadow_fire"' in _yc and "in_window=" in _yc and "would_stop=" in _yc
     assert "flush_low=" in _yc and "flush_depth=" in _yc and "secs_from_push=" in _yc
-    check("Y-e: v2 shadow has NO conversion path; rows stamp in_window/would_stop", True)
+    # caller conversion is GUARDED (env-OFF default): shadow log fires under V2_SHADOW, append under V2_CONVERT
+    assert 'if (V2_CONVERT and (not V2_QUIET_ONLY or _v2_quiet)' in _yc
+    assert _yc.index('if (V2_CONVERT and') < _yc.index('breakouts.append((t, _v2_px, round(_vr_sv, 4), "v2conv", {')
+    check("Y-e: v2 detector conversion-free; caller append guarded by V2_CONVERT; rows stamp in_window/would_stop", True)
 except (AssertionError, ValueError) as _yx:
-    check("Y-e: v2 shadow-only", False, str(_yx))
+    check("Y-e: v2 shadow/convert-guard", False, str(_yx))
 
 try:
     # (f) v2 detector EXECUTED on a synthetic flush->confirmation tape (three-rings ring 1)
@@ -1613,15 +1615,16 @@ except (AssertionError, ValueError) as _ze:
     check("Z-c: cooldown", False, str(_ze))
 
 try:
-    # (d) shadow-only scan STILL passes on the calibrated detector + caller block
+    # (d) calibrated DETECTOR stays conversion-free; caller converts ONLY under V2_CONVERT; calib stamped
     _zv = _y[_y.index("def v2_pullback_step"):_y.index("def kev_zoneflip_step")]
     assert "breakouts.append" not in _zv and "execute_trade" not in _zv
-    _zc = _y[_y.index("V2 CONFIRMED-PULLBACK shadow"):_y.index("GRINDER-1030 shadow")]  # 8/14: grinder converts now — scan v2 block only
-    assert "breakouts.append" not in _zc and "execute_trade" not in _zc
-    assert "calib=" in _zc                                        # rows now stamp the calib tag
-    check("Z-d: calibrated v2 still has NO conversion path; calib stamped", True)
+    _zc = _y[_y.index("V2 CONFIRMED-PULLBACK shadow"):_y.index("GRINDER-1030 shadow")]  # 8/16: v2 converts under V2_CONVERT
+    assert "calib=" in _zc                                        # rows stamp the calib tag
+    assert 'if (V2_CONVERT and (not V2_QUIET_ONLY or _v2_quiet)' in _zc and 'lane "v2conv"' not in _zc  # sanity: guarded append, not unconditional
+    assert 'breakouts.append((t, _v2_px, round(_vr_sv, 4), "v2conv", {' in _zc
+    check("Z-d: calibrated v2 detector conversion-free; caller converts only under V2_CONVERT; calib stamped", True)
 except (AssertionError, ValueError) as _ze:
-    check("Z-d: no-conversion scan", False, str(_ze))
+    check("Z-d: convert-guard scan", False, str(_ze))
 
 try:
     # (e) V2_CALIBRATED=0 restores the LEGACY predicate: string anchors + the Z-b late-confirm
@@ -1966,7 +1969,7 @@ try:
     assert _ey2.count('"entry_context": o.get("entry_context")') + _ey2.count('"entry_context":   o.get("entry_context")') == 2
     assert '"entry_context":   ctx.get("entry_context")' in _ey2
     # wire site 3: shadow fires (compact eyes on the row)
-    for _st in ('"v2_shadow_fire", price=_v2f["px"],\n                                                  eyes=_eyes_compact(',
+    for _st in ('"v2_shadow_fire", price=_v2f["px"],\n                                                      eyes=_eyes_compact(',
                 '"grinder_shadow_fire", price=_grf["px"],\n                                                  eyes=_eyes_compact(',
                 '"hidden_observe_only", price=price, stop=_her["stop"],\n                                      eyes=_eyes_compact(',
                 '_log_decision(b[0], _ob_row, price=b[1], vwap=(b[2] or None),\n                                  eyes=_eyes_compact('):
@@ -2118,8 +2121,12 @@ try:
           "if BANDPASS_CONVERT and _bp_in:" in _bp_blk
           and _bp_blk.index("if BANDPASS_CONVERT and _bp_in:") < _bp_blk.index('breakouts.append((t, _bp_px, round(_vr_sv, 4), "bandpass", {')
           and '"exit_mode": "E3"' in _bp_blk and '"triggered_bandpass"' in _bp_blk and '"bandpass_capped"' in _bp_blk)
-    check("AF-i: PRE lane has ZERO conversion path (no append/execute/triggered), stamps spread_pct + catalyst",
-          "breakouts.append" not in _pv_blk and "execute_trade" not in _pv_blk and "triggered" not in _pv_blk
+    # 8/16: PRE-VWAP now CONVERTS under PREVWAP_CONVERT (Marcos "switch pre-vwap to live in pre" — ALL SIM);
+    # append guarded by the env, lane 'prevwap' E3 session PRE (09:25 flatten), triggered_prevwap row; still stamps spread_pct + catalyst
+    check("AF-i: PRE lane converts ONLY under PREVWAP_CONVERT; lane 'prevwap' E3 PRE; triggered row; stamps spread_pct + catalyst",
+          "if PREVWAP_CONVERT and _pvf[\"would_stop\"] < _pvf[\"px\"]:" in _pv_blk and "execute_trade" not in _pv_blk
+          and _pv_blk.index("if PREVWAP_CONVERT and") < _pv_blk.index('breakouts.append((t, _pv_px, round(_vr_sv, 4), "prevwap", {')
+          and '"exit_mode": "E3"' in _pv_blk and '"session": "PRE"' in _pv_blk and '"triggered_prevwap"' in _pv_blk
           and "spread_pct=_pv_sp" in _pv_blk and "catalyst=None" in _pv_blk and '"prevwap_shadow_fire"' in _pv_blk)
     check("AF-j: detector itself conversion-free", "breakouts.append" not in _AF_SEG and "execute_trade" not in _AF_SEG)
     # (k) no-conversion under BANDPASS_CONVERT=0: exec the caller's convert guard shape with a stub
@@ -2247,12 +2254,99 @@ try:
     _g = open(os.path.join(ROOT, "data", "killtests", "nightly_shadow_grade.py")).read()
     check("AG-xi: grader lists kevseq_shadow_fire + triggered_kevseq (E3 only) and reads 'stop' on triggered rows",
           "kevseq_shadow_fire,triggered_kevseq" in _g and 'lanes["kevseq"].append(rec)' in _g
-          and 'lanes["kevseq_conv"].append(rec)' in _g and '"triggered_kevseq") else r.get("stop")' in _g)
+          and 'lanes["kevseq_conv"].append(rec)' in _g and '"triggered_kevseq", "triggered_v2conv") else r.get("stop")' in _g)
     check("AG-xii: boot banner + boot_config row stamp KEVSEQ envs",
           "KEVSEQ_SHADOW={int(KEVSEQ_SHADOW)}" in _ag_src and "kevseq_convert=int(KEVSEQ_CONVERT)" in _ag_src
           and "kevseq_leg_max=KEVSEQ_LEG_MAX" in _ag_src)
 except (AssertionError, ValueError, KeyError) as _age:
     check("AG: kevseq lane", False, str(_age))
+
+print("AH) 8/16 V2 QUIET-TAPE convert gate 'v2conv' (causal trailing calm; convert env-OFF, quiet_only ON, cap 5)")
+try:
+    from zoneinfo import ZoneInfo as _AHZ
+    import types as _aht, datetime as _ahdt
+    _ah_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    # detector + helper segment (constants through v2_trailing_calm) — must be conversion-free
+    _AH_SEG = _ah_src[_ah_src.index("V2_SHADOW      = os.environ.get"):_ah_src.index("# ── 8/14 GRINDER-1030 SHADOW")]
+    _ahn = {"os": _aht.SimpleNamespace(environ={}), "datetime": _ahdt.datetime,
+            "EASTERN": _AHZ("America/New_York")}
+    exec(_AH_SEG, _ahn)
+    check("AH-a: envs default — V2_CONVERT OFF, V2_QUIET_ONLY ON, cap 5, quiet<=89.9bps, look 30",
+          _ahn["V2_CONVERT"] is False and _ahn["V2_QUIET_ONLY"] is True and _ahn["V2_DAILY_CAP"] == 5
+          and _ahn["V2_QUIET_BPS"] == 89.9 and _ahn["V2_QUIET_LOOK"] == 30 and _ahn["V2_QUIET_MINB"] == 10)
+    _calm_fn = _ahn["v2_trailing_calm"]; _hist = _ahn["_v2_hist"]
+    _k0 = 1_700_000_000
+    def _bars(rng, n=15, close=10.0, kstart=_k0):        # n bars, each high/low = close +/- rng/2
+        return [(kstart + 10 * i, close, close + rng / 2, close - rng / 2, close, 100) for i in range(n)]
+    # (i) quiet gate: a CALM tape (40 bps 10s ranges) passes; a BUSY tape (200 bps) blocks
+    _hist["CALM"] = _bars(0.04); _hist["BUSY"] = _bars(0.20)
+    _fk = _k0 + 10 * 15                                   # fire bar sits AFTER all 15 history bars
+    _mc, _nc = _calm_fn("CALM", _fk); _mb, _nb2 = _calm_fn("BUSY", _fk)
+    _quiet_c = bool(_mc is not None and _mc <= _ahn["V2_QUIET_BPS"])
+    _quiet_b = bool(_mb is not None and _mb <= _ahn["V2_QUIET_BPS"])
+    check("AH-i: calm tape (~40bps) passes quiet gate, busy tape (~200bps) blocks",
+          _quiet_c is True and abs(_mc - 40.0) < 1.0 and _quiet_b is False and abs(_mb - 200.0) < 1.0, str((_mc, _mb)))
+    # (ii) CAUSALITY: bars AT the fire bar (k == fire_k) and AFTER (k > fire_k) are NEVER read.
+    #      Calm history before the fire + a huge-range bar at/after fire_k -> metric stays calm.
+    _hist["CAUSAL"] = _bars(0.04) + [(_fk, 10.0, 12.0, 8.0, 10.0, 999),        # k == fire_k (excluded)
+                                     (_fk + 10, 10.0, 13.0, 7.0, 10.0, 999)]   # k  > fire_k (excluded)
+    _mx, _nx = _calm_fn("CAUSAL", _fk)
+    check("AH-ii: trailing metric reads ONLY bars strictly before fire_k (k==fire and k>fire excluded)",
+          _mx is not None and abs(_mx - 40.0) < 1.0 and _nx == 15, str((_mx, _nx)))
+    # (iii) too little prior tape (< V2_QUIET_MINB=10 bars) -> None -> caller treats as NOT quiet
+    _hist["THIN"] = _bars(0.04, n=6)
+    _mt, _nt = _calm_fn("THIN", _k0 + 10 * 6)
+    check("AH-iii: < MINB prior bars -> (None, n) -> not quiet", _mt is None and _nt == 6)
+    # (iv) detector+helper segment is conversion-free (no order path in the machine code)
+    check("AH-iv: detector/helper segment has no breakouts.append / execute_trade",
+          "breakouts.append" not in _AH_SEG and "execute_trade" not in _AH_SEG)
+    # (v) caller: conversion guarded by V2_CONVERT and (not V2_QUIET_ONLY or quiet); lane 'v2conv' E3; rows
+    _cal = _ah_src[_ah_src.index("# CAUSAL trailing-calm buffer:"):_ah_src.index("# ── 8/14 GRINDER-1030 shadow (#48 lane; E3 OOS-wall nominee): same fed")]
+    check("AH-v: caller append guarded by V2_CONVERT + quiet-only clause; lane 'v2conv' E3; stamped rows",
+          'if (V2_CONVERT and (not V2_QUIET_ONLY or _v2_quiet)' in _cal
+          and _cal.index('if (V2_CONVERT and (not V2_QUIET_ONLY or _v2_quiet)') < _cal.index('breakouts.append((t, _v2_px, round(_vr_sv, 4), "v2conv", {')
+          and '"exit_mode": "E3"' in _cal and '"triggered_v2conv"' in _cal
+          and 'quiet_tape=_v2_quiet, quiet_bps=_q_bps, quiet_n=_q_n' in _cal      # STAMPED on every fire row
+          and 'v2_trailing_calm(t, _v2f["k"])' in _cal)
+    # (vi) quiet metric uses the fire bar's k (fire_k), and the buffer trims to a bounded window (no unbounded growth)
+    check("AH-vi: causal buffer maintained every call + bounded, metric keyed on fire_k",
+          '_v2h = _v2_hist.setdefault(t, [])' in _cal and 'del _v2h[:-90]' in _cal
+          and 'v2_trailing_calm(t, _v2f["k"])' in _cal)
+    # (vii) V2_CONVERT=0 -> zero appends (exec the guard with convert off)
+    _bo = []; _nsc = {"V2_CONVERT": False, "V2_QUIET_ONLY": True, "_v2_quiet": True,
+                      "_v2f": {"would_stop": 1.0, "px": 2.0}, "breakouts": _bo}
+    exec('if (V2_CONVERT and (not V2_QUIET_ONLY or _v2_quiet)\n        and _v2f["would_stop"] < _v2f["px"]):\n    breakouts.append(1)', _nsc)
+    check("AH-vii: V2_CONVERT=0 -> zero appends", _bo == [])
+    # (vii-b) V2_QUIET_ONLY=0 converts a NOT-quiet fire; =1 blocks it
+    def _conv(convert, quiet_only, quiet):
+        _b = []; exec('if (V2_CONVERT and (not V2_QUIET_ONLY or _v2_quiet)\n        and _v2f["would_stop"] < _v2f["px"]):\n    breakouts.append(1)',
+                      {"V2_CONVERT": convert, "V2_QUIET_ONLY": quiet_only, "_v2_quiet": quiet,
+                       "_v2f": {"would_stop": 1.0, "px": 2.0}, "breakouts": _b}); return len(_b)
+    check("AH-viii: quiet_only=1 blocks a busy fire; quiet_only=0 converts it; a quiet fire converts either way",
+          _conv(True, True, False) == 0 and _conv(True, False, False) == 1 and _conv(True, True, True) == 1)
+    # (ix) v2conv in PRE_LANES ONLY under convert; NOT in any exempt set
+    check("AH-ix: PRE_LANES.add('v2conv') gated by 'if V2_CONVERT:'",
+          'if V2_CONVERT:\n    PRE_LANES.add("v2conv")' in _ah_src)
+    check("AH-x: 'v2conv' not in MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT/_STALE_EXEMPT defaults",
+          '"v2conv"' not in _ah_src[_ah_src.index("MIN_STOP_EXEMPT = set("):_ah_src.index("MIN_STOP_EXEMPT = set(") + 200]
+          and 'BACKSIDE_EXEMPT   = {"dip_rip"}' in _ah_src
+          and "v2conv" not in _ah_src[_ah_src.index("VRIDE_EXEMPT    = set("):_ah_src.index("VRIDE_EXEMPT    = set(") + 150]
+          and "v2conv" not in _ah_src[_ah_src.index("_STALE_EXEMPT = ("):_ah_src.index("_STALE_EXEMPT = (") + 120])
+    # (xi) cap: caller has the V2_DAILY_CAP guard + v2conv_capped row + per-day counter
+    check("AH-xi: daily cap enforced (V2_DAILY_CAP guard, v2conv_capped row, per-day reset)",
+          'if _v2_conv_day["n"] >= V2_DAILY_CAP:' in _cal and '"v2conv_capped"' in _cal
+          and '_v2_conv_day.get("d") != _v2day' in _cal and '_v2_conv_day["n"] += 1' in _cal)
+    # (xii) grader lists triggered_v2conv + v2_conv lane (E3, informational; reads 'stop' on triggered rows)
+    _g = open(os.path.join(ROOT, "data", "killtests", "nightly_shadow_grade.py")).read()
+    check("AH-xii: grader queries triggered_v2conv + has v2_conv lane + reads 'stop' on triggered rows",
+          "triggered_v2conv" in _g and 'lanes["v2_conv"].append(rec)' in _g
+          and '"triggered_v2conv"' in _g and '"v2_conv": []' in _g)
+    # (xiii) boot banner + boot_config row stamp V2 convert envs
+    check("AH-xiii: boot banner + boot_config stamp V2_CONVERT envs",
+          "V2_CONVERT={int(V2_CONVERT)}" in _ah_src and "v2_convert=int(V2_CONVERT)" in _ah_src
+          and "v2_quiet_only=int(V2_QUIET_ONLY)" in _ah_src and "v2_daily_cap=V2_DAILY_CAP" in _ah_src)
+except (AssertionError, ValueError, KeyError) as _ahe:
+    check("AH: v2 quiet-tape convert gate", False, str(_ahe))
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

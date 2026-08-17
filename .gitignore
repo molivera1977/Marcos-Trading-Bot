@@ -9,3 +9,4 @@ data/.DS_Store
 webull_*_sdk.log*
 data/universe/bars10s/
 data/universe/ticks_precursor/
+data/universe/ticks_kev_fills/

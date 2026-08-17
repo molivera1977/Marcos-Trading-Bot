@@ -2117,3 +2117,11 @@ kevseq). (2) Per-lane SEQUENCE MINING (the reverse-engineer-the-replay method): 
 mine winners' vs losers' event strings, find the discriminating suffix, propose it as a gate.
 (3) kevseq is instance #1 (B->H/W). Next: break-attack (is "Q->B" better than raw B?), grinder,
 band-pass, v2. Holes registry H-SEQ-<lane> per lane. The grammar, not the letters.
+
+## 2026-08-17 ~03:35 ET — SEQUENCE SIZE-UP: REFUTED (all forms tested); T B lift re-graded under liquidity guard
+- Wall verdict AMENDED by realistic fills (seq_sizeup_capacity_20260817.md + seq_conditional_size_20260817.md, commits 3c86c19/8c0ce02):
+  - GRINDER `T B`: **LIFT-SURVIVES-GUARD** — +$12.34/fire over ungated under the D-guard at $500 (gated +$18.50 vs ungated +$6.16, N=27/142, permutation p=0.007 under guard). Real, attenuated to ~half the no-guard +$23.74.
+  - BREAK-ATTACK `T B`: **LIFT-EQUALIZED (under-N, not refuted)** — point lift +$12.94 but p=0.075 at N=18; the wall's p=0.021 was thin-tape-carried. Needs more hold-out fires (the live seq_str stamp is collecting them).
+- SIZING: blanket $750 REFUTED (grinder DEGRADES-AT-750, monotone $499→$226 across 500→1500); conditional dv-floor upsize **NO-LIFT** (zero grid cells beat flat-$500 with same-or-better worst fire; every delta buys a worse worst-case; upsize slip [CALIBRATION UNKNOWN]).
+- 56-63% of gated fires print on <$10k fire bars — the T B edge lives on the thinnest tape (early = undiscovered = uncrowded = size-constrained). Same law as 8/14.
+- STANDING DECISION (Marcos's condition "if the data supports it" → it does not): NO size change ships. `T B` stays a PRIORITY signal candidate only. Only supported path to any upsize: live $750 fill calibration during sim week, then re-run the grid with measured slip.

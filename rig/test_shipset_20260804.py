@@ -179,7 +179,18 @@ check("credit ignored before fire", nsh["_halted_secs_since"]("TT", 1500.0) == 0
 nv = open(os.path.join(ROOT, "newcomer_vision_reader.py")).read()
 check("batch validates vs LIVE px", "_lp = _live_px_10s(tk)" in nv and "never prior close" in nv)
 sa = open(os.path.join(ROOT, "screener_app.py")).read()
-check("Kev-pin AH label session-aware", '"PM" if datetime.now(EASTERN).strftime("%H:%M") < "09:30" else "AH"' in sa)
+# 8/17 (Marcos 15:38, "it is 3:38pm, not after hours"): the old pin asserted the LABEL's exact
+# expression and never checked that the extended-price block was SESSION-GATED — which is why the
+# KEV-pinned rows rendered a stale premarket print as "AH" all through RTH. Pin the SPEC now, and
+# strictly stronger: (1) the Kev-pin AH fetch sits behind the same `after_hours or premarket` gate
+# the :521 path has always had, and (2) the label still derives from the live session.
+_sa_kev = sa[sa.index('for _sym in _kev_syms:'):sa.index('return results, errors')]
+check("Kev-pin AH block is SESSION-GATED (no stale AH during RTH)",
+      "if after_hours or premarket:" in _sa_kev and "_webull_ah_price(data_client, _sym)" in _sa_kev
+      and _sa_kev.index("if after_hours or premarket:") < _sa_kev.index("_webull_ah_price(data_client, _sym)"))
+check("Kev-pin AH label session-aware", '_row["ah_label"] = "PM" if premarket else "AH"' in _sa_kev)
+check("regular-row AH path still session-gated", "if after_hours or premarket:" in sa
+      and sa.count("if after_hours or premarket:") >= 2)
 check("reread queue: crowns then newly-triggered first (8/6)",
       'want.sort(key=lambda x: (x[0] not in _ldrs, _rr_state["per_name"].get(x[0], 0)))' in nv)
 check("failing names sort to back of read queue", "todo = sorted(todo, key=lambda t: _rfail.get(t, 0))" in nv)

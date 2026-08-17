@@ -578,11 +578,18 @@ def run_scan():
                         if _pc > 0 and _cl > 0:
                             _row["change_pct"] = round((_cl - _pc) / _pc * 100, 2)
                         _row["market_cap"] = float(_d.get("market_value") or _d.get("marketValue") or 0)
-                    _ah = _webull_ah_price(data_client, _sym)
-                    if isinstance(_ah, tuple) and _ah[0]:
-                        _row["ah_price"], _row["ah_pct"] = _ah
-                        # 8/5: session-aware (was hardcoded AH — KEV-pinned rows showed "AH" premarket)
-                        _row["ah_label"] = "PM" if datetime.now(EASTERN).strftime("%H:%M") < "09:30" else "AH"
+                    # 8/17 (Marcos, 15:38: "it is 3:38pm, not after hours"): the extended-hours
+                    # price is only MEANINGFUL while an extended session is live. This block was
+                    # the one AH call site with NO session gate (the :521 path has always been
+                    # wrapped in `if after_hours or premarket`), so during RTH the KEV-pinned rows
+                    # rendered a STALE premarket print labelled "AH" (WETO $10.15 beside a live
+                    # $26.20). Same gate as :521 — no extended session, no extended row.
+                    if after_hours or premarket:
+                        _ah = _webull_ah_price(data_client, _sym)
+                        if isinstance(_ah, tuple) and _ah[0]:
+                            _row["ah_price"], _row["ah_pct"] = _ah
+                            # 8/5: session-aware (was hardcoded AH — KEV-pinned rows showed "AH" premarket)
+                            _row["ah_label"] = "PM" if premarket else "AH"
             except Exception:
                 pass
             results.append(_row)

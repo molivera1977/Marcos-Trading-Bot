@@ -2469,6 +2469,61 @@ try:
 except (AssertionError, ValueError, KeyError) as _be:
     check("8/17 boundary fix section", False, str(_be))
 
+print("AJ) 8/17 KEV_SHADOW read-side (veto + kev_road_max + KEV_ROAD; primacy REAFFIRMED — no structure promotion)")
+try:
+    _aj_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _aj_ns = {"os": os}
+    # the overlay itself (pure over its rec argument)
+    _aj_seg = _aj_src[_aj_src.index("def _kev_shadow_overlay"):_aj_src.index("# ── 8/7 THE FRESHNESS CONTRACT")]
+    exec(_aj_seg, _aj_ns)
+    _ov = _aj_ns["_kev_shadow_overlay"]
+    _vrec = {"src": "vision", "kev_name": True, "break": 10.10, "confirm": 9.40,
+             "targets": [9.5, 10.0], "_ts": "2026-08-17T07:00:42",
+             "kev_shadow": {"break": 12.95, "confirm": 11.50, "targets": [20.0],
+                            "_ts": "2026-08-17T07:00:33"}}
+    _e = _ov(dict(_vrec))
+    check("AJ: kev_shadow structure NEVER promoted (break stays ours)", _e["break"] == 10.10 and _e["targets"] == [9.5, 10.0])
+    check("AJ: kev_road_max stamped (his 20 > our ceiling 10)", _e.get("kev_road_max") == 20.0)
+    _e2 = _ov({"break": 5.0, "targets": [8.0], "kev_shadow": {"targets": [6.0], "_ts": "2026-08-17T09:00:00"}})
+    check("AJ: no stamp when his ceiling <= ours", "kev_road_max" not in _e2)
+    _e3 = _ov({"break": 5.0, "kev_shadow": {"veto": True, "targets": []}})
+    check("AJ: veto flag propagates", _e3.get("veto") is True and _e3.get("veto_src") == "kev_shadow")
+    _e4 = _ov({"break": 5.0, "kev_shadow": {"note": "fade it, do not trade this junk"}})
+    check("AJ: do-not-trade note propagates veto", _e4.get("veto") is True)
+    os.environ["KEV_VETO_READ"] = "0"
+    _e5 = _ov({"break": 5.0, "kev_shadow": {"veto": True, "targets": [20.0]}})
+    check("AJ: KEV_VETO_READ=0 restores veto-blind read (road stamp survives)",
+          not _e5.get("veto") and _e5.get("kev_road_max") == 20.0)
+    os.environ.pop("KEV_VETO_READ", None)
+    check("AJ: non-dict kev_shadow -> rec unchanged", _ov({"break": 5.0, "kev_shadow": "junk"}) == {"break": 5.0, "kev_shadow": "junk"})
+    check("AJ: exception fail-safe -> rec unchanged", _ov({"break": 5.0, "kev_shadow": {"targets": ["zz"], "veto": 0}}).get("kev_road_max") is None)
+    # _freshest_rec: vision_shadow-over-kev-primary promotion INTACT + overlay wired both paths
+    _fr_ns = {"os": os}
+    _fr_seg = _aj_src[_aj_src.index("def _freshest_rec"):_aj_src.index("# ── 8/7 THE FRESHNESS CONTRACT")]
+    _kp = {"T1": {"src": "kev", "break": 3.0, "_ts": "2026-08-17T07:00:00",
+                  "vision_shadow": {"break": 3.5, "_ts": "2026-08-17T08:00:00"},
+                  "kev_shadow": {"targets": [9.0]}}}
+    exec("def _fetch_kev_levels():\n    return " + repr(_kp) + "\n" + _fr_seg, _fr_ns)
+    _f1 = _fr_ns["_freshest_rec"]("T1")
+    check("AJ: vision_shadow promotion intact (OUR numbers rule)", _f1["break"] == 3.5 and _f1["_freshest_src"] == "vision_shadow")
+    check("AJ: overlay wired on promoted path (kev_road_max rides)", _f1.get("kev_road_max") == 9.0)
+    # _marked_runway KEV_ROAD extension (rung-exhausted only)
+    _mr_ns = {"os": os, "_gate_failopen": lambda *a, **k: None,
+              "_curl_feed": lambda tk, n=720: ({}, "stub")}
+    _mr_seg = _aj_src[_aj_src.index("def _marked_runway"):_aj_src.index("# ══════════════════════════════════════════════════════════════════════════════════════════\n# 8/16 BUILD #0")]
+    _mr_map = {"targets": [9.5, 10.0], "next_supply": 0, "kev_road_max": 20.0}
+    exec("def _effective_map(tk, px=0.0):\n    return " + repr(_mr_map) + "\n" + _mr_seg, _mr_ns)
+    _rr_a, _tgt_a = _mr_ns["_marked_runway"]("WETO", 10.50, 10.00)   # entry ABOVE all our rungs
+    check("AJ: WETO rung-exhausted -> road extends to kev_road_max 20", _tgt_a == 20.0 and _rr_a == 19.0)
+    _rr_b, _tgt_b = _mr_ns["_marked_runway"]("WETO", 9.00, 8.50)     # our rung 9.5 still live
+    check("AJ: own rung live -> KEV_ROAD does NOT fire (our numbers gate)", _tgt_b == 9.5)
+    os.environ["KEV_ROAD"] = "0"
+    _rr_c, _tgt_c = _mr_ns["_marked_runway"]("WETO", 10.50, 10.00)
+    check("AJ: KEV_ROAD=0 restores above_all_levels", _rr_c == "above_all_levels" and _tgt_c is None)
+    os.environ.pop("KEV_ROAD", None)
+except (AssertionError, ValueError, KeyError) as _aje:
+    check("AJ section", False, str(_aje))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

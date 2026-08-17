@@ -9362,10 +9362,48 @@ def _freshest_rec(ticker):
                 if sh.get(k) is not None:
                     eff[k] = sh[k]
             eff["_freshest_src"] = "vision_shadow"
-            return eff
-        return rec
+            return _kev_shadow_overlay(eff)
+        return _kev_shadow_overlay(rec)
     except Exception:
         return (_fetch_kev_levels() or {}).get(ticker) or {}
+
+
+def _kev_shadow_overlay(rec):
+    """8/17 KEV_SHADOW read-side (Marcos 8/17, REAFFIRMING the 8/12 our-numbers primacy:
+    "remember I want Kev's picks but I want OUR map numbers ruling"). Since the 8/12 flip the
+    store is vision-primary with Kev's verbatim numbers re-shelved under `kev_shadow` — and
+    until tonight the bot read kev_shadow NOWHERE. What the shadow contributes, per doctrine:
+      (1) VETO: kev_shadow carrying veto=True or a do-not-trade note propagates veto=True onto
+          the effective record REGARDLESS of timestamps — his veto rules the row (8/12 text).
+          Env kill: KEV_VETO_READ (default "1"; "0" restores today's veto-blind read).
+      (2) kev_road_max: when kev_shadow's max target sits ABOVE the effective record's own
+          target ceiling, stamp it as a DATA field — his structure numbers NEVER replace ours
+          (no break/confirm/targets promotion, even when newer); the stamp only answers
+          "does Kev see road beyond our map?" (_marked_runway consumes it under KEV_ROAD).
+    Read-side only — storage never altered. Fail-safe: any exception -> rec unchanged."""
+    try:
+        ks = (rec or {}).get("kev_shadow")
+        if not isinstance(ks, dict):
+            return rec
+        eff = None
+        if os.environ.get("KEV_VETO_READ", "1") == "1" and not (rec or {}).get("veto"):
+            _kn = str(ks.get("note") or "").lower()
+            if ks.get("veto") or "do-not-trade" in _kn or "do not trade" in _kn \
+                    or "leave it alone" in _kn:
+                eff = dict(rec)
+                eff["veto"] = True
+                eff["veto_src"] = "kev_shadow"
+        try:
+            _ktgts = [float(x) for x in (ks.get("targets") or []) if float(x) > 0]
+            _otgts = [float(x) for x in ((rec or {}).get("targets") or []) if float(x) > 0]
+            if _ktgts and (not _otgts or max(_ktgts) > max(_otgts)):
+                eff = eff if eff is not None else dict(rec)
+                eff["kev_road_max"] = round(max(_ktgts), 4)
+        except (TypeError, ValueError):
+            pass
+        return eff if eff is not None else rec
+    except Exception:
+        return rec
 
 # ── 8/7 THE FRESHNESS CONTRACT (Marcos: "we have fixed this a million different times... fucking
 # do it!!!" — after the 8th staleness recurrence; YJ +545% ran on maps one-full-map behind).
@@ -9569,6 +9607,17 @@ def _marked_runway(ticker, entry_price, stop_loss):
                 if _ns and _ns <= _whi:
                     _ns = 0.0
         _tgt = (_tgts[0] if _tgts else (_ns if _ns > entry_price else None))
+        # ── 8/17 KEV_ROAD (Marcos-approved direction from the WETO refusal; primacy REAFFIRMED
+        # 8/17: "Kev's picks, OUR numbers ruling"): when OUR map's rungs are exhausted below
+        # Kev's shadow ceiling, the road may extend to kev_road_max — his target answers ONLY
+        # "is there road beyond our map?", never replaces our levels. Kill: KEV_ROAD=0.
+        if (not _tgt and os.environ.get("KEV_ROAD", "1") == "1"):
+            try:
+                _krm = float(_lvd.get("kev_road_max") or 0)
+                if _krm > entry_price:
+                    return round((_krm - entry_price) / _rps, 2), _krm
+            except (TypeError, ValueError):
+                pass
         if _tgt:
             return round((_tgt - entry_price) / _rps, 2), _tgt
         if _lvd.get("targets") or _ns:

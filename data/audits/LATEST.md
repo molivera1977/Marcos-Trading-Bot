@@ -1,401 +1,295 @@
-covers: 6d66b86bcfbe
-# BLAST RADIUS CONVENING — 8/17 BATCH 4 (trigger-to-fill defects 1a/1b/2/3 + entry-drift)
-Auditor: Blast Radius Auditor (separate context). URGENT convening: market OPEN, ~2h of session
-left, and Marcos has WAIVED the flat-book gate with a live position (NIVF) — verbatim
-"fuck NIVF". The waiver is his to give; it is recorded here, not re-litigated. It does NOT
-waive the audit, and it makes the resumed-position safety check the single most important
-item in this artifact (§6).
+covers: 1a5e42f0a54e
+# BLAST RADIUS CONVENING — 8/17 BATCH 5 (kevseq front-side source audit + M1 wall-clock window class)
 
-Tree audited: `6d66b86` (tip). Prior tip `4cc24ea` was audited GREEN in the batch-3 convening
-(commit `2d672ee`); that verdict stands and is not re-opened. Working tree CLEAN at audit time
-(`git status --porcelain` empty, verified this turn).
+Auditor: Blast Radius Auditor (separate context). Tree audited: **`1a5e42f`** (tip), working tree
+**CLEAN** (`git status --porcelain` empty, verified this turn). Prior tip `6d66b86` was audited
+GREEN in the batch-4 convening (`8a18da0`); that verdict stands and is not re-opened.
 
-Commits in scope (`git log --oneline 4cc24ea..HEAD`, run this turn):
+Clock: `date` run this turn → **Mon Aug 17 15:20:37 EDT 2026** (~35 min to the close).
+Position state per the brief: **NIVF OPEN**; the restart resumes it. Flat-book gate remains
+waived by Marcos (batch-4 waiver, recorded not re-litigated) — §6 is the safety proof it demands.
 
-| # | commit | what | money? |
-|---|---|---|---|
-| — | `07f0c6c` | ENTRY-DRIFT: kevseq fire-px vs entry-px — stamps ON, 4 guards env-OFF | **no** |
-| — | `cde2acf` | kevseq 8/16-vs-8/17 reconciliation | doc only |
-| — | `5ec278a` | hidden lane SIGNAL grade — detector refuted | doc only |
-| — | `b72648f` | ledger: kevseq edge real, drift owned the sign | doc only |
-| 1a | `edcb671` | **NOTHING SHIPPED** — burst saturation REFUTED | n/a |
-| 1b | `94550d4` | kevseq self-computes `front_side` from 10s bars | shadow-only |
-| 2 | `a4ad672` | conversion caps refunded on non-fill paths | **YES — grinder** |
-| 3 | `516e123` | scan-loop cycle timing rows | **no** |
-| — | `7ccd390` | convene scope doc | doc only |
-| — | `6d66b86` | burst kill-test run artifacts | doc only |
+Commits in scope (`git log --oneline 8a18da0..HEAD`, run this turn):
 
-Full rig EXECUTED this convening with `SHIP_CHECK=1`: **612 green, one RED — section Q only**
-(`HEAD 6d66b86bcfbe not covered by data/audits/LATEST.md`), the designed interlock firing
-because this artifact did not yet exist. Sections **FS (12), GC (14), SC (13), AP (25), AN, AO**
-all present AND executed in the same run. Post-commit rerun appended at the bottom.
-
-> **Rig-invocation correction (method note).** My first run used `python3 -m pytest`, which
-> INTERNALERRORs — the rig is a SCRIPT with `sys.exit(1 if FAILS else 0)` at module scope, and
-> the shell reported `tail`'s exit code, not the rig's. Per `feedback_rig_tests_spec_not_impl`
-> ("sweeps judge by EXIT CODE"), that first run was VOID and is discarded. Every number in this
-> artifact comes from `python3 rig/test_shipset_20260804.py`, exit code read directly.
-
-## VERDICT: GREEN — no blocker. Deploy may proceed on Marcos's word.
-
-No RED found in the code. Four things go to Marcos BEFORE the env is set — one of them is a
-money-behaviour default that the shipping commit's own safety argument did not name (§3a).
-
----
-
-## 1. DEFECT 1a (burst saturation) — REFUTED, NOTHING BUILT, NO DEFAULT TO GRADE
-
-The convening brief anticipated a "burst-saturation commit". There is none. `edcb671` ships
-**zero code** — no env knob, no detector change. There is therefore no default to defend and
-the "if it defaults ON the evidence must be positive on the hold-out" test does not apply.
-The auditor's job here reduces to: was the REFUTED verdict earned? Per
-`feedback_skepticism_needs_verification_too` ("before writing REFUTED, name the check and run
-it") — **yes**: `burst_saturation_20260817.py`, 2,251 candidates over 736 name-days / 63 dates,
-pre-registered failure conditions, executed, output committed (`_out.json`, `_run.txt`).
-
-**Numbers ($/trade, E3 live-parity $500, MINE 5/18–7/21 / HOLD-OUT 7/22–8/14):**
-
-| variant | MINE | HOLD-OUT | MINE (F3) | HOLD (F3) |
-|---|---|---|---|---|
-| **V0 baseline (trailing p75)** | **−3.54** | **−2.46** | **−0.56** | **−0.73** |
-| V1 pre-run p75 | −3.21 | −2.95 | −0.97 | −1.38 |
-| V2 OR sess-median ×1.5 / ×2 / ×3 | −4.16 / −4.06 / −3.98 | −4.12 / −3.96 / −3.61 | −3.55 / −3.14 / −2.85 | −3.33 / −3.02 / −2.74 |
-| V3 dollar-volume p75 | −3.57 | −3.17 | −0.94 | −1.34 |
-| V4 no burst at all | −4.64 | −3.83 | −4.08 | −3.66 |
-
-Zero variants beat baseline on both halves. Every loosening loses money.
-
-**RUNNER-COHORT SPLIT (the brief's explicit ask), F3 limit entry:**
-
-| cohort | V0 N | V0 $/tr | V4 (no burst) N | V4 $/tr |
-|---|---|---|---|---|
-| ALL | 1257 | −0.49 | 2190 | −3.83 |
-| VERTICAL 100%+ | 628 | **+10.00** | 1182 | +2.52 |
-| VERTICAL 100%+ / HOLD-OUT | 174 | **+9.34** | 320 | +3.58 |
-
-**Auditor's read: the finding INVERTS the ticket.** Burst is not blocking the runners; burst is
-what makes the runner cohort profitable — the strictest variant is the best variant out of
-sample on a powered N=174. Loosening it there costs −$5.76/trade.
-
-**Honesty credit, recorded:** the doc reports that the RUNNER(≥25%)/REST split *as specified*
-is degenerate — kevseq's own `KEVSEQ_GAIN_MIN=20` floor pre-selects runners, leaving 1 candidate
-of 2,251 in REST. It says so plainly and substitutes run-INTENSITY bands (no_burst rate rises
-37.2% → 49.7% from the 50-100% band to the 200%+ band) rather than dressing up a dead split.
-That is the `feedback_maps_describe_not_serve` standard met on a measurement.
-
-**To Marcos (unresolved, NOT an auditor's call):** kevseq at `KEVSEQ_GAIN_MIN=20` is a
-money-loser in aggregate (−$0.73/tr HOLD-OUT); restricted to 100%+ verticals it is **+$9.34/tr
-HOLD-OUT on N=174**. Raising the floor is a behaviour change and is priced and waiting.
-
-## 2. DEFECT 1b (front_side computed in-lane) — PINNED, all three tests PASS
-
-Brief's three requirements, each checked against the shipped source:
-
-**(a) CAUSAL — no future bars. PASS.** `kevseq_feed_1m` folds only the ALREADY-FED completed
-10s bars (`_nb`) into minute buckets and returns `st["bars"]` — the list of **completed** minute
-bars. The in-progress bucket lives in `st["cur"]` and is appended only when a LATER bar advances
-the bucket, so it is never read while open. This is the same discipline as the caller path
-(`_ks_1m = (bars or [])[:-1]` drops the live minute). No fetch, no lookahead, no reordering.
-
-**(b) FAILS CLOSED ONLY ON GENUINE INSUFFICIENCY. PASS.** `kevseq_front_side` returns
-`(None, n)` when `len(b1) < EMA20_PERIOD + 2` — the **identical** 22-bar threshold the caller
-uses, so the self path is not a looser door wearing the same name. It also returns None when
-`e9`/`e20` are falsy or `e20 <= 0`. `None` propagates as unknown and the detector keeps
-refusing. Both helpers are wrapped `except Exception: return []` / `return None, 0` — a
-malformed bar degrades to fail-closed, never raises into the scan loop.
-
-**(c) NO BEHAVIOUR CHANGE WHEN ctx ALREADY SUPPLIES front_side. PASS — pinned.** The self value
-is computed every call (deliberately, so the aggregate has no holes), but the assignment is
-guarded: `if KEVSEQ_SELF_FRONTSIDE and _ks_ctx["front_side"] is None:`. When the caller's 1-min
-path succeeded, `front_side` is left exactly as the caller set it. The only additional effect on
-that branch is the `kevseq_frontside_disagree` canary row — a log write, no gate. Confirmed:
-the caller's `bool(_ks_e9 > _ks_e20 > 0)` and the self path's `e20 > 0` guard + `bool(e9 > e20)`
-are logically equivalent, so the canary compares like with like.
-
-Rig FS-a..FS-l, 6 EXECUTED against the extracted block: rising tape → True/33 bars, falling →
-False, 10-min tape → None (fail-closed), incremental 7-bar feed ≡ one-shot (idempotent bucket
-advance), malformed bar never raises.
-
-**Blast radius:** `_ks_1m_agg` is module-level and in-memory — a restart rebuilds it from live
-tape within ~22 minutes, during which the lane fails closed exactly as it does today. Capped at
-240 bars/symbol (no unbounded growth). Day-keyed, so it self-clears at the date roll.
-
-## 3. DEFECT 2 (caps refunded on non-fill) — FULL CENSUS DONE; CORRECT, but see §3a
-
-The brief's standard is the right one: *a cap that refunds on some paths but not others is
-worse than today's bug.* I enumerated **every** `_slot_refund` call site (23 total, `grep -n`
-run this turn) and read the context of each.
-
-**Cap census — every cap touched:**
-
-| lane | ledger | refunds now? | note |
-|---|---|---|---|
-| v2conv | `_v2_conv_day{"d","n"}` | YES | cap 5 |
-| grinder | `_gr_conv_day{"d","n"}` | YES | cap 3 |
-| bandpass | `_bp_conv_day{"d","n"}` | YES | cap 3 |
-| kevseq | `_ks_st[sym]["leg_n"]` (per-LEG) | YES | cap `KEVSEQ_LEG_MAX=3` |
-| prevwap | **none exists** | NO — correct | refunding it would decrement a sibling's counter |
-| hidden / rocket / curl-slot (zf,vr,dr) | pre-existing | already correct | 7/29 |
-| LEADER_IGNITION_CAP | — | unchanged | the 7/29 note's own named out-of-scope hole |
-
-**Every non-fill exit fires the refund — verified site by site.** All 23 sites are pre-fill or
-no-fill. Enumerated: `backside_reject` (:9467, pre-worker — the rejected breakout is never
-appended to `_kept_bs`, so it cannot double-refund downstream), `premarket_shadow_entry` (:12646,
-the site that ate today's cap), `entries_paused`, `chart_gate_blocked_trade`, `wide_stop_reject`,
-`bad_stop_skip`, `minstop_reject`, `runway_reject`, `breakside_reject`, `mapless_reject`,
-`retest_band_reject`, `standdown_active`, `ceiling_reject`, `prebreak_reject`,
-`stop_coherence_refused`, `no_capital_skip`, `balance_skip`, `spread_reject`, `l2_reject`,
-`momentum_reject`, `retest_expired`, `pre_capped_at_exec`, `order_failed`.
-
-**The decisive check — no site fires after a fill.** The last refund (:13309) is inside
-`if not order_id:` immediately after `execute_trade`; there is no `_slot_refund` call anywhere
-below it. So the previously-no-op lanes cannot now over-refund a ticket a real trade spent.
-This is the `#34` conservation invariant preserved, not merely asserted: mirror-checked against
-the existing hidden/zf/vr arms, which sit on the identical set of sites.
-
-**Over-refund is structurally impossible.** Day ledgers decrement only under
-`_ledger.get("d") == day and _ledger.get("n",0) > 0`; the kevseq leg only under
-`_kst.get("day") == day and _kst.get("leg_n",0) > 0`. Both floor at zero. Rig GC-k executes this
-as failure-condition #1.
-
-**Dead-code trap checked and CLEARED.** The kevseq branch guards on `_kst.get("day") == day`. I
-verified `_ks_st[sym]` is actually initialised with a `"day"` key (`marcos_trading_bot.py:6552`,
-read this turn). Had it not been, the kevseq refund would have been silently dead — the exact
-"refunds on some paths but not others" failure the brief warned about. It is live.
-
-Rig GC-a..GC-n, 7 EXECUTED against the real `_slot_refund` body: correct ledger per lane, floors
-at 0, prevwap touches nothing, kill switch restores exactly, unknown symbol is a no-op.
-
-### 3a. ⚠️ TO MARCOS — DEFECT 2 IS A MONEY-BEHAVIOUR CHANGE FOR `grinder`, TODAY, BY DEFAULT
-
-The commit's safety argument is: *"this closes a hole in ALREADY-APPROVED behaviour rather than
-inventing rationing policy"*, and it defends the 1b default by noting kevseq is a shadow lane.
-**That argument does not cover grinder.** Read this turn:
-
-- `GRINDER_CONVERT = os.environ.get("GRINDER_CONVERT", "1") == "1"` — **defaults ON** (:5993)
-- `GRINDER_DAILY_CAP = 3` (:5994)
-- v2conv (:6135), bandpass (:6327), prevwap (:6330), kevseq (:6430) all default CONVERT=**0**
-
-So on deploy, with code defaults, **grinder can fill up to 3 actual TRADES per day instead of
-being cut off after 3 TRIGGERS.** That is more real orders than yesterday. It is the direct,
-intended consequence of Marcos's own 7/29 instruction ("a session slot is spent by a TRADE, not
-an ATTEMPT") and I believe it is what he wants — but per
-`feedback_auditor_cannot_authorize_behavior` ("any fix that changes what the bot DOES with money
-goes back to Marcos priced"), **an auditor cannot wave this through on the commit's framing.**
-It is named here so the decision is his and explicit. One-character revert: `V2_CAP_ON_FILLS=0`.
-
-- **`V2_CONVERT` / `KEVSEQ_CONVERT` in the LIVE Railway env: `[UNVERIFIED]`.** `SCREENER_URL` is
-  env-only (:102), there is no local `.env`, and this convening is forbidden env operations. Per
-  `feedback_dropdead_verify_before_speak` I will not assert the live values. **If `V2_CONVERT=1`
-  or `KEVSEQ_CONVERT=1` live, those lanes join grinder as money-changing and 1b becomes a
-  money-changing default too** — the 1b commit flags this itself. Marcos should read the boot
-  banner (it now prints `CAP_ON_FILLS=` and `KEVSEQ_SELF_FRONTSIDE=`) or the Railway env before
-  setting anything.
-
-### 3b. Non-blocking defect found (cosmetic while KEVSEQ_CONVERT=0)
-
-The kevseq refund decrements `_ks_st[sym]["leg_n"]` for the CURRENT leg. If the leg advanced
-between the fire and the downstream reject (`st["leg"] += 1; st["leg_n"] = 0`), the refund lands
-on the NEW leg's counter, granting it one extra fire it did not earn. Bounded at 1, and inert
-while kevseq does not convert. A leg-id stamp on the refund would close it. Logged, not fixed —
-fixing it mid-session is out of an auditor's authority.
-
-## 4. DEFECT 3 — MEASUREMENT ONLY. CONFIRMED. No behaviour changed.
-
-Read the whole diff. Three helpers (`_cyc_name` / `_cyc_mark` / `_cyc_emit`), one dict literal at
-the top of the loop, five call sites, one `_log_decision` row per cycle. **Nothing is moved,
-capped, reordered, parallelised, skipped, or short-circuited.** Verified specifically:
-
-- No executor / thread pool / `concurrent.futures` introduced (rig SC-f pins the absence).
-- `CURL_FIRE_MAX_AGE_SECS` / PRE tolerances **unchanged** (rig SC-g) — no stale fire was
-  quietly converted into a trade, which is the way a "measurement only" ship usually cheats.
-- `VWAP_BAR_CACHE_SECS` sleep unchanged; the roster is not capped.
-- All three helpers return immediately on `not SCAN_CYCLE_TIMING`, and every body is wrapped in
-  `try/except: pass` — the instrumentation cannot kill the loop (rig SC-m executes garbage/None).
-- `_cyc_name(cyc, None, None)` inside `_cyc_mark` closes the open name; `_cyc_emit` filters the
-  `None` key out of `slowest` (`if s`). No `None`-key leak into the row.
-
-The honest verdict in the commit — that the real fix is a bounded executor fan-out and that it is
-NOT being shipped on a live-money week with a position open — is the right call and is exactly
-what the brief asked for.
-
-**Minor, flagged:** the row is written under the pseudo-ticker `_scan_cycle`. Same class as the
-existing `SYSTEM` row; Dashboard Curator should confirm `by_status` consumers skip
-underscore-prefixed tickers (the leader rehydrate already does: `if sym.startswith("_"): continue`).
-
-## 5. DEFAULTS TABLE — every new env in the batch (read from source this turn)
-
-| env | default | money? | restores today at |
-|---|---|---|---|
-| `KEVSEQ_LIMIT_ENTRY` | **0 / OFF** | — | already off |
-| `KEVSEQ_ENTRY_TOL` | 0.005 | — | inert while LIMIT_ENTRY=0 |
-| `KEVSEQ_MAX_DRIFT` | **0 = disabled** | — | already off |
-| `KEVSEQ_FIRE_MAX_AGE_S` | **0 = disabled** | — | already off |
-| `KEVSEQ_SELF_FRONTSIDE` | 1 / ON | shadow-only¹ | `=0` |
-| `V2_CAP_ON_FILLS` | 1 / ON | **YES — grinder** | `=0` |
-| `SCAN_CYCLE_TIMING` | 1 / ON | no (observe-only) | `=0` |
-
-¹ shadow-only **iff** `KEVSEQ_CONVERT=0` in the live env — `[UNVERIFIED]`, see §3a.
-
-**§5 confirms the brief's item 5: all four `07f0c6c` entry-drift switches default OFF/0.** That
-commit changes **no** entry behaviour on deploy; its stamps (`fire_age_s`, `drift_pct`,
-`quote_px`, `bar_lo`, `intended_risk_pct`, `actual_risk_pct`) are observe-only, and `kevseq_step`
-gained only ADDITIVE return keys (`bar_lo`/`bar_hi`) — no existing key changed shape.
-
-## 6. ⭐ THE MONEY STATEMENT + THE NIVF-RESUME SAFETY ANSWER
-
-### 6a. What actually changes when this deploys
-
-**Entry behaviour that CHANGES (real orders can differ):**
-1. **`grinder` cap accounting** — a grinder trigger that dies at any downstream gate now gives
-   its ticket back, so up to 3 grinder *trades* per day instead of 3 grinder *triggers*.
-   **This is the only certain money change in the batch.** (§3a)
-2. Conditional, `[UNVERIFIED]`: the same for `v2conv` / `bandpass` / `kevseq` **iff** their
-   `*_CONVERT` env is 1 in live Railway. Code defaults say no.
-
-**Observe-only — changes rows written, never a trade:**
-- All entry-drift stamps + the four env-OFF guards (`07f0c6c`).
-- `front_side` self-compute (`94550d4`) — shadow lane; converts ~50 refusals/day of STRENGTH
-  into evidence rows for the bias ledger. Zero money while `KEVSEQ_CONVERT=0`.
-- `scan_cycle_timing` + `kevseq_frontside_disagree` + widened `slot_refunded` rows.
-- 1a: nothing at all.
-
-### 6b. NIVF-RESUME SAFETY — the answer is NO, and it is PROVEN, not assumed
-
-**Does anything in this batch touch `monitor_trade`, exits, stop handling, or the resume path?
-NO. Nothing. Proven by hunk-range vs. function-boundary arithmetic, both run this turn.**
-
-Every hunk in `marcos_trading_bot.py` across `4cc24ea..HEAD` (`git diff -U0 | grep '^@@'`) lands
-in exactly four neighbourhoods: the `_bucket_fresh` module scope (~5077), `_slot_refund` (5605),
-module-level env constants (6138/6444/6476), `kevseq_step` (6600), `wait_for_flat_top_entry`
-(7963–9543), and `main()` (12292–12646). The diff jumps **9543 → 12292** with nothing in between.
-
-Function boundaries (`grep -n "^def "`, run this turn) inside that gap:
-
-| function | lines | in any hunk? |
+| commit | what | money? |
 |---|---|---|
-| `_recover_orphaned_trades` | 2954 | **NO** (first hunk is 5077) |
-| `_manual_close_pending/_match/_ack` | 5333–5400 | **NO** |
-| `execute_trade` | 9647 | **NO** |
-| `close_position` | 9722 | **NO** |
-| `cancel_order` / `place_stop_order` | 9737 / 9759 | **NO** |
-| `place_limit_sell` / `_place_sell_ladder` / `_cancel_sell_ladder` | 9784–9854 | **NO** |
-| `update_stop_order` | 9855 | **NO** |
-| `_exit_layer` | 10230 | **NO** |
-| `_e3_eval` | 10532 | **NO** |
-| **`monitor_trade`** | **10546–11396** | **NO** |
-| **`resume_monitoring_if_open`** | **12013–12110** | **NO** |
-| `get_open_position` | 11963 | **NO** |
-| `_safety_close` (inside monitor_trade) | 10700 | **NO** |
+| `9feff24` | kevseq day-gain floor sweep — NO SHIPPABLE THRESHOLD | **no** (doc/killtest only, 0 lines of `marcos_trading_bot.py`) |
+| `b78a3ef` | front-side timeframe: alleged 3-min defect REFUTED; 1-min pinned + 3-min stamped | **no** (observability) |
+| `1fd978f` | correction: 3-min premise FALSE; real defect = traded-minute vs wall-clock clocks; the switch built on the false premise REMOVED | **no** (observability) |
+| `1a5e42f` | `_wallclock_window()` + kevseq caller front-side windowed to 50 wall-min (`M1_WALLCLOCK=1`) | **YES — the one behavior change** |
 
-**Conclusion for the live position:** the restart will resume NIVF through
-`resume_monitoring_if_open` → `monitor_trade`, and **every line of that path is byte-identical to
-the code currently running.** The stop, the E3 trail, the 15:45 flatten, the manual-close hook,
-the `#53` `_safety_close` choke point, the ladder cancel, and the orphan recovery are all
-untouched. The batch's entire surface is the *scan/entry* side; NIVF is on the *monitor/exit*
-side. The one residual restart risk is the one that already existed and is unchanged: the
-`_recover_orphaned_trades` force-close semantics (7/29 STFS/YYGH lesson) if the position is not
-cleanly matched at boot — a pre-existing property Marcos has accepted, not something this batch
-introduces.
+Whole-batch file census (`git diff --stat 8a18da0..HEAD`): 12 files, and the only executable
+production file is `marcos_trading_bot.py` (+116/−6). `screener_app.py`, `newcomer_vision_reader.py`,
+recorder/capture services: **untouched**.
 
-Caveat stated honestly: this is a *static* proof that the resume code is unchanged. It is not a
-live restart drill. Given market-open time pressure and the standing no-RTH-push law, a static
-proof is the correct and available instrument.
-
-## 7. Doctrine-inversion sweep
-
-- **`feedback_auditor_cannot_authorize_behavior` — TENSION, SURFACED, NOT RESOLVED HERE.**
-  DEFECT 2 changes what the bot does with money (grinder), and the shipping commit's safety
-  argument did not name grinder. Held only because "a slot is spent by a TRADE, not an ATTEMPT"
-  is Marcos's own 7/29 instruction. Escalated in §3a with a one-character revert. **This is the
-  live doctrine tension of the batch.**
-- **`feedback_skepticism_needs_verification_too` — HELD.** 1a is a REFUTED verdict and it owed a
-  named, executed check. It has one: 2,251 candidates, pre-registered failure conditions, OOS
-  split, output committed. No assertion-only refutation.
-- **`feedback_edge_over_mechanisms` — HELD, not inverted.** These are plumbing fixes, but 1a was
-  graded on expectancy and refused on it, and the session's headline (kevseq's edge is
-  cohort-bound to 100%+ verticals, +$9.34/tr HOLD-OUT N=174) is an EDGE result, not a mechanism
-  claim.
-- **`feedback_no_lesser_fix` — HELD UNDER PERMISSION.** DEFECT 3 ships instrumentation while a
-  fuller fix (executor fan-out) is describable. The brief explicitly ordered measurement over a
-  mid-week refactor. Flagged so it stays a choice, not a drift.
-- **`feedback_dollars_not_r` — HELD.** Every number in §1 is $/trade through the E3 live-parity
-  $500 sizing chain, with WFF hand-traced in the drift doc ($3.91 fire → $5.039 entry, intended
-  risk 5.9% → actual 27.0%).
-- **`feedback_maps_describe_not_serve` — HELD, notably.** The runner split came back degenerate
-  and was reported as degenerate rather than reshaped into a flattering cut.
-- **`feedback_rig_tests_spec_not_impl` — ENFORCED against myself.** See the rig-invocation
-  correction above; the pytest run was void and discarded.
-- **`feedback_flat_book_verified_in_turn` — WAIVED BY MARCOS, RECORDED.** A position (NIVF) is
-  open and he waived the gate explicitly. The waiver is his; §6b is the compensating control.
-- **`feedback_no_rth_push` — STILL GOVERNS THE SHIP.** Market is open. An auditor does not
-  authorise an RTH push; that is Marcos's standing call and he has made it.
-- **AMENDED RIG PINS — legitimacy checked, not green-washed.** `AG-vii` was rewritten by
-  `07f0c6c` (the conversion-guard literal now carries `not _ks_veto`). Same standard as the
-  AF-l/AG-x/AH-x amendments in batch 3: the prior assertion encoded the pre-fix literal, so
-  preserving it would have pinned the defect. The rewrite is legitimate. New sections FS/GC/SC
-  are additive and 19 of their 39 checks EXECUTE against extracted source rather than
-  string-matching it.
-
-## 8. ROLL CALL — all 31 offices (ROSTER.txt), everyone present
-
-- **Blast Radius Auditor** — this artifact. GREEN, one money default escalated (§3a).
-- **Execution Surgeon** — planned-R = realized-R is this batch's charter case; the drift stamps
-  are his instrument. **OWED before any real-money kevseq run:** a lane-aware
-  `ENTRY_LIMIT_BUFFER` — the executor places a marketable limit at `entry × 1.01` (:615, :9399),
-  and the kill-test says +1.0% tolerance COLLAPSES F3 (−$2.96/tr). DRY_RUN matches the test;
-  real money does not.
-- **Systems Quant** — `drift_pct` and `kevseq_front_side` compute what their names claim
-  (§2, §4); the `kevseq_frontside_disagree` canary is the standing check.
-- **Statistician** — the 1a numbers (2,251 candidates, OOS, runner cohort) and the −$64.25 lane
-  registry counterfactual owe RESULTS_LEDGER lines, not just killtest files. Manual exits must
-  stay out of lane expectancy.
-- **Strength Ombudsman** — 1b converts ~50 refusals/day of STRENGTH into evidence rows: the
-  bias ledger's best week of new data. The refused-strength hearing should re-run once the
-  `front_side_src` distribution exists.
-- **Hidden Entry Architect / Seam Scientist** — inherit the 1a cohort result (edge lives ONLY in
-  the 100%+ vertical regime); the v2 rebuild should not rediscover it. Note `5ec278a` refutes the
-  hidden DETECTOR, not just the body.
-- **Pit Crew Chief** — 3 new switches this batch, all restore today's behaviour at `=0`; all new
-  state (`_ks_1m_agg`, refunded ledgers, `_cyc`) is in-memory and rebuilds within one cycle.
-- **Dashboard Curator** — three row types need a display: `kevseq_frontside_disagree`, widened
-  `slot_refunded`, `scan_cycle_timing`. Confirm `_scan_cycle` is skipped by `by_status` (§4).
-- **First Hour / Opening Bell** — the cap ghost (25 of 39 refusals in the 09:00/10:00 hours) and
-  the cycle tail both bite hardest 09:30–10:30; both now have rows. Split tomorrow's attribution.
-- **Feed Engineer + Webull Broker Desk** — DEFECT 3's diagnosis is a vendor round-trip budget
-  problem (4–5 blocking REST trips/name/cycle); the vendor ledger owns the per-call latency the
-  executor design will need. The $5 place+cancel test remains owed.
-- **Trade Manager** — exits untouched (§6b); the "manual" exit layer from batch 3 is unchanged.
-- **Historian** — 8/17 is the day the ranking was cleared and the trigger-to-fill pipeline was
-  charged: 39 triggers, ZERO fills, on the seven top-ranked runners.
-- **Integrator** — parallel-logic registry: `_slot_refund` is now the single refund choke point
-  for 8 lanes; prevwap remains deliberately outside it.
-- **Momentum Operator, Tape Veteran, Reclaim Architect, Handicapper, Rocket Rider, Cartographer,
-  Wind Tunnel Engineer, Convexity Trader, Curl Mechanic, Side Marshal, Crown Steward,
-  Quartermaster, Kev Librarian, Forward Architect, Project Manager** — **CLEAN**: no map, corpus,
-  warehouse, crown, side, sizing, or backtest-fidelity surface is touched by this batch. Named so
-  no office is denied its say.
-
-## 9. Items for Marcos BEFORE the env is set
-
-1. **`V2_CAP_ON_FILLS=1` makes grinder trade more.** Approve or set `=0`. (§3a)
-2. **Read the live `V2_CONVERT` / `KEVSEQ_CONVERT`** — if either is 1, more lanes change and 1b
-   becomes money-changing. `[UNVERIFIED]` from here.
-3. **kevseq's day-gain floor** — 20% is a loser, 100%+ is +$9.34/tr HOLD-OUT (N=174). Priced,
-   waiting.
-4. **`ENTRY_LIMIT_BUFFER` is owed** before any real-money kevseq run (Execution Surgeon, §8).
+## VERDICT: **GREEN** — no blocker. Deploy may proceed on Marcos's word.
 
 ---
 
-## POST-COMMIT RIG RERUN (as promised above)
+## 1. THE FALSE PREMISE — independently re-verified, not taken on trust
 
-`SHIP_CHECK=1 python3 rig/test_shipset_20260804.py` after this artifact was committed:
+The handed-over claim ("the kevseq caller supplies `aggregate_bars(..., SETUP_TF_MIN)` = a 3-MIN
+front side") is **FALSE against this tree**, confirmed by my own read, not by the commit message:
 
-```
-Q) 8/12 CONVENE-OR-DON'T-SHIP interlock
-  ✅ ship-check: HEAD 0fe8528d8e79 audited + tree clean
+- **(a) No 3-min value governs anything.** Every occurrence of the 3-min computation in the kevseq
+  block (`grep -n "_ks_fs_3m|_ks_c3|_ks_e93|_ks_e203|front_side_3m"`, run this turn) is:
+  `:8454` init to `None` · `:8461-8468` compute inside its own `try/except` · `:8504` and `:8547`
+  passed to `_log_decision` as a stamp. **Zero reads back into `_ks_ctx`.** The only two writes to
+  `_ks_ctx["front_side"]` are `:8483` (caller M1) and `:8492` (self 10s→1m). Rig **TF-a/TF-b/TF-d**
+  pin exactly this; both are executed pins, and I re-derived the same result by grep independently.
+- **(b) `KEVSEQ_FRONTSIDE_1M` is REMOVED, not defaulted off.** `grep -rn "KEVSEQ_FRONTSIDE_1M\|frontside_1m"`
+  over the whole tree returns **only** rig line `3218-3219` — the pin **TF-e** asserting the string is
+  absent from the bot source. No env var, no constant, no boot_config key, no dead branch.
+- **(c) `b78a3ef` + `1fd978f` are observability-only.** `git diff 9feff24..1fd978f -- marcos_trading_bot.py`,
+  comments stripped, is exactly: three new local inits (`_ks_fs_3m`, `_ks_fs_caller`, `_ks_self_fs`/`_ks_self_n`
+  hoisted), the 3-min stamp block, the chained assignment `_ks_ctx["front_side"] = _ks_fs_caller = bool(...)`
+  (same RHS, same target, plus a capture), five new kwargs on two `_log_decision` calls, one new
+  `boot_config` kwarg. **Precedence unchanged** (`:8489` self only when caller is `None` — TF-k),
+  **fail-closed unchanged** (`:6665-6667` `kevseq_step` still refuses on `None` — TF-l), and **no
+  dollar path byte differs.** The one semantic risk in a hoist — `_ks_self_fs` being read before
+  assignment on a partial cycle — is closed by the pre-init at `:8455` and pinned by **TF-g**.
 
-ALL GREEN
-```
+**Doctrine note (Skepticism Needs Verification Too):** the agent wrote REFUTED and *did* name and run
+the check (`kevseq_frontside_sources_20260817.py`, caller sign reproduced 31/31, output committed).
+The law is satisfied; the reversal of the auditor's own prior framing inside `1fd978f` is the correct
+shape (ledgered correction, not a silent edit).
 
-**613 green, 0 red, exit code 0.** Section Q is green. The interlock is satisfied.
+---
+
+## 2. THE ONE BEHAVIOR CHANGE — `_wallclock_window` (1a5e42f)
+
+`_wallclock_window(bars, minutes)` at `:4488`, sole call site `:8479`.
+
+### 2.1 Liquid-name byte-equivalence — pinned AND reasoned
+Rig **M1W-a** pins it on a dense 50-bar fixture. I also **executed the helper myself** (exec'd from
+source, ring 1) and reasoned the invariant independently:
+
+anchor = `bars[-1].time`; cutoff = anchor − 50 min; a bar is kept iff `ts >= cutoff` (inclusive).
+A dense N-bar list has `bars[0] = anchor − (N−1)` min, so for any N ≤ 51 **every** bar satisfies
+`ts >= cutoff`. Order is preserved and the same dict objects are appended. My executed probe:
+`dense 50 → identical: True, elementwise-identity: True`; `dense 51 → 51 kept`. The window can only
+bite when span > count, i.e. exactly where the old code was wrong. **Liquid names: byte-equivalent.**
+
+### 2.2 Short-after-window takes the EXISTING fail-closed path
+`:8480` `if len(_ks_1m) >= EMA20_PERIOD + 2:` is **unchanged** — the window sits strictly upstream of
+it. Windowed-short ⇒ `front_side` stays `None` ⇒ `KEVSEQ_SELF_FRONTSIDE` fallback (`:8489`) ⇒ if self
+is also short, `None` ⇒ `kevseq_step` appends `front_side_unknown` and **refuses** (`:6667`).
+Nothing computes an EMA on a truncated list. Pinned **M1W-c** (executes the same `len()` gate),
+**FS-j/TF-l/TF-o** (fail-closed), **TF-n** (self fills in only when the caller is short).
+
+### 2.3 Fail-safes — executed by me, not just read
+| case | result (my executed probe) |
+|---|---|
+| unparseable anchor | list returned **unchanged** ✔ (M1W-g) |
+| unparseable interior bar (`"junk"`, `None`, `{}`) | **dropped**, no raise → `[17:00, 17:40]` ✔ fail-closed |
+| `bars=None` / `[]` / `minutes=0` | `[]` / `[]` / list unchanged, never raises ✔ (M1W-h) |
+| thin RBNE-class (48 bars over 243 min) | 24 survive ✔ |
+| non-dict bars (tuples) | raises `AttributeError` — **see finding F1 below** |
+
+**F1 (INFORMATIONAL, not a blocker):** the helper's `except (ValueError, TypeError)` does not cover
+`AttributeError`, so a non-dict bar list would raise. **Unreachable at the only call site**: `bars` =
+`cache[t]["bars"]`, filled at `:8119` from `_fresh_session(get_intraday_bars(...))`, which itself calls
+`.get()` on the elements — dicts by construction. And the entire kevseq ctx block sits inside
+`try:` `:8452` … `except Exception: pass` at **`:8604`** (matching-indent scan, verified this turn),
+so **no exception can escape into the scan loop** under any input. Rail 3 satisfied. Widening the
+tuple to include `AttributeError` is a one-word hardening for a future call site, not owed tonight.
+
+### 2.4 Anchoring + `_fresh_session` ordering
+Anchor is `bars[-1]["time"]` — **the newest bar's own timestamp, never `now()`** (read at `:4498`,
+docstring says the same and the code agrees). Staleness and the day boundary remain `_fresh_session`'s
+job, and it runs **first**: `:8119` `cache[t]["bars"] = fresh` is assigned **only if** `_fresh_session`
+returned non-empty, and `_fresh_session` enforces today-only + ≤900 s newest bar. So the window can
+never straddle a session boundary — it operates on an already-today-trimmed list. Sole windowed site,
+so "every windowed site" is that one site. ✔
+
+### 2.5 Kill switch
+`M1_WALLCLOCK=0` restores the raw list at the call site (`:8479-8480`, structural — pinned M1W-e);
+`KS_FS_WALLCLOCK_MIN` env-tunable; both stamped in `boot_config` at `:12439` with `setup_tf_min`
+(M1W-d/f, TF-i). One switch for the whole class, matching the lane-registry precedent.
+
+---
+
+## 3. CENSUS INTEGRITY — verified against the diff, not the doc
+
+Diff hunk ranges for `marcos_trading_bot.py` (`git diff 8a18da0..HEAD | grep ^@@`, this turn):
+**4485 · 6452 · 6530 · 8451 · 8500 · 8544 · 12436**.
+
+The five FLAGGED-not-touched sites at their **current** line numbers (`grep -n get_intraday_bars`):
+
+| site | current line | inside any hunk? |
+|---|---|---|
+| `check_momentum` count=390 | **4199** | NO (before 4485) |
+| `_vride_defer` count=VELO_BARS+2 | **9989** | NO |
+| `monitor_trade` bars fetch | **11146** | NO |
+| volume-sizing guard count=6 | **13173** | NO |
+| universal liquidity count=30 | **13261** | NO |
+
+**None is touched.** Rationale accepted as recorded: three have FAIL-OPEN insufficient-data paths, so
+windowing would make them *more* permissive on thin names (a money loosening — auditor cannot
+authorize); two are position-open paths. **Marcos has ruled: leave all five alone.** Honored.
+
+**No other consumer of `cache[t]["bars"]` was silently altered.** The full census of that key is three
+lines: `:8122` (write), `:8204` (`bars = cache[t]["bars"]`, the read the kevseq block uses), and a
+comment at `:6552`. Downstream of `:8204`, `bars` also feeds `cache[t].get("full_bars") or bars`
+fallbacks at `:8463/:8708/:9035/:9109/:9131` — **all of those receive the RAW `bars`**, not `_ks_1m`;
+the window result is bound to a fresh local (`_ks_1m`) and never written back to the cache. Rig
+**M1W-j** pins exactly one call site; I re-derived the same count independently.
+
+**Census-doc nit (no action):** `m1_wallclock_20260817.md` cites pre-edit line numbers (:9930, :11087,
+:13113, :13201) that this batch's own insertions have shifted by ~60 lines. The *identities* are right;
+only the citations drift. Noted so a future reader greps rather than jumps.
+
+---
+
+## 4. RESTART SEMANTICS
+No new durable state. `_wallclock_window` is pure; the new locals live one cycle; the stamps are log
+kwargs. `_ks_1m_agg` (batch-4) is unchanged and rebuilds from live tape within a cycle. A restart with
+`M1_WALLCLOCK=1` simply re-applies the window on the next refresh. `M1_WALLCLOCK=0` needs no state
+unwind — it is a read-time branch.
+
+## 5. THE MONEY STATEMENT
+**What changes:** on the kevseq lane only, the caller-sourced `front_side` is now computed from the
+last **50 wall-clock minutes** of M1 bars instead of the last **50 traded bars**.
+
+**On which names:** **thin tape only.** Where span ≈ count (every liquid name, every fast runner
+while it is running) the lists are byte-identical and **nothing changes**. Where the traded-minute
+grid stretches — the proven specimens **RBNE (48 bars = 243 min), UUU (49 bars = 584 min = 9.7 h),
+FXHO (183 min)** — the caller's "20-bar EMA" stops being a multi-hour trend wearing a 1-minute label.
+
+**Direction, stated honestly — it is BIDIRECTIONAL, not purely tightening:**
+1. windowed list falls below `EMA20_PERIOD+2` → caller `None` → self fallback → possibly `unknown` →
+   **refusal** (tighter); or
+2. the windowed EMA9/EMA20 **flips sign** vs the hours-wide one → a name previously refused
+   `front_side_off` can now pass (**looser**), or vice-versa.
+Both live behind `M1_WALLCLOCK`. This is a correctness fix to a gate input, not a loosening or a
+tightening by design, and it should be graded from `front_side_caller` / `front_side_self` /
+`front_side_self_n` on the archive rows rather than assumed.
+
+**Dollar exposure tonight:** `KEVSEQ_CONVERT` defaults **0** in code (`:6469`) — kevseq is a SHADOW
+lane, so at the default this changes **rows, not dollars**. Today's front-side-only refusals were
+**N=8** (IPST, PFSA ×2, WETO ×2, CDTG ×2, STFS) and 7 of 8 were the `unknown` class the 13:49 self-
+frontside fix already closes. Cost of the alleged 3-min defect: **$0 / N=0**.
+⚠️ **Carried forward UNRESOLVED from batch-4: I did NOT read the live Railway env this turn —
+`KEVSEQ_CONVERT`'s live value is `[UNVERIFIED]`.** If it is `1` live, this is a real-money change on
+thin names and must be re-priced by Marcos before deploy. That single env read is the one thing I
+would want in hand before the switch is thrown.
+
+## 6. NIVF-RESUME SAFETY PROOF (diff line ranges, batch-3 method)
+Hunks: **4485, 6452, 6530, 8451, 8500, 8544, 12436**. Function boundaries (`grep -n "^def ..."`, this turn):
+
+| safety surface | line | in a hunk? |
+|---|---|---|
+| `_recover_orphaned_trades` (the resume path) | **2954** | NO |
+| `_manual_close_pending/_match/_ack` | **5370 / 5390 / 5413** | NO |
+| `_place_order` | **9659** | NO |
+| `close_position` | **9826** | NO |
+| `_vride_defer` | **9978** | NO |
+| `_exit_layer` | **10334** | NO |
+| `monitor_trade` (and everything below it: stops, `_safety_close`, EOD flatten) | **10650 → EOF** | NO |
+
+The batch's **highest touched line is 12436** (`boot_config` inside `main()`), and every other hunk is
+at or below 8552 — i.e. module scope (`4485`), comment blocks (`6452`, `6530`), and inside
+`wait_for_flat_top_entry` (the **scan/entry** path, `8451-8552`). **Not one line of the exit, stop,
+safety-close, manual-close, or orphan-resume machinery is in the diff.** `python3 -m py_compile
+marcos_trading_bot.py` → **COMPILE OK** (run this turn). NIVF resumes on exactly the code that is
+managing it now.
+
+## 7. DOCTRINE-INVERSION SWEEP
+- **`feedback_skepticism_needs_verification_too`** — inverted? A REFUTED verdict was written. **HELD:**
+  the named check exists, was executed, and its output is committed (31/31 signs reproduced). This is
+  the law working, and `1fd978f` is a public self-reversal of the auditor's own prior framing.
+- **`feedback_auditor_cannot_authorize_behavior`** — inverted? A behavior change (§2) rides an audit
+  batch. **HELD, narrowly:** the change is fixing a gate INPUT to mean what its name claims, it carries
+  a kill switch, and — decisively — the three fail-open gates whose windowing WOULD have loosened money
+  behavior were deliberately **left alone and priced for Marcos** rather than fixed by the builder.
+  That is the law being obeyed at the exact moment it was tempting to break. Flagged so §5 goes to
+  Marcos priced, not assumed.
+- **`feedback_lean_on_10s_data` (10s outranks 1-min)** — inverted? This makes the *1-min caller* more
+  faithful while the 10s-derived `self` value stays a **fallback**, not the primary. **TENSION, FLAGGED,
+  NOT RESOLVED HERE:** the doc's own reading is that `self` is the more faithful source on the names this
+  lane trades, and doctrine leans toward 10s. Precedence was correctly left as a **money decision for
+  Marcos** (TF-k pins it unchanged). Grade it from the now-stamped rows.
+- **`feedback_no_lesser_fix`** — inverted? One site windowed of six window-sensitive. **HELD under
+  permission:** Marcos ruled the other five stay. Recorded as a choice, not a drift.
+- **`feedback_dollars_not_r`** — §5 is in dollars and names, with the `[UNVERIFIED]` env caveat stated
+  rather than papered over. Held.
+- **`feedback_maps_describe_not_serve` / `feedback_edge_over_mechanisms`** — `9feff24` is a REFUTATION
+  with no threshold invented and no code change. Exemplary; held.
+- **`feedback_rig_tests_spec_not_impl`** — the amended pins **FS-c / TF-c** now require the *windowed*
+  call form. I judged the rewrite: the spec genuinely changed with the fix, the pins still assert the
+  USER-facing property (the caller's source is M1, not the 3-min aggregate) and merely track the new
+  expression. **Legitimate, not green-washing.** TF-e is the stronger form — it pins an **absence**.
+
+## 8. ROLL CALL (every office present, per `data/audits/ROSTER.txt` — 31 offices)
+- **Blast Radius Auditor** — this artifact. GREEN, one informational finding (F1, §2.3).
+- **Systems Quant** — does `_wallclock_window` compute what its name claims? **YES**, executed
+  independently (§2.1/2.3): anchored on the newest bar, inclusive cutoff, order-preserving, identity-
+  preserving on dense lists. Finding: name and behavior agree.
+- **Feed Engineer + Webull Vendor Desk** — "M1 REST returns TRADED minutes only and is count-capped" is
+  now a **ledgered vendor-shape constraint** that has bitten a live detector. This is the office's charter
+  case and the census (§3) is the deliverable. Five inheriting consumers remain on the traded grid **by
+  Marcos's ruling** — that is a standing vendor-constraint item, not a closed one.
+- **Pit Crew Chief** — two new envs (`M1_WALLCLOCK`, `KS_FS_WALLCLOCK_MIN`), both boot-stamped, `=0`
+  restores today exactly, no durable state, no restart unwind. Deploy-safe. CLEAN.
+- **Execution Surgeon** — no order, fill, limit, or stop-placement byte is in the diff (§6). CLEAN.
+- **Trade Manager** — no exit, scale, `_exit_layer`, or EOD-flatten line touched (§6). CLEAN.
+- **Strength Ombudsman** — **STAKE**: §5 direction 1 can convert strength into a thin-tape refusal, and
+  direction 2 can release one. The bias ledger should record this as an input-correction with a
+  bidirectional effect and re-run the refused-strength hearing once `front_side_caller` vs
+  `front_side_self` has a week of rows.
+- **Side Marshal** — front/back-side is this office's variable. `front_side_3m`, `front_side_tf`,
+  `front_side_caller`, `front_side_self`, `front_side_self_n` are now on every kevseq row. **Data-only,
+  as the office's charter requires.** No band edge or classifier arm touched.
+- **Statistician** — owed a `RESULTS_LEDGER` line: the floor sweep (`9feff24`: best cell 125% no-top3
+  HOLD-OUT N=40, +$2.10/tr, **p=0.3415**, curve non-monotone, REFUTED) and the 31/31 source
+  reconstruction. Unledgered = rumor.
+- **Dashboard Curator** — `front_side_caller` / `front_side_self` / `front_side_3m` and the enriched
+  `kevseq_frontside_disagree` canary need a display; today they are archive-only.
+- **Integrator** — parallel-logic registry: `_wallclock_window` is the ONE derived windowing path; the
+  other five fixed-count fetches remain literal by ruling. Registered.
+- **Hidden Entry Architect** — the caller/self clock split is a v2-inheritable finding: a "20-bar EMA"
+  on a traded-minute grid is not a 20-minute EMA. The v2 rebuild should take wall-clock windows by
+  construction rather than rediscover this.
+- **Seam Scientist** — the stamped both-sources distribution is new research surface; no seam mechanism
+  touched. CLEAN.
+- **Historian** — 8/17 is the day a handed-down "3-minute defect" was refuted in code and the real one
+  (two 1-minute clocks) was diagnosed and half-fixed. The refutation and its reversal are both on the
+  record; the record is the point.
+- **Momentum Operator** — `check_momentum` (**:4199**) is NOT touched (§3); its exempt tuple and vel5
+  set are unchanged. CLEAN, and deliberately so.
+- **Wind Tunnel Engineer** — **STAKE**: no offline study replicated the live front-side gate. Every
+  kevseq dollar figure we hold remains a **front-side-free superset**. That fidelity gap is unchanged
+  by this batch and stays open.
+- **Crown Steward · Curl Mechanic · Reclaim Architect · Rocket Rider · Handicapper · Cartographer ·
+  Kev Librarian · Quartermaster · Opening Bell · First Hour · Convexity Trader · Tape Veteran ·
+  Forward Architect · Project Manager · Webull Broker Desk** — **CLEAN**: no crown, curl, reclaim,
+  parabolic, selection, map, corpus, warehouse, pre-open, first-hour, tail-shape, broker, or backlog
+  surface is in this diff. Named so no office is denied its say.
+
+## 9. SPEC TENSIONS FOR MARCOS (not resolved here)
+1. **`KEVSEQ_CONVERT`'s live value is `[UNVERIFIED]`** — read the Railway env before the switch is
+   thrown. If `1`, §5 is a real-money change on thin names.
+2. **Precedence (caller vs self) is still open** and the doc argues `self` is the more faithful source.
+   Both values are now stamped; grade before inverting.
+3. **The five flagged fetch sites** stay on the traded-minute grid by your ruling. Three would need
+   fail-CLOSED insufficient-data semantics designed first; two are position-open ships.
+4. **Window size 50 wall-min** is the fetch's own stated intent, not a measured optimum. It is env-tunable
+   and should be graded, not trusted.
+
+## 10. RIG — EXECUTED BY ME, EXIT CODE READ DIRECTLY
+Invoked as a **script** (`python3 rig/test_shipset_20260804.py`), never pytest — the rig calls
+`sys.exit()` at module scope and pytest INTERNALERRORs on it (batch-4 method note, honored).
+
+Pre-artifact run, `SHIP_CHECK=1`: **638 green, exit 1, ONE RED — section Q only**
+(`HEAD 1a5e42f0a54e not covered by data/audits/LATEST.md`) — the designed interlock firing because
+this artifact did not yet exist. Sections **FS (12/12), TF (16/16), M1W (10/10)** all present AND
+executed green in that same run. Post-commit rerun appended below.
+
+### FINAL SHIP_CHECK (run after this artifact was committed as `fdf2876`)
+`SHIP_CHECK=1 python3 rig/test_shipset_20260804.py` → **639 green, ZERO red, EXIT CODE 0.**
+Section **Q** (convene-or-don't-ship interlock) **GREEN** — the audited tree is recorded.
+Sections FS 12/12 · TF 16/16 · M1W 10/10 green in the same run. Judged by exit code, per
+`feedback_rig_tests_spec_not_impl`.
+
+**GREEN. Deploy authorized by the audit; the go/no-go on `M1_WALLCLOCK` (and the
+`KEVSEQ_CONVERT` live-env read in §9.1) remains Marcos's.**

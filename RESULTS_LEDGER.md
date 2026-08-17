@@ -2132,3 +2132,9 @@ band-pass, v2. Holes registry H-SEQ-<lane> per lane. The grammar, not the letter
 - NOTHING beat E3 on MINE -> per protocol nothing frozen, no null owed. Not underpowered — consistently worse.
 - MECHANISM: the grammars DO deliver what they promise (40-65% of E3 giveback recovered, hold time 80min -> 6-36min) but on this tape a volume climax / lower-low / fade-push is a SHAKEOUT, not a top. Early exits forfeit the runners the lanes live on.
 - THIRD CONSECUTIVE exit-intelligence refutation (exit_eyes V1-V3b, Sunday T6, now sequence grammar). Standing: E3 unchanged; the Eyes Matrix "E3 consults zero eyes at exit" is now a MEASURED CHOICE, not a hole. Do not re-propose exit-side smartness without new evidence class (not another pattern on the same 10s bars).
+
+## 2026-08-17 ~03:20 ET — MULTI-DAY SEQUENCE: UNDERPOWERED (all 4 hypotheses) + a DATA-COVERAGE HOLE
+- seq_multiday_20260817.md (commit ca8da68). Inventory: 68 same-ticker consecutive-date pairs (53 tickers, MINE 49 / HOLD-OUT 19) — above the 30-pair floor, but only 80 of 1,021 BA+grinder fires land on a pair's day-2 tape (62/18), so every cell dies at the OOS floor. Nulls wired, never earned.
+- H1 continuation / H2 day-2 fade / H3 gap-hold / H4 quiet-then-loud: ALL UNDERPOWERED. H2 sign-flips MINE(+$10.59)->HOLD(-$59.11) on 7/11-fire cells. H4 runs OPPOSITE its registration in BOTH halves (loud day-1 -> better day-2, -$14/-$30) — descriptive only, re-registered as a loud-then-loud hypothesis for joint_door.
+- **HEADLINE (the real finding): only ~9% of name-days have a next-day tape for the same name.** The universe is one-day-wonder captures. ALL multi-day work (incl. the day-2/earnings plays like FIEE) is unmeasurable until d+1 tape exists.
+- ACTION (Quartermaster, queued not shipped): deliberate d+1 re-capture for runner names, or SIP backfill of d+1 for the 729 name-days. This is the cheapest unlock of a whole study domain.

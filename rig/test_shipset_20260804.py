@@ -3820,6 +3820,114 @@ try:
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError, IndexError) as _e1e:
     check("EG1 section", False, f"{type(_e1e).__name__}: {_e1e}")
 
+print("EG2) 8/17 ENFORCEMENT GATE 2 — STUDY PROVENANCE (a study may not hand-roll the detector "
+      "it is grading)")
+# WHY THIS EXISTS: kevseq_frontside_tf_20260817.md found that FOUR studies graded a kevseq that
+# is not ours — they applied no front-side clause at all while the live lane requires it. Same
+# species as the fill-model drift and the fictional-fill accounting: a replica detector drifts,
+# and always in the flattering direction. data/killtests/live_harness.py (commit 83c33e1) runs
+# the BOT'S OWN function objects, so study == live by construction.
+# THE RULE, ENFORCED: any NEW script under data/killtests/ that re-implements a bot detector
+# must import live_harness. Existing scripts are grandfathered BY NAME with a dated comment.
+# FAILURE CONDITION (written first): wrong if a new hand-rolled detector can land unflagged, or
+# if a genuine harness-based study is flagged as a re-implementation.
+try:
+    import glob as _e2glob
+    _E2_DIR = os.path.join(ROOT, "data", "killtests")
+
+    # structural re-implementation signatures — each one is a thing the bot already does
+    _E2_LANE_NAMES = ("kevseq", "grinder", "bandpass", "prevwap", "v2", "hidden", "zoneflip",
+                      "zone_flip", "reclaim", "ignition", "dip_rip", "flat_top", "flattop")
+    _E2_SIGS = [
+        # a detector-shaped def: the bot's own naming, or <lane>_replay/scan/sim/detect/fires
+        ("own-detector-def",
+         r'^\s*def\s+(?:\w*_step|detect_\w+|(?:%s)_(?:replay|scan|sim|detect|fires))\s*\('
+         % "|".join(_E2_LANE_NAMES)),
+        # re-derives the EMA-cross front side (the exact clause the four studies dropped)
+        ("ema-cross-rederive", r'^\s*def\s+(?:e9_series|ema9_series|_ema9|ema_series)\s*\('),
+        # re-implements the burst percentile
+        ("burst-percentile", r'^\s*def\s+(?:pctile|percentile|_p75)\s*\('),
+    ]
+    _E2_IMPORT = r'(?:^\s*(?:from|import)\s+live_harness\b|^\s*import\s+live_harness|live_harness\s+as\s+\w+|import_module\(["\']live_harness)'
+
+    def _e2_scan(path):
+        """(list of tripped signature names) for one script. Empty = clean."""
+        t = open(path, errors="replace").read()
+        if re.search(_E2_IMPORT, t, re.M):
+            return []                      # runs the bot's own detectors — provenance satisfied
+        return [n for n, r in _E2_SIGS if re.search(r, t, re.M)]
+
+    # ── GRANDFATHER ALLOWLIST — frozen 2026-08-17. These are HISTORICAL ARTIFACTS. Adding a
+    # name here is a deliberate act with a date; new work does not get to join it. ────────────
+    _E2_ALLOW = {
+        # ── KNOWN-CONTAMINATED (kevseq_frontside_tf_20260817.md): these four applied NO
+        # front-side clause while the live lane requires it. Their numbers grade a machine that
+        # is not ours. DO NOT CITE AS CLEAN. Re-run through live_harness before any verdict.
+        "entry_drift_20260817.py":          "2026-08-17 KNOWN-CONTAMINATED (no front-side clause)",
+        "burst_saturation_20260817.py":     "2026-08-17 KNOWN-CONTAMINATED (no front-side clause)",
+        "kevseq_floor_sweep_20260817.py":   "2026-08-17 KNOWN-CONTAMINATED (no front-side clause)",
+        "kevseq_reconciliation_20260817.py":"2026-08-17 KNOWN-CONTAMINATED (consumes the above "
+                                            "scripts' fires — inherits the contamination)",
+        # ── grandfathered, pre-harness, not implicated in the front-side finding
+        "edge_stresstest_20260815.py":      "2026-08-17 grandfathered (pre-harness, 8/15)",
+        "missing_regimes_20260814_sim.py":  "2026-08-17 grandfathered (pre-harness, 8/14)",
+        "seq_exit_grammar_20260817.py":     "2026-08-17 grandfathered (exit grammar, not a lane "
+                                            "detector — its own burst helper is descriptive)",
+    }
+    _E2_CONTAM = [k for k, v in _E2_ALLOW.items() if "KNOWN-CONTAMINATED" in v]
+
+    _e2_tripped = {}
+    for _p in sorted(_e2glob.glob(os.path.join(_E2_DIR, "*.py"))):
+        _b = os.path.basename(_p)
+        if _b == "live_harness.py":
+            continue
+        _w = _e2_scan(_p)
+        if _w:
+            _e2_tripped[_b] = _w
+    _e2_new = sorted(set(_e2_tripped) - set(_E2_ALLOW))
+    check("EG2: no NEW killtest script hand-rolls a bot detector without live_harness",
+          not _e2_new, f"HAND-ROLLED: {[(b, _e2_tripped[b]) for b in _e2_new]}")
+    # the allowlist may not rot: a name on it that no longer trips is a stale exemption
+    # (a KNOWN-CONTAMINATED entry may legitimately not trip a signature — kevseq_reconciliation
+    # hand-rolls nothing, it CONSUMES the contaminated scripts' fires; the label is the point)
+    _e2_stale = sorted(set(_E2_ALLOW) - set(_e2_tripped) - set(_E2_CONTAM))
+    check("EG2: the grandfather allowlist carries no stale entries",
+          not _e2_stale, f"STALE (delete these): {_e2_stale}")
+    check("EG2: all four front-side-free studies are named KNOWN-CONTAMINATED",
+          set(_E2_CONTAM) == {"entry_drift_20260817.py", "burst_saturation_20260817.py",
+                              "kevseq_floor_sweep_20260817.py",
+                              "kevseq_reconciliation_20260817.py"}, str(sorted(_E2_CONTAM)))
+    check("EG2: the harness exists and is importable-shaped (the required dependency)",
+          os.path.exists(os.path.join(_E2_DIR, "live_harness.py"))
+          and "def replay(" in open(os.path.join(_E2_DIR, "live_harness.py")).read())
+
+    # ── NEGATIVE CONTROLS ─────────────────────────────────────────────────────────────────
+    # (1) a synthetic hand-rolled study must trip. Written to a temp path, scanned, deleted.
+    import tempfile as _e2tmp
+    _e2_fake = os.path.join(_e2tmp.mkdtemp(), "synthetic_handrolled_20260817.py")
+    open(_e2_fake, "w").write(
+        "# synthetic negative control: a study that re-implements the kevseq detector\n"
+        "def pctile(v, p):\n    return sorted(v)[int(len(v) * p / 100)]\n\n"
+        "def kevseq_scan(bars, vwaps, e9s):\n    return [b for b in bars if b[4] > b[1]]\n")
+    check("EG2-NC: a synthetic hand-rolled detector script TRIPS the gate",
+          set(_e2_scan(_e2_fake)) >= {"own-detector-def", "burst-percentile"},
+          str(_e2_scan(_e2_fake)))
+    # (2) the SAME script with the harness import must come back clean (no false positive)
+    open(_e2_fake, "w").write(
+        "import sys; sys.path.insert(0, 'data/killtests')\nimport live_harness as H\n"
+        "def kevseq_scan(bars):\n    return H.replay('TT', bars, ['kevseq'])\n")
+    check("EG2-NC: the same script importing live_harness is CLEAN (no false positive)",
+          _e2_scan(_e2_fake) == [], str(_e2_scan(_e2_fake)))
+    os.remove(_e2_fake)
+    # (3) the four historical violators really do trip the signatures (the gate is not vacuous)
+    check("EG2-NC: the historical violators trip the signatures they were written for",
+          all(_e2_tripped.get(b) for b in ("entry_drift_20260817.py",
+                                           "burst_saturation_20260817.py",
+                                           "kevseq_floor_sweep_20260817.py")),
+          str({b: _e2_tripped.get(b) for b in _E2_CONTAM}))
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError, OSError) as _e2e:
+    check("EG2 section", False, f"{type(_e2e).__name__}: {_e2e}")
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

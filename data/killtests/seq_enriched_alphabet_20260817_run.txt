@@ -1,0 +1,85 @@
+# ENRICHED-ALPHABET SEQUENCE MINING — 8/17/26
+Volume-case + velocity + effort/result channels on the base price-structure alphabet.
+Engine: pilot chain unchanged (E3 live-parity, $500). Analysis only.
+
+Universe 729 files / 729 name-days / 62 dates.
+SPLIT (wall parity): MINE 2026-05-18..2026-07-21 (44d) | HOLD-OUT 2026-07-22..2026-08-14 (18d)
+
+---
+
+## LANE: break-attack
+Fires: total 634 | MINE 447 (T B parent 42) | HOLD-OUT 187 (T B parent 18)
+
+### Pre-registered splits WITHIN the `T B` parent cohort
+MINE `T B` cohort: N=42, $/tr $+48.85, win 76%
+
+| hypothesis | MINE N(has/not) | MINE $/tr has vs not | MINE lift | HOLD N(has/not) | HOLD $/tr has vs not | HOLD lift | HOLD guard lift | null p | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| H1 t->B! (quiet test, burst break) | 12/30 | $+27.79 vs $+57.27 | $-29.48 | 4/14 | $+72.71 vs $+49.20 | $+23.51 | $+19.75 | 0.239 | UNDERPOWERED |
+| H2 T!->b (burst test, fade break) | 5/37 | $+24.36 vs $+52.16 | $-27.79 | 0/18 | $+0.00 vs $+54.43 | $+0.00 | $+0.00 | - | UNDERPOWERED |
+| H3 T!->B! (both burst) | 21/21 | $+68.35 vs $+29.35 | $+39.00 | 7/11 | $+10.50 vs $+82.38 | $-71.88 | $-15.65 | 0.998 | UNDERPOWERED |
+| H4 t->b (both quiet) | 4/38 | $+40.24 vs $+49.75 | $-9.52 | 7/11 | $+87.91 vs $+33.12 | $+54.78 | $+1.28 | 0.045 | UNDERPOWERED |
+| H5 FAST T->B (<=6 bars) | 40/2 | $+50.88 vs $+8.17 | $+42.71 | 18/0 | $+54.43 vs $+0.00 | $+0.00 | $+0.00 | - | UNDERPOWERED |
+| H6 U dry-up before B | 36/6 | $+52.65 vs $+26.00 | $+26.65 | 16/2 | $+41.54 vs $+157.52 | $-115.97 | $-9.84 | 0.954 | UNDERPOWERED |
+| H7 A absorption before B | 38/4 | $+53.45 vs $+5.12 | $+48.33 | 17/1 | $+55.04 vs $+43.96 | $+11.09 | $+18.83 | 0.395 | UNDERPOWERED |
+| H8 '>' pace-expansion into B (<=6 bars) | 25/17 | $+66.90 vs $+22.29 | $+44.61 | 7/11 | $+42.71 vs $+61.88 | $-19.17 | $-7.13 | 0.691 | UNDERPOWERED |
+| H9 X climax before B | 32/10 | $+58.78 vs $+17.06 | $+41.72 | 14/4 | $+52.81 vs $+60.08 | $-7.27 | $-15.95 | 0.626 | UNDERPOWERED |
+| H10 V vacuum before B | 29/13 | $+68.51 vs $+4.98 | $+63.53 | 10/8 | $+41.03 vs $+71.17 | $-30.14 | $+3.96 | 0.799 | UNDERPOWERED |
+
+HOLD-OUT `T B` cohort raw: N=18, $/tr $+54.43, win 89% | under guard: $/tr $+17.78
+
+### Open enriched-suffix mining on MINE (material-N >= 26 = max(15, 6% of 447))
+MINE base $/tr $+27.67. Top/bottom material enriched suffixes:
+| suffix | N | win% | $/tr | lift |
+|---|---|---|---|---|
+| `B! >` | 54 | 69% | $+33.95 | $+6.28 |
+| `P! >` | 99 | 70% | $+23.31 | $-4.36 |
+| `> P! >` | 49 | 71% | $+17.35 | $-10.32 |
+| `B! >` | 54 | 69% | $+33.95 | $+6.28 |
+| `P! >` | 99 | 70% | $+23.31 | $-4.36 |
+| `> P! >` | 49 | 71% | $+17.35 | $-10.32 |
+
+**FROZEN best MINE enriched suffix `B! >`** (N=54, MINE $/tr $+33.95, lift $+6.28) applied to HOLD-OUT:
+- raw $500: gated N=14, $/tr $+35.65 vs ungated $+24.94 (lift $+10.71)
+- under D-guard: gated $/tr $+14.85 vs ungated $+4.84
+- null (5000, vs whole hold-out book): p=0.240, N=14
+
+---
+
+## LANE: grinder
+Fires: total 387 | MINE 245 (T B parent 77) | HOLD-OUT 142 (T B parent 27)
+
+### Pre-registered splits WITHIN the `T B` parent cohort
+MINE `T B` cohort: N=77, $/tr $+43.62, win 82%
+
+| hypothesis | MINE N(has/not) | MINE $/tr has vs not | MINE lift | HOLD N(has/not) | HOLD $/tr has vs not | HOLD lift | HOLD guard lift | null p | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| H1 t->B! (quiet test, burst break) | 17/60 | $+56.11 vs $+40.08 | $+16.03 | 4/23 | $+78.54 vs $+39.91 | $+38.63 | $-3.64 | 0.096 | UNDERPOWERED |
+| H2 T!->b (burst test, fade break) | 7/70 | $+49.03 vs $+43.08 | $+5.95 | 6/21 | $+23.75 vs $+51.88 | $-28.14 | $-33.88 | 0.853 | UNDERPOWERED |
+| H3 T!->B! (both burst) | 45/32 | $+37.12 vs $+52.77 | $-15.65 | 16/11 | $+47.13 vs $+43.45 | $+3.68 | $+29.00 | 0.430 | NO-SPLIT |
+| H4 t->b (both quiet) | 8/69 | $+48.93 vs $+43.01 | $+5.92 | 1/26 | $+21.31 vs $+46.57 | $-25.26 | $-19.21 | 0.777 | UNDERPOWERED |
+| H5 FAST T->B (<=6 bars) | 75/2 | $+42.38 vs $+90.19 | $-47.81 | 25/2 | $+46.18 vs $+38.78 | $+7.40 | $-10.39 | 0.388 | UNDERPOWERED |
+| H6 U dry-up before B | 70/7 | $+46.70 vs $+12.81 | $+33.90 | 26/1 | $+45.12 vs $+58.82 | $-13.69 | $+19.21 | 0.706 | UNDERPOWERED |
+| H7 A absorption before B | 77/0 | $+43.62 vs $+0.00 | $+0.00 | 26/1 | $+45.00 vs $+62.12 | $-17.12 | $+19.21 | 0.755 | UNDERPOWERED |
+| H8 '>' pace-expansion into B (<=6 bars) | 43/34 | $+41.66 vs $+46.11 | $-4.45 | 20/7 | $+48.58 vs $+37.22 | $+11.36 | $-5.08 | 0.333 | UNDERPOWERED |
+| H9 X climax before B | 77/0 | $+43.62 vs $+0.00 | $+0.00 | 26/1 | $+41.84 vs $+144.28 | $-102.44 | $-56.18 | 0.955 | UNDERPOWERED |
+| H10 V vacuum before B | 34/43 | $+61.93 vs $+29.15 | $+32.77 | 16/11 | $+50.27 vs $+38.89 | $+11.38 | $+8.36 | 0.301 | NO-SPLIT |
+
+HOLD-OUT `T B` cohort raw: N=27, $/tr $+45.63, win 81% | under guard: $/tr $+18.50
+
+### Open enriched-suffix mining on MINE (material-N >= 15 = max(15, 6% of 245))
+MINE base $/tr $+30.89. Top/bottom material enriched suffixes:
+| suffix | N | win% | $/tr | lift |
+|---|---|---|---|---|
+| `Q B!` | 15 | 60% | $+47.43 | $+16.54 |
+| `> B! >` | 17 | 82% | $+34.70 | $+3.81 |
+| `B! >` | 68 | 81% | $+34.07 | $+3.18 |
+| `Q B! >` | 17 | 76% | $+28.09 | $-2.79 |
+| `> B! >` | 17 | 82% | $+34.70 | $+3.81 |
+| `B! >` | 68 | 81% | $+34.07 | $+3.18 |
+| `Q B! >` | 17 | 76% | $+28.09 | $-2.79 |
+
+**FROZEN best MINE enriched suffix `Q B!`** (N=15, MINE $/tr $+47.43, lift $+16.54) applied to HOLD-OUT:
+- raw $500: gated N=7, $/tr $+24.37 vs ungated $+21.90 (lift $+2.48)
+- under D-guard: gated $/tr $-0.13 vs ungated $+6.16
+- null (5000, vs whole hold-out book): p=0.425, N=7

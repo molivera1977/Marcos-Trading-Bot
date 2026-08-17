@@ -1,0 +1,62 @@
+# EXIT-SIDE SEQUENCE GRAMMAR — 8/17/26 (H1-H4 vs mechanical E3)
+Universe: 729 files, 729 name-days, 62 dates 2026-05-18..2026-08-14.
+MINE 2026-05-18..2026-07-21 (44) | HOLD-OUT 2026-07-22..2026-08-14 (18)
+
+---
+## LANE: flat_top BREAK-ATTACK
+Fires (deduped): 634. Sanity |my-E3 - S.run| max = 0.000000
+
+### MINE (447 fires, 44 active dates)
+| variant | total | $/tr | day mean | day med | worst | green% | fired | avg hold | giveback | recov% |
+|---|---|---|---|---|---|---|---|---|---|---|
+| E3 | $+12367.49 | $+27.67 | $+281.08 | $+274.42 | $-121.42 | 89% | 0 | 75m | $+20000 | +0% |
+| H1 | $+1085.83 | $+2.43 | $+24.68 | $+4.06 | $-193.68 | 52% | 326 | 17m | $+11416 | +43% |
+| H2 | $+2848.89 | $+6.37 | $+64.75 | $+68.77 | $-166.89 | 70% | 333 | 25m | $+9970 | +50% |
+| H3 | $-1662.41 | $-3.72 | $-37.78 | $-56.11 | $-181.97 | 27% | 410 | 6m | $+9024 | +55% |
+| H4 | $-63.09 | $-0.14 | $-1.43 | $-10.03 | $-171.51 | 43% | 365 | 11m | $+9986 | +50% |
+
+### HOLD-OUT (all variants shown for transparency; only the FROZEN winner counts) (187 fires, 18 active dates)
+| variant | total | $/tr | day mean | day med | worst | green% | fired | avg hold | giveback | recov% |
+|---|---|---|---|---|---|---|---|---|---|---|
+| E3 | $+4663.52 | $+24.94 | $+259.08 | $+280.65 | $-119.26 | 78% | 0 | 102m | $+7806 | +0% |
+| H1 | $+131.12 | $+0.70 | $+7.28 | $-0.33 | $-228.74 | 50% | 128 | 22m | $+4690 | +40% |
+| H2 | $+1583.27 | $+8.47 | $+87.96 | $+81.82 | $-138.12 | 78% | 128 | 36m | $+4202 | +46% |
+| H3 | $-1160.31 | $-6.20 | $-64.46 | $-81.72 | $-202.67 | 11% | 169 | 9m | $+3609 | +54% |
+| H4 | $-456.15 | $-2.44 | $-25.34 | $-18.87 | $-173.93 | 33% | 154 | 15m | $+3787 | +51% |
+
+**No variant beat E3 on MINE (day-mean) with the worst-day guard.**
+
+**VERDICT [flat_top BREAK-ATTACK]: NO-LIFT** — best pattern on MINE (H2) day-mean $+64.75 vs E3 $+281.08 — nothing to freeze.
+
+---
+## LANE: GRINDER
+Fires (deduped): 387. Sanity |my-E3 - S.run| max = 0.000000
+
+### MINE (245 fires, 41 active dates)
+| variant | total | $/tr | day mean | day med | worst | green% | fired | avg hold | giveback | recov% |
+|---|---|---|---|---|---|---|---|---|---|---|
+| E3 | $+7566.98 | $+30.89 | $+184.56 | $+110.76 | $-175.04 | 80% | 0 | 80m | $+8478 | +0% |
+| H1 | $+996.72 | $+4.07 | $+24.31 | $+8.11 | $-78.17 | 54% | 197 | 14m | $+3853 | +55% |
+| H2 | $+2893.15 | $+11.81 | $+70.56 | $+20.38 | $-69.24 | 68% | 183 | 26m | $+3637 | +57% |
+| H3 | $-167.56 | $-0.68 | $-4.09 | $-16.29 | $-91.48 | 44% | 223 | 7m | $+2944 | +65% |
+| H4 | $+1387.87 | $+5.66 | $+33.85 | $+7.92 | $-94.78 | 56% | 212 | 11m | $+3153 | +63% |
+
+### HOLD-OUT (all variants shown for transparency; only the FROZEN winner counts) (142 fires, 17 active dates)
+| variant | total | $/tr | day mean | day med | worst | green% | fired | avg hold | giveback | recov% |
+|---|---|---|---|---|---|---|---|---|---|---|
+| E3 | $+3109.33 | $+21.90 | $+182.90 | $+142.32 | $-51.06 | 88% | 0 | 83m | $+3595 | +0% |
+| H1 | $+922.85 | $+6.50 | $+54.29 | $+22.73 | $-174.70 | 59% | 109 | 14m | $+2142 | +40% |
+| H2 | $+1089.89 | $+7.68 | $+64.11 | $+11.88 | $-160.35 | 59% | 96 | 22m | $+2162 | +40% |
+| H3 | $-33.78 | $-0.24 | $-1.99 | $-7.29 | $-168.93 | 47% | 127 | 7m | $+1801 | +50% |
+| H4 | $+699.73 | $+4.93 | $+41.16 | $+11.61 | $-147.32 | 59% | 110 | 13m | $+1823 | +49% |
+
+**No variant beat E3 on MINE (day-mean) with the worst-day guard.**
+
+**VERDICT [GRINDER]: NO-LIFT** — best pattern on MINE (H2) day-mean $+70.56 vs E3 $+184.56 — nothing to freeze.
+
+---
+## SUMMARY
+| lane | winner | MINE day-mean (win vs E3) | HOLD-OUT day-mean (win vs E3) | verdict |
+|---|---|---|---|---|
+| break-attack | - | — vs $+281.08 | — vs $+259.08 | NO-LIFT |
+| grinder | - | — vs $+184.56 | — vs $+182.90 | NO-LIFT |

@@ -58,6 +58,28 @@ HEAD after the final batch commit. Full rig exit 0 after every item and at close
 - Item 1's KEV_ROAD is the only money-behavior change in the batch — it goes to Marcos priced
   (auditor-cannot-authorize law); the commit carries the WETO hand-trace.
 
+## BATCH 2 (appended same day — build-only, NO deploy; book flat rule holds for the ship)
+
+6. **item A (173d8f1)** — TAPE-LANE SCALAR-VETO EXEMPTION. ENFORCES SETTLED 7/26 doctrine
+   ("do-not-trade blocks CHART lanes only; tape lanes trade through by design"; momentum scalar
+   REFUTED). Kill-test FIRST: era archive join found exactly ONE tape-lane setup-quality veto
+   (WETO 8/17 kevseq — today's specimen), E3 counterfactual +$25.14 -> BUILD by pre-registered
+   rule (N=1 thinness flagged honestly; doctrine carries the weight). Change: worker momentum
+   else-branch bypasses ONLY 'no momentum build' for kevseq/v2conv/grinder/bandpass/prevwap;
+   illiquid + ambient TRADEABILITY floors and topping-tail keep their veto; every bypass logs
+   scalar_veto_bypassed. Kill: TAPE_LANE_SCALAR_EXEMPT=0. Rig AL. MONEY-BEHAVIOR CHANGE
+   (a previously vetoed tape-lane entry now proceeds) — doctrine-mandated, goes to Marcos priced.
+7. **item B (cdbe7d4)** — CROWN forensic + CROWN_FIX_0817. Repairs the 8/5 meritocracy PROMISE'S
+   VISIBILITY, not its behavior: forensic PROVED WETO was crowned 09:47:07 (one cycle after the
+   first post-halt print over +40%); leader_armed was always the crown row. Fix = explicit
+   observe-only 'crowned' row at qualify. Kill: CROWN_FIX_0817=0. Rig AM. Convening: confirm
+   the 'crowned' status collides with nothing (dashboard by_status, rehydrate query untouched).
+
+### Batch-2 sweep notes
+- Item A touches the single momentum call site; vel5 set is chart-only (rig-pinned); exempt
+  tuple unchanged; check_momentum internals untouched.
+- Item B: 'crowned' written once, never read (rig-pinned); rehydrate still keys on leader_armed.
+
 ## Spec tensions logged for Marcos (NOT resolved here)
 
 - Item 2: ceiling_reject was ALREADY a reader marker + fires `_request_auto_read` (30-min
@@ -67,3 +89,8 @@ HEAD after the final batch commit. Full rig exit 0 after every item and at close
   path only (the row that proceeds); refused fires (daily_bad, below_convert) are unstamped.
 - Item 3: roster = today's levels sheet (kev_watchlist levels), not the bot's watch roster —
   the reader has no view of the bot's roster; chosen as the nearest in-process truth.
+- Batch2 item A: counterfactual N=1 (the WETO specimen itself) — the exemption ships on doctrine
+  + one priced specimen; Friday grades scalar_veto_bypassed rows on real traffic.
+- Batch2 item B: two prior-close sources disagree (kevseq day_gain 137.17 vs eyes dg 124.45) —
+  pin one source (split-adjustment class); and 40%-crossed-INSIDE-a-halt structurally delays the
+  crown to resumption+1 cycle — halt-time crowning = behavior change, Marcos's call.

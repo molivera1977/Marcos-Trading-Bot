@@ -8,7 +8,7 @@ import os
 import time
 import json
 import pathlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask, jsonify, render_template_string, request
 import pytz
 import html as html_mod
@@ -2196,6 +2196,83 @@ def pause_entries():
         print(f"[pause-entries] AUTO-EXPIRED -> {_pause_entries}", flush=True)
     return jsonify(_pause_entries)
 
+# ── 8/17 MANUAL CLOSE-POSITION CONTROL (Marcos said "close it" and there was no mechanism —
+#    the only options were wait for the stop, or restart, and since the 8/9 painless-restart work
+#    a restart RESUMES positions rather than closing them). Same bot<->dashboard control channel
+#    as pause_entries: the dashboard holds the request, the bot polls and acts. Failure condition
+#    doc: data/killtests/manual_close_20260817.md ──
+MANUAL_CLOSE_TTL_S = 600          # 10 minutes — see the docstring's safety property
+_pending_closes: dict = {}        # key -> {ticker, trade_id, at_utc, at, source, note, expires_at}
+
+def _mc_key(ticker, trade_id):
+    return ("id:" + str(trade_id)) if trade_id else ("tk:" + str(ticker or "").upper())
+
+def _mc_prune(now_epoch=None):
+    """Drop expired requests. SAFETY PROPERTY: a close request auto-expires after 10 minutes so
+    that a stale request can NEVER fire on a LATER position in the same name (ask to close DFSC
+    at 10:02, it stops out on its own at 10:03, the bot re-enters DFSC at 10:20 — the old request
+    must be long dead). This is one of TWO independent guards; the bot separately ignores any
+    request whose timestamp pre-dates the position's entry_ts_utc."""
+    now_epoch = now_epoch if now_epoch is not None else time.time()
+    for k in list(_pending_closes.keys()):
+        try:
+            if now_epoch >= float((_pending_closes.get(k) or {}).get("expires_epoch") or 0):
+                _pending_closes.pop(k, None)
+                print(f"[close-position] EXPIRED {k} (>{MANUAL_CLOSE_TTL_S}s)", flush=True)
+        except (TypeError, ValueError):
+            _pending_closes.pop(k, None)
+
+@app.route("/api/close_position", methods=["GET", "POST"])
+def close_position_request():
+    """8/17 MANUAL CLOSE. GET -> the pending-close set (read-only, expired entries pruned first).
+    POST (authed) {"ticker": "DFSC"} or {"trade_id": "<id>"} -> register a close request; the bot's
+    monitor loop picks it up on its next cached poll and exits the FULL remaining position through
+    the SAME choke point the stop and the 15:45 flatten use.
+
+    SAFETY PROPERTIES enforced here:
+      • AUTO-EXPIRY (10 min): a stale close request must never fire on a LATER position in the
+        same name. A request that is not consumed within MANUAL_CLOSE_TTL_S disappears. The bot
+        adds the second guard (request timestamp must be NEWER than the position's entry_ts_utc).
+      • MERGE-ONLY (7/24 wipe law): a POST adds/refreshes ONE key and never touches the others —
+        two positions can be queued for close at once.
+      • EXPLICIT CLEAR/ACK: POST {"ticker": "X", "clear": true} removes the request. The BOT posts
+        this itself after acting, so a consumed request cannot re-fire.
+    Operator-initiated only — the bot never originates a request here."""
+    _mc_prune()
+    if request.method == "POST":
+        if not _endpoint_authed():
+            return jsonify({"error": "unauthorized"}), 401
+        d = request.get_json(silent=True) or {}
+        ticker   = str(d.get("ticker") or "").upper().strip()
+        trade_id = str(d.get("trade_id") or "").strip() or None
+        if not ticker and not trade_id:
+            return jsonify({"error": "ticker or trade_id required"}), 400
+        key = _mc_key(ticker, trade_id)
+        if d.get("clear"):
+            gone = _pending_closes.pop(key, None)
+            # ack tolerance: the bot may know the trade_id while the operator only typed a ticker
+            # (or vice versa) — clear BOTH shapes for the same trade so nothing can re-fire.
+            alt = _mc_key(ticker, None) if trade_id else None
+            if alt and alt in _pending_closes and (_pending_closes[alt].get("ticker") == ticker):
+                gone = _pending_closes.pop(alt, gone)
+            print(f"[close-position] CLEARED {key} ({'was pending' if gone else 'not pending'})", flush=True)
+            return jsonify({"status": "ok", "cleared": bool(gone), "pending": list(_pending_closes.values())})
+        now = datetime.now(EASTERN)
+        rec = {"ticker": ticker or None, "trade_id": trade_id,
+               "at": now.isoformat(),
+               "at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"),
+               "expires_epoch": time.time() + MANUAL_CLOSE_TTL_S,
+               "ttl_s": MANUAL_CLOSE_TTL_S,
+               "source": str(d.get("source") or "dashboard")[:40],
+               "note": str(d.get("note") or "")[:120]}
+        _pending_closes[key] = rec          # merge-only: exactly one key touched
+        print(f"[close-position] REQUESTED {key} -> {rec}", flush=True)
+        _persist_decisions([{"ticker": ticker or "_MANUAL", "status": "close_requested",
+                             "trade_id": trade_id, "source": rec["source"], "note": rec["note"],
+                             "requested_at_utc": rec["at_utc"]}])
+    return jsonify({"pending": list(_pending_closes.values()), "ttl_s": MANUAL_CLOSE_TTL_S})
+
+
 @app.route("/api/books_export", methods=["GET"])
 def books_export():
     """8/12 QUARTERMASTER (Marcos: "shouldn't it be done now?"): the BOOKS-tier backup — every
@@ -3198,6 +3275,11 @@ a.watch-chip:hover{filter:brightness(1.25)}
 .tape-btn{margin-top:10px;width:100%;background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;
           color:var(--muted);font-size:12px;font-weight:600;padding:7px 10px;cursor:pointer;text-align:center}
 .tape-btn:hover{border-color:var(--blue);color:var(--fg2)}
+/* 8/17 manual close — two-step (arm, then confirm). Deliberately quiet until armed. */
+.close-btn{margin-top:6px;width:100%;background:var(--bg2);border:1px solid var(--red);border-radius:8px;
+           color:var(--red);font-size:12px;font-weight:700;padding:7px 10px;cursor:pointer;text-align:center}
+.close-btn:hover{background:rgba(255,80,80,.10)}
+.close-btn.armed{background:var(--red);color:#fff;border-color:var(--red)}
 .tape{display:none;margin-top:10px;background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:12px 14px}
 .tape.show{display:block}
 .tape .verdict{font-size:14px;font-weight:800;margin-bottom:8px}
@@ -4084,6 +4166,39 @@ function toggleStory(key, ev){
   renderTable(window._allTrades||[]);
 }
 
+// ── 8/17 MANUAL CLOSE (operator-initiated). Two-step: first click ARMS ("Confirm close?"),
+// second click POSTs. Auto-disarms after 6s so a stray click can't sit armed. The button then
+// shows "closing…" until the position leaves /api/open_trades. The secret rides ?key= from the
+// dashboard URL (same auth the other gated endpoints accept); if it's absent we ask once and
+// keep it in memory only — never stored.
+window._closeArmed = window._closeArmed || new Set();
+window._closing    = window._closing    || new Set();
+window._dashKey    = window._dashKey    || (new URLSearchParams(location.search).get('key') || '');
+function closePos(ticker, tradeId){
+  if(window._closing.has(ticker)) return;
+  if(!window._closeArmed.has(ticker)){
+    window._closeArmed.add(ticker);
+    setTimeout(function(){ if(window._closeArmed.delete(ticker)) renderAllTrades(window._openTradesList||[]); }, 6000);
+    renderAllTrades(window._openTradesList||[]);
+    return;
+  }
+  window._closeArmed.delete(ticker);
+  if(!window._dashKey){ window._dashKey = prompt('Dashboard secret to close '+ticker+':') || ''; }
+  if(!window._dashKey){ renderAllTrades(window._openTradesList||[]); return; }
+  window._closing.add(ticker);
+  renderAllTrades(window._openTradesList||[]);
+  fetch('/api/close_position?key='+encodeURIComponent(window._dashKey),
+        {method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({ticker:ticker, trade_id:tradeId||null, source:'dashboard', note:'operator'})})
+    .then(function(r){ if(!r.ok){ throw new Error('HTTP '+r.status); } return r.json(); })
+    .then(function(){ loadWatching(); setTimeout(loadWatching, 6000); })
+    .catch(function(e){
+      window._closing.delete(ticker); window._dashKey='';
+      alert('Close request FAILED for '+ticker+' ('+e.message+') — the position is UNCHANGED.');
+      renderAllTrades(window._openTradesList||[]);
+    });
+}
+
 // Render ONE open-position card. Normalizes /api/open_trades fields (entry_price/last_price)
 // so ALL concurrent positions show — the single-slot trade_state card only ever showed one.
 function tradeCardHTML(t){
@@ -4113,6 +4228,10 @@ function tradeCardHTML(t){
     <div class="tbar-lbls"><span>🛑 stop</span><span>${sold}${(sold&&(t.vwap||et))?' · ':''}${t.vwap?'VWAP $'+Number(t.vwap).toFixed(2):''}${et?(t.vwap?' · ':'')+et:''}</span><span>🎯 target</span></div>
     <div class="tbar-lbls" style="margin-top:6px"><span>High $${Number(t.highest||price).toFixed(2)}</span><span>updated ${upd}</span></div>
     <button class="tape-btn" onclick="toggleTape('${t.ticker}')">${window._tapeOpen.has(t.ticker)?'▲ Hide the tale':'📖 Tale of the tape — what\\'s the plan here?'}</button>
+    <button class="close-btn ${window._closeArmed.has(t.ticker)?'armed':''}" id="cb-${t.ticker}"
+            onclick="closePos('${t.ticker}','${t.trade_id||''}')">${
+      window._closing.has(t.ticker) ? 'closing…'
+      : (window._closeArmed.has(t.ticker) ? '⚠️ Confirm close?' : '✕ Close position')}</button>
     <div class="tape ${window._tapeOpen.has(t.ticker)?'show':''}">${window._tapeOpen.has(t.ticker)?taleLiveHTML(t):''}</div>
   </div>`;
 }
@@ -4120,6 +4239,10 @@ function tradeCardHTML(t){
 function renderAllTrades(list){
   window._openTradesList=list||[];
   window._openTickersNow=(list||[]).map(t=>t.ticker);
+  // 8/17: "closing…" clears itself the moment the position leaves the open-trades store.
+  (Array.from(window._closing||[])).forEach(function(tk){
+    if(window._openTickersNow.indexOf(tk)<0) window._closing.delete(tk);
+  });
   const el=document.getElementById('tradePanel');
   if(!list||!list.length){ el.innerHTML=''; return; }
   const used=list.reduce((a,t)=>a+Number(t.position_size||(Number(t.entry_price||0)*Number(t.initial_shares||0))),0);

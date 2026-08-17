@@ -94,3 +94,64 @@ HEAD after the final batch commit. Full rig exit 0 after every item and at close
 - Batch2 item B: two prior-close sources disagree (kevseq day_gain 137.17 vs eyes dg 124.45) —
   pin one source (split-adjustment class); and 40%-crossed-INSIDE-a-halt structurally delays the
   crown to resumption+1 cycle — halt-time crowning = behavior change, Marcos's call.
+
+---
+
+## Batch-3 item C — MANUAL CLOSE-POSITION CONTROL (NEW MONEY-CAPABLE CONTROL)
+
+**⚠️ This one CLOSES POSITIONS. It is not observe-only.** Per "Auditor Cannot Authorize Behavior"
+(8/13) and "Convene or Don't Ship", it must not deploy before the convening. It is
+**operator-initiated, never autonomous** — the bot never originates a close request; it only
+obeys one an operator created through the authed dashboard endpoint.
+
+**Why**: Marcos said "close it" on a live position (DFSC) and there was no mechanism. The only
+options were (a) wait for the stop or (b) restart — and since the 8/9 painless-restart work a
+restart RESUMES positions rather than closing them. Required go-live safety control.
+
+**Layers built** (BUILD + RIG ONLY — no deploy, no push, no env changes, no restarts; market open
+with one position live at build time):
+- **Dashboard** `screener_app.py` `/api/close_position` (GET pending set / POST authed via
+  `_endpoint_authed()`), modelled exactly on `/api/pause_entries`. Merge-only, 10-min auto-expiry,
+  explicit clear/ack path, `close_requested` decision row.
+- **Bot** `marcos_trading_bot.py` `_manual_close_pending/_match/_ack` + a call site inside
+  `monitor_trade`'s while-loop, immediately after the 15:45 flatten. Exits through the SAME `#53`
+  choke point (`_safety_close` -> ladder cancel -> stop cancel -> `close_position`);
+  `exit_reason = "manual_close (Marcos)"`; new `_exit_layer` bucket `"manual"` so operator exits
+  never contaminate stop/eod statistics. Kill: `MANUAL_CLOSE=0`.
+- **UI**: two-step red "Close position" button on each open-trade card (arm -> confirm, 6s
+  auto-disarm), "closing…" until the position leaves `/api/open_trades`.
+- **Rig section AN** (+ Y-b funnel count 16 -> 17). Full rig exit 0, 506 green.
+- **Failure condition written FIRST**: `data/killtests/manual_close_20260817.md`.
+
+**Safety properties the convening must attack**:
+1. TWO independent stale guards — server 10-min expiry AND `at_utc > entry_ts_utc`. Neither alone
+   is trusted. Target: can a request still reach a LATER position in the same name?
+2. FAIL-CLOSED poll (opposite polarity to `_entries_paused`, which fails open). Any error/timeout/
+   401/malformed body -> empty list -> no close; the cache is cleared on failure, never replayed.
+3. Idempotency: `_mclose_fired` set BEFORE the sell, then `break`. One request, one sell.
+4. No parallel exit path (rig-pinned: no `close_position(`/`_place_order(`/`cancel_order(` inside
+   the manual block).
+5. Auth: POST 401s without the secret; GET is read-only.
+
+**Officers with an obvious stake**: Pit Crew Chief (deploy safety / failure domains), Execution
+Surgeon (the sell itself, double-sell race), Blast Radius Auditor (mandatory), Trade Manager
+(exit accounting + the new "manual" layer), Dashboard Curator (the button), Webull Broker Desk
+(the real market sell — the owed $5 place+cancel test is adjacent), Statistician (manual exits
+must be excluded from lane expectancy).
+
+### Spec tensions for Marcos (NOT resolved here)
+- **Latency vs poll load**: the order specified a >=5s cached poll, so a "close it now" takes up
+  to ~5s (plus the monitor's own 0.5s/15s cadence) to fire. An instant control would need a push
+  channel or a 1s poll. Marcos's call on the tradeoff.
+- **No monitor, no close**: if no monitor thread owns the position (crashed process, pre-monitor
+  window, watchdog-recovered state), nothing consumes the request and it expires silently after
+  10 minutes. There is no broker-side flatten fallback. Whether that fallback is required for
+  go-live is Marcos's call.
+- **Dashboard auth in the browser**: the dashboard page itself is not secret-gated, so the Close
+  button takes the secret from `?key=` in the URL, else prompts once (memory only, never stored).
+  That means anyone holding the dashboard URL *with* the key can close a position. Tightening the
+  operator-auth model is a separate decision.
+- **No "close everything" verb** — built per-position by design. If Marcos wants a single
+  panic-flatten, that is a different (and much larger blast-radius) control.
+- **Fail-CLOSED vs the pause channel's fail-OPEN** are deliberately opposite polarities in the
+  same codebase. Defensible (a close is irreversible), but it is now two rules to remember.

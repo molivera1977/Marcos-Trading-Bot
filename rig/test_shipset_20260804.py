@@ -1505,7 +1505,7 @@ try:
     # outside _safety_close + the ladder-aware tier branch.
     _ym = _y[_y.index("def monitor_trade"):_y.index("def check_token_expiry")]
     assert "_cancel_sell_ladder(ticker, _ladder)" in _ym.split("def _safety_close")[1][:400]
-    assert _ym.count("_safety_close(remaining_shares)") == 16, _ym.count("_safety_close(remaining_shares)")  # 8/14: +1 = the E3 stop/trail path
+    assert _ym.count("_safety_close(remaining_shares)") == 17, _ym.count("_safety_close(remaining_shares)")  # 8/14: +1 E3 stop/trail; 8/17: +1 manual close
     for _anchor in ["premarket flatten: closing", "Force closing all positions",
                     "force-closing {remaining_shares} sh", "Instant cut (Kev",
                     "Cutting loss now.", "≤ stop ${current_stop:.2f}\")",
@@ -1514,12 +1514,13 @@ try:
                     "fold the runner.", "BLIND-STOP FAILSAFE: no bars",
                     "no 3-min-close wait", "CRATER FLOOR: ${current_price",
                     "hit! Selling {remaining_shares}",
-                    "90% of run-high"]:   # 8/14 E3 stop/trail path funnels through _safety_close too
+                    "90% of run-high",
+                    "MANUAL CLOSE requested"]:   # 8/14 E3 stop/trail + 8/17 manual close funnel through _safety_close too
         _yi = _ym.index(_anchor)
         assert "_safety_close(remaining_shares)" in _ym[_yi:_yi + 600], "path missing cancel: " + _anchor
     # stray-sell sweep: close_position inside the monitor ONLY via _safety_close + tier branch
     assert _ym.count("close_position(ticker") == 2, _ym.count("close_position(ticker")
-    check("Y-b: 15 market exit paths funnel through _safety_close (ladder cancelled first)", True)
+    check("Y-b: 17 market exit paths funnel through _safety_close (ladder cancelled first)", True)
 except (AssertionError, ValueError) as _yx:
     check("Y-b: exit-path ladder cancel", False, str(_yx))
 
@@ -2762,6 +2763,112 @@ try:
           ROOT, "data", "killtests", "crown_pipeline_forensic_20260817.md")))
 except (AssertionError, ValueError, KeyError) as _ame:
     check("AM section", False, str(_ame))
+
+print("AN) 8/17 MANUAL CLOSE-POSITION CONTROL (operator-initiated; fail-CLOSED; stale-request guard)")
+# Marcos said "close it" on a live position and there was no mechanism (stop, or a restart that
+# now RESUMES). Failure condition doc: data/killtests/manual_close_20260817.md.
+try:
+    import screener_app as _mcs
+    import time as _mct
+    _mc_c = _mcs.app.test_client(); _MCH = {"X-Dashboard-Secret": _mcs.API_SECRET}
+    _mc_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _mc_saved = dict(_mcs._pending_closes); _mcs._pending_closes.clear()
+    try:
+        # 1) AUTH: POST requires the secret; GET is read-only
+        check("AN: unauthed POST rejected 401",
+              _mc_c.post("/api/close_position", json={"ticker": "AAAA"}).status_code == 401
+              and not _mcs._pending_closes)
+        check("AN: authed POST registers a pending request",
+              _mc_c.post("/api/close_position", json={"ticker": "AAAA"}, headers=_MCH).status_code == 200
+              and len(_mcs._pending_closes) == 1)
+        # 2) MERGE-ONLY (7/24 wipe law): a second request must not drop the first
+        _mc_c.post("/api/close_position", json={"ticker": "BBBB"}, headers=_MCH)
+        _pend = _mc_c.get("/api/close_position").get_json()["pending"]
+        check("AN: merge-only — two names queue simultaneously",
+              sorted(p["ticker"] for p in _pend) == ["AAAA", "BBBB"])
+        # 3) EXPLICIT CLEAR / ACK path
+        _mc_c.post("/api/close_position", json={"ticker": "BBBB", "clear": True}, headers=_MCH)
+        check("AN: clear removes only its own key",
+              [p["ticker"] for p in _mc_c.get("/api/close_position").get_json()["pending"]] == ["AAAA"])
+        # 4) 10-MIN AUTO-EXPIRY (guard #1 against firing on a LATER position in the same name)
+        check("AN: TTL is 10 minutes", _mcs.MANUAL_CLOSE_TTL_S == 600)
+        for _v in _mcs._pending_closes.values():
+            _v["expires_epoch"] = _mct.time() - 1
+        check("AN: expired requests pruned on read",
+              _mc_c.get("/api/close_position").get_json()["pending"] == []
+              and not _mcs._pending_closes)
+    finally:
+        _mcs._pending_closes.clear(); _mcs._pending_closes.update(_mc_saved)
+
+    # ── bot side: exec the matcher/poller in isolation with a fabricated dashboard ──
+    _mcn = {"time": _mct, "json": json, "os": os, "requests": types.SimpleNamespace(post=lambda *a, **k: None),
+            "SCREENER_URL": "http://fake", "DASHBOARD_SECRET": "s"}
+    for _c in ("MANUAL_CLOSE ", "MANUAL_CLOSE_POLL_S "):
+        _i = _mc_src.index("\n" + _c) + 1
+        exec(_mc_src[_i:_mc_src.index(chr(10), _i)], _mcn)
+    _i0 = _mc_src.index("_mclose_cache = {")
+    exec(_mc_src[_i0:_mc_src.index("\n_rebuilt_day = {", _i0)], _mcn)
+    _match, _poll = _mcn["_manual_close_match"], _mcn["_manual_close_pending"]
+
+    def _feed(pending):
+        """Fabricate the dashboard response and bypass the cache for this assertion."""
+        _mcn["_mclose_cache"].update({"t": _mct.time(), "pending": pending})
+
+    _ENTRY = "2026-08-17T14:00:00"
+    _feed([{"ticker": "DFSC", "trade_id": None, "at_utc": "2026-08-17T14:05:00", "source": "dashboard"}])
+    check("AN: fresh ticker request matches the live position",
+          (_match("DFSC", "id_new", _ENTRY) or {}).get("source") == "dashboard")
+    check("AN: a different name is untouched", _match("XXXX", "id_new", _ENTRY) is None)
+    # STALE-REQUEST GUARD — the safety property. Request predates the position -> ignored.
+    _feed([{"ticker": "DFSC", "trade_id": None, "at_utc": "2026-08-17T13:59:00"}])
+    check("AN: STALE-REQUEST GUARD — request older than entry_ts is IGNORED",
+          _match("DFSC", "id_new", _ENTRY) is None)
+    _feed([{"ticker": "DFSC", "trade_id": None}])
+    check("AN: untimestamped request is ignored (no timestamp = no close)",
+          _match("DFSC", "id_new", _ENTRY) is None)
+    # trade_id match BEATS ticker: an id-bearing request only matches that id
+    _feed([{"ticker": "DFSC", "trade_id": "id_old", "at_utc": "2026-08-17T14:05:00"}])
+    check("AN: trade_id match beats ticker — wrong id does NOT match",
+          _match("DFSC", "id_new", _ENTRY) is None
+          and _match("DFSC", "id_old", _ENTRY) is not None)
+    # FAIL-CLOSED: unreachable dashboard -> empty -> no close (opposite polarity to pause_entries)
+    _mcn["_mclose_cache"].update({"t": 0.0, "pending": [{"ticker": "DFSC", "at_utc": "2099-01-01T00:00:00"}]})
+    check("AN: dashboard unreachable -> NO close (fail-CLOSED, cache not replayed)",
+          _poll() == [] and _match("DFSC", "id_new", _ENTRY) is None)
+    # KILL SWITCH
+    _mcn["MANUAL_CLOSE"] = False
+    _mcn["_mclose_cache"].update({"t": _mct.time(), "pending":
+                                  [{"ticker": "DFSC", "at_utc": "2026-08-17T14:05:00"}]})
+    check("AN: MANUAL_CLOSE=0 disables the channel entirely",
+          _poll() == [] and _match("DFSC", "id_new", _ENTRY) is None)
+    _mcn["MANUAL_CLOSE"] = True
+    check("AN: poll cadence >= 5s (never hammers the dashboard)", _mcn["MANUAL_CLOSE_POLL_S"] >= 5)
+
+    # ── the monitor's call site: idempotent, and NO parallel exit path ──
+    _blk = _mc_src[_mc_src.index("# ── 8/17 MANUAL CLOSE (operator-initiated)"):]
+    _blk = _blk[:_blk.index("current_price = stream.get_price(ticker)", _blk.index("_safety_close"))]
+    check("AN: idempotent — guarded by _mclose_fired, set BEFORE the sell, then breaks",
+          "if MANUAL_CLOSE and not _mclose_fired:" in _blk
+          and _blk.index("_mclose_fired = True") < _blk.index("_safety_close(remaining_shares)")
+          and _blk.rstrip().endswith("break"))
+    check("AN: _mclose_fired initialised once per monitor (per-position, not global)",
+          "_mclose_fired      = False" in _mc_src and _mc_src.count("_mclose_fired = True") == 1)
+    check("AN: exit routes through the SHARED choke point — no parallel exit code",
+          "_safety_close(remaining_shares)" in _blk
+          and "close_position(" not in _blk and "_place_order(" not in _blk
+          and "cancel_order(" not in _blk)
+    check("AN: exit_reason is manual_close (Marcos) and acks the request",
+          'result["exit_reason"] = "manual_close (Marcos)"' in _blk
+          and "_manual_close_ack(ticker, trade_id)" in _blk)
+    check("AN: manual exits get their own layer — never mixed into stop/eod stats",
+          'if "manual_close" in r: return "manual"' in _mc_src)
+    check("AN: dry-run parity — the sell is the same close_position path (DRY_RUN handled there)",
+          "def close_position(ticker, shares):" in _mc_src
+          and "DRY RUN — simulating SELL" in _mc_src)
+    check("AN: failure-condition doc filed FIRST", os.path.exists(os.path.join(
+          ROOT, "data", "killtests", "manual_close_20260817.md")))
+except (AssertionError, ValueError, KeyError) as _mce:
+    check("AN section", False, str(_mce))
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

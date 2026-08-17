@@ -5143,6 +5143,75 @@ def _entries_paused():
     return _pause_cache["paused"]
 
 
+# ── 8/17 MANUAL CLOSE-POSITION CONTROL — bot side (Marcos: "close it", and there was no
+#    mechanism; a restart RESUMES positions since the 8/9 painless-restart work). Same channel
+#    shape as _entries_paused, OPPOSITE failure polarity: pausing fails OPEN (keeps last-known),
+#    closing fails CLOSED — an unreachable dashboard must never sell. Failure-condition doc:
+#    data/killtests/manual_close_20260817.md. Kill: MANUAL_CLOSE=0. ──
+MANUAL_CLOSE       = os.environ.get("MANUAL_CLOSE", "1") == "1"
+MANUAL_CLOSE_POLL_S = float(os.environ.get("MANUAL_CLOSE_POLL_S", "5"))   # >=5s: never hammer
+_mclose_cache = {"t": 0.0, "pending": []}
+
+def _manual_close_pending():
+    """Cached poll of the dashboard's pending-close set. FAIL-CLOSED: any error, timeout, 401 or
+    malformed body yields an EMPTY list — only the explicit presence of a request may ever sell.
+    The cache is cleared on failure too, so a stale success can't be replayed after the dashboard
+    goes away."""
+    if not MANUAL_CLOSE or not SCREENER_URL:
+        return []
+    now = time.time()
+    if now - _mclose_cache["t"] < MANUAL_CLOSE_POLL_S:
+        return _mclose_cache["pending"]
+    _mclose_cache["t"] = now
+    try:
+        import urllib.request as _ur
+        with _ur.urlopen(SCREENER_URL + "/api/close_position", timeout=3) as r:
+            _p = json.load(r).get("pending")
+        _mclose_cache["pending"] = [x for x in (_p or []) if isinstance(x, dict)]
+    except Exception:
+        _mclose_cache["pending"] = []      # fail CLOSED — unknown means DO NOT close
+    return _mclose_cache["pending"]
+
+def _manual_close_match(ticker, trade_id, entry_ts_utc):
+    """Return the matching close request for THIS position, else None.
+    • trade_id match beats ticker: a request carrying a trade_id matches ONLY that trade_id.
+      A request without one matches by ticker.
+    • STALE-REQUEST GUARD: the request timestamp must be NEWER than the position's entry_ts_utc.
+      A request created before this position existed is ignored — that is what stops a request
+      aimed at an earlier DFSC from killing a later DFSC (the dashboard's 10-min expiry is the
+      other, independent guard)."""
+    _tk = str(ticker or "").upper()
+    _ets = str(entry_ts_utc or "").replace("Z", "")[:19]
+    for req in _manual_close_pending():
+        _rid = str(req.get("trade_id") or "").strip()
+        if _rid:
+            if not trade_id or _rid != str(trade_id):
+                continue
+        elif str(req.get("ticker") or "").upper() != _tk:
+            continue
+        _at = str(req.get("at_utc") or "").replace("Z", "")[:19]
+        if not _at or not _ets or _at <= _ets:
+            continue                        # stale (or untimestamped) -> ignore
+        return req
+    return None
+
+def _manual_close_ack(ticker, trade_id):
+    """Tell the dashboard the request was consumed so it cannot re-fire. Best-effort: if this
+    POST fails the monitor has already left its loop and the position is gone, so the idempotency
+    guard (no monitor, no remaining shares) still prevents a second sell; the 10-min expiry is
+    the backstop."""
+    if not SCREENER_URL:
+        return False
+    try:
+        requests.post(f"{SCREENER_URL}/api/close_position",
+                      json={"ticker": ticker, "trade_id": trade_id, "clear": True},
+                      headers={"X-Dashboard-Secret": DASHBOARD_SECRET}, timeout=5)
+        return True
+    except Exception as e:
+        print(f"⚠️  {ticker}: manual-close ack failed ({e}) — request expires in <=10min")
+        return False
+
+
 _rebuilt_day = {"d": None}   # 8/8 auditor #3: once-per-day sentinel
 def _rebuild_counters_from_today():
     """8/8 (#35 PAINLESS RESTARTS part A): rebuild the in-memory counter economy from the day's
@@ -9741,6 +9810,7 @@ def _exit_layer(exit_reason):
     Pure string classifier over the exit_reason the monitor already writes."""
     r = str(exit_reason or "").lower()
     if not r or r in ("n/a", "unknown"): return "unknown"
+    if "manual_close" in r: return "manual"   # 8/17: operator-initiated, never mixed into stop/eod stats
     if "watchdog" in r or "recovered" in r or "resumed" in r: return "safety"
     if "blind-stop" in r or "stale feed" in r or "crater" in r: return "safety"
     if "time stop" in r or "flatten" in r or "eod" in r or "3:45" in r: return "eod"
@@ -10212,6 +10282,7 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
         _cancel_sell_ladder(ticker, _ladder)
         cancel_order(placed_stop_id)
         close_position(ticker, _qty)
+    _mclose_fired      = False         # 8/17: idempotency guard — one manual-close request, one sell
     last_ema_check     = 0.0           # epoch of last EMA9 bar fetch
 
     result = {"exit_price": entry_price, "exit_reason": "Unknown",
@@ -10261,6 +10332,29 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             result["exit_price"]  = current_price
             result["exit_reason"] = "3:45pm time stop"
             break
+
+        # ── 8/17 MANUAL CLOSE (operator-initiated). Marcos said "close it" and there was no
+        # mechanism — the only outs were the stop or a restart, and a restart now RESUMES.
+        # >=5s cached poll, FAIL-CLOSED (unreachable dashboard never sells), trade_id match beats
+        # ticker, and the request must POST-DATE this position's entry (stale-request guard, so a
+        # request aimed at an earlier trade in this name cannot kill this one). Exits through the
+        # SAME #53 choke point as the stop/flatten. Kill: MANUAL_CLOSE=0. ──
+        if MANUAL_CLOSE and not _mclose_fired:
+            _mcreq = _manual_close_match(ticker, trade_id, _entry_ts_utc)
+            if _mcreq:
+                _mclose_fired = True        # idempotent: one request -> one sell, then we break
+                print(f"🛑 {ticker}: MANUAL CLOSE requested — closing {remaining_shares} sh")
+                _log_decision(ticker, "manual_close", trade_id=trade_id, shares=remaining_shares,
+                              source=str(_mcreq.get("source") or "")[:40])
+                current_price = stream.get_price(ticker)
+                if not current_price or current_price <= 0:
+                    current_price = last_good_price   # same dead-quote guard as the flattens
+                if remaining_shares > 0:
+                    _safety_close(remaining_shares)   # #53: ladder-cancel, stop-cancel, market sell
+                _manual_close_ack(ticker, trade_id)   # ack so the request cannot re-fire
+                result["exit_price"]  = current_price
+                result["exit_reason"] = "manual_close (Marcos)"
+                break
 
         current_price = stream.get_price(ticker)
         if current_price <= 0:

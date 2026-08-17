@@ -1,0 +1,58 @@
+{
+ "_source": "data/killtests/pre_staleness_forensic_20260817.md",
+ "_specimen": "2026-08-17 09:30-09:35 open blackout \u2014 23 of 26 names skipped",
+ "rth_handoff_min_default": 5,
+ "cases": [
+  {
+   "at": "09:29:59",
+   "is_premkt": true,
+   "expect_sessions": [
+    "PRE",
+    "RTH"
+   ],
+   "why": "premarket"
+  },
+  {
+   "at": "09:30:00",
+   "is_premkt": false,
+   "expect_sessions": [
+    "PRE",
+    "RTH"
+   ],
+   "why": "the bell itself \u2014 no completed RTH bar can exist yet"
+  },
+  {
+   "at": "09:30:30",
+   "is_premkt": false,
+   "expect_sessions": [
+    "PRE",
+    "RTH"
+   ],
+   "why": "THE FIXTURE: 30s after the bell, PRE tape must still be visible"
+  },
+  {
+   "at": "09:34:59",
+   "is_premkt": false,
+   "expect_sessions": [
+    "PRE",
+    "RTH"
+   ],
+   "why": "last second of the 5-minute handoff"
+  },
+  {
+   "at": "09:35:00",
+   "is_premkt": false,
+   "expect_sessions": null,
+   "why": "handoff over \u2014 RTH-only, unchanged legacy behaviour"
+  },
+  {
+   "at": "11:00:00",
+   "is_premkt": false,
+   "expect_sessions": null,
+   "why": "mid-session, untouched"
+  }
+ ],
+ "names_skipped": 23,
+ "names_total": 26,
+ "negative_control": "RTH_HANDOFF_MIN=0 restores the hard 09:30 flip -> 09:30:30 returns None"
+}

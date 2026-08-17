@@ -1,0 +1,31 @@
+{
+ "_source": "commit fb92556 + Marcos 2026-08-17 15:38 ET screenshot",
+ "_specimen": "WETO KEV-pinned row: stale $10.15 labelled 'AH' beside the live $26.20, at 15:38 ET",
+ "ticker": "WETO",
+ "at_et": "15:38",
+ "stale_ah_price": 10.15,
+ "live_price": 26.2,
+ "cases": [
+  {
+   "after_hours": false,
+   "premarket": false,
+   "expect_extended_row": false,
+   "why": "THE FIXTURE: RTH must render NO extended-hours row"
+  },
+  {
+   "after_hours": false,
+   "premarket": true,
+   "expect_extended_row": true,
+   "expect_label": "PM"
+  },
+  {
+   "after_hours": true,
+   "premarket": false,
+   "expect_extended_row": true,
+   "expect_label": "AH"
+  }
+ ],
+ "pre_fix_commit": "fb92556^",
+ "fix_commit": "fb92556",
+ "negative_control": "at fb92556^ the KEV-pin call site has no session gate \u2014 greppable via git"
+}

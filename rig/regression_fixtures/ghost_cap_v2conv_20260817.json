@@ -1,0 +1,42 @@
+{
+ "_source": "data/killtests/ghost_cap_20260817.md (live decisions archive 2026-08-17)",
+ "_specimen": "five non-fill v2conv triggers exhausted V2_DAILY_CAP=5 before 04:36 AM",
+ "lane": "v2conv",
+ "daily_cap": 5,
+ "triggers": [
+  {
+   "t": "04:05:12",
+   "ticker": "PCLA",
+   "outcome": "premarket_shadow_entry"
+  },
+  {
+   "t": "04:08:12",
+   "ticker": "WOK",
+   "outcome": "premarket_shadow_entry"
+  },
+  {
+   "t": "04:16:57",
+   "ticker": "WOK",
+   "outcome": "premarket_shadow_entry"
+  },
+  {
+   "t": "04:22:39",
+   "ticker": "DFSC",
+   "outcome": "premarket_shadow_entry"
+  },
+  {
+   "t": "04:35:06",
+   "ticker": "DFSC",
+   "outcome": "premarket_shadow_entry"
+  }
+ ],
+ "fills": 0,
+ "expect_cap_used_after": 0,
+ "expect_lane_can_still_fire": true,
+ "observed_without_fix": {
+  "cap_used_after": 5,
+  "subsequent_refusals": 39,
+  "refusals_in_first_hour": 25
+ },
+ "negative_control": "V2_CAP_ON_FILLS=0 restores the ghost cap -> used=5, lane dead all day"
+}

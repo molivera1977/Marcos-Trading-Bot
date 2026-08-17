@@ -1,0 +1,18 @@
+{
+ "_source": "data/killtests/exit_params_our_fires_20260817_arch.json (live decisions archive) + data/killtests/today_counterfactual_20260817.md",
+ "_specimen": "WFF 2026-08-17 12:01:27 kevseq \u2014 fire $5.1329, filled $8.20, -$6.88",
+ "ticker": "WFF",
+ "time": "12:01:27 PM",
+ "seq_str": "B W",
+ "leg": 22,
+ "fire_px": 5.1329,
+ "actual_entry_px": 8.2,
+ "would_stop": 4.8,
+ "kevseq_entry_tol": 0.005,
+ "expect_limit_px": 5.1586,
+ "drift_pct": 59.75,
+ "intended_risk_pct": 6.49,
+ "actual_risk_pct": 41.46,
+ "expect_verdict": "unfilled_limit (no trade) \u2014 the fill bar never traded at/below the limit",
+ "expect_pnl_delta_usd": 6.88
+}

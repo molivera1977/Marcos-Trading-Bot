@@ -113,7 +113,11 @@ TOKEN_PATTERNS = [
     ("ofN",     re.compile(r"\b([0-9][0-9,]*)\s*of\s*([0-9][0-9,]*)\b")),
     ("ratio",   re.compile(r"\b([0-9][0-9,]*)\s*/\s*([0-9][0-9,]*)\b")),
     ("assign",  re.compile(r"\b([A-Z][A-Z0-9_]{3,})\s*=\s*([0-9][0-9,]*(?:\.[0-9]+)?)")),
-    ("counted", re.compile(r"\b([0-9][0-9,]*(?:\.[0-9]+)?)[\s-]+(?=" + SYSTEM_NOUNS.pattern[2:] + r")", re.I)),
+    # "48 bars", "5 slots" — a bare count attached to a system noun.  The (?<![0-9/.-]) guard
+    # stops it eating the TAIL of a date or ratio: in "MTEN 8/10 fires were rejected" the "10"
+    # is half a date, not a count.  (Found by the rig's own negative control G6-NC4.)
+    ("counted", re.compile(r"(?<![0-9/.\-])\b([0-9][0-9,]*(?:\.[0-9]+)?)[\s-]+(?="
+                           + SYSTEM_NOUNS.pattern[2:] + r")", re.I)),
 ]
 # integers this small are ordinals, list markers, "1-min", "two of three" prose — never claims
 TRIVIAL = {"0", "1", "2", "3"}

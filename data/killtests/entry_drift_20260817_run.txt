@@ -1,0 +1,68 @@
+universe: 738 files, 736 graded name-days, 63 dates (2026-05-18 .. 2026-08-17)
+kevseq universe fires: 1288
+
+### modelled drift (fill-bar close vs detector fire price)
+N=1288 median +0.76% p75 +2.01% p90 +4.13% max +70.68%
+intended risk median 3.57%  actual risk median 4.53%  inflation x1.27
+MODEL VALIDITY (failure condition #2): median drift +0.76% -> REPRODUCES the live defect
+min-stop(6%) damage on the replay: 194 fires refused at the drifted entry that the intended (fire-price) trade would have passed
+OOS split: MINE 918 fires / HOLD-OUT 366 fires
+
+### MINE
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| baseline (today: quote entry, structural stop) | 917 | $-3244.94 | $-3.54 | 31% | $-184.55 |
+| F1 DRIFT REFUSE <= 0% | 386 | $-2486.23 | $-6.44 | 21% | $-106.12 |
+| F1 DRIFT REFUSE <= 1% | 532 | $-2077.41 | $-3.90 | 24% | $-106.12 |
+| F1 DRIFT REFUSE <= 2% | 696 | $-2357.58 | $-3.39 | 27% | $-106.12 |
+| F1 DRIFT REFUSE <= 3% | 784 | $-3251.18 | $-4.15 | 28% | $-106.12 |
+| F1 DRIFT REFUSE <= 5% | 862 | $-3282.56 | $-3.81 | 29% | $-106.12 |
+| F2 RE-ANCHOR STOP (intended risk% preserved) | 918 | $-3069.99 | $-3.34 | 27% | $-155.38 |
+| F3 LIMIT-AT-FIRE +0.5%, 0 bars (0s) | 897 | $-504.92 | $-0.56 | 34% | $-114.90 |
+| F3 LIMIT-AT-FIRE +0.5%, 3 bars (30s) | 905 | $-685.27 | $-0.76 | 34% | $-157.09 |
+| F3 LIMIT-AT-FIRE +0.5%, 6 bars (60s) | 911 | $-803.77 | $-0.88 | 34% | $-157.09 |
+| F3 LIMIT-AT-FIRE +0.5%, 18 bars (180s) | 912 | $-821.99 | $-0.90 | 34% | $-157.09 |
+| F3 LIMIT-AT-FIRE +1.0%, 0 bars (0s) | 903 | $-2809.09 | $-3.11 | 33% | $-116.84 |
+| F3 LIMIT-AT-FIRE +1.0%, 3 bars (30s) | 910 | $-2874.21 | $-3.16 | 33% | $-158.79 |
+| F3 LIMIT-AT-FIRE +1.0%, 6 bars (60s) | 912 | $-2985.65 | $-3.27 | 33% | $-158.79 |
+| F3 LIMIT-AT-FIRE +1.0%, 18 bars (180s) | 913 | $-3006.24 | $-3.29 | 33% | $-158.79 |
+
+### HOLD-OUT
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| baseline (today: quote entry, structural stop) | 365 | $-899.60 | $-2.46 | 37% | $-110.80 |
+| F1 DRIFT REFUSE <= 0% | 159 | $-238.62 | $-1.50 | 32% | $-71.75 |
+| F1 DRIFT REFUSE <= 1% | 195 | $-277.83 | $-1.42 | 34% | $-71.75 |
+| F1 DRIFT REFUSE <= 2% | 261 | $-623.32 | $-2.39 | 33% | $-71.75 |
+| F1 DRIFT REFUSE <= 3% | 298 | $-327.34 | $-1.10 | 36% | $-71.75 |
+| F1 DRIFT REFUSE <= 5% | 328 | $-469.35 | $-1.43 | 37% | $-71.75 |
+| F2 RE-ANCHOR STOP (intended risk% preserved) | 366 | $+19.90 | $+0.05 | 36% | $-83.79 |
+| F3 LIMIT-AT-FIRE +0.5%, 0 bars (0s) | 356 | $-260.78 | $-0.73 | 38% | $-85.86 |
+| F3 LIMIT-AT-FIRE +0.5%, 3 bars (30s) | 359 | $-251.35 | $-0.70 | 38% | $-85.86 |
+| F3 LIMIT-AT-FIRE +0.5%, 6 bars (60s) | 359 | $-251.35 | $-0.70 | 38% | $-85.86 |
+| F3 LIMIT-AT-FIRE +0.5%, 18 bars (180s) | 362 | $-413.86 | $-1.14 | 38% | $-85.86 |
+| F3 LIMIT-AT-FIRE +1.0%, 0 bars (0s) | 358 | $-1060.97 | $-2.96 | 38% | $-87.91 |
+| F3 LIMIT-AT-FIRE +1.0%, 3 bars (30s) | 359 | $-1080.36 | $-3.01 | 38% | $-87.91 |
+| F3 LIMIT-AT-FIRE +1.0%, 6 bars (60s) | 359 | $-1080.36 | $-3.01 | 38% | $-87.91 |
+| F3 LIMIT-AT-FIRE +1.0%, 18 bars (180s) | 362 | $-1249.49 | $-3.45 | 38% | $-87.91 |
+
+### ALL
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| baseline (today: quote entry, structural stop) | 1286 | $-3862.13 | $-3.00 | 33% | $-184.55 |
+| F1 DRIFT REFUSE <= 0% | 546 | $-2675.62 | $-4.90 | 25% | $-106.12 |
+| F1 DRIFT REFUSE <= 1% | 728 | $-2306.00 | $-3.17 | 27% | $-106.12 |
+| F1 DRIFT REFUSE <= 2% | 958 | $-2931.66 | $-3.06 | 29% | $-106.12 |
+| F1 DRIFT REFUSE <= 3% | 1084 | $-3482.46 | $-3.21 | 30% | $-106.12 |
+| F1 DRIFT REFUSE <= 5% | 1194 | $-3469.51 | $-2.91 | 32% | $-106.12 |
+| F2 RE-ANCHOR STOP (intended risk% preserved) | 1288 | $-2965.77 | $-2.30 | 29% | $-155.38 |
+| F3 LIMIT-AT-FIRE +0.5%, 0 bars (0s) | 1257 | $-615.73 | $-0.49 | 35% | $-114.90 |
+| F3 LIMIT-AT-FIRE +0.5%, 3 bars (30s) | 1268 | $-786.66 | $-0.62 | 35% | $-157.09 |
+| F3 LIMIT-AT-FIRE +0.5%, 6 bars (60s) | 1274 | $-905.16 | $-0.71 | 35% | $-157.09 |
+| F3 LIMIT-AT-FIRE +0.5%, 18 bars (180s) | 1278 | $-1085.88 | $-0.85 | 35% | $-157.09 |
+| F3 LIMIT-AT-FIRE +1.0%, 0 bars (0s) | 1265 | $-3725.30 | $-2.94 | 34% | $-116.84 |
+| F3 LIMIT-AT-FIRE +1.0%, 3 bars (30s) | 1273 | $-3809.82 | $-2.99 | 34% | $-158.79 |
+| F3 LIMIT-AT-FIRE +1.0%, 6 bars (60s) | 1275 | $-3921.25 | $-3.08 | 34% | $-158.79 |
+| F3 LIMIT-AT-FIRE +1.0%, 18 bars (180s) | 1279 | $-4110.97 | $-3.21 | 34% | $-158.79 |
+
+F4 FRESHNESS AGE GUARD: FRESHNESS AGE GUARD — NOT MEASURABLE ON THIS REPLAY.  In the replay every fire is (see docstring) — NEEDS-DATA.

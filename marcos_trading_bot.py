@@ -6340,6 +6340,36 @@ KEVSEQ_GAIN_MIN   = 20.0     # day-gain floor (%), OR top-3 gainer
 KEVSEQ_ROOM_PCT   = 0.03     # overhead session high within 3% ...
 KEVSEQ_ROOM_STALE = 300      # ... that is >= 5 min stale = no room (blue-sky exempt)
 KEVSEQ_TOUCH_BAND = 0.005    # a "touch" of the risked low = bar low within 0.5% of it
+# ── 8/17 ENTRY-DRIFT DEFECT + FIX (kill-test: data/killtests/entry_drift_20260817.md) ──
+# THE DEFECT (proven on the 8/17 live rows): kevseq_step returns px = the H/W SETUP BAR'S HIGH
+# (a trigger LEVEL, not a traded price), and the caller then priced the entry off the LIVE QUOTE
+# while leaving the stop at would_stop — the structural stop measured against the fire price.
+# Entry rises, stop does not, risk-per-share explodes and the downstream R-gates correctly refuse
+# the mutated trade.  Live: median drift +5.02% (N=7), worst WFF 11:17:43 fire $3.91 -> entry
+# $5.039 (+28.87%), intended risk 5.9% -> ACTUAL 27.0%.  Sibling lanes whose detectors return the
+# bar CLOSE (hidden_entry/dip_rip/zone_flip) sit at ~0% drift — this is a kevseq-specific
+# fire-price choice, not a universal quote-latency problem.
+# KILL-TEST (1,288 universe fires, MINE 5/18-7/21 / HOLD-OUT 7/22-8/14, E3 live-parity $500):
+#   baseline (today)                MINE $-3.54/tr  HOLD-OUT $-2.46/tr
+#   F1 drift-refuse (0.5-5% grid)   no arm beats F3 on either half; 1% grid point is the best
+#                                   F1 and still loses to F3 by >$0.5/tr — REFUTED as the fix
+#   F2 re-anchor stop               MINE $-3.34 / HOLD $+0.05 — inconsistent ACROSS the split,
+#                                   and it abandons structural stop placement.  Not chosen.
+#   F3 LIMIT-AT-FIRE +0.5%, 0 bars  MINE $-0.56/tr  HOLD-OUT $-0.73/tr  <- WINNER, both halves,
+#                                   keeps 97-98% of N.  Tolerance is load-bearing: at +1.0% the
+#                                   arm collapses to $-2.96/tr (worse than nothing).
+#   F4 fire-age guard               NEEDS-DATA: the replay evaluates every fire on the bar it
+#                                   completes on, so modelled age is always ~0s and no threshold
+#                                   binds.  Built anyway (kevseq was the ONLY 10s lane with no
+#                                   _bucket_fresh equivalent) but DISABLED by default.
+# SHIP POSTURE: every arm is still NEGATIVE on this gate-free superset cohort, so nothing here
+# is defaulted ON — these switches change what the bot does with money and that is Marcos's call
+# (feedback_auditor_cannot_authorize_behavior + feedback_no_lesser_fix).  The STAMPS are always
+# on: observability is free.  Recommended setting to price: KEVSEQ_LIMIT_ENTRY=1 (tol 0.005).
+KEVSEQ_LIMIT_ENTRY    = os.environ.get("KEVSEQ_LIMIT_ENTRY", "0") == "1"   # F3, default OFF
+KEVSEQ_ENTRY_TOL      = float(os.environ.get("KEVSEQ_ENTRY_TOL", "0.005")) # F3 tolerance over fire px
+KEVSEQ_MAX_DRIFT      = float(os.environ.get("KEVSEQ_MAX_DRIFT", "0"))     # F1, 0 = disabled
+KEVSEQ_FIRE_MAX_AGE_S = float(os.environ.get("KEVSEQ_FIRE_MAX_AGE_S", "0"))# F4, 0 = disabled
 _ks_st: dict = {}   # sym -> kevseq machine state (module-level: survives rescans)
 
 
@@ -6402,6 +6432,10 @@ def kevseq_step(sym, new_bars, vwap, ctx=None):
                 if not (pd["stop"] < px):
                     why.append("degenerate_stop")
                 out = {"ok": not why, "why": why, "px": round(px, 4), "k": k,
+                       # 8/17 ENTRY-DRIFT FIX: the FILL BAR's own low/high. px is the SETUP bar's
+                       # high (the trigger level), NOT a traded price on this bar — the caller
+                       # needs bar_lo to know whether the tape actually offered the fire price.
+                       "bar_lo": round(l, 4), "bar_hi": round(h, 4),
                        "would_stop": round(pd["stop"], 4), "seq_str": "B " + pd["kind"],
                        "kind": pd["kind"], "leg": st["leg"], "leg_n": st["leg_n"],
                        "burst": burst, "burst_ratio": burst_ratio, "bar_vol": v, "vol_p75": p75,
@@ -8042,6 +8076,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "v2_seq": _v2f["seq"],
                                             }))
                                             _log_decision(t, "triggered_v2conv", price=_v2_px,
+                                                          fire_age_s=(round(time.time() - _v2f["k"], 1) if _v2f.get("k") else None),
+                                                          drift_pct=(round((_v2_px - _v2f["px"]) / _v2f["px"] * 100, 2) if _v2f.get("px") else None),
                                                           stop=_v2f["would_stop"], fire_px=_v2f["px"],
                                                           vwap=round(_vr_sv, 4), quiet_tape=_v2_quiet,
                                                           quiet_bps=_q_bps, session=_v2_sess,
@@ -8091,6 +8127,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "mins_since_1030": _grf["mins_since_1030"],
                                             }))
                                             _log_decision(t, "triggered_grinder", price=_gr_px,
+                                                          fire_age_s=(round(time.time() - _grf["k"], 1) if _grf.get("k") else None),
+                                                          drift_pct=(round((_gr_px - _grf["px"]) / _grf["px"] * 100, 2) if _grf.get("px") else None),
                                                           stop=_grf["would_stop"],
                                                           session_hi=_grf["session_hi"],
                                                           fire_px=_grf["px"], seq=_grf["seq"],
@@ -8136,6 +8174,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "bp_seq": _bpf["seq"], "crosses_20m": _bpf["crosses_20m"],
                                             }))
                                             _log_decision(t, "triggered_bandpass", price=_bp_px,
+                                                          fire_age_s=(round(time.time() - _bpf["k"], 1) if _bpf.get("k") else None),
+                                                          drift_pct=(round((_bp_px - _bpf["px"]) / _bpf["px"] * 100, 2) if _bpf.get("px") else None),
                                                           stop=_bpf["would_stop"], hold_n=_bpf["hold_n"],
                                                           fire_px=_bpf["px"], seq=_bpf["seq"],
                                                           day_n=_bp_conv_day["n"])
@@ -8172,7 +8212,27 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 _ksf = kevseq_step(t, _nb, _vr_sv, _ks_ctx)
                                 if _ksf:
                                     _hm_ks = datetime.now(EASTERN).strftime("%H:%M")
+                                    # ── 8/17 ENTRY-DRIFT STAMPS (ALWAYS ON, every kevseq row:
+                                    # reject, shadow fire AND triggered). fire_age_s was None on
+                                    # every kevseq row ever logged because nothing ever computed
+                                    # it — this is the fix for that hole, independent of verdict.
+                                    _ks_quote = price if price and price > 0 else None
+                                    _ks_age = None
+                                    try:
+                                        if _ksf.get("k"):
+                                            _ks_age = round(time.time() - float(_ksf["k"])
+                                                            - _halted_secs_since(t, _ksf["k"]), 1)
+                                    except Exception:
+                                        pass
+                                    _ks_drift = None
+                                    try:
+                                        if _ks_quote and _ksf["px"] > 0:
+                                            _ks_drift = round((_ks_quote - _ksf["px"]) / _ksf["px"] * 100, 2)
+                                    except Exception:
+                                        pass
                                     _ks_row = dict(price=_ksf["px"], seq_str=_ksf["seq_str"], kind=_ksf["kind"],
+                                                   fire_age_s=_ks_age, drift_pct=_ks_drift,
+                                                   quote_px=_ks_quote, bar_lo=_ksf.get("bar_lo"),
                                                    leg=_ksf["leg"], leg_n=_ksf["leg_n"], burst=_ksf["burst"],
                                                    burst_ratio=_ksf["burst_ratio"], fresh_touch_n=_ksf["fresh_touch_n"],
                                                    pull_n=_ksf["pull_n"], confluence=_ksf.get("confluence"),
@@ -8188,8 +8248,33 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                         _log_decision(t, "kevseq_shadow_fire",
                                                       eyes=_eyes_compact(_eyes_snapshot(t, _ksf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _ksf.get("would_stop")})),
                                                       **_ks_row)
-                                        if KEVSEQ_CONVERT and _ksf["would_stop"] < _ksf["px"]:
+                                        # ── 8/17 ENTRY-DRIFT GUARDS (all default-OFF; env restores
+                                        # today's behaviour exactly by leaving them unset) ──
+                                        _ks_veto = None
+                                        _ks_lim = round(_ksf["px"] * (1 + KEVSEQ_ENTRY_TOL), 4)
+                                        if KEVSEQ_FIRE_MAX_AGE_S > 0 and _ks_age is not None \
+                                                and _ks_age > KEVSEQ_FIRE_MAX_AGE_S:
+                                            _ks_veto = "stale_fire"          # F4
+                                        elif KEVSEQ_MAX_DRIFT > 0 and _ks_drift is not None \
+                                                and _ks_drift > KEVSEQ_MAX_DRIFT * 100:
+                                            _ks_veto = "drift"               # F1
+                                        elif KEVSEQ_LIMIT_ENTRY and _ksf.get("bar_lo") is not None \
+                                                and _ksf["bar_lo"] > _ks_lim:
+                                            # F3: the fill bar never traded at/below the limit —
+                                            # a resting buy there would NOT have filled. Kev buys
+                                            # the pullback; a blown-through level re-arms, it does
+                                            # not get chased.
+                                            _ks_veto = "unfilled_limit"
+                                        if _ks_veto:
+                                            _log_decision(t, "kevseq_drift_reject", why=_ks_veto,
+                                                          limit_px=_ks_lim, **_ks_row)
+                                        if KEVSEQ_CONVERT and not _ks_veto and _ksf["would_stop"] < _ksf["px"]:
                                             _ks_px = price if price and price > 0 else _ksf["px"]
+                                            if KEVSEQ_LIMIT_ENTRY:
+                                                # F3: a marketable LIMIT at fire+tol — never pay
+                                                # above it. This is the mechanism that keeps
+                                                # intended risk == actual risk.
+                                                _ks_px = min(_ks_px, _ks_lim)
                                             print(f"\n🔗 {t} KEV SEQUENCE ({_ksf['seq_str']}, leg {_ksf['leg']} "
                                                   f"#{_ksf['leg_n']}/{KEVSEQ_LEG_MAX}, burst x{_ksf['burst_ratio']})! "
                                                   f"${_ks_px:.2f} — stop ${_ksf['would_stop']:.2f} "
@@ -8203,7 +8288,11 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                             _log_decision(t, "triggered_kevseq", price=_ks_px,
                                                           stop=_ksf["would_stop"], seq_str=_ksf["seq_str"],
                                                           fire_px=_ksf["px"], leg=_ksf["leg"], leg_n=_ksf["leg_n"],
-                                                          seq=_ksf["seq"])
+                                                          seq=_ksf["seq"], fire_age_s=_ks_age,
+                                                          drift_pct=_ks_drift, quote_px=_ks_quote,
+                                                          limit_px=(_ks_lim if KEVSEQ_LIMIT_ENTRY else None),
+                                                          intended_risk_pct=round((_ksf["px"] - _ksf["would_stop"]) / _ksf["px"] * 100, 2),
+                                                          actual_risk_pct=round((_ks_px - _ksf["would_stop"]) / _ks_px * 100, 2))
                             except Exception:
                                 pass
                         if PREVWAP_SHADOW:
@@ -8243,6 +8332,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                             "spread_pct": _pv_sp, "pv_seq": _pvf["seq"],
                                         }))
                                         _log_decision(t, "triggered_prevwap", price=_pv_px,
+                                                      fire_age_s=(round(time.time() - _pvf["k"], 1) if _pvf.get("k") else None),
+                                                      drift_pct=(round((_pv_px - _pvf["px"]) / _pvf["px"] * 100, 2) if _pvf.get("px") else None),
                                                       stop=_pvf["would_stop"], hold_n=_pvf["hold_n"],
                                                       fire_px=_pvf["px"], vwap=round(_vr_sv, 4),
                                                       spread_pct=_pv_sp, seq=_pvf["seq"])
@@ -12028,6 +12119,8 @@ def main():
                       bandpass_daily_cap=BANDPASS_DAILY_CAP, prevwap_shadow=int(PREVWAP_SHADOW),
                       prevwap_convert=int(PREVWAP_CONVERT),
                       kevseq_shadow=int(KEVSEQ_SHADOW), kevseq_convert=int(KEVSEQ_CONVERT),
+                      kevseq_limit_entry=int(KEVSEQ_LIMIT_ENTRY), kevseq_entry_tol=KEVSEQ_ENTRY_TOL,
+                      kevseq_max_drift=KEVSEQ_MAX_DRIFT, kevseq_fire_max_age_s=KEVSEQ_FIRE_MAX_AGE_S,
                       kevseq_leg_max=KEVSEQ_LEG_MAX,
                       v2_convert=int(V2_CONVERT), v2_quiet_only=int(V2_QUIET_ONLY),
                       v2_quiet_bps=V2_QUIET_BPS, v2_daily_cap=V2_DAILY_CAP,

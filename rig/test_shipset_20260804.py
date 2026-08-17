@@ -2289,7 +2289,9 @@ try:
     # (vii) caller: shadow row + reject row; conversion ONLY under KEVSEQ_CONVERT; lane 'kevseq' E3; triggered row
     _cal = _ag_src[_ag_src.index("8/16 KEV SEQUENCE lane (\"kevseq\") shadow"):_ag_src.index("if PREVWAP_SHADOW:")]
     check("AG-vii: caller append guarded by KEVSEQ_CONVERT; lane 'kevseq' E3; kevseq_shadow_fire + kevseq_reject + triggered_kevseq rows",
-          'if KEVSEQ_CONVERT and _ksf["would_stop"] < _ksf["px"]:' in _cal
+          # 8/17 ENTRY-DRIFT FIX amends this pin: the conversion guard now also carries the
+          # (default-OFF) drift veto — `not _ks_veto`. Section AP owns the veto's own pins.
+          'if KEVSEQ_CONVERT and not _ks_veto and _ksf["would_stop"] < _ksf["px"]:' in _cal
           and _cal.index('if KEVSEQ_CONVERT and') < _cal.index('breakouts.append((t, _ks_px, _ksf["b_level"] or _ksf["would_stop"], "kevseq", {')
           and '"exit_mode": "E3"' in _cal and '"kevseq_shadow_fire"' in _cal and '"kevseq_reject"' in _cal
           and '"triggered_kevseq"' in _cal and "calculate_ema9(_ks_1m), calculate_ema20(_ks_1m)" in _cal)
@@ -3014,6 +3016,127 @@ try:
           not in _ao_src)
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _aoe:
     check("AO section", False, str(_aoe))
+
+print("AP) 8/17 ENTRY-DRIFT FIX — kevseq fire-price vs entry-price (stamps ALWAYS, guards env-OFF)")
+# FAILURE CONDITION: wrong if a kevseq row can still be written without drift_pct/fire_age_s,
+# if the guards are on by default (they change what the bot does with money — Marcos's call),
+# if unsetting the env does NOT restore today's exact behaviour, or if the F3 limit entry can
+# still produce actual_risk > intended_risk.
+try:
+    import types as _apt, datetime as _apdt
+    from zoneinfo import ZoneInfo as _APZ
+    _ap_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _AP_SEG = _ap_src[_ap_src.index('KEVSEQ_SHADOW     = os.environ.get'):_ap_src.index("def kev_zoneflip_step")]
+
+    def _ap_env(env):
+        n = {"os": _apt.SimpleNamespace(environ=dict(env)), "datetime": _apdt.datetime,
+             "EASTERN": _APZ("America/New_York")}
+        exec(_AP_SEG, n); return n
+
+    # ── (1) DEFAULTS: every guard OFF; unsetting the env = today's behaviour ──────────
+    _d = _ap_env({})
+    check("AP-a: KEVSEQ_LIMIT_ENTRY default OFF (kill-test negative on every arm -> Marcos prices it)",
+          _d["KEVSEQ_LIMIT_ENTRY"] is False)
+    check("AP-b: KEVSEQ_MAX_DRIFT + KEVSEQ_FIRE_MAX_AGE_S default 0 = disabled",
+          _d["KEVSEQ_MAX_DRIFT"] == 0 and _d["KEVSEQ_FIRE_MAX_AGE_S"] == 0)
+    check("AP-c: KEVSEQ_ENTRY_TOL default 0.005 (the kill-tested tolerance; +1.0% COLLAPSED the arm)",
+          abs(_d["KEVSEQ_ENTRY_TOL"] - 0.005) < 1e-9)
+    _on = _ap_env({"KEVSEQ_LIMIT_ENTRY": "1", "KEVSEQ_MAX_DRIFT": "0.02", "KEVSEQ_FIRE_MAX_AGE_S": "30"})
+    check("AP-d: kill switches are real — env turns each guard on",
+          _on["KEVSEQ_LIMIT_ENTRY"] is True and _on["KEVSEQ_MAX_DRIFT"] == 0.02
+          and _on["KEVSEQ_FIRE_MAX_AGE_S"] == 30.0)
+
+    # ── (2) the detector now exposes the FILL BAR's own low/high ─────────────────────
+    check("AP-e: kevseq_step returns bar_lo/bar_hi (px is the SETUP bar's high, not a traded price)",
+          '"bar_lo": round(l, 4), "bar_hi": round(h, 4),' in _ap_src)
+
+    # ── (3) STAMPS on EVERY kevseq row — reject, shadow fire, triggered ──────────────
+    _cal = _ap_src[_ap_src.index('8/16 KEV SEQUENCE lane ("kevseq") shadow'):_ap_src.index("if PREVWAP_SHADOW:")]
+    check("AP-f: fire_age_s + drift_pct live in _ks_row -> carried by kevseq_reject AND kevseq_shadow_fire",
+          "fire_age_s=_ks_age, drift_pct=_ks_drift," in _cal
+          and _cal.index("fire_age_s=_ks_age") < _cal.index('"kevseq_reject"'))
+    check("AP-g: triggered_kevseq stamps fire_age_s, drift_pct, intended_risk_pct, actual_risk_pct",
+          all(s in _cal for s in ("fire_age_s=_ks_age,", "drift_pct=_ks_drift,",
+                                  "intended_risk_pct=", "actual_risk_pct=")))
+    check("AP-h: fire age is HALT-AWARE (same law as the curl lanes' _bucket_fresh)",
+          "_halted_secs_since(t, _ksf[\"k\"])" in _cal)
+
+    # ── (4) the drift ARITHMETIC, executed (not asserted) ────────────────────────────
+    def _drift(fire, quote): return round((quote - fire) / fire * 100, 2)
+    check("AP-i: drift computed correctly — the live WFF specimen 3.91 -> 5.039 = +28.87%",
+          _drift(3.91, 5.039) == 28.87)
+    check("AP-j: WETO 18.4499 -> 19.495 = +5.66%, PFSA 6.17 -> 6.48 = +5.02%",
+          _drift(18.4499, 19.495) == 5.66 and _drift(6.17, 6.48) == 5.02)
+    check("AP-k: drift is SIGNED — a quote BELOW the fire is negative, never vetoed as drift",
+          _drift(7.54, 7.3987) < 0)
+
+    # ── (5) the guards REFUSE at the threshold, and only above it ────────────────────
+    def _veto(fire, quote, bar_lo, age, *, limit_on, max_drift, max_age, tol=0.005):
+        """Executable mirror of the shipped guard ladder (source-pinned below)."""
+        lim = round(fire * (1 + tol), 4)
+        drift = _drift(fire, quote)
+        if max_age > 0 and age is not None and age > max_age: return "stale_fire", lim
+        if max_drift > 0 and drift is not None and drift > max_drift * 100: return "drift", lim
+        if limit_on and bar_lo is not None and bar_lo > lim: return "unfilled_limit", lim
+        return None, lim
+    check("AP-l: F1 refuses ABOVE the threshold only (2% grid: +5.02% vetoed, +1.53% kept, exactly 2.00% kept)",
+          _veto(6.17, 6.48, 6.0, 5, limit_on=False, max_drift=0.02, max_age=0)[0] == "drift"
+          and _veto(4.59, 4.66, 4.5, 5, limit_on=False, max_drift=0.02, max_age=0)[0] is None
+          and _veto(100.0, 102.0, 99.0, 5, limit_on=False, max_drift=0.02, max_age=0)[0] is None)
+    check("AP-m: F4 age guard refuses a stale fire, keeps a fresh one",
+          _veto(6.17, 6.2, 6.0, 45, limit_on=False, max_drift=0, max_age=30)[0] == "stale_fire"
+          and _veto(6.17, 6.2, 6.0, 12, limit_on=False, max_drift=0, max_age=30)[0] is None)
+    check("AP-n: F3 refuses when the fill bar never traded at/below the limit (a resting buy would NOT fill)",
+          _veto(3.91, 5.039, 4.60, 3, limit_on=True, max_drift=0, max_age=0)[0] == "unfilled_limit"
+          and _veto(3.91, 5.039, 3.90, 3, limit_on=True, max_drift=0, max_age=0)[0] is None)
+    check("AP-o: KILL SWITCH — all guards off restores today's behaviour (nothing vetoed)",
+          _veto(3.91, 5.039, 4.60, 999, limit_on=False, max_drift=0, max_age=0)[0] is None)
+
+    # ── (6) THE PIN: post-fix, intended risk == actual risk under F3 ─────────────────
+    def _entry(fire, quote, *, limit_on, tol=0.005):
+        px = quote if quote and quote > 0 else fire
+        return min(px, round(fire * (1 + tol), 4)) if limit_on else px
+    def _risk(entry, stop): return round((entry - stop) / entry * 100, 2)
+    _f, _q, _s = 3.91, 5.039, 3.68
+    _int = _risk(_f, _s)
+    check("AP-p: TODAY (guards off) actual risk MUTATES — WFF intended 5.88%% -> actual 26.97%%",
+          _int == 5.88 and _risk(_entry(_f, _q, limit_on=False), _s) == 26.97)
+    check("AP-q: PIN — under F3 the actual risk equals the intended risk within the tolerance",
+          abs(_risk(_entry(_f, _q, limit_on=True), _s) - _int) <= 0.55)
+    for _ff, _qq, _ss in ((18.4499, 19.495, 17.88), (6.17, 6.48, 5.90), (2.39, 2.5594, 2.25)):
+        assert abs(_risk(_entry(_ff, _qq, limit_on=True), _ss) - _risk(_ff, _ss)) <= 0.55, (_ff, _qq)
+    check("AP-r: PIN holds on WETO / PFSA / IVF too (every 8/17 drifted specimen)", True)
+
+    # ── (7) source pin: the shipped ladder is the ladder tested above, in this ORDER ──
+    check("AP-s: shipped guard ladder = age -> drift -> unfilled-limit, veto BEFORE conversion",
+          '_ks_veto = "stale_fire"' in _cal and '_ks_veto = "drift"' in _cal
+          and '_ks_veto = "unfilled_limit"' in _cal
+          and _cal.index('_ks_veto = "stale_fire"') < _cal.index('_ks_veto = "drift"')
+          < _cal.index('_ks_veto = "unfilled_limit"')
+          < _cal.index("if KEVSEQ_CONVERT and not _ks_veto"))
+    check("AP-t: refusals are VISIBLE — kevseq_drift_reject row carries why + limit_px + the stamps",
+          '_log_decision(t, "kevseq_drift_reject", why=_ks_veto,' in _cal and "limit_px=_ks_lim, **_ks_row" in _cal)
+    check("AP-u: F3 caps the entry (min with the limit), it never RAISES it",
+          "_ks_px = min(_ks_px, _ks_lim)" in _cal)
+    check("AP-v: boot_config publishes all four knobs (no silent config)",
+          all(s in _ap_src for s in ("kevseq_limit_entry=int(KEVSEQ_LIMIT_ENTRY)", "kevseq_entry_tol=KEVSEQ_ENTRY_TOL",
+                                     "kevseq_max_drift=KEVSEQ_MAX_DRIFT", "kevseq_fire_max_age_s=KEVSEQ_FIRE_MAX_AGE_S")))
+
+    # ── (8) BLAST RADIUS (step 4): the structural defect is kevseq-ONLY; siblings get stamps ──
+    check("AP-w: kevseq is the ONLY detector returning a SETUP-BAR HIGH — every sibling returns the close",
+          _ap_src.count('"px": round(c, 4)') >= 7 and '"px": round(px, 4), "k": k,' in _ap_src)
+    check("AP-x: v2conv/grinder/bandpass/prevwap triggered rows now stamp fire_age_s + drift_pct (observe-only)",
+          all(_ap_src.count(f'_log_decision(t, "triggered_{ln}"') == 1
+              and "fire_age_s=" in _ap_src[_ap_src.index(f'_log_decision(t, "triggered_{ln}"'):
+                                           _ap_src.index(f'_log_decision(t, "triggered_{ln}"') + 700]
+              and "drift_pct=" in _ap_src[_ap_src.index(f'_log_decision(t, "triggered_{ln}"'):
+                                          _ap_src.index(f'_log_decision(t, "triggered_{ln}"') + 700]
+              for ln in ("v2conv", "grinder", "bandpass", "prevwap")))
+    check("AP-y: sibling lanes get NO new veto — stamps only (their measured drift is ~0.4% quote latency)",
+          "v2conv_drift_reject" not in _ap_src and "grinder_drift_reject" not in _ap_src
+          and "bandpass_drift_reject" not in _ap_src and "prevwap_drift_reject" not in _ap_src)
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _ape:
+    check("AP section", False, str(_ape))
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

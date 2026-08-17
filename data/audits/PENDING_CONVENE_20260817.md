@@ -204,3 +204,62 @@ Historian (the doctrine's provenance: 7/24, 7/26, 7/30, 8/17).
 - **Rig pins amended, not just added**: AF-l / AG-x / AH-x asserted these lanes were *absent* from
   `_STALE_EXEMPT` — those assertions encoded the defect and were rewritten. An auditor should
   confirm that rewrite is legitimate and not a green-washing of my own change.
+
+---
+
+## SCOPE ADD — ENTRY-DRIFT FIX (kevseq fire-price vs entry-price)
+
+Doc: `data/killtests/entry_drift_20260817.md` · kill-test:
+`data/killtests/entry_drift_20260817.py` · rig section **AP** (25 checks) · full rig 573 green,
+exit 0.
+
+### What changed
+- **Always-on stamps** (observe-only, no behaviour change): `fire_age_s` (halt-aware),
+  `drift_pct`, `quote_px`, `bar_lo` on every `kevseq_reject` / `kevseq_shadow_fire` /
+  `triggered_kevseq` row; `intended_risk_pct` + `actual_risk_pct` on `triggered_kevseq`;
+  `fire_age_s` + `drift_pct` on `triggered_v2conv` / `_grinder` / `_bandpass` / `_prevwap`.
+  Closes the "`fire_age_s` is None on every kevseq row" hole (nothing ever computed it).
+- **`kevseq_step`** returns `bar_lo` / `bar_hi` (additive keys only).
+- **Four env switches, ALL DEFAULT OFF**: `KEVSEQ_LIMIT_ENTRY` (F3, winner),
+  `KEVSEQ_ENTRY_TOL=0.005`, `KEVSEQ_MAX_DRIFT=0`, `KEVSEQ_FIRE_MAX_AGE_S=0`. Unsetting every
+  one restores today's behaviour byte-for-byte (pinned AP-o).
+- **Rig pin AG-vii AMENDED** (the conversion-guard literal now carries `not _ks_veto`). An
+  auditor must confirm that rewrite is legitimate and not green-washing — same standard applied
+  to the AF-l/AG-x/AH-x amendments above.
+
+### Numbers
+Live drift: kevseq median **+5.02%**, max **+28.87%** (WFF 8/17 fire $3.91 → entry $5.039,
+intended risk 5.9% → **actual 27.0%**) vs every close-anchored lane at ~0%. Damage: **7 refused
+trades** across all lanes where the fire-price trade would have passed the same R-gate
+(kevseq's own: PFSA 10:22, RR 0.12 → **1.41**); on the universe replay **194 of 1,288 fires**
+(15%) killed by the 6% min-stop floor at the drifted entry alone. Winner **F3 limit-at-fire
++0.5%**: MINE $−3.54 → **$−0.56**/tr, HOLD-OUT $−2.46 → **$−0.73**/tr, keeping 97–98% of N.
+
+### Officers to convene
+**Execution Surgeon** (planned-R = realized-R — this defect is the office's charter case; and
+the real-money `ENTRY_LIMIT_BUFFER` tension below is his call), **Blast Radius Auditor** (four
+new switches + an amended pin + a detector return-shape change), **Systems Quant** (does
+`drift_pct` compute what its name claims on every row type), **Hidden Entry Architect** (kevseq
+is the v2-era tape lane; F3 is "anticipation not chasing" in mechanism form), **Statistician**
+(the replay numbers must reach RESULTS_LEDGER, not just this file), **Wind Tunnel Engineer**
+(the fill-realism model: `bar_lo <= limit` — is that the honest fill rule?), **Strength
+Ombudsman** (F3 refuses ~2–3% of fires outright — a refusal that needs its bias hearing),
+**Dashboard Curator** (`kevseq_drift_reject` and the new stamps need a display),
+**Feed Engineer** (quote-vs-bar-batch latency is the small half of the drift).
+
+### Spec tensions for Marcos (NOT resolved here)
+- **Nothing is defaulted ON.** Every arm is still net-negative on the superset cohort; F3 makes
+  the lane lose less, not win. Recommended setting to price: `KEVSEQ_LIMIT_ENTRY=1`, tol 0.005.
+- **Real money needs a lane-aware `ENTRY_LIMIT_BUFFER`.** The executor places a marketable LIMIT
+  at `entry × 1.01` (`:615`, `:9399`); under F3 that lands up to **1.5% over the fire price**,
+  and the kill-test says +1.0% tolerance **collapses** the arm ($−2.96/tr). DRY_RUN matches the
+  kill-test exactly; real money does not. Deliberately not built — it touches the shared
+  executor mid-session. **Owed before any real-money kevseq run.**
+- **F3 means some fires produce no trade.** If the intent is that every kevseq fire becomes a
+  position, F3 is the wrong shape and F2 (re-anchor the stop) is the alternative — at the cost of
+  abandoning structural stop placement, i.e. a different strategy wearing the lane's name.
+- **F4 (fire-age guard) is NEEDS-DATA, not refuted** — unfalsifiable on the cache (modelled age
+  is always ~0s). Ships disabled; the new stamps start the distribution tonight.
+- **Sibling lanes get stamps but no veto** (measured drift ~0.4% = quote latency, not the
+  structural defect). If their stamped distributions come back looking like kevseq's, the same
+  F3 mechanism ports directly.

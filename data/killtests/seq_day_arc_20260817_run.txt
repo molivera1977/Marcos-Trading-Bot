@@ -1,0 +1,147 @@
+# DAY-ARC SEQUENCE STUDY — 8/17/26 (morning arc -> which fires pay later)
+Phases: 36 x 15min 07:00-16:00 ET; letters B>F>V>U>D>R. Fires/exits: pilot generators,
+E3 $500 live-parity, UNCHANGED. Split: MINE 05-18..07-21 / HOLD-OUT 07-22..08-14.
+Universe: 729 files, 729 name-days, 62 dates 2026-05-18..2026-08-14.
+MINE 44 dates ..2026-07-21 | HOLD-OUT 18 dates 2026-07-22..
+Arcs built for 729 name-days.
+Lane break-attack: 634 fires graded (E3).
+Lane grinder: 387 fires graded (E3).
+Lane v2: 6159 fires graded (E3).
+
+---
+
+## H1: coil-then-break (R->B pre-10:30) vs gap-and-go
+
+### lane break-attack
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 163 | 75% | $+6002.06 | $+36.82 |
+| MINE cond-FALSE | 74 | 68% | $+1979.05 | $+26.74 |
+MINE gap $+10.08/tr (TRUE - FALSE).
+-> FROZEN (N 163/74, gap $+10.08) — verify on HOLD-OUT.
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| HOLD cond-TRUE | 82 | 72% | $+2799.51 | $+34.14 |
+| HOLD cond-FALSE | 36 | 50% | $+446.24 | $+12.40 |
+HOLD-OUT gap $+21.74/tr, N 82/36.
+NULL (5000x name-day label permutation): p(perm gap >= obs) = 0.043.
+
+### lane grinder
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 96 | 72% | $+2302.46 | $+23.98 |
+| MINE cond-FALSE | 47 | 70% | $+1320.17 | $+28.09 |
+MINE gap $-4.10/tr (TRUE - FALSE).
+-> NOT FROZEN (gap < $10: N 96/47, gap $-4.10).
+
+### lane v2
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 1533 | 48% | $-3260.19 | $-2.13 |
+| MINE cond-FALSE | 901 | 48% | $-863.88 | $-0.96 |
+MINE gap $-1.17/tr (TRUE - FALSE).
+-> NOT FROZEN (gap < $10: N 1533/901, gap $-1.17).
+
+---
+
+## H2: afternoon fires: morning >=75% phases above VWAP
+
+### lane break-attack (afternoon fires only)
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 0 | 0% | $+0.00 | $+0.00 |
+| MINE cond-FALSE | 0 | 0% | $+0.00 | $+0.00 |
+MINE gap $+0.00/tr (TRUE - FALSE).
+-> NOT FROZEN (underpowered: N 0/0, gap $+0.00).
+
+### lane grinder (afternoon fires only)
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 64 | 73% | $+761.08 | $+11.89 |
+| MINE cond-FALSE | 71 | 59% | $+1334.03 | $+18.79 |
+MINE gap $-6.90/tr (TRUE - FALSE).
+-> NOT FROZEN (gap < $10: N 64/71, gap $-6.90).
+
+### lane v2 (afternoon fires only)
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 362 | 43% | $-2882.56 | $-7.96 |
+| MINE cond-FALSE | 1407 | 43% | $-13467.20 | $-9.57 |
+MINE gap $+1.61/tr (TRUE - FALSE).
+-> NOT FROZEN (gap < $10: N 362/1407, gap $+1.61).
+
+---
+
+## H3: pre-10:00 flush-then-rip vs no-flush days
+
+### lane break-attack
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 49 | 76% | $+1852.51 | $+37.81 |
+| MINE cond-FALSE | 347 | 73% | $+11752.26 | $+33.87 |
+MINE gap $+3.94/tr (TRUE - FALSE).
+-> NOT FROZEN (gap < $10: N 49/347, gap $+3.94).
+
+### lane grinder
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 20 | 85% | $+963.18 | $+48.16 |
+| MINE cond-FALSE | 223 | 71% | $+6616.36 | $+29.67 |
+MINE gap $+18.49/tr (TRUE - FALSE).
+-> FROZEN (N 20/223, gap $+18.49) — verify on HOLD-OUT.
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| HOLD cond-TRUE | 8 | 75% | $+235.57 | $+29.45 |
+| HOLD cond-FALSE | 134 | 71% | $+2873.76 | $+21.45 |
+HOLD-OUT gap $+8.00/tr, N 8/134.
+NULL (5000x name-day label permutation): p(perm gap >= obs) = 0.324.
+
+### lane v2
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 543 | 44% | $-1859.68 | $-3.42 |
+| MINE cond-FALSE | 3563 | 46% | $-10867.45 | $-3.05 |
+MINE gap $-0.37/tr (TRUE - FALSE).
+-> NOT FROZEN (gap < $10: N 543/3563, gap $-0.37).
+
+---
+
+## H4: quiet open (first two phases R R)
+
+### lane break-attack
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 27 | 81% | $+1962.62 | $+72.69 |
+| MINE cond-FALSE | 319 | 69% | $+6868.82 | $+21.53 |
+MINE gap $+51.16/tr (TRUE - FALSE).
+-> FROZEN (N 27/319, gap $+51.16) — verify on HOLD-OUT.
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| HOLD cond-TRUE | 7 | 86% | $+211.24 | $+30.18 |
+| HOLD cond-FALSE | 132 | 67% | $+3576.83 | $+27.10 |
+HOLD-OUT gap $+3.08/tr, N 7/132.
+NULL (5000x name-day label permutation): p(perm gap >= obs) = 0.437.
+
+### lane grinder
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 12 | 67% | $+220.77 | $+18.40 |
+| MINE cond-FALSE | 121 | 71% | $+3062.68 | $+25.31 |
+MINE gap $-6.91/tr (TRUE - FALSE).
+-> NOT FROZEN (underpowered: N 12/121, gap $-6.91).
+
+### lane v2
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE cond-TRUE | 249 | 48% | $+200.09 | $+0.80 |
+| MINE cond-FALSE | 3344 | 46% | $-16748.67 | $-5.01 |
+MINE gap $+5.81/tr (TRUE - FALSE).
+-> NOT FROZEN (gap < $10: N 249/3344, gap $+5.81).
+
+---
+
+## VERDICTS
+**H1 (coil-then-break (R->B pre-10:30) vs gap-and-go): ARC-PREDICTS**
+**H2 (afternoon fires: morning >=75% phases above VWAP): NO-SPLIT**
+**H3 (pre-10:00 flush-then-rip vs no-flush days): UNDERPOWERED**
+**H4 (quiet open (first two phases R R)): UNDERPOWERED**

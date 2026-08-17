@@ -1,0 +1,139 @@
+# SEQUENCE-MINING PILOT — 8/17 (champion lanes; sequencing doctrine first proof beyond kevseq)
+Universe: 729 files, 729 name-days loaded, 62 dates 2026-05-18..2026-08-14.
+Engine: S->G->F->C->B->E unchanged (flatten_parity chain). Exit=E3 (F.sim_var,halt_rule=True).
+WIN = E3 $>0 OR +1R before stop. Suffix = STRUCTURAL string (F/D out, dups collapsed).
+
+## LANE: flat_top BREAK-ATTACK (9:30-10:30)  — N=634 fires over 62 active dates
+| cohort | N | win | total | $/tr | day mean | day med | green% | halves | worst day |
+|---|---|---|---|---|---|---|---|---|---|
+| UNGATED lane | 634 | 69% | $+17031.01 | $+26.86 | $+274.69 | $+280.19 | 85% | $+9762/$+7269 | $-121.42 |
+
+### last-2 structural suffixes (base: N=634 win=69% $/tr=$+26.86) — all N>=15
+| suffix | N has | win% has | $/tr has | win% hasnt | $/tr hasnt | win lift | $/tr lift |
+|---|---|---|---|---|---|---|---|
+| L B | 18 | 72% | $+59.45 | 69% | $+25.91 | +3pp | $+32.58 |
+| T B | 60 | 80% | $+50.52 | 68% | $+24.39 | +11pp | $+23.66 |
+| Q B | 22 | 82% | $+46.45 | 68% | $+26.16 | +13pp | $+19.59 |
+| B H | 16 | 81% | $+43.27 | 68% | $+26.44 | +12pp | $+16.40 |
+| W B | 45 | 71% | $+34.43 | 69% | $+26.28 | +2pp | $+7.57 |
+| R P | 34 | 65% | $+19.80 | 69% | $+27.26 | -4pp | $-7.06 |
+| W P | 71 | 72% | $+18.78 | 68% | $+27.88 | +3pp | $-8.08 |
+| H P | 26 | 65% | $+16.57 | 69% | $+27.30 | -3pp | $-10.30 |
+| Q P | 135 | 65% | $+16.25 | 70% | $+29.74 | -4pp | $-10.62 |
+| P H | 18 | 72% | $+9.72 | 69% | $+27.36 | +3pp | $-17.14 |
+
+### last-3 structural suffixes (base: N=634 win=69% $/tr=$+26.86) — all N>=15
+| suffix | N has | win% has | $/tr has | win% hasnt | $/tr hasnt | win lift | $/tr lift |
+|---|---|---|---|---|---|---|---|
+| W T B | 19 | 95% | $+78.22 | 68% | $+25.28 | +26pp | $+51.35 |
+| B T B | 18 | 78% | $+48.20 | 69% | $+26.24 | +9pp | $+21.33 |
+| W Q P | 26 | 73% | $+41.10 | 69% | $+26.25 | +4pp | $+14.24 |
+| P H P | 16 | 62% | $+19.19 | 69% | $+27.06 | -6pp | $-7.67 |
+| P Q P | 45 | 69% | $+13.02 | 69% | $+27.92 | +0pp | $-13.84 |
+| P W P | 36 | 67% | $+7.32 | 69% | $+28.04 | -2pp | $-19.54 |
+
+### MATERIAL-N gate threshold for this lane: N >= 50 (8% of 634 fires, floor 20)
+best SUB-material sliver (transparency, NOT a gate candidate): `W T B` N=19 win 95% $/tr $+78.22
+
+### GATE TEST — keep ONLY fires ending in MATERIAL-N suffix `T B` (last-2 structural)
+| cohort | N | win | total | $/tr | day mean | day med | green% | halves | worst day |
+|---|---|---|---|---|---|---|---|---|---|
+| UNGATED | 634 | 69% | $+17031.01 | $+26.86 | $+274.69 | $+280.19 | 85% | $+9762/$+7269 | $-121.42 |
+| GATED [T B] | 60 | 80% | $+3031.30 | $+50.52 | $+48.89 | $+14.98 | 52% | $+1612/$+1419 | $-90.97 |
+gate retains 60/634 fires (9%); $/tr $+26.86 -> $+50.52; total $+17031 -> $+3031
+
+## LANE: GRINDER (post-10:30)  — N=387 fires over 58 active dates
+| cohort | N | win | total | $/tr | day mean | day med | green% | halves | worst day |
+|---|---|---|---|---|---|---|---|---|---|
+| UNGATED lane | 387 | 72% | $+10676.31 | $+27.59 | $+184.07 | $+117.87 | 83% | $+6030/$+4646 | $-175.04 |
+
+### last-2 structural suffixes (base: N=387 win=72% $/tr=$+27.59) — all N>=15
+| suffix | N has | win% has | $/tr has | win% hasnt | $/tr hasnt | win lift | $/tr lift |
+|---|---|---|---|---|---|---|---|
+| L B | 18 | 83% | $+49.63 | 71% | $+26.51 | +11pp | $+22.04 |
+| T B | 104 | 82% | $+44.14 | 68% | $+21.50 | +10pp | $+16.56 |
+| P B | 23 | 96% | $+41.22 | 70% | $+26.73 | +24pp | $+13.64 |
+| Q B | 73 | 63% | $+34.60 | 74% | $+25.96 | -9pp | $+7.01 |
+| B H | 24 | 71% | $+28.16 | 72% | $+27.55 | -1pp | $+0.57 |
+| B R | 17 | 59% | $+11.39 | 72% | $+28.33 | -13pp | $-16.20 |
+| B Q | 75 | 72% | $+6.33 | 72% | $+32.70 | +0pp | $-21.26 |
+| W B | 31 | 48% | $-0.86 | 74% | $+30.06 | -23pp | $-28.45 |
+
+### last-3 structural suffixes (base: N=387 win=72% $/tr=$+27.59) — all N>=15
+| suffix | N has | win% has | $/tr has | win% hasnt | $/tr hasnt | win lift | $/tr lift |
+|---|---|---|---|---|---|---|---|
+| W T B | 28 | 89% | $+57.36 | 70% | $+25.26 | +17pp | $+29.78 |
+| T Q B | 39 | 67% | $+49.93 | 72% | $+25.08 | -5pp | $+22.34 |
+| P T B | 21 | 95% | $+46.48 | 70% | $+26.50 | +23pp | $+18.90 |
+| Q T B | 26 | 77% | $+36.86 | 71% | $+26.92 | +5pp | $+9.28 |
+| H B H | 15 | 80% | $+32.50 | 72% | $+27.39 | +8pp | $+4.91 |
+| W Q B | 24 | 62% | $+9.98 | 72% | $+28.75 | -9pp | $-17.60 |
+| T B Q | 59 | 71% | $+5.25 | 72% | $+31.61 | -1pp | $-22.34 |
+
+### MATERIAL-N gate threshold for this lane: N >= 30 (8% of 387 fires, floor 20)
+best SUB-material sliver (transparency, NOT a gate candidate): `W T B` N=28 win 89% $/tr $+57.36
+
+### GATE TEST — keep ONLY fires ending in MATERIAL-N suffix `T Q B` (last-3 structural)
+| cohort | N | win | total | $/tr | day mean | day med | green% | halves | worst day |
+|---|---|---|---|---|---|---|---|---|---|
+| UNGATED | 387 | 72% | $+10676.31 | $+27.59 | $+184.07 | $+117.87 | 83% | $+6030/$+4646 | $-175.04 |
+| GATED [T Q B] | 39 | 67% | $+1947.12 | $+49.93 | $+33.57 | $+0.00 | 29% | $+1213/$+734 | $-36.34 |
+gate retains 39/387 fires (10%); $/tr $+27.59 -> $+49.93; total $+10676 -> $+1947
+
+## LANE: V2 flush  — N=6159 fires over 62 active dates
+| cohort | N | win | total | $/tr | day mean | day med | green% | halves | worst day |
+|---|---|---|---|---|---|---|---|---|---|
+| UNGATED lane | 6159 | 46% | $-21764.93 | $-3.53 | $-351.05 | $-370.93 | 31% | $-13958/$-7807 | $-1685.70 |
+
+### last-2 structural suffixes (base: N=6159 win=46% $/tr=$-3.53) — all N>=15
+| suffix | N has | win% has | $/tr has | win% hasnt | $/tr hasnt | win lift | $/tr lift |
+|---|---|---|---|---|---|---|---|
+| B T | 50 | 52% | $+22.82 | 45% | $-3.75 | +6pp | $+26.36 |
+| T L | 20 | 50% | $+20.70 | 46% | $-3.61 | +4pp | $+24.24 |
+| T B | 94 | 56% | $+11.69 | 45% | $-3.77 | +11pp | $+15.23 |
+| Q L | 15 | 53% | $+6.56 | 46% | $-3.56 | +8pp | $+10.10 |
+| Q R | 34 | 44% | $+6.32 | 46% | $-3.59 | -1pp | $+9.85 |
+| B L | 29 | 38% | $+5.45 | 46% | $-3.58 | -8pp | $+8.98 |
+| W B | 101 | 59% | $+5.15 | 45% | $-3.68 | +14pp | $+8.68 |
+| B H | 42 | 45% | $+4.95 | 46% | $-3.59 | -0pp | $+8.49 |
+| W L | 41 | 54% | $+3.72 | 45% | $-3.58 | +8pp | $+7.26 |
+| T Q | 17 | 41% | $+2.87 | 46% | $-3.55 | -4pp | $+6.41 |
+
+### last-3 structural suffixes (base: N=6159 win=46% $/tr=$-3.53) — all N>=15
+| suffix | N has | win% has | $/tr has | win% hasnt | $/tr hasnt | win lift | $/tr lift |
+|---|---|---|---|---|---|---|---|
+| W T B | 19 | 63% | $+28.92 | 45% | $-3.63 | +18pp | $+32.46 |
+| T B T | 19 | 74% | $+16.79 | 45% | $-3.60 | +28pp | $+20.33 |
+| B T B | 45 | 67% | $+15.23 | 45% | $-3.67 | +21pp | $+18.76 |
+| B L W | 16 | 38% | $+14.54 | 46% | $-3.58 | -8pp | $+18.08 |
+| H B H | 17 | 35% | $+9.34 | 46% | $-3.57 | -10pp | $+12.87 |
+| B T W | 150 | 50% | $+4.65 | 45% | $-3.74 | +4pp | $+8.18 |
+| W P Q | 18 | 56% | $+3.80 | 45% | $-3.56 | +10pp | $+7.34 |
+| Q W Q | 189 | 52% | $+3.45 | 45% | $-3.75 | +7pp | $+6.98 |
+| H Q W | 20 | 50% | $+3.13 | 46% | $-3.56 | +4pp | $+6.66 |
+| T W B | 33 | 64% | $+2.83 | 45% | $-3.57 | +18pp | $+6.37 |
+
+### MATERIAL-N gate threshold for this lane: N >= 492 (8% of 6159 fires, floor 20)
+best SUB-material sliver (transparency, NOT a gate candidate): `P T` N=8 win 62% $/tr $+52.09
+
+### GATE TEST — NO material-N (>= threshold) suffix beat the lane's base $/tr.
+The lane's already-strong base is not improved by any sequence gate that retains a
+real slice of fires; only sub-material slivers turn positive-per-trade (overfit-prone).
+
+## LANE: MA_PULLBACK — NEEDS-DATA
+No faithful universe-replay detector exists in the flatten_parity engine chain. The live
+detect_ma_pullback (marcos_trading_bot.py:4641) fires off completed 1-min bars with warmup
+seeds + Kev levels; porting it to the 10s universe replay would invent a detector, not
+replay the champion. Flagged NEEDS-DATA: owed a dedicated 1-min universe port before a
+sequence gate can be graded on it.
+
+## HAND-TRACES (three)
+- grinder WIN carrying the material suffix `T Q B`: VERU 2026-06-04 grinder fire 14:46:30Z entry 2.6400 stop 2.5500 E3 $+377.19 trail@16:26:30 win=True
+    full string : W Q T D W Q B T B T B T D Q W Q W D Q D W T W T Q B
+    structural  : W Q T W Q B T B T B T Q W Q W Q W T W T Q B
+- grinder LOSS lacking the suffix (gated out): ICCM 2026-06-24 grinder fire 15:21:10Z entry 8.7902 stop 7.8600 E3 $-59.55 stop@15:33:00 win=False
+    full string : F D W P F P W P F W D W D W P B F T B H T H T H T H T W D F D F W B
+    structural  : W P W P W P B T B H T H T H T H T W B
+- v2 specimen carrying `P T` (only-positive sliver): SPKLW 2026-06-11 v2 fire 13:51:40Z entry 1.2400 stop 1.1830 E3 $+194.09 trail@18:24:00 win=True
+    full string : D F D F D F W F D F D W F D F D F D F P F T
+    structural  : W P T

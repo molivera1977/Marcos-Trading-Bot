@@ -1,0 +1,60 @@
+# HIDDEN SIGNAL GRADE — 8/17/26 (analysis only)
+cache: 738 files -> 736 graded name-days, 63 dates 2026-05-18..2026-08-17
+
+## PART 1 — ARCHIVE COHORT (hidden_shadow_fire / hidden_observe_only)
+| date | shadow_fire | observe_only | total |
+|---|---|---|---|
+| 2026-08-13 | 137 | 0 | 137 |
+| 2026-08-14 | 101 | 37 | 138 |
+| 2026-08-17 | 207 | 157 | 364 |
+| **TOTAL** | **445** | **194** | **639** |
+
+top names by fires: IPST:165, WETO:90, IVF:77, FGI:66, DFSC:29, DAIC:28, NIVF:26, HCTI:24, CGTL:14, CDTG:14, BOXL:12, MF:11
+
+DRIFT (observe_only rows carrying both fire_px and live price): n=194 median -0.170%  mean -0.340%  p10 -3.13%  p90 +2.71%  min -13.10%  max +15.13%
+stamped: 194/194 observe_only rows carry fire_px (100%)
+
+archive name-days 33; present in the 10s cache 16 (48%) -> the archive cohort alone CANNOT be dollar-graded at useful N; the universe replay below is the load-bearing arm.
+
+## PART 2/3 — UNIVERSE REPLAY, E3 LIVE PARITY, FOUR ENTRY CONSTRUCTIONS
+| cohort | N | win | total | mean/tr | day mean | day median | worst day |
+|---|---|---|---|---|---|---|---|
+
+raw fires before dedup/cutoff: A=19230, B=17849, C=19206, C2=17391
+  A: worst single trade $-119.59  exits {'trail': 1199, 'stop': 2866, 'eod1545': 516, 'haltgap': 8, 'eod': 2}
+  B: worst single trade $-101.41  exits {'stop': 2765, 'eod1545': 462, 'trail': 967, 'haltgap': 10, 'eod': 2}
+  C: worst single trade $-121.48  exits {'trail': 1152, 'stop': 2893, 'eod1545': 533, 'haltgap': 8, 'eod': 2}
+  C2: worst single trade $-117.68  exits {'trail': 1110, 'stop': 2811, 'eod1545': 390, 'haltgap': 7, 'eod': 2}
+
+## PART 4 — THE RUNNER SPLIT (day-gain at fire) and SIZEABILITY
+day-gain proxy = (fire close / first cached bar open of the name-day) - 1.  This is an
+intraday-from-first-cached-bar gain, NOT a prev-close gain (the 10s cache carries no
+prior close).  It UNDERSTATES gap-up names, so the >=25% cell is a conservative subset.
+
+| cell | N | win | total | $/tr | halves | green% |
+|---|---|---|---|---|---|---|
+| A day-gain >=25% | 4111 | 32% | $-29635.31 | $-7.21 | $-17285/$-12350 | 13% |
+| A day-gain <25% | 480 | 46% | $+5569.34 | $+11.60 | $+5255/$+314 | 53% |
+| B day-gain >=25% | 3775 | 29% | $-23181.02 | $-6.14 | $-13498/$-9683 | 21% |
+| B day-gain <25% | 431 | 42% | $+5061.90 | $+11.74 | $+4913/$+149 | 56% |
+| C2 day-gain >=25% | 3868 | 31% | $-25023.31 | $-6.47 | $-14831/$-10193 | 16% |
+| C2 day-gain <25% | 452 | 44% | $+5241.56 | $+11.60 | $+4595/$+646 | 55% |
+
+fire-bar dollar volume: median $103,222  p10 $3,297  p90 $643,339
+cumulative session dollar volume at fire: median $140,581,457  p10 $8,550,516
+fires whose OWN 10s bar traded < $5,000 (a $500 clip = >10% of that bar): 567/4591 (12%)
+
+| cell | N | win | total | $/tr | halves | green% |
+|---|---|---|---|---|---|---|
+| A fire-bar $vol >= median | 2296 | 30% | $-21505.33 | $-9.37 | $-14460/$-7046 | 14% |
+| A fire-bar $vol <  median | 2295 | 37% | $-2560.64 | $-1.12 | $+2430/$-4991 | 37% |
+
+BEST-CASE HUNT — the two cells with any positive $/tr, re-checked on BOTH halves:
+  A runner cell: $/tr $-7.21 — not positive, nothing to defend
+  B runner cell: $/tr $-6.14 — not positive, nothing to defend
+  C2 runner cell: $/tr $-6.47 — not positive, nothing to defend
+
+## NAMED TRACE (best ARM-A fire): NPT 2026-06-08 17:43:20Z  bar o 3.0500 h 3.1300 l 3.0100 c 3.1200  anchor 3.1038  stop 2.9640 (5.0% risk)  fill 3.1512 (158.7 sh on a $500 clip) -> $+407.29 trail@18:11:50
+   17:46:20 BANK 0.50 at +10% (3.4663)
+   18:11:50 TRAIL[off10] close 8.0100 fill 7.9699
+## NAMED TRACE (worst ARM-A fire): EZRA 2026-08-03 13:35:40Z stop 3.2050 -> $-119.59 stop@13:36:50

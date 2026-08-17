@@ -433,3 +433,37 @@ timing (whole-day tolerance moves it <=5 pts) and feed-start window (grinder fir
 
 **Standing rule proposed:** until (2) exists, any study using the harness reports its lane's
 harness-vs-live parity alongside its result. Hand-rolling a detector is no longer an option.
+
+---
+
+## EG1 DOCKET — LANE-COMPLETENESS PROPERTIES OPEN AT HEAD (added 2026-08-17, enforcement-gate build)
+
+Rig section **EG1** (`rig/test_shipset_20260804.py`) grades every lane whose `*_CONVERT` env can
+be set to 1 against seven properties. The items below are **KNOWN-OPEN at HEAD**: they are pinned
+as `OPEN` in `_E1_PIN` so the rig WARNS rather than fails, and the pin itself is enforced — the
+moment one of them becomes true without the pin being updated, EG1 goes RED. Each one is a change
+to **what the bot does with money**, so per `feedback_auditor_cannot_authorize_behavior` it goes
+to Marcos priced; it does NOT ride an auditor's ship.
+
+### EG1-a — kevseq fires at a LEVEL, not a traded price  (ONE lane, still open)
+`kevseq_step` returns `"px": round(px, 4)` where `px = float(pd["hi"])` — the setup bar's HIGH,
+i.e. the trigger level. **Every other detector in the bot prices off the bar close `c`**
+(`hidden_entry_step`, `v2_pullback_step`, `grinder_shadow_step`, `bandpass_step`,
+`kev_zoneflip_step`, `kev_reclaim_step`, `dip_rip_step`, `ignition_10s_step` — verified by AST,
+8/17). The 8/17 entry-drift ship added `bar_lo`/`bar_hi` + `drift_pct`/`fire_age_s` stamps and the
+`KEVSEQ_LIMIT_ENTRY`/`KEVSEQ_MAX_DRIFT` guards (all env-OFF) so the drift is now *visible* — it did
+not change the fire price, because that is a money-behaviour change.
+**Decision owed from Marcos:** price `kevseq` at the fill bar's close (parity with every other
+lane) vs keep the level with the drift guards. Evidence: `data/killtests/entry_drift_20260817.md`.
+
+### EG1-b — no fire-age / staleness guard on five convertible lanes
+`_log_stale_fire` (the `CURL_FIRE_MAX_AGE_SECS` suppressor) covers `vwap_reclaim`,
+`hidden_entry`, `zone_flip`, `ignition10s`. It does **not** cover `v2conv`, `grinder`,
+`bandpass`, `prevwap`, `flat_top`, `crown_seam`, `halt_ladder`. `kevseq` has a named guard
+(`KEVSEQ_FIRE_MAX_AGE_S`, default 0 = disabled) — the mechanism exists, so EG1 scores it present.
+Adding a suppressor to a lane REMOVES trades: money behaviour, Marcos prices it.
+
+### EG1-c — no drift/age stamps on three lanes
+`flat_top`, `crown_seam`, `halt_ladder` write no `drift_pct` / `fire_age_s` on their rows (they
+have no fire dict of their own — the caller appends to `breakouts` inline). Observe-only to add,
+but it is still a change to an approved path; queued rather than shipped tonight.

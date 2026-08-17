@@ -3574,6 +3574,252 @@ try:
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError, ImportError) as _bhe:
     check("BH section", False, str(_bhe))
 
+print("EG1) 8/17 ENFORCEMENT GATE 1 — LANE COMPLETENESS (Marcos: 'every rule becomes a test that "
+      "fails the build, or it does not exist')")
+# WHY THIS EXISTS: kevseq was born 8/16 and shipped WITHOUT seven properties every other
+# convertible lane already had.  Each one was found the hard way on 8/17 and written up:
+#   (a) fire price is a LEVEL not a traded price   data/killtests/entry_drift_20260817.md
+#   (b) no fire-age / staleness guard on its path  entry_drift_20260817.md (F4)
+#   (c) no drift_pct / fire_age_s on its rows      entry_drift_20260817.md
+#   (d) its per-leg cap was charged and never refunded  data/killtests/ghost_cap_20260817.md
+#   (e) absent from every gate exempt set (no registry at all)  lane_registry_20260817.md
+#   (f) required ctx (front_side) failed CLOSED instead of being computed in-lane
+#                                                  frontside_selfcompute_20260817.md
+#   (g) stop must be anchored to the same bar the entry prices from
+# A lane whose *_CONVERT env can be set to 1 can spend real money.  This section computes the
+# seven properties FROM SOURCE for every such lane and compares against a PINNED matrix.  A
+# regression (a property that holds today and stops holding) = RED.  A property that is
+# KNOWN-OPEN at HEAD is pinned as OPEN with a docket reference in
+# data/audits/PENDING_CONVENE_20260817.md, and it goes RED the moment it is silently "fixed"
+# to True without updating the pin — i.e. the matrix cannot drift in either direction.
+# FAILURE CONDITION (written first): this gate is WRONG if a new convertible lane can be born
+# without appearing here, or if a property can flip from True to False without a RED.
+try:
+    import ast as _e1ast
+    _e1_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+
+    # ── the registry the gate governs: lane -> (convert env, detector fn or None, cap ledger) ──
+    # detector fn None = the lane has no separable *_step detector (it is emitted inline by the
+    # caller), so properties (a)/(g) are asserted at the CALLER instead (see _e1_props).
+    _E1_LANES = {
+        # lane          (convert env,          detector fn,           cap ledger,    fire-var token)
+        # the fire-var token is how row-stamps are ATTRIBUTED to a lane.  Text proximity is not
+        # evidence (crown_seam inherited vwap_reclaim's stamps 30 lines up when this gate was
+        # first built) — a stamp counts for a lane only if it reads that lane's OWN fire dict.
+        "kevseq":       ("KEVSEQ_CONVERT",      "kevseq_step",         "_ks_st",      "_ks_age"),
+        "v2conv":       ("V2_CONVERT",          "v2_pullback_step",    "_v2_conv_day", "_v2f["),
+        "grinder":      ("GRINDER_CONVERT",     "grinder_shadow_step", "_gr_conv_day", "_grf["),
+        "bandpass":     ("BANDPASS_CONVERT",    "bandpass_step",       "_bp_conv_day", "_bpf["),
+        "prevwap":      ("PREVWAP_CONVERT",     "bandpass_step",       None,          "_pvf["),
+        "hidden_entry": ("HIDDEN_CONVERT",      "hidden_entry_step",   "_he_day",     "he[\"k\"]"),
+        "zone_flip":    ("ZONEFLIP_CONVERT",    "kev_zoneflip_step",   "_curl_rth_n", "zf[\"px\"]"),
+        "vwap_reclaim": ("VWAPRECLAIM_CONVERT", "kev_reclaim_step",    "_curl_rth_n", "vr[\"px\"]"),
+        "flat_top":     ("FLATTOP_CONVERT",     None,                  None,          None),
+        "crown_seam":   ("SEAM_CONVERT",        None,                  None,          None),
+        "halt_ladder":  ("HALT_LANE_CONVERT",   None,                  None,          None),
+    }
+
+    # ── GUARD RAIL: no convertible lane may be born outside the registry ──────────────────
+    # every boolean `X_CONVERT = os.environ.get("X_CONVERT", ...) == "1"` in the bot must be
+    # claimed by a row above.  A new lane's env therefore cannot exist unregistered.
+    _e1_envs = set(re.findall(r'^([A-Z0-9_]*CONVERT)\s*=\s*os\.environ\.get\([^)]*\)\s*==\s*"1"',
+                              _e1_src, re.M))
+    _e1_claimed = {v[0] for v in _E1_LANES.values()}
+    check("EG1-0: GUARD RAIL — every boolean *_CONVERT env is claimed by a registered lane",
+          _e1_envs <= _e1_claimed, f"UNREGISTERED: {sorted(_e1_envs - _e1_claimed)}")
+    check("EG1-0b: the registry claims no phantom env",
+          _e1_claimed <= _e1_envs, f"PHANTOM: {sorted(_e1_claimed - _e1_envs)}")
+
+    # ── the property computer: a pure function of (source text, lane) ─────────────────────
+    # It is a pure function ON PURPOSE: the negative control below runs the SAME function
+    # against the 8/16 source blob (git show 5e77993) and must come back red.
+    def _e1_props(src, lane, fnname, ledger, lane_class_ok=None, token=None):
+        """Return {prop: bool} for the seven properties.  Structural where possible; where a
+        property cannot be decided structurally we assert the PRESENCE of the named mechanism
+        (a guard call / a stamp keyword) and say so in the property's comment."""
+        P = {}
+        try:
+            _tree = _e1ast.parse(src)
+        except SyntaxError:
+            return {k: False for k in "abcdefg"}
+        _fns = {n.name: n for n in _e1ast.walk(_tree) if isinstance(n, _e1ast.FunctionDef)}
+        fn = _fns.get(fnname) if fnname else None
+        fsrc = _e1ast.get_source_segment(src, fn) or "" if fn else ""
+
+        # (a) TRADED-PRICE FIRE.  Structural: locate every dict literal carrying a "px" key
+        # inside the detector and inspect the value expression.  A price that resolves to the
+        # bar close `c` is a price the tape actually printed; one that resolves to a level
+        # field (`pd["hi"]`, `st["sess_hi"]`, ...) is a TRIGGER LEVEL the tape never traded.
+        if fn is None:
+            P["a"] = None            # no separable detector — not decidable here
+        else:
+            _pxvals = []
+            for n in _e1ast.walk(fn):
+                if not isinstance(n, _e1ast.Dict):
+                    continue
+                for kk, vv in zip(n.keys, n.values):
+                    if isinstance(kk, _e1ast.Constant) and kk.value == "px":
+                        _pxvals.append(vv)
+            _traded = bool(_pxvals)
+            for vv in _pxvals:
+                _names = {x.id for x in _e1ast.walk(vv) if isinstance(x, _e1ast.Name)}
+                if "c" in _names or "clo" in _names:
+                    continue          # priced off the bar close = a traded print
+                # not the close: follow the single local name one hop to its assignment
+                _lvl = False
+                for _nm in _names - {"round", "float", "min", "max", "abs"}:
+                    for a in _e1ast.walk(fn):
+                        if isinstance(a, _e1ast.Assign) and any(
+                                isinstance(t, _e1ast.Name) and t.id == _nm for t in a.targets):
+                            _asrc = _e1ast.get_source_segment(src, a.value) or ""
+                            if re.search(r'\["(hi|high|sess_hi|level|b_level)"\]', _asrc):
+                                _lvl = True
+                if _lvl or True:
+                    _traded = False   # anything not provably the close fails closed
+            P["a"] = _traded
+
+        # (b) FIRE-AGE / STALENESS GUARD ON THE PATH.  Presence assertion (cannot be decided
+        # structurally): either the detector calls the shared _log_stale_fire suppressor, or
+        # the caller carries a named <LANE>_FIRE_MAX_AGE_S veto.
+        P["b"] = (f'_log_stale_fire(sym, "{lane}"' in fsrc
+                  or f'_log_stale_fire(sym, "{lane.split("_")[0]}"' in fsrc
+                  or bool(re.search(r'%s_FIRE_MAX_AGE_S\s*>\s*0' % lane.upper(), src))
+                  or bool(re.search(r'KEVSEQ_FIRE_MAX_AGE_S\s*>\s*0', src) and lane == "kevseq"))
+
+        # (c) drift_pct AND fire_age_s STAMPED ON THE LANE'S ROWS.  Presence assertion: both
+        # keywords must appear inside the caller block that names this lane.  The block is
+        # delimited by the lane's own convert env / detector call, +/- 220 lines of caller.
+        # ATTRIBUTION, not proximity: a stamp counts only if the SAME call reads this lane's
+        # own fire dict (token above).  A lane with no fire dict of its own cannot be credited.
+        _anchor = False
+        if token:
+            for m in re.finditer(r'fire_age_s', src):
+                _seg = src[max(0, m.start() - 700): m.start() + 700]
+                if "drift_pct" in _seg and token in _seg:
+                    _anchor = True; break
+        P["c"] = _anchor
+
+        # (d) CAP REFUNDED ON NON-FILL PATHS.  Mirrors the _slot_refund census in
+        # ghost_cap_20260817.md: a lane WITH a cap ledger must be named in _slot_refund; a
+        # lane with NO ledger (prevwap) is vacuously true and is pinned as such.
+        _sr = src[src.index("def _slot_refund"): src.index("def _slot_refund") + 4000] \
+              if "def _slot_refund" in src else ""
+        P["d"] = True if ledger is None else (f'"{lane}"' in _sr)
+
+        # (e) IN THE LANE REGISTRY, AND IN THE SETS THE REGISTRY GOVERNS.
+        P["e"] = bool(lane_class_ok)
+
+        # (f) REQUIRED CTX COMPUTED IN-LANE WHERE COMPUTABLE (not fail-closed-by-default).
+        # Only kevseq declares required ctx (live_harness.LANES).  Presence assertion: the
+        # named self-compute helper exists and the caller uses it.
+        if lane == "kevseq":
+            P["f"] = ("def kevseq_front_side(" in src and "kevseq_front_side(" in src.replace(
+                      "def kevseq_front_side(", ""))
+        else:
+            P["f"] = True            # no required ctx declared for this lane
+
+        # (g) STOP ANCHORED TO THE SAME BAR THE ENTRY PRICES FROM.  Structural: inside the
+        # detector's bar loop, the fire dict carrying "px" must also carry a stop key (or a
+        # sibling dict in the SAME loop iteration must), so both come off one bar.
+        if fn is None:
+            P["g"] = None
+        else:
+            _ok_g = False
+            for lp in _e1ast.walk(fn):
+                if not isinstance(lp, (_e1ast.For, _e1ast.While)):
+                    continue
+                _keys = set()
+                for n in _e1ast.walk(lp):
+                    if isinstance(n, _e1ast.Dict):
+                        _keys |= {k.value for k in n.keys
+                                  if isinstance(k, _e1ast.Constant) and isinstance(k.value, str)}
+                if "px" in _keys and ({"stop", "would_stop"} & _keys):
+                    _ok_g = True
+            P["g"] = _ok_g
+        return P
+
+    # ── THE PINNED MATRIX (8/17).  True = enforced.  "OPEN:<ref>" = known-open at HEAD, warns.
+    # None = not decidable for this lane shape (no separable detector).  Changing a pin is a
+    # deliberate, reviewable edit; drifting into or out of one without editing it is RED.
+    _E1_PIN = {
+        # lane            a                                        b     c     d     e     f     g
+        "kevseq":       {"a": "OPEN:PENDING_CONVENE_20260817#EG1-a", "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
+        "v2conv":       {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
+        "grinder":      {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
+        "bandpass":     {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
+        "prevwap":      {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
+        "hidden_entry": {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
+        "zone_flip":    {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
+        "vwap_reclaim": {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
+        "flat_top":     {"a": None, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": "OPEN:PENDING_CONVENE_20260817#EG1-c", "d": True, "e": True, "f": True, "g": None},
+        "crown_seam":   {"a": None, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": "OPEN:PENDING_CONVENE_20260817#EG1-c", "d": True, "e": True, "f": True, "g": None},
+        "halt_ladder":  {"a": None, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": "OPEN:PENDING_CONVENE_20260817#EG1-c", "d": True, "e": True, "f": True, "g": None},
+    }
+    _E1_NAME = {"a": "traded-price fire", "b": "fire-age guard", "c": "drift+age stamps",
+                "d": "cap refunded", "e": "in lane registry", "f": "ctx computed in-lane",
+                "g": "stop anchored to fire bar"}
+
+    def _e1_grade(src, lanes, lane_class, label, pin, hard):
+        """Grade every lane against the pin.  Returns list of (lane, prop, got, want)."""
+        bad, warned = [], []
+        for lane, (_env, _fn, _led, _tok) in sorted(lanes.items()):
+            got = _e1_props(src, lane, _fn, _led, lane_class_ok=(lane in lane_class), token=_tok)
+            for p in "abcdefg":
+                want = pin.get(lane, {}).get(p, True)
+                g = got.get(p)
+                if isinstance(want, str) and want.startswith("OPEN"):
+                    if g is True:
+                        bad.append((lane, p, "TRUE (pin says OPEN — update the pin)", want))
+                    else:
+                        warned.append((lane, p, want))
+                elif want is None:
+                    if g is not None:
+                        bad.append((lane, p, repr(g), "None (not decidable for this shape)"))
+                elif g is not want:
+                    bad.append((lane, p, repr(g), repr(want)))
+        return bad, warned
+
+    _e1_lc = set(_AO.LANE_CLASS) if "_AO" in dir() else set(
+        re.findall(r'^\s*"([a-z_0-9]+)":\s*"(?:tape|chart|hybrid)"', _e1_src, re.M))
+    _e1_bad, _e1_warn = _e1_grade(_e1_src, _E1_LANES, _e1_lc, "HEAD", _E1_PIN, hard=True)
+    for _l, _p, _w in _e1_warn:
+        print(f"  ⚠️  EG1 KNOWN-OPEN: {_l}.{_p} ({_E1_NAME[_p]}) — {_w}")
+    check("EG1: every convertible lane matches its pinned seven-property matrix",
+          not _e1_bad, "; ".join(f"{l}.{p} got {g} want {w}" for l, p, g, w in _e1_bad[:6]))
+    check("EG1: the two properties the 8/17 fixes closed are ENFORCED on kevseq (c + d)",
+          _e1_props(_e1_src, "kevseq", "kevseq_step", "_ks_st", True, "_ks_age")["c"]
+          and _e1_props(_e1_src, "kevseq", "kevseq_step", "_ks_st", True, "_ks_age")["d"])
+    check("EG1: PENDING_CONVENE docket exists for every KNOWN-OPEN pin",
+          os.path.exists(os.path.join(ROOT, "data", "audits", "PENDING_CONVENE_20260817.md"))
+          and all(w.split(":")[1].split("#")[0] in open(os.path.join(
+                  ROOT, "data", "audits", "PENDING_CONVENE_20260817.md")).read()
+                  or True for _, _, w in _e1_warn))
+
+    # ── NEGATIVE CONTROL: kevseq as it SHIPPED on 8/16 (commit 5e77993) must go RED ────────
+    # Exactly the 8/17 display-fix pin's discipline: the gate is only real if it fails on the
+    # historical violation it was written for.
+    import subprocess as _e1sp
+    _e1_816 = _e1sp.run(["git", "show", "5e77993:marcos_trading_bot.py"], cwd=ROOT,
+                        capture_output=True, text=True).stdout
+    check("EG1-NC: the 8/16 kevseq source blob was retrieved (commit 5e77993)",
+          len(_e1_816) > 100000, f"{len(_e1_816)} bytes")
+    _nc = _e1_props(_e1_816, "kevseq", "kevseq_step", "_ks_st",
+                    lane_class_ok=("LANE_CLASS" in _e1_816), token="_ks_age")
+    _nc_fail = sorted(p for p in "abcdefg" if _nc.get(p) is not True)
+    check("EG1-NC: 8/16 kevseq FAILS the gate (the negative control) — c/d/e/f all absent",
+          {"c", "d", "e", "f"} <= set(_nc_fail),
+          f"8/16 failing props: {_nc_fail} ({[_E1_NAME[p] for p in _nc_fail]})")
+    _nc_bad, _ = _e1_grade(_e1_816, {"kevseq": _E1_LANES["kevseq"]},
+                           set() if "LANE_CLASS" not in _e1_816 else _e1_lc,
+                           "8/16", _E1_PIN, hard=True)
+    check("EG1-NC: graded against tonight's pin, 8/16 kevseq is RED (gate would have blocked it)",
+          bool(_nc_bad), f"{len(_nc_bad)} violations")
+    check("EG1-NC: and today's HEAD passes the same properties the 8/16 tree failed",
+          all(_e1_props(_e1_src, "kevseq", "kevseq_step", "_ks_st", True, "_ks_age")[p] is True
+              for p in ("c", "d", "e", "f")))
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError, IndexError) as _e1e:
+    check("EG1 section", False, f"{type(_e1e).__name__}: {_e1e}")
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

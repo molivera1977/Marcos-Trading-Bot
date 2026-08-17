@@ -1,0 +1,96 @@
+# IGNITION GUIDANCE — universe sim (8/17)
+Universe: 729 files, 729 name-days, 62 dates 2026-05-18..2026-08-14.
+raw ignition-replica fires (volx>=4.5 convert, pre-dedup): 1686
+post-dedup graded fires: 1071
+MINE (<= 2026-07-21): 804 fires · HOLD-OUT: 267 fires
+
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| MINE ALL | 804 | 67% | $+17049.61 | $+21.21 |
+| HOLD-OUT ALL | 267 | 63% | $+6079.44 | $+22.77 |
+
+### G1 TAPE-SIDE: price >= session VWAP at fire
+**MINE**
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| ALL | 804 | 67% | $+17049.61 | $+21.21 |
+| KEEP | 613 | 69% | $+15348.17 | $+25.04 |
+| DROP | 191 | 60% | $+1701.44 | $+8.91 |
+
+**HOLD-OUT**
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| ALL | 267 | 63% | $+6079.44 | $+22.77 |
+| KEEP | 221 | 67% | $+6474.61 | $+29.30 |
+| DROP | 46 | 43% | $-395.17 | $-8.59 |
+null p (5000 shuffles, KEEP $/tr vs random same-N): 0.0
+
+### G2 SEQUENCE PRIORITY: structural suffix ends T B
+**MINE**
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| ALL | 804 | 67% | $+17049.61 | $+21.21 |
+| KEEP | 193 | 69% | $+5628.23 | $+29.16 |
+| DROP | 611 | 66% | $+11421.38 | $+18.69 |
+
+**HOLD-OUT**
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| ALL | 267 | 63% | $+6079.44 | $+22.77 |
+| KEEP | 71 | 65% | $+1648.25 | $+23.21 |
+| DROP | 196 | 63% | $+4431.19 | $+22.61 |
+null p (5000 shuffles, KEEP $/tr vs random same-N): 0.4686
+
+### G3 FRESH-HIGH: fire within 3% of session high
+**MINE**
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| ALL | 804 | 67% | $+17049.61 | $+21.21 |
+| KEEP | 406 | 72% | $+12808.86 | $+31.55 |
+| DROP | 398 | 61% | $+4240.75 | $+10.66 |
+
+**HOLD-OUT**
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| ALL | 267 | 63% | $+6079.44 | $+22.77 |
+| KEEP | 152 | 68% | $+5974.29 | $+39.30 |
+| DROP | 115 | 57% | $+105.15 | $+0.91 |
+null p (5000 shuffles, KEEP $/tr vs random same-N): 0.0
+
+G3 aux — the FAR side (>5% below session high) on its own:
+  MINE far-side: | FAR | 309 | 59% | $+2516.85 | $+8.15 |
+  HOLD-OUT far-side: | FAR | 82 | 50% | $-185.32 | $-2.26 |
+
+### G4 SUFFIX VETO: raw seq ends D or F (KEEP = not vetoed)
+**MINE**
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| ALL | 804 | 67% | $+17049.61 | $+21.21 |
+| KEEP | 803 | 67% | $+17000.42 | $+21.17 |
+| DROP | 1 | 100% | $+49.19 | $+49.19 |
+
+**HOLD-OUT**
+| cohort | N | win | total | $/tr |
+|---|---|---|---|---|
+| ALL | 267 | 63% | $+6079.44 | $+22.77 |
+| KEEP | 267 | 63% | $+6079.44 | $+22.77 |
+| DROP | 0 | 0% | $+0.00 | $+0.00 |
+null p (5000 shuffles, KEEP $/tr vs random same-N): UNDERPOWERED (side N<15)
+
+## STACKS (MINE-chosen, frozen on HOLD-OUT)
+| stack | MINE N | MINE $/tr | HOLD N | HOLD $/tr | HOLD win | null p | winners forfeited (HOLD) |
+|---|---|---|---|---|---|---|---|
+| G1 only | 613 | $+25.04 | 221 | $+29.30 | 67% | 0.0 | 12/149 ($+658) |
+| G3 only | 406 | $+31.55 | 152 | $+39.30 | 68% | 0.0 | 49/149 ($+2286) |
+| G1+G3 | 405 | $+31.65 | 152 | $+39.30 | 68% | 0.0 | 49/149 ($+2286) |
+| G1+G4 | 612 | $+25.00 | 221 | $+29.30 | 67% | 0.0 | 12/149 ($+658) |
+| G3+G4 | 405 | $+31.51 | 152 | $+39.30 | 68% | 0.0 | 49/149 ($+2286) |
+| G1+G3+G4 | 404 | $+31.61 | 152 | $+39.30 | 68% | 0.0 | 49/149 ($+2286) |
+| G1+G2 | 160 | $+34.50 | 63 | $+27.11 | 68% | 0.2668 | 110/149 ($+7694) |
+
+## D-GUARD FILL MODEL (hold-out, $500 clip; full/half/skip)
+  UNGATED: N=267 guarded total $+4276.91 ($+16.02/fire) tiers {'full': 210, 'half': 30, 'skip': 27}
+  G1 only: N=221 guarded total $+4800.46 ($+21.72/fire) tiers {'full': 172, 'half': 26, 'skip': 23}
+  G1+G3: N=152 guarded total $+4515.01 ($+29.70/fire) tiers {'full': 109, 'half': 23, 'skip': 20}
+  G1+G4: N=221 guarded total $+4800.46 ($+21.72/fire) tiers {'full': 172, 'half': 26, 'skip': 23}
+  G1+G3+G4: N=152 guarded total $+4515.01 ($+29.70/fire) tiers {'full': 109, 'half': 23, 'skip': 20}

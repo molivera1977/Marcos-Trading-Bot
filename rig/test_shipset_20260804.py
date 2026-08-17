@@ -2553,6 +2553,40 @@ try:
 except (AssertionError, ValueError, KeyError) as _a2e:
     check("AJ2 section", False, str(_a2e))
 
+print("AJ3) 8/17 read-starvation alarm (observe-only, fabricated clock)")
+try:
+    _a3_nv = open(os.path.join(ROOT, "newcomer_vision_reader.py")).read()
+    _a3_rows = []
+    _a3_ns = {"os": os, "time": __import__("time"),
+              "_post_decision": lambda tk, st, **kw: _a3_rows.append((tk, st, kw)),
+              "print": lambda *a, **k: None}
+    _a3_seg = _a3_nv[_a3_nv.index('_starv = {"win"'):_a3_nv.index("def reread_check")]
+    exec(_a3_seg, _a3_ns)
+    _tick, _st = _a3_ns["_starvation_tick"], _a3_ns["_starv"]
+    T0 = 1_000_000.0
+    _tick(5, now=T0, hm="09:40")                       # window opens
+    _tick(5, now=T0 + 901, hm="09:55")                 # full window, 0 completions, roster 5
+    check("AJ3: 0-completions full window + roster -> read_starvation row",
+          len(_a3_rows) == 1 and _a3_rows[0][1] == "read_starvation" and _a3_rows[0][2]["roster_n"] == 5)
+    _tick(5, now=T0 + 1000, hm="10:00")                # mid-window: no repeat
+    check("AJ3: once per window", len(_a3_rows) == 1)
+    _st["n"] = 2                                        # completions arrive
+    _tick(5, now=T0 + 1802, hm="10:11")
+    check("AJ3: window WITH completions -> silent", len(_a3_rows) == 1)
+    _tick(5, now=T0 + 2703, hm="16:20")                # after hours: window void
+    check("AJ3: outside 07:00-16:00 -> no alarm + window reset", len(_a3_rows) == 1 and _st["win"] is None)
+    _tick(0, now=T0 + 3000, hm="11:00"); _tick(0, now=T0 + 3901, hm="11:15")
+    check("AJ3: empty roster -> silent", len(_a3_rows) == 1)
+    os.environ["READ_STARVATION"] = "0"
+    _st["win"], _st["n"] = T0 + 4000, 0
+    _tick(9, now=T0 + 4901, hm="11:40")
+    check("AJ3: READ_STARVATION=0 kills it", len(_a3_rows) == 1)
+    os.environ.pop("READ_STARVATION", None)
+    check("AJ3: completion counter wired in fire loop", '_starv["n"] += 1' in _a3_nv
+          and "_starvation_tick(len(lv))" in _a3_nv)
+except (AssertionError, ValueError, KeyError) as _a3e:
+    check("AJ3 section", False, str(_a3e))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

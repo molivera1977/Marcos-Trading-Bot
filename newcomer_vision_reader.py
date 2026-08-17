@@ -1070,6 +1070,35 @@ def _post_decision(ticker, status, **kw):
     except Exception:
         pass
 
+_starv = {"win": None, "n": 0, "last_done": None}   # 8/17 item 3: 15-min reread-completion window
+
+def _starvation_tick(roster_n, now=None, hm=None):
+    """8/17 READ-STARVATION ALARM (observe-only). Rereads-completed tracked per 15-min window
+    process-wide; a FULL window with ZERO completions while the watch roster is non-empty
+    during 07:00-16:00 ET -> one 'read_starvation' decision row (once per window) with roster
+    size + last completed-reread ts. No behavior change — the alarm only writes a row.
+    now/hm injectable for the rig's fabricated clock. Kill: READ_STARVATION=0. Never raises."""
+    try:
+        if os.environ.get("READ_STARVATION", "1") != "1":
+            return
+        now = time.time() if now is None else now
+        hm = dt.datetime.now(ET).strftime("%H:%M") if hm is None else hm
+        if not ("07:00" <= hm < "16:00"):
+            _starv["win"] = None                     # outside hours: window void, no carryover
+            return
+        if _starv["win"] is None:
+            _starv["win"], _starv["n"] = now, 0
+            return
+        if now - _starv["win"] >= 900:
+            if _starv["n"] == 0 and roster_n > 0:
+                _post_decision("SYSTEM", "read_starvation", roster_n=roster_n,
+                               last_reread_ts=_starv["last_done"], window_min=15)
+                print(f"[reread] 🥶 READ STARVATION: 0 rereads completed in 15 min "
+                      f"(roster {roster_n}, last done {_starv['last_done']})", flush=True)
+            _starv["win"], _starv["n"] = now, 0      # next window starts fresh either way
+    except Exception:
+        pass
+
 def reread_check():
     """Called each trickle cycle. Finds exhausted maps + bot markers; fires capped re-reads.
 
@@ -1210,6 +1239,8 @@ def reread_check():
             if _bnext > time.time(): continue        # 8/12 W1: in summit-sanity backoff window
             done.add(tk)
             if reread_one(tk, trig):
+                _starv["n"] += 1                                     # 8/17 item 3: completion counted
+                _starv["last_done"] = dt.datetime.now(ET).isoformat()
                 _rr_state["count"] += 1
                 _rr_state["per_name"][tk] = _rr_state["per_name"].get(tk, 0) + 1
                 # 8/12 LATENCY STAMP: detect->posted seconds + queue position, durable row.
@@ -1224,6 +1255,10 @@ def reread_check():
                     pass
     except Exception as e:
         print(f"[reread] fire error: {e}", flush=True)
+    try:
+        _starvation_tick(len(lv))    # 8/17 item 3: roster = today's levels sheet (fail-soft 0)
+    except (NameError, TypeError):
+        _starvation_tick(0)
 
 # ── ALWAYS-ON WORKER GATES (#53 pattern — no cron; the process runs all day, gates on the
 # clock itself, and a push simply restarts it in-window). Pure functions: testable with

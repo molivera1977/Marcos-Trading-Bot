@@ -344,3 +344,31 @@ Kill-test / forensic docs: `data/killtests/burst_saturation_20260817.md`,
    often we go near a trigger, that intent is now gone and it wants a two-counter design.
 5. **Defect 3 is a deferred architecture decision,** not a fix. One session of `scan_cycle_timing`
    rows should decide it.
+
+---
+
+## SCOPE ADD (8/17 afternoon) — KEVSEQ FRONT-SIDE TIMEFRAME PIN
+Doc: `data/killtests/kevseq_frontside_tf_20260817.md`. Rig section **TF**, full rig exit 0.
+Files: `marcos_trading_bot.py` (pin block + 3-min stamp + env switch + boot_config),
+`rig/test_shipset_20260804.py` (section TF, 15 pins).
+
+- **The alleged defect (kevseq gated on a 3-MIN front side) is REFUTED IN CODE.** The kevseq
+  caller reads `cache[t]["bars"]` = M1 broker bars. The `aggregate_bars(..., SETUP_TF_MIN)`
+  `_ce9/_ce20` block is ~200 lines below and feeds dip_rip/zone_flip/reclaim/flat-top only.
+- **What the disagree canary caught: two different 1-MIN sources** (broker M1 REST, RTH-only,
+  ~49-bar cap vs our day-wide 10s→1m aggregate, 40–155 bars). 31 rows, both directions.
+  **WHICH ONE GOVERNS IS MARCOS'S CALL** — unchanged by this commit.
+- **Artifact audit: no offline study ever replicated the live front-side gate.** Four studies
+  (entry_drift, burst_saturation, floor_sweep, reconciliation) applied **no** front-side clause;
+  kev_rosetta used a **10s** front side with a VWAP clause; fastchart_2tf benchmarked 1MIN/3MIN
+  slow context (1-min far better: −$382 vs −$1,184). Every kevseq $ figure we hold is from a
+  front-side-free **superset** cohort. This is a standing fidelity gap, not a one-off.
+- Today's direct cost of the alleged defect: **$0 / N=0**. Front-side-only refusals: **N=8**
+  (IPST 04:05 $3.89, PFSA 09:45 $4.77 + 09:47 $4.98, WETO 09:50 $13.43 + 11:58 $17.60,
+  CDTG 09:50 $2.6892 + 09:51 $2.73, STFS 10:02 $6.63) — 7 of 8 are the `unknown` class the
+  13:49 self-frontside fix already closes.
+- Shipped default-neutral: `KEVSEQ_FRONTSIDE_1M=1` (pin, = today's behaviour), `=0` arms the
+  offline-worse 3-min arm. `front_side_3m` / `front_side_tf` stamped on every row.
+- **Officer question owed:** should the governing 1-min front side be the broker M1 or our own
+  10s→1m aggregate? 31 disagreements say they are not interchangeable and no study grades either.
+- No other lane has a front-side spec/timeframe mismatch (full census in §6 of the doc).

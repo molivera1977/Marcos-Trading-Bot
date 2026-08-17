@@ -6415,7 +6415,9 @@ def bandpass_step(sym, new_bars, vwap, st_map, hm_lo, hm_hi):
 #   touches within 0.5%); a 3rd+ pullback in the LEG -> skip.
 #   FIRE = a later bar breaks the H/W bar's high, ONLY IF fill-bar volume >= 75th percentile of
 #   the prior 30 bars (burst) AND front side (9EMA > 20EMA on the 1-MIN aggregate — the caller
-#   supplies it; NOT the fast chart, per the replay caveat) AND day-gain >= +20% or top-3
+#   supplies it; NOT the fast chart, per the replay caveat; and NOT the SETUP_TF_MIN 3-min
+#   chart either — pinned by KEVSEQ_FRONTSIDE_1M, see the timeframe-pin block below and
+#   data/killtests/kevseq_frontside_tf_20260817.md) AND day-gain >= +20% or top-3
 #   gainer AND room (no session high within 3% overhead that is >= 5 min stale, blue-sky exempt).
 #   Stop = the H level or the W wick low. Cap KEVSEQ_LEG_MAX fires per ticker per LEG (Marcos:
 #   per-ticker per-leg, NO daily ration); a leg = a new session high after a >= KEVSEQ_LEG_PB
@@ -6491,6 +6493,28 @@ _ks_st: dict = {}   # sym -> kevseq machine state (module-level: survives rescan
 # is not reproducing the 1-min chart), or if it produces a value from fewer than
 # EMA20_PERIOD+2 completed minute bars.
 KEVSEQ_SELF_FRONTSIDE = os.environ.get("KEVSEQ_SELF_FRONTSIDE", "1") == "1"
+
+# ── 8/17 FRONT-SIDE TIMEFRAME PIN (doc: data/killtests/kevseq_frontside_tf_20260817.md) ──
+# ALLEGED DEFECT (raised from the disagree canary): "the caller supplies a 3-MIN front side
+# (aggregate_bars(..., SETUP_TF_MIN)) while kevseq's spec says 1-MIN".  VERIFIED AND REFUTED
+# IN CODE 8/17: the kevseq caller reads `bars` = cache[t]["bars"], which the bar-refresh fills
+# from the M1 broker fetch (1-minute, session-filtered), NOT the SETUP_TF_MIN aggregate.  The 3-min
+# `_ce9/_ce20` block lives ~200 lines BELOW the kevseq block and feeds dip_rip / zone_flip /
+# reclaim / flat-top — lanes whose own spec IS the 3-min setup chart (SETUP_TF_MIN doctrine).
+# kevseq has always been 1-min-gated.  What the canary actually catches is TWO DIFFERENT
+# 1-MIN SOURCES disagreeing: caller = broker M1 REST, ~49 bars, RTH-only; self = our own
+# aggregate of the fed 10s bars, day-wide, unbounded length.  Different history depth and
+# session span => different EMA seeds => 31 disagreements on 8/17, all near-crossover.
+# WHICH ONE GOVERNS IS A MONEY DECISION -> Marcos's call, unchanged by default here.
+# KEVSEQ_FRONTSIDE_1M (default 1) PINS the governing value to a 1-MINUTE source, forever and
+# structurally: with it on, no SETUP_TF_MIN (3-min) value can ever reach kevseq's ctx, even if
+# SETUP_TF_MIN changes or a future edit wires the wrong aggregate in.  Setting it to 0 arms the
+# 3-MIN setup-chart context instead — the lane the fastchart_2tf_rerun_20260817 study measured
+# as WORSE (all-detector 10s tick: 1MIN -$382 vs 3MIN -$1,184) — provided only so the timeframe
+# question stays switchable/testable.  NOT recommended; changes what the bot does with money.
+# The 3-min value is STAMPED on every kevseq row as front_side_3m regardless (observability is
+# free), so the 1m-vs-3m counterfactual is auditable from the archive without any behaviour change.
+KEVSEQ_FRONTSIDE_1M = os.environ.get("KEVSEQ_FRONTSIDE_1M", "1") == "1"
 _ks_1m_agg: dict = {}   # sym -> {"day":..,"bars":[dicts],"cur":dict} 1-min aggregate of the fed 10s bars
 
 
@@ -8371,8 +8395,20 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         if KEVSEQ_SHADOW:
                             try:
                                 _ks_ctx = {"front_side": None, "day_gain": None, "top3": False, "blue_sky": False}
-                                _ks_fs_src, _ks_fs_n = None, None
+                                _ks_fs_src, _ks_fs_n, _ks_fs_3m = None, None, None
                                 try:
+                                    # 8/17 TIMEFRAME PIN: the SETUP_TF_MIN (3-min) front side is
+                                    # computed here for the STAMP ONLY — it governs nothing while
+                                    # KEVSEQ_FRONTSIDE_1M=1 (default). This is the 1m-vs-3m
+                                    # counterfactual made auditable at zero behaviour cost.
+                                    _ks_c3 = []
+                                    try:
+                                        _ks_c3 = aggregate_bars(cache[t].get("full_bars") or bars or [], SETUP_TF_MIN)[:-1]
+                                        if len(_ks_c3) >= EMA20_PERIOD + 2:
+                                            _ks_e93, _ks_e203 = calculate_ema9(_ks_c3), calculate_ema20(_ks_c3)
+                                            _ks_fs_3m = bool(_ks_e93 > _ks_e203 > 0)
+                                    except Exception:
+                                        _ks_fs_3m = None
                                     # Feed the 1-min aggregate EVERY call (before any early
                                     # exit) so the fallback never has holes in it.
                                     _ks_self_fs, _ks_self_n = (kevseq_front_side(t, _nb)
@@ -8393,6 +8429,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                             _ks_fs_src = "self_10s_agg"
                                         else:
                                             _ks_fs_src = "unknown_short_agg"
+                                    # ── 8/17 TIMEFRAME KILL SWITCH: KEVSEQ_FRONTSIDE_1M=0 hands the
+                                    # gate to the 3-MIN setup chart (offline-WORSE arm, see the pin
+                                    # block). Default 1 = 1-min authoritative = today's behaviour;
+                                    # this branch is the ONLY path by which a 3-min value can ever
+                                    # govern kevseq, and it is env-locked shut.
+                                    if not KEVSEQ_FRONTSIDE_1M:
+                                        _ks_ctx["front_side"] = _ks_fs_3m
+                                        _ks_fs_src = "setup_3m" if _ks_fs_3m is not None else "unknown_short_3m"
+                                        _ks_fs_n = len(_ks_c3)
                                     # AGREEMENT CANARY (failure condition): when BOTH exist, a
                                     # disagreement means the aggregate is not reproducing the
                                     # 1-min chart — log it loudly, never silently.
@@ -8400,7 +8445,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                             and _ks_self_fs != _ks_ctx["front_side"]):
                                         _log_decision(t, "kevseq_frontside_disagree",
                                                       caller=_ks_ctx["front_side"], self_agg=_ks_self_fs,
-                                                      caller_n=len(_ks_1m), self_n=_ks_self_n)
+                                                      caller_n=len(_ks_1m), self_n=_ks_self_n,
+                                                      front_side_3m=_ks_fs_3m, front_side_tf=1)
                                     _ks_pdc = _pdc_map.get(t) or ((cache[t].get("daily") or {}).get("prior_day_close") or 0)
                                     _ks_px0 = price if price and price > 0 else (_nb[-1][4] if _nb else 0)
                                     if _ks_pdc and _ks_pdc > 0 and _ks_px0 > 0:
@@ -8443,6 +8489,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                    bars_since_b=_ksf["bars_since_b"], would_stop=_ksf["would_stop"],
                                                    vwap=round(_vr_sv, 4), front_side=_ks_ctx["front_side"],
                                                    front_side_src=_ks_fs_src, front_side_1m_n=_ks_fs_n,
+                                                   front_side_3m=_ks_fs_3m, front_side_tf=(1 if KEVSEQ_FRONTSIDE_1M else SETUP_TF_MIN),
                                                    day_gain=_ks_ctx["day_gain"], top3=_ks_ctx["top3"],
                                                    blue_sky=_ks_ctx["blue_sky"], convert_on=bool(KEVSEQ_CONVERT),
                                                    seq=_ksf["seq"], time_hm=_hm_ks)
@@ -12332,6 +12379,7 @@ def main():
                       kevseq_leg_max=KEVSEQ_LEG_MAX,
                       v2_cap_on_fills=int(V2_CAP_ON_FILLS),
                       kevseq_self_frontside=int(KEVSEQ_SELF_FRONTSIDE),
+                      kevseq_frontside_1m=int(KEVSEQ_FRONTSIDE_1M), setup_tf_min=SETUP_TF_MIN,
                       v2_convert=int(V2_CONVERT), v2_quiet_only=int(V2_QUIET_ONLY),
                       v2_quiet_bps=V2_QUIET_BPS, v2_daily_cap=V2_DAILY_CAP,
                       grinder_convert=int(GRINDER_CONVERT), grinder_daily_cap=GRINDER_DAILY_CAP,

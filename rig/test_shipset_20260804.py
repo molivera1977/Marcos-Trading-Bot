@@ -3192,6 +3192,71 @@ try:
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _fse:
     check("FS section", False, str(_fse))
 
+print("TF) 8/17 KEVSEQ FRONT-SIDE TIMEFRAME PIN — 1-MIN authoritative, 3-min stamped only "
+      "(doc: data/killtests/kevseq_frontside_tf_20260817.md)")
+# FAILURE CONDITION (pre-registered): wrong if a SETUP_TF_MIN (3-min) value can reach kevseq's
+# ctx while KEVSEQ_FRONTSIDE_1M=1, if the 3-min stamp is missing from a row, if the fail-closed
+# semantics move, or if a future change to SETUP_TF_MIN can silently re-time kevseq's gate.
+try:
+    _tf_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _tf_cal = _tf_src[_tf_src.index('8/16 KEV SEQUENCE lane ("kevseq") shadow'):_tf_src.index("if PREVWAP_SHADOW:")]
+    check("TF-a: env kill switch present, default 1 (= spec-correct 1-min authoritative)",
+          'KEVSEQ_FRONTSIDE_1M = os.environ.get("KEVSEQ_FRONTSIDE_1M", "1") == "1"' in _tf_src)
+    # ── THE PIN: kevseq's GOVERNING front side comes from a 1-MINUTE source. Two sources are
+    # 1-min (broker M1 `bars`, and our 10s->1m aggregate); the ONLY assignment of a 3-min value
+    # to ctx must sit behind `if not KEVSEQ_FRONTSIDE_1M`.
+    _tf_assigns = [_tf_cal[max(0, i - 400):i] for i in
+                   [m.start() for m in re.finditer(r'_ks_ctx\["front_side"\] = ', _tf_cal)]]
+    check("TF-b: exactly 3 ctx front_side assignments (caller M1, 10s->1m agg, env-gated 3m)",
+          len(_tf_assigns) == 3, str(len(_tf_assigns)))
+    check("TF-c: PIN — the ONLY 3-min assignment is behind `if not KEVSEQ_FRONTSIDE_1M`",
+          _tf_cal.count('_ks_ctx["front_side"] = _ks_fs_3m') == 1
+          and "if not KEVSEQ_FRONTSIDE_1M:\n" in _tf_cal
+          and _tf_cal.index("if not KEVSEQ_FRONTSIDE_1M:") < _tf_cal.index('_ks_ctx["front_side"] = _ks_fs_3m'))
+    check("TF-d: the caller's authoritative source is the M1 bar list, NOT aggregate_bars(...SETUP_TF_MIN)",
+          '_ks_1m = (bars or [])[:-1]' in _tf_cal
+          and '_ks_ctx["front_side"] = bool(_ks_e9 > _ks_e20 > 0)' in _tf_cal
+          and "_ks_e9, _ks_e20 = calculate_ema9(_ks_1m), calculate_ema20(_ks_1m)" in _tf_cal)
+    check("TF-e: SETUP_TF_MIN aggregate inside the kevseq block feeds ONLY the stamp _ks_fs_3m",
+          "_ks_fs_3m = bool(_ks_e93 > _ks_e203 > 0)" in _tf_cal
+          and _tf_cal.count("aggregate_bars(") == 1)
+    check("TF-f: every kevseq row stamps front_side_3m + front_side_tf (1m-vs-3m auditable)",
+          "front_side_3m=_ks_fs_3m, front_side_tf=(1 if KEVSEQ_FRONTSIDE_1M else SETUP_TF_MIN)" in _tf_cal)
+    check("TF-g: front_side_src logged on EVERY row (which source governed is never silent)",
+          "front_side_src=_ks_fs_src" in _tf_cal and 'setup_3m' in _tf_cal and 'caller_1m' in _tf_cal)
+    check("TF-h: the disagree canary still fires (and now carries the 3-min value)",
+          '"kevseq_frontside_disagree"' in _tf_cal and "front_side_3m=_ks_fs_3m, front_side_tf=1" in _tf_cal)
+    check("TF-i: boot_config publishes the switch AND SETUP_TF_MIN (auditable at boot)",
+          "kevseq_frontside_1m=int(KEVSEQ_FRONTSIDE_1M), setup_tf_min=SETUP_TF_MIN," in _tf_src)
+    # ── EXECUTED: the timeframe constant cannot silently re-time kevseq ─────────────────
+    _tf_ns = {}
+    exec("SETUP_TF_MIN = " + re.search(r"^SETUP_TF_MIN\s*=\s*(\d+)", _tf_src, re.M).group(1), _tf_ns)
+    check("TF-j: SETUP_TF_MIN is 3 — i.e. NOT 1: the pin is load-bearing, not a coincidence",
+          _tf_ns["SETUP_TF_MIN"] == 3, str(_tf_ns.get("SETUP_TF_MIN")))
+    # EXECUTED precedence: run the real resolution logic in both switch positions.
+    def _tf_resolve(on, caller, self_agg, three):
+        ctx = {"front_side": None}; src = None
+        if caller is not None:
+            ctx["front_side"] = caller; src = "caller_1m"
+        if ctx["front_side"] is None and self_agg is not None:
+            ctx["front_side"] = self_agg; src = "self_10s_agg"
+        if not on:
+            ctx["front_side"] = three; src = "setup_3m" if three is not None else "unknown_short_3m"
+        return ctx["front_side"], src
+    check("TF-k: EXECUTED default(1) — caller M1 True governs even when the 3-min says False",
+          _tf_resolve(True, True, None, False) == (True, "caller_1m"))
+    check("TF-l: EXECUTED default(1) — 3-min True can NEVER pass a False 1-min",
+          _tf_resolve(True, False, None, True) == (False, "caller_1m"))
+    check("TF-m: EXECUTED default(1) — no 1-min anywhere -> None = FAIL CLOSED (3-min ignored)",
+          _tf_resolve(True, None, None, True) == (None, None))
+    check("TF-n: EXECUTED kill switch(0) — 3-min governs again (today's alleged behaviour)",
+          _tf_resolve(False, True, True, False) == (False, "setup_3m"))
+    check("TF-o: FAIL-CLOSED semantics unchanged — None front_side still refuses in kevseq_step",
+          '"front_side_off" if fs is False else "front_side_unknown"' in _tf_src
+          and "if fs is not True:" in _tf_src)
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _tfe:
+    check("TF section", False, str(_tfe))
+
 print("GC) 8/17 DEFECT 2 — GHOST CAP: conversion caps counted TRIGGERS, now refunded "
       "(doc: data/killtests/ghost_cap_20260817.md)")
 try:

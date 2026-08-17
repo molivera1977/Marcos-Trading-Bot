@@ -3928,6 +3928,80 @@ try:
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError, OSError) as _e2e:
     check("EG2 section", False, f"{type(_e2e).__name__}: {_e2e}")
 
+print("EG3) 8/17 ENFORCEMENT GATE 3 — CLAIMS LEDGER (a fact without a command is a rumour)")
+# WHY THIS EXISTS: the six facts in the user's memory file project_verified_machine_facts.md are
+# six things I stated WRONG — sim balance, concurrency cap, what "slots" means, the sizing chain,
+# kevseq's front-side timeframe, the M1 defect's blast radius. Prose in a memory file is
+# advisory. data/audits/CLAIMS.md carries the COMMAND that reproduces each one, and
+# data/audits/verify_claims.py re-runs them all (PASS / CHANGED / FAILED / NO-COMMAND).
+# FAILURE CONDITION (written first): wrong if a row can exist without a command, if the verifier
+# can report PASS on a command it never ran, or if a seeded fact drifts without a RED.
+try:
+    import importlib.util as _e3iu
+    _E3_LEDGER = os.path.join(ROOT, "data", "audits", "CLAIMS.md")
+    _E3_VERIFY = os.path.join(ROOT, "data", "audits", "verify_claims.py")
+    check("EG3: the claims ledger exists", os.path.exists(_E3_LEDGER))
+    check("EG3: the verifier exists", os.path.exists(_E3_VERIFY))
+    _e3spec = _e3iu.spec_from_file_location("verify_claims", _E3_VERIFY)
+    _E3 = _e3iu.module_from_spec(_e3spec); _e3spec.loader.exec_module(_E3)
+    _e3_rows = _E3.parse()
+    check("EG3: the ledger parses and is seeded with the six memory facts (>= 6 rows)",
+          len(_e3_rows) >= 6, f"{len(_e3_rows)} rows")
+    check("EG3: EVERY row carries a command (no prose-only claims)",
+          all(r[3].strip() for r in _e3_rows),
+          str([r[2][:50] for r in _e3_rows if not r[3].strip()]))
+    check("EG3: every row carries an expected value",
+          all(r[4].strip() for r in _e3_rows),
+          str([r[2][:50] for r in _e3_rows if not r[4].strip()]))
+    # the six facts must actually be represented — keyword coverage, so a row cannot be dropped
+    _e3_txt = " ".join(r[2].lower() for r in _e3_rows)
+    for _kw, _lbl in (("3,000", "sim balance $3,000"),
+                      ("no concurrent-position cap", "no concurrency cap"),
+                      ("leader_curl_slots", "LEADER_CURL_SLOTS = fire slots"),
+                      ("sizing chain", "the sizing chain"),
+                      ("front_side", "kevseq front_side is 1-min"),
+                      ("m1 traded-minute", "the M1 traded-minute defect")):
+        check(f"EG3: seeded fact present — {_lbl}", _kw in _e3_txt)
+    # EXECUTED: every seeded row re-runs clean, right now, in this rig run
+    _e3_res = _E3.verify(quiet=True)
+    _e3_bad = [(r[0], r[2][:60]) for r in _e3_res if r[0] != "PASS"]
+    check("EG3: EXECUTED — every seeded claim re-verifies against the current tree",
+          not _e3_bad, str(_e3_bad))
+    # append-only discipline is stated in the file itself (the rule a human has to follow)
+    check("EG3: the ledger states its append-only rule and its strict row format",
+          "APPEND-ONLY" in open(_E3_LEDGER).read()
+          and "ROW FORMAT" in open(_E3_LEDGER).read())
+    # wired into the EXISTING nightly job — no new launchd agent was created
+    _e3_nightly = os.path.join(ROOT, "data", "killtests", "nightly_book_verify.py")
+    check("EG3: verify_claims is wired into the existing nightly job (no new launchd agent)",
+          "verify_claims.py" in open(_e3_nightly).read())
+
+    # ── NEGATIVE CONTROLS ─────────────────────────────────────────────────────────────────
+    import tempfile as _e3tmp
+    _e3d = _e3tmp.mkdtemp()
+    # (1) a commandless row is NO-COMMAND
+    _e3f = os.path.join(_e3d, "CLAIMS.md")
+    open(_e3f, "w").write("| date | claim | command | expected |\n|---|---|---|---|\n"
+                          "| 2026-08-17 | the bot has two position slots |  | 2 |\n")
+    check("EG3-NC: a row with no command grades NO-COMMAND (the exact prose failure)",
+          _E3.verify(_e3f, quiet=True)[0][0] == "NO-COMMAND",
+          str(_E3.verify(_e3f, quiet=True)[0][0]))
+    # (2) a claim that no longer reproduces grades CHANGED — this is the ACTUAL historical
+    # error: "2 slots" was the weekend stress-test parameter, never the machine's config.
+    open(_e3f, "w").write("| date | claim | command | expected |\n|---|---|---|---|\n"
+                          "| 2026-08-17 | the bot caps concurrent positions at 2 | "
+                          "`grep -cE 'MAX_CONCURRENT' marcos_trading_bot.py` | `2` |\n")
+    check("EG3-NC: the historical wrong claim ('2 concurrent slots') grades CHANGED",
+          _E3.verify(_e3f, quiet=True)[0][0] == "CHANGED",
+          str(_E3.verify(_e3f, quiet=True)[0][:1]))
+    # (3) a broken command grades FAILED (the verifier cannot silently pass)
+    open(_e3f, "w").write("| date | claim | command | expected |\n|---|---|---|---|\n"
+                          "| 2026-08-17 | something | `this_command_does_not_exist_9271` | `x` |\n")
+    check("EG3-NC: a broken command grades FAILED, never PASS",
+          _E3.verify(_e3f, quiet=True)[0][0] == "FAILED")
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError, OSError, IndexError) as _e3e:
+    check("EG3 section", False, f"{type(_e3e).__name__}: {_e3e}")
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

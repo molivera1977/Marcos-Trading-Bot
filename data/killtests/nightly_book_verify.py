@@ -42,6 +42,26 @@ md.open("a").write(line)
 (ROOT/"data/history/nightly_verify.log").open("a").write(
     datetime.datetime.now(ET).isoformat()[:19] + line)
 print(line.strip())
+# ── 8/17 ENFORCEMENT GATE 3: re-verify the CLAIMS LEDGER every night ────────────────────────
+# data/audits/CLAIMS.md holds every fact about the machine I have previously stated WRONG, each
+# with the command that reproduces it. Running it here means a drifted fact surfaces the night
+# it drifts, instead of the next time I quote it from memory. Appended to the EXISTING nightly
+# job on purpose — no new launchd agent was created (that needs Marcos's say-so).
+# Read-only (greps). Non-fatal: it reports, it never blocks the book verification.
+try:
+    import subprocess as _cl_sp
+    _cl = _cl_sp.run([sys.executable, str(ROOT / "data/audits/verify_claims.py")],
+                     capture_output=True, text=True, timeout=300)
+    print(_cl.stdout.rstrip())
+    (ROOT / "data/history/nightly_verify.log").open("a").write(
+        datetime.datetime.now(ET).isoformat()[:19] + " CLAIMS: " +
+        (_cl.stdout.strip().splitlines() or ["(no output)"])[-1] + "\n")
+    if _cl.returncode != 0:
+        print("🚨 CLAIMS LEDGER NOT VERIFIED — a stated fact no longer reproduces. "
+              "Append a corrected row to data/audits/CLAIMS.md (never edit the old one).")
+except Exception as _cle:
+    print(f"⚠️  claims verifier did not run: {_cle}")
+
 if res["fiction"]:
     print("🚨 REGRESSION: fictional fill(s) AFTER the 8/13 fix — investigate before next session")
     sys.exit(2)

@@ -5539,6 +5539,37 @@ def _slot_refund(sym, entry_type):
             _k = (day, sym, sess)
             if _he_name.get(_k, 0) > 0:
                 _he_name[_k] -= 1
+        # ── 8/17 DEFECT 2 (GHOST CAP): the CONVERSION lanes charge their daily cap at the
+        # TRIGGER and never refund it.  Live proof (8/17 decisions archive): five v2conv
+        # triggers 04:05-04:35 AM each became `premarket_shadow_entry` — the pre-open
+        # blackout, never a trade — and consumed the ENTIRE V2_DAILY_CAP=5 by 04:35:06.
+        # Every v2conv from 04:36:47 onward logged `v2conv_capped`: 39 refusals, 25 of them
+        # in the 09:00/10:00 hours, i.e. the first hour we were trying to trade.
+        # This is the EXACT hole _slot_refund was written for on 7/29 ("a session slot is
+        # spent by a TRADE, not an ATTEMPT") — these lanes were simply never wired to it.
+        # Kill: V2_CAP_ON_FILLS=0 restores today's behaviour.
+        # (prevwap is deliberately ABSENT: it has NO cap ledger at all — mapping it onto a
+        # sibling's ledger would refund a ticket that was never charged.  Enumerated, not
+        # assumed: see the cap census in data/killtests/ghost_cap_20260817.md.)
+        elif entry_type in ("v2conv", "grinder", "bandpass"):
+            if not V2_CAP_ON_FILLS:
+                return
+            _ledger = {"v2conv": _v2_conv_day, "grinder": _gr_conv_day,
+                       "bandpass": _bp_conv_day}[entry_type]
+            if _ledger.get("d") == day and _ledger.get("n", 0) > 0:
+                _ledger["n"] -= 1
+            else:
+                return
+        elif entry_type == "kevseq":
+            # kevseq's cap is PER-LEG inside the detector (_ks_st[sym]["leg_n"]), not a day
+            # ledger — refund the leg ticket so the leg's next setup can still convert.
+            if not V2_CAP_ON_FILLS:
+                return
+            _kst = _ks_st.get(sym)
+            if _kst and _kst.get("day") == day and _kst.get("leg_n", 0) > 0:
+                _kst["leg_n"] -= 1
+            else:
+                return
         else:
             return
         _log_decision(sym, "slot_refunded", machine=entry_type)
@@ -6041,6 +6072,13 @@ _v2_st: dict = {}   # sym -> machine state (module-level: survives rescans)
 V2_CONVERT      = os.environ.get("V2_CONVERT", "0") == "1"
 V2_QUIET_ONLY   = os.environ.get("V2_QUIET_ONLY", "1") == "1"
 V2_DAILY_CAP    = int(os.environ.get("V2_DAILY_CAP", "5"))
+# ── 8/17 DEFECT 2 (GHOST CAP) — kill switch for the conversion-lane cap refunds.
+# Doc: data/killtests/ghost_cap_20260817.md.  =1 (default): v2conv / grinder / bandpass /
+# prevwap / kevseq cap tickets are REFUNDED on every refusal path between conversion and
+# BUY, exactly as the 7/29 _slot_refund doctrine already does for zone_flip / vwap_reclaim /
+# dip_rip / hidden_entry ("a session slot is spent by a TRADE, not an ATTEMPT" — Marcos).
+# =0 restores today's behaviour: the cap is charged at the TRIGGER and never given back.
+V2_CAP_ON_FILLS = os.environ.get("V2_CAP_ON_FILLS", "1") == "1"
 V2_QUIET_BPS    = float(os.environ.get("V2_QUIET_BPS", "89.9"))   # joint_door §1 calm p30 (1-min); see caveat
 V2_QUIET_LOOK   = int(os.environ.get("V2_QUIET_LOOK", "30"))      # trailing COMPLETED bars before the fire
 V2_QUIET_MINB   = int(os.environ.get("V2_QUIET_MINB", "10"))      # need >= this many prior bars to judge calm
@@ -12172,7 +12210,8 @@ def main():
           f"BANDPASS_CONVERT={int(BANDPASS_CONVERT)}(cap {BANDPASS_DAILY_CAP}) PREVWAP_SHADOW={int(PREVWAP_SHADOW)} "
           f"PREVWAP_CONVERT={int(PREVWAP_CONVERT)} "
           f"KEVSEQ_SHADOW={int(KEVSEQ_SHADOW)} KEVSEQ_CONVERT={int(KEVSEQ_CONVERT)}(leg cap {KEVSEQ_LEG_MAX}) "
-          f"V2_CONVERT={int(V2_CONVERT)}(quiet_only {int(V2_QUIET_ONLY)}, <={V2_QUIET_BPS}bps, cap {V2_DAILY_CAP}) | "
+          f"V2_CONVERT={int(V2_CONVERT)}(quiet_only {int(V2_QUIET_ONLY)}, <={V2_QUIET_BPS}bps, cap {V2_DAILY_CAP}) "
+          f"CAP_ON_FILLS={int(V2_CAP_ON_FILLS)} KEVSEQ_SELF_FRONTSIDE={int(KEVSEQ_SELF_FRONTSIDE)} | "
           # 8/14 night O-config sim conversions (Marcos: "sim money live"):
           f"GRINDER_CONVERT={int(GRINDER_CONVERT)}(cap {GRINDER_DAILY_CAP}) "
           f"FLATTOP_BREAK_ATTACK={int(FLATTOP_BREAK_ATTACK)} E3_EXITS={int(E3_EXITS)}")
@@ -12212,6 +12251,8 @@ def main():
                       kevseq_limit_entry=int(KEVSEQ_LIMIT_ENTRY), kevseq_entry_tol=KEVSEQ_ENTRY_TOL,
                       kevseq_max_drift=KEVSEQ_MAX_DRIFT, kevseq_fire_max_age_s=KEVSEQ_FIRE_MAX_AGE_S,
                       kevseq_leg_max=KEVSEQ_LEG_MAX,
+                      v2_cap_on_fills=int(V2_CAP_ON_FILLS),
+                      kevseq_self_frontside=int(KEVSEQ_SELF_FRONTSIDE),
                       v2_convert=int(V2_CONVERT), v2_quiet_only=int(V2_QUIET_ONLY),
                       v2_quiet_bps=V2_QUIET_BPS, v2_daily_cap=V2_DAILY_CAP,
                       grinder_convert=int(GRINDER_CONVERT), grinder_daily_cap=GRINDER_DAILY_CAP,
@@ -12517,6 +12558,13 @@ def main():
                     _he_day["PRE"] = max(0, _he_day.get("PRE", 0) - 1)
                     _k_he = (datetime.now(EASTERN).strftime("%Y-%m-%d"), _pt, "PRE")
                     _he_name[_k_he] = max(0, _he_name.get(_k_he, 0) - 1)
+                elif _pe in ("v2conv", "grinder", "bandpass", "kevseq"):
+                    # 8/17 DEFECT 2 — THE EXACT SITE THAT ATE TODAY'S CAP.  Five v2conv
+                    # triggers 04:05-04:35 AM landed here (pre-open blackout, never traded)
+                    # and the V2_DAILY_CAP=5 ledger was never given the tickets back, so the
+                    # whole first hour logged v2conv_capped.  hidden/rocket were already
+                    # refunded on this path; the conversion lanes were never wired in.
+                    _slot_refund(_pt, _pe)
                 # (7/26: session-keyed tickets stop practice fires spending RTH slots, and shadowed
                 # premarket reclaim/zone-flip conversions refund their PRE ticket — see the block above.)
             continue

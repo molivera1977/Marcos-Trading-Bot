@@ -3192,6 +3192,80 @@ try:
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _fse:
     check("FS section", False, str(_fse))
 
+print("GC) 8/17 DEFECT 2 — GHOST CAP: conversion caps counted TRIGGERS, now refunded "
+      "(doc: data/killtests/ghost_cap_20260817.md)")
+try:
+    _gc_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    check("GC-a: env kill switch present, default 1",
+          'V2_CAP_ON_FILLS = os.environ.get("V2_CAP_ON_FILLS", "1") == "1"' in _gc_src)
+    check("GC-b: _slot_refund handles the three day-ledger conversion lanes",
+          'elif entry_type in ("v2conv", "grinder", "bandpass"):' in _gc_src)
+    check("GC-c: kevseq refunds its PER-LEG ticket, not a day ledger",
+          'elif entry_type == "kevseq":' in _gc_src and '_kst["leg_n"] -= 1' in _gc_src)
+    check("GC-d: prevwap deliberately EXCLUDED — it has no cap ledger to refund",
+          '"prevwap": _bp_conv_day' not in _gc_src and '"prevwap", "kevseq")' not in _gc_src)
+    check("GC-e: the premarket-blackout path (the site that ate today's cap) now refunds",
+          'elif _pe in ("v2conv", "grinder", "bandpass", "kevseq"):' in _gc_src
+          and "_slot_refund(_pt, _pe)" in _gc_src)
+    check("GC-f: boot_config publishes both new knobs (no silent config)",
+          "v2_cap_on_fills=int(V2_CAP_ON_FILLS)" in _gc_src
+          and "kevseq_self_frontside=int(KEVSEQ_SELF_FRONTSIDE)" in _gc_src)
+    check("GC-g: every refund still logs a row",
+          '_log_decision(sym, "slot_refunded", machine=entry_type)' in _gc_src)
+    # EXECUTED: run the REAL _slot_refund body against real ledger dicts.
+    import datetime as _gc_dt
+    _gc_blk = _gc_src[_gc_src.index("def _slot_refund(sym, entry_type):"):
+                      _gc_src.index("def _slot_refund(sym, entry_type):") +
+                      _gc_src[_gc_src.index("def _slot_refund(sym, entry_type):"):].index("\ndef ")]
+    _gc_day = _gc_dt.datetime.now().strftime("%Y-%m-%d")
+    def _mk_ns(on):
+        ns = {"datetime": _gc_dt.datetime, "EASTERN": None, "os": os,
+              "V2_CAP_ON_FILLS": on,
+              "_v2_conv_day": {"d": _gc_day, "n": 5},
+              "_gr_conv_day": {"d": _gc_day, "n": 3},
+              "_bp_conv_day": {"d": _gc_day, "n": 3},
+              "_ks_st": {"AAA": {"day": _gc_day, "leg_n": 3}},
+              "_curl_rth_n": {}, "_he_day": {}, "_he_name": {},
+              "_log_decision": lambda *a, **k: ns.setdefault("_rows", []).append((a, k)),
+              "_is_leader": lambda s: False}
+        # EASTERN must behave like a tzinfo for strftime; naive now() is fine for the key
+        class _TZ(_gc_dt.tzinfo):
+            def utcoffset(self, d): return _gc_dt.timedelta(0)
+            def tzname(self, d): return "ET"
+            def dst(self, d): return _gc_dt.timedelta(0)
+        ns["EASTERN"] = _TZ()
+        exec(_gc_blk, ns)
+        return ns
+    _n1 = _mk_ns(True)
+    _n1["_slot_refund"]("AAA", "v2conv")
+    check("GC-h: EXECUTED v2conv refund 5 -> 4", _n1["_v2_conv_day"]["n"] == 4,
+          str(_n1["_v2_conv_day"]))
+    _n1["_slot_refund"]("AAA", "grinder"); _n1["_slot_refund"]("AAA", "bandpass")
+    check("GC-i: EXECUTED grinder 3->2 and bandpass 3->2 (correct ledger each)",
+          _n1["_gr_conv_day"]["n"] == 2 and _n1["_bp_conv_day"]["n"] == 2)
+    _n1["_slot_refund"]("AAA", "kevseq")
+    check("GC-j: EXECUTED kevseq refunds the LEG ticket 3->2",
+          _n1["_ks_st"]["AAA"]["leg_n"] == 2)
+    for _ in range(9):
+        _n1["_slot_refund"]("AAA", "v2conv")
+    check("GC-k: EXECUTED over-refund IMPOSSIBLE — ledger floors at 0, never negative "
+          "(failure condition #1)", _n1["_v2_conv_day"]["n"] == 0)
+    _n1["_slot_refund"]("AAA", "prevwap")
+    check("GC-l: EXECUTED prevwap touches NO sibling ledger (failure condition #3)",
+          _n1["_gr_conv_day"]["n"] == 2 and _n1["_bp_conv_day"]["n"] == 2)
+    _n0 = _mk_ns(False)
+    for _lane in ("v2conv", "grinder", "bandpass", "kevseq"):
+        _n0["_slot_refund"]("AAA", _lane)
+    check("GC-m: EXECUTED KILL SWITCH — V2_CAP_ON_FILLS=0 restores today's behaviour exactly",
+          _n0["_v2_conv_day"]["n"] == 5 and _n0["_gr_conv_day"]["n"] == 3
+          and _n0["_bp_conv_day"]["n"] == 3 and _n0["_ks_st"]["AAA"]["leg_n"] == 3)
+    _n2 = _mk_ns(True)
+    _n2["_slot_refund"]("BBB", "kevseq")          # unknown symbol
+    check("GC-n: EXECUTED refund for a symbol with no leg state is a no-op, never raises",
+          _n2["_ks_st"]["AAA"]["leg_n"] == 3)
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _gce:
+    check("GC section", False, str(_gce))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

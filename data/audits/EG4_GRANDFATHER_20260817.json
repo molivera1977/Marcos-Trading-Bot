@@ -1,0 +1,220 @@
+{
+ "docs": {
+  "CHANGESET_20260727_built.md": [
+   "no-LIMITS"
+  ],
+  "FABLE_REVIEW_20260726_pnl.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "FIX_SPECS_20260729.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "HANDOFF_20260727_tonight.md": [
+   "no-LIMITS"
+  ],
+  "OUTCOME_PASS_SPEC_20260727.md": [
+   "no-LIMITS"
+  ],
+  "RESULTS_LEDGER.md": [
+   "no-LIMITS"
+  ],
+  "big_rides_reverse_20260816.md": [
+   "bare-verdict"
+  ],
+  "big_rides_reverse_20260816_out.md": [
+   "no-LIMITS",
+   "no-verdict-line"
+  ],
+  "blue_sky_mode_killtest_20260813.md": [
+   "no-LIMITS"
+  ],
+  "build54_SPEC_20260813.md": [
+   "no-LIMITS"
+  ],
+  "burst_saturation_20260817.md": [
+   "no-LIMITS"
+  ],
+  "catalyst_probe_20260816_raw.md": [
+   "no-LIMITS"
+  ],
+  "crown_on_halt_20260817.md": [
+   "no-LIMITS"
+  ],
+  "crown_pipeline_forensic_20260817.md": [
+   "no-LIMITS"
+  ],
+  "crown_rockets_20260816.md": [
+   "bare-verdict"
+  ],
+  "edge_stresstest_20260815.md": [
+   "no-LIMITS"
+  ],
+  "edge_stresstest_B_20260815.md": [
+   "no-verdict-line"
+  ],
+  "edge_stresstest_D_20260815.md": [
+   "no-LIMITS"
+  ],
+  "edge_stresstest_E_20260815.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "edge_stresstest_F_20260815.md": [
+   "no-LIMITS",
+   "no-verdict-line"
+  ],
+  "edge_stresstest_G_20260815.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "entry_drift_20260817.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "entry_rebuilds_v2_fullcache_20260814.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "exit_params_our_fires_20260817.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "fastchart_2tf_rerun_20260817.md": [
+   "no-LIMITS"
+  ],
+  "fictional_fills_census_20260813.md": [
+   "no-LIMITS"
+  ],
+  "flatten_parity_20260816.md": [
+   "no-LIMITS"
+  ],
+  "flattop_retrial_v2_20260814.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "frontside_selfcompute_20260817.md": [
+   "no-LIMITS",
+   "no-verdict-line"
+  ],
+  "ghost_cap_20260817.md": [
+   "no-LIMITS",
+   "no-verdict-line"
+  ],
+  "harness_parity_20260817.md": [
+   "no-LIMITS",
+   "no-verdict-line"
+  ],
+  "hidden_signal_grade_20260817.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "ignition_guidance_20260817.md": [
+   "no-LIMITS"
+  ],
+  "item6_clean_queries_20260814.md": [
+   "no-LIMITS"
+  ],
+  "kev_corpus_pullback_report_20260814.md": [
+   "no-LIMITS"
+  ],
+  "kev_fast_chart_method_20260816.md": [
+   "no-LIMITS"
+  ],
+  "kev_fastchart_replay_20260816.md": [
+   "no-LIMITS"
+  ],
+  "kev_latest_mining_20260815.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "kevseq_frontside_tf_20260817.md": [
+   "no-LIMITS"
+  ],
+  "kevseq_reconciliation_20260817.md": [
+   "bare-verdict"
+  ],
+  "lane_registry_20260817.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "level_primacy_ab_PREREG_20260812.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "m1_wallclock_20260817.md": [
+   "no-LIMITS"
+  ],
+  "open_holes_sweep1_20260816.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "orb_vs_ba_20260816.md": [
+   "no-LIMITS"
+  ],
+  "pre_gate_cost_20260813.md": [
+   "no-LIMITS"
+  ],
+  "pre_staleness_forensic_20260817.md": [
+   "no-LIMITS"
+  ],
+  "quartermaster_20260814.md": [
+   "no-LIMITS"
+  ],
+  "rocket_anatomy_20260816.md": [
+   "no-LIMITS"
+  ],
+  "rocket_sleeve_killtest_20260816_out.md": [
+   "no-LIMITS"
+  ],
+  "runner_model_test_20260817.md": [
+   "no-LIMITS"
+  ],
+  "scalar_veto_tape_lanes_20260817.md": [
+   "no-LIMITS"
+  ],
+  "scanloop_latency_20260817.md": [
+   "no-LIMITS"
+  ],
+  "seq_conditional_size_20260817.md": [
+   "no-LIMITS"
+  ],
+  "seq_day_arc_20260817.md": [
+   "no-verdict-line"
+  ],
+  "seq_enriched_alphabet_20260817.md": [
+   "no-LIMITS"
+  ],
+  "seq_exit_grammar_20260817.md": [
+   "no-LIMITS",
+   "no-verdict-line"
+  ],
+  "seq_sizeup_capacity_20260817.md": [
+   "no-LIMITS"
+  ],
+  "spread_census_20260813.md": [
+   "no-LIMITS"
+  ],
+  "staleness_review_20260813.md": [
+   "no-LIMITS"
+  ],
+  "stop_coherence_census_20260813.md": [
+   "no-LIMITS",
+   "no-verdict-line"
+  ],
+  "sunday_afternoon_studies_20260816.md": [
+   "bare-verdict"
+  ],
+  "v2_calibration_20260814.md": [
+   "no-LIMITS",
+   "bare-verdict"
+  ],
+  "wall_drill_20260815.md": [
+   "no-LIMITS"
+  ]
+ },
+ "frozen": "2026-08-17",
+ "note": "These artifacts predate the rule and are pinned AS THEY STAND. Cleaning one means REMOVING it here (the rig checks for stale entries). Nothing dated 2026-08-18 or later may be added \u2014 forward enforcement is absolute.",
+ "rule": "rig section EG4 \u2014 every killtest .md needs a LIMITS/CAVEATS section, and a doc disclosing a limitation may not carry a headline verdict that reads clean"
+}

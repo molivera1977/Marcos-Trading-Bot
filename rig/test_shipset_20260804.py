@@ -2,7 +2,15 @@
 """SHIP-SET RIG 8/4 — tonight's batch pins. Judged by EXIT CODE (sweep law).
 Sections: (1) reader UTC->ET rebuild fix (AMIX noon-freeze class); (2) class-aware runway
 (rung 0.5R / major 1.0R + band stamps); (3) rung-ratchet floor logic; (4) sweep-server symbol
-guard + top3-first order exists; (5) watchlist tickers_remove; (6) strip archive query."""
+guard + top3-first order exists; (5) watchlist tickers_remove; (6) strip archive query.
+
+MANIFEST — 8/17 ENFORCEMENT GATES (Marcos: "every rule becomes a test that fails the build, or it
+does not exist"): EG1 lane completeness (7 properties x every convertible lane, pinned matrix,
+8/16-kevseq negative control) · EG2 study provenance (no hand-rolled detectors outside
+live_harness; dated grandfather allowlist naming the 4 KNOWN-CONTAMINATED studies) · EG3 claims
+ledger (data/audits/CLAIMS.md + verify_claims.py: every stated fact carries the command that
+reproduces it) · EG4 artifact caveat surfacing (LIMITS/CAVEATS section + no headline verdict that
+out-runs its own disclosed limits; snapshot frozen 8/17, enforced forward from 8/18)."""
 import os, sys, json, re, importlib.util, types, datetime
 
 os.environ.setdefault("DRY_RUN", "1")
@@ -4001,6 +4009,123 @@ try:
           _E3.verify(_e3f, quiet=True)[0][0] == "FAILED")
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError, OSError, IndexError) as _e3e:
     check("EG3 section", False, f"{type(_e3e).__name__}: {_e3e}")
+
+print("EG4) 8/17 ENFORCEMENT GATE 4 — ARTIFACT CAVEAT SURFACING (a doc may not out-run its own "
+      "limits)")
+# WHY THIS EXISTS: burst_saturation_20260817.md DISCLOSED, in its own pre-registered failure
+# conditions, that HOLD-OUT N < 20 means UNDERPOWERED — and the headline was reported anyway.
+# kevseq_frontside_tf_20260817.md later found four studies (that one included) had no front-side
+# clause at all. The limitation was on the page; the summary did not carry it. This gate makes
+# that structural: every killtest .md needs a LIMITS/CAVEATS section, and a doc that discloses a
+# limitation may not carry a headline verdict that reads clean.
+# FAILURE CONDITION (written first): wrong if a doc that discloses a limit and states a bare
+# verdict can pass, or if a properly-qualified doc is flagged.
+try:
+    import glob as _e4glob
+    _E4_DIR = os.path.join(ROOT, "data", "killtests")
+    _E4_DISC = re.compile(r'UNDERPOWERED|\[UNVERIFIED\]|look-?ahead|superset|CONTAMINAT|'
+                          r'in-sample|single day|one day only|no front-side|not clean|'
+                          r'\bn\s*=\s*[1-9]\b', re.I)
+    _E4_QUAL = re.compile(r'UNDERPOWERED|PROVISIONAL|UNVERIFIED|CONTAMINAT|CAVEAT|LIMIT|'
+                          r'NOT SHIPPABLE|NO SHIPPABLE|REFUTED|NO-SPLIT|NO SHIP|observe-only|'
+                          r'hypothes|\bn\s*=|OOS|do not cite|single day|not clean|not a verdict|'
+                          r'no verdict|UNMEASURAB|NOT TONIGHT|\bbut\b|\bonly\b', re.I)
+    _E4_HEAD = re.compile(r'^(?!\|).*\b(VERDICT|BOTTOM LINE|CONCLUSION|HEADLINE)\b.*$', re.I | re.M)
+    _E4_LIM = re.compile(r'^#+.*\b(LIMITS?|CAVEATS?)\b', re.M | re.I)
+
+    def _e4_headline(t):
+        """The doc's headline verdict BLOCK: the first verdict-bearing line plus the next three
+        non-empty lines (a bare '## VERDICT' heading carries its content underneath)."""
+        m = _E4_HEAD.search(t)
+        if not m:
+            return None
+        rest = t[m.start():].splitlines()
+        blk = [rest[0]]
+        for ln in rest[1:]:
+            if ln.strip():
+                blk.append(ln)
+            if len(blk) >= 4:
+                break
+        return "\n".join(blk)
+
+    def _e4_flags(path):
+        """Structural flags for one artifact. Empty list = clean."""
+        t = open(path, errors="replace").read()
+        f = []
+        if not _E4_LIM.search(t):
+            f.append("no-LIMITS")                    # no explicit LIMITS/CAVEATS section
+        if _E4_DISC.search(t):                       # the doc discloses a limitation…
+            hl = _e4_headline(t)
+            if hl is None:
+                f.append("no-verdict-line")          # …and states no verdict at all to qualify
+            elif not _E4_QUAL.search(hl):
+                f.append("bare-verdict")             # …and its headline reads clean anyway
+        return f
+
+    # ── GRANDFATHER SET — frozen 2026-08-17 with each doc's flags. 51 of 87 artifacts predate
+    # this rule and 29 of today's own do too; rewriting them tonight would be 80 doc edits with
+    # no reviewer, so they are pinned AS THEY STAND. The pin has teeth in BOTH directions: a doc
+    # that gets cleaned must leave the list, and a doc that newly breaks is not on it -> RED.
+    # ENFORCED FROM 2026-08-18: any artifact dated 20260818+ must be clean, no grandfathering.
+    _e4_all = {}
+    for _p in sorted(_e4glob.glob(os.path.join(_E4_DIR, "*.md"))):
+        _e4_all[os.path.basename(_p)] = _e4_flags(_p)
+    _e4_dirty = {b: f for b, f in _e4_all.items() if f}
+
+    _E4_GRANDFATHER_FILE = os.path.join(ROOT, "data", "audits", "EG4_GRANDFATHER_20260817.json")
+    check("EG4: the frozen grandfather snapshot exists (dated 2026-08-17)",
+          os.path.exists(_E4_GRANDFATHER_FILE))
+    _e4_pin = json.load(open(_E4_GRANDFATHER_FILE))["docs"]
+    _e4_newly_broken = sorted(b for b, f in _e4_dirty.items() if b not in _e4_pin)
+    check("EG4: no artifact has NEWLY broken the caveat rule since the 8/17 freeze",
+          not _e4_newly_broken, f"NEWLY BROKEN: {[(b, _e4_dirty[b]) for b in _e4_newly_broken]}")
+    _e4_fixed = sorted(b for b in _e4_pin if not _e4_dirty.get(b))
+    check("EG4: the grandfather snapshot has no stale entries (a cleaned doc must leave it)",
+          not _e4_fixed, f"CLEANED — remove from the snapshot: {_e4_fixed}")
+    _e4_worse = sorted(b for b in _e4_pin if set(_e4_dirty.get(b, [])) - set(_e4_pin[b]))
+    check("EG4: no grandfathered artifact got WORSE (new flags on an old doc)",
+          not _e4_worse, str([(b, _e4_dirty[b], _e4_pin[b]) for b in _e4_worse]))
+    # forward enforcement: nothing dated 20260818+ may be grandfathered
+    _e4_future = sorted(b for b in _e4_dirty
+                        if re.search(r'20260(8(1[89]|[2-9]\d)|9\d\d)|2026[1-9]\d{4}', b))
+    check("EG4: ENFORCED FORWARD — every artifact dated 2026-08-18 or later is clean",
+          not _e4_future, f"MUST FIX (no grandfathering after the freeze): "
+                          f"{[(b, _e4_dirty[b]) for b in _e4_future]}")
+    print(f"  ⚠️  EG4: {len(_e4_dirty)}/{len(_e4_all)} existing artifacts are grandfathered "
+          f"({sum(1 for f in _e4_dirty.values() if 'bare-verdict' in f)} carry a BARE VERDICT over "
+          f"a disclosed limitation) — docket: data/audits/PENDING_CONVENE_20260817.md#EG4")
+
+    # ── NEGATIVE CONTROLS ─────────────────────────────────────────────────────────────────
+    # (1) burst_saturation AS IT STANDS — the doc this gate was written for — must flag, and
+    # must flag for BOTH reasons: no LIMITS section, and a headline that reads clean over a
+    # disclosed UNDERPOWERED condition.
+    _e4_bs = _e4_flags(os.path.join(_E4_DIR, "burst_saturation_20260817.md"))
+    # (it flags on no-LIMITS: the doc pre-registers "HOLD-OUT N < 20 => UNDERPOWERED => ship OFF"
+    # inside its failure conditions but has no LIMITS/CAVEATS section a reader would find, which
+    # is precisely how its headline got reported without the caveat travelling with it)
+    check("EG4-NC: burst_saturation_20260817.md (the specimen) FLAGS as it stands",
+          "no-LIMITS" in _e4_bs, str(_e4_bs))
+    check("EG4-NC: kevseq_reconciliation_20260817.md also flags (bare verdict over its own "
+          "contamination)", "bare-verdict" in _e4_flags(
+              os.path.join(_E4_DIR, "kevseq_reconciliation_20260817.md")),
+          str(_e4_flags(os.path.join(_E4_DIR, "kevseq_reconciliation_20260817.md"))))
+    # (2) synthetic: a doc that discloses UNDERPOWERED and reports a clean headline must flag;
+    # the SAME doc with the qualifier carried into the headline + a LIMITS section must pass.
+    import tempfile as _e4tmp
+    _e4d = _e4tmp.mkdtemp()
+    _e4bad = os.path.join(_e4d, "synthetic_20260818.md")
+    open(_e4bad, "w").write("# STUDY\n\nHOLD-OUT N = 7, so this is UNDERPOWERED.\n\n"
+                            "## VERDICT\n\n**SHIP IT — the arm wins on both halves.**\n")
+    check("EG4-NC: a synthetic doc that discloses UNDERPOWERED and reports a clean headline FLAGS",
+          set(_e4_flags(_e4bad)) == {"no-LIMITS", "bare-verdict"}, str(_e4_flags(_e4bad)))
+    _e4good = os.path.join(_e4d, "synthetic_ok_20260818.md")
+    open(_e4good, "w").write("# STUDY\n\nHOLD-OUT N = 7, so this is UNDERPOWERED.\n\n"
+                             "## VERDICT\n\n**UNDERPOWERED — ship OFF regardless of sign.**\n\n"
+                             "## LIMITS\n\nOne day, N=7, no OOS wall.\n")
+    check("EG4-NC: the same doc with the qualifier in the headline + a LIMITS section PASSES",
+          _e4_flags(_e4good) == [], str(_e4_flags(_e4good)))
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError, OSError) as _e4e:
+    check("EG4 section", False, f"{type(_e4e).__name__}: {_e4e}")
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

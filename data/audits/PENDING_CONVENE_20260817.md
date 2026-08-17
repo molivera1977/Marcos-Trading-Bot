@@ -467,3 +467,16 @@ Adding a suppressor to a lane REMOVES trades: money behaviour, Marcos prices it.
 `flat_top`, `crown_seam`, `halt_ladder` write no `drift_pct` / `fire_age_s` on their rows (they
 have no fire dict of their own — the caller appends to `breakouts` inline). Observe-only to add,
 but it is still a change to an approved path; queued rather than shipped tonight.
+
+### EG4 — 64 of 87 killtest artifacts predate the caveat rule (grandfathered, not fixed)
+Rig section **EG4** requires every `data/killtests/*.md` to carry a LIMITS/CAVEATS section, and
+forbids a doc that discloses a limitation from stating a headline verdict that reads clean.
+Snapshot frozen at `data/audits/EG4_GRANDFATHER_20260817.json`: **64 artifacts flag, 18 of them
+with a BARE VERDICT over a disclosed limitation.** Rewriting 64 documents unreviewed tonight
+would be worse than the disease, so they are pinned as they stand and the rule is
+**ENFORCED FORWARD from 2026-08-18** — no artifact dated 8/18 or later may be grandfathered.
+The pin has teeth in both directions: a newly-broken doc is RED, a cleaned doc must be removed
+from the snapshot, and an old doc that gets WORSE is RED.
+**Owed:** a pass over the 18 bare-verdict docs (they are the ones a reader can be misled by),
+starting with `burst_saturation_20260817.md` — the doc whose disclosed UNDERPOWERED condition
+was on the page while its headline was reported anyway.

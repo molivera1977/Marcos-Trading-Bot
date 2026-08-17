@@ -1,0 +1,65 @@
+universe kevseq fires: 1288 over 63 dates 2026-05-18..2026-08-17
+modelled drift: median +0.76%  p90 +4.13%  max +70.68%   (live-stamped: median +5.02%, p90 +7.09%, max +28.87%, N=13)
+NOTE: the replay's drift proxy is the FILL-BAR CLOSE, which UNDERSTATES the live quote drift.  ARM-SPEC vs ARM-LIVE therefore LOWER-BOUNDS the drift damage.
+
+COHORT OVERLAP: fast-chart cohort 197 name-days, universe cache 736, intersection 109 (55% of A's cohort, 15% of B's)
+dates: A 39 (2026-05-20..2026-08-14), B 63 (2026-05-18..2026-08-17), shared 39
+
+### UNIVERSE-MINE (05-18..07-21)  (fires=918)
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| ARM-SPEC entry@fire_px, structural stop | 918 | $+2255.50 | $+2.46 | 36% | $-155.38 |
+| ARM-LIVE entry@drifted quote, same stop | 917 | $-3244.94 | $-3.54 | 31% | $-184.55 |
+| ARM-F3 limit@fire+0.5%, unfilled=no trade | 897 | $-504.92 | $-0.56 | 34% | $-114.90 |
+
+### UNIVERSE-HOLDOUT (07-22..08-14)  (fires=366)
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| ARM-SPEC entry@fire_px, structural stop | 366 | $+1181.73 | $+3.23 | 40% | $-83.79 |
+| ARM-LIVE entry@drifted quote, same stop | 365 | $-899.60 | $-2.46 | 37% | $-110.80 |
+| ARM-F3 limit@fire+0.5%, unfilled=no trade | 356 | $-260.78 | $-0.73 | 38% | $-85.86 |
+
+### FASTCHART-COHORT-MINE  (fires=52)
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| ARM-SPEC entry@fire_px, structural stop | 52 | $+713.34 | $+13.72 | 52% | $-155.38 |
+| ARM-LIVE entry@drifted quote, same stop | 52 | $+252.68 | $+4.86 | 40% | $-184.55 |
+| ARM-F3 limit@fire+0.5%, unfilled=no trade | 49 | $+625.49 | $+12.77 | 51% | $-114.90 |
+
+### FASTCHART-COHORT-HOLDOUT  (fires=136)
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| ARM-SPEC entry@fire_px, structural stop | 136 | $+1828.50 | $+13.44 | 48% | $-69.00 |
+| ARM-LIVE entry@drifted quote, same stop | 136 | $+701.86 | $+5.16 | 43% | $-110.80 |
+| ARM-F3 limit@fire+0.5%, unfilled=no trade | 132 | $+1396.10 | $+10.58 | 46% | $-71.14 |
+
+### FASTCHART-COHORT-ALL  (fires=188)
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| ARM-SPEC entry@fire_px, structural stop | 188 | $+2541.84 | $+13.52 | 49% | $-155.38 |
+| ARM-LIVE entry@drifted quote, same stop | 188 | $+954.54 | $+5.08 | 43% | $-184.55 |
+| ARM-F3 limit@fire+0.5%, unfilled=no trade | 181 | $+2021.59 | $+11.17 | 48% | $-114.90 |
+
+### NON-FASTCHART-MINE (selection control)  (fires=866)
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| ARM-SPEC entry@fire_px, structural stop | 866 | $+1542.15 | $+1.78 | 35% | $-105.76 |
+| ARM-LIVE entry@drifted quote, same stop | 865 | $-3497.62 | $-4.04 | 30% | $-111.13 |
+| ARM-F3 limit@fire+0.5%, unfilled=no trade | 848 | $-1130.41 | $-1.33 | 33% | $-107.72 |
+
+### NON-FASTCHART-HOLDOUT (selection control)  (fires=230)
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| ARM-SPEC entry@fire_px, structural stop | 230 | $-646.77 | $-2.81 | 36% | $-83.79 |
+| ARM-LIVE entry@drifted quote, same stop | 229 | $-1601.46 | $-6.99 | 34% | $-107.92 |
+| ARM-F3 limit@fire+0.5%, unfilled=no trade | 224 | $-1656.88 | $-7.40 | 34% | $-85.86 |
+
+### NON-FASTCHART-ALL (selection control)  (fires=1100)
+| arm | N | total | $/tr | win | worst |
+|---|---|---|---|---|---|
+| ARM-SPEC entry@fire_px, structural stop | 1100 | $+1050.60 | $+0.96 | 35% | $-105.76 |
+| ARM-LIVE entry@drifted quote, same stop | 1098 | $-4816.67 | $-4.39 | 31% | $-111.13 |
+| ARM-F3 limit@fire+0.5%, unfilled=no trade | 1076 | $-2637.32 | $-2.45 | 33% | $-107.72 |
+
+fire density: fast-chart cohort 188/109 name-days = 1.72 fires/nd ; non-fast-chart 1100/627 = 1.75 fires/nd
+study A's SEQ arm density: 79 fires / 198 name-days = 0.40 fires/nd (det-B subset: 59/198 = 0.30)

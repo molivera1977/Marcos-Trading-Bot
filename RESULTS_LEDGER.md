@@ -2091,3 +2091,15 @@ rate, dollars under Kev's ride rules. Winner by tape. Headline build of the week
   5-8/day emerges from selectivity-within-a-move, not a day ration. The replay spec carries
   per-ticker/per-leg throttling; the day is governed only by slots + the risk engine. v1's sin
   = context-free fires on any wiggle, not the count itself.
+
+## 2026-08-17 ~00:55 — TWO-TIMEFRAME FAST-CHART RE-RUN (fastchart_2tf_rerun_20260817)
+The §9 bug was REAL: the single-chart front-side gate refused Kev's own fills as backside
+(ZYBT 7/20, MTEN 8/10 recovered by 1-min context). Timeframe separation worth +$199 (tick)
+to +$770 (scale) under Kev-ride; 1-MINUTE context beats 3-min decisively (3-min holds front-side
+18 fast-bars too long -> late-leg fires into the stop). BUT flips nothing green: Kev-A/B still
+refuted, Kev-C still needs an exit. Reason: the ~200 non-Kev look-alike fires are net-negative
+-> it's a SELECTION problem, and the Rosetta sequence clauses (B->H/W +$447, fresh +$1,323) are
+the big lever, not the chart. Path to green (H-FC4, owes OOS wall): 10s entry + 1-min context +
+Rosetta selection = exactly the KEVSEQ lane already shipped live tonight. This study independently
+validated kevseq's three design choices (10s entry, 1-min front side, the sequence). Best combo
+confirmed: 10s+1-min. Nothing new to ship — kevseq already is it.

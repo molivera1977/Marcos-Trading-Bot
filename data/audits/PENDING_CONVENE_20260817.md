@@ -480,3 +480,66 @@ from the snapshot, and an old doc that gets WORSE is RED.
 **Owed:** a pass over the 18 bare-verdict docs (they are the ones a reader can be misled by),
 starting with `burst_saturation_20260817.md` — the doc whose disclosed UNDERPOWERED condition
 was on the page while its headline was reported anyway.
+
+---
+
+# ENFORCEMENT GATES 5-8 — 8/17 (BUILT, NOT DEPLOYED) — scope for the same convening
+
+Marcos: "add all of them." **BUILD + RIG ONLY** — nothing deployed, no env touched, no
+restart, no push. Built in a separate file (`rig/test_gates_20260817.py`) from the concurrent
+gates 1-4 work in `rig/test_shipset_20260804.py`, deliberately, so the two could not collide.
+Full rig exit 0 on BOTH files at close. Commits: `4683a88` (G5), `220e7c6` (G6), `d8f7785`
+(G7), `a17ab1c` (G8 + wiring).
+
+**Blast radius, stated up front: none of this touches the money path.** No lane, gate, sizing
+rule, exit or order behaviour was modified. `marcos_trading_bot.py` is UNCHANGED by all four
+gates; the only non-rig edits are `ship.sh` (two added gate steps) and
+`data/killtests/nightly_book_verify.py` (one appended read-only reporting block). That is the
+Auditor-cannot-authorize-behavior line held: these gates close holes in the PROCESS, and every
+one of them refuses at BUILD time, never at trade time.
+
+## What the convening must cover
+
+1. **GATE 5 (`4683a88`) — spec-as-failing-test.** `rig/spec_gate.py`. A behaviour-changing
+   commit must carry `Acceptance: <path>::SPEC_<name>`; the gate proves the named test FAILS at
+   the commit's parent and PASSES at the commit, in throwaway `git worktree`s (the live tree is
+   never stashed or checked out — a concurrent agent was working). Behaviour-changing is decided
+   by AST normalisation of the two watched files (comments/docstrings/pure-logging exempt);
+   limits are documented in the module docstring and err toward DEMANDING a test.
+   *Auditor should check:* the worktree cleanup path (`worktree remove --force` in a `finally`)
+   cannot leak into the real repo; `SPEC_GATE_TIMEOUT_S` default 600 is sane for the rig;
+   and that `ship.sh`'s new `spec_gate.py HEAD` step cannot block a legitimate bookkeeping ship
+   (verified: doc/audit/killtest commits classify EXEMPT).
+2. **GATE 6 (`220e7c6`) — claim-without-check detector.** `data/audits/claim_audit.py`.
+   Read-only transcript scanner; runs nowhere near the bot. Reports, never gates a build.
+   *Auditor should check:* the honesty of the documented catch rate (3 of 4, with two
+   caveats written into the docstring — see the report below), and that `EXPECTED_CATCHES=3`
+   is a regression floor rather than a claim of completeness.
+3. **GATE 7 (`d8f7785`) — decision reconciler.** `data/audits/DECISIONS.md` (9 rows) +
+   `reconcile_decisions.py`, appended to the EXISTING nightly job — **no launchd agent was
+   created**. All checks are greps plus one GET against the decisions timeline.
+   *Auditor should check:* the nightly append is genuinely non-fatal (it is wrapped and cannot
+   change the book-verify exit code); the `UNKNOWN` state is never counted as HOLDS; and that
+   the `dry_run_proving_week` row's live probe reads the boot_config DECISION ROW (there is no
+   `/api/boot_config` route — assuming one existed was itself the failure these gates target).
+4. **GATE 8 (`a17ab1c`) — regression corpus.** `rig/regression_fixtures/` (5 fixtures) +
+   the G8 rig section. Every fixture carries a negative control proving it fails on the pre-fix
+   path (kill switches for a-d; `git show fb92556^` for e).
+   *Auditor should check:* fixture (a)'s timestamps are RECONSTRUCTED — the raw RBNE bar list
+   was never archived, so the file reproduces the documented invariants (48 bars, 243 min,
+   13:50 anchor) rather than the original bytes. That is disclosed in the fixture's own
+   `_source` field and should stay disclosed.
+
+## Open items this build deliberately did NOT do
+
+- **No retro-application of Gate 5.** Nothing before 8/17 carries the trailer, and inventing
+  acceptance tests after the fact is the story-first failure the gate exists to stop. Confirmed
+  by running it read-only on `1a5e42f` (today's M1 wall-clock ship): `NO_ACCEPTANCE_TEST`, as
+  designed. Forward-looking from now.
+- **Gate 6 catches numbers, not meanings.** Two of 8/17's four false claims ("$604", "the
+  runway gate is the villain") were misreadings of REAL tool output. No grounding detector
+  reaches them; Gates 5 and 7 are the mechanisms for that class. Written into the docstring
+  rather than papered over.
+- **`KEVSEQ_LIMIT_ENTRY` stays default OFF.** Fixture (b) pins its ARITHMETIC only. Turning it
+  on vetoes 16 of 25 kevseq fires and costs money on today's tape
+  (`today_counterfactual_20260817.md`) — a money decision, Marcos's to price, not an auditor's.

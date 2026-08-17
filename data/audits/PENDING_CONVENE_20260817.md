@@ -263,3 +263,84 @@ Ombudsman** (F3 refuses ~2–3% of fires outright — a refusal that needs its b
 - **Sibling lanes get stamps but no veto** (measured drift ~0.4% = quote latency, not the
   structural defect). If their stamped distributions come back looking like kevseq's, the same
   F3 mechanism ports directly.
+
+---
+
+## SCOPE ADDITION — TRIGGER-TO-FILL DEFECTS 1a / 1b / 2 / 3 (Marcos: "fix all four now")
+
+Context: the seven top-ranked board runners on 8/17 (TRUG +57.8%, PFSA +36.4%, CDTG +34.9%,
+SLE +29.5%, XPON +27.2%, MYSZ +23.7%, GRNQ +18.8%) produced **39 triggers and ZERO fills**.
+The roster and the ranking are correct; the trigger-to-fill pipeline is what failed.
+Four commits, full rig ALL GREEN (exit 0) after each. NOT deployed — market open, position live.
+
+| # | commit | what changed | default |
+|---|---|---|---|
+| 1a | `edcb671` | **nothing** — burst saturation REFUTED as a money defect | n/a |
+| 1b | `94550d4` | kevseq self-computes `front_side` from the 10s bars | `KEVSEQ_SELF_FRONTSIDE=1` |
+| 2 | `a4ad672` | conversion cap tickets refunded when a trigger never fills | `V2_CAP_ON_FILLS=1` |
+| 3 | `516e123` | per-cycle scan-loop timing rows (measurement only) | `SCAN_CYCLE_TIMING=1` |
+
+Kill-test / forensic docs: `data/killtests/burst_saturation_20260817.md`,
+`frontside_selfcompute_20260817.md`, `ghost_cap_20260817.md`, `scanloop_latency_20260817.md`.
+
+### Officers this scope addition touches (standing room — every office is present)
+
+- **Blast Radius Auditor** — three behaviour-adjacent switches; the `_slot_refund` change
+  reaches ~13 existing call sites in `_trade_worker` by design. Restart semantics: all three
+  new state stores (`_ks_1m_agg`, the refunded ledgers, `_cyc`) are in-memory and rebuild from
+  live tape within one cycle; none is durable, none needs to be.
+- **Systems Quant** — does `kevseq_front_side` compute what its name claims? It is EMA9 vs
+  EMA20 on a 10s->1min fold; the `kevseq_frontside_disagree` canary is the standing check.
+- **Statistician** — the burst-saturation numbers (2,251 candidates, OOS split, runner cohort)
+  are in `_out.json` / `_run.txt` and owe a RESULTS_LEDGER line.
+- **Strength Ombudsman** — 1b converts ~50 refusals/day of STRENGTH into evidence rows. This is
+  the bias-ledger's best week of new data; the refused-strength hearing should re-run once the
+  `front_side_src` distribution exists.
+- **Hidden Entry Architect / Seam Scientist** — the 1a finding (kevseq's edge lives ONLY in the
+  100%+ vertical cohort) is a cohort result the v2 rebuild should inherit, not rediscover.
+- **Dashboard Curator** — three new row types need a display: `kevseq_frontside_disagree`,
+  the widened `slot_refunded`, and `scan_cycle_timing` (a cycle-latency tile is the honest
+  cockpit answer to "why did we miss it").
+- **Feed Engineer + Webull Broker Desk** — defect 3's diagnosis is a vendor-round-trip budget
+  problem: 4-5 blocking REST trips per name per cycle. The vendor-constraint ledger owns the
+  per-call latency numbers the executor design will need.
+- **Pit Crew Chief** — three env switches added; all three restore today's behaviour at `=0`.
+- **First Hour / Opening Bell** — the cap ghost and the cycle tail both bite hardest 09:30-10:30.
+  Both now have rows; the first-hour attribution should split by them tomorrow.
+- **Historian** — 8/17 is the day the ranking was cleared and the pipeline was charged.
+- **Quartermaster / Kev Librarian / Cartographer / Crown Steward / Side Marshal / Curl Mechanic /
+  Trade Manager / Execution Surgeon / Handicapper / Rocket Rider / Integrator / Momentum Operator /
+  Tape Veteran / Convexity Trader / Wind Tunnel Engineer / Reclaim Architect / Project Manager /
+  Forward Architect** — **CLEAN**: no map, corpus, warehouse, crown, side, exit, sizing, or
+  backtest-fidelity surface is touched by these four commits. Named so no officer is denied
+  their say.
+
+### Doctrine-inversion sweep
+- `feedback_edge_over_mechanisms` — inverted? These are plumbing fixes, not edge. Held: 1a WAS
+  graded on expectancy and refused on it, and the session's headline finding (the vertical cohort)
+  is an edge result, not a mechanism claim.
+- `feedback_auditor_cannot_authorize_behavior` — inverted? 2 changes what the bot does with money.
+  Held only because "a slot is spent by a TRADE, not an ATTEMPT" is Marcos's own 7/29 instruction
+  and the new lanes were never wired to it. **If he reads that as a new behaviour, `V2_CAP_ON_FILLS=0`
+  is the one-character revert.**
+- `feedback_no_lesser_fix` — inverted? Defect 3 ships the SMALLER fix (instrumentation) while a
+  fuller one (executor fan-out) is describable. Held under permission: the brief explicitly said
+  to build measurement rather than a risky mid-week refactor. Flagged so it is a choice, not a drift.
+- `feedback_skepticism_needs_verification_too` — 1a is a REFUTED verdict, so it owed a named check
+  run: the check is `burst_saturation_20260817.py`, 2,251 candidates, OOS split, executed, output
+  committed.
+
+### Spec tensions for Marcos (unresolved)
+1. **kevseq's edge is cohort-bound.** At `KEVSEQ_GAIN_MIN=20` the lane is net-negative
+   (HOLD-OUT $-0.73/tr). Restricted to 100%+ verticals it is **+$9.34/tr HOLD-OUT, N=174**.
+   Raising the floor is a behaviour change and is his to price.
+2. **`KEVSEQ_CONVERT` in the live env.** 1b defaults ON because kevseq is a SHADOW lane in code
+   (`KEVSEQ_CONVERT` defaults 0). I did **not** read the live Railway env this turn — `[UNVERIFIED]`.
+   If it is 1 live, 1b is a money-changing default and must be re-priced.
+3. **Cap restart amnesia (found, NOT fixed).** `day_n` on today's 15 `triggered_v2conv` rows reads
+   1..5, 1..5, 1..5 — the in-memory counter reset three times. The cap is simultaneously too tight
+   (ghost triggers) and not binding (restarts re-grant it). Making it durable is a design change.
+4. **"Cap on fills" removes any limit on ATTEMPTS.** If the original intent included limiting how
+   often we go near a trigger, that intent is now gone and it wants a two-counter design.
+5. **Defect 3 is a deferred architecture decision,** not a fix. One session of `scan_cycle_timing`
+   rows should decide it.

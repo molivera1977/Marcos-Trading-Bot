@@ -375,3 +375,15 @@ spec header), `rig/test_shipset_20260804.py`.
   are the `unknown` class the 13:49 self-frontside fix already closes. Cost of the alleged
   timeframe defect: **$0 / N=0**.
 - No other lane has a front-side spec/timeframe mismatch (census in §7 of the doc).
+
+## M1 WALL-CLOCK WINDOW CLASS (built + rig-green 8/17 intraday; NO deploy — awaiting convene)
+Doc: `data/killtests/m1_wallclock_20260817.md`. The fixed-count M1 defect class (traded-minute
+grid spans hours on thin tape; 31/31 kevseq disagree rows reproduced) — census of ALL 14
+fixed-count fetch sites + consumers. Shipped in code: `_wallclock_window()` helper + the kevseq
+caller front-side windowed to 50 wall-clock minutes (`M1_WALLCLOCK=1` default, `=0` restores raw;
+`KS_FS_WALLCLOCK_MIN=50`; boot_config stamps both; existing EMA20_PERIOD+2 minimum -> fail-closed
+path unchanged; dense-list byte-equivalence rig-asserted). Rig section M1W (10 pins) + FS-c/TF-c
+pins updated to the windowed form. FLAGGED, NOT touched (money/monitor decisions for the room):
+monitor_trade :11087 EMA-exit bars and _vride_defer :9930 (position-open paths); check_momentum
+:4199, volume guard :13113, universal liquidity :13201 (windowing routes thin names to their
+FAIL-OPEN insufficient paths = looser gates -> priced for Marcos). Spec tension in doc §5.

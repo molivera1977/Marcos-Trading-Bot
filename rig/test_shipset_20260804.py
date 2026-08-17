@@ -3148,7 +3148,7 @@ try:
           "def kevseq_feed_1m(" in _fs_src and "def kevseq_front_side(" in _fs_src)
     check("FS-c: aggregate is fed EVERY call (before the caller-1m branch) so it has no holes",
           _fs_src.index("_ks_self_fs, _ks_self_n = (kevseq_front_side(t, _nb)")
-          < _fs_src.index('_ks_1m = (bars or [])[:-1]'))
+          < _fs_src.index('_ks_1m = ((_wallclock_window(bars'))
     check("FS-d: fallback used ONLY when the caller supplied nothing",
           'if KEVSEQ_SELF_FRONTSIDE and _ks_ctx["front_side"] is None:' in _fs_src)
     check("FS-e: every kevseq row stamps the source + bar count (auditable, never silent)",
@@ -3209,8 +3209,9 @@ try:
     check("TF-b: exactly 2 ctx front_side assignments, both 1-MIN (caller M1, 10s->1m agg)",
           len(re.findall(r'_ks_ctx\["front_side"\] = ', _tf_cal)) == 2,
           str(len(re.findall(r'_ks_ctx\["front_side"\] = ', _tf_cal))))
-    check("TF-c: the caller's source is the M1 bar list, NOT aggregate_bars(...SETUP_TF_MIN)",
-          "_ks_1m = (bars or [])[:-1]" in _tf_cal
+    check("TF-c: the caller's source is the M1 bar list (wall-clock windowed 8/17, killable), NOT aggregate_bars(...SETUP_TF_MIN)",
+          "_ks_1m = ((_wallclock_window(bars, KS_FS_WALLCLOCK_MIN)" in _tf_cal
+          and "if M1_WALLCLOCK else bars) or [])[:-1]" in _tf_cal
           and "_ks_e9, _ks_e20 = calculate_ema9(_ks_1m), calculate_ema20(_ks_1m)" in _tf_cal)
     check("TF-d: the only SETUP_TF_MIN aggregate in the block feeds the stamp _ks_fs_3m alone",
           "_ks_fs_3m = bool(_ks_e93 > _ks_e203 > 0)" in _tf_cal and _tf_cal.count("aggregate_bars(") == 1)
@@ -3391,6 +3392,77 @@ try:
           True)
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _sce:
     check("SC section", False, str(_sce))
+
+print("M1W) 8/17 M1 WALL-CLOCK WINDOW CLASS — fixed-count fetch spans hours on thin tape "
+      "(doc: data/killtests/m1_wallclock_20260817.md)")
+# FAILURE CONDITION (written first, in the doc): wrong if a LIQUID-name decision changes, or if a
+# thin-name consumer computes on fewer bars than its own minimum instead of taking its existing
+# insufficient-data path.
+try:
+    _mw_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    # EXECUTED: run the REAL helper body (exec'd from source, ring 1 of three-rings)
+    import datetime as _mw_dt
+    _mw_blk = _mw_src[_mw_src.index("def _wallclock_window("):
+                      _mw_src.index("def _stop_close_qualifies(")]
+    _mw_ns = {"datetime": _mw_dt.datetime, "timezone": _mw_dt.timezone,
+              "timedelta": _mw_dt.timedelta}
+    exec(_mw_blk, _mw_ns)
+    _mw_win = _mw_ns["_wallclock_window"]
+    _mw_ema20 = int(re.search(r"^EMA20_PERIOD\s*=\s*(\d+)", _mw_src, re.M).group(1))
+
+    def _mw_bar(hh, mm, c=1.0, day="2026-08-17"):
+        return {"time": "%sT%02d:%02d:00Z" % (day, hh, mm), "open": c, "high": c, "low": c,
+                "close": c, "volume": 100}
+
+    # (1) DENSE fixture: 50 contiguous minutes -> byte-equivalence (window keeps EVERY bar)
+    _dense = [_mw_bar(14, 0 + i) if i < 60 else _mw_bar(15, i - 60) for i in range(50)]
+    _wd = _mw_win(_dense, 50)
+    check("M1W-a: dense 50-bar list (span 49 min) passes through IDENTICAL (liquid names unchanged)",
+          _wd == _dense)
+    # (2) THIN fixture: 50 traded bars spanning ~4 hours (RBNE class) -> stale bars excluded
+    _thin = [_mw_bar(13, 30 + (i % 30)) for i in range(0, 0)]  # placeholder, built below
+    _thin = ([_mw_bar(13, 30 + i) for i in range(20)]          # 13:30-13:49 (old block, hours back)
+             + [_mw_bar(17, 10 + i) for i in range(30)])       # 17:10-17:39 (recent block)
+    _wt = _mw_win(_thin, 50)
+    check("M1W-b: thin 50-bar list spanning ~4h -> only the last-50-wall-min bars survive",
+          len(_wt) == 30 and _wt == _thin[20:])
+    # (3) insufficient-after-window: the kevseq caller demands EMA20_PERIOD+2 bars; a windowed
+    # list below that must leave front_side None (the EXISTING fail path) — executed here as the
+    # same len() gate the caller runs.
+    _short = [_mw_bar(17, 30 + i) for i in range(8)]
+    _ws = _mw_win([_mw_bar(11, 0 + i) for i in range(40)] + _short, 50)
+    check("M1W-c: windowed-short (< EMA20_PERIOD+2) -> the caller's existing len() gate refuses "
+          "(front_side stays None -> self fallback -> fail-closed unknown)",
+          len(_ws) == 8 and not (len(_ws[:-1]) >= _mw_ema20 + 2))
+    # (4) kill switch: M1_WALLCLOCK=0 restores the raw list at the call site (structural), and
+    # the flag + window size are boot-stamped
+    check("M1W-d: env kill switch present, default ON, one switch for the class",
+          'M1_WALLCLOCK = os.environ.get("M1_WALLCLOCK", "1") == "1"' in _mw_src
+          and 'KS_FS_WALLCLOCK_MIN = int(os.environ.get("KS_FS_WALLCLOCK_MIN", "50"))' in _mw_src)
+    check("M1W-e: call site guarded by the switch (=0 -> today's raw bars)",
+          "if M1_WALLCLOCK else bars) or [])[:-1]" in _mw_src)
+    check("M1W-f: boot_config stamps m1_wallclock + the per-consumer window size",
+          "m1_wallclock=int(M1_WALLCLOCK), ks_fs_wallclock_min=KS_FS_WALLCLOCK_MIN," in _mw_src)
+    # (5) fail-safes of the helper itself
+    check("M1W-g: unparseable anchor -> list unchanged (fail-safe to today's behavior)",
+          _mw_win([{"time": "garbage"}, {"time": None}], 50)
+          == [{"time": "garbage"}, {"time": None}])
+    check("M1W-h: empty/None input -> [] (never raises)",
+          _mw_win([], 50) == [] and _mw_win(None, 50) == [])
+    # (6) the RBNE-class divergence collapses: caller EMA window now spans <= 50 wall-min, so its
+    # n is comparable to the self-aggregate's n over the same stretch (not 4h vs 40min).
+    _span_min = (50 - 1)  # dense
+    _thin_span = 17 * 60 + 39 - (13 * 60 + 30)
+    check("M1W-i: thin fixture span before window = %d min (the defect), after = <= 50 min" % _thin_span,
+          _thin_span > 200 and len(_wt) == 30
+          and (17 * 60 + 39) - (17 * 60 + 10) <= 50)
+    # (7) census guard: the OTHER fixed-count sites were classified, not silently windowed —
+    # monitor/exit and fail-open gate paths must NOT call the helper in this ship.
+    check("M1W-j: exactly ONE _wallclock_window call site (the kevseq caller) in this ship",
+          _mw_src.count("_wallclock_window(") - _mw_src.count("def _wallclock_window(") == 1
+          and "_wallclock_window(bars, KS_FS_WALLCLOCK_MIN)" in _mw_src)
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _mwe:
+    check("M1W section", False, str(_mwe))
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

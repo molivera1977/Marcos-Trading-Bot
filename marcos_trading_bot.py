@@ -4485,6 +4485,43 @@ def _fresh_session(bars, today=None, max_stale_secs=900):
     return sess
 
 
+def _wallclock_window(bars, minutes):
+    """8/17 M1 WALL-CLOCK WINDOW — the fixed-count defect class
+    (doc: data/killtests/m1_wallclock_20260817.md; mechanism proven in
+    data/killtests/kevseq_frontside_tf_20260817.md, 31/31 canary rows reproduced).
+    The M1 REST fetch returns TRADED minutes only, so a fixed-COUNT list spans wall-clock
+    HOURS on thin tape (RBNE 48 bars = 243 min; UUU 49 bars = 584 min = 9.7h). Every
+    consumer computing "recent" time-based context (EMAs, trend, front-side) from such a
+    list silently evaluates a different window than intended — ONLY on thin names.
+    This filters to bars whose timestamps fall within the last `minutes` WALL-CLOCK
+    minutes, anchored on the NEWEST bar's own timestamp (never now() — staleness is
+    _fresh_session's job, and every windowed consumer already routes through it).
+    Fail-safe: unparseable ANCHOR -> list returned unchanged (today's raw behavior);
+    unparseable bar inside -> dropped (fail-closed toward the consumer's EXISTING
+    insufficient-data path — a consumer must never compute on fewer bars than its own
+    minimum; the min-bars checks below every call site enforce that, unchanged).
+    On liquid names (span ~= count) every bar is inside the window -> byte-equivalent
+    behavior; the window only bites where the old code was wrong. Kill: M1_WALLCLOCK=0."""
+    if not bars or not minutes:
+        return bars or []
+    try:
+        anchor = datetime.strptime(str(bars[-1].get("time") or "")[:19],
+                                   "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError):
+        return bars
+    cutoff = anchor - timedelta(minutes=minutes)
+    out = []
+    for b in bars:
+        try:
+            ts = datetime.strptime(str(b.get("time") or "")[:19],
+                                   "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+        except (ValueError, TypeError):
+            continue
+        if ts >= cutoff:
+            out.append(b)
+    return out
+
+
 def _stop_close_qualifies(bar, entry_ts, today=None) -> bool:
     """B14 contract: a completed-bar close may only trigger the stop if the bar is from TODAY and
     closed AFTER the entry existed. A close that predates the entry is pre-breakout history — on any
@@ -6494,6 +6531,21 @@ _ks_st: dict = {}   # sym -> kevseq machine state (module-level: survives rescan
 # EMA20_PERIOD+2 completed minute bars.
 KEVSEQ_SELF_FRONTSIDE = os.environ.get("KEVSEQ_SELF_FRONTSIDE", "1") == "1"
 
+# ── 8/17 M1 WALL-CLOCK WINDOW CLASS (doc: data/killtests/m1_wallclock_20260817.md) ──
+# ONE switch for the whole defect class (lane-registry precedent): M1_WALLCLOCK=0 restores
+# today's raw fixed-count lists at every windowed consumer. Per-consumer window sizes are
+# named constants, stamped in boot_config. Census 8/17: the ONLY window-sensitive consumer
+# windowed in this ship is the kevseq caller front-side (_ks_1m). The other window-sensitive
+# sites are FLAGGED, not touched (see the doc): check_momentum / volume-guard / universal-
+# liquidity would become MORE permissive on thin names via their fail-open insufficient-data
+# paths (money decision -> Marcos); _vride_defer + monitor_trade are position-open paths.
+M1_WALLCLOCK = os.environ.get("M1_WALLCLOCK", "1") == "1"
+# kevseq caller front-side: the fetch asks for count=max(EMA_BOUNCE_LOOKBACK+EMA20_PERIOD+5, 50)
+# = 50 bars intending "the last ~50 MINUTES of 1-min chart" (EMA20 context needs ~45-60 wall-clock
+# minutes: 20-period EMA + seed history). 50 wall-clock minutes = the fetch's own intent; a dense
+# 50-bar list spans 49 min, so every bar stays inside the window -> liquid names byte-equivalent.
+KS_FS_WALLCLOCK_MIN = int(os.environ.get("KS_FS_WALLCLOCK_MIN", "50"))
+
 # ── 8/17 FRONT-SIDE SOURCE AUDIT (doc: data/killtests/kevseq_frontside_tf_20260817.md) ──
 # ALLEGED DEFECT (raised from the disagree canary): "the caller supplies a 3-MIN front side
 # (aggregate_bars(..., SETUP_TF_MIN)) while kevseq's spec says 1-MIN".  VERIFIED AND REFUTED
@@ -8418,7 +8470,14 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     # exit) so the fallback never has holes in it.
                                     _ks_self_fs, _ks_self_n = (kevseq_front_side(t, _nb)
                                                                if KEVSEQ_SELF_FRONTSIDE else (None, None))
-                                    _ks_1m = (bars or [])[:-1]
+                                    # 8/17 M1_WALLCLOCK: window the fixed-count M1 list to the last
+                                    # KS_FS_WALLCLOCK_MIN wall-clock minutes (traded-minute grid spans
+                                    # HOURS on thin tape — RBNE 243 min / UUU 584 min for ~49 "1-min"
+                                    # bars). Short-after-window -> the EXISTING len() gate below keeps
+                                    # front_side None -> self fallback -> unknown -> fail-closed refusal,
+                                    # exactly today's insufficient-data path. Kill: M1_WALLCLOCK=0.
+                                    _ks_1m = ((_wallclock_window(bars, KS_FS_WALLCLOCK_MIN)
+                                               if M1_WALLCLOCK else bars) or [])[:-1]
                                     if len(_ks_1m) >= EMA20_PERIOD + 2:
                                         _ks_e9, _ks_e20 = calculate_ema9(_ks_1m), calculate_ema20(_ks_1m)
                                         _ks_ctx["front_side"] = _ks_fs_caller = bool(_ks_e9 > _ks_e20 > 0)
@@ -12377,6 +12436,7 @@ def main():
                       kevseq_leg_max=KEVSEQ_LEG_MAX,
                       v2_cap_on_fills=int(V2_CAP_ON_FILLS),
                       kevseq_self_frontside=int(KEVSEQ_SELF_FRONTSIDE),
+                      m1_wallclock=int(M1_WALLCLOCK), ks_fs_wallclock_min=KS_FS_WALLCLOCK_MIN,
                       setup_tf_min=SETUP_TF_MIN,
                       v2_convert=int(V2_CONVERT), v2_quiet_only=int(V2_QUIET_ONLY),
                       v2_quiet_bps=V2_QUIET_BPS, v2_daily_cap=V2_DAILY_CAP,

@@ -2707,6 +2707,62 @@ try:
 except (AssertionError, ValueError, KeyError) as _ale:
     check("AL section", False, str(_ale))
 
+print("AM) 8/17 batch2-B CROWN PIPELINE — WETO condition sequence + explicit 'crowned' row (CROWN_FIX_0817)")
+try:
+    import datetime as _am_dt, zoneinfo as _am_zi
+    _am_E = _am_zi.ZoneInfo("America/New_York")
+    _am_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _am_seg = _am_src[_am_src.index("LEADER_AMMO         = os.environ.get"):
+                      _am_src.index("# ── 8/6 DEPLOY-FREEZE client")]
+    _am_seg += "\n" + _am_src[_am_src.index("def _is_leader(sym):"):
+                              _am_src.index("_leader_rehydrated = {\"day\": None}")]
+    _am_clock = {"hm": (9, 31)}
+    class _AMDT(_am_dt.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return _am_dt.datetime(2026, 8, 17, _am_clock["hm"][0], _am_clock["hm"][1], 0, tzinfo=_am_E)
+    def _am_run(fix_on):
+        rows = []
+        os.environ["CROWN_FIX_0817"] = fix_on
+        ns = {"os": os, "datetime": _AMDT, "EASTERN": _am_E, "time": __import__("time"),
+              "_log_decision": lambda t, s, **k: rows.append((s, t, k))}
+        exec(_am_seg, ns)
+        ns["_pdc_map"]["WETO"] = 8.22   # daily_loaded 03:55 (archive)
+        # premarket/open ascent: 3 fresh-high minutes in a rolling 10 -> viol=fresh_highs, gain<40
+        for hm, px in (((9, 31), 10.05), ((9, 33), 10.25), ((9, 34), 10.66), ((9, 35), 11.46)):
+            _am_clock["hm"] = hm; ns["_leader_high_probe"]("WETO", px)
+        _rec = ns["_leader_rec"]("WETO")
+        _mid = (_rec["viol"], _rec["gain"], ns["_is_leader"]("WETO"))
+        # 09:40:50 halt_suspect -> violence proven; STILL no crown (last visible close 11.46 = +39.4%)
+        _am_clock["hm"] = (9, 40); ns["_leader_violence"]("WETO", "halt")
+        _halted = ns["_is_leader"]("WETO")
+        # 09:45:50 resumption print 13.05 (+58.8%) -> crown next probe (logged 09:47 live = 1 cycle)
+        _am_clock["hm"] = (9, 47); ns["_leader_high_probe"]("WETO", 13.05)
+        os.environ.pop("CROWN_FIX_0817", None)
+        return _mid, _halted, ns["_is_leader"]("WETO"), ns["_leader_rec"]("WETO"), rows
+    _mid, _halted, _crowned, _rec, _rows = _am_run("1")
+    check("AM: WETO pre-halt = fresh_highs viol armed, gain NOT proven, NO crown",
+          _mid == ("fresh_highs", False, False))
+    check("AM: halt violence at 09:40 (close 11.46 = +39.4%) still does NOT crown", not _halted)
+    check("AM: first post-halt probe (13.05 = +58.8%) CROWNS — 8/5 spec delivered", _crowned
+          and _rec["since"] == "09:47")
+    check("AM: leader_armed row logged (the crown event, pre-existing)",
+          any(r[0] == "leader_armed" and r[2].get("why") == "fresh_highs" for r in _rows))
+    check("AM: explicit 'crowned' row logged post-fix (why + since ride the row)",
+          any(r[0] == "crowned" and r[1] == "WETO" and r[2].get("why") == "fresh_highs"
+              and r[2].get("since") == "09:47" for r in _rows))
+    _mid0, _h0, _c0, _rec0, _rows0 = _am_run("0")
+    check("AM: CROWN_FIX_0817=0 -> crown behavior identical, 'crowned' row absent (pre-fix state)",
+          _c0 and not any(r[0] == "crowned" for r in _rows0)
+          and any(r[0] == "leader_armed" for r in _rows0))
+    check("AM: fix is observe-only — the 'crowned' status is written once, never read back",
+          _am_src.count('_log_decision(sym, "crowned"') == 1 and '== "crowned"' not in _am_src
+          and '"crowned" ==' not in _am_src and "'crowned'" not in _am_src)
+    check("AM: forensic artifact filed", os.path.exists(os.path.join(
+          ROOT, "data", "killtests", "crown_pipeline_forensic_20260817.md")))
+except (AssertionError, ValueError, KeyError) as _ame:
+    check("AM section", False, str(_ame))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

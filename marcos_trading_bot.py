@@ -5007,6 +5007,15 @@ def _leader_qualify(sym, rec):
               f"(ignition x{LEADER_IGNITION_CAP}, curl slots x{LEADER_CURL_SLOTS}, hidden uncapped)")
         try:
             _log_decision(sym, "leader_armed", why=rec["viol"])
+            # ── 8/17 batch2-B CROWN_FIX_0817 (WETO forensic, crown_pipeline_forensic_20260817.md):
+            # the crown pipeline WORKED (WETO crowned 09:47:07, one cycle after the post-halt tape
+            # first showed gain>=40%) — but the ONLY row it ever wrote was "leader_armed", a name
+            # that reads as pre-crown. Auditors (and today's misdiagnosis) searched for a crown row
+            # and found none. Observe-only fix: an explicit "crowned" row rides the same qualify
+            # event. No behavior change — _is_leader still reads rec["since"]; rehydrate still
+            # replays leader_armed. Kill: CROWN_FIX_0817=0.
+            if os.environ.get("CROWN_FIX_0817", "1") == "1":
+                _log_decision(sym, "crowned", why=rec["viol"], since=rec["since"])
         except Exception:
             pass
 

@@ -1244,13 +1244,31 @@ def _verify_exit_px(px, tape_lo, tape_hi, tol=EXIT_PX_TAPE_TOL):
     return px, px, True, None
 
 
+RTH_HANDOFF_MIN = int(os.environ.get("RTH_HANDOFF_MIN", "5"))   # 0 = kill switch (old hard 09:30 flip)
+
 def _live_sessions(is_premkt=None):
     """Session list for a LIVE bar fetch (monitor/scan). Before 09:30 ET — or for a position stamped
     PRE — the RTH-only default returns [] (7/27 blackout: every premarket monitor went blind and the
     5 PRE trades blind-stopped for −$624.50). Returns None (= RTH-only, unchanged behavior) once the
-    bell has rung on an RTH position, so nothing about the RTH path moves."""
+    bell has rung on an RTH position, so nothing about the RTH path moves.
+
+    8/17 BOUNDARY FIX (open blackout forensic, data/killtests/pre_staleness_forensic_20260817.md):
+    at 09:30:00 sharp this flipped to RTH-only while ZERO completed RTH 1-min bars existed yet, so
+    every _fresh_session consumer (read-list guard :3090, cache refresh :7555/:7559, velocity :9299,
+    :12382/:12467) saw only PRIOR-DAY RTH bars → [] → fail-closed 'no fresh bars' across the whole
+    roster (8/17: 23/26 names skipped 09:30–09:35 incl. WETO/FIEE/DFSC while their SIP PRE bars were
+    seconds old; self-cleared only as RTH bars accumulated + the 3-min probe cache rolled). Keep PRE
+    in the session set for the first RTH_HANDOFF_MIN minutes after the bell so fresh PRE tape stays
+    visible until today's RTH bars can exist. _fresh_session's today+900s staleness standard is
+    unchanged — this widens WHICH of today's bars are visible, never HOW stale they may be.
+    Kill switch: RTH_HANDOFF_MIN=0 restores the old hard flip."""
     if is_premkt is None:
-        is_premkt = datetime.now(EASTERN).strftime("%H:%M") < "09:30"
+        hm = datetime.now(EASTERN).strftime("%H:%M")
+        is_premkt = hm < "09:30"
+        if not is_premkt and RTH_HANDOFF_MIN > 0:
+            handoff_end = "09:%02d" % min(59, 30 + RTH_HANDOFF_MIN)
+            if hm < handoff_end:
+                return ["PRE", "RTH"]   # bell-boundary hand-off: PRE tape stays visible
     return ["PRE", "RTH"] if is_premkt else None
 
 def _alpaca_intraday_bars(ticker, count=30, sessions=None):

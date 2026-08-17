@@ -1,0 +1,141 @@
+
+=== tick: rows 13195, name-days 197
+gates: [(('5s', 'C', 'backside'), 2267), (('5s', 'C', 'topping_cluster'), 1364), (('5s', 'B', 'backside'), 1116), (('10s', 'B', 'backside'), 761), (('5s', 'B', 'topping_cluster'), 733), (('10s', 'C', 'backside'), 726), (('5s', 'B', 'not_mover'), 696), (('5s', 'C', 'not_mover'), 546), (('5s', 'A', 'topping_cluster'), 538), (('10s', 'B', 'not_mover'), 533), (('10s', 'B', 'topping_cluster'), 394), (('10s', 'C', 'topping_cluster'), 357), (('5s', 'A', 'backside'), 313), (('5s', 'A', 'not_mover'), 310), (('10s', 'A', 'not_mover'), 289), (('10s', 'A', 'topping_cluster'), 270), (('5s', 'C', 'hours'), 241), (('10s', 'C', 'not_mover'), 233), (('5s', 'B', 'hours'), 226), (('10s', 'A', 'backside'), 190), (('10s', 'B', None), 182), (('10s', 'B', 'hours'), 161), (('10s', 'C', None), 116), (('5s', 'B', None), 103), (('10s', 'A', None), 101), (('10s', 'C', 'hours'), 93), (('5s', 'C', None), 74), (('5s', 'A', 'hours'), 53), (('10s', 'A', 'hours'), 40), (('5s', 'A', None), 39), (('5s', 'B', 'no_room'), 36), (('10s', 'B', 'no_room'), 20), (('5s', 'A', 'no_room'), 16), (('10s', 'A', 'no_room'), 14), (('10s', 'C', 'leg_ration'), 11), (('10s', 'A', 'leg_ration'), 9), (('5s', 'C', 'no_room'), 8), (('10s', 'B', 'leg_ration'), 6), (('10s', 'C', 'no_room'), 3), (('5s', 'A', 'leg_ration'), 3)]
+tick 10s A KEV: N=101 sum=-361 mean=-3.57 med=-9.46 win=18% HR250=0 worst=-30 best=+109 ff3=21% ff30s=21% stop%=2.31 days=23 greendays=6
+tick 10s A E3: N=101 sum=-674 mean=-6.68 med=-12.48 win=16% HR250=0 worst=-57 best=+90 ff3=21% ff30s=21% stop%=2.31 days=23 greendays=6
+tick 10s A E4W: N=101 sum=-1278 mean=-12.66 med=-13.33 win=6% HR250=0 worst=-57 best=+89 ff3=21% ff30s=21% stop%=2.31 days=23 greendays=3
+tick 10s A F: N=101 sum=-2671 mean=-26.45 med=-37.32 win=15% HR250=0 worst=-37 best=+65 ff3=21% ff30s=21% stop%=2.31 days=23 greendays=1
+tick 10s B KEV: N=182 sum=-640 mean=-3.52 med=-16.02 win=26% HR250=3 worst=-173 best=+724 ff3=34% ff30s=34% stop%=4.89 days=22 greendays=7
+tick 10s B E3: N=182 sum=-530 mean=-2.91 med=-15.89 win=31% HR250=1 worst=-173 best=+423 ff3=34% ff30s=34% stop%=4.89 days=22 greendays=11
+tick 10s B E4W: N=182 sum=-86 mean=-0.47 med=-21.12 win=14% HR250=7 worst=-115 best=+700 ff3=34% ff30s=34% stop%=4.89 days=22 greendays=6
+tick 10s B F: N=182 sum=-4580 mean=-25.16 med=-37.32 win=7% HR250=3 worst=-190 best=+817 ff3=34% ff30s=34% stop%=4.89 days=22 greendays=3
+tick 10s C KEV: N=116 sum=+420 mean=+3.62 med=-12.42 win=28% HR250=2 worst=-90 best=+548 ff3=11% ff30s=11% stop%=6.95 days=18 greendays=6
+tick 10s C E3: N=116 sum=+357 mean=+3.08 med=-14.96 win=43% HR250=1 worst=-88 best=+285 ff3=11% ff30s=11% stop%=6.95 days=18 greendays=9
+tick 10s C E4W: N=116 sum=-812 mean=-7.00 med=-26.70 win=18% HR250=5 worst=-90 best=+597 ff3=11% ff30s=11% stop%=6.95 days=18 greendays=5
+tick 10s C F: N=116 sum=+3362 mean=+28.98 med=-37.32 win=13% HR250=4 worst=-50 best=+1762 ff3=11% ff30s=11% stop%=6.95 days=18 greendays=7
+tick 5s A KEV: N=39 sum=-329 mean=-8.44 med=-8.99 win=10% HR250=0 worst=-66 best=+35 ff3=23% ff30s=28% stop%=1.95 days=11 greendays=0
+tick 5s A E3: N=39 sum=-205 mean=-5.26 med=-10.91 win=15% HR250=0 worst=-66 best=+62 ff3=23% ff30s=28% stop%=1.95 days=11 greendays=2
+tick 5s A E4W: N=39 sum=-321 mean=-8.22 med=-11.66 win=10% HR250=0 worst=-66 best=+68 ff3=23% ff30s=28% stop%=1.95 days=11 greendays=1
+tick 5s A F: N=39 sum=-622 mean=-15.96 med=-37.32 win=26% HR250=0 worst=-66 best=+68 ff3=23% ff30s=28% stop%=1.95 days=11 greendays=1
+tick 5s B KEV: N=103 sum=-139 mean=-1.35 med=-12.30 win=32% HR250=0 worst=-153 best=+188 ff3=23% ff30s=43% stop%=5.37 days=17 greendays=4
+tick 5s B E3: N=103 sum=-114 mean=-1.10 med=-13.43 win=35% HR250=0 worst=-153 best=+234 ff3=23% ff30s=43% stop%=5.37 days=17 greendays=7
+tick 5s B E4W: N=103 sum=+737 mean=+7.15 med=-17.12 win=20% HR250=6 worst=-153 best=+880 ff3=23% ff30s=43% stop%=5.37 days=17 greendays=5
+tick 5s B F: N=103 sum=-2976 mean=-28.89 med=-37.32 win=9% HR250=1 worst=-153 best=+290 ff3=23% ff30s=43% stop%=5.37 days=17 greendays=1
+tick 5s C KEV: N=74 sum=+206 mean=+2.79 med=-11.00 win=31% HR250=1 worst=-70 best=+335 ff3=16% ff30s=28% stop%=5.45 days=12 greendays=7
+tick 5s C E3: N=74 sum=+158 mean=+2.14 med=-19.64 win=31% HR250=1 worst=-88 best=+285 ff3=16% ff30s=28% stop%=5.45 days=12 greendays=7
+tick 5s C E4W: N=74 sum=+1854 mean=+25.06 med=-23.72 win=19% HR250=8 worst=-93 best=+942 ff3=16% ff30s=28% stop%=5.45 days=12 greendays=5
+tick 5s C F: N=74 sum=+4343 mean=+58.68 med=-37.32 win=18% HR250=4 worst=-50 best=+1713 ff3=16% ff30s=28% stop%=5.45 days=12 greendays=5
+QUIET tick 10s A KEV: IN N=11 sum=-11 mean=-1.03 med=-8.57 win=9% HR250=0 worst=-16 best=+95 ff3=9% ff30s=9% stop%=2.19 days=6 greendays=1 || OUT N=43 sum=-223 mean=-5.19 med=-9.46 win=21% HR250=0 worst=-17 best=+81 ff3=30% ff30s=30% stop%=2.23 days=17 greendays=2
+QUIET tick 10s A E3: IN N=11 sum=-93 mean=-8.48 med=-13.05 win=9% HR250=0 worst=-44 best=+60 ff3=9% ff30s=9% stop%=2.19 days=6 greendays=1 || OUT N=43 sum=-404 mean=-9.38 med=-13.07 win=12% HR250=0 worst=-38 best=+68 ff3=30% ff30s=30% stop%=2.23 days=17 greendays=3
+QUIET tick 10s A E4W: IN N=11 sum=-147 mean=-13.36 med=-13.05 win=9% HR250=0 worst=-44 best=+7 ff3=9% ff30s=9% stop%=2.19 days=6 greendays=1 || OUT N=43 sum=-597 mean=-13.89 med=-13.51 win=5% HR250=0 worst=-38 best=+38 ff3=30% ff30s=30% stop%=2.23 days=17 greendays=1
+QUIET tick 10s A F: IN N=11 sum=-250 mean=-22.77 med=-37.32 win=18% HR250=0 worst=-37 best=+11 ff3=9% ff30s=9% stop%=2.19 days=6 greendays=1 || OUT N=43 sum=-1132 mean=-26.32 med=-37.32 win=19% HR250=0 worst=-37 best=+42 ff3=30% ff30s=30% stop%=2.23 days=17 greendays=1
+QUIET tick 10s B KEV: IN N=46 sum=+492 mean=+10.70 med=-10.04 win=35% HR250=2 worst=-173 best=+724 ff3=33% ff30s=33% stop%=4.50 days=11 greendays=5 || OUT N=84 sum=-662 mean=-7.88 med=-17.90 win=25% HR250=1 worst=-156 best=+433 ff3=32% ff30s=32% stop%=5.39 days=15 greendays=2
+QUIET tick 10s B E3: IN N=46 sum=+491 mean=+10.68 med=-9.46 win=43% HR250=1 worst=-173 best=+423 ff3=33% ff30s=33% stop%=4.50 days=11 greendays=7 || OUT N=84 sum=-768 mean=-9.14 med=-18.76 win=27% HR250=0 worst=-115 best=+204 ff3=32% ff30s=32% stop%=5.39 days=15 greendays=6
+QUIET tick 10s B E4W: IN N=46 sum=+443 mean=+9.64 med=-17.61 win=20% HR250=2 worst=-91 best=+700 ff3=33% ff30s=33% stop%=4.50 days=11 greendays=4 || OUT N=84 sum=-451 mean=-5.37 med=-24.42 win=12% HR250=3 worst=-115 best=+563 ff3=32% ff30s=32% stop%=5.39 days=15 greendays=2
+QUIET tick 10s B F: IN N=46 sum=-1222 mean=-26.56 med=-37.32 win=13% HR250=0 worst=-37 best=+100 ff3=33% ff30s=33% stop%=4.50 days=11 greendays=1 || OUT N=84 sum=-2017 mean=-24.02 med=-37.32 win=5% HR250=2 worst=-190 best=+817 ff3=32% ff30s=32% stop%=5.39 days=15 greendays=3
+QUIET tick 5s A KEV: IN N=5 sum=-58 mean=-11.51 med=-10.59 win=0% HR250=0 worst=-17 best=-7 ff3=0% ff30s=0% stop%=2.30 days=3 greendays=0 || OUT N=10 sum=-99 mean=-9.87 med=-9.45 win=0% HR250=0 worst=-14 best=-7 ff3=50% ff30s=50% stop%=1.92 days=6 greendays=0
+QUIET tick 5s A E3: IN N=5 sum=+0 mean=+0.00 med=-11.72 win=20% HR250=0 worst=-27 best=+62 ff3=0% ff30s=0% stop%=2.30 days=3 greendays=1 || OUT N=10 sum=-39 mean=-3.86 med=-10.96 win=20% HR250=0 worst=-18 best=+32 ff3=50% ff30s=50% stop%=1.92 days=6 greendays=2
+QUIET tick 5s A E4W: IN N=5 sum=+5 mean=+0.99 med=-11.72 win=20% HR250=0 worst=-27 best=+67 ff3=0% ff30s=0% stop%=2.30 days=3 greendays=1 || OUT N=10 sum=-77 mean=-7.71 med=-12.08 win=10% HR250=0 worst=-18 best=+38 ff3=50% ff30s=50% stop%=1.92 days=6 greendays=1
+QUIET tick 5s A F: IN N=5 sum=-14 mean=-2.83 med=-12.89 win=40% HR250=0 worst=-37 best=+67 ff3=0% ff30s=0% stop%=2.30 days=3 greendays=2 || OUT N=10 sum=-204 mean=-20.40 med=-37.32 win=20% HR250=0 worst=-37 best=+42 ff3=50% ff30s=50% stop%=1.92 days=6 greendays=2
+QUIET tick 5s B KEV: IN N=22 sum=+187 mean=+8.49 med=-9.00 win=36% HR250=0 worst=-38 best=+188 ff3=27% ff30s=41% stop%=3.53 days=9 greendays=4 || OUT N=36 sum=-106 mean=-2.94 med=-15.95 win=36% HR250=0 worst=-101 best=+102 ff3=22% ff30s=44% stop%=6.44 days=12 greendays=4
+QUIET tick 5s B E3: IN N=22 sum=+401 mean=+18.21 med=-9.00 win=45% HR250=0 worst=-104 best=+200 ff3=27% ff30s=41% stop%=3.53 days=9 greendays=4 || OUT N=36 sum=-399 mean=-11.10 med=-24.60 win=33% HR250=0 worst=-101 best=+77 ff3=22% ff30s=44% stop%=6.44 days=12 greendays=2
+QUIET tick 5s B E4W: IN N=22 sum=+790 mean=+35.92 med=-11.55 win=32% HR250=1 worst=-104 best=+880 ff3=27% ff30s=41% stop%=3.53 days=9 greendays=4 || OUT N=36 sum=-81 mean=-2.25 med=-30.88 win=19% HR250=3 worst=-101 best=+375 ff3=22% ff30s=44% stop%=6.44 days=12 greendays=3
+QUIET tick 5s B F: IN N=22 sum=-303 mean=-13.79 med=-37.32 win=23% HR250=0 worst=-37 best=+121 ff3=27% ff30s=41% stop%=3.53 days=9 greendays=1 || OUT N=36 sum=-1388 mean=-38.55 med=-37.32 win=3% HR250=0 worst=-101 best=+73 ff3=22% ff30s=44% stop%=6.44 days=12 greendays=0
+
+=== cap: rows 3043, name-days 36
+gates: [(('5s', 'C', 'backside'), 661), (('5s', 'A', 'topping_cluster'), 213), (('10s', 'C', 'backside'), 212), (('5s', 'B', 'backside'), 167), (('5s', 'B', 'hours'), 149), (('5s', 'A', 'hours'), 143), (('5s', 'C', 'topping_cluster'), 134), (('5s', 'C', 'not_mover'), 124), (('10s', 'A', 'topping_cluster'), 114), (('10s', 'B', 'backside'), 107), (('10s', 'B', 'hours'), 103), (('10s', 'A', 'hours'), 101), (('5s', 'B', 'topping_cluster'), 93), (('5s', 'A', 'backside'), 93), (('5s', 'B', 'not_mover'), 82), (('10s', 'A', 'backside'), 68), (('5s', 'C', 'hours'), 56), (('10s', 'B', 'not_mover'), 53), (('10s', 'B', 'topping_cluster'), 46), (('10s', 'C', 'not_mover'), 39), (('10s', 'C', 'hours'), 37), (('10s', 'C', 'topping_cluster'), 35), (('10s', 'A', None), 32), (('10s', 'A', 'no_room'), 25), (('5s', 'C', None), 20), (('5s', 'A', 'no_room'), 20), (('10s', 'C', None), 18), (('10s', 'B', None), 17), (('5s', 'A', 'not_mover'), 15), (('5s', 'A', None), 12), (('10s', 'A', 'not_mover'), 11), (('5s', 'C', 'no_room'), 10), (('5s', 'B', None), 9), (('10s', 'C', 'no_room'), 9), (('10s', 'A', 'leg_ration'), 6), (('5s', 'C', 'leg_ration'), 5), (('10s', 'C', 'leg_ration'), 4)]
+cap 10s A KEV: N=32 sum=-374 mean=-11.70 med=-12.20 win=12% HR250=0 worst=-65 best=+27 ff3=25% ff30s=25% stop%=2.92 days=3 greendays=0
+cap 10s A E3: N=32 sum=-396 mean=-12.38 med=-16.06 win=16% HR250=0 worst=-65 best=+33 ff3=25% ff30s=25% stop%=2.92 days=3 greendays=0
+cap 10s A E4W: N=32 sum=-488 mean=-15.26 med=-16.45 win=9% HR250=0 worst=-65 best=+38 ff3=25% ff30s=25% stop%=2.92 days=3 greendays=0
+cap 10s A F: N=32 sum=-720 mean=-22.49 med=-37.32 win=22% HR250=0 worst=-37 best=+52 ff3=25% ff30s=25% stop%=2.92 days=3 greendays=0
+cap 10s B KEV: N=17 sum=-670 mean=-39.40 med=-27.95 win=12% HR250=0 worst=-148 best=+21 ff3=24% ff30s=24% stop%=5.92 days=3 greendays=0
+cap 10s B E3: N=17 sum=-548 mean=-32.21 med=-27.95 win=18% HR250=0 worst=-148 best=+116 ff3=24% ff30s=24% stop%=5.92 days=3 greendays=0
+cap 10s B E4W: N=17 sum=-608 mean=-35.77 med=-29.13 win=6% HR250=0 worst=-105 best=+107 ff3=24% ff30s=24% stop%=5.92 days=3 greendays=0
+cap 10s B F: N=17 sum=-297 mean=-17.50 med=-37.32 win=18% HR250=0 worst=-84 best=+131 ff3=24% ff30s=24% stop%=5.92 days=3 greendays=0
+cap 10s C KEV: N=18 sum=-86 mean=-4.78 med=-10.67 win=17% HR250=0 worst=-31 best=+117 ff3=22% ff30s=22% stop%=3.37 days=2 greendays=0
+cap 10s C E3: N=18 sum=-181 mean=-10.08 med=-15.02 win=17% HR250=0 worst=-31 best=+62 ff3=22% ff30s=22% stop%=3.37 days=2 greendays=0
+cap 10s C E4W: N=18 sum=-298 mean=-16.56 med=-15.43 win=11% HR250=0 worst=-31 best=+12 ff3=22% ff30s=22% stop%=3.37 days=2 greendays=0
+cap 10s C F: N=18 sum=-159 mean=-8.86 med=-37.32 win=33% HR250=0 worst=-37 best=+80 ff3=22% ff30s=22% stop%=3.37 days=2 greendays=1
+cap 5s A KEV: N=12 sum=-117 mean=-9.72 med=-11.21 win=8% HR250=0 worst=-17 best=+15 ff3=42% ff30s=42% stop%=2.25 days=2 greendays=0
+cap 5s A E3: N=12 sum=-121 mean=-10.04 med=-12.40 win=8% HR250=0 worst=-17 best=+24 ff3=42% ff30s=42% stop%=2.25 days=2 greendays=0
+cap 5s A E4W: N=12 sum=-167 mean=-13.88 med=-13.68 win=0% HR250=0 worst=-22 best=-8 ff3=42% ff30s=42% stop%=2.25 days=2 greendays=0
+cap 5s A F: N=12 sum=-41 mean=-3.38 med=-15.04 win=42% HR250=0 worst=-37 best=+52 ff3=42% ff30s=42% stop%=2.25 days=2 greendays=1
+cap 5s B KEV: N=9 sum=-214 mean=-23.72 med=-10.56 win=0% HR250=0 worst=-114 best=-2 ff3=33% ff30s=44% stop%=4.52 days=3 greendays=0
+cap 5s B E3: N=9 sum=-380 mean=-42.27 med=-25.00 win=0% HR250=0 worst=-145 best=-8 ff3=33% ff30s=44% stop%=4.52 days=3 greendays=0
+cap 5s B E4W: N=9 sum=-330 mean=-36.64 med=-25.00 win=0% HR250=0 worst=-103 best=-8 ff3=33% ff30s=44% stop%=4.52 days=3 greendays=0
+cap 5s B F: N=9 sum=-171 mean=-19.00 med=-37.32 win=22% HR250=0 worst=-37 best=+52 ff3=33% ff30s=44% stop%=4.52 days=3 greendays=0
+cap 5s C KEV: N=20 sum=-201 mean=-10.06 med=-9.21 win=5% HR250=0 worst=-24 best=+12 ff3=15% ff30s=15% stop%=3.37 days=3 greendays=0
+cap 5s C E3: N=20 sum=-316 mean=-15.80 med=-15.61 win=10% HR250=0 worst=-38 best=+27 ff3=15% ff30s=15% stop%=3.37 days=3 greendays=0
+cap 5s C E4W: N=20 sum=-364 mean=-18.18 med=-15.61 win=10% HR250=0 worst=-38 best=+3 ff3=15% ff30s=15% stop%=3.37 days=3 greendays=0
+cap 5s C F: N=20 sum=-233 mean=-11.66 med=-37.32 win=30% HR250=0 worst=-37 best=+80 ff3=15% ff30s=15% stop%=3.37 days=3 greendays=1
+QUIET cap 10s A KEV: IN N=6 sum=-133 mean=-22.13 med=-15.07 win=17% HR250=0 worst=-65 best=+2 ff3=33% ff30s=33% stop%=5.23 days=3 greendays=1 || OUT N=17 sum=-186 mean=-10.94 med=-12.22 win=6% HR250=0 worst=-19 best=+14 ff3=24% ff30s=24% stop%=2.92 days=3 greendays=0
+QUIET cap 10s A E3: IN N=6 sum=-163 mean=-27.12 med=-28.52 win=17% HR250=0 worst=-65 best=+20 ff3=33% ff30s=33% stop%=5.23 days=3 greendays=1 || OUT N=17 sum=-139 mean=-8.16 med=-16.44 win=18% HR250=0 worst=-24 best=+33 ff3=24% ff30s=24% stop%=2.92 days=3 greendays=1
+QUIET cap 10s A E4W: IN N=6 sum=-163 mean=-27.12 med=-28.52 win=17% HR250=0 worst=-65 best=+20 ff3=33% ff30s=33% stop%=5.23 days=3 greendays=1 || OUT N=17 sum=-178 mean=-10.45 med=-16.44 win=12% HR250=0 worst=-24 best=+38 ff3=24% ff30s=24% stop%=2.92 days=3 greendays=0
+QUIET cap 10s A F: IN N=6 sum=-167 mean=-27.82 med=-37.32 win=17% HR250=0 worst=-37 best=+20 ff3=33% ff30s=33% stop%=5.23 days=3 greendays=1 || OUT N=17 sum=-440 mean=-25.88 med=-37.32 win=18% HR250=0 worst=-37 best=+29 ff3=24% ff30s=24% stop%=2.92 days=3 greendays=1
+QUIET cap 10s B KEV: IN N=2 sum=-70 mean=-34.92 med=-34.92 win=0% HR250=0 worst=-63 best=-7 ff3=50% ff30s=50% stop%=7.06 days=2 greendays=0 || OUT N=10 sum=-285 mean=-28.51 med=-21.62 win=20% HR250=0 worst=-107 best=+21 ff3=20% ff30s=20% stop%=5.63 days=3 greendays=0
+QUIET cap 10s B E3: IN N=2 sum=-75 mean=-37.60 med=-37.60 win=0% HR250=0 worst=-63 best=-12 ff3=50% ff30s=50% stop%=7.06 days=2 greendays=0 || OUT N=10 sum=-158 mean=-15.75 med=-25.34 win=30% HR250=0 worst=-107 best=+116 ff3=20% ff30s=20% stop%=5.63 days=3 greendays=0
+QUIET cap 10s B E4W: IN N=2 sum=-75 mean=-37.60 med=-37.60 win=0% HR250=0 worst=-63 best=-12 ff3=50% ff30s=50% stop%=7.06 days=2 greendays=0 || OUT N=10 sum=-260 mean=-26.03 med=-27.24 win=10% HR250=0 worst=-94 best=+107 ff3=20% ff30s=20% stop%=5.63 days=3 greendays=0
+QUIET cap 10s B F: IN N=2 sum=-23 mean=-11.40 med=-11.40 win=50% HR250=0 worst=-37 best=+15 ff3=50% ff30s=50% stop%=7.06 days=2 greendays=1 || OUT N=10 sum=-88 mean=-8.81 med=-37.32 win=20% HR250=0 worst=-84 best=+131 ff3=20% ff30s=20% stop%=5.63 days=3 greendays=1
+QUIET cap 5s A KEV: IN N=0 || OUT N=4 sum=-47 mean=-11.86 med=-11.57 win=0% HR250=0 worst=-14 best=-10 ff3=50% ff30s=50% stop%=1.90 days=1 greendays=0
+QUIET cap 5s A E3: IN N=0 || OUT N=4 sum=-50 mean=-12.39 med=-11.96 win=0% HR250=0 worst=-15 best=-10 ff3=50% ff30s=50% stop%=1.90 days=1 greendays=0
+QUIET cap 5s A E4W: IN N=0 || OUT N=4 sum=-50 mean=-12.39 med=-11.96 win=0% HR250=0 worst=-15 best=-10 ff3=50% ff30s=50% stop%=1.90 days=1 greendays=0
+QUIET cap 5s A F: IN N=0 || OUT N=4 sum=+42 mean=+10.42 med=+24.66 win=75% HR250=0 worst=-37 best=+30 ff3=50% ff30s=50% stop%=1.90 days=1 greendays=1
+QUIET cap 5s B KEV: IN N=3 sum=-30 mean=-9.89 med=-10.56 win=0% HR250=0 worst=-17 best=-2 ff3=67% ff30s=67% stop%=2.91 days=3 greendays=0 || OUT N=1 sum=-8 mean=-8.00 med=-8.00 win=0% HR250=0 worst=-8 best=-8 ff3=100% ff30s=100% stop%=1.11 days=1 greendays=0
+QUIET cap 5s B E3: IN N=3 sum=-53 mean=-17.52 med=-16.99 win=0% HR250=0 worst=-25 best=-11 ff3=67% ff30s=67% stop%=2.91 days=3 greendays=0 || OUT N=1 sum=-8 mean=-8.00 med=-8.00 win=0% HR250=0 worst=-8 best=-8 ff3=100% ff30s=100% stop%=1.11 days=1 greendays=0
+QUIET cap 5s B E4W: IN N=3 sum=-53 mean=-17.52 med=-16.99 win=0% HR250=0 worst=-25 best=-11 ff3=67% ff30s=67% stop%=2.91 days=3 greendays=0 || OUT N=1 sum=-8 mean=-8.00 med=-8.00 win=0% HR250=0 worst=-8 best=-8 ff3=100% ff30s=100% stop%=1.11 days=1 greendays=0
+QUIET cap 5s B F: IN N=3 sum=-112 mean=-37.32 med=-37.32 win=0% HR250=0 worst=-37 best=-37 ff3=67% ff30s=67% stop%=2.91 days=3 greendays=0 || OUT N=1 sum=-37 mean=-37.32 med=-37.32 win=0% HR250=0 worst=-37 best=-37 ff3=100% ff30s=100% stop%=1.11 days=1 greendays=0
+
+=== cache10: rows 26171, name-days 719
+gates: [(('10s', 'B', 'hours'), 5383), (('10s', 'B', 'backside'), 3632), (('10s', 'C', 'backside'), 2873), (('10s', 'A', 'topping_cluster'), 2081), (('10s', 'B', 'topping_cluster'), 2042), (('10s', 'A', 'hours'), 1622), (('10s', 'A', 'backside'), 1593), (('10s', 'C', 'topping_cluster'), 1435), (('10s', 'B', 'not_mover'), 1294), (('10s', 'C', 'not_mover'), 978), (('10s', 'B', None), 752), (('10s', 'C', 'hours'), 623), (('10s', 'A', 'not_mover'), 499), (('10s', 'A', None), 427), (('10s', 'C', None), 390), (('10s', 'B', 'no_room'), 200), (('10s', 'A', 'no_room'), 113), (('10s', 'A', 'leg_ration'), 94), (('10s', 'C', 'no_room'), 51), (('10s', 'B', 'leg_ration'), 49), (('10s', 'C', 'leg_ration'), 40)]
+cache10 10s A KEV: N=427 sum=-2560 mean=-5.99 med=-9.57 win=16% HR250=0 worst=-32 best=+140 ff3=26% ff30s=26% stop%=2.31 days=60 greendays=8
+cache10 10s A E3: N=427 sum=-2796 mean=-6.55 med=-12.36 win=15% HR250=0 worst=-78 best=+132 ff3=26% ff30s=26% stop%=2.31 days=60 greendays=11
+cache10 10s A E4W: N=427 sum=-3037 mean=-7.11 med=-13.15 win=9% HR250=3 worst=-78 best=+525 ff3=26% ff30s=26% stop%=2.31 days=60 greendays=10
+cache10 10s A F: N=427 sum=-2413 mean=-5.65 med=-37.32 win=22% HR250=9 worst=-78 best=+2126 ff3=26% ff30s=26% stop%=2.31 days=60 greendays=17
+cache10 10s B KEV: N=752 sum=-2880 mean=-3.83 med=-12.30 win=31% HR250=4 worst=-174 best=+724 ff3=31% ff30s=31% stop%=3.98 days=62 greendays=15
+cache10 10s B E3: N=752 sum=-3242 mean=-4.31 med=-14.68 win=28% HR250=3 worst=-182 best=+423 ff3=31% ff30s=31% stop%=3.98 days=62 greendays=18
+cache10 10s B E4W: N=752 sum=-1730 mean=-2.30 med=-17.79 win=15% HR250=19 worst=-150 best=+742 ff3=31% ff30s=31% stop%=3.98 days=62 greendays=19
+cache10 10s B F: N=752 sum=-3356 mean=-4.46 med=-37.32 win=18% HR250=21 worst=-150 best=+2699 ff3=31% ff30s=31% stop%=3.98 days=62 greendays=17
+cache10 10s C KEV: N=390 sum=-408 mean=-1.05 med=-11.09 win=22% HR250=3 worst=-90 best=+785 ff3=7% ff30s=7% stop%=6.14 days=58 greendays=12
+cache10 10s C E3: N=390 sum=-846 mean=-2.17 med=-22.81 win=37% HR250=2 worst=-116 best=+475 ff3=7% ff30s=7% stop%=6.14 days=58 greendays=22
+cache10 10s C E4W: N=390 sum=+144 mean=+0.37 med=-26.75 win=21% HR250=10 worst=-90 best=+729 ff3=7% ff30s=7% stop%=6.14 days=58 greendays=20
+cache10 10s C F: N=390 sum=+8800 mean=+22.56 med=-37.32 win=12% HR250=15 worst=-88 best=+5754 ff3=7% ff30s=7% stop%=6.14 days=58 greendays=14
+cache10 5s A KEV: N=0
+cache10 5s A E3: N=0
+cache10 5s A E4W: N=0
+cache10 5s A F: N=0
+cache10 5s B KEV: N=0
+cache10 5s B E3: N=0
+cache10 5s B E4W: N=0
+cache10 5s B F: N=0
+cache10 5s C KEV: N=0
+cache10 5s C E3: N=0
+cache10 5s C E4W: N=0
+cache10 5s C F: N=0
+QUIET cache10 10s A KEV: IN N=106 sum=-477 mean=-4.50 med=-9.05 win=18% HR250=0 worst=-22 best=+140 ff3=20% ff30s=20% stop%=2.17 days=41 greendays=9 || OUT N=271 sum=-1858 mean=-6.85 med=-9.78 win=14% HR250=0 worst=-28 best=+133 ff3=29% ff30s=29% stop%=2.33 days=55 greendays=5
+QUIET cache10 10s A E3: IN N=106 sum=-373 mean=-3.51 med=-11.26 win=16% HR250=0 worst=-44 best=+93 ff3=20% ff30s=20% stop%=2.17 days=41 greendays=13 || OUT N=271 sum=-2279 mean=-8.41 med=-13.13 win=12% HR250=0 worst=-78 best=+132 ff3=29% ff30s=29% stop%=2.33 days=55 greendays=10
+QUIET cache10 10s A E4W: IN N=106 sum=-246 mean=-2.32 med=-11.52 win=12% HR250=1 worst=-44 best=+525 ff3=20% ff30s=20% stop%=2.17 days=41 greendays=10 || OUT N=271 sum=-2187 mean=-8.07 med=-13.51 win=7% HR250=2 worst=-78 best=+299 ff3=29% ff30s=29% stop%=2.33 days=55 greendays=8
+QUIET cache10 10s A F: IN N=106 sum=-1449 mean=-13.67 med=-37.32 win=22% HR250=1 worst=-37 best=+520 ff3=20% ff30s=20% stop%=2.17 days=41 greendays=9 || OUT N=271 sum=-399 mean=-1.47 med=-37.32 win=22% HR250=7 worst=-78 best=+2126 ff3=29% ff30s=29% stop%=2.33 days=55 greendays=18
+QUIET cache10 10s B KEV: IN N=219 sum=-513 mean=-2.34 med=-9.21 win=33% HR250=2 worst=-174 best=+724 ff3=27% ff30s=27% stop%=3.52 days=55 greendays=18 || OUT N=401 sum=-2708 mean=-6.75 med=-15.08 win=29% HR250=1 worst=-156 best=+448 ff3=33% ff30s=33% stop%=4.03 days=61 greendays=16
+QUIET cache10 10s B E3: IN N=219 sum=-69 mean=-0.32 med=-10.77 win=33% HR250=1 worst=-174 best=+423 ff3=27% ff30s=27% stop%=3.52 days=55 greendays=26 || OUT N=401 sum=-3577 mean=-8.92 med=-17.08 win=23% HR250=0 worst=-150 best=+249 ff3=33% ff30s=33% stop%=4.03 days=61 greendays=15
+QUIET cache10 10s B E4W: IN N=219 sum=-151 mean=-0.69 med=-15.10 win=16% HR250=5 worst=-108 best=+700 ff3=27% ff30s=27% stop%=3.52 days=55 greendays=15 || OUT N=401 sum=-3421 mean=-8.53 med=-19.37 win=11% HR250=8 worst=-150 best=+553 ff3=33% ff30s=33% stop%=4.03 days=61 greendays=11
+QUIET cache10 10s B F: IN N=219 sum=+4556 mean=+20.80 med=-37.32 win=25% HR250=10 worst=-73 best=+2699 ff3=27% ff30s=27% stop%=3.52 days=55 greendays=18 || OUT N=401 sum=-6965 mean=-17.37 med=-37.32 win=14% HR250=7 worst=-150 best=+626 ff3=33% ff30s=33% stop%=4.03 days=61 greendays=10
+QUIET cache10 5s A KEV: IN N=0 || OUT N=0
+QUIET cache10 5s A E3: IN N=0 || OUT N=0
+QUIET cache10 5s A E4W: IN N=0 || OUT N=0
+QUIET cache10 5s A F: IN N=0 || OUT N=0
+QUIET cache10 5s B KEV: IN N=0 || OUT N=0
+QUIET cache10 5s B E3: IN N=0 || OUT N=0
+QUIET cache10 5s B E4W: IN N=0 || OUT N=0
+QUIET cache10 5s B F: IN N=0 || OUT N=0
+
+=== pairs: 103
+A n 18 dt med 0.0 5s earlier 4 same 7 later 7 dpx med 0.0 5s cheaper 3 kev10 sum -59 kev5 sum -98 F10 -283 F5 -265
+B n 46 dt med -10.0 5s earlier 29 same 12 later 5 dpx med 0.0 5s cheaper 18 kev10 sum 112 kev5 sum 800 F10 -1399 F5 -1318
+C n 39 dt med 0 5s earlier 7 same 14 later 18 dpx med 0.0 5s cheaper 10 kev10 sum 416 kev5 sum 293 F10 1394 F5 1627
+
+=== cap_pairs: 21
+A n 6 dt med 0.0 5s earlier 1 same 5 later 0 dpx med 0.0 5s cheaper 2 kev10 sum -39 kev5 sum -51 F10 -6 F5 -5
+B n 2 dt med -15.0 5s earlier 2 same 0 later 0 dpx med 0.22499999999999992 5s cheaper 1 kev10 sum -175 kev5 sum -143 F10 -75 F5 -75
+C n 13 dt med 5 5s earlier 0 same 6 later 7 dpx med 0.0 5s cheaper 0 kev10 sum -147 kev5 sum -130 F10 -62 F5 -66
+
+=== sensitivity: fires blocked only by topping_cluster (tick), what they would have done: not simulated (gate applied pre-sim)

@@ -2125,3 +2125,10 @@ band-pass, v2. Holes registry H-SEQ-<lane> per lane. The grammar, not the letter
 - SIZING: blanket $750 REFUTED (grinder DEGRADES-AT-750, monotone $499→$226 across 500→1500); conditional dv-floor upsize **NO-LIFT** (zero grid cells beat flat-$500 with same-or-better worst fire; every delta buys a worse worst-case; upsize slip [CALIBRATION UNKNOWN]).
 - 56-63% of gated fires print on <$10k fire bars — the T B edge lives on the thinnest tape (early = undiscovered = uncrowded = size-constrained). Same law as 8/14.
 - STANDING DECISION (Marcos's condition "if the data supports it" → it does not): NO size change ships. `T B` stays a PRIORITY signal candidate only. Only supported path to any upsize: live $750 fill calibration during sim week, then re-run the grid with measured slip.
+
+## 2026-08-17 ~03:55 ET — EXIT-SIDE SEQUENCE GRAMMAR: NO-LIFT (both champion lanes). E3 STAYS THE EXIT OF RECORD.
+- seq_exit_grammar_20260817.md (commit 362b3dd). E3 clone reconciles to F.sim_var $0.000000 on all 1,021 deduped fires. OOS split unviolated.
+- Day-mean MINE/HOLD-OUT vs E3 control (BA $+281.08/$+259.08 · grinder $+184.56/$+182.90): X-LH-LL $+24.68/$+7.28 · $+24.31/$+54.29; climax $+64.75/$+87.96 · $+70.56/$+64.11; first-lower-low $-37.78/$-64.46 · $-4.09/$-1.99 (turns BOTH lanes RED); fade-pushes $-1.43/$-25.34 · $+33.85/$+41.16.
+- NOTHING beat E3 on MINE -> per protocol nothing frozen, no null owed. Not underpowered — consistently worse.
+- MECHANISM: the grammars DO deliver what they promise (40-65% of E3 giveback recovered, hold time 80min -> 6-36min) but on this tape a volume climax / lower-low / fade-push is a SHAKEOUT, not a top. Early exits forfeit the runners the lanes live on.
+- THIRD CONSECUTIVE exit-intelligence refutation (exit_eyes V1-V3b, Sunday T6, now sequence grammar). Standing: E3 unchanged; the Eyes Matrix "E3 consults zero eyes at exit" is now a MEASURED CHOICE, not a hole. Do not re-propose exit-side smartness without new evidence class (not another pattern on the same 10s bars).

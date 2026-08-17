@@ -1184,7 +1184,8 @@ def reread_check():
                     pass
         for r in rows:
             st = r.get("status")
-            if st in ("rocket_armed", "read_exhausted_observed", "ceiling_reject"):
+            if st in ("rocket_armed", "read_exhausted_observed", "ceiling_reject",
+                      "reread_on_reject"):   # 8/17 #57: bot's stale-reject marker rides the same queue
                 key = f"{r.get('ticker')}|{st}|{r.get('recorded_at')}"
                 if key in _rr_state["seen_markers"]: continue
                 _rr_state["seen_markers"].add(key)

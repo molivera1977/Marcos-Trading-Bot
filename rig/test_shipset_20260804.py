@@ -611,7 +611,8 @@ def _fc_ns(crowned, bars, kev, now_iso=None):
         "_curl_feed":lambda t,n=90: (bars, "alpaca"),   # 8/14: real tuple contract (see wall stub note)
         "_fetch_kev_levels":lambda: kev,
         "_log_decision":lambda tk,st,**kw: _FCLog.rows.append((tk,st,kw)),
-        "_freshest_rec":lambda t: (kev or {}).get(t) or {}}
+        "_freshest_rec":lambda t: (kev or {}).get(t) or {},
+        "_reread_on_reject":lambda *a, **k: None}   # 8/17 #57: breach now also enqueues a reread (own section AJ2)
     exec(_seg, ns)
     return ns
 _now=_dtm.datetime.now(zoneinfo.ZoneInfo("America/New_York")) if 'zoneinfo' in dir() else None
@@ -2523,6 +2524,34 @@ try:
     os.environ.pop("KEV_ROAD", None)
 except (AssertionError, ValueError, KeyError) as _aje:
     check("AJ section", False, str(_aje))
+
+print("AJ2) 8/17 reread-on-stale-reject (#57 first half — existing reader queue reused)")
+try:
+    _a2_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _a2_rows = []
+    _a2_ns = {"os": os, "time": __import__("time"),
+              "_log_decision": lambda tk, st, **kw: _a2_rows.append((tk, st, kw))}
+    _a2_seg = _a2_src[_a2_src.index("_reread_reject_t: dict"):_a2_src.index("def _fetch_kev_watchlist")]
+    exec(_a2_seg, _a2_ns)
+    _a2_ns["print"] = lambda *a, **k: None
+    _a2_ns["_reread_on_reject"]("STALEX", "runway_reject", map_age_min=22.4)
+    _a2_ns["_reread_on_reject"]("STALEX", "ceiling_reject", map_age_min=23.0)   # inside 10-min cap
+    check("AJ2: first stale reject enqueues one marker row",
+          len(_a2_rows) == 1 and _a2_rows[0][1] == "reread_on_reject" and _a2_rows[0][2]["gate"] == "runway_reject")
+    _a2_ns["_reread_reject_t"]["STALEX"] -= 601
+    _a2_ns["_reread_on_reject"]("STALEX", "ceiling_reject")
+    check("AJ2: after 10 min the cap releases", len(_a2_rows) == 2)
+    os.environ["REREAD_ON_REJECT"] = "0"
+    _a2_ns["_reread_on_reject"]("OTHERX", "runway_reject")
+    check("AJ2: REREAD_ON_REJECT=0 kills it", all(r[0] != "OTHERX" for r in _a2_rows))
+    os.environ.pop("REREAD_ON_REJECT", None)
+    check("AJ2: wired at freshness_breach + runway_reject + ceiling_reject",
+          _a2_src.count('_reread_on_reject(ticker, "') == 3)
+    _a2_nv = open(os.path.join(ROOT, "newcomer_vision_reader.py")).read()
+    check("AJ2: reader marker queue consumes the row (no new queue built)",
+          '"reread_on_reject"):   # 8/17 #57' in _a2_nv)
+except (AssertionError, ValueError, KeyError) as _a2e:
+    check("AJ2 section", False, str(_a2e))
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

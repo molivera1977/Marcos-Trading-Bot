@@ -3040,6 +3040,27 @@ def _request_auto_read(ticker):
     except Exception:
         pass
 
+_reread_reject_t: dict = {}   # ticker -> epoch of last stale-reject reread request (10-min cap)
+
+def _reread_on_reject(ticker, gate, map_age_min=None):
+    """8/17 task #57 first half: a gate that REFUSES a fire because the structure is stale is
+    the loudest possible read request — enqueue an IMMEDIATE reread via the reader's EXISTING
+    marker queue (the decision-row lane crowns/exhaustion already ride; no new queue). The row
+    'reread_on_reject' is a marker the reader consumes next probe cycle. Cap: one per ticker
+    per 10 min. Kill: REREAD_ON_REJECT=0. Observe-only side effect (a read); never raises."""
+    try:
+        if os.environ.get("REREAD_ON_REJECT", "1") != "1":
+            return
+        now = time.time()
+        if now - _reread_reject_t.get(ticker, 0) < 600:
+            return
+        _reread_reject_t[ticker] = now
+        _log_decision(ticker, "reread_on_reject", gate=gate,
+                      map_age_min=(round(map_age_min, 1) if map_age_min is not None else None))
+        print(f"📖 {ticker} REREAD-ON-REJECT queued (gate={gate}) — reader marker posted")
+    except Exception:
+        pass
+
 def _fetch_kev_watchlist():
     """Kev's explicitly-flagged tickers for today (from the screener /api/kev_watchlist).
     These are FORCE-watched regardless of the morning-scan top-15 score cut — the selection
@@ -9540,6 +9561,7 @@ def _effective_map(ticker, live_px=0.0):
                       map_dist_pct=round(dist, 1), auto_map_used=bool(am),
                       old_break=(rec or {}).get("break"),
                       new_break=(am or {}).get("break"))
+        _reread_on_reject(ticker, "freshness_breach", map_age_min=age)   # 8/17 #57: stale structure blocked a gate view -> immediate reread via reader marker
         # ── 8/14 BREACH ALARM (Cartographer's tripwire; kill: BREACH_ALARM=0): the 8/7-8/14 era
         # logged 28 breaches with auto_map_used=false and NOBODY noticed the contract was dead.
         # Count CONSECUTIVE unremediated breaches per-day process-wide; on the 3rd, alarm row.
@@ -12188,6 +12210,12 @@ def main():
                     _log_decision(ticker, "runway_reject", price=entry_price, stop=round(stop_loss, 4),
                                   runway_rr=_rw_v, target=_rw_t, need=_rw_need, machine=entry_type,
                                   road_cls=_rw_cls, road_band=_rw_band)
+                    try:   # 8/17 #57: runway refusal off a STALE map -> immediate reread
+                        _rw_age, _ = _map_freshness(_effective_map(ticker, entry_price) or {}, entry_price)
+                        if _rw_age is None or _rw_age > FRESH_MAX_MIN:
+                            _reread_on_reject(ticker, "runway_reject", map_age_min=_rw_age)
+                    except Exception:
+                        pass
                     _slot_refund(ticker, entry_type)
                     with trade_lock:
                         reentry["held"].discard(ticker)
@@ -12366,6 +12394,12 @@ def main():
                               stop=round(stop_loss, 4), last_target=_z_lastT,
                               break_level=_z_brk, machine=entry_type)
                 _request_auto_read(ticker)   # 8/14 #57a: road spent = map stale by definition — request a fresh read (own 30-min throttle)
+                try:   # 8/17 #57: ceiling refusal off a STALE map -> immediate reread marker
+                    _cr_age, _ = _map_freshness(_z_rec or {}, entry_price)
+                    if _cr_age is None or _cr_age > FRESH_MAX_MIN:
+                        _reread_on_reject(ticker, "ceiling_reject", map_age_min=_cr_age)
+                except Exception:
+                    pass
                 if STANDDOWN_STICKY and str((_z_rec or {}).get("_ts") or ""):
                     _standdown_bind(ticker, _z_rec["_ts"])   # 8/8 #28: binds (+ row, 8/15 eyes)
                     # auditor #6: never bind on a ts-less map (unliftable forever-hold)

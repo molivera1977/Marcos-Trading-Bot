@@ -2070,3 +2070,19 @@ shape EMERGE, THEN name it, THEN kill-test the emergent clause. Per-lane program
 H28+): break-attack, grinder, ma_pullback, ignition, band-pass, v2, prevwap — each gets its
 winners/losers fingerprint study on the universe; results = the lane's "maximization spec",
 proposals priced to Marcos. Big-rides study (running) is instance #1.
+
+## 2026-08-16 ~17:30 — KEV FAST-CHART METHOD FOUND (verbatim cluster) + MARCOS'S 5s HYPOTHESIS
+Librarian: Kev's rocket entry = the 10-SECOND chart (2026): pullback testing VWAP+9MA/90MA
+with the wick bought back (stop = wick low, ~5-6%), OR 10s bodies HOLDING a broken whole-dollar/
+HOD level ("holds three... risking three"), OR 10s double-bottom out of a halt; context = the
+day's obvious front-side mover WITH room, never under a topping-tail cluster, 1-3 entries/leg;
+ride = stop to each new candle's bottom, trail prior-bar low, exit on failed breakout/topping
+tail/halt-band fail. Sources: hsIO37YF_lo, k27fptelI8Y, xZJaq78FcN4, ulOfwyRAs1o (SCKT 8/10),
+VhH6-u9POsk. Kev never says 5-second CHART in 2026 ("5 SECONDS" = squeeze speed).
+MARCOS'S HYPOTHESIS (his, registered under his name): 5-SECOND bars for the pullback entries
+into rockets — the flush and the buyback as two visible events instead of one 10s wick,
+potentially one bar earlier at a better price with the stop known sooner; risk = noise (the
+v2 250->21 warning). TEST = the RESOLUTION TWIN inside the Kev fast-chart replay: identical
+Kev-A/B/C detectors at 10s (Kev's) and 5s (Marcos's) on the same crowned-name tape (our 5s
+capture since 8/12 + 1s rebuilt to both), graded on entry price, stop distance, false-fire
+rate, dollars under Kev's ride rules. Winner by tape. Headline build of the week (Architect).

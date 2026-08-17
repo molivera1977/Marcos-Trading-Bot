@@ -1,0 +1,98 @@
+
+===== SIP TICK TWIN (197 nd) =====
+
+--- det A @ 10s ---
+ctx       N   KEV_sum  KEV_mn   E3_mn  E4W_mn     F_sum    F_mn  win  HR ff30s stop%   worst    best
+FAST    101   -361.07   -3.57   -6.68  -12.66   -2671.0  -26.45   18   0    21  2.31  -30.16  108.52
+       day: n=59 mean=-6.12 med=-12.61 green=20% worst=-55.41 | H1 sum=-62.19(29d 28%g) H2 sum=-298.88(30d 13%g)
+1MIN     61   -278.59   -4.57   -5.44   -3.52  -1638.53  -26.86   15   0    30  2.19  -22.05   95.38
+       day: n=40 mean=-6.96 med=-11.38 green=18% worst=-51.54 | H1 sum=36.6(20d 30%g) H2 sum=-315.19(20d 5%g)
+3MIN     65   -341.96   -5.26   -6.72   -6.73  -1644.69   -25.3   17   0    28  2.19  -30.16   95.38
+       day: n=36 mean=-9.5 med=-11.23 green=19% worst=-51.54 | H1 sum=-63.64(18d 28%g) H2 sum=-278.32(18d 11%g)
+
+--- det A @ 5s ---
+ctx       N   KEV_sum  KEV_mn   E3_mn  E4W_mn     F_sum    F_mn  win  HR ff30s stop%   worst    best
+FAST     39   -329.13   -8.44   -5.26   -8.22   -622.39  -15.96   10   0    28  1.95  -65.89   35.36
+       day: n=25 mean=-13.17 med=-10.26 green=8% worst=-65.89 | H1 sum=-154.84(12d 8%g) H2 sum=-174.29(13d 8%g)
+1MIN     11   -109.36   -9.94   -9.09   -8.52   -121.38  -11.03    0   0     0  1.95  -16.88   -5.85
+       day: n=8 mean=-13.67 med=-12.49 green=0% worst=-27.85 | H1 sum=-38.58(4d 0%g) H2 sum=-70.78(4d 0%g)
+3MIN     19   -224.56  -11.82  -12.24  -11.98    -79.36   -4.18    5   0    16  2.26  -65.89   12.35
+       day: n=13 mean=-17.27 med=-12.55 green=8% worst=-65.89 | H1 sum=-142.04(6d 0%g) H2 sum=-82.52(7d 14%g)
+
+--- det B @ 10s ---
+ctx       N   KEV_sum  KEV_mn   E3_mn  E4W_mn     F_sum    F_mn  win  HR ff30s stop%   worst    best
+FAST    182   -640.22   -3.52   -2.91   -0.47  -4579.95  -25.16   26   3    34  4.89 -172.98  723.94
+       day: n=79 mean=-8.1 med=-21.93 green=25% worst=-199.25 | H1 sum=-860.38(39d 21%g) H2 sum=220.16(40d 30%g)
+1MIN    184   -463.95   -2.52   -1.38    0.43  -4116.71  -22.37   26   3    36  4.71 -172.98  723.94
+       day: n=79 mean=-5.87 med=-23.62 green=23% worst=-167.35 | H1 sum=-568.47(39d 18%g) H2 sum=104.52(40d 28%g)
+3MIN    187  -1135.46   -6.07   -3.81   -3.43  -4090.26  -21.87   26   2    36  4.57 -172.98  433.38
+       day: n=78 mean=-14.56 med=-23.09 green=23% worst=-172.98 | H1 sum=-533.91(39d 21%g) H2 sum=-601.55(39d 26%g)
+
+--- det B @ 5s ---
+ctx       N   KEV_sum  KEV_mn   E3_mn  E4W_mn     F_sum    F_mn  win  HR ff30s stop%   worst    best
+FAST    103   -138.56   -1.35    -1.1    7.15  -2975.68  -28.89   32   0    43  5.37 -153.18   187.6
+       day: n=61 mean=-2.27 med=-13.43 green=30% worst=-132.41 | H1 sum=-329.68(30d 27%g) H2 sum=191.12(31d 32%g)
+1MIN     87    -198.9   -2.29   -0.19    9.68  -2485.85  -28.57   33   0    41  4.95 -153.18   187.6
+       day: n=48 mean=-4.14 med=-11.44 green=38% worst=-132.41 | H1 sum=-217.05(24d 42%g) H2 sum=18.15(24d 33%g)
+3MIN     87    -90.55   -1.04    1.38   10.72  -2295.23  -26.38   33   0    44  4.95 -153.18   187.6
+       day: n=48 mean=-1.89 med=-11.44 green=40% worst=-132.41 | H1 sum=-225.95(24d 42%g) H2 sum=135.4(24d 38%g)
+
+--- det C @ 10s ---
+ctx       N   KEV_sum  KEV_mn   E3_mn  E4W_mn     F_sum    F_mn  win  HR ff30s stop%   worst    best
+FAST    116    419.91    3.62    3.08    -7.0   3362.07   28.98   28   2    11  6.95  -90.35  547.81
+       day: n=46 mean=9.13 med=-18.82 green=28% worst=-105.23 | H1 sum=833.48(23d 35%g) H2 sum=-413.57(23d 22%g)
+1MIN    128    360.27    2.81     0.4   -5.54   3513.47   27.45   26   2     9  6.75  -70.21  547.81
+       day: n=46 mean=7.83 med=-15.96 green=24% worst=-73.32 | H1 sum=93.95(23d 30%g) H2 sum=266.32(23d 17%g)
+3MIN    127    293.39    2.31    1.07   -4.32   3472.07   27.34   24   2    10  6.59  -70.21  547.81
+       day: n=48 mean=6.11 med=-17.02 green=23% worst=-73.32 | H1 sum=29.06(24d 29%g) H2 sum=264.33(24d 17%g)
+
+--- det C @ 5s ---
+ctx       N   KEV_sum  KEV_mn   E3_mn  E4W_mn     F_sum    F_mn  win  HR ff30s stop%   worst    best
+FAST     74    206.09    2.79    2.14   25.06   4342.53   58.68   31   1    28  5.45  -70.21  334.56
+       day: n=32 mean=6.44 med=-17.58 green=31% worst=-85.71 | H1 sum=303.68(16d 25%g) H2 sum=-97.59(16d 38%g)
+1MIN     75    118.37    1.58    3.68   19.78   7530.32   100.4   29   1    27  5.63  -70.21  334.56
+       day: n=30 mean=3.95 med=-20.32 green=27% worst=-125.27 | H1 sum=247.21(15d 27%g) H2 sum=-128.84(15d 27%g)
+3MIN     74    238.85    3.23    4.94   33.66   7488.94   101.2   32   1    27  5.55  -70.21  334.56
+       day: n=29 mean=8.24 med=-21.8 green=31% worst=-100.48 | H1 sum=359.26(14d 36%g) H2 sum=-120.41(15d 27%g)
+
+--- ALL DETECTORS combined, SIP TICK TWIN (197 nd) ---
+  10s FAST  N=399 KEV_sum=-581.38 KEV_mn=-1.46 E3=-2.12 E4W=-5.45 F_sum=-3888.88 win=25%
+  10s 1MIN  N=373 KEV_sum=-382.27 KEV_mn=-1.02 E3=-1.43 E4W=-2.27 F_sum=-2241.77 win=24%
+  10s 3MIN  N=379 KEV_sum=-1184.03 KEV_mn=-3.12 E3=-2.68 E4W=-4.29 F_sum=-2262.88 win=24%
+  5s FAST  N=216 KEV_sum=-261.6 KEV_mn=-1.21 E3=-0.74 E4W=10.51 F_sum=744.46 win=28%
+  5s 1MIN  N=173 KEV_sum=-189.89 KEV_mn=-1.1 E3=0.92 E4W=12.9 F_sum=4923.09 win=29%
+  5s 3MIN  N=180 KEV_sum=-76.26 KEV_mn=-0.42 E3=1.41 E4W=17.75 F_sum=5114.35 win=30%
+
+===== CACHE10 @ SCALE (719 nd) =====
+
+--- det A @ 10s ---
+ctx       N   KEV_sum  KEV_mn   E3_mn  E4W_mn     F_sum    F_mn  win  HR ff30s stop%   worst    best
+FAST    427  -2559.57   -5.99   -6.55   -7.11   -2413.2   -5.65   16   0    26  2.31  -31.98  140.25
+       day: n=235 mean=-10.89 med=-12.72 green=20% worst=-51.2 | H1 sum=-1067.21(117d 21%g) H2 sum=-1492.36(118d 18%g)
+1MIN    291  -2083.41   -7.16   -7.03   -6.24  -1513.19    -5.2   13   0    33  2.32  -30.88  132.62
+       day: n=169 mean=-12.33 med=-12.79 green=14% worst=-51.2 | H1 sum=-953.97(84d 15%g) H2 sum=-1129.44(85d 13%g)
+3MIN    284  -1785.34   -6.29   -6.03   -5.68  -1913.57   -6.74   15   0    31  2.35  -29.31  140.25
+       day: n=164 mean=-10.89 med=-12.35 green=20% worst=-53.02 | H1 sum=-820.72(82d 18%g) H2 sum=-964.62(82d 21%g)
+
+--- det B @ 10s ---
+ctx       N   KEV_sum  KEV_mn   E3_mn  E4W_mn     F_sum    F_mn  win  HR ff30s stop%   worst    best
+FAST    752  -2879.83   -3.83   -4.31    -2.3  -3356.05   -4.46   31   4    31  3.98 -174.06  723.94
+       day: n=340 mean=-8.47 med=-17.65 green=30% worst=-174.52 | H1 sum=-2513.22(170d 31%g) H2 sum=-366.61(170d 29%g)
+1MIN    743  -2642.96   -3.56   -4.38   -3.37  -3766.79   -5.07   30   5    34  3.85 -174.06  723.94
+       day: n=335 mean=-7.89 med=-16.49 green=29% worst=-237.65 | H1 sum=-1807.38(167d 29%g) H2 sum=-835.58(168d 29%g)
+3MIN    761  -3009.62   -3.95   -4.51   -4.07  -5089.91   -6.69   29   4    34  3.64 -174.06  723.94
+       day: n=336 mean=-8.96 med=-16.59 green=29% worst=-197.62 | H1 sum=-2109.22(168d 29%g) H2 sum=-900.4(168d 29%g)
+
+--- det C @ 10s ---
+ctx       N   KEV_sum  KEV_mn   E3_mn  E4W_mn     F_sum    F_mn  win  HR ff30s stop%   worst    best
+FAST    390   -407.85   -1.05   -2.17    0.37   8799.51   22.56   22   3     7  6.14  -90.35  784.92
+       day: n=153 mean=-2.67 med=-16.47 green=28% worst=-142.22 | H1 sum=-507.53(76d 28%g) H2 sum=99.68(77d 29%g)
+1MIN    396   -351.04   -0.89   -2.57   -0.56   8519.77   21.51   22   3     8  5.84  -75.15  784.92
+       day: n=145 mean=-2.42 med=-16.84 green=27% worst=-174.54 | H1 sum=-755.06(72d 26%g) H2 sum=404.02(73d 27%g)
+3MIN    439   -267.37   -0.61   -3.28    -4.0   2389.91    5.44   22   4     8  5.64  -75.15  784.92
+       day: n=159 mean=-1.68 med=-17.29 green=24% worst=-174.54 | H1 sum=-1089.59(79d 20%g) H2 sum=822.22(80d 28%g)
+
+--- ALL DETECTORS combined, CACHE10 @ SCALE (719 nd) ---
+  10s FAST  N=1569 KEV_sum=-5847.25 KEV_mn=-3.73 E3=-4.39 E4W=-2.95 F_sum=3030.26 win=25%
+  10s 1MIN  N=1430 KEV_sum=-5077.41 KEV_mn=-3.55 E3=-4.42 E4W=-3.17 F_sum=3239.79 win=24%
+  10s 3MIN  N=1484 KEV_sum=-5062.33 KEV_mn=-3.41 E3=-4.44 E4W=-4.36 F_sum=-4613.57 win=24%

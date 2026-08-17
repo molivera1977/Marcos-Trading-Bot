@@ -1,0 +1,1877 @@
+{
+ "n_fires": 1659,
+ "res": {
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|20|MINE": {
+   "N": 917,
+   "tot": -3244.939265630748,
+   "dtr": -3.5386469636104123,
+   "win": 30.970556161395855,
+   "worst": -184.54660610372835,
+   "daymean": -73.7486196734261,
+   "daymed": -137.9860582208372,
+   "green": 31.818181818181817,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|20|HOLD-OUT": {
+   "N": 368,
+   "tot": -949.7784014666341,
+   "dtr": -2.58091956920281,
+   "win": 37.22826086956522,
+   "worst": -110.80026219843965,
+   "daymean": -52.76546674814635,
+   "daymed": -106.81043836337727,
+   "green": 33.333333333333336,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|20|HOLD H1 07-22..08-02": {
+   "N": 157,
+   "tot": -764.6246835082528,
+   "dtr": -4.870220914065305,
+   "win": 32.48407643312102,
+   "worst": -107.91748071128193,
+   "daymean": -95.57808543853169,
+   "daymed": -127.57354969290434,
+   "green": 37.5,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|20|HOLD H2 08-03..08-14": {
+   "N": 211,
+   "tot": -185.15371795838107,
+   "dtr": -0.8775057723146023,
+   "win": 40.758293838862556,
+   "worst": -110.80026219843965,
+   "daymean": -18.515371795838092,
+   "daymed": -106.81043836337727,
+   "green": 30.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|20|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 20.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|30|MINE": {
+   "N": 771,
+   "tot": -4042.8160268035094,
+   "dtr": -5.243600553571349,
+   "win": 29.961089494163424,
+   "worst": -184.54660610372835,
+   "daymean": -91.88218242735245,
+   "daymed": -136.72663570779895,
+   "green": 25.0,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|30|HOLD-OUT": {
+   "N": 307,
+   "tot": -1604.6417014895912,
+   "dtr": -5.226845933190851,
+   "win": 34.85342019543974,
+   "worst": -110.80026219843965,
+   "daymean": -89.14676119386617,
+   "daymed": -135.3378987397006,
+   "green": 33.333333333333336,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|30|HOLD H1 07-22..08-02": {
+   "N": 128,
+   "tot": -1133.8457055621523,
+   "dtr": -8.858169574704315,
+   "win": 28.125,
+   "worst": -107.91748071128193,
+   "daymean": -141.73071319526906,
+   "daymed": -183.492428928773,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|30|HOLD H2 08-03..08-14": {
+   "N": 179,
+   "tot": -470.7959959274389,
+   "dtr": -2.6301452286449103,
+   "win": 39.66480446927374,
+   "worst": -110.80026219843965,
+   "daymean": -47.07959959274386,
+   "daymed": -83.1712804769852,
+   "green": 40.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|30|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 16.5
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|40|MINE": {
+   "N": 660,
+   "tot": -4127.953805278766,
+   "dtr": -6.254475462543584,
+   "win": 29.696969696969695,
+   "worst": -184.54660610372835,
+   "daymean": -93.81713193815374,
+   "daymed": -157.99122923107063,
+   "green": 22.727272727272727,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|40|HOLD-OUT": {
+   "N": 271,
+   "tot": -2366.8432276912495,
+   "dtr": -8.733738847569187,
+   "win": 32.84132841328413,
+   "worst": -110.80026219843965,
+   "daymean": -131.4912904272917,
+   "daymed": -135.3378987397006,
+   "green": 38.888888888888886,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|40|HOLD H1 07-22..08-02": {
+   "N": 113,
+   "tot": -1447.581596045194,
+   "dtr": -12.810456602169857,
+   "win": 24.778761061946902,
+   "worst": -107.91748071128193,
+   "daymean": -180.94769950564927,
+   "daymed": -183.492428928773,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|40|HOLD H2 08-03..08-14": {
+   "N": 158,
+   "tot": -919.2616316460563,
+   "dtr": -5.818111592696559,
+   "win": 38.607594936708864,
+   "worst": -110.80026219843965,
+   "daymean": -91.92616316460561,
+   "daymed": -75.55776736701115,
+   "green": 50.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|40|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 14.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|50|MINE": {
+   "N": 587,
+   "tot": -4948.206825693456,
+   "dtr": -8.429653876820199,
+   "win": 29.3015332197615,
+   "worst": -184.54660610372835,
+   "daymean": -112.45924603848758,
+   "daymed": -139.78161518168514,
+   "green": 20.454545454545453,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|50|HOLD-OUT": {
+   "N": 230,
+   "tot": -2231.3074497358525,
+   "dtr": -9.701336737981967,
+   "win": 33.47826086956522,
+   "worst": -110.80026219843965,
+   "daymean": -123.96152498532516,
+   "daymed": -146.99824816098703,
+   "green": 27.77777777777778,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|50|HOLD H1 07-22..08-02": {
+   "N": 99,
+   "tot": -1521.964779534126,
+   "dtr": -15.373381611455818,
+   "win": 24.242424242424242,
+   "worst": -107.91748071128193,
+   "daymean": -190.2455974417657,
+   "daymed": -201.64083255406715,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|50|HOLD H2 08-03..08-14": {
+   "N": 131,
+   "tot": -709.342670201727,
+   "dtr": -5.414829543524633,
+   "win": 40.458015267175576,
+   "worst": -110.80026219843965,
+   "daymean": -70.93426702017273,
+   "daymed": -84.43988854308805,
+   "green": 40.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|50|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 12.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|60|MINE": {
+   "N": 542,
+   "tot": -5114.85592369266,
+   "dtr": -9.43700354924845,
+   "win": 28.96678966789668,
+   "worst": -184.54660610372835,
+   "daymean": -116.24672553846949,
+   "daymed": -137.24645815938058,
+   "green": 18.181818181818183,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|60|HOLD-OUT": {
+   "N": 212,
+   "tot": -2061.3875965355,
+   "dtr": -9.723526398752359,
+   "win": 33.490566037735846,
+   "worst": -110.80026219843965,
+   "daymean": -114.52153314086114,
+   "daymed": -95.3553553360767,
+   "green": 27.77777777777778,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|60|HOLD H1 07-22..08-02": {
+   "N": 95,
+   "tot": -1390.019240330897,
+   "dtr": -14.631781477167337,
+   "win": 25.263157894736842,
+   "worst": -107.91748071128193,
+   "daymean": -173.75240504136215,
+   "daymed": -166.49506631839114,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|60|HOLD H2 08-03..08-14": {
+   "N": 117,
+   "tot": -671.368356204603,
+   "dtr": -5.73819107867182,
+   "win": 40.17094017094017,
+   "worst": -110.80026219843965,
+   "daymean": -67.13683562046032,
+   "daymed": -83.41405197533138,
+   "green": 40.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|60|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 11.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|80|MINE": {
+   "N": 499,
+   "tot": -4872.728161286807,
+   "dtr": -9.764986295163942,
+   "win": 29.458917835671343,
+   "worst": -184.54660610372835,
+   "daymean": -110.74382184742738,
+   "daymed": -125.8019175092657,
+   "green": 22.727272727272727,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|80|HOLD-OUT": {
+   "N": 197,
+   "tot": -1954.1933476011955,
+   "dtr": -9.91976318579287,
+   "win": 32.994923857868024,
+   "worst": -110.80026219843965,
+   "daymean": -108.56629708895531,
+   "daymed": -78.22191737592368,
+   "green": 16.666666666666668,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|80|HOLD H1 07-22..08-02": {
+   "N": 95,
+   "tot": -1390.019240330897,
+   "dtr": -14.631781477167337,
+   "win": 25.263157894736842,
+   "worst": -107.91748071128193,
+   "daymean": -173.75240504136215,
+   "daymed": -166.49506631839114,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|80|HOLD H2 08-03..08-14": {
+   "N": 102,
+   "tot": -564.1741072702985,
+   "dtr": -5.531118698728417,
+   "win": 40.19607843137255,
+   "worst": -110.80026219843965,
+   "daymean": -56.41741072702983,
+   "daymed": -48.68259096059781,
+   "green": 20.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|80|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 10.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|100|MINE": {
+   "N": 481,
+   "tot": -4754.108812865387,
+   "dtr": -9.883802105749247,
+   "win": 28.8981288981289,
+   "worst": -184.54660610372835,
+   "daymean": -108.04792756512236,
+   "daymed": -106.70424749377312,
+   "green": 20.454545454545453,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|100|HOLD-OUT": {
+   "N": 193,
+   "tot": -1954.184637876484,
+   "dtr": -10.125309004541368,
+   "win": 32.64248704663213,
+   "worst": -110.80026219843965,
+   "daymean": -108.56581321536024,
+   "daymed": -78.22191737592368,
+   "green": 22.22222222222222,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|100|HOLD H1 07-22..08-02": {
+   "N": 95,
+   "tot": -1390.019240330897,
+   "dtr": -14.631781477167337,
+   "win": 25.263157894736842,
+   "worst": -107.91748071128193,
+   "daymean": -173.75240504136215,
+   "daymed": -166.49506631839114,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|100|HOLD H2 08-03..08-14": {
+   "N": 98,
+   "tot": -564.165397545587,
+   "dtr": -5.756789770873336,
+   "win": 39.795918367346935,
+   "worst": -110.80026219843965,
+   "daymean": -56.41653975455869,
+   "daymed": -48.68259096059781,
+   "green": 30.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|100|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 10.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|125|MINE": {
+   "N": 475,
+   "tot": -4610.529568902568,
+   "dtr": -9.70637803979488,
+   "win": 28.842105263157894,
+   "worst": -184.54660610372835,
+   "daymean": -104.78476292960377,
+   "daymed": -106.70424749377312,
+   "green": 25.0,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|125|HOLD-OUT": {
+   "N": 192,
+   "tot": -1984.7588879359955,
+   "dtr": -10.337285874666643,
+   "win": 32.291666666666664,
+   "worst": -110.80026219843965,
+   "daymean": -110.26438266311087,
+   "daymed": -84.52749268980769,
+   "green": 22.22222222222222,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|125|HOLD H1 07-22..08-02": {
+   "N": 95,
+   "tot": -1390.019240330897,
+   "dtr": -14.631781477167337,
+   "win": 25.263157894736842,
+   "worst": -107.91748071128193,
+   "daymean": -173.75240504136215,
+   "daymed": -166.49506631839114,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|125|HOLD H2 08-03..08-14": {
+   "N": 97,
+   "tot": -594.7396476050985,
+   "dtr": -6.131336573248438,
+   "win": 39.175257731958766,
+   "worst": -110.80026219843965,
+   "daymean": -59.47396476050984,
+   "daymed": -48.68259096059781,
+   "green": 30.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|125|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 10.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|150|MINE": {
+   "N": 472,
+   "tot": -4508.274087319076,
+   "dtr": -9.551428151099737,
+   "win": 29.02542372881356,
+   "worst": -184.54660610372835,
+   "daymean": -102.46077471179717,
+   "daymed": -106.70424749377312,
+   "green": 25.0,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|150|HOLD-OUT": {
+   "N": 192,
+   "tot": -1984.7588879359955,
+   "dtr": -10.337285874666643,
+   "win": 32.291666666666664,
+   "worst": -110.80026219843965,
+   "daymean": -110.26438266311087,
+   "daymed": -84.52749268980769,
+   "green": 22.22222222222222,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|150|HOLD H1 07-22..08-02": {
+   "N": 95,
+   "tot": -1390.019240330897,
+   "dtr": -14.631781477167337,
+   "win": 25.263157894736842,
+   "worst": -107.91748071128193,
+   "daymean": -173.75240504136215,
+   "daymed": -166.49506631839114,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|150|HOLD H2 08-03..08-14": {
+   "N": 97,
+   "tot": -594.7396476050985,
+   "dtr": -6.131336573248438,
+   "win": 39.175257731958766,
+   "worst": -110.80026219843965,
+   "daymean": -59.47396476050984,
+   "daymed": -48.68259096059781,
+   "green": 30.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|WITH top3 escape (live rule)|150|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 10.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|20|MINE": {
+   "N": 917,
+   "tot": -3244.939265630748,
+   "dtr": -3.5386469636104123,
+   "win": 30.970556161395855,
+   "worst": -184.54660610372835,
+   "daymean": -73.7486196734261,
+   "daymed": -137.9860582208372,
+   "green": 31.818181818181817,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|20|HOLD-OUT": {
+   "N": 365,
+   "tot": -899.5980210760532,
+   "dtr": -2.464652112537132,
+   "win": 37.26027397260274,
+   "worst": -110.80026219843965,
+   "daymean": -49.97766783755851,
+   "daymed": -106.81043836337727,
+   "green": 33.333333333333336,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|20|HOLD H1 07-22..08-02": {
+   "N": 155,
+   "tot": -752.1889322111157,
+   "dtr": -4.852831820716875,
+   "win": 32.25806451612903,
+   "worst": -107.91748071128193,
+   "daymean": -94.0236165263895,
+   "daymed": -117.4636101275192,
+   "green": 37.5,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|20|HOLD H2 08-03..08-14": {
+   "N": 210,
+   "tot": -147.4090888649373,
+   "dtr": -0.7019480422139872,
+   "win": 40.95238095238095,
+   "worst": -110.80026219843965,
+   "daymean": -14.740908886493724,
+   "daymed": -106.81043836337727,
+   "green": 30.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|20|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 20.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|30|MINE": {
+   "N": 762,
+   "tot": -4139.298671939788,
+   "dtr": -5.432150488109958,
+   "win": 29.658792650918635,
+   "worst": -184.54660610372835,
+   "daymean": -94.07496981681336,
+   "daymed": -137.0119557561755,
+   "green": 25.0,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|30|HOLD-OUT": {
+   "N": 289,
+   "tot": -1167.6788591511117,
+   "dtr": -4.040411277339487,
+   "win": 35.98615916955017,
+   "worst": -110.80026219843965,
+   "daymean": -64.87104773061735,
+   "daymed": -112.28378126757303,
+   "green": 33.333333333333336,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|30|HOLD H1 07-22..08-02": {
+   "N": 118,
+   "tot": -973.7533479019892,
+   "dtr": -8.252147016118553,
+   "win": 27.966101694915253,
+   "worst": -107.91748071128193,
+   "daymean": -121.71916848774866,
+   "daymed": -138.6956396587493,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|30|HOLD H2 08-03..08-14": {
+   "N": 171,
+   "tot": -193.9255112491227,
+   "dtr": -1.1340673172463316,
+   "win": 41.52046783625731,
+   "worst": -110.80026219843965,
+   "daymean": -19.392551124912284,
+   "daymed": -60.117163004857645,
+   "green": 40.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|30|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 16.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|40|MINE": {
+   "N": 603,
+   "tot": -3954.9516224510526,
+   "dtr": -6.558792077033255,
+   "win": 29.6849087893864,
+   "worst": -184.54660610372835,
+   "daymean": -89.88526414661482,
+   "daymed": -136.76167665142844,
+   "green": 20.454545454545453,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|40|HOLD-OUT": {
+   "N": 244,
+   "tot": -1752.491897992507,
+   "dtr": -7.1823438442315855,
+   "win": 34.42622950819672,
+   "worst": -110.80026219843965,
+   "daymean": -97.3606609995837,
+   "daymed": -98.0225116077834,
+   "green": 38.888888888888886,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|40|HOLD H1 07-22..08-02": {
+   "N": 96,
+   "tot": -1184.5235109571913,
+   "dtr": -12.338786572470744,
+   "win": 23.958333333333332,
+   "worst": -107.91748071128193,
+   "daymean": -148.0654388696489,
+   "daymed": -106.00781205245923,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|40|HOLD H2 08-03..08-14": {
+   "N": 148,
+   "tot": -567.9683870353153,
+   "dtr": -3.837624236725104,
+   "win": 41.21621621621622,
+   "worst": -110.80026219843965,
+   "daymean": -56.796838703531535,
+   "daymed": -51.10059385031359,
+   "green": 50.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|40|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 13.5
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|50|MINE": {
+   "N": 478,
+   "tot": -4807.282088756553,
+   "dtr": -10.057075499490697,
+   "win": 29.07949790794979,
+   "worst": -184.54660610372835,
+   "daymean": -109.25641110810339,
+   "daymed": -102.17014997834505,
+   "green": 20.454545454545453,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|50|HOLD-OUT": {
+   "N": 183,
+   "tot": -1314.269497995466,
+   "dtr": -7.18180053549435,
+   "win": 35.51912568306011,
+   "worst": -110.80026219843965,
+   "daymean": -73.01497211085929,
+   "daymed": -74.99668284639844,
+   "green": 38.888888888888886,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|50|HOLD H1 07-22..08-02": {
+   "N": 67,
+   "tot": -936.6684253874155,
+   "dtr": -13.980125752050977,
+   "win": 22.388059701492537,
+   "worst": -107.91748071128193,
+   "daymean": -117.083553173427,
+   "daymed": -131.60038651790657,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|50|HOLD H2 08-03..08-14": {
+   "N": 116,
+   "tot": -377.60107260805137,
+   "dtr": -3.255181660414236,
+   "win": 43.10344827586207,
+   "worst": -110.80026219843965,
+   "daymean": -37.76010726080512,
+   "daymed": -2.6119190382618953,
+   "green": 50.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|50|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 10.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|60|MINE": {
+   "N": 386,
+   "tot": -4424.4353424299625,
+   "dtr": -11.462267726502493,
+   "win": 29.27461139896373,
+   "worst": -184.54660610372835,
+   "daymean": -100.55534869158997,
+   "daymed": -79.46410344077307,
+   "green": 22.727272727272727,
+   "ndays": 44
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|60|HOLD-OUT": {
+   "N": 145,
+   "tot": -1137.1137945281641,
+   "dtr": -7.8421641001942355,
+   "win": 36.55172413793103,
+   "worst": -110.80026219843965,
+   "daymean": -63.172988584898015,
+   "daymed": -50.5566301525577,
+   "green": 38.888888888888886,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|60|HOLD H1 07-22..08-02": {
+   "N": 48,
+   "tot": -785.9551099347927,
+   "dtr": -16.374064790308182,
+   "win": 25.0,
+   "worst": -107.91748071128193,
+   "daymean": -98.24438874184912,
+   "daymed": -58.45431860179384,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|60|HOLD H2 08-03..08-14": {
+   "N": 97,
+   "tot": -351.15868459337133,
+   "dtr": -3.620192624673931,
+   "win": 42.2680412371134,
+   "worst": -110.80026219843965,
+   "daymean": -35.11586845933713,
+   "daymed": -19.76758543869304,
+   "green": 50.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|60|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 8.0
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|80|MINE": {
+   "N": 258,
+   "tot": -3732.431520827835,
+   "dtr": -14.466788840417964,
+   "win": 29.45736434108527,
+   "worst": -184.54660610372835,
+   "daymean": -86.80073304250782,
+   "daymed": -73.80860079860466,
+   "green": 18.6046511627907,
+   "ndays": 43
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|80|HOLD-OUT": {
+   "N": 92,
+   "tot": -411.2420461593654,
+   "dtr": -4.470022240862667,
+   "win": 42.391304347826086,
+   "worst": -107.91748071128193,
+   "daymean": -22.84678034218697,
+   "daymed": -30.277980987953754,
+   "green": 33.333333333333336,
+   "ndays": 18
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|80|HOLD H1 07-22..08-02": {
+   "N": 33,
+   "tot": -619.7671262394973,
+   "dtr": -18.780822007257495,
+   "win": 30.303030303030305,
+   "worst": -107.91748071128193,
+   "daymean": -77.47089077993718,
+   "daymed": -91.53319711469092,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|80|HOLD H2 08-03..08-14": {
+   "N": 59,
+   "tot": 208.52508008013217,
+   "dtr": 3.5343233911886807,
+   "win": 49.152542372881356,
+   "worst": -103.35780769088142,
+   "daymean": 20.852508008013196,
+   "daymed": -20.602942274798657,
+   "green": 40.0,
+   "ndays": 10
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|80|COVERAGE": {
+   "days_with_fire": 61,
+   "era_days": 62,
+   "pct": 98.38709677419355,
+   "median_fpd": 5
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|100|MINE": {
+   "N": 179,
+   "tot": -2494.710033244002,
+   "dtr": -13.936927560022356,
+   "win": 31.843575418994412,
+   "worst": -184.54660610372835,
+   "daymean": -63.966923929333404,
+   "daymed": -44.49799837769908,
+   "green": 17.94871794871795,
+   "ndays": 39
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|100|HOLD-OUT": {
+   "N": 67,
+   "tot": -252.38766646277023,
+   "dtr": -3.7669800964592572,
+   "win": 40.298507462686565,
+   "worst": -107.91748071128193,
+   "daymean": -15.774229153923137,
+   "daymed": -36.0737680203038,
+   "green": 37.5,
+   "ndays": 16
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|100|HOLD H1 07-22..08-02": {
+   "N": 22,
+   "tot": -616.4899869168081,
+   "dtr": -28.022272132582188,
+   "win": 22.727272727272727,
+   "worst": -107.91748071128193,
+   "daymean": -88.06999813097258,
+   "daymed": -107.91748071128193,
+   "green": 14.285714285714286,
+   "ndays": 7
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|100|HOLD H2 08-03..08-14": {
+   "N": 45,
+   "tot": 364.1023204540379,
+   "dtr": 8.091162676756397,
+   "win": 48.888888888888886,
+   "worst": -103.35780769088142,
+   "daymean": 40.45581338378199,
+   "daymed": 16.403799667757028,
+   "green": 55.55555555555556,
+   "ndays": 9
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|100|COVERAGE": {
+   "days_with_fire": 55,
+   "era_days": 62,
+   "pct": 88.70967741935483,
+   "median_fpd": 3
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|125|MINE": {
+   "N": 122,
+   "tot": -1458.8722240064428,
+   "dtr": -11.957969049233139,
+   "win": 34.42622950819672,
+   "worst": -184.54660610372835,
+   "daymean": -45.589757000201345,
+   "daymed": -32.54015896890135,
+   "green": 28.125,
+   "ndays": 32
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|125|HOLD-OUT": {
+   "N": 41,
+   "tot": -125.74091648002013,
+   "dtr": -3.066851621463906,
+   "win": 39.02439024390244,
+   "worst": -96.17786102934613,
+   "daymean": -8.38272776533467,
+   "daymed": -13.876235180579828,
+   "green": 33.333333333333336,
+   "ndays": 15
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|125|HOLD H1 07-22..08-02": {
+   "N": 14,
+   "tot": -379.7483876466987,
+   "dtr": -27.12488483190705,
+   "win": 28.571428571428573,
+   "worst": -96.17786102934613,
+   "daymean": -63.291397941116436,
+   "daymed": -53.63936117563249,
+   "green": 16.666666666666668,
+   "ndays": 6
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|125|HOLD H2 08-03..08-14": {
+   "N": 27,
+   "tot": 254.00747116667858,
+   "dtr": 9.407684117284392,
+   "win": 44.44444444444444,
+   "worst": -64.46065659197498,
+   "daymean": 28.223052351853177,
+   "daymed": -12.52232839927765,
+   "green": 44.44444444444444,
+   "ndays": 9
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|125|COVERAGE": {
+   "days_with_fire": 47,
+   "era_days": 62,
+   "pct": 75.80645161290323,
+   "median_fpd": 3
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|150|MINE": {
+   "N": 85,
+   "tot": -805.8996247625939,
+   "dtr": -9.481172056030516,
+   "win": 40.0,
+   "worst": -184.54660610372835,
+   "daymean": -32.23598499050377,
+   "daymed": -26.601541681104393,
+   "green": 36.0,
+   "ndays": 25
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|150|HOLD-OUT": {
+   "N": 29,
+   "tot": 94.71174478193095,
+   "dtr": 3.265922233859688,
+   "win": 44.827586206896555,
+   "worst": -96.17786102934613,
+   "daymean": 7.892645398494239,
+   "daymed": -9.435588575870778,
+   "green": 41.666666666666664,
+   "ndays": 12
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|150|HOLD H1 07-22..08-02": {
+   "N": 8,
+   "tot": -263.00857730511433,
+   "dtr": -32.87607216313929,
+   "win": 25.0,
+   "worst": -96.17786102934613,
+   "daymean": -65.75214432627858,
+   "daymed": -38.13473746412109,
+   "green": 0.0,
+   "ndays": 4
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|150|HOLD H2 08-03..08-14": {
+   "N": 21,
+   "tot": 357.72032208704525,
+   "dtr": 17.03430105176406,
+   "win": 52.38095238095238,
+   "worst": -64.46065659197498,
+   "daymean": 44.71504026088065,
+   "daymed": 16.168932418953894,
+   "green": 62.5,
+   "ndays": 8
+  },
+  "QUOTE-ENTRY (today's pre-13:57 behaviour)|NO top3 escape (floor only)|150|COVERAGE": {
+   "days_with_fire": 37,
+   "era_days": 62,
+   "pct": 59.67741935483871,
+   "median_fpd": 2
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|20|MINE": {
+   "N": 897,
+   "tot": -504.91542002614284,
+   "dtr": -0.5628934448451982,
+   "win": 33.779264214046826,
+   "worst": -114.90265408323557,
+   "daymean": -11.475350455139688,
+   "daymed": -98.92942135502419,
+   "green": 31.818181818181817,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|20|HOLD-OUT": {
+   "N": 359,
+   "tot": -304.0528271573823,
+   "dtr": -0.8469438082378337,
+   "win": 38.440111420612816,
+   "worst": -85.85758719533204,
+   "daymean": -16.891823730965687,
+   "daymed": -18.938625854422416,
+   "green": 38.888888888888886,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|20|HOLD H1 07-22..08-02": {
+   "N": 154,
+   "tot": -1033.3776077037671,
+   "dtr": -6.710244205868618,
+   "win": 31.16883116883117,
+   "worst": -85.85758719533204,
+   "daymean": -129.17220096297086,
+   "daymed": -140.61970997409193,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|20|HOLD H2 08-03..08-14": {
+   "N": 205,
+   "tot": 729.3247805463845,
+   "dtr": 3.557681856323827,
+   "win": 43.90243902439025,
+   "worst": -71.14181567410478,
+   "daymean": 72.93247805463845,
+   "daymed": 30.253159268001347,
+   "green": 50.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|20|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 20.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|30|MINE": {
+   "N": 752,
+   "tot": -1341.9777216960867,
+   "dtr": -1.7845448426809665,
+   "win": 33.244680851063826,
+   "worst": -114.90265408323557,
+   "daymean": -30.499493674911033,
+   "daymed": -102.57957283339728,
+   "green": 29.545454545454547,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|30|HOLD-OUT": {
+   "N": 299,
+   "tot": -823.2586969040308,
+   "dtr": -2.7533735682409057,
+   "win": 36.45484949832776,
+   "worst": -85.85758719533204,
+   "daymean": -45.736594272446254,
+   "daymed": -119.20323540437879,
+   "green": 33.333333333333336,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|30|HOLD H1 07-22..08-02": {
+   "N": 126,
+   "tot": -1241.933820280483,
+   "dtr": -9.856617621273674,
+   "win": 26.984126984126984,
+   "worst": -85.85758719533204,
+   "daymean": -155.2417275350603,
+   "daymed": -168.81763766972978,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|30|HOLD H2 08-03..08-14": {
+   "N": 173,
+   "tot": 418.6751233764503,
+   "dtr": 2.4200874183609846,
+   "win": 43.35260115606936,
+   "worst": -71.14181567410478,
+   "daymean": 41.867512337644996,
+   "daymed": 26.670671527800838,
+   "green": 50.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|30|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 16.5
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|40|MINE": {
+   "N": 643,
+   "tot": -1683.2595687459689,
+   "dtr": -2.617822035374757,
+   "win": 33.12597200622084,
+   "worst": -114.90265408323557,
+   "daymean": -38.25589928968109,
+   "daymed": -102.76151761727849,
+   "green": 31.818181818181817,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|40|HOLD-OUT": {
+   "N": 262,
+   "tot": -1525.3512221958026,
+   "dtr": -5.821951229754972,
+   "win": 34.732824427480914,
+   "worst": -85.85758719533204,
+   "daymean": -84.74173456643354,
+   "daymed": -116.01563403728093,
+   "green": 33.333333333333336,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|40|HOLD H1 07-22..08-02": {
+   "N": 110,
+   "tot": -1492.3192710202127,
+   "dtr": -13.56653882745648,
+   "win": 23.636363636363637,
+   "worst": -85.85758719533204,
+   "daymean": -186.5399088775266,
+   "daymed": -178.36016257914383,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|40|HOLD H2 08-03..08-14": {
+   "N": 152,
+   "tot": -33.03195117559073,
+   "dtr": -0.2173154682604653,
+   "win": 42.76315789473684,
+   "worst": -71.14181567410478,
+   "daymean": -3.3031951175590715,
+   "daymed": 16.180291978442998,
+   "green": 50.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|40|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 14.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|50|MINE": {
+   "N": 571,
+   "tot": -2541.0156485424973,
+   "dtr": -4.4501149711777535,
+   "win": 33.09982486865149,
+   "worst": -114.90265408323557,
+   "daymean": -57.75035564869313,
+   "daymed": -86.7553323008241,
+   "green": 31.818181818181817,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|50|HOLD-OUT": {
+   "N": 222,
+   "tot": -1144.7018419913493,
+   "dtr": -5.156314603564637,
+   "win": 35.585585585585584,
+   "worst": -85.85758719533204,
+   "daymean": -63.59454677729725,
+   "daymed": -62.8235465832328,
+   "green": 44.44444444444444,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|50|HOLD H1 07-22..08-02": {
+   "N": 97,
+   "tot": -1339.9984116274675,
+   "dtr": -13.81441661471616,
+   "win": 23.711340206185568,
+   "worst": -85.85758719533204,
+   "daymean": -167.49980145343346,
+   "daymed": -146.2440423323276,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|50|HOLD H2 08-03..08-14": {
+   "N": 125,
+   "tot": 195.29656963611717,
+   "dtr": 1.5623725570889373,
+   "win": 44.8,
+   "worst": -71.14181567410478,
+   "daymean": 19.52965696361172,
+   "daymed": 29.94670610385525,
+   "green": 70.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|50|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 12.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|60|MINE": {
+   "N": 526,
+   "tot": -2813.725093787044,
+   "dtr": -5.349287250545711,
+   "win": 32.88973384030418,
+   "worst": -114.90265408323557,
+   "daymean": -63.94829758606914,
+   "daymed": -75.35170227675029,
+   "green": 31.818181818181817,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|60|HOLD-OUT": {
+   "N": 204,
+   "tot": -1184.1339856629172,
+   "dtr": -5.804578361092731,
+   "win": 35.294117647058826,
+   "worst": -85.85758719533204,
+   "daymean": -65.78522142571772,
+   "daymed": -50.23756568084441,
+   "green": 33.333333333333336,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|60|HOLD H1 07-22..08-02": {
+   "N": 93,
+   "tot": -1230.4530330850332,
+   "dtr": -13.230677775107884,
+   "win": 24.731182795698924,
+   "worst": -85.85758719533204,
+   "daymean": -153.8066291356292,
+   "daymed": -120.41019995217921,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|60|HOLD H2 08-03..08-14": {
+   "N": 111,
+   "tot": 46.31904742211464,
+   "dtr": 0.4172887155145463,
+   "win": 44.14414414414414,
+   "worst": -71.14181567410478,
+   "daymean": 4.631904742211469,
+   "daymed": 25.04991474372947,
+   "green": 50.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|60|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 11.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|80|MINE": {
+   "N": 483,
+   "tot": -2780.157623172289,
+   "dtr": -5.7560199237521505,
+   "win": 33.333333333333336,
+   "worst": -114.90265408323557,
+   "daymean": -63.18540052664289,
+   "daymed": -68.96447647020199,
+   "green": 31.818181818181817,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|80|HOLD-OUT": {
+   "N": 189,
+   "tot": -1240.0782161292548,
+   "dtr": -6.56126040280029,
+   "win": 33.333333333333336,
+   "worst": -85.85758719533204,
+   "daymean": -68.89323422940312,
+   "daymed": -45.45619635486609,
+   "green": 27.77777777777778,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|80|HOLD H1 07-22..08-02": {
+   "N": 93,
+   "tot": -1230.4530330850332,
+   "dtr": -13.230677775107884,
+   "win": 24.731182795698924,
+   "worst": -85.85758719533204,
+   "daymean": -153.8066291356292,
+   "daymed": -120.41019995217921,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|80|HOLD H2 08-03..08-14": {
+   "N": 96,
+   "tot": -9.625183044222688,
+   "dtr": -0.10026232337731966,
+   "win": 41.666666666666664,
+   "worst": -71.14181567410478,
+   "daymean": -0.9625183044222666,
+   "daymed": -7.668533614244861,
+   "green": 40.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|80|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 10.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|100|MINE": {
+   "N": 465,
+   "tot": -2673.797542346505,
+   "dtr": -5.750102241605387,
+   "win": 32.903225806451616,
+   "worst": -107.721556147742,
+   "daymean": -60.768125962420534,
+   "daymed": -66.63004032620668,
+   "green": 29.545454545454547,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|100|HOLD-OUT": {
+   "N": 185,
+   "tot": -1255.883610257718,
+   "dtr": -6.788560055447124,
+   "win": 32.972972972972975,
+   "worst": -85.85758719533204,
+   "daymean": -69.77131168098443,
+   "daymed": -45.45619635486609,
+   "green": 27.77777777777778,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|100|HOLD H1 07-22..08-02": {
+   "N": 93,
+   "tot": -1230.4530330850332,
+   "dtr": -13.230677775107884,
+   "win": 24.731182795698924,
+   "worst": -85.85758719533204,
+   "daymean": -153.8066291356292,
+   "daymed": -120.41019995217921,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|100|HOLD H2 08-03..08-14": {
+   "N": 92,
+   "tot": -25.430577172686064,
+   "dtr": -0.27641931709441375,
+   "win": 41.30434782608695,
+   "worst": -71.14181567410478,
+   "daymean": -2.5430577172685984,
+   "daymed": -7.668533614244861,
+   "green": 40.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|100|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 10.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|125|MINE": {
+   "N": 459,
+   "tot": -2547.7640524847907,
+   "dtr": -5.550684210206516,
+   "win": 32.89760348583878,
+   "worst": -107.721556147742,
+   "daymean": -57.90372846556339,
+   "daymed": -66.63004032620668,
+   "green": 29.545454545454547,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|125|HOLD-OUT": {
+   "N": 184,
+   "tot": -1319.5420153711498,
+   "dtr": -7.171423996582336,
+   "win": 32.608695652173914,
+   "worst": -85.85758719533204,
+   "daymean": -73.30788974284174,
+   "daymed": -65.21628740041318,
+   "green": 27.77777777777778,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|125|HOLD H1 07-22..08-02": {
+   "N": 93,
+   "tot": -1230.4530330850332,
+   "dtr": -13.230677775107884,
+   "win": 24.731182795698924,
+   "worst": -85.85758719533204,
+   "daymean": -153.8066291356292,
+   "daymed": -120.41019995217921,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|125|HOLD H2 08-03..08-14": {
+   "N": 91,
+   "tot": -89.08898228611777,
+   "dtr": -0.9789998053419535,
+   "win": 40.65934065934066,
+   "worst": -71.14181567410478,
+   "daymean": -8.908898228611768,
+   "daymed": -11.427212595076007,
+   "green": 40.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|125|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 10.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|150|MINE": {
+   "N": 457,
+   "tot": -2542.9430753207057,
+   "dtr": -5.564426860657999,
+   "win": 32.822757111597376,
+   "worst": -107.721556147742,
+   "daymean": -57.79416080274327,
+   "daymed": -66.63004032620668,
+   "green": 29.545454545454547,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|150|HOLD-OUT": {
+   "N": 184,
+   "tot": -1319.5420153711498,
+   "dtr": -7.171423996582336,
+   "win": 32.608695652173914,
+   "worst": -85.85758719533204,
+   "daymean": -73.30788974284174,
+   "daymed": -65.21628740041318,
+   "green": 27.77777777777778,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|150|HOLD H1 07-22..08-02": {
+   "N": 93,
+   "tot": -1230.4530330850332,
+   "dtr": -13.230677775107884,
+   "win": 24.731182795698924,
+   "worst": -85.85758719533204,
+   "daymean": -153.8066291356292,
+   "daymed": -120.41019995217921,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|150|HOLD H2 08-03..08-14": {
+   "N": 91,
+   "tot": -89.08898228611777,
+   "dtr": -0.9789998053419535,
+   "win": 40.65934065934066,
+   "worst": -71.14181567410478,
+   "daymean": -8.908898228611768,
+   "daymed": -11.427212595076007,
+   "green": 40.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|WITH top3 escape (live rule)|150|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 10.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|20|MINE": {
+   "N": 897,
+   "tot": -504.91542002614284,
+   "dtr": -0.5628934448451982,
+   "win": 33.779264214046826,
+   "worst": -114.90265408323557,
+   "daymean": -11.475350455139688,
+   "daymed": -98.92942135502419,
+   "green": 31.818181818181817,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|20|HOLD-OUT": {
+   "N": 356,
+   "tot": -260.77697568990493,
+   "dtr": -0.7325195946345644,
+   "win": 38.48314606741573,
+   "worst": -85.85758719533204,
+   "daymean": -14.487609760550294,
+   "daymed": -8.759868237799392,
+   "green": 44.44444444444444,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|20|HOLD H1 07-22..08-02": {
+   "N": 152,
+   "tot": -1021.789901998588,
+   "dtr": -6.722301986832815,
+   "win": 30.92105263157895,
+   "worst": -85.85758719533204,
+   "daymean": -127.72373774982354,
+   "daymed": -129.3162875209724,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|20|HOLD H2 08-03..08-14": {
+   "N": 204,
+   "tot": 761.0129263086828,
+   "dtr": 3.7304555211209944,
+   "win": 44.11764705882353,
+   "worst": -71.14181567410478,
+   "daymean": 76.1012926308683,
+   "daymed": 35.918474532527554,
+   "green": 60.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|20|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 20.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|30|MINE": {
+   "N": 743,
+   "tot": -1512.0001637130301,
+   "dtr": -2.034993490865451,
+   "win": 32.97442799461642,
+   "worst": -114.90265408323557,
+   "daymean": -34.36364008438702,
+   "daymed": -106.89451994571908,
+   "green": 29.545454545454547,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|30|HOLD-OUT": {
+   "N": 281,
+   "tot": -423.4063628566794,
+   "dtr": -1.506784209454375,
+   "win": 37.72241992882562,
+   "worst": -85.85758719533204,
+   "daymean": -23.52257571425996,
+   "daymed": -77.89408549384953,
+   "green": 38.888888888888886,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|30|HOLD H1 07-22..08-02": {
+   "N": 116,
+   "tot": -1084.2833123381845,
+   "dtr": -9.347269933949866,
+   "win": 26.724137931034484,
+   "worst": -85.85758719533204,
+   "daymean": -135.53541404227298,
+   "daymed": -131.81984837742186,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|30|HOLD H2 08-03..08-14": {
+   "N": 165,
+   "tot": 660.8769494815047,
+   "dtr": 4.005314845342452,
+   "win": 45.45454545454545,
+   "worst": -71.14181567410478,
+   "daymean": 66.08769494815046,
+   "daymed": 49.2124529776257,
+   "green": 60.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|30|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 16.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|40|MINE": {
+   "N": 586,
+   "tot": -1613.2564852379933,
+   "dtr": -2.7529974150818997,
+   "win": 33.44709897610922,
+   "worst": -114.90265408323557,
+   "daymean": -36.66492011904531,
+   "daymed": -99.9499609834352,
+   "green": 29.545454545454547,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|40|HOLD-OUT": {
+   "N": 236,
+   "tot": -1048.4560772255923,
+   "dtr": -4.442610496718611,
+   "win": 36.440677966101696,
+   "worst": -85.85758719533204,
+   "daymean": -58.24755984586638,
+   "daymed": -37.434942117568625,
+   "green": 38.888888888888886,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|40|HOLD H1 07-22..08-02": {
+   "N": 94,
+   "tot": -1311.7048712750127,
+   "dtr": -13.95430714122354,
+   "win": 22.340425531914892,
+   "worst": -85.85758719533204,
+   "daymean": -163.96310890937667,
+   "daymed": -148.13849298930808,
+   "green": 12.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|40|HOLD H2 08-03..08-14": {
+   "N": 142,
+   "tot": 263.24879404941873,
+   "dtr": 1.8538647468268925,
+   "win": 45.774647887323944,
+   "worst": -71.14181567410478,
+   "daymean": 26.324879404941868,
+   "daymed": 47.30337113269374,
+   "green": 60.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|40|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 13.5
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|50|MINE": {
+   "N": 463,
+   "tot": -2535.55632498128,
+   "dtr": -5.476363552875335,
+   "win": 33.47732181425486,
+   "worst": -114.90265408323557,
+   "daymean": -57.62628011321091,
+   "daymed": -53.12184161197784,
+   "green": 29.545454545454547,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|50|HOLD-OUT": {
+   "N": 176,
+   "tot": -466.5417205107789,
+   "dtr": -2.65080523017488,
+   "win": 37.5,
+   "worst": -85.85758719533204,
+   "daymean": -25.91898447282105,
+   "daymed": -11.444518218440113,
+   "green": 50.0,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|50|HOLD H1 07-22..08-02": {
+   "N": 66,
+   "tot": -878.6590571286924,
+   "dtr": -13.3130160171014,
+   "win": 21.21212121212121,
+   "worst": -85.85758719533204,
+   "daymean": -109.83238214108658,
+   "daymed": -115.33207376563021,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|50|HOLD H2 08-03..08-14": {
+   "N": 110,
+   "tot": 412.1173366179139,
+   "dtr": 3.7465212419810356,
+   "win": 47.27272727272727,
+   "worst": -71.14181567410478,
+   "daymean": 41.211733661791364,
+   "daymed": 68.61246086252466,
+   "green": 70.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|50|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 10.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|60|MINE": {
+   "N": 371,
+   "tot": -2330.5886736852162,
+   "dtr": -6.281910171658264,
+   "win": 34.501347708894876,
+   "worst": -114.90265408323557,
+   "daymean": -52.96792440193674,
+   "daymed": -48.35294238657858,
+   "green": 31.818181818181817,
+   "ndays": 44
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|60|HOLD-OUT": {
+   "N": 138,
+   "tot": -457.8037927445358,
+   "dtr": -3.317418788003883,
+   "win": 39.130434782608695,
+   "worst": -85.85758719533204,
+   "daymean": -25.43354404136307,
+   "daymed": -23.336232345116304,
+   "green": 38.888888888888886,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|60|HOLD H1 07-22..08-02": {
+   "N": 47,
+   "tot": -688.3600583258072,
+   "dtr": -14.645958687783132,
+   "win": 25.53191489361702,
+   "worst": -85.85758719533204,
+   "daymean": -86.04500729072586,
+   "daymed": -48.84036614485734,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|60|HOLD H2 08-03..08-14": {
+   "N": 91,
+   "tot": 230.55626558127173,
+   "dtr": 2.5335853360579312,
+   "win": 46.15384615384615,
+   "worst": -71.14181567410478,
+   "daymean": 23.055626558127162,
+   "daymed": 7.136073235224504,
+   "green": 50.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|60|COVERAGE": {
+   "days_with_fire": 62,
+   "era_days": 62,
+   "pct": 100.0,
+   "median_fpd": 8.0
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|80|MINE": {
+   "N": 245,
+   "tot": -2110.9912319690798,
+   "dtr": -8.616290742730937,
+   "win": 35.10204081632653,
+   "worst": -114.90265408323557,
+   "daymean": -49.09281934811819,
+   "daymed": -48.13904897952489,
+   "green": 34.883720930232556,
+   "ndays": 43
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|80|HOLD-OUT": {
+   "N": 87,
+   "tot": -77.77519829751711,
+   "dtr": -0.8939677965231851,
+   "win": 42.52873563218391,
+   "worst": -85.85758719533204,
+   "daymean": -4.3208443498620746,
+   "daymed": -20.888238328629296,
+   "green": 44.44444444444444,
+   "ndays": 18
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|80|HOLD H1 07-22..08-02": {
+   "N": 32,
+   "tot": -569.7123097048274,
+   "dtr": -17.803509678275855,
+   "win": 31.25,
+   "worst": -85.85758719533204,
+   "daymean": -71.21403871310342,
+   "daymed": -68.38959015762916,
+   "green": 25.0,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|80|HOLD H2 08-03..08-14": {
+   "N": 55,
+   "tot": 491.9371114073102,
+   "dtr": 8.94431111649655,
+   "win": 49.09090909090909,
+   "worst": -71.14181567410478,
+   "daymean": 49.193711140731,
+   "daymed": 24.617279093564644,
+   "green": 60.0,
+   "ndays": 10
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|80|COVERAGE": {
+   "days_with_fire": 61,
+   "era_days": 62,
+   "pct": 98.38709677419355,
+   "median_fpd": 5
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|100|MINE": {
+   "N": 167,
+   "tot": -1019.0198089287422,
+   "dtr": -6.101915023525403,
+   "win": 40.119760479041915,
+   "worst": -107.721556147742,
+   "daymean": -26.128713049454912,
+   "daymed": -20.479997196045698,
+   "green": 35.8974358974359,
+   "ndays": 39
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|100|HOLD-OUT": {
+   "N": 63,
+   "tot": 86.5996000505267,
+   "dtr": 1.3745968261988366,
+   "win": 41.26984126984127,
+   "worst": -85.85758719533204,
+   "daymean": 5.412475003157918,
+   "daymed": -37.11123319828517,
+   "green": 43.75,
+   "ndays": 16
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|100|HOLD H1 07-22..08-02": {
+   "N": 21,
+   "tot": -491.2392028830328,
+   "dtr": -23.392342994430134,
+   "win": 23.80952380952381,
+   "worst": -85.85758719533204,
+   "daymean": -70.1770289832904,
+   "daymed": -91.48685570338849,
+   "green": 14.285714285714286,
+   "ndays": 7
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|100|HOLD H2 08-03..08-14": {
+   "N": 42,
+   "tot": 577.8388029335595,
+   "dtr": 13.758066736513321,
+   "win": 50.0,
+   "worst": -69.14513243858423,
+   "daymean": 64.20431143706216,
+   "daymed": 39.02435242614878,
+   "green": 66.66666666666667,
+   "ndays": 9
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|100|COVERAGE": {
+   "days_with_fire": 55,
+   "era_days": 62,
+   "pct": 88.70967741935483,
+   "median_fpd": 3
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|125|MINE": {
+   "N": 114,
+   "tot": -321.6332507468103,
+   "dtr": -2.8213443047965816,
+   "win": 44.73684210526316,
+   "worst": -107.721556147742,
+   "daymean": -10.051039085837822,
+   "daymed": -22.005194217647663,
+   "green": 37.5,
+   "ndays": 32
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|125|HOLD-OUT": {
+   "N": 40,
+   "tot": 84.07981639579464,
+   "dtr": 2.101995409894866,
+   "win": 42.5,
+   "worst": -83.71941774017931,
+   "daymean": 5.605321093052976,
+   "daymed": -30.294142341272053,
+   "green": 40.0,
+   "ndays": 15
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|125|HOLD H1 07-22..08-02": {
+   "N": 13,
+   "tot": -295.525007005887,
+   "dtr": -22.732692846606692,
+   "win": 30.76923076923077,
+   "worst": -83.71941774017931,
+   "daymean": -49.2541678343145,
+   "daymed": -45.035291001264454,
+   "green": 16.666666666666668,
+   "ndays": 6
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|125|HOLD H2 08-03..08-14": {
+   "N": 27,
+   "tot": 379.60482340168164,
+   "dtr": 14.059437903765987,
+   "win": 48.148148148148145,
+   "worst": -59.19888326164554,
+   "daymean": 42.17831371129796,
+   "daymed": 39.02435242614878,
+   "green": 55.55555555555556,
+   "ndays": 9
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|125|COVERAGE": {
+   "days_with_fire": 47,
+   "era_days": 62,
+   "pct": 75.80645161290323,
+   "median_fpd": 3
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|150|MINE": {
+   "N": 78,
+   "tot": 31.780599262527026,
+   "dtr": 0.407443580288808,
+   "win": 50.0,
+   "worst": -107.721556147742,
+   "daymean": 1.324191635938629,
+   "daymed": -4.088493748220323,
+   "green": 45.833333333333336,
+   "ndays": 24
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|150|HOLD-OUT": {
+   "N": 29,
+   "tot": 310.6901457476722,
+   "dtr": 10.713453301643868,
+   "win": 51.724137931034484,
+   "worst": -83.71941774017931,
+   "daymean": 25.890845478972686,
+   "daymed": -25.730243966645475,
+   "green": 41.666666666666664,
+   "ndays": 12
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|150|HOLD H1 07-22..08-02": {
+   "N": 8,
+   "tot": -180.39734303792082,
+   "dtr": -22.549667879740102,
+   "win": 37.5,
+   "worst": -83.71941774017931,
+   "daymean": -45.099335759480205,
+   "daymed": -37.276701131211524,
+   "green": 0.0,
+   "ndays": 4
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|150|HOLD H2 08-03..08-14": {
+   "N": 21,
+   "tot": 491.08748878559294,
+   "dtr": 23.385118513599664,
+   "win": 57.142857142857146,
+   "worst": -59.19888326164554,
+   "daymean": 61.38593609819913,
+   "daymed": 58.49310625300966,
+   "green": 62.5,
+   "ndays": 8
+  },
+  "F3 LIMIT-AT-FIRE +0.5% (production since 13:57 ET)|NO top3 escape (floor only)|150|COVERAGE": {
+   "days_with_fire": 37,
+   "era_days": 62,
+   "pct": 59.67741935483871,
+   "median_fpd": 2
+  }
+ },
+ "curve": {
+  "20": {
+   "with_n": 359,
+   "with_dtr": -0.8469438082378337,
+   "no_n": 356,
+   "no_dtr": -0.7325195946345644
+  },
+  "30": {
+   "with_n": 299,
+   "with_dtr": -2.7533735682409057,
+   "no_n": 281,
+   "no_dtr": -1.506784209454375
+  },
+  "40": {
+   "with_n": 262,
+   "with_dtr": -5.821951229754972,
+   "no_n": 236,
+   "no_dtr": -4.442610496718611
+  },
+  "50": {
+   "with_n": 222,
+   "with_dtr": -5.156314603564637,
+   "no_n": 176,
+   "no_dtr": -2.65080523017488
+  },
+  "60": {
+   "with_n": 204,
+   "with_dtr": -5.804578361092731,
+   "no_n": 138,
+   "no_dtr": -3.317418788003883
+  },
+  "80": {
+   "with_n": 189,
+   "with_dtr": -6.56126040280029,
+   "no_n": 87,
+   "no_dtr": -0.8939677965231851
+  },
+  "100": {
+   "with_n": 185,
+   "with_dtr": -6.788560055447124,
+   "no_n": 63,
+   "no_dtr": 1.3745968261988366
+  },
+  "125": {
+   "with_n": 184,
+   "with_dtr": -7.171423996582336,
+   "no_n": 40,
+   "no_dtr": 2.101995409894866
+  },
+  "150": {
+   "with_n": 184,
+   "with_dtr": -7.171423996582336,
+   "no_n": 29,
+   "no_dtr": 10.713453301643868
+  }
+ },
+ "mono_no_top3": false,
+ "mono_with_top3": false,
+ "best": {
+  "floor": 125,
+  "arm": "NO top3 escape (floor only)",
+  "N": 40,
+  "tot": 84.07981639579464,
+  "dtr": 2.101995409894866,
+  "win": 42.5,
+  "worst": -83.71941774017931,
+  "daymean": 5.605321093052976,
+  "daymed": -30.294142341272053,
+  "green": 40.0,
+  "ndays": 15
+ },
+ "p": 0.34153169366126773
+}

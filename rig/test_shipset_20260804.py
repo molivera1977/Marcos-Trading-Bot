@@ -3266,6 +3266,69 @@ try:
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _gce:
     check("GC section", False, str(_gce))
 
+print("SC) 8/17 DEFECT 3 — scan-loop cycle instrumentation, MEASUREMENT ONLY "
+      "(doc: data/killtests/scanloop_latency_20260817.md)")
+try:
+    _sc_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    check("SC-a: env kill switch present, default 1",
+          'SCAN_CYCLE_TIMING = os.environ.get("SCAN_CYCLE_TIMING", "1") == "1"' in _sc_src)
+    check("SC-b: all three helpers exist",
+          all(f"def {f}(" in _sc_src for f in ("_cyc_name", "_cyc_mark", "_cyc_emit")))
+    check("SC-c: one row per cycle, emitted before the sleep",
+          _sc_src.index("_cyc_emit(_cyc, len(candidates))")
+          < _sc_src.index("time.sleep(VWAP_BAR_CACHE_SECS)"))
+    check("SC-d: both per-name loops are instrumented at the TOP (many `continue` exits)",
+          '_cyc_name(_cyc, "bars", t)' in _sc_src and '_cyc_name(_cyc, "detect", t)' in _sc_src)
+    check("SC-e: the four phases are marked",
+          all(f'_cyc_mark("{p}"' in _sc_src for p in ("bars_refresh", "detect", "rescan", "tail")))
+    check("SC-f: NO speculative perf change — no executor/pool/cap introduced in the watch loop",
+          "ThreadPoolExecutor" not in _sc_src[_sc_src.index("    while True:\n        now = datetime.now(EASTERN)"):
+                                              _sc_src.index("        time.sleep(VWAP_BAR_CACHE_SECS)")])
+    check("SC-g: fire-age tolerances UNCHANGED (no stale fire was quietly let through)",
+          'CURL_FIRE_MAX_AGE_SECS = float(os.environ.get("CURL_FIRE_MAX_AGE_SECS", "90"))' in _sc_src
+          and 'CURL_FIRE_MAX_AGE_PRE = float(os.environ.get("CURL_FIRE_MAX_AGE_PRE", "60"))' in _sc_src)
+    # EXECUTED: run the real helper block.
+    import time as _sc_time, datetime as _sc_dt
+    _sc_blk = _sc_src[_sc_src.index("SCAN_CYCLE_TIMING = os.environ.get"):
+                      _sc_src.index("def _log_stale_fire")]
+    _sc_rows = []
+    _sc_ns = {"os": os, "time": _sc_time, "datetime": _sc_dt.datetime,
+              "EASTERN": _sc_dt.timezone.utc, "VWAP_BAR_CACHE_SECS": 30,
+              "_log_decision": lambda *a, **k: _sc_rows.append((a, k))}
+    exec(_sc_blk, _sc_ns)
+    _sc_cyc = {"t0": _sc_time.time(), "ph": {}, "slow": {}}
+    for _s, _d in (("AAA", 0.05), ("BBB", 0.12)):
+        _sc_ns["_cyc_name"](_sc_cyc, "bars", _s); _sc_time.sleep(_d)
+    _sc_ns["_cyc_mark"]("bars_refresh", _sc_cyc)
+    for _s in ("AAA", "CCC"):
+        _sc_ns["_cyc_name"](_sc_cyc, "detect", _s); _sc_time.sleep(0.03)
+    _sc_ns["_cyc_mark"]("detect", _sc_cyc)
+    _sc_ns["_cyc_emit"](_sc_cyc, 3)
+    check("SC-h: EXECUTED exactly ONE row per cycle", len(_sc_rows) == 1)
+    _sc_k = _sc_rows[0][1]
+    check("SC-i: EXECUTED phase attribution correct (bars ~0.17s > detect ~0.06s)",
+          0.15 <= _sc_k["phases"]["bars_refresh"] <= 0.30
+          and 0.05 <= _sc_k["phases"]["detect"] <= 0.15, str(_sc_k["phases"]))
+    check("SC-j: EXECUTED slowest name is BBB and per-name time sums ACROSS phases",
+          _sc_k["slowest"][0][0] == "BBB"
+          and dict(_sc_k["slowest"])["AAA"] >= 0.07, str(_sc_k["slowest"]))
+    check("SC-k: EXECUTED row carries roster size + per-name seconds",
+          _sc_k["n_candidates"] == 3 and _sc_k["per_name_s"] > 0)
+    _sc_ns["SCAN_CYCLE_TIMING"] = False
+    _sc_rows.clear()
+    _sc_c2 = {"t0": _sc_time.time(), "ph": {}, "slow": {}}
+    _sc_ns["_cyc_name"](_sc_c2, "bars", "X"); _sc_ns["_cyc_mark"]("bars", _sc_c2)
+    _sc_ns["_cyc_emit"](_sc_c2, 1)
+    check("SC-l: EXECUTED KILL SWITCH — 0 rows, cycle dict untouched (failure condition #1)",
+          not _sc_rows and _sc_c2["ph"] == {})
+    _sc_ns["SCAN_CYCLE_TIMING"] = True
+    _sc_ns["_cyc_name"](None, "bars", "X"); _sc_ns["_cyc_mark"]("x", None)
+    _sc_ns["_cyc_emit"](None, 0)
+    check("SC-m: EXECUTED garbage/None cycle never raises — instrumentation cannot kill the loop",
+          True)
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _sce:
+    check("SC section", False, str(_sce))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

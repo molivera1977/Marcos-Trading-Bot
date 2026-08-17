@@ -5074,6 +5074,69 @@ def _bucket_fresh(k, hm=None, sym=None):
     except Exception:
         return False
 
+# ── 8/17 DEFECT 3: SCAN-LOOP CYCLE INSTRUMENTATION (measurement only) ────────────────
+# Doc: data/killtests/scanloop_latency_20260817.md.  The 8/17 forensic measured the watch
+# loop's cycles bursting 85-195s apart at the open against a nominal 30s sleep, and paid for
+# it in 16 stale_fire_suppressed rows (the STFS ~+$119 winner among them).  Diagnosing WHERE
+# the seconds go needs per-phase numbers we have never collected.  These three helpers add
+# them and NOTHING else — no work is moved, capped, reordered, or skipped.
+# Kill: SCAN_CYCLE_TIMING=0 (every helper becomes a no-op).
+SCAN_CYCLE_TIMING = os.environ.get("SCAN_CYCLE_TIMING", "1") == "1"
+
+
+def _cyc_name(cyc, phase, sym):
+    """Open the timer for (phase, sym), closing whichever name was open before it.
+    Called at the TOP of each per-name iteration, so it needs no matching call at the
+    bottom — which matters because both per-name loops have many `continue` exits."""
+    if not SCAN_CYCLE_TIMING or not isinstance(cyc, dict):
+        return
+    try:
+        cur = cyc.get("cur")
+        if cur:
+            _d = cyc["slow"].setdefault(cur[1], {})
+            _d[cur[0]] = round(_d.get(cur[0], 0.0) + (time.time() - cur[2]), 2)
+        cyc["cur"] = (phase, sym, time.time())
+    except Exception:
+        pass
+
+
+def _cyc_mark(phase, cyc):
+    """Close the phase: record seconds since the last mark (or cycle start)."""
+    if not SCAN_CYCLE_TIMING or not isinstance(cyc, dict):
+        return
+    try:
+        _cyc_name(cyc, None, None)
+        cyc["cur"] = None
+        _last = cyc.get("last") or cyc["t0"]
+        cyc["ph"][phase] = round(time.time() - _last, 2)
+        cyc["last"] = time.time()
+    except Exception:
+        pass
+
+
+def _cyc_emit(cyc, n_candidates):
+    """One scan_cycle_timing row per cycle: per-phase seconds, roster size, and the five
+    names that ate the most wall-clock.  This is the row that decides whether the tail is
+    the REST fan-out, the rescan, or something else — honestly, from production."""
+    if not SCAN_CYCLE_TIMING or not isinstance(cyc, dict):
+        return
+    try:
+        _cyc_mark("tail", cyc)
+        _tot = round(time.time() - cyc["t0"], 2)
+        _slow = sorted(((s, round(sum(d.values()), 2)) for s, d in cyc["slow"].items() if s),
+                       key=lambda kv: -kv[1])[:5]
+        _log_decision("_scan_cycle", "scan_cycle_timing", total_s=_tot,
+                      n_candidates=n_candidates, sleep_s=VWAP_BAR_CACHE_SECS,
+                      phases=cyc["ph"], slowest=_slow,
+                      per_name_s=(round(_tot / n_candidates, 3) if n_candidates else None),
+                      time_hm=datetime.now(EASTERN).strftime("%H:%M:%S"))
+        if _tot >= 60:
+            print(f"🐢 SCAN CYCLE {_tot:.1f}s over {n_candidates} names — phases {cyc['ph']} "
+                  f"| slowest {_slow}")
+    except Exception:
+        pass
+
+
 def _log_stale_fire(sym, lane, k, px):
     """Visible-cost canary for every suppressed stale fire. Never raises."""
     try:
@@ -7897,6 +7960,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
 
     while True:
         now = datetime.now(EASTERN)
+        # ── 8/17 DEFECT 3 INSTRUMENTATION (doc: data/killtests/scanloop_latency_20260817.md) ──
+        # The forensic measured scan-loop cycles 85-195s apart at the open against a nominal
+        # 30s sleep + 60s rescan, and 16 stale_fire_suppressed rows were the visible cost.
+        # NOTHING is optimised here — a mid-week perf refactor of the serial per-name REST
+        # path is exactly the speculative change the brief forbids.  What ships is MEASUREMENT:
+        # one `scan_cycle_timing` row per cycle with per-phase seconds and the slowest names,
+        # so the architecture decision is made on data instead of on a hunch.
+        # Kill: SCAN_CYCLE_TIMING=0.  Observe-only: it can only add a log row.
+        _cyc = {"t0": time.time(), "ph": {}, "slow": {}}
 
         _wl_now = set(candidates)
         if _wl_now != _wl_posted or time.time() - _wl_posted_ts >= 120:
@@ -7958,6 +8030,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
 
         # Refresh bars for each ticker every 30s
         for t in candidates:
+            _cyc_name(_cyc, "bars", t)          # 8/17 DEFECT 3: measurement only
             if time.time() - cache[t]["fetched"] >= VWAP_BAR_CACHE_SECS:
                 # B16 (7/15): filter BOTH acquisitions at the source — every downstream entry
                 # detector (EMA9/20/90, base, ignition, room, triggers, VWAP) then sees only
@@ -8039,10 +8112,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         print(f"⚠️  {t} VWAP unavailable — no bars ({BARS_SOURCE} primary + webull fallback both empty) [deduped 30m]")
                 cache[t]["fetched"] = time.time()
 
+        _cyc_mark("bars_refresh", _cyc)
+
         # Check each ticker for flat top breakout OR EMA bounce
         status_parts = []
         breakouts = []
         for t in candidates:
+            _cyc_name(_cyc, "detect", t)        # 8/17 DEFECT 3: measurement only
             if reentry is not None and (t in reentry["held"] or t in reentry["givenup"]):
                 continue   # held = don't double-enter; givenup = topping-tail/over-cap, leave it alone (#2)
             bars = cache[t]["bars"]
@@ -9249,6 +9325,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
 
         # bounce = observe-only (dropped; its backtest read was clearly −0.40, needs reversal-regime data).
         # Others active per BREAKOUT_ENTRIES: True → full bag; False → pullback + VWAP-reclaim only.
+        _cyc_mark("detect", _cyc)
         breakouts = [b for b in breakouts
                      if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition", "zone_flip", "rocket_catcher", "hidden_entry"))]
         # EXTENSION GUARD — don't chase a name too far above its 90-EMA (7/3 data; Kev "don't chase extended").
@@ -9461,7 +9538,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             print(f"   ♻️  Re-watching traded-but-eligible {t} for re-entry (was locked out pre-fix)")
                         print(f"   ➕ Added {t} to flat top watch list")
             last_rescan = time.time()
+            _cyc_mark("rescan", _cyc)
 
+        _cyc_emit(_cyc, len(candidates))
         time.sleep(VWAP_BAR_CACHE_SECS)
 
 

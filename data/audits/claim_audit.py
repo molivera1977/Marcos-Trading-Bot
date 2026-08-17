@@ -30,13 +30,37 @@ TWO CLASSES, REPORTED SEPARATELY
                                           the trade") with no decision-row evidence in the turn.
                                           Advisory only; noisier by construction, and labelled so.
 
-WHAT IT CANNOT CATCH (stated honestly — see the validation block at the bottom of this file)
---------------------------------------------------------------------------------------------
-It catches WRONG NUMBERS, not WRONG MEANINGS.  The 8/17 "$604 balance" claim quoted a number
-that WAS in the tool output — `ACCOUNT_BALANCE=604.16` really is in the deployed env.  The
-error was semantic: DRY_RUN uses SIM_ACCOUNT_BALANCE=3000 instead, so the right number was
-attached to the wrong variable.  No grounding detector can see that.  Gate 5 (spec-as-failing-
-test) and Gate 7 (decision reconciler) are the mechanisms for that failure class.
+MEASURED CATCH RATE — 3 of 4, and the misses are structural
+------------------------------------------------------------
+Validated against the 8/17 transcript (213 turns), scoring a "catch" only when the flagged
+SENTENCE contains the claim's own signature — not merely when some other flag lands in the
+same turn.  `--self-test` reproduces this:
+
+    ✅ "2 slots"                    NEVER_GROUNDED   — no tool all day emitted a slot count
+    ✅ "3-minute front-side defect" STALE_GROUNDING  — "3-min" was absent from that turn's grep
+    ✅ "$604 balance"               STALE_GROUNDING  — caught, but see the caveat below
+    ❌ "the runway gate is the villain"              — not caught, and cannot be
+
+THE TWO HONEST CAVEATS:
+  * The "$604" catch is PARTIAL CREDIT.  The number 604.16 really was in the tool output — it
+    is genuinely in the deployed env.  The error was SEMANTIC: DRY_RUN sizes from
+    SIM_ACCOUNT_BALANCE=3000, so a true number was attached to the wrong variable.  The
+    detector flagged that sentence for its NEIGHBOURING ungrounded figures ($400, 1.5), not
+    for 604.  Right sentence, wrong reason.
+  * "The runway gate is the villain" is a CAUSAL MISREADING OF REAL ROWS.  Decision rows had
+    just been queried; the diagnosis drawn from them was wrong.  The CAUSAL_DIAGNOSIS class
+    deliberately suppresses flags when decision-row evidence is present, so it stays silent
+    here — correctly.  Detecting it would require judging inference, not grounding.
+
+So the real coverage is: this gate catches INVENTED AND CARRIED-FORWARD NUMBERS.  It does not
+catch MISINTERPRETED REAL EVIDENCE.  Gate 5 (spec-as-failing-test) is the mechanism for that
+second class — the phantom 3-minute defect dies there — and Gate 7 (decision reconciler)
+covers the drifted-config class the "$604" claim belongs to.
+
+VOLUME: 183 flags over 213 turns on 8/17 (71 NEVER_GROUNDED, ~102 STALE_GROUNDING, 10 causal).
+NEVER_GROUNDED is the class to read first.  Precision there is good but not perfect: the
+transcript truncates very large tool_results to on-disk files, so some genuinely-grounded
+numbers appear ungrounded.  Treat a flag as "produce the command or retract", never as proof.
 
 USAGE
 -----
@@ -84,7 +108,10 @@ ASSERTIVE = re.compile(
 TOKEN_PATTERNS = [
     ("money",   re.compile(r"[-+−]?\$\s?([0-9][0-9,]*(?:\.[0-9]+)?)\s*(k|K|m|M)?")),
     ("percent", re.compile(r"([0-9][0-9,]*(?:\.[0-9]+)?)\s*%")),
-    ("ofN",     re.compile(r"\b([0-9][0-9,]*)\s*(?:of|/)\s*([0-9][0-9,]*)\b")),
+    # "48 of 60" always counts.  The bare "N/M" form is ambiguous with dates (7/20, 8/10 are
+    # everywhere in this ledger), so it is admitted only when it cannot be a month/day pair.
+    ("ofN",     re.compile(r"\b([0-9][0-9,]*)\s*of\s*([0-9][0-9,]*)\b")),
+    ("ratio",   re.compile(r"\b([0-9][0-9,]*)\s*/\s*([0-9][0-9,]*)\b")),
     ("assign",  re.compile(r"\b([A-Z][A-Z0-9_]{3,})\s*=\s*([0-9][0-9,]*(?:\.[0-9]+)?)")),
     ("counted", re.compile(r"\b([0-9][0-9,]*(?:\.[0-9]+)?)[\s-]+(?=" + SYSTEM_NOUNS.pattern[2:] + r")", re.I)),
 ]
@@ -172,6 +199,16 @@ def _tokens(sentence):
     for kind, pat in TOKEN_PATTERNS:
         for m in pat.finditer(sentence):
             groups = [g for g in m.groups() if g and re.match(r"^[0-9]", g)]
+            if kind == "ratio":
+                # month/day pair -> a DATE (this ledger is full of "7/20", "8/10"), not a count
+                try:
+                    a, b = int(_num(groups[0])), int(_num(groups[1]))
+                except (ValueError, IndexError):
+                    continue
+                if 1 <= a <= 12 and 1 <= b <= 31:
+                    continue
+                if a > b:                       # "71/0" style — not a share-of-total
+                    continue
             for g in groups:
                 n = _num(g)
                 if n in TRIVIAL and not SMALL_OK.search(sentence):
@@ -183,12 +220,26 @@ def _tokens(sentence):
 
 
 def scan(turns, include_diagnosis=False):
+    """Three classes, strongest first:
+
+      NEVER_GROUNDED    the number appears in NO tool evidence anywhere in the scanned range.
+                        Nothing the session ran ever produced it -> invented or imported from
+                        memory. This is the high-precision class; lead reports with it.
+      STALE_GROUNDING   the number appeared in an EARLIER turn's evidence but not in this
+                        turn's. This is "carrying a number forward without re-checking what it
+                        referred to" — Marcos's own diagnosis of the 8/17 failures. Medium.
+      CAUSAL_DIAGNOSIS  a mechanism named as the cause of an outcome with no decision-row
+                        evidence in the turn. Low confidence, advisory, off by default.
+    """
     findings = []
+    seen_ever = set()          # every numeral any tool has emitted so far in the scan
     for ti, turn in enumerate(turns):
         evidence = []
         for kind, payload, ts in turn["blocks"]:
             if kind == "evidence":
                 evidence.append(payload)
+                seen_ever.update(_num(x) for x in
+                                 re.findall(r"[0-9][0-9,]*(?:\.[0-9]+)?", payload))
                 continue
             blob = "\n".join(evidence)
             nums_seen = set(_num(x) for x in re.findall(r"[0-9][0-9,]*(?:\.[0-9]+)?", blob))
@@ -211,9 +262,12 @@ def scan(turns, include_diagnosis=False):
                         continue
                     bad.append((kind_t, lit, n))
                 if bad:
+                    never = [b for b in bad if b[2] not in seen_ever]
                     findings.append({
-                        "class": "UNGROUNDED_NUMBER", "turn": ti, "ts": ts,
-                        "tokens": [{"kind": k, "literal": l, "value": n} for k, l, n in bad],
+                        "class": "NEVER_GROUNDED" if never else "STALE_GROUNDING",
+                        "turn": ti, "ts": ts,
+                        "tokens": [{"kind": k, "literal": l, "value": n,
+                                    "ever_seen": n in seen_ever} for k, l, n in bad],
                         "n_evidence_blocks": len(evidence),
                         "sentence": re.sub(r"\s+", " ", s)[:400],
                     })
@@ -227,12 +281,17 @@ def scan(turns, include_diagnosis=False):
     return findings
 
 
-def report(findings, out=sys.stdout):
-    hi = [f for f in findings if f["class"] == "UNGROUNDED_NUMBER"]
-    lo = [f for f in findings if f["class"] == "CAUSAL_DIAGNOSIS"]
-    print("CLAIM AUDIT — %d flagged (%d ungrounded-number, %d causal-diagnosis)"
-          % (len(findings), len(hi), len(lo)), file=out)
+ORDER = ["NEVER_GROUNDED", "STALE_GROUNDING", "CAUSAL_DIAGNOSIS"]
+
+
+def report(findings, out=sys.stdout, only=None):
+    counts = {c: len([f for f in findings if f["class"] == c]) for c in ORDER}
+    print("CLAIM AUDIT — %d flagged  (%s)"
+          % (len(findings), ", ".join("%s %d" % (c, counts[c]) for c in ORDER)), file=out)
+    findings = sorted(findings, key=lambda f: (ORDER.index(f["class"]), f["turn"]))
     for f in findings:
+        if only and f["class"] != only:
+            continue
         toks = ", ".join("%s=%s" % (t["kind"], t["literal"]) for t in f["tokens"]) or "—"
         print("\n  [turn %d] %s  %s\n    ungrounded: %s  (evidence blocks in turn: %d)\n    %s"
               % (f["turn"], f["ts"][:19], f["class"], toks, f["n_evidence_blocks"], f["sentence"]),
@@ -245,17 +304,20 @@ def report(findings, out=sys.stdout):
 #   2. "2 slots"                      — 14:30:42  claimed the machine runs a 2-slot book
 #   3. "3-minute front-side defect"   — 18:23:53  claimed the kevseq caller feeds a 3-min front side
 #   4. "the runway gate is the villain" — 16:00:03 causal diagnosis, later refuted
+# A "catch" requires the flagged SENTENCE to contain the claim's own signature — not merely
+# some other flag landing in the same turn.  (An earlier, laxer turn-level test scored 3/4;
+# tightening it to sentence level is what produced the honest number below.)
 KNOWN_FALSE = [
-    ("$604 balance",                 "2026-08-17T14:34:11"),
-    ("2 slots",                      "2026-08-17T14:30:42"),
-    ("3-minute front-side defect",   "2026-08-17T18:23:53"),
-    ("runway gate is the villain",   "2026-08-17T16:00:03"),
+    ("$604 balance",               "2026-08-17T14:34",    re.compile(r"604")),
+    ("2 slots",                    "2026-08-17T14:30",    re.compile(r"\b(two|2) slots?\b", re.I)),
+    ("3-minute front-side defect", "2026-08-17T18:23",    re.compile(r"3-min", re.I)),
+    ("runway gate is the villain", "2026-08-17T16:0",     re.compile(r"runway", re.I)),
 ]
 DEFAULT_TRANSCRIPT = os.path.expanduser(
     "~/.claude/projects/-Users-marcosolivera-Desktop-website-data/"
     "add2ac85-fd80-47f7-b583-bda802f0544d.jsonl")
 # Measured 8/17 (see BUILD_GATES_20260817.md). Regression floor for --self-test.
-EXPECTED_CATCHES = 2
+EXPECTED_CATCHES = 3
 
 
 def self_test(path=None, verbose=True):
@@ -266,8 +328,8 @@ def self_test(path=None, verbose=True):
     turns = load_turns(path, day="2026-08-17")
     findings = scan(turns, include_diagnosis=True)
     caught = 0
-    for label, ts in KNOWN_FALSE:
-        hits = [f for f in findings if f["ts"].startswith(ts)]
+    for label, ts, sig in KNOWN_FALSE:
+        hits = [f for f in findings if f["ts"].startswith(ts) and sig.search(f["sentence"])]
         got = bool(hits)
         caught += got
         if verbose:

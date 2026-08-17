@@ -1,0 +1,51 @@
+# LIQUIDITY-CONDITIONAL SIZE-UP KILL-TEST — `T B` — 8/17/26
+
+Universe 729 files / 729 name-days / 62 dates; HOLD-OUT = latest 18 dates 2026-07-22..2026-08-14 (wall parity).
+
+---
+## LANE: break-attack — hold-out N=187 total, gated `T B` N=18
+
+### 1) LIFT UNDER GUARD (D-guard @ $500, skips=$0 counted)
+- UNGATED book under guard: N=187, $/fire $+4.84, total $+905.49
+- GATED `T B` under guard:  N=18, $/fire $+17.78, total $+320.11
+- LIFT under guard: $+12.94/fire  (no-guard wall lift was +$29.49 BA / +$23.74 gr)
+- permutation null (5000 relabels of 18 under guard): p(random >= observed) = 0.075
+
+### 2) CONDITIONAL SIZING on gated cohort (clip=UP when dv>=FLOOR else $500; guard at own clip)
+- FLAT $500 baseline: total $+320.11, $/fire $+17.78, full/half/skip 8/1/9, worst fire $-46.83
+
+| FLOOR | UP | N up / base | full/half/skip | total $ | $/fire | worst fire | vs flat$500 |
+|---|---|---|---|---|---|---|---|
+| $10k | $750 | 8 / 10 | 8/1/9 | $+458.37 | $+25.47 | $-71.92 | $+138.26 |
+| $10k | $1,000 | 8 / 10 | 8/1/9 | $+590.17 | $+32.79 | $-98.12 | $+270.06 |
+| $15k | $750 | 8 / 10 | 8/1/9 | $+458.37 | $+25.47 | $-71.92 | $+138.26 |
+| $15k | $1,000 | 8 / 10 | 8/1/9 | $+590.17 | $+32.79 | $-98.12 | $+270.06 |
+| $20k | $750 | 8 / 10 | 8/1/9 | $+458.37 | $+25.47 | $-71.92 | $+138.26 |
+| $20k | $1,000 | 8 / 10 | 8/1/9 | $+590.17 | $+32.79 | $-98.12 | $+270.06 |
+| $30k | $750 | 8 / 10 | 8/1/9 | $+458.37 | $+25.47 | $-71.92 | $+138.26 |
+| $30k | $1,000 | 8 / 10 | 8/1/9 | $+590.17 | $+32.79 | $-98.12 | $+270.06 |
+[CALIBRATION UNKNOWN]: all $750/$1,000 fills use D's extrapolated slip anchors; no live fills above $500 exist.
+
+---
+## LANE: grinder — hold-out N=142 total, gated `T B` N=27
+
+### 1) LIFT UNDER GUARD (D-guard @ $500, skips=$0 counted)
+- UNGATED book under guard: N=142, $/fire $+6.16, total $+874.23
+- GATED `T B` under guard:  N=27, $/fire $+18.50, total $+499.46
+- LIFT under guard: $+12.34/fire  (no-guard wall lift was +$29.49 BA / +$23.74 gr)
+- permutation null (5000 relabels of 27 under guard): p(random >= observed) = 0.007
+
+### 2) CONDITIONAL SIZING on gated cohort (clip=UP when dv>=FLOOR else $500; guard at own clip)
+- FLAT $500 baseline: total $+499.46, $/fire $+18.50, full/half/skip 10/6/11, worst fire $-47.12
+
+| FLOOR | UP | N up / base | full/half/skip | total $ | $/fire | worst fire | vs flat$500 |
+|---|---|---|---|---|---|---|---|
+| $10k | $750 | 10 / 17 | 6/10/11 | $+531.78 | $+19.70 | $-54.47 | $+32.32 |
+| $10k | $1,000 | 10 / 17 | 5/11/11 | $+567.79 | $+21.03 | $-74.91 | $+68.33 |
+| $15k | $750 | 6 / 21 | 10/6/11 | $+562.86 | $+20.85 | $-54.47 | $+63.40 |
+| $15k | $1,000 | 6 / 21 | 9/7/11 | $+567.79 | $+21.03 | $-74.91 | $+68.33 |
+| $20k | $750 | 5 / 22 | 10/6/11 | $+535.78 | $+19.84 | $-54.47 | $+36.32 |
+| $20k | $1,000 | 5 / 22 | 10/6/11 | $+567.79 | $+21.03 | $-74.91 | $+68.33 |
+| $30k | $750 | 4 / 23 | 10/6/11 | $+513.48 | $+19.02 | $-54.47 | $+14.02 |
+| $30k | $1,000 | 4 / 23 | 10/6/11 | $+523.85 | $+19.40 | $-74.91 | $+24.39 |
+[CALIBRATION UNKNOWN]: all $750/$1,000 fills use D's extrapolated slip anchors; no live fills above $500 exist.

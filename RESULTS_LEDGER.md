@@ -2162,3 +2162,11 @@ band-pass, v2. Holes registry H-SEQ-<lane> per lane. The grammar, not the letter
 - H4 CLEAN-LADDER: GR monotone DECREASING on MINE ($+36.47/$+32.62/$+7.91) — OPPOSITE the "cleaner ladder is better" intuition; direction reproduced on HOLD but corr=+0.090, p=0.286. NO-SPLIT both.
 - **VENUE CONFOUND (named, matters): both lanes fire ON a session-high break, so VWAP/PMH/open/nearest-dollar are all ALREADY BELOW the fire price and cannot discriminate.** The fair venue for H1/H2 is a PRE-HIGH lane (v2 flush, hidden/reclaim) — NOT TESTED. This NARROWS rather than refutes: session-high STRUCTURE grammar (`T B`) passed its wall; LEVEL-LADDER order did not, at least not here.
 - Cache disclosure: no prior session in these files, so premarket high and pre-09:30 day high collapse to one level class.
+
+## 2026-08-17 ~10:15 ET — IGNITION GUIDANCE KILL-TEST (Marcos: "ignition needs to have guidance")
+- ignition_guidance_20260817.md. Universe ignition replica 1,071 fires (MINE 804 / HOLD 267), E3 live-parity, OOS wall discipline.
+- **G1 >=VWAP at fire: GUIDES** — HOLD keep +$29.30/tr vs drop **-$8.59/tr** (win 67% vs 43%), p=0.000; only config whose D-guard dollars beat ungated (+~$29/day); forfeits 12/149 winners ($658); refuses BOTH of today's entries (FIEE 5.77<6.05, DFSC 2.90<3.21).
+- **G3 within-3%-of-session-high: GUIDES** — HOLD +$39.30 vs +$0.91 (far side -$2.26/tr), p=0.000. G1+G3 = best $/tr but forfeits 49 winners/$2,286.
+- G2 T B on ignition: NO-SPLIT (p=0.469) — the seq edge does NOT transfer to this lane. G4 D/F-suffix veto: STRUCTURALLY EMPTY as specced (fire bar is green by construction; lookback-shifted variant -> registry). G5 Kev-level respect: right direction (+$18.05 vs -$4.36) but N=25 UNDERPOWERED.
+- **HONESTY FLAG (load-bearing): the era's own 118 realized ignition trades point the OTHER WAY on G1** (above-VWAP -$1.67 vs below +$1.18, N=90), echoing the 8/8 all-lane grade; the timing-corrected 8/14 census flips it back; era joins only 6% clean. Recommendation rests on the powered OOS sim.
+- PRICED SHIP-SHAPE (Marcos decides): stamp vwap_side + hi_dist_pct + seq_str on every ignition fire + G1 as SHADOW VERDICT through proving week; convert to enforcement only if the live shadow rows agree with the sim.

@@ -943,6 +943,47 @@ try:
 except AssertionError as _ge:
     check("ghost pins EXECUTED", False, str(_ge))
 
+print("AI) 8/17 sequencing doctrine build #0 — canonical seq_str stamp (OBSERVE-ONLY)")
+try:
+    _sq_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _sq_ns = {}
+    exec('def _bar_high(b): return float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0)', _sq_ns)
+    exec('def _bar_low(b):  return float(b.get("low")  or b.get("l") or b.get("close") or b.get("c") or 0)', _sq_ns)
+    for _c in ("SEQ_MAX_EVENTS","SEQ_LOOKBACK_S","SEQ_FLUSH_PCT","SEQ_TEST_BAND","SEQ_Q_PCT","SEQ_Q_BARS","SEQ_HALT_GAP"):
+        _i = _sq_src.index("\n" + _c + " ") + 1   # anchor at the column-0 assignment, not the comment
+        exec(_sq_src[_i:_sq_src.index(chr(10), _i)], _sq_ns)
+    _i0 = _sq_src.index("def _seq_events(")
+    exec(_sq_src[_i0:_sq_src.index("\ndef _eyes_snapshot(", _i0)], _sq_ns)
+    _seq = _sq_ns["_seq_events"]
+    # never raises, empty on no tape
+    check("seq: empty/None tape -> '' (fail-soft)", _seq({}) == "" and _seq(None) == "")
+    # a coil-under-then-break tape yields a Break token
+    _t = 1000; _d = {}
+    for _j, _c2 in enumerate([10.0,10.1,10.2,10.15,10.2,10.18,10.9,10.95,10.98,11.2]):
+        _d[_t + _j*10] = {"c": _c2, "h": _c2+0.03, "l": _c2-0.05, "v0":0, "v1":100}
+    _s = _seq(_d, 10.4)
+    check("seq: break-of-session-high emits B", "B" in _s.split())
+    # a >=60s tape gap emits an L token
+    _d2 = dict(_d); _d2[_t + 500] = {"c":11.3,"h":11.35,"l":11.25,"v0":0,"v1":100}
+    check("seq: tape gap emits L", "L" in _seq(_d2, 10.4).split())
+    # the stamp is registered as a first-class eyes key and wired into the snapshot + compact
+    check("seq: seq_str in _EYES_KEYS", '"seq_str")' in _sq_src or '"seq_str",' in _sq_src)
+    check("seq: snapshot stamps seq_str", 'snap["seq_str"] = _seq_events(' in _sq_src)
+    check("seq: compact carries seq", '"seq": snap.get("seq_str")' in _sq_src)
+    # OBSERVE-ONLY invariant: the stamp is write-only. No gate/convert symbol exists, and seq_str
+    # appears ONLY where it is WRITTEN (keys tuple, snapshot stamp, compact) — never read by a gate.
+    import re as _re
+    # \b avoids matching the legitimate KEVSEQ_CONVERT (its own lane's flag) inside SEQ_CONVERT
+    check("seq: no NEW behavior symbol shipped",
+          not _re.search(r"\bSEQ_CONVERT\b", _sq_src) and not _re.search(r"\bSEQ_GATE\b", _sq_src))
+    # canonical stamp footprint = code lines only (exclude comments + kevseq's own lane-row seq_str)
+    _seq_lines = [ln.strip() for ln in _sq_src.splitlines()
+                  if "seq_str" in ln and not ln.strip().startswith("#")
+                  and "_ks" not in ln and "kevseq" not in ln.lower() and "pd[" not in ln]
+    check("seq: canonical seq_str footprint is small + write-only (<=4 code sites)", 0 < len(_seq_lines) <= 4)
+except Exception as _se:
+    check("seq_str stamp EXECUTED", False, str(_se))
+
 
 
 print("H) 8/11 TikTok sheet backstop pins (offline)")

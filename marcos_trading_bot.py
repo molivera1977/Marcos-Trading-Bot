@@ -9576,7 +9576,7 @@ _EYES_KEYS = ("ts_utc", "time_et", "session", "window", "price", "vwap", "vwap_s
               "vwap_dist_pct", "vwap_slope_5m", "side_stamp", "map", "day_gain_pct",
               "prior_close_src", "crown", "lens_state", "ext_pct_vs_ema90", "ext_atr_units",
               "halt_distance_pct", "spread_pct", "ambient_dvol_median", "relvol_same_tod",
-              "spy_regime", "catalyst", "gates_hit", "when")
+              "spy_regime", "catalyst", "gates_hit", "when", "seq_str")
 _EYES_MAP_KEYS = ("zone", "break", "break_dist_pct", "next_rung", "road_r", "road_tgt",
                   "map_age_min", "map_src")
 _entry_ctx_by_trade: dict = {}   # trade_id -> entry_context (choke-point fallback for the record)
@@ -9619,6 +9619,89 @@ def _eyes_note_gate(ticker, status):
             del lst[:len(lst) - 40]
     except Exception:
         pass
+
+# ── 8/17 SEQUENCING DOCTRINE, build #0 (Marcos: "one element by itself doesn't signal
+# anything; it's the ORDER they appear"). Stamps a causal EVENT-STRING on every lane's eyes
+# block at entry AND exit. OBSERVE-ONLY — changes NO behavior, no env, no gate; it is the
+# live-tape record the per-lane sequence-mining reads. Alphabet (10s bars), one event/bar by
+# priority, mirrors kev_rosetta_20260816.md / the offline miner (to be refactored to call THIS):
+#   B break (new SESSION high)   T test (within band of sess-hi, no break)   P push (new local high)
+#   F flush (close -%>=SEQ_FLUSH_PCT vs a close in last 3 bars)   W wick (low<=vwap, closes back above)
+#   H hold (>=3 bars' lows above last broken hi)   R retest (back within band of broken hi, holds)
+#   D lower-low   L halt/gap (>=SEQ_HALT_GAP s missing between bars)   Q compression (trailing window tight)
+SEQ_MAX_EVENTS = 14      # keep the last N events ending at the fire bar
+SEQ_LOOKBACK_S = 600     # 10 min of 10s bars
+SEQ_FLUSH_PCT  = 2.0     # F: close drops this % vs the max close of the last 3 bars
+SEQ_TEST_BAND  = 0.003   # T / R: within 0.3% of the level
+SEQ_Q_PCT      = 0.01    # Q: (hi-lo)/lo over the trailing window <= 1%
+SEQ_Q_BARS     = 6
+SEQ_HALT_GAP   = 60      # seconds of missing bars => L token
+
+def _seq_events(d10, vwap=0.0):
+    """Canonical event-string over the fed 10s bars (dict epoch->bar). PURE, never raises.
+    One event per bar by priority (B>F>W>T>R>H>P>D), an L token on a tape gap, a trailing Q.
+    Returns a space-joined string of up to SEQ_MAX_EVENTS trailing events; '' if too little tape.
+    Keep in lockstep with the offline sequence miner so live and backtest strings compare."""
+    try:
+        if not d10 or len(d10) < 6:
+            return ""
+        ks = sorted(d10)
+        k0 = ks[-1] - SEQ_LOOKBACK_S
+        ks = [k for k in ks if k >= k0]
+        if len(ks) < 6:
+            return ""
+        v = float(vwap or 0)
+        evs = []
+        sess_hi = None; last_break = None; prev_lo = None; prev_hi = None
+        prev_k = None; hold_run = 0; closes = []
+        for k in ks:
+            b = d10[k]
+            h = _bar_high(b); l = _bar_low(b); c = float(b.get("c") or 0)
+            if h <= 0 or l <= 0 or c <= 0:
+                continue
+            if prev_k is not None and (k - prev_k) >= SEQ_HALT_GAP:
+                evs.append("L")
+            ev = None
+            new_break = sess_hi is not None and h > sess_hi
+            flush = bool(closes) and max(closes[-3:]) > 0 and (c - max(closes[-3:])) / max(closes[-3:]) * 100 <= -SEQ_FLUSH_PCT
+            wick = v > 0 and l <= v <= c
+            test = sess_hi is not None and not new_break and h >= sess_hi * (1 - SEQ_TEST_BAND)
+            retest = last_break is not None and abs(l - last_break) / last_break <= SEQ_TEST_BAND and c > last_break
+            # hold bookkeeping (runs regardless of which event wins)
+            if last_break is not None and l > last_break:
+                hold_run += 1
+            else:
+                hold_run = 0
+            hold = hold_run == 3
+            push = prev_hi is not None and h > prev_hi and not new_break
+            lower = prev_lo is not None and l < prev_lo and (prev_hi is None or h < prev_hi)
+            if new_break:      ev = "B"
+            elif flush:        ev = "F"
+            elif wick:         ev = "W"
+            elif test:         ev = "T"
+            elif retest:       ev = "R"
+            elif hold:         ev = "H"
+            elif push:         ev = "P"
+            elif lower:        ev = "D"
+            if new_break:
+                last_break = sess_hi; hold_run = 0
+            if sess_hi is None or h > sess_hi:
+                sess_hi = h
+            if ev:
+                evs.append(ev)
+            closes.append(c); prev_lo = l; prev_hi = h; prev_k = k
+        tail = ks[-SEQ_Q_BARS:]
+        if len(tail) >= SEQ_Q_BARS:
+            his = [_bar_high(d10[k]) for k in tail]
+            los = [l for l in (_bar_low(d10[k]) for k in tail) if l > 0]
+            if los and his:
+                lo = min(los); hi = max(his)
+                if lo > 0 and (hi - lo) / lo <= SEQ_Q_PCT:
+                    evs.append("Q")
+        return " ".join(evs[-SEQ_MAX_EVENTS:])
+    except Exception:
+        return ""
+
 
 def _eyes_snapshot(ticker, price, when="entry", extra=None) -> dict:
     """EVERY eye, one block. price=0/None -> best cached price. extra (the lane's extra dict)
@@ -9784,6 +9867,11 @@ def _eyes_snapshot(ticker, price, when="entry", extra=None) -> dict:
         snap["gates_hit"] = [s for (t0, s) in _gate_seen.get(ticker, []) if t0 >= cut][-12:]
     except Exception:
         pass
+    # ── seq_str: canonical event-string of the prior ~10 min (sequencing doctrine, observe-only) ──
+    try:
+        snap["seq_str"] = _seq_events(d10, snap.get("vwap") or 0) or None
+    except Exception:
+        snap["seq_str"] = None
     # TODO eyes stay None (registered in EYES_TODO)
     return snap
 
@@ -9798,7 +9886,8 @@ def _eyes_compact(snap):
                 "rung": m.get("next_rung"), "map_age": m.get("map_age_min"), "map_src": m.get("map_src"),
                 "dg": snap.get("day_gain_pct"), "crown": c.get("crowned"), "lens": snap.get("lens_state"),
                 "ext90": snap.get("ext_pct_vs_ema90"), "halt_d": snap.get("halt_distance_pct"),
-                "amb": snap.get("ambient_dvol_median"), "win": snap.get("window")}
+                "amb": snap.get("ambient_dvol_median"), "win": snap.get("window"),
+                "seq": snap.get("seq_str")}
     except Exception:
         return {}
 

@@ -1,0 +1,74 @@
+# SEQUENCE-GATE OUT-OF-SAMPLE WALL — 8/17/26
+Chronological date split (train past / test future). Engine + alphabet imported UNCHANGED
+from sequence_mining_pilot_20260817.py (flatten_parity chain, E3 live-parity exits).
+
+Universe: 729 files, 729 name-days, 62 dates 2026-05-18..2026-08-14.
+
+## DATE SPLIT
+- MINE (train): 44 dates 2026-05-18..2026-07-21
+- HOLD-OUT (test): 18 dates 2026-07-22..2026-08-14
+- BOUNDARY: last MINE date = 2026-07-21; first HOLD-OUT date = 2026-07-22
+
+
+---
+
+## LANE: flat_top BREAK-ATTACK (9:30-10:30 ET)
+Total fires 634  |  MINE 447  |  HOLD-OUT 187
+MINE material-N threshold N>=35 (max(20, 8% of 447 MINE fires)).
+**MINE-derived gate: `T B` (last-2 structural)** — N=42 on MINE, win 76%, $/tr $+48.85, lift $+21.18.
+Matches pilot `T B`/`W T B` family: YES.
+
+### FROZEN GATE `T B` applied to HOLD-OUT only
+| cohort | N | win | total | $/tr | day mean | day med | green% | halves | worst day |
+|---|---|---|---|---|---|---|---|---|---|
+| HOLD-OUT UNGATED | 187 | 67% | $+4663.52 | $+24.94 | $+259.08 | $+280.65 | 78% | $+2903/$+1761 | $-119.26 |
+| HOLD-OUT GATED [T B] | 18 | 89% | $+979.71 | $+54.43 | $+54.43 | $+48.51 | 56% | $+682/$+298 | $+0.00 |
+
+Hold-out: gate keeps 18/187 fires (10%); $/tr $+24.94 -> $+54.43 (lift $+29.49); win 67% -> 89%.
+
+### NULL (permutation, 5000 random relabelings of 18 hold-out fires)
+- observed gated $/tr = $+54.43
+- random-label mean $/tr = $+25.08 (~ ungated — lift vanishes under random labels)
+- p(random >= observed) = 0.021
+
+**VERDICT [flat_top]: SURVIVES** — hold-out gated $/tr lift $+29.49 on `T B`, same direction as in-sample, N=18.
+
+---
+
+## LANE: GRINDER (post-10:30 ET)
+Total fires 387  |  MINE 245  |  HOLD-OUT 142
+MINE material-N threshold N>=20 (max(20, 8% of 245 MINE fires)).
+**MINE-derived gate: `W T B` (last-3 structural)** — N=20 on MINE, win 90%, $/tr $+56.34, lift $+25.45.
+Matches pilot `T B`/`W T B` family: YES.
+
+### FROZEN GATE `W T B` applied to HOLD-OUT only
+| cohort | N | win | total | $/tr | day mean | day med | green% | halves | worst day |
+|---|---|---|---|---|---|---|---|---|---|
+| HOLD-OUT UNGATED | 142 | 71% | $+3109.33 | $+21.90 | $+172.74 | $+123.87 | 83% | $+1724/$+1385 | $-51.06 |
+| HOLD-OUT GATED [W T B] | 8 | 88% | $+479.48 | $+59.94 | $+26.64 | $+0.00 | 33% | $+130/$+350 | $-47.12 |
+
+Hold-out: gate keeps 8/142 fires (6%); $/tr $+21.90 -> $+59.94 (lift $+38.04); win 71% -> 88%.
+
+### CANONICAL material gate `T B` (pilot's featured grinder slice) — frozen on HOLD-OUT
+(MINE `T B`: N=77, win 82%, $/tr $+43.62)
+| cohort | N | win | total | $/tr | day mean | day med | green% | halves | worst day |
+|---|---|---|---|---|---|---|---|---|---|
+| HOLD-OUT UNGATED | 142 | 71% | $+3109.33 | $+21.90 | $+172.74 | $+123.87 | 83% | $+1724/$+1385 | $-51.06 |
+| HOLD-OUT GATED [T B] | 27 | 81% | $+1232.06 | $+45.63 | $+68.45 | $+59.57 | 61% | $+461/$+771 | $-59.25 |
+Hold-out `T B`: keeps 27/142 (19%); $/tr $+21.90 -> $+45.63 (lift $+23.74); win 71% -> 81%.
+NULL `T B`: observed $+45.63 vs random-mean $+21.81, p(random>=obs)=0.001, N=27.
+
+### NULL (permutation, 5000 random relabelings of 8 hold-out fires)
+- observed gated $/tr = $+59.94
+- random-label mean $/tr = $+22.15 (~ ungated — lift vanishes under random labels)
+- p(random >= observed) = 0.014
+
+**VERDICT [GRINDER]: SURVIVES** — hold-out gated $/tr lift $+23.74 on `T B` (canonical material slice), same direction as in-sample, N=27.
+
+---
+
+## SUMMARY
+| lane | MINE suffix | hold-out ungated $/tr | hold-out gated $/tr | verdict |
+|---|---|---|---|---|
+| break-attack | T B | $+24.94 | $+54.43 | SURVIVES |
+| grinder | T B | $+21.90 | $+45.63 | SURVIVES |

@@ -1,0 +1,16 @@
+{
+ "break_attack": {
+  "verdict": "SURVIVES",
+  "why": "hold-out gated $/tr lift $+29.49 on `T B`, same direction as in-sample, N=18",
+  "suffix": "T B",
+  "hold_ung_dtr": 24.938629291289377,
+  "hold_gated_dtr": 54.42860468124137
+ },
+ "grinder": {
+  "verdict": "SURVIVES",
+  "why": "hold-out gated $/tr lift $+23.74 on `T B` (canonical material slice), same direction as in-sample, N=27",
+  "suffix": "T B",
+  "hold_ung_dtr": 21.896694996579804,
+  "hold_gated_dtr": 45.63186311202305
+ }
+}

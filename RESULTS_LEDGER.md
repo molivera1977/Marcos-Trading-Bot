@@ -2103,3 +2103,17 @@ the big lever, not the chart. Path to green (H-FC4, owes OOS wall): 10s entry + 
 Rosetta selection = exactly the KEVSEQ lane already shipped live tonight. This study independently
 validated kevseq's three design choices (10s entry, 1-min front side, the sequence). Best combo
 confirmed: 10s+1-min. Nothing new to ship — kevseq already is it.
+
+## 2026-08-17 ~01:20 — MARCOS DOCTRINE: SEQUENCING IS THE EDGE (grammar over letters)
+Verbatim: "the biggest thing... is the idea of sequencing for many of the entries. One element
+by itself doesn't signal anything. It's the order that they appear." ELEVATED TO STANDING
+DOCTRINE. Why: every single-bar kill-test this weekend bled because it scored LETTERS (a wick, a
+break, a hold) when the edge is WORDS (ordered event chains). Proven: Rosetta B->H/W = 60% of
+Kev's fills vs 8% of look-alikes; no single feature discriminated. PROGRAM: (1) the event
+alphabet (P push / F flush / W confluence-wick / H level-hold / T high-test / B break / R retest
+/ L halt / Q compression / D lower-low) becomes a shared library; every lane's fires get their
+prior-N-minute event STRING stamped (build #0 eyes gains a seq_str field for ALL lanes, not just
+kevseq). (2) Per-lane SEQUENCE MINING (the reverse-engineer-the-replay method): for each lane,
+mine winners' vs losers' event strings, find the discriminating suffix, propose it as a gate.
+(3) kevseq is instance #1 (B->H/W). Next: break-attack (is "Q->B" better than raw B?), grinder,
+band-pass, v2. Holes registry H-SEQ-<lane> per lane. The grammar, not the letters.

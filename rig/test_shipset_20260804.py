@@ -2612,6 +2612,55 @@ try:
 except (AssertionError, ValueError, KeyError) as _a4e:
     check("AJ4 section", False, str(_a4e))
 
+print("AK) 8/17 BOUNDARY CENSUS — frozen-clock matrix per consumer pattern (kills the sharp-flip CLASS)")
+try:
+    import zoneinfo as _kz, datetime as _kdt, re as _kre
+    _kE = _kz.ZoneInfo("America/New_York")
+    _k_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _k_seg = _k_src[_k_src.index("RTH_HANDOFF_MIN = int"):_k_src.index("def _alpaca_intraday_bars")]
+    def _k_ls(hh, mm, ss, is_premkt=None):
+        class _KDT(_kdt.datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return _kdt.datetime(2026, 8, 17, hh, mm, ss, tzinfo=_kE)
+        ns = {"os": os, "datetime": _KDT, "EASTERN": _kE}
+        exec(_k_seg, ns)
+        return ns["_live_sessions"](is_premkt)
+    def _k_can_complete(sessions, hh, mm, ss):
+        """Can the requested session list contain a COMPLETED 1-min bar at this instant?
+        None = RTH-only. A session contributes once the clock is past its first bar close;
+        a finished session's bars all remain completed."""
+        wins = {"PRE": (4 * 3600, 9 * 3600 + 30 * 60), "RTH": (9 * 3600 + 30 * 60, 16 * 3600),
+                "ATH": (16 * 3600, 20 * 3600)}
+        t = hh * 3600 + mm * 60 + ss
+        req = ["RTH"] if sessions is None else [str(s).upper() for s in sessions]
+        return any(t >= wins[s][0] + 60 for s in req if s in wins)
+    # the 7-instant matrix (BOUNDARY_CENSUS_20260817.md), P1 default consumers:
+    for (_hh, _mm, _ss) in ((4, 1, 30), (7, 0, 30), (9, 29, 30), (9, 30, 30), (9, 31, 30),
+                            (15, 59, 30), (16, 0, 30)):
+        _sl = _k_ls(_hh, _mm, _ss)
+        check("AK: %02d:%02d:%02d session list can contain a completed bar (%s)" % (_hh, _mm, _ss, _sl),
+              _k_can_complete(_sl, _hh, _mm, _ss))
+    check("AK: 09:30:30 includes PRE post-fix (THE sharp-flip pin)", "PRE" in (_k_ls(9, 30, 30) or []))
+    # P2 (PRE-stamped monitor) always PRE+RTH at any instant:
+    check("AK: P2 PRE-stamped monitor keeps PRE at 10:00", _k_ls(10, 0, 0, is_premkt=True) == ["PRE", "RTH"])
+    # class guards: hand-off machinery + default must stay; a bare call = a new sharp-flip instance
+    check("AK: hand-off branch + default 5 present",
+          'os.environ.get("RTH_HANDOFF_MIN", "5")' in _k_src
+          and '["PRE", "RTH"]   # bell-boundary hand-off' in _k_src)
+    _k_bare = 0
+    for m in _kre.finditer(r"(?<!def )get_intraday_bars\(", _k_src):
+        if _k_src[m.end():m.end() + 5] == "\n" or "get_intraday_bars_full" in _k_src[m.start():m.end() + 5]:
+            continue
+        _win = _k_src[m.start():m.start() + 260]
+        if "sessions=" not in _win:
+            _k_bare += 1
+    check("AK: bare (sessions-omitted, RTH-only) call sites pinned at the 3 censused fail-open auxiliaries",
+          _k_bare == 3, "bare=%d" % _k_bare)
+    check("AK: census artifact exists", os.path.exists(os.path.join(ROOT, "data", "audits", "BOUNDARY_CENSUS_20260817.md")))
+except (AssertionError, ValueError, KeyError) as _ake:
+    check("AK section", False, str(_ake))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

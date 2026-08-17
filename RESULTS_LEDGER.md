@@ -2138,3 +2138,11 @@ band-pass, v2. Holes registry H-SEQ-<lane> per lane. The grammar, not the letter
 - H1 continuation / H2 day-2 fade / H3 gap-hold / H4 quiet-then-loud: ALL UNDERPOWERED. H2 sign-flips MINE(+$10.59)->HOLD(-$59.11) on 7/11-fire cells. H4 runs OPPOSITE its registration in BOTH halves (loud day-1 -> better day-2, -$14/-$30) — descriptive only, re-registered as a loud-then-loud hypothesis for joint_door.
 - **HEADLINE (the real finding): only ~9% of name-days have a next-day tape for the same name.** The universe is one-day-wonder captures. ALL multi-day work (incl. the day-2/earnings plays like FIEE) is unmeasurable until d+1 tape exists.
 - ACTION (Quartermaster, queued not shipped): deliberate d+1 re-capture for runner names, or SIP backfill of d+1 for the 729 name-days. This is the cheapest unlock of a whole study domain.
+
+## 2026-08-17 ~03:25 ET — CROSS-TICKER SEQUENCE: **H1 LEADER-FOLLOWER = BOARD-SIGNAL (the night's one survivor)**
+- seq_cross_ticker_20260817.md (commit f4f9af9). 1,021 pooled BA+grinder E3 fires, 62 dates, MINE 44 / HOLD-OUT 18, within-date board-context shuffle null 5000x.
+- **H1 SYMPATHY WINDOW: BOARD-SIGNAL.** Fires on OTHER names within 30 min AFTER the day's leader breaks: MINE $+32.80 vs $+26.85/tr (N 228/464); **HOLD-OUT $+41.22 vs $+15.83 (lift $+25.39/tr, win 79% vs 64%), p=0.001.** Direction held out-of-sample and cleared its null.
+- **REFUTES the standing "sympathy runs are weaker" assumption** in this cohort: a leader breaking is CONFIRMATION (market appetite proven), not crowding. First cross-ticker edge we have ever measured — every prior study looked at one name in isolation.
+- H2 second-mover NO-SPLIT (the WINDOW matters, not the ordinal name — MINE lift $+0.13, HOLD reversed). H3 board-heat 2+ NO-SPLIT (monotone on MINE, direction held on HOLD but p=0.077 — not separable from "hot date"; re-look on the REAL scanner board). H4 sole-runner UNDERPOWERED (sole-runner days barely exist in a 40%+-runner universe).
+- **CAVEAT (load-bearing): the universe is gain>=40% runners ONLY, so "leader"/"heat"/"sole" are WITHIN-UNIVERSE PROXIES, not the live scanner board.** The live-board version of H1 is a different measurement and is NOT yet made.
+- STATUS: **data-only.** No gate, no sizing, no lane. Any live use = behavior change = Marcos's priced call (auditor-cannot-authorize).

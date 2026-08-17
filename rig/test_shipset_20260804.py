@@ -2145,6 +2145,115 @@ try:
 except (AssertionError, ValueError, KeyError) as _afe:
     check("AF: band-pass lanes", False, str(_afe))
 
+print("AG) 8/16 KEV SEQUENCE lane 'kevseq' (B->H/W + burst + front side; shadow ON, convert env-OFF, per-leg cap)")
+try:
+    from zoneinfo import ZoneInfo as _AGZ
+    import types as _agt, datetime as _agdt
+    _ag_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _AG_SEG = _ag_src[_ag_src.index('KEVSEQ_SHADOW     = os.environ.get'):_ag_src.index("def kev_zoneflip_step")]
+    _agn = {"os": _agt.SimpleNamespace(environ={}), "datetime": _agdt.datetime,
+            "EASTERN": _AGZ("America/New_York")}
+    exec(_AG_SEG, _agn)
+    check("AG-a: envs default — KEVSEQ_SHADOW on, KEVSEQ_CONVERT OFF, KEVSEQ_LEG_MAX 3, N=18 bars",
+          _agn["KEVSEQ_SHADOW"] is True and _agn["KEVSEQ_CONVERT"] is False
+          and _agn["KEVSEQ_LEG_MAX"] == 3 and _agn["KEVSEQ_N_BARS"] == 18)
+    _ks = _agn["kevseq_step"]
+    _agE = _AGZ("America/New_York")
+    _gk0 = int(_agdt.datetime(2026, 8, 14, 9, 40, 0, tzinfo=_agE).timestamp())
+    _ctx = {"front_side": True, "day_gain": 45.0, "top3": False, "blue_sky": False}
+    def _agwarm(n=32):                       # session hi 10.10 on bar 1, then 31 flat bars under it (varied vols)
+        t = [(_gk0, 10.0, 10.10, 9.95, 10.05, 100)]
+        for i in range(1, n):
+            t.append((_gk0 + 10 * i, 10.0, 10.05, 9.96, 10.02, 50 + (i * 7) % 70))
+        return t
+    def _agk(t): return _gk0 + 10 * len(t)
+    def _agbw(t, vol):                       # B (10.30 breaks 10.10) -> hold bar -> W (low 10.06 tests 9EMA, closes back) -> break of W high
+        t.append((_agk(t), 10.05, 10.30, 10.04, 10.28, 150))
+        t.append((_agk(t), 10.28, 10.30, 10.20, 10.29, 90))
+        t.append((_agk(t), 10.28, 10.29, 10.06, 10.25, 120))
+        t.append((_agk(t), 10.25, 10.31, 10.24, 10.30, vol))
+        return t
+    # (i) EXECUTED: B then W with burst -> fires, seq "B W", stop = wick low, px = W-bar high
+    _f = _ks("KA", _agbw(_agwarm(), 300), 10.0, _ctx)
+    check("AG-i: B->W + burst fires: ok, seq 'B W', stop 10.06 (wick low), px 10.29, burst_ratio>1, fresh_touch_n 0, leg 1",
+          bool(_f) and _f["ok"] and _f["seq_str"] == "B W" and _f["would_stop"] == 10.06 and _f["px"] == 10.29
+          and _f["burst"] and _f["burst_ratio"] > 1 and _f["fresh_touch_n"] == 0 and _f["leg"] == 1 and _f["seq"] == 0, str(_f))
+    # (ii) same tape, fill bar volume 40 (< p75) -> NOT ok, why no_burst (evidence row, no fire)
+    _f2 = _ks("KB", _agbw(_agwarm(), 40), 10.0, _ctx)
+    check("AG-ii: B->W without burst -> no fire (ok False, why no_burst)",
+          bool(_f2) and _f2["ok"] is False and _f2["why"] == ["no_burst"] and _f2["seq_str"] == "B W", str(_f2))
+    # (iii) W without a prior B (no new session high) -> nothing
+    _t3 = _agwarm(); _t3.append((_agk(_t3), 10.02, 10.08, 9.98, 10.06, 120)); _t3.append((_agk(_t3), 10.06, 10.09, 10.05, 10.08, 300))
+    check("AG-iii: wick without prior B -> no fire", _ks("KC", _t3, 10.0, _ctx) is None)
+    # (iii-b) B then H (3 lows hold above the broken level 10.10) + burst -> fires "B H", stop = level
+    _t4 = _agwarm(); _t4.append((_agk(_t4), 10.05, 10.30, 10.04, 10.28, 150))
+    for _j in range(3): _t4.append((_agk(_t4), 10.28, 10.29, 10.20, 10.28, 90))
+    _t4.append((_agk(_t4), 10.29, 10.40, 10.28, 10.38, 300))
+    _f4 = _ks("KD", _t4, 10.0, _ctx)
+    check("AG-iii-b: B->H (3 holds) + burst fires 'B H', stop = broken level 10.10",
+          bool(_f4) and _f4["ok"] and _f4["seq_str"] == "B H" and _f4["would_stop"] == 10.1, str(_f4))
+    # (iv) 3rd pullback in the leg -> skipped even with a perfect burst break
+    def _agbw2(t, b_hi, w_lo, w_c, br_hi, vol, fail=False):
+        t.append((_agk(t), w_c - 0.02, b_hi, w_c - 0.03, b_hi - 0.02, 150))
+        t.append((_agk(t), b_hi - 0.02, b_hi - 0.01, w_lo, w_c, 120))
+        if fail: t.append((_agk(t), w_c, w_c + 0.01, w_lo - 0.05, w_lo - 0.02, 120))
+        else:    t.append((_agk(t), w_c, br_hi, w_c - 0.01, br_hi - 0.01, vol))
+        return t
+    _t5 = _agwarm()
+    _t5 = _agbw2(_t5, 10.30, 10.06, 10.25, None, None, fail=True)
+    _t5 = _agbw2(_t5, 10.34, 10.15, 10.30, None, None, fail=True)
+    _r5a = _ks("KE", _t5, 10.0, _ctx)
+    _t5b = _agbw2([], 10.38, 10.22, 10.34, 10.40, 300); _t5b = [(_agk(_t5) + 10 * i,) + b[1:] for i, b in enumerate(_t5b)]
+    _r5b = _ks("KE", _t5b, 10.0, _ctx)
+    check("AG-iv: 3rd pullback in the leg -> no fire (pull_n 3)",
+          _r5a is None and _r5b is None and _agn["_ks_st"]["KE"]["pull_n"] == 3, str((_r5a, _r5b)))
+    # (v) per-LEG cap: with LEG_MAX=1 the 2nd setup in the leg is refused (leg_cap); a >=3% pullback then a
+    #     new session high = NEW LEG -> leg_n resets and it fires again (leg 2, leg_n 0). No daily ration.
+    _agn["KEVSEQ_LEG_MAX"] = 1
+    _t6 = _agbw(_agwarm(), 300); _r6a = _ks("KF", _t6, 10.0, _ctx)
+    _t6b = _agbw2([], 10.36, 10.15, 10.33, 10.40, 300); _t6b = [(_agk(_t6) + 10 * i,) + b[1:] for i, b in enumerate(_t6b)]
+    _r6b = _ks("KF", _t6b, 10.0, _ctx)
+    _base = _agk(_t6) + 10 * len(_t6b); _t6c = []
+    for i in range(6): _t6c.append((_base + 10 * i, 10.30, 10.32, 10.00, 10.05, 80))       # 3.8% pullback
+    _t6c += [(_base + 60 + 10 * i,) + b[1:] for i, b in enumerate(_agbw2([], 10.45, 10.12, 10.40, 10.50, 300))]
+    _r6c = _ks("KF", _t6c, 10.0, _ctx)
+    check("AG-v: leg cap binds inside the leg (leg_cap) and RESETS on a new leg (leg 2, leg_n 0 fires)",
+          bool(_r6a) and _r6a["ok"] and _r6a["leg"] == 1
+          and bool(_r6b) and _r6b["ok"] is False and _r6b["why"] == ["leg_cap"]
+          and bool(_r6c) and _r6c["ok"] and _r6c["leg"] == 2 and _r6c["leg_n"] == 0, str((_r6a, _r6b, _r6c)))
+    _agn["KEVSEQ_LEG_MAX"] = 3
+    # (vi) context gates: front side False / unknown and day-gain miss are refusals with named reasons; top3 rescues day-gain
+    _r7 = _ks("KG", _agbw(_agwarm(), 300), 10.0, {"front_side": False, "day_gain": 5.0, "top3": False, "blue_sky": False})
+    _r8 = _ks("KH", _agbw(_agwarm(), 300), 10.0, {"front_side": True, "day_gain": 5.0, "top3": True, "blue_sky": False})
+    _r9 = _ks("KI", _agbw(_agwarm(), 300), 10.0, {})
+    check("AG-vi: front_side_off + day_gain refused; top3 rescues day-gain; empty ctx = front_side_unknown + day_gain",
+          bool(_r7) and _r7["ok"] is False and set(_r7["why"]) == {"front_side_off", "day_gain"}
+          and bool(_r8) and _r8["ok"] and bool(_r9) and set(_r9["why"]) == {"front_side_unknown", "day_gain"}, str((_r7, _r8, _r9)))
+    # (vii) caller: shadow row + reject row; conversion ONLY under KEVSEQ_CONVERT; lane 'kevseq' E3; triggered row
+    _cal = _ag_src[_ag_src.index("8/16 KEV SEQUENCE lane (\"kevseq\") shadow"):_ag_src.index("if PREVWAP_SHADOW:")]
+    check("AG-vii: caller append guarded by KEVSEQ_CONVERT; lane 'kevseq' E3; kevseq_shadow_fire + kevseq_reject + triggered_kevseq rows",
+          'if KEVSEQ_CONVERT and _ksf["would_stop"] < _ksf["px"]:' in _cal
+          and _cal.index('if KEVSEQ_CONVERT and') < _cal.index('breakouts.append((t, _ks_px, _ksf["b_level"] or _ksf["would_stop"], "kevseq", {')
+          and '"exit_mode": "E3"' in _cal and '"kevseq_shadow_fire"' in _cal and '"kevseq_reject"' in _cal
+          and '"triggered_kevseq"' in _cal and "calculate_ema9(_ks_1m), calculate_ema20(_ks_1m)" in _cal)
+    check("AG-viii: detector itself conversion-free", "breakouts.append" not in _AG_SEG and "execute_trade" not in _AG_SEG)
+    _bo = []; _ns_c = {"KEVSEQ_CONVERT": False, "_ksf": {"would_stop": 1.0, "px": 2.0}, "breakouts": _bo}
+    exec('if KEVSEQ_CONVERT and _ksf["would_stop"] < _ksf["px"]:\n    breakouts.append(1)', _ns_c)
+    check("AG-ix: KEVSEQ_CONVERT=0 -> zero appends", _bo == [])
+    check("AG-x: 'kevseq' not in MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT/_STALE_EXEMPT defaults",
+          '"kevseq"' not in _ag_src[_ag_src.index("MIN_STOP_EXEMPT = set("):_ag_src.index("MIN_STOP_EXEMPT = set(") + 200]
+          and 'BACKSIDE_EXEMPT   = {"dip_rip"}' in _ag_src and "kevseq" not in _ag_src[_ag_src.index("VRIDE_EXEMPT    = set("):_ag_src.index("VRIDE_EXEMPT    = set(") + 150]
+          and 'kevseq' not in _ag_src[_ag_src.index("_STALE_EXEMPT = ("):_ag_src.index("_STALE_EXEMPT = (") + 120])
+    _g = open(os.path.join(ROOT, "data", "killtests", "nightly_shadow_grade.py")).read()
+    check("AG-xi: grader lists kevseq_shadow_fire + triggered_kevseq (E3 only) and reads 'stop' on triggered rows",
+          "kevseq_shadow_fire,triggered_kevseq" in _g and 'lanes["kevseq"].append(rec)' in _g
+          and 'lanes["kevseq_conv"].append(rec)' in _g and '"triggered_kevseq") else r.get("stop")' in _g)
+    check("AG-xii: boot banner + boot_config row stamp KEVSEQ envs",
+          "KEVSEQ_SHADOW={int(KEVSEQ_SHADOW)}" in _ag_src and "kevseq_convert=int(KEVSEQ_CONVERT)" in _ag_src
+          and "kevseq_leg_max=KEVSEQ_LEG_MAX" in _ag_src)
+except (AssertionError, ValueError, KeyError) as _age:
+    check("AG: kevseq lane", False, str(_age))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

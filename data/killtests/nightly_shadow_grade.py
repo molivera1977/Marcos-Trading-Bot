@@ -88,9 +88,10 @@ def sim_e3(B, t0, sig_px, stop, flatten_hm=959):
 def main():
     d = get(f"{U}/api/decisions_archive?date={DAY}"
             "&status=grinder_shadow_fire,flat_top_observe_only,v2_shadow_fire,"
-            "bandpass_shadow_fire,prevwap_shadow_fire&limit=50000")
+            "bandpass_shadow_fire,prevwap_shadow_fire,kevseq_shadow_fire,triggered_kevseq&limit=50000")
     rows = d.get("rows") or []
-    lanes = {"grinder": [], "flat_top": [], "flat_top_oow": [], "v2": [], "bandpass": [], "bandpass_oow": [], "prevwap": []}
+    lanes = {"grinder": [], "flat_top": [], "flat_top_oow": [], "v2": [], "bandpass": [], "bandpass_oow": [], "prevwap": [],
+             "kevseq": [], "kevseq_conv": []}
     for r in rows:
         st = r.get("status")
         try:
@@ -98,7 +99,7 @@ def main():
         except Exception:
             continue
         hm = t0.hour * 60 + t0.minute
-        stop = r.get("would_stop") if st != "flat_top_observe_only" else r.get("stop")
+        stop = r.get("would_stop") if st not in ("flat_top_observe_only", "triggered_kevseq") else r.get("stop")
         rec = (r.get("ticker"), t0, float(r.get("price") or 0), float(stop or 0))
         if st == "grinder_shadow_fire":
             lanes["grinder"].append(rec)
@@ -110,6 +111,10 @@ def main():
             lanes["bandpass" if 570 <= hm < 630 else "bandpass_oow"].append(rec)
         elif st == "prevwap_shadow_fire":               # 8/16 Kev 8AM PRE lane — flatten 09:25
             lanes["prevwap"].append(rec)
+        elif st == "kevseq_shadow_fire":               # 8/16 Kev SEQUENCE lane (B->H/W + burst); E3 only —
+            lanes["kevseq"].append(rec)                # this grader has ONE exit sim (no Kev-ride variant yet)
+        elif st == "triggered_kevseq":                 # conversions (KEVSEQ_CONVERT=1) — informational
+            lanes["kevseq_conv"].append(rec)
     cache, res = {}, {}
     for lane, fires in lanes.items():
         n, tot, skip = 0, 0.0, 0
@@ -144,6 +149,8 @@ def main():
             f" | bandpass(in-win) N={res['bandpass'][0]} ${res['bandpass'][1]:+.2f}"
             f" (oow N={res['bandpass_oow'][0]} ${res['bandpass_oow'][1]:+.2f})"
             f" | prevwap(PRE,flat 09:25) N={res['prevwap'][0]} ${res['prevwap'][1]:+.2f}"
+            f" | kevseq(E3) N={res['kevseq'][0]} ${res['kevseq'][1]:+.2f}"
+            f" (conv N={res['kevseq_conv'][0]} ${res['kevseq_conv'][1]:+.2f})"
             f" | E3 PORTFOLIO ${port:+.2f} | wall day {prior + 1}"
             f" | skipped {sum(v[2] for v in res.values())}\n")
     with WALL.open("a") as f:

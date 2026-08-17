@@ -5964,6 +5964,186 @@ def bandpass_step(sym, new_bars, vwap, st_map, hm_lo, hm_hi):
     return fired
 
 
+# ── 8/16 KEV SEQUENCE LANE ("kevseq") — SHADOW default-on, conversion path built but env-OFF.
+# Evidence: kev_rosetta_20260816.md (34 named Kev fills, 23 tick-reconstructed): after the
+# random-price CONTROL only two features survive — (1) the SEQUENCE break-of-session-high THEN
+# the FIRST hold/wick (B->H or B->W on the 10s: 60% of credible fills vs 8% look-alikes vs 20%
+# control) and (2) BURST volume on the fill bar (78% >=75th pct vs 55% control). Generalization
+# on the 8/16 fast-chart cohort (198 name-days): SEQ clause N=79 KEV +$447 (det B N=59 +$576 /
+# E3 +$340) vs BEFORE −$581; "fresh" clause N=113 KEV +$1,323 / E3 +$1,162. Registered
+# HYPOTHESIS (light in-sample, no OOS wall) -> this lane IS the OOS wall: shadow rows first.
+# Detector on the fed 10s bars + session VWAP + 9EMA(10s): per-name event state —
+#   (B) a NEW session-high print (level = the prior session high, or the whole-dollar the bar
+#       closed through if higher); THEN within KEVSEQ_N_BARS (18 = 3 min) EITHER
+#   (H) >= KEVSEQ_HOLD_N consecutive bars whose LOWS hold above the broken level, OR
+#   (W) a wick bar whose low tests the VWAP / 9EMA(10s) line (the higher line the bar reaches;
+#       confluence |VWAP-9EMA| <= 1% is STAMPED, not required — the replay showed VWAP is far
+#       below a fresh session high, so a strict confluence W would essentially never exist)
+#       and CLOSES back above both lines;
+#   the FIRST such after B only; fresh = 1st or 2nd touch of the risked low (touch_n <= 1 prior
+#   touches within 0.5%); a 3rd+ pullback in the LEG -> skip.
+#   FIRE = a later bar breaks the H/W bar's high, ONLY IF fill-bar volume >= 75th percentile of
+#   the prior 30 bars (burst) AND front side (9EMA > 20EMA on the 1-MIN aggregate — the caller
+#   supplies it; NOT the fast chart, per the replay caveat) AND day-gain >= +20% or top-3
+#   gainer AND room (no session high within 3% overhead that is >= 5 min stale, blue-sky exempt).
+#   Stop = the H level or the W wick low. Cap KEVSEQ_LEG_MAX fires per ticker per LEG (Marcos:
+#   per-ticker per-leg, NO daily ration); a leg = a new session high after a >= KEVSEQ_LEG_PB
+#   pullback since the last leg's high.
+# KEVSEQ_SHADOW: kevseq_shadow_fire rows (eyes compact + seq string "B H"/"B W" + leg index +
+#   burst ratio + fresh_touch_n + would_stop); context refusals log kevseq_reject (evidence).
+# KEVSEQ_CONVERT (default OFF): fires ALSO append to breakouts as lane "kevseq", exit_mode=E3,
+#   stop = would_stop; NOT in any exempt set -> the normal gate stack applies. Kill: env=0.
+# FAILURE CONDITION (pre-registered): wrong if kevseq_shadow_fire rows graded E3 (nightly
+#   grader) run below the don't-trade F-control over the >=5-day wall.
+KEVSEQ_SHADOW     = os.environ.get("KEVSEQ_SHADOW", "1") == "1"
+KEVSEQ_CONVERT    = os.environ.get("KEVSEQ_CONVERT", "0") == "1"
+KEVSEQ_LEG_MAX    = int(os.environ.get("KEVSEQ_LEG_MAX", "3"))    # fires per ticker per LEG
+KEVSEQ_N_BARS     = int(os.environ.get("KEVSEQ_N_BARS", "18"))    # B -> H/W window (10s bars; 18 = 3 min)
+KEVSEQ_HOLD_N     = 3        # H = this many consecutive lows above the broken level (Kev-B "holds three")
+KEVSEQ_BURST_PCT  = 75       # fill-bar volume >= this percentile of the prior KEVSEQ_BURST_LOOK bars
+KEVSEQ_BURST_LOOK = 30
+KEVSEQ_BURST_MINB = 10       # need at least this many prior bars to judge burst (else no fire)
+KEVSEQ_MAX_TOUCH  = 1        # fresh = at most this many PRIOR touches of the risked low (1st or 2nd touch)
+KEVSEQ_MAX_PULL   = 2        # 3rd+ pullback in the leg -> skip
+KEVSEQ_LEG_PB     = 0.03     # a new session high after a >= 3% pullback starts a NEW leg (replay def)
+KEVSEQ_GAIN_MIN   = 20.0     # day-gain floor (%), OR top-3 gainer
+KEVSEQ_ROOM_PCT   = 0.03     # overhead session high within 3% ...
+KEVSEQ_ROOM_STALE = 300      # ... that is >= 5 min stale = no room (blue-sky exempt)
+KEVSEQ_TOUCH_BAND = 0.005    # a "touch" of the risked low = bar low within 0.5% of it
+_ks_st: dict = {}   # sym -> kevseq machine state (module-level: survives rescans)
+
+
+def kevseq_step(sym, new_bars, vwap, ctx=None):
+    """Advance sym's Kev-SEQUENCE machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
+    ctx (from the caller, all optional): front_side (True/False/None = unknown -> refuses),
+    day_gain (%, None = unknown), top3 (bool), blue_sky (bool). Detection only — the caller logs
+    the row and converts ONLY under KEVSEQ_CONVERT. Returns at most one dict per call: a FIRE
+    (d["ok"] True) or a context REJECT (d["ok"] False, d["why"] list) — the reject is the
+    evidence row for the refused-strength hearing; else None."""
+    ctx = ctx or {}
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    st = _ks_st.get(sym)
+    if not st or st.get("day") != day:
+        st = {"day": day, "i": 0, "vols": [], "ema9": None, "sess_hi": None, "sess_hi_k": None,
+              "leg": 0, "leg_n": 0, "leg_hi": None, "leg_lo": None, "pull_n": 0, "leg_lows": [],
+              "b_i": None, "b_level": None, "hold_n": 0, "hold_hi": None, "armed": False,
+              "pending": None, "n": 0}
+        _ks_st[sym] = st
+    out = None
+    for k, o, h, l, c, v in new_bars:
+        st["i"] += 1
+        i = st["i"]
+        prior = st["vols"][-KEVSEQ_BURST_LOOK:]
+        p75 = None
+        if len(prior) >= KEVSEQ_BURST_MINB:
+            _s = sorted(prior)
+            p75 = _s[min(len(_s) - 1, int(round((KEVSEQ_BURST_PCT / 100.0) * (len(_s) - 1))))]
+        st["vols"].append(v)
+        if len(st["vols"]) > KEVSEQ_BURST_LOOK:
+            st["vols"].pop(0)
+        st["ema9"] = c if st["ema9"] is None else (c * (2.0 / 10.0) + st["ema9"] * (1 - 2.0 / 10.0))
+        # ── 1) pending H/W setup: break of its high = the fill bar (one attempt per setup) ──
+        pd = st["pending"]
+        if pd is not None and out is None:
+            if l < pd["stop"]:
+                st["pending"] = None                       # setup failed under its own risk
+            elif h > pd["hi"]:
+                st["pending"] = None
+                px = float(pd["hi"])
+                burst_ratio = round(v / p75, 2) if (p75 and p75 > 0) else None
+                burst = bool(p75 and p75 > 0 and v >= p75)
+                why = []
+                if not burst:
+                    why.append("no_burst" if p75 else "burst_unmeasured")
+                if st["leg_n"] >= KEVSEQ_LEG_MAX:
+                    why.append("leg_cap")
+                fs = ctx.get("front_side")
+                if fs is not True:
+                    why.append("front_side_off" if fs is False else "front_side_unknown")
+                dg = ctx.get("day_gain")
+                if not (bool(ctx.get("top3")) or (dg is not None and dg >= KEVSEQ_GAIN_MIN)):
+                    why.append("day_gain")
+                _room_block = (st["sess_hi"] is not None and st["sess_hi_k"] is not None
+                               and px < st["sess_hi"] <= px * (1 + KEVSEQ_ROOM_PCT)
+                               and (k - st["sess_hi_k"]) >= KEVSEQ_ROOM_STALE
+                               and not bool(ctx.get("blue_sky")))
+                if _room_block:
+                    why.append("no_room")
+                if not (pd["stop"] < px):
+                    why.append("degenerate_stop")
+                out = {"ok": not why, "why": why, "px": round(px, 4), "k": k,
+                       "would_stop": round(pd["stop"], 4), "seq_str": "B " + pd["kind"],
+                       "kind": pd["kind"], "leg": st["leg"], "leg_n": st["leg_n"],
+                       "burst": burst, "burst_ratio": burst_ratio, "bar_vol": v, "vol_p75": p75,
+                       "fresh_touch_n": pd["touch_n"], "pull_n": pd["pull_n"],
+                       "confluence": pd.get("confluence"), "b_level": round(st["b_level"], 4) if st["b_level"] else None,
+                       "session_hi": round(st["sess_hi"], 4) if st["sess_hi"] else None,
+                       "bars_since_b": (i - pd["b_i"]), "seq": st["n"]}
+                if out["ok"]:
+                    st["n"] += 1
+                    st["leg_n"] += 1
+        # ── 2) session-high bookkeeping: B event, leg boundaries ──
+        prev_hi = st["sess_hi"]
+        if prev_hi is None:
+            st["sess_hi"] = h; st["sess_hi_k"] = k
+            st["leg"] = 1; st["leg_hi"] = h; st["leg_lo"] = l
+        elif h > prev_hi:
+            # a leg = a new session high after a >= KEVSEQ_LEG_PB pullback from the running high
+            if (st["leg_lo"] is not None and st["leg_hi"] and st["leg_hi"] > 0
+                    and (st["leg_hi"] - st["leg_lo"]) / st["leg_hi"] >= KEVSEQ_LEG_PB):
+                st["leg"] += 1; st["leg_n"] = 0; st["pull_n"] = 0; st["leg_lows"] = []
+            st["leg_hi"] = h; st["leg_lo"] = l
+            level = prev_hi
+            if o < c:                                      # whole-dollar closed through, if higher
+                wd = float(int(c))
+                if o < wd <= c and wd > level:
+                    level = wd
+            st["b_i"] = i; st["b_level"] = level; st["hold_n"] = 0; st["hold_hi"] = None
+            st["armed"] = True                             # first H/W after THIS B is eligible
+            st["sess_hi"] = h; st["sess_hi_k"] = k
+        else:
+            st["leg_lo"] = l if st["leg_lo"] is None else min(st["leg_lo"], l)
+            st["leg_hi"] = st["leg_hi"] or prev_hi
+        # ── 3) after B, inside the window: detect the FIRST hold (H) or wick (W) ──
+        if st["b_i"] is not None and st["armed"] and st["pending"] is None and i > st["b_i"]:
+            if i - st["b_i"] > KEVSEQ_N_BARS:
+                st["armed"] = False                        # window expired for this B
+            else:
+                setup = None
+                lvl = st["b_level"]
+                if lvl and l >= lvl:
+                    st["hold_n"] += 1
+                    st["hold_hi"] = h if st["hold_hi"] is None else max(st["hold_hi"], h)
+                    if st["hold_n"] >= KEVSEQ_HOLD_N:
+                        setup = {"kind": "H", "hi": st["hold_hi"], "stop": lvl}
+                else:
+                    st["hold_n"] = 0; st["hold_hi"] = None
+                if setup is None and vwap and vwap > 0 and st["ema9"]:
+                    e9 = st["ema9"]
+                    lines = [x for x in (vwap, e9) if l <= x * (1 + KEVSEQ_TOUCH_BAND)]
+                    if lines and c > vwap and c > e9 and l < h:
+                        line = max(lines)
+                        if l <= line * (1 + KEVSEQ_TOUCH_BAND):
+                            setup = {"kind": "W", "hi": h, "stop": l,
+                                     "confluence": bool(abs(vwap - e9) / c <= 0.01)}
+                if setup is not None:
+                    st["armed"] = False                    # FIRST H/W after B only
+                    st["pull_n"] += 1
+                    stop = setup["stop"]
+                    touch_n = (sum(1 for xi, x in st["leg_lows"]
+                                   if xi < st["b_i"] and abs(x - stop) / stop <= KEVSEQ_TOUCH_BAND)
+                               if stop > 0 else 0)          # PRIOR touches only (before this B)
+                    if st["pull_n"] > KEVSEQ_MAX_PULL or touch_n > KEVSEQ_MAX_TOUCH:
+                        pass                               # 3rd+ pullback in the leg / stale touch -> skip
+                    else:
+                        setup.update({"touch_n": touch_n, "pull_n": st["pull_n"], "b_i": st["b_i"]})
+                        st["pending"] = setup
+        st["leg_lows"].append((i, l))
+        if len(st["leg_lows"]) > 360:
+            st["leg_lows"].pop(0)
+    return out
+
+
 def kev_zoneflip_step(sym, new_bars):
     """Advance sym's Z1–Z3 machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
     Z1 arm: 9:30–9:45 flush ≥ZONEFLIP_FLUSH from the 9:30 open, low inside zone±band, vol ≥2×
@@ -7582,6 +7762,71 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                           stop=_bpf["would_stop"], hold_n=_bpf["hold_n"],
                                                           fire_px=_bpf["px"], seq=_bpf["seq"],
                                                           day_n=_bp_conv_day["n"])
+                            except Exception:
+                                pass
+                        # ── 8/16 KEV SEQUENCE lane ("kevseq") shadow: same fed 10s bars + session
+                        # line (zero new fetches). Context for the detector's gates is computed HERE:
+                        # front side on the 1-MIN bars (9EMA > 20EMA; None = unknown -> refuses),
+                        # day gain vs prior close (_pdc_map / daily levels), top-3 gainer from the
+                        # scanner's Move% map, blue-sky = price above the prior-day high. Fires log
+                        # kevseq_shadow_fire; context refusals log kevseq_reject (evidence). Conversion
+                        # ONLY under KEVSEQ_CONVERT=1 (default OFF) — lane "kevseq", stop = would_stop,
+                        # exit_mode E3, cap KEVSEQ_LEG_MAX per ticker per LEG (in the detector, no
+                        # daily ration); not in any exempt set -> the normal gate stack applies.
+                        if KEVSEQ_SHADOW:
+                            try:
+                                _ks_ctx = {"front_side": None, "day_gain": None, "top3": False, "blue_sky": False}
+                                try:
+                                    _ks_1m = (bars or [])[:-1]
+                                    if len(_ks_1m) >= EMA20_PERIOD + 2:
+                                        _ks_e9, _ks_e20 = calculate_ema9(_ks_1m), calculate_ema20(_ks_1m)
+                                        _ks_ctx["front_side"] = bool(_ks_e9 > _ks_e20 > 0)
+                                    _ks_pdc = _pdc_map.get(t) or ((cache[t].get("daily") or {}).get("prior_day_close") or 0)
+                                    _ks_px0 = price if price and price > 0 else (_nb[-1][4] if _nb else 0)
+                                    if _ks_pdc and _ks_pdc > 0 and _ks_px0 > 0:
+                                        _ks_ctx["day_gain"] = round((_ks_px0 - _ks_pdc) / _ks_pdc * 100, 2)
+                                    _ks_pdh = (cache[t].get("daily") or {}).get("prior_day_high") or 0
+                                    _ks_ctx["blue_sky"] = bool(_ks_pdh and _ks_px0 > _ks_pdh)
+                                    if _move_pct:
+                                        _ks_top = sorted(_move_pct.items(), key=lambda kv: -float(kv[1] or 0))[:3]
+                                        _ks_ctx["top3"] = t in {s for s, _ in _ks_top}
+                                except Exception:
+                                    pass
+                                _ksf = kevseq_step(t, _nb, _vr_sv, _ks_ctx)
+                                if _ksf:
+                                    _hm_ks = datetime.now(EASTERN).strftime("%H:%M")
+                                    _ks_row = dict(price=_ksf["px"], seq_str=_ksf["seq_str"], kind=_ksf["kind"],
+                                                   leg=_ksf["leg"], leg_n=_ksf["leg_n"], burst=_ksf["burst"],
+                                                   burst_ratio=_ksf["burst_ratio"], fresh_touch_n=_ksf["fresh_touch_n"],
+                                                   pull_n=_ksf["pull_n"], confluence=_ksf.get("confluence"),
+                                                   b_level=_ksf["b_level"], session_hi=_ksf["session_hi"],
+                                                   bars_since_b=_ksf["bars_since_b"], would_stop=_ksf["would_stop"],
+                                                   vwap=round(_vr_sv, 4), front_side=_ks_ctx["front_side"],
+                                                   day_gain=_ks_ctx["day_gain"], top3=_ks_ctx["top3"],
+                                                   blue_sky=_ks_ctx["blue_sky"], convert_on=bool(KEVSEQ_CONVERT),
+                                                   seq=_ksf["seq"], time_hm=_hm_ks)
+                                    if not _ksf["ok"]:
+                                        _log_decision(t, "kevseq_reject", why=",".join(_ksf["why"]), **_ks_row)
+                                    else:
+                                        _log_decision(t, "kevseq_shadow_fire",
+                                                      eyes=_eyes_compact(_eyes_snapshot(t, _ksf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _ksf.get("would_stop")})),
+                                                      **_ks_row)
+                                        if KEVSEQ_CONVERT and _ksf["would_stop"] < _ksf["px"]:
+                                            _ks_px = price if price and price > 0 else _ksf["px"]
+                                            print(f"\n🔗 {t} KEV SEQUENCE ({_ksf['seq_str']}, leg {_ksf['leg']} "
+                                                  f"#{_ksf['leg_n']}/{KEVSEQ_LEG_MAX}, burst x{_ksf['burst_ratio']})! "
+                                                  f"${_ks_px:.2f} — stop ${_ksf['would_stop']:.2f} "
+                                                  f"({'level' if _ksf['kind'] == 'H' else 'wick low'}), E3 exits")
+                                            breakouts.append((t, _ks_px, _ksf["b_level"] or _ksf["would_stop"], "kevseq", {
+                                                "zone_stop": _ksf["would_stop"], "exit_mode": "E3",
+                                                "seq_str": _ksf["seq_str"], "ks_leg": _ksf["leg"],
+                                                "ks_leg_n": _ksf["leg_n"], "burst_ratio": _ksf["burst_ratio"],
+                                                "fresh_touch_n": _ksf["fresh_touch_n"], "ks_seq": _ksf["seq"],
+                                            }))
+                                            _log_decision(t, "triggered_kevseq", price=_ks_px,
+                                                          stop=_ksf["would_stop"], seq_str=_ksf["seq_str"],
+                                                          fire_px=_ksf["px"], leg=_ksf["leg"], leg_n=_ksf["leg_n"],
+                                                          seq=_ksf["seq"])
                             except Exception:
                                 pass
                         if PREVWAP_SHADOW:
@@ -11169,7 +11414,8 @@ def main():
           f"VWAPRECLAIM_CONVERT={int(VWAPRECLAIM_CONVERT)} MA_WARMUP_SEED={int(MA_WARMUP_SEED)} "
           f"RESTING_SELLS={int(RESTING_SELLS)} V2_SHADOW={int(V2_SHADOW)} "
           f"GRINDER_SHADOW={int(GRINDER_SHADOW)} BANDPASS_SHADOW={int(BANDPASS_SHADOW)} "
-          f"BANDPASS_CONVERT={int(BANDPASS_CONVERT)}(cap {BANDPASS_DAILY_CAP}) PREVWAP_SHADOW={int(PREVWAP_SHADOW)} | "
+          f"BANDPASS_CONVERT={int(BANDPASS_CONVERT)}(cap {BANDPASS_DAILY_CAP}) PREVWAP_SHADOW={int(PREVWAP_SHADOW)} "
+          f"KEVSEQ_SHADOW={int(KEVSEQ_SHADOW)} KEVSEQ_CONVERT={int(KEVSEQ_CONVERT)}(leg cap {KEVSEQ_LEG_MAX}) | "
           # 8/14 night O-config sim conversions (Marcos: "sim money live"):
           f"GRINDER_CONVERT={int(GRINDER_CONVERT)}(cap {GRINDER_DAILY_CAP}) "
           f"FLATTOP_BREAK_ATTACK={int(FLATTOP_BREAK_ATTACK)} E3_EXITS={int(E3_EXITS)}")
@@ -11204,6 +11450,8 @@ def main():
                       grinder_shadow=int(GRINDER_SHADOW),
                       bandpass_shadow=int(BANDPASS_SHADOW), bandpass_convert=int(BANDPASS_CONVERT),
                       bandpass_daily_cap=BANDPASS_DAILY_CAP, prevwap_shadow=int(PREVWAP_SHADOW),
+                      kevseq_shadow=int(KEVSEQ_SHADOW), kevseq_convert=int(KEVSEQ_CONVERT),
+                      kevseq_leg_max=KEVSEQ_LEG_MAX,
                       grinder_convert=int(GRINDER_CONVERT), grinder_daily_cap=GRINDER_DAILY_CAP,
                       flattop_break_attack=int(FLATTOP_BREAK_ATTACK), e3_exits=int(E3_EXITS))
         _leader_rehydrate()   # 8/5: earned leader status survives restarts

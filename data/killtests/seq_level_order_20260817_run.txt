@@ -1,0 +1,81 @@
+# LEVEL-INTERACTION SEQUENCE STUDY — 8/17/26 (analysis only, no bot edits)
+Fires + E3 exits from sequence_mining_pilot chain UNCHANGED; OOS split identical to
+seq_gate_oos_wall (MINE = earliest 44 dates, HOLD-OUT = latest 18).
+Universe: 729 files, 729 name-days, 62 dates 2026-05-18..2026-08-14.
+MINE 2026-05-18..2026-07-21 (44d) | HOLD-OUT 2026-07-22..2026-08-14 (18d)
+NOTE: cache tape starts 08:00Z (04:00 ET) with no prior session — 'premarket high'
+and 'day high before 09:30' are the SAME level here; collapsed into class M.
+
+LANE break-attack: 634 fires (447 MINE / 187 HOLD-OUT)
+LANE grinder: 387 fires (245 MINE / 142 HOLD-OUT)
+
+
+## H1 LADDER-UP (VWAP-reclaim then $-hold, 10 min)
+### break-attack
+MINE : with N=1 $+40.96/tr 100%w  |  without N=446 $+27.64/tr 69%w  |  diff $+13.33
+**UNDERPOWERED on MINE** (need both sides N>=15).
+### grinder
+MINE : with N=2 $+58.11/tr 100%w  |  without N=243 $+30.66/tr 72%w  |  diff $+27.45
+**UNDERPOWERED on MINE** (need both sides N>=15).
+
+## H2 PMH-FIRST (PMH reclaimed before fire)
+### break-attack
+MINE : with N=56 $+15.26/tr 66%w  |  without N=391 $+29.44/tr 70%w  |  diff $-14.19
+MINE direction with-side WORSE — OPPOSES the pre-registered hypothesis. FROZEN.
+HOLD : with N=11 $+4.96/tr 45%w  |  without N=176 $+26.19/tr 69%w  |  diff $-21.22
+**UNDERPOWERED on HOLD-OUT** (with=11, without=176).
+### grinder
+MINE : with N=104 $+25.18/tr 74%w  |  without N=141 $+35.10/tr 71%w  |  diff $-9.92
+MINE direction with-side WORSE — OPPOSES the pre-registered hypothesis. FROZEN.
+HOLD : with N=50 $+32.36/tr 82%w  |  without N=92 $+16.21/tr 65%w  |  diff $+16.15
+Hold-out split vanished or reversed vs MINE.
+**VERDICT [grinder]: NO-SPLIT**
+
+## H3 REJECTION-SCAR ($-rejection 10 min pre-fire)
+### break-attack
+MINE : with N=86 $+5.93/tr 62%w  |  without N=361 $+32.85/tr 71%w  |  diff $-26.91
+MINE direction with-side WORSE — agrees with the pre-registered hypothesis. FROZEN.
+HOLD : with N=34 $+19.69/tr 65%w  |  without N=153 $+26.11/tr 68%w  |  diff $-6.42
+NULL : permutation 5000x, one-sided p (frozen direction) = 0.304
+Direction held but does not beat the permutation null -> not distinguishable from chance.
+**VERDICT [break-attack]: NO-SPLIT**
+### grinder
+MINE : with N=22 $-3.46/tr 59%w  |  without N=223 $+34.27/tr 74%w  |  diff $-37.73
+MINE direction with-side WORSE — agrees with the pre-registered hypothesis. FROZEN.
+HOLD : with N=10 $+41.84/tr 80%w  |  without N=132 $+20.39/tr 70%w  |  diff $+21.45
+**UNDERPOWERED on HOLD-OUT** (with=10, without=132).
+
+## H4 CLEAN-LADDER (distinct classes reclaimed-and-held, prior 30 min: 0/1/2/3+)
+### break-attack
+| bucket | MINE N | MINE $/tr | HOLD N | HOLD $/tr |
+|---|---|---|---|---|
+| 0 | 289 | $+28.69 | 134 | $+30.45 |
+| 1 | 101 | $+29.00 | 41 | $+18.16 |
+| 2 | 42 | $+23.24 | 8 | $-19.28 |
+| 3+ | 15 | $+11.45 | 4 | $-1.63 |
+MINE not monotone across material buckets [0, 1, 2, 3] -> **NO-SPLIT** (no monotone relationship).
+### grinder
+| bucket | MINE N | MINE $/tr | HOLD N | HOLD $/tr |
+|---|---|---|---|---|
+| 0 | 127 | $+36.47 | 88 | $+21.32 |
+| 1 | 77 | $+32.62 | 42 | $+17.28 |
+| 2 | 36 | $+7.91 | 10 | $+36.73 |
+| 3+ | 5 | $+27.78 | 2 | $+69.77 |
+MINE monotone decreasing across material buckets [0, 1, 2]. FROZEN.
+HOLD-OUT monotone same direction; corr(bucket,pnl)=+0.090, permutation p=0.286
+Monotone direction reproduced but within permutation noise.
+**VERDICT [grinder]: NO-SPLIT**
+
+---
+
+## SUMMARY (per hypothesis x lane)
+| hyp | lane | MINE with/without $/tr | HOLD with/without $/tr | p | verdict |
+|---|---|---|---|---|---|
+| H1 | break-attack | $+40.96 / $+27.64 | - | - | UNDERPOWERED |
+| H1 | grinder | $+58.11 / $+30.66 | - | - | UNDERPOWERED |
+| H2 | break-attack | $+15.26 / $+29.44 | $+4.96 / $+26.19 | - | UNDERPOWERED |
+| H2 | grinder | $+25.18 / $+35.10 | $+32.36 / $+16.21 | - | NO-SPLIT |
+| H3 | break-attack | $+5.93 / $+32.85 | $+19.69 / $+26.11 | 0.304 | NO-SPLIT |
+| H3 | grinder | $-3.46 / $+34.27 | $+41.84 / $+20.39 | - | UNDERPOWERED |
+| H4 | break-attack | (buckets above) | (buckets above) | - | NO-SPLIT |
+| H4 | grinder | (buckets above) | (buckets above) | 0.286 | NO-SPLIT |

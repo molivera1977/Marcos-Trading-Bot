@@ -3040,6 +3040,36 @@ def _request_auto_read(ticker):
     except Exception:
         pass
 
+def _ignition_g1_stamp(price, vwap, sess_bars):
+    """8/17 IGNITION G1 SHADOW (ignition_guidance_20260817.md ship-shape: 'stamp vwap_side on
+    every ignition fire, run G1 as a shadow verdict for the proving week, enforce only on
+    Marcos's call' — NO enforcement here, the fire proceeds exactly as today). Returns the
+    stamp dict: vwap_side (above/below vs session VWAP at fire), hi_dist_pct (percent below
+    session high), g1_shadow pass/fail (fail = below VWAP). Also closes the guidance's
+    Curator debt: 'G3 era: not measurable — no distance-to-session-high stamp'. Every field
+    fails soft to None. Kill: IGNITION_G1_SHADOW=0 -> {}."""
+    out = {}
+    try:
+        if os.environ.get("IGNITION_G1_SHADOW", "1") != "1":
+            return out
+        v = float(vwap or 0); p = float(price or 0)
+        if v > 0 and p > 0:
+            out["vwap_side"] = "above" if p >= v else "below"
+            out["g1_shadow"] = "pass" if p >= v else "fail"
+        else:
+            out["vwap_side"] = None; out["g1_shadow"] = None
+        hi = 0.0
+        for b in (sess_bars or []):
+            try:
+                h = float((b.get("high") if isinstance(b, dict) else 0) or 0)
+            except (TypeError, ValueError):
+                h = 0.0
+            if h > hi: hi = h
+        out["hi_dist_pct"] = round((hi - p) / hi * 100.0, 2) if (hi > 0 and p > 0) else None
+    except Exception:
+        pass
+    return out
+
 _reread_reject_t: dict = {}   # ticker -> epoch of last stale-reject reread request (10-min cap)
 
 def _reread_on_reject(ticker, gate, map_age_min=None):
@@ -8406,11 +8436,14 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         print(f"\n🚀 {t} IGNITION! ${price:.2f} vol-surge {ign['volx']}× broke base "
                               f"${ign['base_hi']:.2f} (+{ign['ext_pct']}% from open, NOT extended) — "
                               f"stop ${_istop:.2f} | room {rr}:1 to ${room['next_supply']} ({room['supply_src']})")
+                        # 8/17 G1 SHADOW stamps (guidance ship-shape: observe-first, NO enforcement)
+                        _g1 = _ignition_g1_stamp(price, vwap,
+                                                 _latest_session(cache[t].get("full_bars") or bars))
                         breakouts.append((t, price, vwap, "ignition",
                                           {"zone_stop": _istop, "room": room, "base_hi": ign["base_hi"],
                                            "base_lo": ign["base_lo"], "volx": ign["volx"], "ext_pct": ign["ext_pct"],
                                            "ema90": round(_e90, 4), "front_side": _front,
-                                           "ema9": round(_e9, 4), "ema20": round(_e20, 4)}))
+                                           "ema9": round(_e9, 4), "ema20": round(_e20, 4), **_g1}))
                         # 7/30 shadow stamp: what the OLD config's gate would have said. The
                         # "_shadow_legacy" probe walks the exact legacy path (not stale-exempt,
                         # not bypassed) — the gated alternative's counterfactual, graded Friday.
@@ -8421,7 +8454,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         _log_decision(t, "triggered_ignition", price=price, room_rr=rr,
                                       volx=ign["volx"], base_hi=ign["base_hi"], ext_pct=ign["ext_pct"], front_side=_front,
                                       src=("10s" if IGNITION_10S else "1min"),
-                                      shadow_gate=_sgv, shadow_gate_reason=_sgr, shadow_gate_level=_sgl)
+                                      shadow_gate=_sgv, shadow_gate_reason=_sgr, shadow_gate_level=_sgl,
+                                      **_g1)   # 8/17: vwap_side + hi_dist_pct + g1_shadow (guidance-mandated stamps)
                         cache[t]["ignition_fired"] = True; cache[t]["ignition_n"] = cache[t].get("ignition_n", 0) + 1
                         continue                              # ignition captured (in `breakouts`) — skip other detectors for t
 

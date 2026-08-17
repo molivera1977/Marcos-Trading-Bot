@@ -2587,6 +2587,31 @@ try:
 except (AssertionError, ValueError, KeyError) as _a3e:
     check("AJ3 section", False, str(_a3e))
 
+print("AJ4) 8/17 ignition G1 shadow stamps (observe-first per guidance — NO enforcement)")
+try:
+    _a4_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    _a4_ns = {"os": os}
+    exec(_a4_src[_a4_src.index("def _ignition_g1_stamp"):_a4_src.index("_reread_reject_t: dict")], _a4_ns)
+    _g1f = _a4_ns["_ignition_g1_stamp"]
+    _sb = [{"high": "6.30", "close": "6.1"}, {"high": "6.00", "close": "5.9"}]
+    _up = _g1f(6.20, 6.05, _sb)
+    check("AJ4: above VWAP -> pass", _up["vwap_side"] == "above" and _up["g1_shadow"] == "pass")
+    check("AJ4: hi_dist_pct vs session high", _up["hi_dist_pct"] == round((6.30 - 6.20) / 6.30 * 100, 2))
+    _dn = _g1f(5.765, 6.05, _sb)   # FIEE specimen: below VWAP -> shadow FAIL, fire untouched
+    check("AJ4: below VWAP -> fail (FIEE would stamp fail)", _dn["vwap_side"] == "below" and _dn["g1_shadow"] == "fail")
+    check("AJ4: no vwap -> None stamps, never a throw", _g1f(5.0, 0, _sb)["g1_shadow"] is None)
+    os.environ["IGNITION_G1_SHADOW"] = "0"
+    check("AJ4: kill switch -> empty stamp dict", _g1f(6.2, 6.05, _sb) == {})
+    os.environ.pop("IGNITION_G1_SHADOW", None)
+    check("AJ4: stamps ride triggered_ignition row + eyes extra",
+          '**_g1)   # 8/17' in _a4_src and '"ema20": round(_e20, 4), **_g1}))' in _a4_src)
+    # conversion unchanged: the stamp must never gate — no branch reads the verdict back
+    check("AJ4: NO enforcement anywhere (verdict never consumed by a condition)",
+          '_g1["g1_shadow"]' not in _a4_src and '_g1.get("g1_shadow")' not in _a4_src
+          and 'g1_shadow ==' not in _a4_src and 'g1_shadow" ==' not in _a4_src)
+except (AssertionError, ValueError, KeyError) as _a4e:
+    check("AJ4 section", False, str(_a4e))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

@@ -79,3 +79,5 @@ Room vote on "5e77993 (+ ae965ad/b4f8ccd/ec9eadd/6f79263 + data commits) is ship
 SHIP_CHECK result (run after the bookkeeping commit): see the chair's return message.
 
 — Convening closed 2026-08-16 (clock cited above). Blast Radius Auditor, chair.
+
+covers (post-audit bookkeeping): db8a4250dd96, f34d9f4021cf — data/audits only, no code.

@@ -2146,3 +2146,10 @@ band-pass, v2. Holes registry H-SEQ-<lane> per lane. The grammar, not the letter
 - H2 second-mover NO-SPLIT (the WINDOW matters, not the ordinal name — MINE lift $+0.13, HOLD reversed). H3 board-heat 2+ NO-SPLIT (monotone on MINE, direction held on HOLD but p=0.077 — not separable from "hot date"; re-look on the REAL scanner board). H4 sole-runner UNDERPOWERED (sole-runner days barely exist in a 40%+-runner universe).
 - **CAVEAT (load-bearing): the universe is gain>=40% runners ONLY, so "leader"/"heat"/"sole" are WITHIN-UNIVERSE PROXIES, not the live scanner board.** The live-board version of H1 is a different measurement and is NOT yet made.
 - STATUS: **data-only.** No gate, no sizing, no lane. Any live use = behavior change = Marcos's priced call (auditor-cannot-authorize).
+
+## 2026-08-17 ~03:30 ET — DAY-ARC SEQUENCE: H1 ARC-PREDICTS (break-attack only, w/ circularity caveat); H2-H4 no
+- seq_day_arc_20260817.md (commit 24f949c). 729 name-days / 62 dates, fires + E3 $500 imported unchanged from the pilot, same MINE/HOLD-OUT split.
+- **H1 coil-then-break day (R->B pre-10:30) vs gap-and-go, BREAK-ATTACK: MINE +$36.82 (N163) vs +$26.74 (N74); HOLD-OUT +$34.14 (N82) vs +$12.40 (N36), gap +$21.74/tr, win 72% vs 50%, p=0.043 -> ARC-PREDICTS.** Grinder (-$4.10) and v2 (-$1.17) show nothing.
+- **CAVEAT THAT MATTERS: partially CIRCULAR for break-attack — the fire's own break can BE the B phase.** Reads as the DAY-GRAIN TWIN of the pilot's `T B`, i.e. ONE coil-then-break doctrine at two grains, NOT an independent signal. p=0.043 is marginal across 12 tested cells; the mine->freeze->future chronology is the real defense. Gap-and-go days still green (+$12.40) -> priority/size split, NEVER a do-not-trade filter.
+- H2 morning-held-above-VWAP -> afternoon: NO-SPLIT (grinder gap -$6.90, wrong direction). H3 flush-then-rip: UNDERPOWERED (HOLD N=8, p=0.324). H4 quiet open: UNDERPOWERED (BA MINE +$72.69 vs +$21.53 echoed joint_door's quiet-tape but collapsed on HOLD, N=7, p=0.437 — same direction, unproven at this grain).
+- No ship. Registered for Side Marshal / First Hour / Handicapper.

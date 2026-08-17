@@ -1,0 +1,47 @@
+CANDIDATES 125  passed-stack 117  refused 31
+FILLS(2-slot) 10  total $-157.71
+  RTH n=4 $-98.51 | PRE n=6 $-59.20
+
+07:03:15 DFSC   v2conv   FIX5_caps            in    3.0906 stop    2.9376 out    3.3931 trail @07:27:50 $   49.47
+07:16:03 PLSM   v2conv   FIX5_caps            in    3.4264 stop    3.0100 out    2.9949 stop  @07:17:40 $  -62.96
+07:45:36 JLHL   v2conv   FIX5_caps            in    8.5849 stop    8.1599 out    8.1191 stop  @09:46:40 $  -27.13
+08:04:29 QNTM   v2conv   FIX5_caps            in    4.5349 stop    4.2500 out    4.2287 stop  @08:27:30 $  -33.75
+08:56:28 IPST   kevseq   FIX6_limit_entry     in    8.1405 stop    7.8149 out    7.7758 stop  @09:07:20 $  -22.40
+09:10:06 STKH   v2conv   FIX5_caps            in    3.6000 stop    3.3505 out    3.7810 eod   @16:00:00 $   37.57
+09:47:08 XPON   v2conv   FIX5_caps            in    4.6215 stop    4.3927 out    4.3707 stop  @09:53:30 $  -27.13
+09:54:14 AEHL   v2conv   FIX5_caps            in    5.0803 stop    4.8288 out    4.8047 stop  @09:55:10 $  -27.13
+10:01:06 JDZG   v2conv   FIX5_caps            in    4.2066 stop    3.9984 out    3.9784 stop  @10:21:10 $  -27.13
+10:27:46 JDZG   v2conv   FIX5_caps            in    4.2318 stop    4.0223 out    4.0869 eod   @16:00:00 $  -17.12
+
+--- skipped by slot contention, per fix ---
+   ('FIX5_caps', 'no_free_slot') 74
+   ('FIX3_lane_registry', 'no_free_slot') 17
+   ('FIX6_limit_entry', 'no_free_slot') 8
+   ('ACTUAL', 'no_free_slot') 3
+   ('FIX2_tape_momentum', 'no_free_slot') 3
+   ('FIX4_frontside', 'no_free_slot') 1
+   ('FIX5_caps', 'already_in_name') 1
+
+--- UNCONSTRAINED cohort grade (no slot/capital limit) ---
+  FIX2_tape_momentum     n=  3  $   -27.85  ($-9.28/trade)
+  FIX4_frontside         n=  1  $   -39.27  ($-39.27/trade)
+  ACTUAL                 n=  3  $   -39.32  ($-13.11/trade)
+  FIX6_limit_entry       n=  9  $   -61.16  ($-6.80/trade)
+  FIX3_lane_registry     n= 17  $  -172.53  ($-10.15/trade)
+  FIX5_caps              n= 84  $ -1665.54  ($-19.83/trade)
+
+--- per-fix attribution (2-slot) ---
+  FIX6_limit_entry       n=  1  $  -22.40
+  FIX5_caps              n=  9  $ -135.31
+
+--- surviving refusals ---
+  unfilled_limit(FIX6)             16
+  backside_gate                    8
+  pre_open_blackout(<07:00)        7
+
+SENSITIVITY 1-slot (real balance $604.16): n=6 $-76.17
+skipped-no-slot 2slot=106 1slot=111
+
+--- worst / best single ---
+  worst {'sec': 26163, 'ticker': 'PLSM', 'lane': 'v2conv', 'fix': 'FIX5_caps', 'note': 'cap refunded', 'entry': 3.4264, 'stop': 3.01, 'exit_px': 2.9949, 'exit_reason': 'stop', 'exit_sec': 26260, 'pnl': -62.96}
+  best  {'sec': 25395, 'ticker': 'DFSC', 'lane': 'v2conv', 'fix': 'FIX5_caps', 'note': 'cap refunded', 'entry': 3.0906, 'stop': 2.9376, 'exit_px': 3.3931, 'exit_reason': 'trail', 'exit_sec': 26870, 'pnl': 49.47}

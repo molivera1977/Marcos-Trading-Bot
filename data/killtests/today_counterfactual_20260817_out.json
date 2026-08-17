@@ -1,0 +1,1339 @@
+{
+ "fills_2slot": [
+  {
+   "sec": 25395,
+   "ticker": "DFSC",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 3.0906,
+   "stop": 2.9376,
+   "exit_px": 3.3931,
+   "exit_reason": "trail",
+   "exit_sec": 26870,
+   "pnl": 49.47
+  },
+  {
+   "sec": 26163,
+   "ticker": "PLSM",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 3.4264,
+   "stop": 3.01,
+   "exit_px": 2.9949,
+   "exit_reason": "stop",
+   "exit_sec": 26260,
+   "pnl": -62.96
+  },
+  {
+   "sec": 27936,
+   "ticker": "JLHL",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 8.5849,
+   "stop": 8.1599,
+   "exit_px": 8.1191,
+   "exit_reason": "stop",
+   "exit_sec": 35200,
+   "pnl": -27.13
+  },
+  {
+   "sec": 29069,
+   "ticker": "QNTM",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 4.5349,
+   "stop": 4.25,
+   "exit_px": 4.2287,
+   "exit_reason": "stop",
+   "exit_sec": 30450,
+   "pnl": -33.75
+  },
+  {
+   "sec": 32188,
+   "ticker": "IPST",
+   "lane": "kevseq",
+   "fix": "FIX6_limit_entry",
+   "note": "converted fire, repriced to limit",
+   "entry": 8.1405,
+   "stop": 7.8149,
+   "exit_px": 7.7758,
+   "exit_reason": "stop",
+   "exit_sec": 32840,
+   "pnl": -22.4
+  },
+  {
+   "sec": 33006,
+   "ticker": "STKH",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 3.6,
+   "stop": 3.3505,
+   "exit_px": 3.781,
+   "exit_reason": "eod",
+   "exit_sec": 57600,
+   "pnl": 37.57
+  },
+  {
+   "sec": 35228,
+   "ticker": "XPON",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 4.6215,
+   "stop": 4.3927,
+   "exit_px": 4.3707,
+   "exit_reason": "stop",
+   "exit_sec": 35610,
+   "pnl": -27.13
+  },
+  {
+   "sec": 35654,
+   "ticker": "AEHL",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 5.0803,
+   "stop": 4.8288,
+   "exit_px": 4.8047,
+   "exit_reason": "stop",
+   "exit_sec": 35710,
+   "pnl": -27.13
+  },
+  {
+   "sec": 36066,
+   "ticker": "JDZG",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 4.2066,
+   "stop": 3.9984,
+   "exit_px": 3.9784,
+   "exit_reason": "stop",
+   "exit_sec": 37270,
+   "pnl": -27.13
+  },
+  {
+   "sec": 37666,
+   "ticker": "JDZG",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 4.2318,
+   "stop": 4.0223,
+   "exit_px": 4.0869,
+   "exit_reason": "eod",
+   "exit_sec": 57600,
+   "pnl": -17.12
+  }
+ ],
+ "fills_1slot": [
+  {
+   "sec": 25395,
+   "ticker": "DFSC",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 3.0906,
+   "stop": 2.9376,
+   "exit_px": 3.3931,
+   "exit_reason": "trail",
+   "exit_sec": 26870,
+   "pnl": 49.47
+  },
+  {
+   "sec": 27936,
+   "ticker": "JLHL",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 8.5849,
+   "stop": 8.1599,
+   "exit_px": 8.1191,
+   "exit_reason": "stop",
+   "exit_sec": 35200,
+   "pnl": -27.13
+  },
+  {
+   "sec": 35228,
+   "ticker": "XPON",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 4.6215,
+   "stop": 4.3927,
+   "exit_px": 4.3707,
+   "exit_reason": "stop",
+   "exit_sec": 35610,
+   "pnl": -27.13
+  },
+  {
+   "sec": 35654,
+   "ticker": "AEHL",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 5.0803,
+   "stop": 4.8288,
+   "exit_px": 4.8047,
+   "exit_reason": "stop",
+   "exit_sec": 35710,
+   "pnl": -27.13
+  },
+  {
+   "sec": 36066,
+   "ticker": "JDZG",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 4.2066,
+   "stop": 3.9984,
+   "exit_px": 3.9784,
+   "exit_reason": "stop",
+   "exit_sec": 37270,
+   "pnl": -27.13
+  },
+  {
+   "sec": 37666,
+   "ticker": "JDZG",
+   "lane": "v2conv",
+   "fix": "FIX5_caps",
+   "note": "cap refunded",
+   "entry": 4.2318,
+   "stop": 4.0223,
+   "exit_px": 4.0869,
+   "exit_reason": "eod",
+   "exit_sec": 57600,
+   "pnl": -17.12
+  }
+ ],
+ "refused": [
+  [
+   [
+    16608,
+    "SXTC",
+    "v2conv",
+    4.2035,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "pre_open_blackout(<07:00)"
+  ],
+  [
+   [
+    18021,
+    "RENX",
+    "v2conv",
+    2.226,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "pre_open_blackout(<07:00)"
+  ],
+  [
+   [
+    19544,
+    "XPON",
+    "v2conv",
+    4.659,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "pre_open_blackout(<07:00)"
+  ],
+  [
+   [
+    20636,
+    "STKH",
+    "v2conv",
+    3.34,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "pre_open_blackout(<07:00)"
+  ],
+  [
+   [
+    21457,
+    "JFU",
+    "v2conv",
+    2.86,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "pre_open_blackout(<07:00)"
+  ],
+  [
+   [
+    22690,
+    "STKH",
+    "v2conv",
+    3.48,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "pre_open_blackout(<07:00)"
+  ],
+  [
+   [
+    23471,
+    "STKH",
+    "v2conv",
+    3.65,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "pre_open_blackout(<07:00)"
+  ],
+  [
+   [
+    30588,
+    "IVF",
+    "v2conv",
+    2.5293,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "backside_gate"
+  ],
+  [
+   [
+    35143,
+    "PFSA",
+    "kevseq",
+    4.77,
+    4.63,
+    "FIX4_frontside",
+    "self front_side=True n=36"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    35233,
+    "PFSA",
+    "kevseq",
+    4.98,
+    4.78,
+    "FIX4_frontside",
+    "self front_side=True n=38"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    35419,
+    "WETO",
+    "kevseq",
+    13.43,
+    12.56,
+    "FIX4_frontside",
+    "self front_side=True n=160"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    35419,
+    "CDTG",
+    "kevseq",
+    2.6892,
+    2.5523,
+    "FIX4_frontside",
+    "self front_side=True n=58"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    35494,
+    "CDTG",
+    "kevseq",
+    2.73,
+    2.5798,
+    "FIX4_frontside",
+    "self front_side=True n=58"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    40467,
+    "WOK",
+    "grinder",
+    2.559,
+    null,
+    "FIX3_lane_registry",
+    "lane=grinder"
+   ],
+   "backside_gate"
+  ],
+  [
+   [
+    40668,
+    "WFF",
+    "kevseq",
+    5.039,
+    null,
+    "FIX3_lane_registry",
+    "lane=kevseq"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    43114,
+    "WETO",
+    "grinder",
+    17.7299,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "backside_gate"
+  ],
+  [
+   [
+    50385,
+    "WETO",
+    "grinder",
+    17.8074,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "backside_gate"
+  ],
+  [
+   [
+    50385,
+    "IPST",
+    "grinder",
+    6.97,
+    null,
+    "FIX3_lane_registry",
+    "lane=grinder"
+   ],
+   "backside_gate"
+  ],
+  [
+   [
+    52749,
+    "IPST",
+    "v2conv",
+    7.3447,
+    null,
+    "FIX3_lane_registry",
+    "lane=v2conv"
+   ],
+   "backside_gate"
+  ],
+  [
+   [
+    54153,
+    "OSRH",
+    "grinder",
+    0.5544,
+    null,
+    "FIX5_caps",
+    "cap refunded"
+   ],
+   "backside_gate"
+  ],
+  [
+   [
+    29545,
+    "QNTM",
+    "kevseq",
+    4.66,
+    4.55,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    37119,
+    "WETO",
+    "kevseq",
+    19.495,
+    17.88,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    37350,
+    "PFSA",
+    "kevseq",
+    6.48,
+    5.9,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    40668,
+    "WFF",
+    "kevseq",
+    5.039,
+    3.68,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    42274,
+    "RPGL",
+    "kevseq",
+    2.6,
+    2.22,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    43114,
+    "CDTG",
+    "kevseq",
+    2.899,
+    2.82,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    43114,
+    "WFF",
+    "kevseq",
+    6.92,
+    4.48,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    43290,
+    "WFF",
+    "kevseq",
+    8.2,
+    4.8,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    49806,
+    "WETO",
+    "kevseq",
+    18.81,
+    16.93,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "unfilled_limit(FIX6)"
+  ],
+  [
+   [
+    50072,
+    "WETO",
+    "kevseq",
+    20.19,
+    19.296,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "backside_gate"
+  ],
+  [
+   [
+    54153,
+    "OSRH",
+    "kevseq",
+    0.6455,
+    0.5837,
+    "FIX6_limit_entry",
+    "already-fired"
+   ],
+   "unfilled_limit(FIX6)"
+  ]
+ ],
+ "skipped_2slot": [
+  [
+   29595,
+   "IPST",
+   "kevseq",
+   "FIX6_limit_entry",
+   "no_free_slot"
+  ],
+  [
+   30187,
+   "BRNX",
+   "prevwap",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   34250,
+   "BANL",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   34250,
+   "NIPG",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   34335,
+   "MF",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   34335,
+   "HHS",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   34335,
+   "STFS",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   34550,
+   "DAIC",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   34661,
+   "MF",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   34722,
+   "FIEE",
+   "ignition",
+   "ACTUAL",
+   "no_free_slot"
+  ],
+  [
+   34851,
+   "CDTG",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   34851,
+   "SVRE",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   34861,
+   "DFSC",
+   "ignition",
+   "ACTUAL",
+   "no_free_slot"
+  ],
+  [
+   35143,
+   "TRUG",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   35233,
+   "NIVF",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   35233,
+   "AKTX",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   35414,
+   "YDES",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   36151,
+   "AEHL",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   36156,
+   "STFS",
+   "kevseq",
+   "FIX4_frontside",
+   "no_free_slot"
+  ],
+  [
+   36206,
+   "STKH",
+   "v2conv",
+   "FIX5_caps",
+   "already_in_name"
+  ],
+  [
+   36593,
+   "NIVF",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   36788,
+   "NIPG",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   37119,
+   "FTFT",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   37119,
+   "WETO",
+   "kevseq",
+   "FIX2_tape_momentum",
+   "no_free_slot"
+  ],
+  [
+   38535,
+   "XPON",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   39548,
+   "FXHO",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   40014,
+   "RBNE",
+   "grinder",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   40175,
+   "MI",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   40381,
+   "NIVF",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   40467,
+   "NIVF",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   40467,
+   "RBNE",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   40467,
+   "XPON",
+   "grinder",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   40467,
+   "GRNQ",
+   "v2conv",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   40467,
+   "IPST",
+   "grinder",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   40809,
+   "AEHL",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   40809,
+   "AEHL",
+   "v2conv",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   41195,
+   "FXHO",
+   "v2conv",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   41752,
+   "ATPC",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   41758,
+   "GRNQ",
+   "v2conv",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   42149,
+   "GNPX",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   42996,
+   "NIVF",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   43114,
+   "GNPX",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   43114,
+   "RPGL",
+   "kevseq",
+   "FIX6_limit_entry",
+   "no_free_slot"
+  ],
+  [
+   43119,
+   "ATPC",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   43119,
+   "NIVF",
+   "grinder",
+   "ACTUAL",
+   "no_free_slot"
+  ],
+  [
+   43290,
+   "RBNE",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   43842,
+   "PWCM",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   43903,
+   "XPON",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   44073,
+   "BGLC",
+   "v2conv",
+   "FIX2_tape_momentum",
+   "no_free_slot"
+  ],
+  [
+   44545,
+   "UUU",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   44816,
+   "RBNE",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   44986,
+   "UUU",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   45162,
+   "YDES",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   45453,
+   "AIXI",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   45870,
+   "PWCM",
+   "v2conv",
+   "FIX2_tape_momentum",
+   "no_free_slot"
+  ],
+  [
+   46382,
+   "PWCM",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   46985,
+   "FIEE",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   47734,
+   "RETO",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   47840,
+   "UUU",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   47885,
+   "FXHO",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   47885,
+   "GRNQ",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   48769,
+   "FXHO",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   49121,
+   "GRNQ",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   49292,
+   "FXHO",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   49448,
+   "GNPX",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   49806,
+   "YDES",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   49806,
+   "RBNE",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   49806,
+   "GNPX",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   49806,
+   "FIEE",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   49811,
+   "CDTG",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   49811,
+   "PWCM",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   49811,
+   "WTM",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50385,
+   "FXHO",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50385,
+   "YDES",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50385,
+   "RBNE",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50385,
+   "GNPX",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50385,
+   "CDTG",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50385,
+   "UUU",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50385,
+   "WTM",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50385,
+   "XPON",
+   "grinder",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   50385,
+   "FIEE",
+   "grinder",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   50525,
+   "RBNE",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50581,
+   "GRNQ",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50766,
+   "TRUG",
+   "v2conv",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   50796,
+   "WTM",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   50846,
+   "RBNE",
+   "v2conv",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   50972,
+   "XPON",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   51248,
+   "TRUG",
+   "kevseq",
+   "FIX6_limit_entry",
+   "no_free_slot"
+  ],
+  [
+   51278,
+   "IVF",
+   "kevseq",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   51278,
+   "IVF",
+   "kevseq",
+   "FIX6_limit_entry",
+   "no_free_slot"
+  ],
+  [
+   51529,
+   "NIPG",
+   "v2conv",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   51529,
+   "WETO",
+   "kevseq",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   51529,
+   "WETO",
+   "kevseq",
+   "FIX6_limit_entry",
+   "no_free_slot"
+  ],
+  [
+   51936,
+   "CDTG",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   52086,
+   "CGTL",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   52327,
+   "SLE",
+   "kevseq",
+   "FIX6_limit_entry",
+   "no_free_slot"
+  ],
+  [
+   53080,
+   "NIPG",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   53215,
+   "GNPX",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   53476,
+   "FIEE",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   53476,
+   "WETO",
+   "kevseq",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   53476,
+   "WETO",
+   "kevseq",
+   "FIX6_limit_entry",
+   "no_free_slot"
+  ],
+  [
+   53897,
+   "NIPG",
+   "v2conv",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   53952,
+   "MLEC",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   54153,
+   "OSRH",
+   "kevseq",
+   "FIX3_lane_registry",
+   "no_free_slot"
+  ],
+  [
+   54298,
+   "ADIL",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ],
+  [
+   54354,
+   "OSRH",
+   "kevseq",
+   "FIX6_limit_entry",
+   "no_free_slot"
+  ],
+  [
+   54569,
+   "FIEE",
+   "grinder",
+   "FIX5_caps",
+   "no_free_slot"
+  ]
+ ]
+}

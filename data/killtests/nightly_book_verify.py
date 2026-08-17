@@ -62,6 +62,27 @@ try:
 except Exception as _cle:
     print(f"⚠️  claims verifier did not run: {_cle}")
 
+# ── 8/17 ENFORCEMENT GATE 7: reconcile SETTLED DECISIONS against the live machine ───────────
+# data/audits/DECISIONS.md restates every settled ruling as a command. 8/17 found four rulings
+# that had quietly stopped being true (kev_shadow unread since 8/12, the chart-gate bypass list
+# stale, the refuted momentum scalar still vetoing kevseq, #57 asserted-shipped but queued).
+# Running it here surfaces a drift the night it happens instead of the next time it costs money.
+# Appended to the EXISTING nightly job on purpose — no new launchd agent (that needs Marcos).
+# Read-only (greps + one GET). Non-fatal: it reports, it never blocks the book verification.
+try:
+    import subprocess as _dc_sp
+    _dc = _dc_sp.run([sys.executable, str(ROOT / "data/audits/reconcile_decisions.py")],
+                     capture_output=True, text=True, timeout=300)
+    print(_dc.stdout.rstrip())
+    (ROOT / "data/history/nightly_verify.log").open("a").write(
+        datetime.datetime.now(ET).isoformat()[:19] + " DECISIONS: " +
+        (_dc.stdout.strip().splitlines() or ["(no output)"])[0] + "\n")
+    if "DRIFTED" in _dc.stdout and "0 DRIFTED" not in _dc.stdout:
+        print("🚨 A SETTLED DECISION HAS DRIFTED — restore the behaviour, or take a NEW "
+              "decision to Marcos. Never let the row quietly rot.")
+except Exception as _dce:
+    print(f"⚠️  decision reconciler did not run: {_dce}")
+
 if res["fiction"]:
     print("🚨 REGRESSION: fictional fill(s) AFTER the 8/13 fix — investigate before next session")
     sys.exit(2)

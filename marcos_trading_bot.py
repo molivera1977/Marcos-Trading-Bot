@@ -5078,6 +5078,19 @@ RETEST_DEPTH_PCT = float(os.environ.get("RETEST_DEPTH_PCT", "1.0"))
 RETEST_EXPIRY_S  = int(os.environ.get("RETEST_EXPIRY_S", "900"))
 RETEST_LANES     = set((os.environ.get("RETEST_LANES", "flat_top,ignition,orb")).split(","))
 
+# ── 8/17 batch2-A TAPE-LANE SCALAR-VETO EXEMPTION (WETO 10:18:37 kevseq killed by momentum_reject
+#    1s after chart_gate_allow + entry_zone). Enforces the SETTLED 7/26 doctrine: do-not-trade blocks
+#    CHART lanes only; tape lanes trade through by design — every setup-quality scalar (room,
+#    day-gain, momentum, extension) was REFUTED. These are the 10s live-structure lanes NOT already
+#    in the momentum exempt tuple (kill-test: scalar_veto_tape_lanes_20260817.md, +$25.14 N=1).
+#    ONLY the "no momentum build" setup-quality scalar is bypassed — the liquidity/ambient
+#    TRADEABILITY floors and the topping-tail candle rule inside check_momentum still veto.
+#    Every bypass logs "scalar_veto_bypassed" (lane, gate, price) — a graded counterfactual row.
+#    Kill switch: TAPE_LANE_SCALAR_EXEMPT=0 restores the 8/17 behavior exactly.
+TAPE_LANE_SCALAR_EXEMPT = os.environ.get("TAPE_LANE_SCALAR_EXEMPT", "1") == "1"
+TAPE_SCALAR_EXEMPT_LANES = set(filter(None, (s.strip() for s in os.environ.get(
+    "TAPE_SCALAR_EXEMPT_LANES", "kevseq,v2conv,grinder,bandpass,prevwap").split(","))))
+
 PAUSE_ENTRIES_RESPECT = os.environ.get("PAUSE_ENTRIES_RESPECT", "1") == "1"
 _pause_cache = {"t": 0.0, "paused": False}
 
@@ -12633,6 +12646,22 @@ def main():
                                 f"< ${int(_am_need):,} exit floor (universal gate)")}
             else:
                 mom_ok, mom_details = check_momentum(ticker)
+                # ── 8/17 batch2-A: TAPE-LANE SCALAR-VETO EXEMPTION (see env def :5081). The 10s
+                # tape lanes (kevseq/v2conv/grinder/bandpass/prevwap) had passed their own burst/
+                # context gates + chart gate + entry_zone before check_momentum re-judged the same
+                # tape at 1-MIN resolution — the identical resolution mismatch that removed ignition
+                # from the vel5 set 7/26. ONLY the refuted "no momentum build" scalar is bypassed;
+                # illiquid / thin-ambient tradeability floors and the topping-tail candle rule keep
+                # their veto. Bypass row = Friday's counterfactual. Kill: TAPE_LANE_SCALAR_EXEMPT=0.
+                if (not mom_ok and TAPE_LANE_SCALAR_EXEMPT
+                        and entry_type in TAPE_SCALAR_EXEMPT_LANES
+                        and str(mom_details.get("reason", "")).startswith("no momentum build")):
+                    _log_decision(ticker, "scalar_veto_bypassed", price=entry_price,
+                                  lane=entry_type, gate="momentum",
+                                  reason=str(mom_details.get("reason", ""))[:80])
+                    print(f"🟢 {ticker} {entry_type} TAPE-LANE scalar exemption — momentum veto "
+                          f"bypassed (7/26 doctrine), row logged")
+                    mom_ok, mom_details = True, {"exempt": f"tape_scalar:{entry_type}"}
             if not mom_ok:
                 print(f"⚠️ {ticker} momentum rejected: {mom_details.get('reason','')} — skipping")
                 _log_decision(ticker, "momentum_reject", price=entry_price, reason=str(mom_details.get('reason', ''))[:80])

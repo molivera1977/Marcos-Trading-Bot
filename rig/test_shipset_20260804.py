@@ -2661,6 +2661,52 @@ try:
 except (AssertionError, ValueError, KeyError) as _ake:
     check("AK section", False, str(_ake))
 
+print("AL) 8/17 batch2-A TAPE-LANE SCALAR-VETO EXEMPTION (7/26 doctrine: tape lanes trade through)")
+try:
+    import textwrap as _al_tw
+    _al_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    # env defs re-exec'd per case (kill-switch honesty), branch segment = the REAL shipped code
+    _al_env = _al_src[_al_src.index("TAPE_LANE_SCALAR_EXEMPT = os.environ.get"):
+                      _al_src.index("TAPE_SCALAR_EXEMPT_LANES = set") + 200]
+    _al_env = _al_env[:_al_env.index('.split(","))))') + len('.split(","))))')]
+    _al_i0 = _al_src.rindex("\n", 0, _al_src.index("mom_ok, mom_details = check_momentum(ticker)")) + 1
+    _al_seg = _al_tw.dedent(_al_src[_al_i0:
+                                    _al_src.index('if not mom_ok:\n                print(f"⚠️ {ticker} momentum rejected')])
+    def _al_run(entry_type, reason, env_on="1", lanes=None):
+        rows = []
+        os.environ["TAPE_LANE_SCALAR_EXEMPT"] = env_on
+        if lanes is not None: os.environ["TAPE_SCALAR_EXEMPT_LANES"] = lanes
+        ns = {"os": os}
+        exec(_al_env, ns)
+        os.environ.pop("TAPE_LANE_SCALAR_EXEMPT", None); os.environ.pop("TAPE_SCALAR_EXEMPT_LANES", None)
+        ns.update({"check_momentum": lambda t: (False, {"reason": reason}),
+                   "_log_decision": lambda t, s, **k: rows.append((s, k)),
+                   "ticker": "TESTX", "entry_type": entry_type, "entry_price": 19.495,
+                   "print": lambda *a, **k: None})
+        exec(_al_seg, ns)
+        return ns["mom_ok"], rows
+    _ok1, _r1 = _al_run("kevseq", "no momentum build — 0.9× base (<1.5×) / 66% of peak — volume not expanding, skip")
+    check("AL: kevseq 'no momentum build' passes through with exemption on (the WETO 10:18:37 pin)", _ok1)
+    check("AL: bypass row logged w/ lane+gate+price", _r1 and _r1[0][0] == "scalar_veto_bypassed"
+          and _r1[0][1].get("lane") == "kevseq" and _r1[0][1].get("gate") == "momentum"
+          and _r1[0][1].get("price") == 19.495)
+    _ok2, _r2 = _al_run("dip_rip", "no momentum build — 0.9× base (<1.5×), skip")
+    check("AL: chart lane (dip_rip) still vetoed, no bypass row", not _ok2 and not _r2)
+    _ok3, _r3 = _al_run("kevseq", "no momentum build — 0.9× base, skip", env_on="0")
+    check("AL: TAPE_LANE_SCALAR_EXEMPT=0 restores today's veto", not _ok3 and not _r3)
+    _ok4, _r4 = _al_run("kevseq", "illiquid — avg vol 900/bar < 10,000 floor, skip")
+    check("AL: tradeability floor (illiquid) STILL vetoes a tape lane", not _ok4 and not _r4)
+    _ok5, _r5 = _al_run("kevseq", "thin ambient tape — median $3,000/min < $9,000 exit floor")
+    check("AL: ambient dollar floor STILL vetoes a tape lane", not _ok5 and not _r5)
+    _ok6, _r6 = _al_run("grinder", "no momentum build — 1.1× base, skip")
+    check("AL: default lane set covers all 5 10s tape lanes (grinder)", _ok6)
+    check("AL: vel5 gate applies-to set stays chart-only (no tape lane reaches vel5_reject)",
+          '"flat_top", "ma_pullback", "orb", "ema_bounce"' in _al_src.split('vel5_reject')[0][-2500:])
+    check("AL: kill-test artifact filed", os.path.exists(os.path.join(
+          ROOT, "data", "killtests", "scalar_veto_tape_lanes_20260817.md")))
+except (AssertionError, ValueError, KeyError) as _ale:
+    check("AL section", False, str(_ale))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

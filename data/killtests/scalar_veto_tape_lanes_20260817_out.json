@@ -1,0 +1,21 @@
+{
+ "n": 1,
+ "total": 25.14,
+ "per_tr": 25.14,
+ "vel5_tape_n": 0,
+ "results": [
+  {
+   "date": "2026-08-17",
+   "sym": "WETO",
+   "lane": "kevseq",
+   "t": "10:18:37 AM",
+   "px": 19.495,
+   "stop": 17.88,
+   "pnl": 25.14,
+   "exit": "trail",
+   "reason": "no momentum build \u2014 0.9\u00d7 base (<1.5\u00d7) / 66% of peak (<30%) \u2014"
+  }
+ ],
+ "missing": [],
+ "verdict": "BUILD (net positive)"
+}

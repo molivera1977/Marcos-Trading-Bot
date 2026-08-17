@@ -367,6 +367,103 @@ FLAT_TOP_WINDOW    = 4      # consolidation window (in 3-min bars now → ~12 mi
 # (70.6% win, best lane) vs flat_top front-side −$148.73 (36.4%); LINE ORDER alone gave flat_top
 # priority on the same names. Suppressions log `pullback_first_suppress` so the counterfactual is
 # exact. Friday grades it next to the 444-fire front-side study. PULLBACK_FIRST=0 reverts.
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# LANE CLASSIFICATION REGISTRY (8/17, Marcos "build it now") — THE SINGLE SOURCE OF TRUTH
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# THE DEFECT this closes: the SETTLED 7/24 + 7/26 doctrine — live-structure/TAPE lanes trade
+# through chart-derived and setup-quality vetoes; only TRADEABILITY floors (liquidity, min stop,
+# topping tail) and their own lane conditions gate them — was implemented as COPY-PASTED
+# HARDCODED STRING TUPLES inside each gate. A lane born AFTER a gate was written silently
+# defaults to the WRONG side. Cost, proven 8/17: kevseq (built 8/16) was absent from EVERY one of
+# them — WFF 11:17:43 kevseq fired $5.039 and died to chart_gate_block one second later on a name
+# that ran $1.61 -> $6.00 (+307%).
+#
+# CLASSES
+#   "tape"  = fires off LIVE 10s/5s structure (VWAP/shelf/flush/wick/sequence). A reader's chart
+#             map is IRRELEVANT to its trigger, so chart-derived vetoes must not gate it.
+#   "chart" = fires off a LEVEL/pattern derived from the chart (base break, MA pullback, opening
+#             range, dip-to-level). Chart vetoes are RIGHT for these and stay ON.
+#   "hybrid"= ignition: chart-classed by history, but chart-BYPASSED under IGNITION_CHART_BYPASS
+#             (7/30 Fable ship, measured: gate-ON −$19.80 n=5 vs gate-OFF +$482.51). Its
+#             env-conditional semantics are preserved EXACTLY — see _chart_bypass_lanes().
+#
+# EVERY entry_type the bot can emit (breakouts.append call sites) must appear here. Rig section
+# AO enumerates the emitted names from source and goes RED on any that is missing, so a future
+# lane CANNOT be born unclassified.
+LANE_CLASS = {
+    # ── TAPE (live-structure) ──────────────────────────────────────────────────────────────
+    "hidden_entry":   "tape",   # Kev 10s rocket wick off the anchor
+    "vwap_reclaim":   "tape",   # session-VWAP 3-gate reclaim
+    "zone_flip":      "tape",   # flush -> bottoming wick -> curl
+    "rocket_catcher": "tape",   # 1-min 20-EMA parabola catch (SUPERSEDED 7/24, default OFF)
+    "kevseq":         "tape",   # 8/16 Kev sequence lane
+    "v2conv":         "tape",   # hidden v2 flush-entry convert
+    "grinder":        "tape",   # slow-build 10s grind
+    "bandpass":       "tape",   # 2-5min band-pass reclaim
+    "prevwap":        "tape",   # premarket VWAP reclaim convert
+    "crown_seam":     "tape",   # 5s seam pull on a crowned name (SEAM_CONVERT)
+    "halt_ladder":    "tape",   # LULD halt-ladder arm on a crowned name (HALT_LANE_CONVERT)
+    # ── CHART (level/pattern derived) ──────────────────────────────────────────────────────
+    "flat_top":       "chart",
+    "ma_pullback":    "chart",
+    "orb":            "chart",
+    "ema_bounce":     "chart",
+    "bounce":         "chart",  # observe-only: filtered out before the order path
+    "dip_rip":        "chart",  # dip TO A MARKED LEVEL — the level is the trigger
+    # ── HYBRID ────────────────────────────────────────────────────────────────────────────
+    "ignition":       "hybrid",
+}
+TAPE_LANES  = frozenset(k for k, v in LANE_CLASS.items() if v == "tape")
+CHART_LANES = frozenset(k for k, v in LANE_CLASS.items() if v == "chart")
+
+def _is_tape_lane(entry_type):
+    """True iff entry_type is a LIVE-STRUCTURE (tape) lane per LANE_CLASS. Unknown -> False
+    (fail-safe: an unclassified lane keeps the conservative gated behavior, and rig AO goes RED)."""
+    return LANE_CLASS.get(entry_type) == "tape"
+
+# KILL SWITCH — LANE_REGISTRY_EXEMPT=0 makes every rewired gate fall back to the EXACT hardcoded
+# tuple it carried before 8/17, so the whole change is revertible by env alone (no deploy).
+LANE_REGISTRY_EXEMPT = os.environ.get("LANE_REGISTRY_EXEMPT", "1") == "1"
+# The pre-8/17 literals, pinned here verbatim as the fallback (and pinned again in rig AO).
+_LEGACY_CHART_BYPASS   = ("hidden_entry", "vwap_reclaim", "zone_flip")
+_LEGACY_STALE_EXEMPT   = ("rocket_catcher", "vwap_reclaim", "zone_flip", "hidden_entry")
+_LEGACY_EXT_EXEMPT     = ("rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback",
+                          "vwap_reclaim", "zone_flip")
+# Chart-class lanes deliberately EXEMPT from the extension guard (7/26 Marcos, "turn off the guard
+# for the slow entries" — the 90-EMA anchors in YESTERDAY's prices on gappers). NOT tape; kept as
+# a named, greppable exception rather than a copy-pasted tuple.
+_EXT_SLOW_RETEST_EXEMPT = frozenset(("flat_top", "orb", "ma_pullback"))
+# check_momentum's pre-8/17 exempt tuple (7/26 purge). Includes chart lanes + ignition + bounce.
+_MOMENTUM_LEGACY_EXEMPT = ("vwap_reclaim", "bounce", "ignition", "hidden_entry", "orb",
+                           "flat_top", "ma_pullback", "zone_flip")
+# HOLDOUT (documented, deliberate, NOT drift): these tape lanes stay SUBJECT to the momentum
+# scalar because 8/17 batch2-A shipped the scalar exemption for the five 10s converts only, and
+# this task must not change check_momentum's behavior. rocket_catcher is explicitly guarded there
+# ("the front-side momentum gate now guards only a resurrected rocket_catcher", 7/26).
+# SPEC TENSION for Marcos: doctrine says these should be exempt too — his call, not an auditor's.
+_MOMENTUM_TAPE_HOLDOUT = frozenset(("rocket_catcher", "crown_seam", "halt_ladder"))
+
+def _chart_bypass_lanes():
+    """Lanes that BYPASS the chart-derived level gate. Registry-derived (all tape lanes) plus
+    ignition's UNCHANGED env-conditional membership. LANE_REGISTRY_EXEMPT=0 -> the old literal."""
+    if not LANE_REGISTRY_EXEMPT:
+        return frozenset(_LEGACY_CHART_BYPASS) | (frozenset(("ignition",)) if IGNITION_CHART_BYPASS else frozenset())
+    return TAPE_LANES | (frozenset(("ignition",)) if IGNITION_CHART_BYPASS else frozenset())
+
+def _ext_exempt_lanes():
+    """Lanes EXEMPT from the 25%-over-EMA90 extension guard: every tape lane (structurally
+    non-extended — they fire AT the anchor/vwap/shelf) + the 7/26 slow-retest chart carve-out."""
+    if not LANE_REGISTRY_EXEMPT:
+        return frozenset(_LEGACY_EXT_EXEMPT)
+    return TAPE_LANES | _EXT_SLOW_RETEST_EXEMPT
+
+def _momentum_exempt_lanes():
+    """check_momentum's scalar exemption. BEHAVIOR-IDENTICAL to 8/17 commit 173d8f1 — the union is
+    the legacy tuple plus the tape lanes minus the documented holdout."""
+    if not LANE_REGISTRY_EXEMPT:
+        return frozenset(_MOMENTUM_LEGACY_EXEMPT)
+    return frozenset(_MOMENTUM_LEGACY_EXEMPT) | (TAPE_LANES - _MOMENTUM_TAPE_HOLDOUT)
+
 PULLBACK_FIRST     = os.environ.get("PULLBACK_FIRST", "1") == "1"
 # ── 8/14 MA_PULLBACK WARMUP SEED (audit 1 F1: the 7/27 multi-day fetch exists but _fresh_session
 # strips to TODAY — the lane cannot fire before ~10:36-10:47 and EMA50/90 are fiction most of the
@@ -3340,14 +3437,27 @@ def _chart_break_gate(ticker, entry_price, entry_type=None):
     vwap_reclaim / zone_flip) are EXEMPT — they trade live structure, not the stale level, and the
     CPHI dip-buy at $5+ must not be blocked by a $1 map. Classifier replayed on all 96 priced 7/21
     gate rows: flips exactly the 19 stale allows (all ma_pullback), touches none of the day's trades."""
-    _STALE_EXEMPT = ("rocket_catcher", "vwap_reclaim", "zone_flip", "hidden_entry")
+    # 8/17 LANE REGISTRY: derived from LANE_CLASS (every tape lane), was a hardcoded tuple.
+    # This branch is OBSERVE-ONLY (read_exhausted_observed row; the hard skip was refuted 7/21),
+    # so the delta here is which lanes get a stamp — no money behavior.
+    _STALE_EXEMPT = TAPE_LANES if LANE_REGISTRY_EXEMPT else frozenset(_LEGACY_STALE_EXEMPT)
     # 7/30 (Fable ship, Marcos "ship it and shadow the alternative"): ignition joins the
     # live-structure bypass — it fires on a volume surge off a quiet base, i.e. BELOW Kev's marked
     # level, so "price broke the level" was a LATENESS detector for this lane (gate-ON −$19.80 n=5
     # vs gate-OFF +$482.51 at 4.5×, E3/E4). The gated alternative still accrues: every ignition
     # fire stamps the legacy verdict via the "_shadow_legacy" probe below. Kill: IGNITION_CHART_BYPASS=0.
-    _bypass = ("hidden_entry", "vwap_reclaim", "zone_flip") + (("ignition",) if IGNITION_CHART_BYPASS else ())
+    # 8/17 LANE REGISTRY (Marcos "build it now"): this tuple was COPY-PASTED and went stale —
+    # kevseq (born 8/16) was absent, so WFF 11:17:43 @ $5.039 died on chart_gate_block on a name
+    # that ran $1.61 -> $6.00. Now derived from LANE_CLASS: every tape lane bypasses, ignition
+    # keeps its EXACT env-conditional membership. Kill: LANE_REGISTRY_EXEMPT=0.
+    _bypass = _chart_bypass_lanes()
     if entry_type in _bypass:
+        if LANE_REGISTRY_EXEMPT and entry_type not in _LEGACY_CHART_BYPASS and entry_type != "ignition":
+            try:    # newly-granted bypass — Friday grades these rows
+                _log_decision(ticker, "lane_exempt_applied", lane=entry_type, gate="chart_break",
+                              price=round(float(entry_price), 4))
+            except Exception:
+                pass
         # LIVE-STRUCTURE lanes (Marcos 7/24: "switch the reclaim and zone flip"): these trade
         # live 10s structure (VWAP/90MA wick, session VWAP 3-gate, premarket shelf) — a reader
         # map is irrelevant and unmapped intraday adds must not die on no_marked_level (#72:
@@ -5097,6 +5207,11 @@ RETEST_LANES     = set((os.environ.get("RETEST_LANES", "flat_top,ignition,orb"))
 #    Every bypass logs "scalar_veto_bypassed" (lane, gate, price) — a graded counterfactual row.
 #    Kill switch: TAPE_LANE_SCALAR_EXEMPT=0 restores the 8/17 behavior exactly.
 TAPE_LANE_SCALAR_EXEMPT = os.environ.get("TAPE_LANE_SCALAR_EXEMPT", "1") == "1"
+# 8/17 LANE REGISTRY: this default stays a LITERAL on purpose — rig section AL exec-evaluates
+# this exact block in an isolated namespace (only `os` bound), so a call into the registry here
+# would break the kill-switch-honesty fixture. The single-source guarantee is enforced instead by
+# rig AO, which asserts this set == _momentum_exempt_lanes() - _MOMENTUM_LEGACY_EXEMPT and goes
+# RED the moment a new tape lane makes the two drift apart.
 TAPE_SCALAR_EXEMPT_LANES = set(filter(None, (s.strip() for s in os.environ.get(
     "TAPE_SCALAR_EXEMPT_LANES", "kevseq,v2conv,grinder,bandpass,prevwap").split(","))))
 
@@ -9061,9 +9176,18 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             _kept = []
             for b in breakouts:
                 _e90 = (b[4].get("ema90") or 0)
-                if b[3] in ("rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback",
-                            "vwap_reclaim", "zone_flip"):   # curls added 7/26: fire AT vwap/shelf — same
-                                                            # structurally-non-extended claim as hidden (era hits: 0)
+                # 8/17 LANE REGISTRY: derived from LANE_CLASS (all tape lanes) + the 7/26
+                # slow-retest chart carve-out. Was a copy-pasted tuple missing every lane born
+                # after 7/26 (auditor B2-F1: kevseq/v2conv/grinder/bandpass/prevwap).
+                if b[3] in _ext_exempt_lanes():   # curls added 7/26: fire AT vwap/shelf — same
+                                                  # structurally-non-extended claim as hidden (era hits: 0)
+                    if (LANE_REGISTRY_EXEMPT and b[3] not in _LEGACY_EXT_EXEMPT
+                            and _e90 > 0 and (b[1] - _e90) / _e90 > EXTENSION_MAX_PCT):
+                        try:    # newly-granted bypass that ACTUALLY bound — Friday grades it
+                            _log_decision(b[0], "lane_exempt_applied", lane=b[3], gate="extension",
+                                          price=b[1], ext_pct=round((b[1] - _e90) / _e90 * 100, 1))
+                        except Exception:
+                            pass
                     _kept.append(b)   # rocket-class EXEMPT — catches extension by design (Fable 7/21); hidden entry fires AT the anchor (structurally non-extended, ext logged per fire).
                                       # SLOW RETEST LANES exempt 7/26 (Marcos: "turn off the guard for the slow entries"): the 90-EMA
                                       # anchors in YESTERDAY's prices on gappers, so the guard + day-gain floor squeezed from both
@@ -12708,8 +12832,11 @@ def main():
             # already requires flush vol >=2x rolling avg + Z2 bottoming wick + Z3 curl-over-wick; and the
             # peak-relative gate is anti-matched post-flush (the flush IS the session peak, so every valid
             # curl reads "5% of peak"). Front-side momentum gate now guards only a resurrected rocket_catcher.
-            if entry_type in ("vwap_reclaim", "bounce", "ignition", "hidden_entry", "orb",
-                              "flat_top", "ma_pullback", "zone_flip"):
+            # 8/17 LANE REGISTRY: the tuple is pinned as _MOMENTUM_LEGACY_EXEMPT up top (single
+            # source). Membership here is UNCHANGED — the derived set is filtered back to the
+            # legacy literal so check_momentum's behavior is byte-for-byte identical; the tape
+            # lanes reach their exemption through the TAPE_SCALAR_EXEMPT_LANES path below.
+            if entry_type in _MOMENTUM_LEGACY_EXEMPT:
                 mom_ok, mom_details = True, {"exempt": entry_type}
                 # ── UNIVERSAL GATES (7/10 un-bundle): topping-tail + liquidity are NOT momentum rules — they were
                 # only skipped here because they live inside check_momentum (a bundling accident; KUST/ZCMD). When

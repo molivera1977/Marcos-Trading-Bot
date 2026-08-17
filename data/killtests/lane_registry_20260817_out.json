@@ -1,0 +1,160 @@
+{
+ "n_rejects": 14,
+ "n": 13,
+ "total": -64.25,
+ "per_tr": -4.94,
+ "verdict": "NET NEGATIVE",
+ "results": [
+  {
+   "date": "2026-07-23",
+   "sym": "CJMB",
+   "lane": "rocket_catcher",
+   "gate": "chart_gate_blocked_trade",
+   "t": "09:54:47 AM",
+   "px": 2.8088,
+   "stop": 2.5799,
+   "pnl": -47.57,
+   "exit": "stop"
+  },
+  {
+   "date": "2026-07-23",
+   "sym": "SORA",
+   "lane": "rocket_catcher",
+   "gate": "chart_gate_blocked_trade",
+   "t": "10:58:56 AM",
+   "px": 1.783,
+   "stop": 1.78,
+   "pnl": -8.25,
+   "exit": "stop"
+  },
+  {
+   "date": "2026-07-23",
+   "sym": "PAVS",
+   "lane": "rocket_catcher",
+   "gate": "chart_gate_blocked_trade",
+   "t": "11:14:54 AM",
+   "px": 6.6533,
+   "stop": 6.04,
+   "pnl": -52.83,
+   "exit": "stop"
+  },
+  {
+   "date": "2026-08-13",
+   "sym": "FGI",
+   "lane": "halt_ladder",
+   "gate": "chart_gate_blocked_trade",
+   "t": "10:02:19 AM",
+   "px": 8.93,
+   "stop": 8.1,
+   "pnl": 28.18,
+   "exit": "trail"
+  },
+  {
+   "date": "2026-08-14",
+   "sym": "WETO",
+   "lane": "halt_ladder",
+   "gate": "chart_gate_blocked_trade",
+   "t": "09:47:58 AM",
+   "px": 10.37,
+   "stop": 9.5,
+   "pnl": 32.93,
+   "exit": "trail"
+  },
+  {
+   "date": "2026-08-14",
+   "sym": "MF",
+   "lane": "halt_ladder",
+   "gate": "chart_gate_blocked_trade",
+   "t": "10:02:42 AM",
+   "px": 15.38,
+   "stop": 14.03,
+   "pnl": 32.82,
+   "exit": "trail"
+  },
+  {
+   "date": "2026-08-17",
+   "sym": "RBNE",
+   "lane": "grinder",
+   "gate": "chart_gate_blocked_trade",
+   "t": "11:06:49 AM",
+   "px": 2.78,
+   "stop": 2.7,
+   "pnl": -21.6,
+   "exit": "stop"
+  },
+  {
+   "date": "2026-08-17",
+   "sym": "XPON",
+   "lane": "grinder",
+   "gate": "chart_gate_blocked_trade",
+   "t": "11:14:25 AM",
+   "px": 4.58,
+   "stop": 4.3052,
+   "pnl": -20.76,
+   "exit": "eod"
+  },
+  {
+   "date": "2026-08-17",
+   "sym": "GRNQ",
+   "lane": "v2conv",
+   "gate": "chart_gate_blocked_trade",
+   "t": "11:14:25 AM",
+   "px": 8.51,
+   "stop": 7.75,
+   "pnl": -7.43,
+   "exit": "eod"
+  },
+  {
+   "date": "2026-08-17",
+   "sym": "IPST",
+   "lane": "grinder",
+   "gate": "chart_gate_blocked_trade",
+   "t": "11:14:25 AM",
+   "px": 8.42,
+   "stop": 8.22,
+   "pnl": -19.13,
+   "exit": "stop"
+  },
+  {
+   "date": "2026-08-17",
+   "sym": "WOK",
+   "lane": "grinder",
+   "gate": "chart_gate_blocked_trade",
+   "t": "11:14:25 AM",
+   "px": 2.559,
+   "stop": 2.5,
+   "pnl": -3.42,
+   "exit": "eod"
+  },
+  {
+   "date": "2026-08-17",
+   "sym": "WFF",
+   "lane": "kevseq",
+   "gate": "chart_gate_blocked_trade",
+   "t": "11:17:44 AM",
+   "px": 5.039,
+   "stop": 4.67,
+   "pnl": 32.58,
+   "exit": "trail"
+  },
+  {
+   "date": "2026-08-17",
+   "sym": "AEHL",
+   "lane": "v2conv",
+   "gate": "chart_gate_blocked_trade",
+   "t": "11:20:07 AM",
+   "px": 5.255,
+   "stop": 5.14,
+   "pnl": -9.77,
+   "exit": "eod"
+  }
+ ],
+ "missing": [
+  [
+   "2026-08-17",
+   "BRNX",
+   "prevwap",
+   "08:23:02 AM"
+  ]
+ ]
+}

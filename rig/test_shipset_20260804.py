@@ -1196,6 +1196,11 @@ try:
     _fn = next(n for n in _tree.body if isinstance(n, _ast.FunctionDef) and n.name == "_chart_break_gate")
     _rows = []
     _ns = {"IGNITION_CHART_BYPASS": True, "CHART_GATE_BAND": 0.02,
+           # 8/17 lane registry: the gate now derives its bypass/stale sets from LANE_CLASS
+           "LANE_REGISTRY_EXEMPT": True, "TAPE_LANES": frozenset(("hidden_entry", "vwap_reclaim")),
+           "_LEGACY_CHART_BYPASS": ("hidden_entry", "vwap_reclaim", "zone_flip"),
+           "_LEGACY_STALE_EXEMPT": ("rocket_catcher", "vwap_reclaim", "zone_flip", "hidden_entry"),
+           "_chart_bypass_lanes": lambda: frozenset(("hidden_entry", "vwap_reclaim", "zone_flip")),
            "_effective_map": lambda tk, px: {"veto": True, "note": "do not trade",
                                              "break": 1.0, "targets": [2.0]},
            "_log_decision": lambda tk, st, **kw: _rows.append(st)}
@@ -2178,10 +2183,12 @@ try:
     exec("if BANDPASS_CONVERT and _bp_in:\n    breakouts.append(1)", _ns_c)
     check("AF-k: BANDPASS_CONVERT=0 -> zero appends", _bo == [])
     # (l) not exempt anywhere: 'bandpass' absent from every exempt/bypass set + BREAKOUT_ENTRIES full bag
-    check("AF-l: 'bandpass' not in MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT/_STALE_EXEMPT defaults; BREAKOUT_ENTRIES True",
+    # 8/17 LANE REGISTRY amends this pin: _STALE_EXEMPT is no longer a literal tuple — it is
+    # derived from LANE_CLASS, and 'bandpass' IS in it now BY DESIGN (see section AO + the
+    # lane_registry_20260817 doc). The tradeability/side sets below are UNCHANGED and still pinned.
+    check("AF-l: 'bandpass' not in MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT defaults; BREAKOUT_ENTRIES True",
           '"bandpass"' not in _af_src[_af_src.index("MIN_STOP_EXEMPT = set("):_af_src.index("MIN_STOP_EXEMPT = set(") + 200]
           and 'BACKSIDE_EXEMPT   = {"dip_rip"}' in _af_src and "bandpass" not in _af_src[_af_src.index("VRIDE_EXEMPT    = set("):_af_src.index("VRIDE_EXEMPT    = set(") + 150]
-          and 'bandpass' not in _af_src[_af_src.index("_STALE_EXEMPT = ("):_af_src.index("_STALE_EXEMPT = (") + 120]
           and "BREAKOUT_ENTRIES   = True" in _af_src)
     # (m) grader status list contains both + PRE flatten 09:25
     _g = open(os.path.join(ROOT, "data", "killtests", "nightly_shadow_grade.py")).read()
@@ -2290,10 +2297,12 @@ try:
     _bo = []; _ns_c = {"KEVSEQ_CONVERT": False, "_ksf": {"would_stop": 1.0, "px": 2.0}, "breakouts": _bo}
     exec('if KEVSEQ_CONVERT and _ksf["would_stop"] < _ksf["px"]:\n    breakouts.append(1)', _ns_c)
     check("AG-ix: KEVSEQ_CONVERT=0 -> zero appends", _bo == [])
-    check("AG-x: 'kevseq' not in MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT/_STALE_EXEMPT defaults",
+    # 8/17 LANE REGISTRY amends this pin: _STALE_EXEMPT is registry-derived and kevseq IS in it
+    # now BY DESIGN — that omission is the whole defect this ship closes (WFF 11:17:43). The
+    # TRADEABILITY (min-stop) and SIDE (backside/vride) sets are unchanged and still pinned.
+    check("AG-x: 'kevseq' not in MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT defaults",
           '"kevseq"' not in _ag_src[_ag_src.index("MIN_STOP_EXEMPT = set("):_ag_src.index("MIN_STOP_EXEMPT = set(") + 200]
-          and 'BACKSIDE_EXEMPT   = {"dip_rip"}' in _ag_src and "kevseq" not in _ag_src[_ag_src.index("VRIDE_EXEMPT    = set("):_ag_src.index("VRIDE_EXEMPT    = set(") + 150]
-          and 'kevseq' not in _ag_src[_ag_src.index("_STALE_EXEMPT = ("):_ag_src.index("_STALE_EXEMPT = (") + 120])
+          and 'BACKSIDE_EXEMPT   = {"dip_rip"}' in _ag_src and "kevseq" not in _ag_src[_ag_src.index("VRIDE_EXEMPT    = set("):_ag_src.index("VRIDE_EXEMPT    = set(") + 150])
     _g = open(os.path.join(ROOT, "data", "killtests", "nightly_shadow_grade.py")).read()
     check("AG-xi: grader lists kevseq_shadow_fire + triggered_kevseq (E3 only) and reads 'stop' on triggered rows",
           "kevseq_shadow_fire,triggered_kevseq" in _g and 'lanes["kevseq"].append(rec)' in _g
@@ -2370,11 +2379,12 @@ try:
     # (ix) v2conv in PRE_LANES ONLY under convert; NOT in any exempt set
     check("AH-ix: PRE_LANES.add('v2conv') gated by 'if V2_CONVERT:'",
           'if V2_CONVERT:\n    PRE_LANES.add("v2conv")' in _ah_src)
-    check("AH-x: 'v2conv' not in MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT/_STALE_EXEMPT defaults",
+    # 8/17 LANE REGISTRY amends this pin: _STALE_EXEMPT is registry-derived, v2conv IS in it now
+    # by design (section AO). Tradeability/side sets unchanged and still pinned.
+    check("AH-x: 'v2conv' not in MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT defaults",
           '"v2conv"' not in _ah_src[_ah_src.index("MIN_STOP_EXEMPT = set("):_ah_src.index("MIN_STOP_EXEMPT = set(") + 200]
           and 'BACKSIDE_EXEMPT   = {"dip_rip"}' in _ah_src
-          and "v2conv" not in _ah_src[_ah_src.index("VRIDE_EXEMPT    = set("):_ah_src.index("VRIDE_EXEMPT    = set(") + 150]
-          and "v2conv" not in _ah_src[_ah_src.index("_STALE_EXEMPT = ("):_ah_src.index("_STALE_EXEMPT = (") + 120])
+          and "v2conv" not in _ah_src[_ah_src.index("VRIDE_EXEMPT    = set("):_ah_src.index("VRIDE_EXEMPT    = set(") + 150])
     # (xi) cap: caller has the V2_DAILY_CAP guard + v2conv_capped row + per-day counter
     check("AH-xi: daily cap enforced (V2_DAILY_CAP guard, v2conv_capped row, per-day reset)",
           'if _v2_conv_day["n"] >= V2_DAILY_CAP:' in _cal and '"v2conv_capped"' in _cal
@@ -2869,6 +2879,141 @@ try:
           ROOT, "data", "killtests", "manual_close_20260817.md")))
 except (AssertionError, ValueError, KeyError) as _mce:
     check("AN section", False, str(_mce))
+
+print("AO) 8/17 LANE CLASSIFICATION REGISTRY (Marcos: 'build it now') — the guard rail")
+# THE DEFECT: the settled 7/24+7/26 doctrine (tape lanes trade through chart-derived and
+# setup-quality vetoes) lived as COPY-PASTED tuples inside each gate, so kevseq (born 8/16) was
+# absent from every one — WFF 11:17:43 @ $5.039 died on chart_gate_block on a +307% name.
+# This section (1) FAILS if any entry_type the bot can emit is missing from LANE_CLASS, so a
+# future lane cannot be born unclassified; (2) pins the derived sets against the PRE-8/17
+# literals for every pre-existing lane; (3) pins the ordered delta and the kill switch.
+try:
+    import importlib as _ilAO
+    sys.path.insert(0, os.path.join(ROOT, "rig"))
+    _AOload = _ilAO.import_module("loader").load_bot
+    _AO = _AOload()
+    _ao_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+
+    # ── (1) GUARD RAIL: every emitted entry_type is classified ──────────────────────────────
+    # every breakouts.append call site: take the FIRST bare string literal inside the tuple —
+    # that is the entry_type slot, whatever expressions the price/level slots contain.
+    # AST, not regex: find every breakouts.append((...)) call and take tuple element [3] — the
+    # entry_type slot — whatever expressions the price/level slots contain. Anything but a plain
+    # string literal there is itself a RED (a computed lane name cannot be classified statically).
+    import ast as _aoast
+    _emitted, _dynamic = set(), []
+    for _n in _aoast.walk(_aoast.parse(_ao_src)):
+        if not (isinstance(_n, _aoast.Call) and isinstance(_n.func, _aoast.Attribute)
+                and _n.func.attr == "append"
+                and getattr(_n.func.value, "id", None) == "breakouts"):
+            continue
+        _arg = _n.args[0] if _n.args else None
+        if not isinstance(_arg, _aoast.Tuple) or len(_arg.elts) < 4:
+            _dynamic.append(getattr(_n, "lineno", "?")); continue
+        _e = _arg.elts[3]
+        if isinstance(_e, _aoast.Constant) and isinstance(_e.value, str):
+            _emitted.add(_e.value)
+        else:
+            _dynamic.append(getattr(_n, "lineno", "?"))
+    check("AO: every breakouts.append names its lane with a STRING LITERAL (statically classifiable)",
+          not _dynamic, f"dynamic/short at lines {_dynamic}")
+    check("AO: emitted entry_types found in source (sanity — the regex still matches)",
+          len(_emitted) >= 15, f"found {len(_emitted)}: {sorted(_emitted)}")
+    _unclassified = sorted(_emitted - set(_AO.LANE_CLASS))
+    check("AO: GUARD RAIL — every emitted entry_type is in LANE_CLASS (no lane born unclassified)",
+          not _unclassified, f"UNCLASSIFIED: {_unclassified}")
+    check("AO: every LANE_CLASS value is a known class",
+          set(_AO.LANE_CLASS.values()) <= {"tape", "chart", "hybrid"},
+          str(sorted(set(_AO.LANE_CLASS.values()))))
+    check("AO: kevseq is classified TAPE (the lane this task exists for)",
+          _AO.LANE_CLASS.get("kevseq") == "tape" and _AO._is_tape_lane("kevseq"))
+    check("AO: _is_tape_lane fail-safe — unknown lane is NOT tape (stays gated)",
+          _AO._is_tape_lane("brand_new_lane_2027") is False
+          and _AO._is_tape_lane(None) is False)
+    check("AO: chart lanes are NOT tape", not any(_AO._is_tape_lane(x) for x in
+          ("flat_top", "ma_pullback", "orb", "ema_bounce", "dip_rip", "ignition")))
+
+    # ── (2) DERIVED == OLD HARDCODED TUPLES for every PRE-EXISTING lane ─────────────────────
+    # the pre-8/17 literals, pinned here as literals (not imported) so a registry edit that
+    # silently changes a pre-existing lane's treatment goes RED.
+    _OLD_CHART_BYPASS = ("hidden_entry", "vwap_reclaim", "zone_flip")
+    _OLD_STALE        = ("rocket_catcher", "vwap_reclaim", "zone_flip", "hidden_entry")
+    _OLD_EXT          = ("rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback",
+                         "vwap_reclaim", "zone_flip")
+    _OLD_MOM          = ("vwap_reclaim", "bounce", "ignition", "hidden_entry", "orb",
+                         "flat_top", "ma_pullback", "zone_flip")
+    _OLD_TAPE_SCALAR  = {"kevseq", "v2conv", "grinder", "bandpass", "prevwap"}
+    _cb, _ext = _AO._chart_bypass_lanes(), _AO._ext_exempt_lanes()
+    check("AO: chart-gate bypass is a SUPERSET of the old tuple (no pre-existing lane loses it)",
+          set(_OLD_CHART_BYPASS) <= _cb, str(sorted(set(_OLD_CHART_BYPASS) - _cb)))
+    check("AO: extension exempt is a SUPERSET of the old tuple", set(_OLD_EXT) <= _ext,
+          str(sorted(set(_OLD_EXT) - _ext)))
+    # nothing that was GATED before is newly gated, and nothing chart-class newly bypasses
+    check("AO: no CHART lane newly bypasses the chart gate (ignition only, env-conditional)",
+          not (_cb & _AO.CHART_LANES))
+    check("AO: ignition keeps its EXACT env-conditional chart bypass",
+          ("ignition" in _cb) == bool(_AO.IGNITION_CHART_BYPASS))
+    check("AO: extension exempt adds no NEW chart lane beyond the 7/26 slow-retest carve-out",
+          (_ext & _AO.CHART_LANES) == frozenset(("flat_top", "orb", "ma_pullback")),
+          str(sorted(_ext & _AO.CHART_LANES)))
+    check("AO: check_momentum behavior UNCHANGED — exempt tuple is the 8/17 literal",
+          _AO._MOMENTUM_LEGACY_EXEMPT == _OLD_MOM
+          and 'if entry_type in _MOMENTUM_LEGACY_EXEMPT:' in _ao_src)
+    check("AO: TAPE_SCALAR_EXEMPT_LANES derives byte-identical to the 173d8f1 literal",
+          set(_AO.TAPE_SCALAR_EXEMPT_LANES) == _OLD_TAPE_SCALAR,
+          str(sorted(_AO.TAPE_SCALAR_EXEMPT_LANES)))
+
+    # ── (3) THE ORDERED DELTA: kevseq now exempt from chart + extension ─────────────────────
+    check("AO: DELTA — kevseq now bypasses the chart gate", "kevseq" in _cb)
+    check("AO: DELTA — kevseq now exempt from the extension guard", "kevseq" in _ext)
+    check("AO: DELTA — every tape lane bypasses chart + extension",
+          _AO.TAPE_LANES <= _cb and _AO.TAPE_LANES <= _ext)
+    # executed: the real gate returns allow/live_structure for kevseq (no map needed)
+    _v, _r, _lv, _src = _AO._chart_break_gate("ZZTEST", 5.039, "kevseq")
+    check("AO: EXECUTED — _chart_break_gate('kevseq') returns allow/live_structure",
+          _v == "allow" and _r == "live_structure", f"{_v}/{_r}")
+    _v2, _r2, _, _ = _AO._chart_break_gate("ZZTEST", 5.039, "flat_top")
+    check("AO: EXECUTED — a CHART lane still hits the gate (no blanket bypass)",
+          _v2 != "allow" or _r2 != "live_structure", f"{_v2}/{_r2}")
+
+    # ── (4) KILL SWITCH: LANE_REGISTRY_EXEMPT=0 restores the OLD behavior EXACTLY ───────────
+    _AO.LANE_REGISTRY_EXEMPT = False
+    try:
+        _cb0, _ext0 = _AO._chart_bypass_lanes(), _AO._ext_exempt_lanes()
+        _exp_cb0 = set(_OLD_CHART_BYPASS) | ({"ignition"} if _AO.IGNITION_CHART_BYPASS else set())
+        check("AO: KILL SWITCH — chart bypass falls back to the old tuple exactly",
+              _cb0 == _exp_cb0, str(sorted(_cb0)))
+        check("AO: KILL SWITCH — extension exempt falls back to the old tuple exactly",
+              _ext0 == set(_OLD_EXT), str(sorted(_ext0)))
+        check("AO: KILL SWITCH — momentum exempt falls back to the old tuple exactly",
+              _AO._momentum_exempt_lanes() == set(_OLD_MOM))
+        _v3, _r3, _, _ = _AO._chart_break_gate("ZZTEST", 5.039, "kevseq")
+        check("AO: KILL SWITCH — kevseq is GATED again with the registry off",
+              not (_v3 == "allow" and _r3 == "live_structure"), f"{_v3}/{_r3}")
+    finally:
+        _AO.LANE_REGISTRY_EXEMPT = True
+
+    # ── (5) the counterfactual row + the doc ────────────────────────────────────────────────
+    check("AO: newly-granted bypasses log lane_exempt_applied (chart gate)",
+          '_log_decision(ticker, "lane_exempt_applied", lane=entry_type, gate="chart_break"'
+          in _ao_src)
+    check("AO: newly-granted bypasses log lane_exempt_applied (extension gate)",
+          '_log_decision(b[0], "lane_exempt_applied", lane=b[3], gate="extension"' in _ao_src)
+    check("AO: the row fires only for NEWLY-granted lanes (legacy lanes stay silent)",
+          'entry_type not in _LEGACY_CHART_BYPASS' in _ao_src
+          and 'b[3] not in _LEGACY_EXT_EXEMPT' in _ao_src)
+    check("AO: failure-condition doc filed FIRST", os.path.exists(os.path.join(
+          ROOT, "data", "killtests", "lane_registry_20260817.md")))
+    check("AO: kill-test script filed", os.path.exists(os.path.join(
+          ROOT, "data", "killtests", "lane_registry_20260817.py")))
+    # no gate may keep a private copy-pasted lane tuple for the two rewired gates
+    check("AO: the chart-gate tuple is GONE from source (single source of truth)",
+          '_bypass = ("hidden_entry", "vwap_reclaim", "zone_flip")' not in _ao_src)
+    check("AO: the extension tuple is GONE from source",
+          'if b[3] in ("rocket_catcher", "hidden_entry", "flat_top", "orb", "ma_pullback",'
+          not in _ao_src)
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _aoe:
+    check("AO section", False, str(_aoe))
 
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless

@@ -155,3 +155,52 @@ must be excluded from lane expectancy).
   panic-flatten, that is a different (and much larger blast-radius) control.
 - **Fail-CLOSED vs the pause channel's fail-OPEN** are deliberately opposite polarities in the
   same codebase. Defensible (a close is irreversible), but it is now two rules to remember.
+
+---
+
+## SCOPE: LANE CLASSIFICATION REGISTRY (8/17, Marcos "build it now") — **MONEY BEHAVIOR**
+
+**Commit:** see `lane registry` commit on this tree. **Doc:** `data/killtests/lane_registry_20260817.md`
+**Kill-test:** `data/killtests/lane_registry_20260817.py` (+ `_out.json`). **Rig:** section AO, 30 checks, full rig exit 0.
+
+### What changed (money)
+`kevseq` — and every other lane the registry classifies TAPE (`v2conv`, `grinder`, `bandpass`,
+`prevwap`, `crown_seam`, `halt_ladder`, `rocket_catcher`(OFF)) — is **newly EXEMPT from the
+chart-break gate and the 25%-over-EMA90 extension guard**. Those gates carried copy-pasted
+hardcoded lane tuples; a lane born after a gate was written defaulted to the WRONG side. WFF
+11:17:43 kevseq @ $5.039 died to `chart_gate_block` on a name that ran $1.61 → $6.00 (+307%).
+
+Also rewired to the registry: `_STALE_EXEMPT` (observe-only branch, no money) and
+`check_momentum`'s exempt tuple (hoisted to a named constant — **membership unchanged**).
+Kill switch `LANE_REGISTRY_EXEMPT=0` restores every pre-8/17 literal exactly, rig-pinned.
+Every newly-granted bypass logs `lane_exempt_applied(lane, gate, price)`.
+
+### ⚠️ The counterfactual is NET NEGATIVE
+**−$64.25 / N=13 / −$4.94 per trade / 31% win** (era 7/13+, E3 live-parity, $500). Excluding
+`rocket_catcher` (default OFF): **+$44.40 / N=10**. `kevseq` alone **+$32.58** (WFF, hand-traced
+in the doc). Today's rows are truncated at 11:34 ET and owe a full-day re-grade tonight.
+**Marcos decides whether `LANE_REGISTRY_EXEMPT` stays on.**
+
+### Officers to convene
+Blast Radius Auditor (two live gates changed mid-session, kill switch, restart semantics),
+Systems Quant (does the derived set compute what the registry claims), Side Marshal +
+Strength Ombudsman (this is a strength-refusal removal — the bias ledger should record it),
+Statistician (the negative counterfactual must reach the ledger, not just this file),
+Hidden Entry Architect + Crown Steward (`v2conv`/`crown_seam`/`halt_ladder` newly ungated),
+Integrator (parallel-logic registry: which lists are derived vs still literal),
+Historian (the doctrine's provenance: 7/24, 7/26, 7/30, 8/17).
+
+### Spec tensions for Marcos (NOT resolved here)
+- **The number is negative.** Doctrine says exempt; the measured cohort says −$64.25. Settled
+  doctrine won because he ordered the build — but this is exactly the kind of "coherent bad
+  design" the review-both-sides law exists for. His call.
+- **`TAPE_PREBREAK_LANES` is an OPEN HOLE the mirror-image way**: it gates only
+  `hidden_entry,vwap_reclaim,zone_flip`, so the five new tape lanes escape the 8/3 dead-zone
+  block. Closing it *removes* money, so it was left alone deliberately.
+- **`_MOMENTUM_TAPE_HOLDOUT`** (`rocket_catcher`, `crown_seam`, `halt_ladder`) stay subject to the
+  momentum scalar so `check_momentum` behavior is unchanged. Doctrine says they should be exempt.
+- **`chart_gate_blocked_trade` / `extension_reject` rows carry NO lane stamp**, so the
+  counterfactual's lane attribution is a ±20s ticker join. A stamp should be added.
+- **Rig pins amended, not just added**: AF-l / AG-x / AH-x asserted these lanes were *absent* from
+  `_STALE_EXEMPT` — those assertions encoded the defect and were rewritten. An auditor should
+  confirm that rewrite is legitimate and not a green-washing of my own change.

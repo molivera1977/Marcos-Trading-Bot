@@ -1,0 +1,210 @@
+universe: 738 files, 736 graded name-days, 63 dates (2026-05-18 .. 2026-08-17)
+kevseq CANDIDATE fills (all clauses except burst+leg-cap): 2251
+name-days in RUNNER cohort (max gain >= 25%): 651 / 736
+
+### FAILURE CONDITION #1 — does burst refuse MORE on runners?
+| cohort | candidates | pass V0 | no_burst rate |
+|---|---|---|---|
+| RUNNER | 2250 | 1287 | 42.8% |
+| REST | 1 | 1 | 0.0% |
+NOTE (honesty): this split is DEGENERATE — kevseq's own day-gain>=20% floor already
+pre-selects runners, so REST is ~empty and the RUNNER/REST comparison carries no
+information.  The real claim is about run INTENSITY, so it is tested by gain bucket:
+
+| name-day max gain | candidates | pass V0 | no_burst rate |
+|---|---|---|---|
+| 20-50% | 186 | 110 | 40.9% |
+| 50-100% | 841 | 528 | 37.2% |
+| 100-200% | 757 | 415 | 45.2% |
+| 200%+ | 467 | 235 | 49.7% |
+FC#1 (intensity form): no_burst 20-50% cohort 40.9% vs 200%+ cohort 49.7% -> SATURATION CONFIRMED (refusal rises with run intensity)
+
+### QUOTE-ENTRY (today) — ALL
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 1286 | $-3862.13 | $-3.00 | 33% |
+| V1 pre-run p75 (30 bars before leg) | 1427 | $-4174.64 | $-2.93 | 33% |
+| V2 OR session-median x1.5 | 1956 | $-7775.02 | $-3.97 | 30% |
+| V2 OR session-median x2 | 1867 | $-7173.25 | $-3.84 | 30% |
+| V2 OR session-median x3 | 1768 | $-6495.85 | $-3.67 | 31% |
+| V3 dollar-volume trailing p75 | 1355 | $-4388.08 | $-3.24 | 33% |
+| V4 no burst clause | 2248 | $-9505.76 | $-4.23 | 29% |
+
+### QUOTE-ENTRY (today) — MINE
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 917 | $-3244.94 | $-3.54 | 31% |
+| V1 pre-run p75 (30 bars before leg) | 1018 | $-3263.37 | $-3.21 | 31% |
+| V2 OR session-median x1.5 | 1406 | $-5855.38 | $-4.16 | 29% |
+| V2 OR session-median x2 | 1335 | $-5415.95 | $-4.06 | 29% |
+| V2 OR session-median x3 | 1255 | $-4989.37 | $-3.98 | 30% |
+| V3 dollar-volume trailing p75 | 964 | $-3442.11 | $-3.57 | 31% |
+| V4 no burst clause | 1618 | $-7504.53 | $-4.64 | 28% |
+
+### QUOTE-ENTRY (today) — HOLD-OUT
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 365 | $-899.60 | $-2.46 | 37% |
+| V1 pre-run p75 (30 bars before leg) | 405 | $-1193.67 | $-2.95 | 36% |
+| V2 OR session-median x1.5 | 544 | $-2243.27 | $-4.12 | 32% |
+| V2 OR session-median x2 | 526 | $-2080.92 | $-3.96 | 33% |
+| V2 OR session-median x3 | 507 | $-1830.10 | $-3.61 | 34% |
+| V3 dollar-volume trailing p75 | 387 | $-1228.37 | $-3.17 | 37% |
+| V4 no burst clause | 623 | $-2384.74 | $-3.83 | 32% |
+
+### QUOTE-ENTRY (today) — RUNNER
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 1285 | $-3831.72 | $-2.98 | 33% |
+| V1 pre-run p75 (30 bars before leg) | 1426 | $-4144.24 | $-2.91 | 33% |
+| V2 OR session-median x1.5 | 1955 | $-7744.62 | $-3.96 | 30% |
+| V2 OR session-median x2 | 1866 | $-7142.84 | $-3.83 | 30% |
+| V2 OR session-median x3 | 1767 | $-6465.44 | $-3.66 | 31% |
+| V3 dollar-volume trailing p75 | 1354 | $-4357.67 | $-3.22 | 33% |
+| V4 no burst clause | 2247 | $-9475.35 | $-4.22 | 29% |
+
+### QUOTE-ENTRY (today) — REST
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 1 | $-30.41 | $-30.41 | 0% |
+| V1 pre-run p75 (30 bars before leg) | 1 | $-30.41 | $-30.41 | 0% |
+| V2 OR session-median x1.5 | 1 | $-30.41 | $-30.41 | 0% |
+| V2 OR session-median x2 | 1 | $-30.41 | $-30.41 | 0% |
+| V2 OR session-median x3 | 1 | $-30.41 | $-30.41 | 0% |
+| V3 dollar-volume trailing p75 | 1 | $-30.41 | $-30.41 | 0% |
+| V4 no burst clause | 1 | $-30.41 | $-30.41 | 0% |
+
+### QUOTE-ENTRY (today) — VERTICAL 100%+
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 650 | $+4052.56 | $+6.23 | 42% |
+| V1 pre-run p75 (30 bars before leg) | 732 | $+4029.85 | $+5.51 | 41% |
+| V2 OR session-median x1.5 | 1057 | $+2617.68 | $+2.48 | 37% |
+| V2 OR session-median x2 | 997 | $+2869.76 | $+2.88 | 37% |
+| V2 OR session-median x3 | 932 | $+3225.78 | $+3.46 | 38% |
+| V3 dollar-volume trailing p75 | 702 | $+3918.62 | $+5.58 | 42% |
+| V4 no burst clause | 1224 | $+2034.34 | $+1.66 | 35% |
+
+### QUOTE-ENTRY (today) — VERTICAL 100%+/HOLD-OUT
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 181 | $+1212.79 | $+6.70 | 45% |
+| V1 pre-run p75 (30 bars before leg) | 210 | $+1041.68 | $+4.96 | 44% |
+| V2 OR session-median x1.5 | 295 | $+821.86 | $+2.79 | 39% |
+| V2 OR session-median x2 | 284 | $+819.32 | $+2.88 | 39% |
+| V2 OR session-median x3 | 273 | $+900.31 | $+3.30 | 40% |
+| V3 dollar-volume trailing p75 | 196 | $+1134.12 | $+5.79 | 45% |
+| V4 no burst clause | 332 | $+1014.09 | $+3.05 | 39% |
+
+### QUOTE-ENTRY (today) — RUNNER/HOLD-OUT
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 364 | $-869.19 | $-2.39 | 37% |
+| V1 pre-run p75 (30 bars before leg) | 404 | $-1163.27 | $-2.88 | 36% |
+| V2 OR session-median x1.5 | 543 | $-2212.86 | $-4.08 | 32% |
+| V2 OR session-median x2 | 525 | $-2050.51 | $-3.91 | 33% |
+| V2 OR session-median x3 | 506 | $-1799.69 | $-3.56 | 34% |
+| V3 dollar-volume trailing p75 | 386 | $-1197.96 | $-3.10 | 37% |
+| V4 no burst clause | 622 | $-2354.34 | $-3.79 | 32% |
+
+### LIMIT-AT-FIRE +0.5% (F3) — ALL
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 1257 | $-615.73 | $-0.49 | 35% |
+| V1 pre-run p75 (30 bars before leg) | 1398 | $-1363.32 | $-0.98 | 34% |
+| V2 OR session-median x1.5 | 1917 | $-6461.46 | $-3.37 | 31% |
+| V2 OR session-median x2 | 1829 | $-5455.89 | $-2.98 | 32% |
+| V2 OR session-median x3 | 1732 | $-4661.38 | $-2.69 | 32% |
+| V3 dollar-volume trailing p75 | 1324 | $-1240.65 | $-0.94 | 35% |
+| V4 no burst clause | 2190 | $-8389.22 | $-3.83 | 30% |
+
+### LIMIT-AT-FIRE +0.5% (F3) — MINE
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 897 | $-504.92 | $-0.56 | 34% |
+| V1 pre-run p75 (30 bars before leg) | 999 | $-969.24 | $-0.97 | 33% |
+| V2 OR session-median x1.5 | 1379 | $-4893.58 | $-3.55 | 30% |
+| V2 OR session-median x2 | 1309 | $-4107.24 | $-3.14 | 31% |
+| V2 OR session-median x3 | 1229 | $-3501.95 | $-2.85 | 31% |
+| V3 dollar-volume trailing p75 | 943 | $-884.94 | $-0.94 | 33% |
+| V4 no burst clause | 1579 | $-6437.63 | $-4.08 | 29% |
+
+### LIMIT-AT-FIRE +0.5% (F3) — HOLD-OUT
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 356 | $-260.78 | $-0.73 | 38% |
+| V1 pre-run p75 (30 bars before leg) | 395 | $-544.05 | $-1.38 | 37% |
+| V2 OR session-median x1.5 | 532 | $-1770.51 | $-3.33 | 33% |
+| V2 OR session-median x2 | 514 | $-1551.28 | $-3.02 | 34% |
+| V2 OR session-median x3 | 497 | $-1362.06 | $-2.74 | 35% |
+| V3 dollar-volume trailing p75 | 377 | $-505.68 | $-1.34 | 38% |
+| V4 no burst clause | 604 | $-2210.04 | $-3.66 | 32% |
+
+### LIMIT-AT-FIRE +0.5% (F3) — RUNNER
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 1256 | $-584.90 | $-0.47 | 35% |
+| V1 pre-run p75 (30 bars before leg) | 1397 | $-1332.49 | $-0.95 | 35% |
+| V2 OR session-median x1.5 | 1916 | $-6430.63 | $-3.36 | 31% |
+| V2 OR session-median x2 | 1828 | $-5425.06 | $-2.97 | 32% |
+| V2 OR session-median x3 | 1731 | $-4630.55 | $-2.68 | 32% |
+| V3 dollar-volume trailing p75 | 1323 | $-1209.82 | $-0.91 | 35% |
+| V4 no burst clause | 2189 | $-8358.39 | $-3.82 | 30% |
+
+### LIMIT-AT-FIRE +0.5% (F3) — REST
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 1 | $-30.83 | $-30.83 | 0% |
+| V1 pre-run p75 (30 bars before leg) | 1 | $-30.83 | $-30.83 | 0% |
+| V2 OR session-median x1.5 | 1 | $-30.83 | $-30.83 | 0% |
+| V2 OR session-median x2 | 1 | $-30.83 | $-30.83 | 0% |
+| V2 OR session-median x3 | 1 | $-30.83 | $-30.83 | 0% |
+| V3 dollar-volume trailing p75 | 1 | $-30.83 | $-30.83 | 0% |
+| V4 no burst clause | 1 | $-30.83 | $-30.83 | 0% |
+
+### LIMIT-AT-FIRE +0.5% (F3) — VERTICAL 100%+
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 628 | $+6277.22 | $+10.00 | 46% |
+| V1 pre-run p75 (30 bars before leg) | 709 | $+6054.32 | $+8.54 | 44% |
+| V2 OR session-median x1.5 | 1028 | $+3609.74 | $+3.51 | 38% |
+| V2 OR session-median x2 | 969 | $+4168.17 | $+4.30 | 39% |
+| V2 OR session-median x3 | 905 | $+4564.80 | $+5.04 | 40% |
+| V3 dollar-volume trailing p75 | 678 | $+6081.90 | $+8.97 | 45% |
+| V4 no burst clause | 1182 | $+2976.83 | $+2.52 | 37% |
+
+### LIMIT-AT-FIRE +0.5% (F3) — VERTICAL 100%+/HOLD-OUT
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 174 | $+1624.85 | $+9.34 | 47% |
+| V1 pre-run p75 (30 bars before leg) | 202 | $+1471.61 | $+7.29 | 45% |
+| V2 OR session-median x1.5 | 287 | $+1171.44 | $+4.08 | 40% |
+| V2 OR session-median x2 | 276 | $+1208.73 | $+4.38 | 41% |
+| V2 OR session-median x3 | 266 | $+1232.93 | $+4.64 | 41% |
+| V3 dollar-volume trailing p75 | 188 | $+1614.34 | $+8.59 | 47% |
+| V4 no burst clause | 320 | $+1144.16 | $+3.58 | 39% |
+
+### LIMIT-AT-FIRE +0.5% (F3) — RUNNER/HOLD-OUT
+| variant | N | total | $/tr | win |
+|---|---|---|---|---|
+| V0 baseline (trailing p75) | 355 | $-229.95 | $-0.65 | 39% |
+| V1 pre-run p75 (30 bars before leg) | 394 | $-513.21 | $-1.30 | 37% |
+| V2 OR session-median x1.5 | 531 | $-1739.67 | $-3.28 | 34% |
+| V2 OR session-median x2 | 513 | $-1520.45 | $-2.96 | 34% |
+| V2 OR session-median x3 | 496 | $-1331.23 | $-2.68 | 35% |
+| V3 dollar-volume trailing p75 | 376 | $-474.84 | $-1.26 | 38% |
+| V4 no burst clause | 603 | $-2179.21 | $-3.61 | 32% |
+
+### VERDICT vs pre-registered failure conditions
+QUOTE-ENTRY (today) | V1 pre-run p75 (30 bars before leg): MINE -3.21 vs -3.54, HOLD -2.95 vs -2.46 (N=405) -> FAILS FC#2
+QUOTE-ENTRY (today) | V2 OR session-median x1.5: MINE -4.16 vs -3.54, HOLD -4.12 vs -2.46 (N=544) -> FAILS FC#2
+QUOTE-ENTRY (today) | V2 OR session-median x2: MINE -4.06 vs -3.54, HOLD -3.96 vs -2.46 (N=526) -> FAILS FC#2
+QUOTE-ENTRY (today) | V2 OR session-median x3: MINE -3.98 vs -3.54, HOLD -3.61 vs -2.46 (N=507) -> FAILS FC#2
+QUOTE-ENTRY (today) | V3 dollar-volume trailing p75: MINE -3.57 vs -3.54, HOLD -3.17 vs -2.46 (N=387) -> FAILS FC#2
+QUOTE-ENTRY (today) | V4 no burst clause: MINE -4.64 vs -3.54, HOLD -3.83 vs -2.46 (N=623) -> FAILS FC#2
+LIMIT-AT-FIRE +0.5% (F3) | V1 pre-run p75 (30 bars before leg): MINE -0.97 vs -0.56, HOLD -1.38 vs -0.73 (N=395) -> FAILS FC#2
+LIMIT-AT-FIRE +0.5% (F3) | V2 OR session-median x1.5: MINE -3.55 vs -0.56, HOLD -3.33 vs -0.73 (N=532) -> FAILS FC#2
+LIMIT-AT-FIRE +0.5% (F3) | V2 OR session-median x2: MINE -3.14 vs -0.56, HOLD -3.02 vs -0.73 (N=514) -> FAILS FC#2
+LIMIT-AT-FIRE +0.5% (F3) | V2 OR session-median x3: MINE -2.85 vs -0.56, HOLD -2.74 vs -0.73 (N=497) -> FAILS FC#2
+LIMIT-AT-FIRE +0.5% (F3) | V3 dollar-volume trailing p75: MINE -0.94 vs -0.56, HOLD -1.34 vs -0.73 (N=377) -> FAILS FC#2
+LIMIT-AT-FIRE +0.5% (F3) | V4 no burst clause: MINE -4.08 vs -0.56, HOLD -3.66 vs -0.73 (N=604) -> FAILS FC#2

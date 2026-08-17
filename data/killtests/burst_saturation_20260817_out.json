@@ -1,0 +1,810 @@
+{
+ "saturation": {
+  "RUNNER": 42.800000000000004,
+  "REST": 0.0,
+  "by_bucket": {
+   "20-50%": {
+    "n": 186,
+    "rate": 40.86021505376344
+   },
+   "50-100%": {
+    "n": 841,
+    "rate": 37.21759809750297
+   },
+   "100-200%": {
+    "n": 757,
+    "rate": 45.17833553500661
+   },
+   "200%+": {
+    "n": 467,
+    "rate": 49.67880085653105
+   }
+  }
+ },
+ "fc1": true,
+ "res": {
+  "QUOTE-ENTRY (today)|ALL|V0 baseline (trailing p75)": {
+   "N": 1286,
+   "tot": -3862.1318574852603,
+   "dtr": -3.003212952943437,
+   "win": 32.97045101088647
+  },
+  "QUOTE-ENTRY (today)|ALL|V1 pre-run p75 (30 bars before leg)": {
+   "N": 1427,
+   "tot": -4174.642161337417,
+   "dtr": -2.9254675272161297,
+   "win": 32.51576734407848
+  },
+  "QUOTE-ENTRY (today)|ALL|V2 OR session-median x1.5": {
+   "N": 1956,
+   "tot": -7775.024858397179,
+   "dtr": -3.9749615840476373,
+   "win": 30.010224948875255
+  },
+  "QUOTE-ENTRY (today)|ALL|V2 OR session-median x2": {
+   "N": 1867,
+   "tot": -7173.246151469075,
+   "dtr": -3.8421243446540303,
+   "win": 30.423138725227638
+  },
+  "QUOTE-ENTRY (today)|ALL|V2 OR session-median x3": {
+   "N": 1768,
+   "tot": -6495.850535024639,
+   "dtr": -3.6741236057831665,
+   "win": 30.88235294117647
+  },
+  "QUOTE-ENTRY (today)|ALL|V3 dollar-volume trailing p75": {
+   "N": 1355,
+   "tot": -4388.07935801222,
+   "dtr": -3.238434950562524,
+   "win": 32.84132841328413
+  },
+  "QUOTE-ENTRY (today)|ALL|V4 no burst clause": {
+   "N": 2248,
+   "tot": -9505.755433799306,
+   "dtr": -4.228538894038837,
+   "win": 29.137010676156585
+  },
+  "QUOTE-ENTRY (today)|MINE|V0 baseline (trailing p75)": {
+   "N": 917,
+   "tot": -3244.939265630748,
+   "dtr": -3.5386469636104123,
+   "win": 30.970556161395855
+  },
+  "QUOTE-ENTRY (today)|MINE|V1 pre-run p75 (30 bars before leg)": {
+   "N": 1018,
+   "tot": -3263.3727597792945,
+   "dtr": -3.205670687405987,
+   "win": 30.74656188605108
+  },
+  "QUOTE-ENTRY (today)|MINE|V2 OR session-median x1.5": {
+   "N": 1406,
+   "tot": -5855.378200908528,
+   "dtr": -4.1645648655110445,
+   "win": 28.87624466571835
+  },
+  "QUOTE-ENTRY (today)|MINE|V2 OR session-median x2": {
+   "N": 1335,
+   "tot": -5415.947678789234,
+   "dtr": -4.056889647033134,
+   "win": 29.213483146067414
+  },
+  "QUOTE-ENTRY (today)|MINE|V2 OR session-median x3": {
+   "N": 1255,
+   "tot": -4989.37241532207,
+   "dtr": -3.9755955500574265,
+   "win": 29.561752988047807
+  },
+  "QUOTE-ENTRY (today)|MINE|V3 dollar-volume trailing p75": {
+   "N": 964,
+   "tot": -3442.1130935570327,
+   "dtr": -3.570656736055013,
+   "win": 30.91286307053942
+  },
+  "QUOTE-ENTRY (today)|MINE|V4 no burst clause": {
+   "N": 1618,
+   "tot": -7504.5276824088605,
+   "dtr": -4.638150607174821,
+   "win": 27.935723114956737
+  },
+  "QUOTE-ENTRY (today)|HOLD-OUT|V0 baseline (trailing p75)": {
+   "N": 365,
+   "tot": -899.5980210760532,
+   "dtr": -2.464652112537132,
+   "win": 37.26027397260274
+  },
+  "QUOTE-ENTRY (today)|HOLD-OUT|V1 pre-run p75 (30 bars before leg)": {
+   "N": 405,
+   "tot": -1193.6748307796663,
+   "dtr": -2.947345261184361,
+   "win": 36.2962962962963
+  },
+  "QUOTE-ENTRY (today)|HOLD-OUT|V2 OR session-median x1.5": {
+   "N": 544,
+   "tot": -2243.2690681575095,
+   "dtr": -4.123656375289539,
+   "win": 32.35294117647059
+  },
+  "QUOTE-ENTRY (today)|HOLD-OUT|V2 OR session-median x2": {
+   "N": 526,
+   "tot": -2080.9208833487055,
+   "dtr": -3.956123352373965,
+   "win": 32.88973384030418
+  },
+  "QUOTE-ENTRY (today)|HOLD-OUT|V2 OR session-median x3": {
+   "N": 507,
+   "tot": -1830.1005303714285,
+   "dtr": -3.609665740377571,
+   "win": 33.53057199211045
+  },
+  "QUOTE-ENTRY (today)|HOLD-OUT|V3 dollar-volume trailing p75": {
+   "N": 387,
+   "tot": -1228.3716936767305,
+   "dtr": -3.1740870637641616,
+   "win": 36.950904392764855
+  },
+  "QUOTE-ENTRY (today)|HOLD-OUT|V4 no burst clause": {
+   "N": 623,
+   "tot": -2384.743722288017,
+   "dtr": -3.827839040590718,
+   "win": 31.62118780096308
+  },
+  "QUOTE-ENTRY (today)|RUNNER|V0 baseline (trailing p75)": {
+   "N": 1285,
+   "tot": -3831.724912870902,
+   "dtr": -2.9818870917283284,
+   "win": 32.99610894941634
+  },
+  "QUOTE-ENTRY (today)|RUNNER|V1 pre-run p75 (30 bars before leg)": {
+   "N": 1426,
+   "tot": -4144.235216723056,
+   "dtr": -2.9061958041536156,
+   "win": 32.53856942496494
+  },
+  "QUOTE-ENTRY (today)|RUNNER|V2 OR session-median x1.5": {
+   "N": 1955,
+   "tot": -7744.6179137828185,
+   "dtr": -3.9614413881242037,
+   "win": 30.025575447570333
+  },
+  "QUOTE-ENTRY (today)|RUNNER|V2 OR session-median x2": {
+   "N": 1866,
+   "tot": -7142.839206854716,
+   "dtr": -3.827888106567372,
+   "win": 30.439442658092176
+  },
+  "QUOTE-ENTRY (today)|RUNNER|V2 OR session-median x3": {
+   "N": 1767,
+   "tot": -6465.44359041028,
+   "dtr": -3.6589946748218902,
+   "win": 30.899830220713074
+  },
+  "QUOTE-ENTRY (today)|RUNNER|V3 dollar-volume trailing p75": {
+   "N": 1354,
+   "tot": -4357.672413397862,
+   "dtr": -3.2183695815346103,
+   "win": 32.865583456425405
+  },
+  "QUOTE-ENTRY (today)|RUNNER|V4 no burst clause": {
+   "N": 2247,
+   "tot": -9475.348489184948,
+   "dtr": -4.216888513210924,
+   "win": 29.14997774810859
+  },
+  "QUOTE-ENTRY (today)|REST|V0 baseline (trailing p75)": {
+   "N": 1,
+   "tot": -30.406944614359183,
+   "dtr": -30.406944614359183,
+   "win": 0.0
+  },
+  "QUOTE-ENTRY (today)|REST|V1 pre-run p75 (30 bars before leg)": {
+   "N": 1,
+   "tot": -30.406944614359183,
+   "dtr": -30.406944614359183,
+   "win": 0.0
+  },
+  "QUOTE-ENTRY (today)|REST|V2 OR session-median x1.5": {
+   "N": 1,
+   "tot": -30.406944614359183,
+   "dtr": -30.406944614359183,
+   "win": 0.0
+  },
+  "QUOTE-ENTRY (today)|REST|V2 OR session-median x2": {
+   "N": 1,
+   "tot": -30.406944614359183,
+   "dtr": -30.406944614359183,
+   "win": 0.0
+  },
+  "QUOTE-ENTRY (today)|REST|V2 OR session-median x3": {
+   "N": 1,
+   "tot": -30.406944614359183,
+   "dtr": -30.406944614359183,
+   "win": 0.0
+  },
+  "QUOTE-ENTRY (today)|REST|V3 dollar-volume trailing p75": {
+   "N": 1,
+   "tot": -30.406944614359183,
+   "dtr": -30.406944614359183,
+   "win": 0.0
+  },
+  "QUOTE-ENTRY (today)|REST|V4 no burst clause": {
+   "N": 1,
+   "tot": -30.406944614359183,
+   "dtr": -30.406944614359183,
+   "win": 0.0
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+|V0 baseline (trailing p75)": {
+   "N": 650,
+   "tot": 4052.555738872108,
+   "dtr": 6.23470113672632,
+   "win": 42.15384615384615
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+|V1 pre-run p75 (30 bars before leg)": {
+   "N": 732,
+   "tot": 4029.848921525585,
+   "dtr": 5.505258089515826,
+   "win": 41.12021857923497
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+|V2 OR session-median x1.5": {
+   "N": 1057,
+   "tot": 2617.6820549640724,
+   "dtr": 2.476520392586634,
+   "win": 36.707663197729424
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+|V2 OR session-median x2": {
+   "N": 997,
+   "tot": 2869.762558852758,
+   "dtr": 2.8783977521090853,
+   "win": 37.412236710130394
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+|V2 OR session-median x3": {
+   "N": 932,
+   "tot": 3225.7831649432073,
+   "dtr": 3.4611407349176044,
+   "win": 38.30472103004292
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+|V3 dollar-volume trailing p75": {
+   "N": 702,
+   "tot": 3918.6210282414313,
+   "dtr": 5.582081236811156,
+   "win": 41.59544159544159
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+|V4 no burst clause": {
+   "N": 1224,
+   "tot": 2034.3385910716588,
+   "dtr": 1.6620413325748846,
+   "win": 35.294117647058826
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+/HOLD-OUT|V0 baseline (trailing p75)": {
+   "N": 181,
+   "tot": 1212.7926693386773,
+   "dtr": 6.70051198529656,
+   "win": 45.30386740331492
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+/HOLD-OUT|V1 pre-run p75 (30 bars before leg)": {
+   "N": 210,
+   "tot": 1041.6752521168746,
+   "dtr": 4.960358343413689,
+   "win": 43.80952380952381
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+/HOLD-OUT|V2 OR session-median x1.5": {
+   "N": 295,
+   "tot": 821.857524640187,
+   "dtr": 2.7859577106447015,
+   "win": 38.983050847457626
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+/HOLD-OUT|V2 OR session-median x2": {
+   "N": 284,
+   "tot": 819.315301862287,
+   "dtr": 2.8849130347263627,
+   "win": 39.436619718309856
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+/HOLD-OUT|V2 OR session-median x3": {
+   "N": 273,
+   "tot": 900.3060519149418,
+   "dtr": 3.297824365988798,
+   "win": 39.92673992673993
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+/HOLD-OUT|V3 dollar-volume trailing p75": {
+   "N": 196,
+   "tot": 1134.1204119732558,
+   "dtr": 5.786328632516612,
+   "win": 45.40816326530612
+  },
+  "QUOTE-ENTRY (today)|VERTICAL 100%+/HOLD-OUT|V4 no burst clause": {
+   "N": 332,
+   "tot": 1014.0900238111828,
+   "dtr": 3.054488023527659,
+   "win": 38.55421686746988
+  },
+  "QUOTE-ENTRY (today)|RUNNER/HOLD-OUT|V0 baseline (trailing p75)": {
+   "N": 364,
+   "tot": -869.1910764616945,
+   "dtr": -2.387887572696963,
+   "win": 37.362637362637365
+  },
+  "QUOTE-ENTRY (today)|RUNNER/HOLD-OUT|V1 pre-run p75 (30 bars before leg)": {
+   "N": 404,
+   "tot": -1163.2678861653073,
+   "dtr": -2.879375955854721,
+   "win": 36.386138613861384
+  },
+  "QUOTE-ENTRY (today)|RUNNER/HOLD-OUT|V2 OR session-median x1.5": {
+   "N": 543,
+   "tot": -2212.8621235431506,
+   "dtr": -4.075252529545397,
+   "win": 32.41252302025783
+  },
+  "QUOTE-ENTRY (today)|RUNNER/HOLD-OUT|V2 OR session-median x2": {
+   "N": 525,
+   "tot": -2050.5139387343456,
+   "dtr": -3.905740835684468,
+   "win": 32.95238095238095
+  },
+  "QUOTE-ENTRY (today)|RUNNER/HOLD-OUT|V2 OR session-median x3": {
+   "N": 506,
+   "tot": -1799.69358575707,
+   "dtr": -3.556706691219506,
+   "win": 33.59683794466403
+  },
+  "QUOTE-ENTRY (today)|RUNNER/HOLD-OUT|V3 dollar-volume trailing p75": {
+   "N": 386,
+   "tot": -1197.964749062371,
+   "dtr": -3.1035356193325674,
+   "win": 37.04663212435233
+  },
+  "QUOTE-ENTRY (today)|RUNNER/HOLD-OUT|V4 no burst clause": {
+   "N": 622,
+   "tot": -2354.3367776736586,
+   "dtr": -3.785107359603953,
+   "win": 31.672025723472668
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|ALL|V0 baseline (trailing p75)": {
+   "N": 1257,
+   "tot": -615.7283550644637,
+   "dtr": -0.48983958239018593,
+   "win": 35.32219570405728
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|ALL|V1 pre-run p75 (30 bars before leg)": {
+   "N": 1398,
+   "tot": -1363.3216319098033,
+   "dtr": -0.9751943003646661,
+   "win": 34.47782546494993
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|ALL|V2 OR session-median x1.5": {
+   "N": 1917,
+   "tot": -6461.461314311128,
+   "dtr": -3.3706110142468066,
+   "win": 31.142410015649453
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|ALL|V2 OR session-median x2": {
+   "N": 1829,
+   "tot": -5455.890758057547,
+   "dtr": -2.982991119769025,
+   "win": 31.711317659923456
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|ALL|V2 OR session-median x3": {
+   "N": 1732,
+   "tot": -4661.378622905044,
+   "dtr": -2.6913271494832816,
+   "win": 32.159353348729795
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|ALL|V3 dollar-volume trailing p75": {
+   "N": 1324,
+   "tot": -1240.6514303445758,
+   "dtr": -0.9370479081152385,
+   "win": 34.894259818731115
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|ALL|V4 no burst clause": {
+   "N": 2190,
+   "tot": -8389.219181792425,
+   "dtr": -3.830693690316176,
+   "win": 30.091324200913242
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|MINE|V0 baseline (trailing p75)": {
+   "N": 897,
+   "tot": -504.91542002614284,
+   "dtr": -0.5628934448451982,
+   "win": 33.779264214046826
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|MINE|V1 pre-run p75 (30 bars before leg)": {
+   "N": 999,
+   "tot": -969.2393440790011,
+   "dtr": -0.9702095536326337,
+   "win": 33.133133133133136
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|MINE|V2 OR session-median x1.5": {
+   "N": 1379,
+   "tot": -4893.583092783348,
+   "dtr": -3.5486461876601507,
+   "win": 30.02175489485134
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|MINE|V2 OR session-median x2": {
+   "N": 1309,
+   "tot": -4107.23842033188,
+   "dtr": -3.137691688565225,
+   "win": 30.557677616501145
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|MINE|V2 OR session-median x3": {
+   "N": 1229,
+   "tot": -3501.945724608047,
+   "dtr": -2.84942695248824,
+   "win": 30.919446704637917
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|MINE|V3 dollar-volume trailing p75": {
+   "N": 943,
+   "tot": -884.939363549768,
+   "dtr": -0.9384298659064348,
+   "win": 33.29798515376458
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|MINE|V4 no burst clause": {
+   "N": 1579,
+   "tot": -6437.630896058484,
+   "dtr": -4.077030333159268,
+   "win": 29.069031032298923
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|HOLD-OUT|V0 baseline (trailing p75)": {
+   "N": 356,
+   "tot": -260.77697568990493,
+   "dtr": -0.7325195946345644,
+   "win": 38.48314606741573
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|HOLD-OUT|V1 pre-run p75 (30 bars before leg)": {
+   "N": 395,
+   "tot": -544.0463284823849,
+   "dtr": -1.3773324771705946,
+   "win": 37.21518987341772
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|HOLD-OUT|V2 OR session-median x1.5": {
+   "N": 532,
+   "tot": -1770.5064960080022,
+   "dtr": -3.32801972933835,
+   "win": 33.45864661654135
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|HOLD-OUT|V2 OR session-median x2": {
+   "N": 514,
+   "tot": -1551.2806122058878,
+   "dtr": -3.0180556657702096,
+   "win": 34.04669260700389
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|HOLD-OUT|V2 OR session-median x3": {
+   "N": 497,
+   "tot": -1362.0611727772161,
+   "dtr": -2.740565739994399,
+   "win": 34.60764587525151
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|HOLD-OUT|V3 dollar-volume trailing p75": {
+   "N": 377,
+   "tot": -505.67610744639103,
+   "dtr": -1.3413159348710637,
+   "win": 38.19628647214854
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|HOLD-OUT|V4 no burst clause": {
+   "N": 604,
+   "tot": -2210.039052845428,
+   "dtr": -3.659005054379848,
+   "win": 32.11920529801324
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER|V0 baseline (trailing p75)": {
+   "N": 1256,
+   "tot": -584.8966202653786,
+   "dtr": -0.4656820225042823,
+   "win": 35.35031847133758
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER|V1 pre-run p75 (30 bars before leg)": {
+   "N": 1397,
+   "tot": -1332.4898971107182,
+   "dtr": -0.9538224030856967,
+   "win": 34.5025053686471
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER|V2 OR session-median x1.5": {
+   "N": 1916,
+   "tot": -6430.629579512043,
+   "dtr": -3.356278486175388,
+   "win": 31.15866388308977
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER|V2 OR session-median x2": {
+   "N": 1828,
+   "tot": -5425.059023258462,
+   "dtr": -2.9677565772748697,
+   "win": 31.728665207877462
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER|V2 OR session-median x3": {
+   "N": 1731,
+   "tot": -4630.546888105959,
+   "dtr": -2.6750704148503517,
+   "win": 32.17793183131138
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER|V3 dollar-volume trailing p75": {
+   "N": 1323,
+   "tot": -1209.8196955454907,
+   "dtr": -0.914451772899086,
+   "win": 34.92063492063492
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER|V4 no burst clause": {
+   "N": 2189,
+   "tot": -8358.387446993334,
+   "dtr": -3.8183588154377954,
+   "win": 30.105070808588398
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|REST|V0 baseline (trailing p75)": {
+   "N": 1,
+   "tot": -30.831734799085186,
+   "dtr": -30.831734799085186,
+   "win": 0.0
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|REST|V1 pre-run p75 (30 bars before leg)": {
+   "N": 1,
+   "tot": -30.831734799085186,
+   "dtr": -30.831734799085186,
+   "win": 0.0
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|REST|V2 OR session-median x1.5": {
+   "N": 1,
+   "tot": -30.831734799085186,
+   "dtr": -30.831734799085186,
+   "win": 0.0
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|REST|V2 OR session-median x2": {
+   "N": 1,
+   "tot": -30.831734799085186,
+   "dtr": -30.831734799085186,
+   "win": 0.0
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|REST|V2 OR session-median x3": {
+   "N": 1,
+   "tot": -30.831734799085186,
+   "dtr": -30.831734799085186,
+   "win": 0.0
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|REST|V3 dollar-volume trailing p75": {
+   "N": 1,
+   "tot": -30.831734799085186,
+   "dtr": -30.831734799085186,
+   "win": 0.0
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|REST|V4 no burst clause": {
+   "N": 1,
+   "tot": -30.831734799085186,
+   "dtr": -30.831734799085186,
+   "win": 0.0
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+|V0 baseline (trailing p75)": {
+   "N": 628,
+   "tot": 6277.2204615938,
+   "dtr": 9.995573983429617,
+   "win": 45.54140127388535
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+|V1 pre-run p75 (30 bars before leg)": {
+   "N": 709,
+   "tot": 6054.319267947275,
+   "dtr": 8.539237331378384,
+   "win": 43.86459802538787
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+|V2 OR session-median x1.5": {
+   "N": 1028,
+   "tot": 3609.7379496747476,
+   "dtr": 3.5114182389832176,
+   "win": 38.42412451361868
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+|V2 OR session-median x2": {
+   "N": 969,
+   "tot": 4168.170344595739,
+   "dtr": 4.301517383483735,
+   "win": 39.31888544891641
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+|V2 OR session-median x3": {
+   "N": 905,
+   "tot": 4564.80344588926,
+   "dtr": 5.043981708164928,
+   "win": 40.22099447513812
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+|V3 dollar-volume trailing p75": {
+   "N": 678,
+   "tot": 6081.903370827714,
+   "dtr": 8.970358954023176,
+   "win": 44.690265486725664
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+|V4 no burst clause": {
+   "N": 1182,
+   "tot": 2976.825175389096,
+   "dtr": 2.518464615388406,
+   "win": 36.80203045685279
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+/HOLD-OUT|V0 baseline (trailing p75)": {
+   "N": 174,
+   "tot": 1624.8498885348922,
+   "dtr": 9.33821775020053,
+   "win": 46.55172413793103
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+/HOLD-OUT|V1 pre-run p75 (30 bars before leg)": {
+   "N": 202,
+   "tot": 1471.6113330836035,
+   "dtr": 7.28520461922576,
+   "win": 44.554455445544555
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+/HOLD-OUT|V2 OR session-median x1.5": {
+   "N": 287,
+   "tot": 1171.437139866201,
+   "dtr": 4.0816625082446025,
+   "win": 40.069686411149824
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+/HOLD-OUT|V2 OR session-median x2": {
+   "N": 276,
+   "tot": 1208.7329696345669,
+   "dtr": 4.379467281284662,
+   "win": 40.57971014492754
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+/HOLD-OUT|V2 OR session-median x3": {
+   "N": 266,
+   "tot": 1232.930387822567,
+   "dtr": 4.6350766459495,
+   "win": 40.97744360902256
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+/HOLD-OUT|V3 dollar-volume trailing p75": {
+   "N": 188,
+   "tot": 1614.343018406761,
+   "dtr": 8.586930948972133,
+   "win": 46.808510638297875
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|VERTICAL 100%+/HOLD-OUT|V4 no burst clause": {
+   "N": 320,
+   "tot": 1144.158459884111,
+   "dtr": 3.5754951871378466,
+   "win": 38.75
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER/HOLD-OUT|V0 baseline (trailing p75)": {
+   "N": 355,
+   "tot": -229.9452408908205,
+   "dtr": -0.6477330729318886,
+   "win": 38.59154929577465
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER/HOLD-OUT|V1 pre-run p75 (30 bars before leg)": {
+   "N": 394,
+   "tot": -513.2145936832991,
+   "dtr": -1.3025751108713175,
+   "win": 37.30964467005076
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER/HOLD-OUT|V2 OR session-median x1.5": {
+   "N": 531,
+   "tot": -1739.6747612089175,
+   "dtr": -3.276223655760673,
+   "win": 33.52165725047081
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER/HOLD-OUT|V2 OR session-median x2": {
+   "N": 513,
+   "tot": -1520.4488774068022,
+   "dtr": -2.963837967654585,
+   "win": 34.113060428849906
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER/HOLD-OUT|V2 OR session-median x3": {
+   "N": 496,
+   "tot": -1331.229437978131,
+   "dtr": -2.6839303185042964,
+   "win": 34.67741935483871
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER/HOLD-OUT|V3 dollar-volume trailing p75": {
+   "N": 376,
+   "tot": -474.8443726473066,
+   "dtr": -1.2628839698066665,
+   "win": 38.297872340425535
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|RUNNER/HOLD-OUT|V4 no burst clause": {
+   "N": 603,
+   "tot": -2179.2073180463435,
+   "dtr": -3.6139424843222945,
+   "win": 32.172470978441126
+  }
+ },
+ "verdict": {
+  "QUOTE-ENTRY (today)|V1 pre-run p75 (30 bars before leg)": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -3.205670687405987,
+   "hold": -2.947345261184361,
+   "base_mine": -3.5386469636104123,
+   "base_hold": -2.464652112537132,
+   "hold_n": 405
+  },
+  "QUOTE-ENTRY (today)|V2 OR session-median x1.5": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -4.1645648655110445,
+   "hold": -4.123656375289539,
+   "base_mine": -3.5386469636104123,
+   "base_hold": -2.464652112537132,
+   "hold_n": 544
+  },
+  "QUOTE-ENTRY (today)|V2 OR session-median x2": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -4.056889647033134,
+   "hold": -3.956123352373965,
+   "base_mine": -3.5386469636104123,
+   "base_hold": -2.464652112537132,
+   "hold_n": 526
+  },
+  "QUOTE-ENTRY (today)|V2 OR session-median x3": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -3.9755955500574265,
+   "hold": -3.609665740377571,
+   "base_mine": -3.5386469636104123,
+   "base_hold": -2.464652112537132,
+   "hold_n": 507
+  },
+  "QUOTE-ENTRY (today)|V3 dollar-volume trailing p75": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -3.570656736055013,
+   "hold": -3.1740870637641616,
+   "base_mine": -3.5386469636104123,
+   "base_hold": -2.464652112537132,
+   "hold_n": 387
+  },
+  "QUOTE-ENTRY (today)|V4 no burst clause": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -4.638150607174821,
+   "hold": -3.827839040590718,
+   "base_mine": -3.5386469636104123,
+   "base_hold": -2.464652112537132,
+   "hold_n": 623
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|V1 pre-run p75 (30 bars before leg)": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -0.9702095536326337,
+   "hold": -1.3773324771705946,
+   "base_mine": -0.5628934448451982,
+   "base_hold": -0.7325195946345644,
+   "hold_n": 395
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|V2 OR session-median x1.5": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -3.5486461876601507,
+   "hold": -3.32801972933835,
+   "base_mine": -0.5628934448451982,
+   "base_hold": -0.7325195946345644,
+   "hold_n": 532
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|V2 OR session-median x2": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -3.137691688565225,
+   "hold": -3.0180556657702096,
+   "base_mine": -0.5628934448451982,
+   "base_hold": -0.7325195946345644,
+   "hold_n": 514
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|V2 OR session-median x3": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -2.84942695248824,
+   "hold": -2.740565739994399,
+   "base_mine": -0.5628934448451982,
+   "base_hold": -0.7325195946345644,
+   "hold_n": 497
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|V3 dollar-volume trailing p75": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -0.9384298659064348,
+   "hold": -1.3413159348710637,
+   "base_mine": -0.5628934448451982,
+   "base_hold": -0.7325195946345644,
+   "hold_n": 377
+  },
+  "LIMIT-AT-FIRE +0.5% (F3)|V4 no burst clause": {
+   "both_halves": false,
+   "powered": true,
+   "mine": -4.077030333159268,
+   "hold": -3.659005054379848,
+   "base_mine": -0.5628934448451982,
+   "base_hold": -0.7325195946345644,
+   "hold_n": 604
+  }
+ },
+ "n_candidates": 2251
+}

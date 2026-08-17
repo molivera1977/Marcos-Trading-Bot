@@ -6372,6 +6372,70 @@ KEVSEQ_MAX_DRIFT      = float(os.environ.get("KEVSEQ_MAX_DRIFT", "0"))     # F1,
 KEVSEQ_FIRE_MAX_AGE_S = float(os.environ.get("KEVSEQ_FIRE_MAX_AGE_S", "0"))# F4, 0 = disabled
 _ks_st: dict = {}   # sym -> kevseq machine state (module-level: survives rescans)
 
+# ── 8/17 DEFECT 1b: front_side_unknown FAIL-CLOSED (kill-test doc:
+# data/killtests/frontside_selfcompute_20260817.md) ──────────────────────────
+# THE DEFECT (8/17 live rows): kevseq refuses with why="front_side_unknown" whenever the
+# caller's 1-MIN `bars` list is shorter than EMA20_PERIOD+2 (22 completed minutes) — which
+# on a name that just hit the board is EXACTLY the first ~22 minutes of its run, i.e. the
+# window the lane exists to trade.  ~50 of today's 97 kevseq refusals were this.  The bot
+# ALREADY has the data: the same call feeds kevseq 10s bars, and six 10s bars are a minute.
+# THE FIX: aggregate the fed 10s bars into 1-min bars ourselves and compute EMA9/EMA20 from
+# them when (and only when) the caller could not supply front_side.  Still FAILS CLOSED when
+# the aggregate itself is too short — that is a genuine unknown, not a plumbing hole.
+# Env kill: KEVSEQ_SELF_FRONTSIDE=0 restores today's behaviour exactly.
+# Every computed value is stamped on the row (front_side_src, front_side_1m_n) so the
+# refused-strength hearing can audit it.
+# FAILURE CONDITION (pre-registered): wrong if the self-computed front_side disagrees with
+# the caller-supplied front_side on the rows where BOTH exist (that would mean the aggregate
+# is not reproducing the 1-min chart), or if it produces a value from fewer than
+# EMA20_PERIOD+2 completed minute bars.
+KEVSEQ_SELF_FRONTSIDE = os.environ.get("KEVSEQ_SELF_FRONTSIDE", "1") == "1"
+_ks_1m_agg: dict = {}   # sym -> {"day":..,"bars":[dicts],"cur":dict} 1-min aggregate of the fed 10s bars
+
+
+def kevseq_feed_1m(sym, new_bars):
+    """Fold NEW completed 10s bars [(k,o,h,l,c,v),...] into sym's 1-MIN aggregate.
+    Returns the list of COMPLETED 1-min bars (dicts with o/h/l/c/v), oldest first.
+    Idempotent per bucket-advance; never raises.  Zero new fetches — same bars kevseq eats."""
+    try:
+        day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        st = _ks_1m_agg.get(sym)
+        if not st or st.get("day") != day:
+            st = {"day": day, "bars": [], "cur": None}
+            _ks_1m_agg[sym] = st
+        for k, o, h, l, c, v in (new_bars or []):
+            m = int(float(k)) // 60 * 60
+            cur = st["cur"]
+            if cur is None or m != cur["m"]:
+                if cur is not None:
+                    st["bars"].append({k2: cur[k2] for k2 in ("o", "h", "l", "c", "v")})
+                    if len(st["bars"]) > 240:
+                        st["bars"].pop(0)
+                cur = {"m": m, "o": o, "h": h, "l": l, "c": c, "v": v}
+                st["cur"] = cur
+            else:
+                cur["h"] = max(cur["h"], h); cur["l"] = min(cur["l"], l)
+                cur["c"] = c; cur["v"] += v
+        return st["bars"]
+    except Exception:
+        return []
+
+
+def kevseq_front_side(sym, new_bars):
+    """Self-computed front side (9EMA > 20EMA on the 1-MIN aggregate of the fed 10s bars).
+    Returns (value, n_bars): value True/False, or None when the aggregate is still too short
+    (genuine unknown -> the detector keeps failing closed).  Never raises."""
+    try:
+        b1 = kevseq_feed_1m(sym, new_bars)
+        if len(b1) < EMA20_PERIOD + 2:
+            return None, len(b1)
+        e9, e20 = calculate_ema9(b1), calculate_ema20(b1)
+        if not (e9 and e20 and e20 > 0):
+            return None, len(b1)
+        return bool(e9 > e20), len(b1)
+    except Exception:
+        return None, 0
+
 
 def kevseq_step(sym, new_bars, vwap, ctx=None):
     """Advance sym's Kev-SEQUENCE machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
@@ -8193,11 +8257,36 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         if KEVSEQ_SHADOW:
                             try:
                                 _ks_ctx = {"front_side": None, "day_gain": None, "top3": False, "blue_sky": False}
+                                _ks_fs_src, _ks_fs_n = None, None
                                 try:
+                                    # Feed the 1-min aggregate EVERY call (before any early
+                                    # exit) so the fallback never has holes in it.
+                                    _ks_self_fs, _ks_self_n = (kevseq_front_side(t, _nb)
+                                                               if KEVSEQ_SELF_FRONTSIDE else (None, None))
                                     _ks_1m = (bars or [])[:-1]
                                     if len(_ks_1m) >= EMA20_PERIOD + 2:
                                         _ks_e9, _ks_e20 = calculate_ema9(_ks_1m), calculate_ema20(_ks_1m)
                                         _ks_ctx["front_side"] = bool(_ks_e9 > _ks_e20 > 0)
+                                        _ks_fs_src, _ks_fs_n = "caller_1m", len(_ks_1m)
+                                    # ── 8/17 DEFECT 1b: the caller's 1-min list is short for the
+                                    # first ~22 minutes of a fresh board name — exactly the window
+                                    # kevseq exists for.  Compute it from the 10s bars we are
+                                    # already holding rather than refusing.  Kill: env=0.
+                                    if KEVSEQ_SELF_FRONTSIDE and _ks_ctx["front_side"] is None:
+                                        _ks_fs_n = _ks_self_n
+                                        if _ks_self_fs is not None:
+                                            _ks_ctx["front_side"] = _ks_self_fs
+                                            _ks_fs_src = "self_10s_agg"
+                                        else:
+                                            _ks_fs_src = "unknown_short_agg"
+                                    # AGREEMENT CANARY (failure condition): when BOTH exist, a
+                                    # disagreement means the aggregate is not reproducing the
+                                    # 1-min chart — log it loudly, never silently.
+                                    if (_ks_fs_src == "caller_1m" and _ks_self_fs is not None
+                                            and _ks_self_fs != _ks_ctx["front_side"]):
+                                        _log_decision(t, "kevseq_frontside_disagree",
+                                                      caller=_ks_ctx["front_side"], self_agg=_ks_self_fs,
+                                                      caller_n=len(_ks_1m), self_n=_ks_self_n)
                                     _ks_pdc = _pdc_map.get(t) or ((cache[t].get("daily") or {}).get("prior_day_close") or 0)
                                     _ks_px0 = price if price and price > 0 else (_nb[-1][4] if _nb else 0)
                                     if _ks_pdc and _ks_pdc > 0 and _ks_px0 > 0:
@@ -8239,6 +8328,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                    b_level=_ksf["b_level"], session_hi=_ksf["session_hi"],
                                                    bars_since_b=_ksf["bars_since_b"], would_stop=_ksf["would_stop"],
                                                    vwap=round(_vr_sv, 4), front_side=_ks_ctx["front_side"],
+                                                   front_side_src=_ks_fs_src, front_side_1m_n=_ks_fs_n,
                                                    day_gain=_ks_ctx["day_gain"], top3=_ks_ctx["top3"],
                                                    blue_sky=_ks_ctx["blue_sky"], convert_on=bool(KEVSEQ_CONVERT),
                                                    seq=_ksf["seq"], time_hm=_hm_ks)

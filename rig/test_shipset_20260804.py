@@ -3138,6 +3138,60 @@ try:
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _ape:
     check("AP section", False, str(_ape))
 
+print("FS) 8/17 DEFECT 1b — kevseq self-computes front_side from the 10s bars "
+      "(doc: data/killtests/frontside_selfcompute_20260817.md)")
+try:
+    _fs_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    check("FS-a: env kill switch present, default 1",
+          'KEVSEQ_SELF_FRONTSIDE = os.environ.get("KEVSEQ_SELF_FRONTSIDE", "1") == "1"' in _fs_src)
+    check("FS-b: aggregator + front-side helper exist",
+          "def kevseq_feed_1m(" in _fs_src and "def kevseq_front_side(" in _fs_src)
+    check("FS-c: aggregate is fed EVERY call (before the caller-1m branch) so it has no holes",
+          _fs_src.index("_ks_self_fs, _ks_self_n = (kevseq_front_side(t, _nb)")
+          < _fs_src.index('_ks_1m = (bars or [])[:-1]'))
+    check("FS-d: fallback used ONLY when the caller supplied nothing",
+          'if KEVSEQ_SELF_FRONTSIDE and _ks_ctx["front_side"] is None:' in _fs_src)
+    check("FS-e: every kevseq row stamps the source + bar count (auditable, never silent)",
+          "front_side_src=_ks_fs_src, front_side_1m_n=_ks_fs_n" in _fs_src)
+    check("FS-f: disagreement canary row exists (failure condition #1)",
+          '"kevseq_frontside_disagree"' in _fs_src)
+    check("FS-g: kevseq_step still fails closed on a genuine unknown",
+          '"front_side_off" if fs is False else "front_side_unknown"' in _fs_src)
+    # EXECUTED behaviour (three-rings ring 1): run the real block, not a pattern match.
+    _fs_blk = _fs_src[_fs_src.index("_ks_1m_agg: dict = {}"):_fs_src.index("def kevseq_step")]
+    def _fs_ema(cl, p):
+        k = 2.0 / (p + 1); e = cl[0]
+        for c in cl[1:]: e = (c - e) * k + e
+        return e
+    import datetime as _fs_dt
+    _fs_ns = {"datetime": _fs_dt.datetime, "EASTERN": _fs_dt.timezone.utc, "os": os,
+              "EMA20_PERIOD": 20,
+              "calculate_ema9": lambda b: _fs_ema([x["c"] for x in b], 9),
+              "calculate_ema20": lambda b: _fs_ema([x["c"] for x in b], 20)}
+    exec(_fs_blk, _fs_ns)
+    import time as _fs_time
+    _fs_base = int(_fs_time.time()) // 60 * 60 - 7200
+    def _fs_mk(n, rate, p0=1.0):
+        out = []; px = p0
+        for i in range(n):
+            px *= rate; out.append((_fs_base + i * 10, px, px * 1.002, px * 0.998, px, 1000))
+        return out
+    check("FS-h: EXECUTED rising 10s tape -> front_side True (33 x 1-min bars built)",
+          _fs_ns["kevseq_front_side"]("FSA", _fs_mk(200, 1.003)) == (True, 33))
+    check("FS-i: EXECUTED falling 10s tape -> front_side False",
+          _fs_ns["kevseq_front_side"]("FSC", _fs_mk(200, 0.997, 10.0))[0] is False)
+    check("FS-j: EXECUTED short tape (10 min) -> still None = FAILS CLOSED, no fabricated value",
+          _fs_ns["kevseq_front_side"]("FSB", _fs_mk(60, 1.003)) == (None, 9))
+    _fs_bars = _fs_mk(200, 1.003)
+    for _i in range(0, 200, 7):
+        _fs_ns["kevseq_front_side"]("FSD", _fs_bars[_i:_i + 7])
+    check("FS-k: EXECUTED incremental feed (7-bar chunks) == one-shot — the LIVE feeding pattern",
+          _fs_ns["kevseq_front_side"]("FSD", []) == (True, 33))
+    check("FS-l: EXECUTED malformed bar never raises",
+          _fs_ns["kevseq_front_side"]("FSE", [("x", 1, 1, 1, 1, 1)]) == (None, 0))
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _fse:
+    check("FS section", False, str(_fse))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

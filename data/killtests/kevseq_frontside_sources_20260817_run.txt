@@ -1,0 +1,209 @@
+SOURCE-DISAGREEMENT RECONSTRUCTION — 2026-08-17
+caller = RTH-only, last 50 M1 bars, drop in-progress  |  self = last N day-wide 1-min buckets
+
+13:50 RPGL   LOGGED caller=False(n=49) self=True(n=63)
+      caller rebuild: n=49  12:54..13:47  e9=2.1065 e20=2.1081 -> False MATCH
+      self   rebuild: n=63  12:41..13:48  e9=2.1112 e20=2.1104 -> True MATCH
+      spread e9-e20: caller -0.0016 (-0.08%)  self +0.0008 (0.04%)   window Δ = 14 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:50 RBNE   LOGGED caller=True(n=48) self=False(n=81)
+      caller rebuild: n=48  09:33..13:36  e9=2.7606 e20=2.7566 -> True MATCH
+      self   rebuild: n=51  07:55..13:39  e9=2.7665 e20=2.7602 -> True differs
+      spread e9-e20: caller +0.0041 (0.15%)  self +0.0063 (0.23%)   window Δ = 3 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:50 DFSC   LOGGED caller=True(n=49) self=False(n=56)
+      caller rebuild: n=49  12:56..13:48  e9=2.6203 e20=2.6165 -> True MATCH
+      self   rebuild: n=56  12:48..13:49  e9=2.6163 e20=2.6146 -> True differs
+      spread e9-e20: caller +0.0038 (0.15%)  self +0.0017 (0.06%)   window Δ = 7 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:50 RPGL   LOGGED caller=False(n=49) self=True(n=64)
+      caller rebuild: n=49  12:54..13:47  e9=2.1065 e20=2.1081 -> False MATCH
+      self   rebuild: n=64  12:40..13:48  e9=2.1112 e20=2.1104 -> True MATCH
+      spread e9-e20: caller -0.0016 (-0.08%)  self +0.0008 (0.04%)   window Δ = 15 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:50 TRUG   LOGGED caller=False(n=49) self=True(n=41)
+      caller rebuild: n=49  13:00..13:48  e9=1.5737 e20=1.5738 -> False MATCH
+      self   rebuild: n=41  13:09..13:49  e9=1.5770 e20=1.5756 -> True MATCH
+      spread e9-e20: caller -0.0001 (-0.00%)  self +0.0013 (0.09%)   window Δ = -8 min, self starts at/after the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:50 IVF    LOGGED caller=False(n=49) self=True(n=40)
+      caller rebuild: n=49  13:00..13:48  e9=1.7158 e20=1.7192 -> False MATCH
+      self   rebuild: n=40  13:10..13:49  e9=1.7206 e20=1.7194 -> True MATCH
+      spread e9-e20: caller -0.0033 (-0.19%)  self +0.0013 (0.07%)   window Δ = -9 min, self starts at/after the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:50 DFSC   LOGGED caller=True(n=49) self=False(n=57)
+      caller rebuild: n=49  12:56..13:48  e9=2.6203 e20=2.6165 -> True MATCH
+      self   rebuild: n=57  12:47..13:49  e9=2.6163 e20=2.6145 -> True differs
+      spread e9-e20: caller +0.0038 (0.15%)  self +0.0017 (0.07%)   window Δ = 8 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:51 RBNE   LOGGED caller=True(n=48) self=False(n=82)
+      caller rebuild: n=48  09:33..13:36  e9=2.7606 e20=2.7566 -> True MATCH
+      self   rebuild: n=51  07:55..13:39  e9=2.7665 e20=2.7602 -> True differs
+      spread e9-e20: caller +0.0041 (0.15%)  self +0.0063 (0.23%)   window Δ = 3 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:51 DFSC   LOGGED caller=True(n=49) self=False(n=58)
+      caller rebuild: n=49  12:57..13:49  e9=2.6163 e20=2.6149 -> True MATCH
+      self   rebuild: n=58  12:47..13:50  e9=2.6140 e20=2.6136 -> True differs
+      spread e9-e20: caller +0.0014 (0.05%)  self +0.0004 (0.01%)   window Δ = 9 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:52 FXHO   LOGGED caller=True(n=49) self=False(n=92)
+      caller rebuild: n=49  10:40..13:43  e9=12.3948 e20=12.3770 -> True MATCH
+      self   rebuild: n=59  04:00..13:49  e9=12.3578 e20=12.3505 -> True differs
+      spread e9-e20: caller +0.0178 (0.14%)  self +0.0073 (0.06%)   window Δ = 10 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:52 RBNE   LOGGED caller=True(n=48) self=False(n=83)
+      caller rebuild: n=48  09:33..13:36  e9=2.7606 e20=2.7566 -> True MATCH
+      self   rebuild: n=51  07:55..13:39  e9=2.7665 e20=2.7602 -> True differs
+      spread e9-e20: caller +0.0041 (0.15%)  self +0.0063 (0.23%)   window Δ = 3 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:52 DFSC   LOGGED caller=True(n=49) self=False(n=59)
+      caller rebuild: n=49  12:58..13:50  e9=2.6140 e20=2.6139 -> True MATCH
+      self   rebuild: n=59  12:47..13:51  e9=2.6122 e20=2.6128 -> False MATCH
+      spread e9-e20: caller +0.0001 (0.00%)  self -0.0006 (-0.02%)   window Δ = 10 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:53 CDTG   LOGGED caller=True(n=49) self=False(n=52)
+      caller rebuild: n=49  13:02..13:51  e9=2.8902 e20=2.8862 -> True MATCH
+      self   rebuild: n=52  13:00..13:52  e9=2.8822 e20=2.8832 -> False MATCH
+      spread e9-e20: caller +0.0041 (0.14%)  self -0.0010 (-0.03%)   window Δ = 3 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:53 FXHO   LOGGED caller=True(n=49) self=False(n=93)
+      caller rebuild: n=49  10:40..13:43  e9=12.3948 e20=12.3770 -> True MATCH
+      self   rebuild: n=59  04:00..13:49  e9=12.3578 e20=12.3505 -> True differs
+      spread e9-e20: caller +0.0178 (0.14%)  self +0.0073 (0.06%)   window Δ = 10 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:53 RBNE   LOGGED caller=True(n=49) self=False(n=84)
+      caller rebuild: n=49  09:33..13:39  e9=2.7665 e20=2.7598 -> True MATCH
+      self   rebuild: n=52  07:55..13:52  e9=2.7632 e20=2.7593 -> True differs
+      spread e9-e20: caller +0.0068 (0.24%)  self +0.0040 (0.14%)   window Δ = 3 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:54 CDTG   LOGGED caller=True(n=49) self=False(n=53)
+      caller rebuild: n=49  13:02..13:51  e9=2.8902 e20=2.8862 -> True MATCH
+      self   rebuild: n=53  12:59..13:52  e9=2.8822 e20=2.8836 -> False MATCH
+      spread e9-e20: caller +0.0041 (0.14%)  self -0.0014 (-0.05%)   window Δ = 4 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:54 FXHO   LOGGED caller=True(n=49) self=False(n=94)
+      caller rebuild: n=49  10:40..13:43  e9=12.3948 e20=12.3770 -> True MATCH
+      self   rebuild: n=59  04:00..13:49  e9=12.3578 e20=12.3505 -> True differs
+      spread e9-e20: caller +0.0178 (0.14%)  self +0.0073 (0.06%)   window Δ = 10 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:54 RBNE   LOGGED caller=True(n=49) self=False(n=85)
+      caller rebuild: n=49  09:58..13:52  e9=2.7632 e20=2.7590 -> True MATCH
+      self   rebuild: n=53  07:55..13:53  e9=2.7606 e20=2.7584 -> True differs
+      spread e9-e20: caller +0.0043 (0.15%)  self +0.0022 (0.08%)   window Δ = 4 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:54 YYAI   LOGGED caller=True(n=49) self=False(n=53)
+      caller rebuild: n=49  12:54..13:52  e9=1.2082 e20=1.2073 -> True MATCH
+      self   rebuild: n=53  12:49..13:53  e9=1.2045 e20=1.2057 -> False MATCH
+      spread e9-e20: caller +0.0009 (0.07%)  self -0.0012 (-0.10%)   window Δ = 4 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:54 CDTG   LOGGED caller=True(n=49) self=False(n=53)
+      caller rebuild: n=49  13:02..13:51  e9=2.8902 e20=2.8862 -> True MATCH
+      self   rebuild: n=53  12:59..13:52  e9=2.8822 e20=2.8836 -> False MATCH
+      spread e9-e20: caller +0.0041 (0.14%)  self -0.0014 (-0.05%)   window Δ = 4 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:55 FXHO   LOGGED caller=True(n=49) self=False(n=95)
+      caller rebuild: n=49  10:40..13:43  e9=12.3948 e20=12.3770 -> True MATCH
+      self   rebuild: n=59  04:00..13:49  e9=12.3578 e20=12.3505 -> True differs
+      spread e9-e20: caller +0.0178 (0.14%)  self +0.0073 (0.06%)   window Δ = 10 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:55 TRUG   LOGGED caller=True(n=49) self=False(n=46)
+      caller rebuild: n=49  13:05..13:53  e9=1.5757 e20=1.5755 -> True MATCH
+      self   rebuild: n=46  13:09..13:54  e9=1.5746 e20=1.5749 -> False MATCH
+      spread e9-e20: caller +0.0002 (0.01%)  self -0.0003 (-0.02%)   window Δ = -3 min, self starts at/after the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:55 RBNE   LOGGED caller=True(n=49) self=False(n=86)
+      caller rebuild: n=49  09:58..13:52  e9=2.7632 e20=2.7590 -> True MATCH
+      self   rebuild: n=53  07:55..13:53  e9=2.7606 e20=2.7584 -> True differs
+      spread e9-e20: caller +0.0043 (0.15%)  self +0.0022 (0.08%)   window Δ = 4 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:56 PFSA   LOGGED caller=False(n=49) self=True(n=68)
+      caller rebuild: n=49  12:56..13:54  e9=4.3238 e20=4.3676 -> False MATCH
+      self   rebuild: n=68  12:38..13:55  e9=4.3110 e20=4.3553 -> False differs
+      spread e9-e20: caller -0.0439 (-1.00%)  self -0.0443 (-1.02%)   window Δ = 19 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:56 UUU    LOGGED caller=True(n=39) self=False(n=155)
+      caller rebuild: n=39  09:30..13:44  e9=4.0154 e20=3.9769 -> True MATCH
+      self   rebuild: n=50  04:00..13:55  e9=4.0043 e20=3.9811 -> True differs
+      spread e9-e20: caller +0.0385 (0.97%)  self +0.0232 (0.58%)   window Δ = 11 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:57 PFSA   LOGGED caller=False(n=49) self=True(n=69)
+      caller rebuild: n=49  12:56..13:54  e9=4.3238 e20=4.3676 -> False MATCH
+      self   rebuild: n=69  12:37..13:55  e9=4.3110 e20=4.3553 -> False differs
+      spread e9-e20: caller -0.0439 (-1.00%)  self -0.0443 (-1.02%)   window Δ = 20 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:57 TRUG   LOGGED caller=False(n=49) self=True(n=48)
+      caller rebuild: n=49  13:07..13:55  e9=1.5747 e20=1.5750 -> False MATCH
+      self   rebuild: n=48  13:09..13:56  e9=1.5747 e20=1.5749 -> False differs
+      spread e9-e20: caller -0.0003 (-0.02%)  self -0.0002 (-0.01%)   window Δ = -1 min, self starts at/after the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:57 RBNE   LOGGED caller=True(n=49) self=False(n=87)
+      caller rebuild: n=49  09:58..13:52  e9=2.7632 e20=2.7590 -> True MATCH
+      self   rebuild: n=53  07:55..13:53  e9=2.7606 e20=2.7584 -> True differs
+      spread e9-e20: caller +0.0043 (0.15%)  self +0.0022 (0.08%)   window Δ = 4 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+13:58 PFSA   LOGGED caller=False(n=49) self=True(n=69)
+      caller rebuild: n=49  12:56..13:54  e9=4.3238 e20=4.3676 -> False MATCH
+      self   rebuild: n=69  12:37..13:55  e9=4.3110 e20=4.3553 -> False differs
+      spread e9-e20: caller -0.0439 (-1.00%)  self -0.0443 (-1.02%)   window Δ = 20 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:58 TRUG   LOGGED caller=False(n=49) self=True(n=48)
+      caller rebuild: n=49  13:08..13:56  e9=1.5747 e20=1.5750 -> False MATCH
+      self   rebuild: n=48  13:10..13:57  e9=1.5788 e20=1.5766 -> True MATCH
+      spread e9-e20: caller -0.0003 (-0.02%)  self +0.0022 (0.14%)   window Δ = -1 min, self starts at/after the caller's first bar
+      self window includes premarket (<09:30): False
+
+13:58 RBNE   LOGGED caller=True(n=49) self=False(n=87)
+      caller rebuild: n=49  10:00..13:53  e9=2.7606 e20=2.7581 -> True MATCH
+      self   rebuild: n=54  07:55..13:57  e9=2.7724 e20=2.7642 -> True differs
+      spread e9-e20: caller +0.0025 (0.09%)  self +0.0082 (0.30%)   window Δ = 5 min, self starts BEFORE the caller's first bar
+      self window includes premarket (<09:30): True
+
+reconstruction fidelity: caller sign reproduced 31/31, self sign reproduced 11/31
+
+=== THE MECHANISM: TRADED-MINUTE GRID (caller) vs CONTIGUOUS-MINUTE GRID (self) ===
+sym   SIP 1-min bars ALL DAY   max self_n logged   caller 49-bar window spans (min)
+CDTG  347                      53                  49-49
+DFSC  560                      59                  52-52
+FXHO  73                       95                  183-183
+IVF   646                      40                  48-48
+PFSA  240                      69                  58-58
+RBNE  67                       87                  233-260
+RPGL  236                      64                  53-53
+TRUG  656                      48                  48-48
+UUU   54                       155                 584-584
+YYAI  325                      53                  58-58
+
+READ: where the ALL-DAY SIP bar count is BELOW the logged self_n, the self aggregate is
+holding minute buckets for minutes in which NO TRADE PRINTED — i.e. it is a contiguous
+wall-clock minute grid built from the 10s stream (flat carry on quiet minutes), while the
+caller's M1 fetch returns TRADED minutes only and its 49-bar window therefore stretches
+backwards over hours on a thin name. Same nominal timeframe, different clocks.

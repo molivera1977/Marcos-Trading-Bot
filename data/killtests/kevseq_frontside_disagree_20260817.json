@@ -1,0 +1,281 @@
+[
+ {
+  "ticker": "RPGL",
+  "hm": "13:50",
+  "caller": false,
+  "caller_n": 49,
+  "self_agg": true,
+  "self_n": 63,
+  "time": "01:50:05 PM"
+ },
+ {
+  "ticker": "RBNE",
+  "hm": "13:50",
+  "caller": true,
+  "caller_n": 48,
+  "self_agg": false,
+  "self_n": 81,
+  "time": "01:50:05 PM"
+ },
+ {
+  "ticker": "DFSC",
+  "hm": "13:50",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 56,
+  "time": "01:50:06 PM"
+ },
+ {
+  "ticker": "RPGL",
+  "hm": "13:50",
+  "caller": false,
+  "caller_n": 49,
+  "self_agg": true,
+  "self_n": 64,
+  "time": "01:50:32 PM"
+ },
+ {
+  "ticker": "TRUG",
+  "hm": "13:50",
+  "caller": false,
+  "caller_n": 49,
+  "self_agg": true,
+  "self_n": 41,
+  "time": "01:50:32 PM"
+ },
+ {
+  "ticker": "IVF",
+  "hm": "13:50",
+  "caller": false,
+  "caller_n": 49,
+  "self_agg": true,
+  "self_n": 40,
+  "time": "01:50:33 PM"
+ },
+ {
+  "ticker": "DFSC",
+  "hm": "13:50",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 57,
+  "time": "01:50:33 PM"
+ },
+ {
+  "ticker": "RBNE",
+  "hm": "13:51",
+  "caller": true,
+  "caller_n": 48,
+  "self_agg": false,
+  "self_n": 82,
+  "time": "01:51:19 PM"
+ },
+ {
+  "ticker": "DFSC",
+  "hm": "13:51",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 58,
+  "time": "01:51:20 PM"
+ },
+ {
+  "ticker": "FXHO",
+  "hm": "13:52",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 92,
+  "time": "01:52:29 PM"
+ },
+ {
+  "ticker": "RBNE",
+  "hm": "13:52",
+  "caller": true,
+  "caller_n": 48,
+  "self_agg": false,
+  "self_n": 83,
+  "time": "01:52:29 PM"
+ },
+ {
+  "ticker": "DFSC",
+  "hm": "13:52",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 59,
+  "time": "01:52:29 PM"
+ },
+ {
+  "ticker": "CDTG",
+  "hm": "13:53",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 52,
+  "time": "01:53:21 PM"
+ },
+ {
+  "ticker": "FXHO",
+  "hm": "13:53",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 93,
+  "time": "01:53:22 PM"
+ },
+ {
+  "ticker": "RBNE",
+  "hm": "13:53",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 84,
+  "time": "01:53:23 PM"
+ },
+ {
+  "ticker": "CDTG",
+  "hm": "13:54",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 53,
+  "time": "01:54:26 PM"
+ },
+ {
+  "ticker": "FXHO",
+  "hm": "13:54",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 94,
+  "time": "01:54:27 PM"
+ },
+ {
+  "ticker": "RBNE",
+  "hm": "13:54",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 85,
+  "time": "01:54:27 PM"
+ },
+ {
+  "ticker": "YYAI",
+  "hm": "13:54",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 53,
+  "time": "01:54:28 PM"
+ },
+ {
+  "ticker": "CDTG",
+  "hm": "13:54",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 53,
+  "time": "01:54:55 PM"
+ },
+ {
+  "ticker": "FXHO",
+  "hm": "13:55",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 95,
+  "time": "01:55:44 PM"
+ },
+ {
+  "ticker": "TRUG",
+  "hm": "13:55",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 46,
+  "time": "01:55:45 PM"
+ },
+ {
+  "ticker": "RBNE",
+  "hm": "13:55",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 86,
+  "time": "01:55:45 PM"
+ },
+ {
+  "ticker": "PFSA",
+  "hm": "13:56",
+  "caller": false,
+  "caller_n": 49,
+  "self_agg": true,
+  "self_n": 68,
+  "time": "01:56:49 PM"
+ },
+ {
+  "ticker": "UUU",
+  "hm": "13:56",
+  "caller": true,
+  "caller_n": 39,
+  "self_agg": false,
+  "self_n": 155,
+  "time": "01:56:50 PM"
+ },
+ {
+  "ticker": "PFSA",
+  "hm": "13:57",
+  "caller": false,
+  "caller_n": 49,
+  "self_agg": true,
+  "self_n": 69,
+  "time": "01:57:20 PM"
+ },
+ {
+  "ticker": "TRUG",
+  "hm": "13:57",
+  "caller": false,
+  "caller_n": 49,
+  "self_agg": true,
+  "self_n": 48,
+  "time": "01:57:21 PM"
+ },
+ {
+  "ticker": "RBNE",
+  "hm": "13:57",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 87,
+  "time": "01:57:21 PM"
+ },
+ {
+  "ticker": "PFSA",
+  "hm": "13:58",
+  "caller": false,
+  "caller_n": 49,
+  "self_agg": true,
+  "self_n": 69,
+  "time": "01:58:05 PM"
+ },
+ {
+  "ticker": "TRUG",
+  "hm": "13:58",
+  "caller": false,
+  "caller_n": 49,
+  "self_agg": true,
+  "self_n": 48,
+  "time": "01:58:05 PM"
+ },
+ {
+  "ticker": "RBNE",
+  "hm": "13:58",
+  "caller": true,
+  "caller_n": 49,
+  "self_agg": false,
+  "self_n": 87,
+  "time": "01:58:06 PM"
+ }
+]

@@ -347,28 +347,31 @@ Kill-test / forensic docs: `data/killtests/burst_saturation_20260817.md`,
 
 ---
 
-## SCOPE ADD (8/17 afternoon) — KEVSEQ FRONT-SIDE TIMEFRAME PIN
-Doc: `data/killtests/kevseq_frontside_tf_20260817.md`. Rig section **TF**, full rig exit 0.
-Files: `marcos_trading_bot.py` (pin block + 3-min stamp + env switch + boot_config),
-`rig/test_shipset_20260804.py` (section TF, 15 pins).
+## SCOPE ADD (8/17 afternoon) — KEVSEQ FRONT-SIDE SOURCE AUDIT
+Doc: `data/killtests/kevseq_frontside_tf_20260817.md`. Script: `kevseq_frontside_sources_20260817.py`.
+Rig section **TF** (16 pins), full rig exit 0. Files: `marcos_trading_bot.py` (stamps + corrected
+spec header), `rig/test_shipset_20260804.py`.
 
-- **The alleged defect (kevseq gated on a 3-MIN front side) is REFUTED IN CODE.** The kevseq
-  caller reads `cache[t]["bars"]` = M1 broker bars. The `aggregate_bars(..., SETUP_TF_MIN)`
-  `_ce9/_ce20` block is ~200 lines below and feeds dip_rip/zone_flip/reclaim/flat-top only.
-- **What the disagree canary caught: two different 1-MIN sources** (broker M1 REST, RTH-only,
-  ~49-bar cap vs our day-wide 10s→1m aggregate, 40–155 bars). 31 rows, both directions.
-  **WHICH ONE GOVERNS IS MARCOS'S CALL** — unchanged by this commit.
-- **Artifact audit: no offline study ever replicated the live front-side gate.** Four studies
-  (entry_drift, burst_saturation, floor_sweep, reconciliation) applied **no** front-side clause;
-  kev_rosetta used a **10s** front side with a VWAP clause; fastchart_2tf benchmarked 1MIN/3MIN
-  slow context (1-min far better: −$382 vs −$1,184). Every kevseq $ figure we hold is from a
-  front-side-free **superset** cohort. This is a standing fidelity gap, not a one-off.
-- Today's direct cost of the alleged defect: **$0 / N=0**. Front-side-only refusals: **N=8**
-  (IPST 04:05 $3.89, PFSA 09:45 $4.77 + 09:47 $4.98, WETO 09:50 $13.43 + 11:58 $17.60,
-  CDTG 09:50 $2.6892 + 09:51 $2.73, STFS 10:02 $6.63) — 7 of 8 are the `unknown` class the
-  13:49 self-frontside fix already closes.
-- Shipped default-neutral: `KEVSEQ_FRONTSIDE_1M=1` (pin, = today's behaviour), `=0` arms the
-  offline-worse 3-min arm. `front_side_3m` / `front_side_tf` stamped on every row.
-- **Officer question owed:** should the governing 1-min front side be the broker M1 or our own
-  10s→1m aggregate? 31 disagreements say they are not interchangeable and no study grades either.
-- No other lane has a front-side spec/timeframe mismatch (full census in §6 of the doc).
+- **The 3-MIN premise was FALSE.** The kevseq caller was always on M1 bars (`_ks_1m`, stamped
+  `caller_1m`); `SETUP_TF_MIN` never appears in its ctx block. No timeframe defect, no timeframe
+  cost, and the behaviour switch built under that premise was REMOVED before commit.
+- **The real defect: two 1-MIN sources on different clocks.** caller = TRADED minutes only,
+  capped at 50, RTH-only → on a thin name its 49-bar "1-min EMA20" spans **584 min (UUU, 9.7h)**,
+  233–260 min (RBNE), 183 min (FXHO). self = contiguous wall-clock minute grid from the 10s stream
+  (UUU held 155 buckets on a day with 54 traded minutes). Caller model reproduces 31/31 logged
+  signs. On liquid names the clocks coincide and 27 of 31 disagreements sit inside |9−20| ≤ 0.25%.
+- **PROPOSED, NOT SHIPPED (Marcos's call):** invert precedence — self primary, caller M1 fallback;
+  or keep caller primary with a wall-clock STALENESS floor + a bigger fetch. Grade first: both
+  values are now stamped on every row.
+- **Feed Engineer ledger item:** "M1 REST returns traded minutes only and is count-capped" is a
+  vendor-shape constraint that has now bitten a detector. Any other consumer of a fixed-count M1
+  fetch inherits the same hours-wide window on thin tape — census owed.
+- Artifact audit stands (unchanged by the correction): **no offline study replicated the live
+  front-side gate** — entry_drift / burst_saturation / floor_sweep / reconciliation applied NO
+  front-side clause; kev_rosetta used a 10s front side; fastchart_2tf benchmarked 1MIN vs 3MIN
+  (1MIN −$382 vs 3MIN −$1,184). Every kevseq $ figure we hold is a front-side-free superset.
+- Today's front-side-only refusals: **N=8** (IPST 04:05 $3.89, PFSA 09:45 $4.77 + 09:47 $4.98,
+  WETO 09:50 $13.43 + 11:58 $17.60, CDTG 09:50 $2.6892 + 09:51 $2.73, STFS 10:02 $6.63); 7 of 8
+  are the `unknown` class the 13:49 self-frontside fix already closes. Cost of the alleged
+  timeframe defect: **$0 / N=0**.
+- No other lane has a front-side spec/timeframe mismatch (census in §7 of the doc).

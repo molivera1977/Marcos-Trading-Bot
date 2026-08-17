@@ -198,3 +198,4 @@ POST-COMMIT: appended below by the convening runner after this artifact commits.
 history at 83ab088:data/audits/LATEST.md. Summary: GREEN; KEV_ROAD = batch-1's only money
 change, priced at ~−$5/tr EV assumption until Friday, loss bounded by the unchanged stop;
 F1 veto observe-only + F2 zero-rung road surfaced to Marcos.)
+POST-COMMIT RESULT: SHIP_CHECK=1 rerun after commit c2dfbf5 — EXIT 0, ALL GREEN; section Q: "ship-check: HEAD c2dfbf5858f2 audited + tree clean". Bookkeeping exemption honored.

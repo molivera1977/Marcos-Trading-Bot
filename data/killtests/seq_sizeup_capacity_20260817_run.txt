@@ -1,0 +1,45 @@
+# SEQ `T B` SIZE-UP CAPACITY CHECK — 8/17/26
+Method = edge_stresstest_D's sizing model generalized per clip (signal-bar dv guard,
+5% participation, slip anchored to D's $500/-1.0% and $1,000/-1.5% and linearly
+extended). Exits = same E3 live-parity path the OOS wall graded. Cohort = the wall's
+HOLD-OUT gated `T B` fires only.
+
+Universe 729 files / 729 name-days / 62 dates; HOLD-OUT = latest 18 dates 2026-07-22..2026-08-14 (wall parity).
+
+---
+## LANE: break-attack — hold-out gated `T B` cohort N=18
+
+### TAPE CONTEXT (fire-bar 10s dollar volume)
+- fire-bar dv: median $6,629 · min $8 · max $575,540
+- next-3-bar dv sum: median $20,687 · min $207
+- fires on THIN (<$10k) fire bars: 10/18 = 56%
+- $750 clip as % of fire-bar dv: median 11.3% · worst 9470%
+
+### SIZED RE-SIM (D-parity guard + slip)
+| clip | full/half/skip | filled N | total $ | $/fire (skips=$0) | $/filled | slip full/half |
+|---|---|---|---|---|---|---|
+| $500 | 8/1/9 | 9 | $+320.11 | $+17.78 | $+35.57 | -1.00%/-0.75% |
+| $750 | 8/1/9 | 9 | $+470.11 | $+26.12 | $+52.23 | -1.25%/-0.88% |
+| $1,000 | 8/0/10 | 8 | $+566.19 | $+31.46 | $+70.77 | -1.50%/-1.00% |
+| $1,500 | 8/0/10 | 8 | $+810.56 | $+45.03 | $+101.32 | -2.00%/-1.25% |
+
+Reference (wall's own book, flat $500 chase NO guard): $/fire $+54.43.
+
+---
+## LANE: grinder — hold-out gated `T B` cohort N=27
+
+### TAPE CONTEXT (fire-bar 10s dollar volume)
+- fire-bar dv: median $7,111 · min $5 · max $117,201
+- next-3-bar dv sum: median $5,975 · min $3
+- fires on THIN (<$10k) fire bars: 17/27 = 63%
+- $750 clip as % of fire-bar dv: median 10.5% · worst 15632%
+
+### SIZED RE-SIM (D-parity guard + slip)
+| clip | full/half/skip | filled N | total $ | $/fire (skips=$0) | $/filled | slip full/half |
+|---|---|---|---|---|---|---|
+| $500 | 10/6/11 | 16 | $+499.46 | $+18.50 | $+31.22 | -1.00%/-0.75% |
+| $750 | 6/6/15 | 12 | $+439.00 | $+16.26 | $+36.58 | -1.25%/-0.88% |
+| $1,000 | 5/5/17 | 10 | $+340.46 | $+12.61 | $+34.05 | -1.50%/-1.00% |
+| $1,500 | 4/2/21 | 6 | $+225.64 | $+8.36 | $+37.61 | -2.00%/-1.25% |
+
+Reference (wall's own book, flat $500 chase NO guard): $/fire $+45.63.

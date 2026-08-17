@@ -1,0 +1,128 @@
+# CROSS-TICKER SEQUENCE STUDY — 8/17/26 (the board as the instrument)
+Engine chain UNCHANGED via sequence_mining_pilot_20260817.py (E3 live-parity exits).
+Fires = break-attack + grinder (pooled, lane-tagged). Analysis only, no bot edits.
+
+Universe: 729 files, 729 name-days, 62 dates 2026-05-18..2026-08-14.
+OOS split: MINE 44 dates ..2026-07-21 | HOLD-OUT 18 dates 2026-07-22..
+
+**CAVEAT (stated up front): the universe is gain>=40% runners only — NOT the full live
+board. LEADER / SECOND-MOVER / BOARD-HEAT / SOLE-RUNNER are within-universe proxies for
+what Kev's board would show; a name leading this cohort may have been a follower of a
+non-universe mover. Findings are conditional on that proxy.**
+
+Board: 62/62 dates have >=3 universe names; 62 dates have a burst LEADER; 60 dates have a SECOND-MOVER within 30 min.
+Fires: 1021 total (break-attack + grinder, E3-graded, deduped).
+
+
+---
+
+## H1 LEADER-FOLLOWER
+- TRUE side: sympathy-window fire (other name, <=30min after leader burst)
+- FALSE side: outside window
+
+### MINE (692 qualifying fires)
+| side | N | win | $/tr | total |
+|---|---|---|---|---|
+| TRUE  sympathy-window fire (other name, <=30min after leader burst) | 228 | 71% | $+32.80 | $+7477.67 |
+| FALSE outside window | 464 | 70% | $+26.85 | $+12456.80 |
+MINE split: TRUE-FALSE $/tr lift $+5.95.
+
+FROZEN gate = keep the MINE-better side: **sympathy-window fire (other name, <=30min after leader burst)**.
+
+### HOLD-OUT (329 qualifying fires) — frozen gate applied
+| side | N | win | $/tr | total |
+|---|---|---|---|---|
+| TRUE  sympathy-window fire (other name, <=30min after leader burst) | 101 | 79% | $+41.22 | $+4163.07 |
+| FALSE outside window | 228 | 64% | $+15.83 | $+3609.78 |
+HOLD-OUT: frozen-side N=101, $/tr $+41.22; gate lift $+25.39 (MINE direction HELD).
+
+NULL (board-context shuffle within date, 5000x on hold-out): observed gated $/tr $+41.22 vs random-mean $+26.56, p=0.001.
+
+**VERDICT: BOARD-SIGNAL** — hold-out lift $+25.39, null p=0.001.
+
+---
+
+## H2 SECOND-MOVER
+- TRUE side: fire on SECOND-MOVER name
+- FALSE side: fire on LEADER name
+
+### MINE (109 qualifying fires)
+| side | N | win | $/tr | total |
+|---|---|---|---|---|
+| TRUE  fire on SECOND-MOVER name | 58 | 74% | $+30.05 | $+1742.71 |
+| FALSE fire on LEADER name | 51 | 78% | $+29.92 | $+1525.73 |
+MINE split: TRUE-FALSE $/tr lift $+0.13.
+
+FROZEN gate = keep the MINE-better side: **fire on SECOND-MOVER name**.
+
+### HOLD-OUT (42 qualifying fires) — frozen gate applied
+| side | N | win | $/tr | total |
+|---|---|---|---|---|
+| TRUE  fire on SECOND-MOVER name | 24 | 67% | $+5.98 | $+143.41 |
+| FALSE fire on LEADER name | 18 | 61% | $+29.45 | $+530.01 |
+HOLD-OUT: frozen-side N=24, $/tr $+5.98; gate lift $-23.47 (MINE direction REVERSED/VANISHED).
+
+**VERDICT: NO-SPLIT** — MINE lift $+0.13 immaterial (<=$5/tr).
+
+---
+
+## H3 BOARD-HEAT
+- TRUE side: heat 2+ (>=2 other names new-high in trailing 15min)
+- FALSE side: heat 0-1
+
+### MINE (692 qualifying fires)
+| side | N | win | $/tr | total |
+|---|---|---|---|---|
+| TRUE  heat 2+ (>=2 other names new-high in trailing 15min) | 463 | 70% | $+31.94 | $+14789.82 |
+| FALSE heat 0-1 | 229 | 72% | $+22.47 | $+5144.65 |
+MINE split: TRUE-FALSE $/tr lift $+9.48.
+  heat=0: N=78 win 72% $/tr $+20.61
+  heat=1: N=151 win 72% $/tr $+23.42
+  heat=2+: N=463 win 70% $/tr $+31.94
+
+FROZEN gate = keep the MINE-better side: **heat 2+ (>=2 other names new-high in trailing 15min)**.
+
+### HOLD-OUT (329 qualifying fires) — frozen gate applied
+| side | N | win | $/tr | total |
+|---|---|---|---|---|
+| TRUE  heat 2+ (>=2 other names new-high in trailing 15min) | 236 | 71% | $+27.82 | $+6566.57 |
+| FALSE heat 0-1 | 93 | 65% | $+12.97 | $+1206.29 |
+HOLD-OUT: frozen-side N=236, $/tr $+27.82; gate lift $+14.85 (MINE direction HELD).
+
+NULL (board-context shuffle within date, 5000x on hold-out): observed gated $/tr $+27.82 vs random-mean $+25.49, p=0.077.
+
+**VERDICT: NO-SPLIT** — hold-out lift $+14.85 but null p=0.0766 — not separable from chance.
+
+---
+
+## H4 SOLE-RUNNER
+- TRUE side: SOLE runner (no other burst break in 60min)
+- FALSE side: crowded
+
+### MINE (692 qualifying fires)
+| side | N | win | $/tr | total |
+|---|---|---|---|---|
+| TRUE  SOLE runner (no other burst break in 60min) | 40 | 60% | $+29.52 | $+1180.85 |
+| FALSE crowded | 652 | 71% | $+28.76 | $+18753.62 |
+MINE split: TRUE-FALSE $/tr lift $+0.76.
+
+FROZEN gate = keep the MINE-better side: **SOLE runner (no other burst break in 60min)**.
+
+### HOLD-OUT (329 qualifying fires) — frozen gate applied
+| side | N | win | $/tr | total |
+|---|---|---|---|---|
+| TRUE  SOLE runner (no other burst break in 60min) | 8 | 100% | $+38.04 | $+304.32 |
+| FALSE crowded | 321 | 68% | $+23.27 | $+7468.53 |
+HOLD-OUT: frozen-side N=8, $/tr $+38.04; gate lift $+14.77 (MINE direction HELD).
+
+**VERDICT: UNDERPOWERED** — frozen side carries only 8 hold-out fires.
+
+---
+
+## SUMMARY
+| hypothesis | MINE N(T/F) | MINE lift | HOLD-OUT lift | p | verdict |
+|---|---|---|---|---|---|
+| H1 LEADER-FOLLOWER | 228/464 | $+5.95 | $+25.39 | 0.001 | BOARD-SIGNAL |
+| H2 SECOND-MOVER | 58/51 | $+0.13 | $-23.47 | - | NO-SPLIT |
+| H3 BOARD-HEAT | 463/229 | $+9.48 | $+14.85 | 0.077 | NO-SPLIT |
+| H4 SOLE-RUNNER | 40/652 | $+0.76 | $+14.77 | - | UNDERPOWERED |

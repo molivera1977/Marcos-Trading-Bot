@@ -1,67 +1,222 @@
-covers: 3ad5c50
-# SHIP CONVENING — 2026-08-17 (Mon 02:44 ET) — seq doctrine build #0: canonical `seq_str` event-string stamp on every eyes block (OBSERVE-ONLY) + rig section AI
+covers: e5f59fed90b6
+# BLAST RADIUS CONVENING — 8/17 reads/maps + bell-boundary batch (separate context)
+Auditor: Blast Radius Auditor. Tree audited: e5f59fe (tip) = 2a8951a + c4550d8 + a4fc25c +
+b1711f9 + e2ef254 + fb90194 + e5f59fe. Scope doc: PENDING_CONVENE_20260817.md. Context read:
+BOUNDARY_CENSUS_20260817.md, pre_staleness_forensic_20260817.md. Full rig executed THIS
+convening: exit 0, 480 green checks, sections R (bell-boundary), AJ, AJ2, AJ3, AJ4, AK all
+present AND executed (headers + per-check lines observed in output, judged by exit code).
+SHIP_CHECK=1 pre-artifact: RED only on section Q coverage interlock (expected until this
+artifact commits) — rerun after commit recorded at bottom.
 
-covers: 3ad5c5030773 "seq doctrine build #0: canonical seq_str event-string stamp on every eyes block (observe-only) + rig AI" — ONE commit, two files: marcos_trading_bot.py (+91: `_seq_events(d10,vwap)` pure helper + 7 SEQ_* constants + `snap["seq_str"]` stamp in `_eyes_snapshot` + "seq_str" in `_EYES_KEYS` + "seq" in `_eyes_compact`), rig/test_shipset_20260804.py (+41: new section AI, 8 checks). Prior audited code: 197ed0d (two PRE convert paths, archived LATEST). HEAD == the ship (3ad5c50). Working tree: one stray EMPTY untracked file `data/killtests/seq_err.txt` (0 lines, not part of the commit, no code delta) — noted, ignored.
-Chair: Blast Radius Auditor. Separate-context convening. Every claim below is from a `git show`/file read or an execution run THIS session. Clock: `date` run this turn = Mon Aug 17 02:44:47 EDT 2026 (Monday premarket boot ~03:55 ET; ~1h10m runway). No push, no deploy, no env flip from this convening.
+## VERDICT: GREEN — deploy may proceed on Marcos's word, with the KEV_ROAD price statement
+below and findings F1/F2 surfaced to him first (neither is a code blocker; both are
+doctrine/pricing items that are his call under auditor-cannot-authorize).
 
-## SHIP DESCRIPTION + AUTHORIZATION
-Stamps a causal 10s-bar EVENT-STRING (alphabet B/T/P/F/W/H/R/D/L/Q, one event per bar by priority, up to 14 trailing events over a 10-min lookback) onto EVERY lane's eyes snapshot at BOTH entry and exit. It is the live-tape record the per-lane sequence-mining reads; it mirrors the offline miner so live and backtest strings compare.
-Authorization class: **OBSERVE-ONLY, write-only field.** No env, no gate, no conversion, no sizing, no exit change. Nothing the bot DOES with money changes. Under auditor-cannot-authorize (8/13) this class is always safe to ship without a Marcos money-decision — a stamp that no code path consumes for a decision needs no behavior authorization. GREEN by class, verified below not assumed.
+## 1. Marcos's rulings — verified honored
+- **"Kev's picks, OUR map numbers ruling" (8/12, REAFFIRMED 8/17):** VERIFIED. Grep of the
+  whole tree: `kev_shadow` is consumed ONLY in `_kev_shadow_overlay` (:9426, called from both
+  `_freshest_rec` return paths :9420/:9421). It writes exactly two things: `veto`/`veto_src`
+  and `kev_road_max`. NO code path promotes kev_shadow break/confirm/stop/targets into the
+  effective record; the original freshest-timestamp-promotion spec was corrected mid-build and
+  is absent from the tree. The vision_shadow promotion (:9414-9419) is OUR source, unchanged.
+- **Three spec-tension defaults:** confirmed built as specced and logged for Marcos, not
+  resolved in code: (a) dual read-request lanes at ceiling_reject kept (reader marker 10-min
+  cap :3049 AND `_request_auto_read` 30-min throttle :12397 both fire); (b) G1 stamps ride
+  ONLY the proceeding fire row (triggered_ignition :8455 + breakout extra :8440) — daily_bad /
+  below_convert refusals unstamped; (c) starvation roster = the levels sheet (`len(lv)` in
+  reader :1259) — nearest in-process truth, not the bot's watch roster.
+- **KEV_ROAD is the batch's only money-behavior change:** VERIFIED. item2 = read-side spend
+  only (a reader vision read; no gate outcome changes). item3 = one observe row per 15-min
+  window. item4 = stamps only; rig AJ4 asserts g1_shadow is never read back by any condition;
+  I confirmed no consumer of `g1_shadow`/`vwap_side` exists outside the stamp + writers.
+  item5 = docs + rig. 2a8951a changes WHICH of today's bars are visible (money-adjacent but
+  restores intended behavior; `_fresh_session` today+900s staleness arbiter untouched).
+  KEV_VETO_READ — see F1: it is effectively observe-only in this tree.
 
-## FINDINGS (each verified by direct read/execution this session)
-1. **Truly observe-only — the new `seq_str` is WRITTEN, never READ by any gate/convert/sizing/exit.** `grep -n seq_str marcos_trading_bot.py` = 9 hits. Three belong to the NEW canonical stamp: `_EYES_KEYS` tuple (:9579, registration), the snapshot write `snap["seq_str"] = _seq_events(...)` (:9872), and the compact carry `"seq": snap.get("seq_str")` (:9890 — a DISPLAY dict, not a decision). The `snap.get("seq_str")` at :9890 is the ONLY read of the canonical field and it only copies the string into the compact eyes block for the record. No `if snap.get("seq_str")`, no comparison, no branch. The remaining hits (:6130, :7900, :7918, :7924, :7929) are the PRE-EXISTING KEVSEQ lane-row `seq_str` (`"B " + pd["kind"]`, the kevseq fire dict / kevseq_shadow rows) — a distinct, older mechanism on its own lane; untouched by this diff and distinguished by name (`_ksf`, `kevseq`, `pd[...]`).
-2. **No SEQ_CONVERT / SEQ_GATE symbol exists.** `grep "SEQ_"` returns only the new module constants (SEQ_MAX_EVENTS/LOOKBACK_S/FLUSH_PCT/TEST_BAND/Q_PCT/Q_BARS/HALT_GAP) and the pre-existing `KEVSEQ_*` family (KEVSEQ_CONVERT etc., word-boundary distinct). Rig AI asserts `not \bSEQ_CONVERT\b and not \bSEQ_GATE\b` — GREEN. There is no behavior symbol; the alphabet constants only shape the string.
-3. **Double fail-soft — `_eyes_snapshot` cannot raise from this stamp.** `_seq_events` (:9640) is `try/except Exception: return ""` around its whole body (empty/None/short tape → early `""`). Independently, the call site (:9871-9874) is itself wrapped: `try: snap["seq_str"] = _seq_events(...) or None / except Exception: snap["seq_str"] = None`. Two independent guards; a raise inside `_seq_events` still lands as `snap["seq_str"]=None`. `_eyes_snapshot` therefore never raises on account of this ship — the invariant that entry/exit records depend on holds. Rig AI: `seq({})==""` and `seq(None)==""` GREEN.
-4. **No upstream charge — reuses the already-fetched `d10`.** The stamp passes `d10` (built at :9734/:9738 earlier in `_eyes_snapshot`) into `_seq_events`; it opens no new feed pull, no HTTP GET, no bar fetch. `vwap` is read from the snap already computed. Latency = a pure loop over ≤60 in-memory bars. Zero feed-side blast.
-5. **Twin covered — the compact eyes path carries it.** The second eyes surface, `_eyes_compact` (:9878), was extended to `"seq": snap.get("seq_str")` (:9890). Every one of the 7 `_eyes_compact(_eyes_snapshot(...))` call sites (:7730/7789/7838/7914/7947/8251/8826) therefore surfaces the field on the recorded compact block. No eyes path left stale.
-6. **Whole sandwich — entry AND exit both stamp.** `seq_str` is stamped unconditionally inside `_eyes_snapshot`, which is the single choke point for BOTH `when="entry"` and exit snapshots. Because it lives in the shared body (not in a when-branch), every entry record and every exit record gets the field. Commit body's "entry AND exit" claim confirmed by construction.
-7. **Restart / schema tolerant.** `seq_str` is one more optional key in the eyes dict — a `str` or `None`. It does not enter the open-trade state, the rehydrate/resume path, or any trade-record required-field set; consumers read the eyes block as a loose dict (`.get`), so an added key breaks no rehydrate of an in-flight trade and no schema. Restart semantics unchanged.
-8. **Strength/weakness bias: n/a** — a descriptive event-string stamp makes no admit/refuse decision, so it cannot bias toward or against strength.
-9. **Rig executed MYSELF**: `python3 rig/test_shipset_20260804.py` → **ALL GREEN, exit 0**, incl. the new **section AI** (8/8 green: fail-soft empty/None → "", break-of-session-high emits B, ≥60s gap emits L, seq_str in _EYES_KEYS, snapshot stamps it, compact carries it, no NEW behavior symbol, canonical footprint ≤4 write-only code sites). Standing pin sections all green; section Q flags HEAD "NOT yet audited" — this artifact closes that interlock.
+## KEV_ROAD PRICE (dollars, per the dollars-not-R law)
+What it can flip: a `runway_reject` (road < need) becomes a PASS when (a) our own
+targets/next_supply above entry are exhausted AND (b) kev_shadow carries a max target above
+our ceiling and above entry. Trace (the named trade, from the c4550d8 hand-trace + today's
+row): WETO 8/17 07:10 — entry above vision's 9.5/10 rungs, rungs exhausted, kev_road_max 20
+-> road extends to $20 -> reject flips to pass. Era evidence (runway_graded_rows_20260804.json,
+n=23 graded runway_rejects had they all fired): net −$115.11 (8 winners +$217.61, 15 losers at
+the ~−$30 stop clamp). KEV_ROAD admits only the rung-exhausted-with-Kev-ceiling SUBSET of that
+class, which is untested as its own cohort — assume ~−$5/trade EV until Friday grades the
+actual KEV_ROAD passes. Worst case if Kev's round-number target is wrong: the road is
+OVERSTATED, the entry proceeds that should not have — and the loss is bounded by THE STOP,
+WHICH IS UNCHANGED (KEV_ROAD touches only the (rr, tgt) return of `_marked_runway` :9670-9676;
+stop_loss is computed upstream and never reads kev_road_max). Explicitly: a wrong Kev target
+costs one normal stop-out (~$30 at current clamps), never an unbounded ride — monitors,
+intrabar stop, and off-tape exit guard all run normally on these entries.
 
-FIX-NOW LIST: none.
+## 2. Findings + fix-now list
+- **F1 (to Marcos, not a blocker): "His veto rules the row" is overstated — veto is
+  observe-only in this tree.** The ONLY veto consumer is the chart gate :3367, which since the
+  8/12 doctrine ("the chart and tape decide. No one has veto power") logs
+  `veto_noted_not_gating` and blocks nothing. So KEV_VETO_READ propagates the flag onto rows
+  (good: the Friday A/B now sees Kev's shadow vetoes) but no entry is refused by it. If Marcos
+  intends Kev's veto to BLOCK, that is a separate priced behavior change — do not slip it in.
+- **F2 (to Marcos, not a blocker): KEV_ROAD zero-rung edge.** `_kev_shadow_overlay` stamps
+  kev_road_max when our targets list is EMPTY too (:9454 `not _otgts`), so on a target-less map
+  the entire road is Kev-derived. "Rungs exhausted" arguably includes zero rungs, and our
+  numbers still aren't overridden (there are none) — but Marcos should know the road can be
+  100% Kev's number on sparse maps. Sparse-map-is-valid-information law cuts both ways here.
+- **F3 (accepted, noted): `_freshest_rec` exception fallback (:9422) returns the raw record
+  WITHOUT the overlay** — on that path no veto stamp, no kev_road_max. Fail-safe direction
+  (less behavior, not more); acceptable.
+- **F4 (verified coherent): auto-map interaction.** Overlay runs inside `_freshest_rec`, so
+  kev_road_max/veto ride into `_effective_map`'s auto-map overlay via `eff = dict(rec)`
+  (:9622) — the swap replaces only break/confirm/targets. kev_road_max is computed against the
+  PRE-auto-map targets; after a swap the auto-map's surviving targets (if any) win `_tgt`
+  first, and KEV_ROAD is consulted only when none exist. Coherent with primacy.
+- **F5 (verified): overlay rides the 20s `_effmap_cache`** — veto/kev_road_max cached with the
+  rec; no consumer caches a pre-overlay rec elsewhere (all gate sites go through
+  `_effective_map`; the direct `_fetch_kev_levels()` sites :1183/:3323/:5351/:5381/:10636/
+  :12954/:13268 are display/scoring/archive reads, none a structure gate — swept).
 
-## DAY-ONE WALKTHROUGH (Monday 8/17, unchanged env, DRY_RUN=true)
-- **Boot ~03:55 ET**: no new env, no banner change (observe-only ship registers no config flag). All lanes arm exactly as before.
-- **First PRE fire (any lane — hidden_entry / vwap_reclaim / a converted PRE lane)**: at the fire, the lane calls `_eyes_compact(_eyes_snapshot(t, px, "entry", extra))`. Inside `_eyes_snapshot`, `d10` (already built for the other eyes) is handed to `_seq_events`; on a real premarket break-and-hold specimen the loop emits e.g. `"... P T B H"` and `snap["seq_str"]` = that string; the compact block carries `"seq": "... P T B H"`. The entry record persists it as a first-class eyes key. On too-little tape (cold open, <6 bars) it is `None` — the record still writes, nothing stops it.
-- **Exit of that same trade**: the exit snapshot runs the identical stamp → the exit eyes block carries its own `seq_str`. Both legs of the sandwich populated.
-- **What consumes it**: only the recorder (writes the key) and any offline sequence-miner reading rows later. No live consumer branches on it. If `_seq_events` had thrown, the field is `None` and the trade records exactly as it would have pre-ship. The promised row (an eyes block with a populated `seq` on a real fire) is produced; nothing downstream is intolerant of the new key because every consumer reads the eyes dict via `.get`.
+## STANDARD CHECKS
+- **Upstream charges:** reread-on-reject adds NO new HTTP GETs in the bot (a `_log_decision`
+  row is the marker); the cost is reader-side vision reads, bounded by 1/ticker/10min
+  (`_reread_reject_t`) AND the reader's existing `_capped` governor, which still rules.
+  item2's staleness probe at runway_reject calls `_effective_map` again — 20s TTL cache, no
+  extra fetch. Starvation counter: zero fetches. G1 stamp: reuses in-hand bars
+  (`cache[t].full_bars`), zero fetches. Bell-boundary fix: same fetch count, wider session arg.
+- **Twins:** eyes compact vs full — G1 stamps enter via the breakout extra dict and the
+  decision row with the SAME keys (no collision: vwap_side/hi_dist_pct/g1_shadow are new
+  everywhere; grep confirms no prior writer). Decisions row vs trade record: triggered_ignition
+  carries the stamps; the trade record is untouched (observe-first — Friday joins on the
+  decision row). VWAP twin NAMED per the scope doc: the fire-site `vwap` = `cache[t]["vwap"]`
+  = scan session VWAP (pre+RTH fetch :7655 under ENTRY_VWAP_PREMARKET, else RTH full_bars
+  line, possibly tick-VWAP overlay :7690) — the monitor's separate ["PRE","RTH"] fetch (:10685)
+  is the same anchor family; the guidance's G1 was simmed on session VWAP, so the stamp
+  matches intent. If tick-VWAP overlay is active the stamp uses the tick line — same line the
+  gates use, which is the honest one to grade.
+- **Whole sandwich:** entry path — runway/ceiling/backside gates read the overlaid rec; exits —
+  monitors, stops, `_verify_exit_px` read NONE of the new fields (grep: kev_road_max/g1_shadow
+  absent from monitor_trade and exit paths). Exit side untouched.
+- **Restart semantics:** `_reread_reject_t`, `_starv`, `_effmap_cache`, reader
+  `seen_markers` all in-memory — restart resets caps. Worst case: one extra reread marker per
+  ticker and one early/late starvation window per restart. Bounded, no money path. ACCEPTED.
+  `seen_markers` growth: dedup key includes recorded_at so it grows with rows, but is bounded
+  by the day's decision-row volume and process lifetime — acceptable, reader restarts nightly.
+- **Strength/weakness bias:** reread-on-reject fires on REFUSALS of stale structure — it spends
+  reads re-examining names the bot just refused, i.e. it gives refused strength a fresh look
+  instead of letting a stale map keep saying no. Ombudsman's direction: PRO-strength. No new
+  weakness free-pass introduced.
+- **Rig:** full rig run BY THIS CONVENING, exit 0, 480 checks; R/AJ/AJ2/AJ3/AJ4/AK all
+  executed (not just present). AK bare-call pin ==3 matches the census; frozen-clock matrix
+  matches BOUNDARY_CENSUS_20260817.md including the 09:30:30 pin. Note: rig output contains a
+  Webull 401 (token probe from this laptop) — non-fatal by design, exit code is the judge.
 
-## DOCTRINE-INVERSION SWEEP
-The sequencing doctrine ("one element alone signals nothing; it's the ORDER") is newly ledgered, and this ship FOLLOWS that doctrine — so the sweep is mandatory. Result: this ship changes **no** who-rules / what-gates / what's-exempt. It adds a descriptive field and consumes nothing for a decision. There is therefore no OLD-doctrine code path made stale by it: no gate was repealed, no lane's authority moved, no exempt set changed (grep of MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT/_STALE_EXEMPT shows no `seq`-keyed member — it is a field, not a lane). The pre-existing KEVSEQ lane and its `KEVSEQ_CONVERT` flag are untouched and remain the ONLY place a sequence idea reaches money, still env-OFF; this build does not promote the canonical string into that decision. **doctrine-inversion sweep: additive-only, no stale old-doctrine path — build #0 lays the observation substrate; any future gate that reads `seq_str` for a decision is a SEPARATE ship that returns to Marcos priced.** The string "doctrine-inversion" is present as required.
+## 3. DAY-ONE WALKTHROUGH
+**(a) Tomorrow 09:29 -> 09:36, hand-off live (RTH_HANDOFF_MIN=5):** 09:29:30 —
+`_live_sessions()` = ["PRE","RTH"]; read-list guard sees fresh PRE bars, roster passes as
+today. 09:30:00-09:34:59 — hm >= "09:30" but < "09:35": hand-off branch returns ["PRE","RTH"];
+the seven P1 fail-closed consumers (guard :3098, cache refresh, velocity, entry fresh-bar
+guards) keep seeing seconds-old PRE tape; `_fresh_session` still enforces today+900s, so no
+prior-day bar can leak. The 3-min probe cache's 09:30-09:32 bucket now pins TRUE, not False —
+the 23/26-name blackout class is dead. ~09:31+ first completed RTH bars arrive and simply join
+the same list. 09:35:00 — hand-off ends, list = None (RTH-only), 5 minutes of RTH bars exist:
+no gap. Roster survives the flip end-to-end; promised row = normal reads/entries in the
+09:30-09:35 window instead of `no fresh bars` skips. Failure condition (forensic, written
+first) stands: roster-wide skips 09:30-09:35 on fresh-tape names tomorrow = fix wrong.
+**(b) WETO-class 07:10 fire with KEV_ROAD:** PRE window, `_live_sessions()` = ["PRE","RTH"].
+Entry candidate at ~$10.4, vision map rungs 9.5/10 both below entry -> `_tgts` empty, `_ns`
+none above -> `_tgt` None -> KEV_ROAD branch: kev_road_max 20 > entry -> returns
+(rr=(20-entry)/rps, tgt=20) -> runway PASSES; `runway_pass` row carries the Kev-ceiling
+target (record-side coherent — tgt is stamped as the road's target, src evident from
+kev_road_max on the rec). Entry proceeds through the remaining gates unchanged; stop_loss
+computed exactly as today (KEV_ROAD never touches it); monitor, intrabar stop, exit guard
+all normal. If $20 is a fantasy: one standard stop-out, ~−$30 at current clamps. Promised row
+produced; nothing stops the trace.
 
-## ROLL CALL (every office on ROSTER.txt)
-- **Blast Radius Auditor** — TOUCHED, chair. Verified write-only, double fail-soft, twin+sandwich+restart clean. Finding: none blocking. GREEN.
-- **Dashboard Curator** — TOUCHED (finding, non-blocking): `seq` now rides the compact eyes block; the cockpit does not yet render it. Display of the new field is queued, not owed for this observe-only ship.
-- **Systems Quant** — TOUCHED: confirmed `_seq_events` computes what its name claims (causal single-pass, one event/bar by priority B>F>W>T>R>H>P>D, trailing Q, L on gap); pure, no lookahead beyond the current bar. Clean.
-- **Pit Crew Chief** — clean: no deploy-safety surface — no env, no new failure domain; the only new raise-path is contained by two try/excepts.
-- **Integrator** — TOUCHED: both eyes seams (full snapshot + compact) wired; all 7 compact call-sites carry the key. No orphaned seam. Clean.
-- **Side Marshal** — clean: front/back-side classifier untouched; the string records events, does not re-decide side.
-- **Crown Steward** — clean: crown privileges untouched.
-- **Feed Engineer** — TOUCHED: confirmed NO new feed call — reuses the already-fetched `d10`. Zero vendor charge. Clean.
-- **Webull Broker Desk** — clean: no order semantics, no BP, no token surface.
-- **Quartermaster** — clean: no new persisted store; `seq_str` rides the existing eyes/record schema, backup path unchanged.
-- **Kev Librarian** — TOUCHED (finding, non-blocking): the alphabet mirrors kev_rosetta_20260816.md and the offline miner; the two MUST stay in lockstep or live/backtest strings diverge. Flagged to keep the miner refactored to call THIS helper (commit says "to be refactored to call THIS").
-- **First Hour** — clean: no 9:30-10:30 P&L behavior change.
-- **Opening Bell** — clean: pre-open path unchanged; the stamp just records what the lead-up looked like.
-- **Seam Scientist** — TOUCHED (positive): this substrate directly feeds the beginning-entry research program — the exact live event-string the seam study needs. Observation only, no premature gate.
-- **Strength Ombudsman** — clean: no admit/refuse decision, no bias surface.
-- **Forward Architect** — clean: registered as build #0 of a hypothesis line; the kill-test (does a sequence gate beat don't-trade) is a FUTURE ship, not this one.
-- **Momentum Operator** — clean: nothing ships on noise; this ships on nothing at all (observe-only).
-- **Trade Manager** — clean: exits unchanged; exit eyes merely also stamp the field.
-- **Tape Veteran** — clean: outside-auditor hypotheses only; no objection to a descriptive record.
-- **Reclaim Architect** — clean: reclaim lane entry logic untouched; it merely stamps seq_str via the shared snapshot.
-- **Execution Surgeon** — clean: planned-R = realized-R untouched; no sizing/stop path reads the field.
-- **Handicapper** — clean: selection/character-book untouched.
-- **Rocket Rider** — clean: parabolic regime handling untouched.
-- **Cartographer** — clean: map quality untouched (`_EYES_MAP_KEYS` unchanged).
-- **Wind Tunnel Engineer** — TOUCHED (finding, non-blocking): backtest fidelity depends on the offline miner emitting the SAME alphabet as `_seq_events`; same lockstep flag as Kev Librarian. No fidelity break in THIS ship (no backtest path changed).
-- **Statistician** — clean: no results-ledger write; the field is raw observation, not a computed result claim.
-- **Convexity Trader** — clean: no P&L/tail-shape surface.
-- **Curl Mechanic** — clean: reclaim/zone-flip fire-count acceptance untouched.
-- **Project Manager** — TOUCHED: this convening + rig-green is the [VERIFIED] artifact for the ship; observe-only, no scorecard impact.
-- **Historian** — TOUCHED: recorded as "seq doctrine build #0 — canonical live event-string substrate, observe-only, 3ad5c50, rig-green".
-- **Hidden Entry Architect** — TOUCHED (positive): the v2 rebuild's anticipation-not-confirmation work gains a per-bar event record for anatomy; observation only, no v2 behavior change here.
+## 4. DOCTRINE-INVERSION SWEEP
+The batch FOLLOWS a doctrine event: 8/12 our-numbers primacy REAFFIRMED by Marcos 8/17
+("Kev's picks but OUR map numbers ruling"). Sweep for residual kev-numbers-first encodings:
+- grep KEV_PRIMACY: zero hits — no such switch exists in the tree.
+- kev-level exemptions / sheet-governs-before-first-read: the `_bypass` live-structure lanes
+  (:3350) exempt lanes from the MAP gate entirely (chart-gate doctrine, not kev-primacy) —
+  intentional, not an inversion. The no-map skip (:3380 `no_marked_level`) gates on the
+  EFFECTIVE (vision-primary) record — before the first vision read the record IS the sheet;
+  that pre-first-read window is the intentional exception (sheet = only data in existence,
+  freshest-data law) and inverts nothing once a read lands, because vision_shadow promotion
+  (:9414) takes over on timestamp.
+- `_freshest_rec` (:9400): promotes VISION over the sheet — the 8/12 direction, correct.
+- `_auto_map` (:9561) reads the STORED sheet's targets as survivors above the tape high —
+  targets-only, above-our-computed-break: consistent with "Kev may say where road is, never
+  what our levels are". Same shape as kev_road_max. Not an inversion; noted.
+- doctrine-inversion verdict: NO residual kev-numbers-first path found; the one code path that
+  reads Kev structure for gating-adjacent purposes (`_auto_map` survivors) predates the batch,
+  is above-our-anchor by construction, and is flagged here for the record. F1 (veto
+  observe-only) is the only place the 8/17 words and the tree diverge — surfaced to Marcos.
 
-## VERDICT
-**GREEN — safe to deploy.** The ship is genuinely observe-only: the new canonical `seq_str` is written in the shared eyes choke point and read in exactly one place (the compact display copy), never by a gate, conversion, sizing, or exit path; no SEQ_CONVERT/SEQ_GATE symbol exists; `_eyes_snapshot` cannot raise from it (two independent try/excepts); no new feed call, both twins and both sandwich legs covered, restart/schema tolerant. Rig section AI 8/8 green, full suite exit 0. No blocking finding. No push/deploy/env change performed by this convening — the main session ships.
+## 5. ROLL CALL (data/audits/ROSTER.txt, all 31)
+- **Blast Radius Auditor** — this convening; findings F1-F5.
+- **Dashboard Curator** — touched: read_starvation rows post under ticker SYSTEM; dashboard
+  consumers that assume ticker=symbol will show a SYSTEM row (item3 scope doc flagged it) —
+  display-only, queue a filter; hi_dist_pct stamp closes the Curator's G3 measurement debt.
+- **Systems Quant** — touched: verified each function computes what its name claims;
+  `_ignition_g1_stamp` hi_dist_pct = pct below session high (matches guidance definition);
+  `_starvation_tick` window arithmetic checked (900s, void outside 07:00-16:00).
+- **Pit Crew Chief** — touched: five new envs all default-on with kill switches
+  (KEV_VETO_READ/KEV_ROAD/REREAD_ON_REJECT/READ_STARVATION/IGNITION_G1_SHADOW, plus
+  RTH_HANDOFF_MIN=0 kill); restart semantics accepted above; no RTH deploy (batch NOT deployed).
+- **Integrator** — touched: reader marker-status set extension (:1187) is the single seam;
+  wiring verified end-to-end (bot row -> reader queue -> reread_one -> starvation counter).
+- **Side Marshal** — clean: no side/band logic touched; backside gate reads the overlaid rec
+  but consumes no new field.
+- **Crown Steward** — touched: freshness contract (crowns-only) now also fires
+  reread-on-reject at breach — crowned names get the fastest rereads; privilege-coherent.
+- **Feed Engineer** — touched: bell-boundary fix is a session-filter semantics fix on the
+  Alpaca/Webull fetch path; census P1-P5 tables verified against the tree; bare-call pin 3.
+- **Webull Broker Desk** — clean: no order/account semantics touched; rig's 401 token probe
+  noted (laptop-side, non-fatal).
+- **Quartermaster** — clean: no bars storage/ferry change; EOD archiver untouched (P4).
+- **Kev Librarian** — touched: kev_shadow read-side is the corpus's first live read since the
+  8/12 re-shelving; storage never written (source-protection law verified: overlay is
+  read-side dict copies only).
+- **First Hour** — touched: the 09:30-09:35 blackout was First Hour's window; fix restores
+  read coverage at the bell; grade tomorrow's window vs the forensic's failure condition.
+- **Opening Bell** — touched: hand-off spans the bell; PRE-period behavior unchanged
+  (zero-print skips were correct and remain).
+- **Seam Scientist** — clean: no beginning-entry logic touched; notes G1 stamps enrich future
+  seam joins.
+- **Strength Ombudsman** — touched: reread-on-reject = pro-strength (refused names get fresh
+  reads); no weakness free-pass added.
+- **Forward Architect** — clean: no new hypotheses shipped; KEV_ROAD Friday grade registered.
+- **Momentum Operator** — clean: no momentum thresholds touched; velocity gate only gains
+  boundary-safe sessions.
+- **Trade Manager** — touched-with-verification: exits/stops read NONE of the new fields;
+  KEV_ROAD changes entry admission only; stop unchanged (the price statement's bound).
+- **Tape Veteran** — touched: hypothesis on record — KEV_ROAD passes may inherit the
+  runway_reject class's −$5/tr EV; Friday grades the subset.
+- **Reclaim Architect** — clean: reclaim lanes are `_bypass` live-structure; map overlay
+  irrelevant to them.
+- **Execution Surgeon** — clean: planned-R chain untouched; rr from KEV_ROAD is reporting the
+  same arithmetic on a farther target.
+- **Handicapper** — clean: selection/scanner untouched.
+- **Rocket Rider** — clean: hidden/ignition conversion behavior unchanged (stamps only).
+- **Cartographer** — touched: breach alarm now co-fires a reread marker (:9598) — remediation
+  loop tightened; auto-map/kev_road_max interaction verified coherent (F4).
+- **Wind Tunnel Engineer** — touched: rig AJ4 asserts non-enforcement; AK frozen-clock matrix
+  executes the REAL `_live_sessions`; spec-not-impl respected (checks assert Marcos's words).
+- **Statistician** — touched: new row types (reread_on_reject, read_starvation, g1 stamps,
+  runway_pass with Kev-ceiling target) are ledger-ready; unledgered-number law satisfied by
+  the graded-rows citation above.
+- **Convexity Trader** — touched: KEV_ROAD admits farther-target trades — tail-shape friendly,
+  mean-after-costs to be graded, not assumed.
+- **Curl Mechanic** — clean: 10s fire paths untouched (stale_fire_suppressed forensic finding
+  is scan-cycle latency, out of this batch's scope, already ledgered).
+- **Project Manager** — touched: morning brief should carry [VERIFIED] hand-off live +
+  KEV_ROAD watch items; Friday grade list: KEV_ROAD passes, G1 shadow, starvation rows.
+- **Historian** — touched: record the 8/17 reaffirmation ("Kev's picks, OUR map numbers
+  ruling") alongside the 8/12 flip; the corrected-mid-build promotion spec is part of the
+  official record (PENDING doc preserved in-tree).
+- **Hidden Entry Architect** — clean: v2 untouched; notes G1/vwap_side stamps will serve the
+  v2 gate-stack evidence base.
+
+## SHIP_CHECK
+Pre-artifact: RED on section Q only (HEAD e5f59fe not covered) — the designed interlock.
+Post-commit rerun result appended below by the convening runner.
+POST-COMMIT: SHIP_CHECK=1 rerun after this artifact's commit — section Q GREEN (bookkeeping
+exemption covers the artifact commit); full rig exit 0.

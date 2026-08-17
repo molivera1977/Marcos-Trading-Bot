@@ -1,222 +1,200 @@
-covers: e5f59fed90b6
-# BLAST RADIUS CONVENING — 8/17 reads/maps + bell-boundary batch (separate context)
-Auditor: Blast Radius Auditor. Tree audited: e5f59fe (tip) = 2a8951a + c4550d8 + a4fc25c +
-b1711f9 + e2ef254 + fb90194 + e5f59fe. Scope doc: PENDING_CONVENE_20260817.md. Context read:
-BOUNDARY_CENSUS_20260817.md, pre_staleness_forensic_20260817.md. Full rig executed THIS
-convening: exit 0, 480 green checks, sections R (bell-boundary), AJ, AJ2, AJ3, AJ4, AK all
-present AND executed (headers + per-check lines observed in output, judged by exit code).
-SHIP_CHECK=1 pre-artifact: RED only on section Q coverage interlock (expected until this
-artifact commits) — rerun after commit recorded at bottom.
+covers: 5d58e42894e1
+# BLAST RADIUS CONVENING — 8/17 BATCH 2 (tape-lane scalar exemption + crown visibility)
+Auditor: Blast Radius Auditor (separate context). Tree audited: 5d58e42 (tip) = e5f59fe (batch-1,
+audited GREEN in the prior convening, preserved below) + 173d8f1 (batch2-A) + cdbe7d4 (batch2-B)
++ 5d58e42 (scope-doc append, docs-only). Scope: PENDING_CONVENE_20260817.md items A/B. Context
+read: scalar_veto_tape_lanes_20260817.md, crown_pipeline_forensic_20260817.md. Full rig executed
+THIS convening: EXIT 0, ALL GREEN, 498 green checks; sections AL and AM present AND executed
+(per-check lines observed; judged by exit code). SHIP_CHECK=1 pre-artifact: RED on section Q
+only (tip 5d58e42 not yet covered — the designed interlock); post-commit rerun appended at
+bottom.
 
-## VERDICT: GREEN — deploy may proceed on Marcos's word, with the KEV_ROAD price statement
-below and findings F1/F2 surfaced to him first (neither is a code blocker; both are
-doctrine/pricing items that are his call under auditor-cannot-authorize).
+## VERDICT: GREEN — deploy may proceed on Marcos's word (book-flat rule + no-RTH-push law
+still govern the ship itself). No code blockers. One doctrine finding (B2-F1, extension gate)
+and the standing pricing items go to Marcos first — his call under auditor-cannot-authorize.
 
-## 1. Marcos's rulings — verified honored
-- **"Kev's picks, OUR map numbers ruling" (8/12, REAFFIRMED 8/17):** VERIFIED. Grep of the
-  whole tree: `kev_shadow` is consumed ONLY in `_kev_shadow_overlay` (:9426, called from both
-  `_freshest_rec` return paths :9420/:9421). It writes exactly two things: `veto`/`veto_src`
-  and `kev_road_max`. NO code path promotes kev_shadow break/confirm/stop/targets into the
-  effective record; the original freshest-timestamp-promotion spec was corrected mid-build and
-  is absent from the tree. The vision_shadow promotion (:9414-9419) is OUR source, unchanged.
-- **Three spec-tension defaults:** confirmed built as specced and logged for Marcos, not
-  resolved in code: (a) dual read-request lanes at ceiling_reject kept (reader marker 10-min
-  cap :3049 AND `_request_auto_read` 30-min throttle :12397 both fire); (b) G1 stamps ride
-  ONLY the proceeding fire row (triggered_ignition :8455 + breakout extra :8440) — daily_bad /
-  below_convert refusals unstamped; (c) starvation roster = the levels sheet (`len(lv)` in
-  reader :1259) — nearest in-process truth, not the bot's watch roster.
-- **KEV_ROAD is the batch's only money-behavior change:** VERIFIED. item2 = read-side spend
-  only (a reader vision read; no gate outcome changes). item3 = one observe row per 15-min
-  window. item4 = stamps only; rig AJ4 asserts g1_shadow is never read back by any condition;
-  I confirmed no consumer of `g1_shadow`/`vwap_side` exists outside the stamp + writers.
-  item5 = docs + rig. 2a8951a changes WHICH of today's bars are visible (money-adjacent but
-  restores intended behavior; `_fresh_session` today+900s staleness arbiter untouched).
-  KEV_VETO_READ — see F1: it is effectively observe-only in this tree.
+## MONEY-BEHAVIOR STATEMENT (batch 2's only money change = TAPE_LANE_SCALAR_EXEMPT)
+**What it can now let through:** a kevseq / v2conv / grinder / bandpass / prevwap fire that
+reaches the worker momentum gate and fails ONLY the refuted "no momentum build" expansion /
+peak-relative scalar now proceeds to entry instead of dying at momentum_reject. Evidence is
+N=1 (WETO 8/17 10:18:37 kevseq @ $19.495; E3 live-parity counterfactual +$25.14) — the weight
+is doctrinal: settled 7/26 law (tape lanes trade through; every setup-quality scalar refuted)
+plus the ignition/vel5 resolution-mismatch precedent (a 10s-proven fire re-judged at 1-min
+resolution). N=1 thinness is flagged honestly in the kill-test; Friday grades the actual
+scalar_veto_bypassed rows.
+**What still stops a bad tape-lane fire (verified in the shipped source this convening):**
+(1) the lane's own burst/context/day-gain LANE CONDITIONS (lane-spec entry conditions, not
+vetoes — a kevseq that never sequences never fires); (2) inside check_momentum, the illiquid
+share floor (:4126) and thin-ambient dollar floor (:4139) — tradeability, both still hard
+FALSE returns whose reasons ("illiquid —", "thin ambient tape —") can NEVER match the
+bypass's startswith("no momentum build") test; (3) the topping-tail Kev candle rule (:4207,
+reason "topping tail on last bar") — same, unbypassable; (4) the universal ambient exit-floor
+gate upstream of check_momentum (:12641, its own else-branch — the exemption sits INSIDE the
+else, so the universal gate is untouched); (5) min-stop tradeability floor :12227 (kevseq etc.
+NOT in MIN_STOP_EXEMPT); (6) backside gate :8975 (tape lanes NOT in BACKSIDE_EXEMPT — see
+B2-F2); (7) capital/slot governors and the stop chain — stop_loss computation, intrabar stop,
+monitors, `_verify_exit_px` all read nothing new (grep: neither commit touches any exit path).
+Worst case on a wrong bypass: one normal stop-out at current clamps (~$30), identical to any
+other admitted entry. Kill switch TAPE_LANE_SCALAR_EXEMPT=0 restores 8/17 behavior exactly
+(rig AL pin).
 
-## KEV_ROAD PRICE (dollars, per the dollars-not-R law)
-What it can flip: a `runway_reject` (road < need) becomes a PASS when (a) our own
-targets/next_supply above entry are exhausted AND (b) kev_shadow carries a max target above
-our ceiling and above entry. Trace (the named trade, from the c4550d8 hand-trace + today's
-row): WETO 8/17 07:10 — entry above vision's 9.5/10 rungs, rungs exhausted, kev_road_max 20
--> road extends to $20 -> reject flips to pass. Era evidence (runway_graded_rows_20260804.json,
-n=23 graded runway_rejects had they all fired): net −$115.11 (8 winners +$217.61, 15 losers at
-the ~−$30 stop clamp). KEV_ROAD admits only the rung-exhausted-with-Kev-ceiling SUBSET of that
-class, which is untested as its own cohort — assume ~−$5/trade EV until Friday grades the
-actual KEV_ROAD passes. Worst case if Kev's round-number target is wrong: the road is
-OVERSTATED, the entry proceeds that should not have — and the loss is bounded by THE STOP,
-WHICH IS UNCHANGED (KEV_ROAD touches only the (rr, tgt) return of `_marked_runway` :9670-9676;
-stop_loss is computed upstream and never reads kev_road_max). Explicitly: a wrong Kev target
-costs one normal stop-out (~$30 at current clamps), never an unbounded ride — monitors,
-intrabar stop, and off-tape exit guard all run normally on these entries.
+## 1. Item A (173d8f1) — exemption scope VERIFIED
+- **Bypasses ONLY the refuted scalar:** condition (:12665-12667) = not mom_ok AND env on AND
+  entry_type in {kevseq,v2conv,grinder,bandpass,prevwap} AND reason startswith "no momentum
+  build". I read check_momentum end-to-end (:4078-4226): its four hard-reject reasons are
+  "illiquid —…", "thin ambient tape —…", "no momentum build —…", "topping tail on last bar…".
+  Only the third matches. Floors and topping-tail keep their veto — also rig-executed (AL:
+  illiquid still vetoes, ambient still vetoes a tape lane).
+- **Chart lanes unchanged:** the momentum exempt tuple is untouched; dip_rip/rocket_catcher/
+  unlisted lanes still fully gated (rig AL: dip_rip still vetoed, no bypass row). vel5 gate
+  applies-to set stays chart-only (rig-pinned; archive N=0 structural).
+- **Every bypass logs:** `_log_decision(ticker, "scalar_veto_bypassed", price, lane, gate=
+  "momentum", reason)` :12668-12670 — Friday's counterfactual row exists on every bypass, and
+  mom_details carries {"exempt": "tape_scalar:<lane>"} so the trade row is distinguishable.
+- **Three-rings:** single momentum call site (grep: one check_momentum call, one def);
+  exemption env defs :5099-5101 single definition; no other consumer of the two new envs.
 
-## 2. Findings + fix-now list
-- **F1 (to Marcos, not a blocker): "His veto rules the row" is overstated — veto is
-  observe-only in this tree.** The ONLY veto consumer is the chart gate :3367, which since the
-  8/12 doctrine ("the chart and tape decide. No one has veto power") logs
-  `veto_noted_not_gating` and blocks nothing. So KEV_VETO_READ propagates the flag onto rows
-  (good: the Friday A/B now sees Kev's shadow vetoes) but no entry is refused by it. If Marcos
-  intends Kev's veto to BLOCK, that is a separate priced behavior change — do not slip it in.
-- **F2 (to Marcos, not a blocker): KEV_ROAD zero-rung edge.** `_kev_shadow_overlay` stamps
-  kev_road_max when our targets list is EMPTY too (:9454 `not _otgts`), so on a target-less map
-  the entire road is Kev-derived. "Rungs exhausted" arguably includes zero rungs, and our
-  numbers still aren't overridden (there are none) — but Marcos should know the road can be
-  100% Kev's number on sparse maps. Sparse-map-is-valid-information law cuts both ways here.
-- **F3 (accepted, noted): `_freshest_rec` exception fallback (:9422) returns the raw record
-  WITHOUT the overlay** — on that path no veto stamp, no kev_road_max. Fail-safe direction
-  (less behavior, not more); acceptable.
-- **F4 (verified coherent): auto-map interaction.** Overlay runs inside `_freshest_rec`, so
-  kev_road_max/veto ride into `_effective_map`'s auto-map overlay via `eff = dict(rec)`
-  (:9622) — the swap replaces only break/confirm/targets. kev_road_max is computed against the
-  PRE-auto-map targets; after a swap the auto-map's surviving targets (if any) win `_tgt`
-  first, and KEV_ROAD is consulted only when none exist. Coherent with primacy.
-- **F5 (verified): overlay rides the 20s `_effmap_cache`** — veto/kev_road_max cached with the
-  rec; no consumer caches a pre-overlay rec elsewhere (all gate sites go through
-  `_effective_map`; the direct `_fetch_kev_levels()` sites :1183/:3323/:5351/:5381/:10636/
-  :12954/:13268 are display/scoring/archive reads, none a structure gate — swept).
+## 2. Item B (cdbe7d4) — CROWN_FIX_0817 write-only VERIFIED
+- The "crowned" row is written at ONE site (:5018, inside _leader_qualify's existing
+  try/except, guarded by CROWN_FIX_0817=1). Grep of the whole tree for readers: the rehydrate
+  query (:5266) still requests `status=leader_armed,halt_suspect` — "crowned" is NOT in it;
+  the only other "crowned" tokens are the eyes-snapshot dict KEY (:9953/:9956/:10032, derived
+  from rec["since"], pre-existing, not the decision row). Nothing reads the new row back.
+  Rig AM executes the WETO frozen-clock sequence on the real source: no crown pre-halt, no
+  crown at +39.4% halt violence, crown on the first post-halt probe, 'crowned' row post-fix
+  only, byte-identical behavior with CROWN_FIX_0817=0, observe-only pin.
+- **Status-collision check (scope item):** "crowned" is a brand-new status string — no prior
+  writer, no dashboard/rehydrate consumer keys on it (no dashboard files in this repo consume
+  by_status="crowned"; the store just gains a new group). Clean.
+- Forensic verdict accepted: WETO WAS crowned 09:47:07; leader_armed always was the crown
+  row; defect = observability. The three flags (dual prior-close sources 137.17 vs 124.45;
+  40%-crossed-inside-a-halt delays crown to resumption+1 cycle; scan-cycle latency) are
+  correctly routed to Marcos as behavior calls, not slipped into code.
 
-## STANDARD CHECKS
-- **Upstream charges:** reread-on-reject adds NO new HTTP GETs in the bot (a `_log_decision`
-  row is the marker); the cost is reader-side vision reads, bounded by 1/ticker/10min
-  (`_reread_reject_t`) AND the reader's existing `_capped` governor, which still rules.
-  item2's staleness probe at runway_reject calls `_effective_map` again — 20s TTL cache, no
-  extra fetch. Starvation counter: zero fetches. G1 stamp: reuses in-hand bars
-  (`cache[t].full_bars`), zero fetches. Bell-boundary fix: same fetch count, wider session arg.
-- **Twins:** eyes compact vs full — G1 stamps enter via the breakout extra dict and the
-  decision row with the SAME keys (no collision: vwap_side/hi_dist_pct/g1_shadow are new
-  everywhere; grep confirms no prior writer). Decisions row vs trade record: triggered_ignition
-  carries the stamps; the trade record is untouched (observe-first — Friday joins on the
-  decision row). VWAP twin NAMED per the scope doc: the fire-site `vwap` = `cache[t]["vwap"]`
-  = scan session VWAP (pre+RTH fetch :7655 under ENTRY_VWAP_PREMARKET, else RTH full_bars
-  line, possibly tick-VWAP overlay :7690) — the monitor's separate ["PRE","RTH"] fetch (:10685)
-  is the same anchor family; the guidance's G1 was simmed on session VWAP, so the stamp
-  matches intent. If tick-VWAP overlay is active the stamp uses the tick line — same line the
-  gates use, which is the honest one to grade.
-- **Whole sandwich:** entry path — runway/ceiling/backside gates read the overlaid rec; exits —
-  monitors, stops, `_verify_exit_px` read NONE of the new fields (grep: kev_road_max/g1_shadow
-  absent from monitor_trade and exit paths). Exit side untouched.
-- **Restart semantics:** `_reread_reject_t`, `_starv`, `_effmap_cache`, reader
-  `seen_markers` all in-memory — restart resets caps. Worst case: one extra reread marker per
-  ticker and one early/late starvation window per restart. Bounded, no money path. ACCEPTED.
-  `seen_markers` growth: dedup key includes recorded_at so it grows with rows, but is bounded
-  by the day's decision-row volume and process lifetime — acceptable, reader restarts nightly.
-- **Strength/weakness bias:** reread-on-reject fires on REFUSALS of stale structure — it spends
-  reads re-examining names the bot just refused, i.e. it gives refused strength a fresh look
-  instead of letting a stale map keep saying no. Ombudsman's direction: PRO-strength. No new
-  weakness free-pass introduced.
-- **Rig:** full rig run BY THIS CONVENING, exit 0, 480 checks; R/AJ/AJ2/AJ3/AJ4/AK all
-  executed (not just present). AK bare-call pin ==3 matches the census; frozen-clock matrix
-  matches BOUNDARY_CENSUS_20260817.md including the 09:30:30 pin. Note: rig output contains a
-  Webull 401 (token probe from this laptop) — non-fatal by design, exit code is the judge.
+## 3. DOCTRINE-INVERSION SWEEP (item A ENFORCES settled 7/26 — sweep for misses)
+Question: do OTHER setup-quality scalar gates still veto tape lanes past the exemption?
+- **momentum ("no momentum build")** — the exemption. Covered.
+- **vel5** — chart-only applies-to set {flat_top, ma_pullback, orb, ema_bounce} (:8916s),
+  rig-pinned; no tape lane reaches it. Covered structurally.
+- **B2-F1 (to Marcos, not a blocker): EXTENSION gate still vetoes the five tape lanes.**
+  kevseq fires append to `breakouts` (:8013; v2conv/grinder/bandpass/prevwap same pattern)
+  inside wait_for_flat_top_entry, and the extension guard (:8991-9008, EXTENSION_MAX_PCT=0.25
+  hard-coded :402) runs on that same list. Its exempt tuple (:8995) = rocket_catcher,
+  hidden_entry, flat_top, orb, ma_pullback, vwap_reclaim, zone_flip — NONE of the five new
+  tape lanes. Extension is on the 7/26 refuted-scalar list, so a tape-lane fire >25% above
+  the 90-EMA (the natural habitat of a kevseq runner) dies at extension_reject — the same
+  inversion class item A just repaired, one gate over. Archive N to date: not measured this
+  convening (the lanes have been conversion-live for ~1 day) — but WETO-class names live
+  >25% over their 90-EMA routinely. RECOMMENDATION: price a follow-up (add the five lanes to
+  the extension exempt tuple OR log-only first) — Marcos's call; do NOT slip it into this
+  ship.
+- **B2-F2 (noted, doctrine-consistent): BACKSIDE gate applies to tape lanes** (:8981,
+  BACKSIDE_EXEMPT={dip_rip} only). Backside is NOT a refuted setup-quality scalar — it is
+  Marcos's own 8/5 settled gate with era pricing (−$147 in-band bleed) and its own Friday
+  re-grade. Not an inversion; recorded so nobody "discovers" it later.
+- **Day-gain:** tape-lane day-gain appears only as LANE-SPEC entry conditions (kevseq ctx /
+  conversion criteria), i.e. what makes the lane fire — not a post-fire veto. Distinguished
+  per scope; no inversion. Room/runway+ceiling gates: map-structure gates (chart-gate family,
+  with their own lane bypasses), not the refuted scalar class; unchanged by this batch.
+- **8/12 our-numbers primacy / 8/6 freshest-data:** untouched by batch 2 (no map/kev_shadow
+  code in either commit). Batch-1 sweep findings stand (preserved below).
 
-## 3. DAY-ONE WALKTHROUGH
-**(a) Tomorrow 09:29 -> 09:36, hand-off live (RTH_HANDOFF_MIN=5):** 09:29:30 —
-`_live_sessions()` = ["PRE","RTH"]; read-list guard sees fresh PRE bars, roster passes as
-today. 09:30:00-09:34:59 — hm >= "09:30" but < "09:35": hand-off branch returns ["PRE","RTH"];
-the seven P1 fail-closed consumers (guard :3098, cache refresh, velocity, entry fresh-bar
-guards) keep seeing seconds-old PRE tape; `_fresh_session` still enforces today+900s, so no
-prior-day bar can leak. The 3-min probe cache's 09:30-09:32 bucket now pins TRUE, not False —
-the 23/26-name blackout class is dead. ~09:31+ first completed RTH bars arrive and simply join
-the same list. 09:35:00 — hand-off ends, list = None (RTH-only), 5 minutes of RTH bars exist:
-no gap. Roster survives the flip end-to-end; promised row = normal reads/entries in the
-09:30-09:35 window instead of `no fresh bars` skips. Failure condition (forensic, written
-first) stands: roster-wide skips 09:30-09:35 on fresh-tape names tomorrow = fix wrong.
-**(b) WETO-class 07:10 fire with KEV_ROAD:** PRE window, `_live_sessions()` = ["PRE","RTH"].
-Entry candidate at ~$10.4, vision map rungs 9.5/10 both below entry -> `_tgts` empty, `_ns`
-none above -> `_tgt` None -> KEV_ROAD branch: kev_road_max 20 > entry -> returns
-(rr=(20-entry)/rps, tgt=20) -> runway PASSES; `runway_pass` row carries the Kev-ceiling
-target (record-side coherent — tgt is stamped as the road's target, src evident from
-kev_road_max on the rec). Entry proceeds through the remaining gates unchanged; stop_loss
-computed exactly as today (KEV_ROAD never touches it); monitor, intrabar stop, exit guard
-all normal. If $20 is a fantasy: one standard stop-out, ~−$30 at current clamps. Promised row
-produced; nothing stops the trace.
+## 4. DAY-ONE WALKTHROUGH — tomorrow's kevseq fire without momentum-build
+09:5x, KEVSEQ_CONVERT on: kevseq_step sequences B→H on the fed 10s bars, context gates pass
+→ kevseq_shadow_fire + triggered_kevseq rows; fire appends to breakouts (lane "kevseq",
+stop=would_stop) :8013. Backside gate: entry near highs → not in the 15-30%-below band →
+kept. Extension guard: IF >25% over 90-EMA → extension_reject (B2-F1 — today's reality;
+walkthrough continues for the under-25% case). Worker: chart gate — kevseq rides the
+live-structure bypass path (kill-test :3349 family) or passes; entry_zone ok; min-stop:
+would_stop width vs 4% floor (tradeability, stands); universal ambient exit-floor gate
+passes → else-branch calls check_momentum → floors pass, expansion 0.9× base fails →
+mom_ok False, reason "no momentum build — …" → exemption condition TRUE →
+scalar_veto_bypassed row (lane=kevseq, gate=momentum, price) + 🟢 print → mom_ok=True,
+details={"exempt": "tape_scalar:kevseq"} → runway/ceiling/slots/capital as any entry →
+order places with the UNCHANGED stop chain → fill → monitor_trade runs normally (intrabar
+stop, off-tape exit guard, E3 exit mode per the kevseq conversion spec: bank ½ +10%, trail).
+Every promised row exists; nothing downstream reads "exempt" as anything but a detail stamp
+(grep: no consumer branches on it). If the fire was bad: stop-out ~−$30, identical to today.
 
-## 4. DOCTRINE-INVERSION SWEEP
-The batch FOLLOWS a doctrine event: 8/12 our-numbers primacy REAFFIRMED by Marcos 8/17
-("Kev's picks but OUR map numbers ruling"). Sweep for residual kev-numbers-first encodings:
-- grep KEV_PRIMACY: zero hits — no such switch exists in the tree.
-- kev-level exemptions / sheet-governs-before-first-read: the `_bypass` live-structure lanes
-  (:3350) exempt lanes from the MAP gate entirely (chart-gate doctrine, not kev-primacy) —
-  intentional, not an inversion. The no-map skip (:3380 `no_marked_level`) gates on the
-  EFFECTIVE (vision-primary) record — before the first vision read the record IS the sheet;
-  that pre-first-read window is the intentional exception (sheet = only data in existence,
-  freshest-data law) and inverts nothing once a read lands, because vision_shadow promotion
-  (:9414) takes over on timestamp.
-- `_freshest_rec` (:9400): promotes VISION over the sheet — the 8/12 direction, correct.
-- `_auto_map` (:9561) reads the STORED sheet's targets as survivors above the tape high —
-  targets-only, above-our-computed-break: consistent with "Kev may say where road is, never
-  what our levels are". Same shape as kev_road_max. Not an inversion; noted.
-- doctrine-inversion verdict: NO residual kev-numbers-first path found; the one code path that
-  reads Kev structure for gating-adjacent purposes (`_auto_map` survivors) predates the batch,
-  is above-our-anchor by construction, and is flagged here for the record. F1 (veto
-  observe-only) is the only place the 8/17 words and the tree diverge — surfaced to Marcos.
+## 5. RIG (run BY THIS CONVENING)
+Full rig: EXIT 0, ALL GREEN, 498 green checks. AL executed (9 checks: pass-through on the
+WETO pin, bypass row shape, dip_rip still vetoed, kill-switch restore, illiquid + ambient
+floors still veto, lane-set coverage, vel5 chart-only, artifact filed). AM executed (9
+checks: WETO frozen-clock sequence, no pre-halt/halt-violence crown, post-halt crown,
+'crowned' row post-fix only, observe-only pin, kill-switch byte-identity, artifact filed).
+SHIP_CHECK=1 pre-artifact: RED on section Q only (tip uncovered — the interlock working as
+designed). Post-commit rerun below.
 
-## 5. ROLL CALL (data/audits/ROSTER.txt, all 31)
-- **Blast Radius Auditor** — this convening; findings F1-F5.
-- **Dashboard Curator** — touched: read_starvation rows post under ticker SYSTEM; dashboard
-  consumers that assume ticker=symbol will show a SYSTEM row (item3 scope doc flagged it) —
-  display-only, queue a filter; hi_dist_pct stamp closes the Curator's G3 measurement debt.
-- **Systems Quant** — touched: verified each function computes what its name claims;
-  `_ignition_g1_stamp` hi_dist_pct = pct below session high (matches guidance definition);
-  `_starvation_tick` window arithmetic checked (900s, void outside 07:00-16:00).
-- **Pit Crew Chief** — touched: five new envs all default-on with kill switches
-  (KEV_VETO_READ/KEV_ROAD/REREAD_ON_REJECT/READ_STARVATION/IGNITION_G1_SHADOW, plus
-  RTH_HANDOFF_MIN=0 kill); restart semantics accepted above; no RTH deploy (batch NOT deployed).
-- **Integrator** — touched: reader marker-status set extension (:1187) is the single seam;
-  wiring verified end-to-end (bot row -> reader queue -> reread_one -> starvation counter).
-- **Side Marshal** — clean: no side/band logic touched; backside gate reads the overlaid rec
-  but consumes no new field.
-- **Crown Steward** — touched: freshness contract (crowns-only) now also fires
-  reread-on-reject at breach — crowned names get the fastest rereads; privilege-coherent.
-- **Feed Engineer** — touched: bell-boundary fix is a session-filter semantics fix on the
-  Alpaca/Webull fetch path; census P1-P5 tables verified against the tree; bare-call pin 3.
-- **Webull Broker Desk** — clean: no order/account semantics touched; rig's 401 token probe
-  noted (laptop-side, non-fatal).
-- **Quartermaster** — clean: no bars storage/ferry change; EOD archiver untouched (P4).
-- **Kev Librarian** — touched: kev_shadow read-side is the corpus's first live read since the
-  8/12 re-shelving; storage never written (source-protection law verified: overlay is
-  read-side dict copies only).
-- **First Hour** — touched: the 09:30-09:35 blackout was First Hour's window; fix restores
-  read coverage at the bell; grade tomorrow's window vs the forensic's failure condition.
-- **Opening Bell** — touched: hand-off spans the bell; PRE-period behavior unchanged
-  (zero-print skips were correct and remain).
-- **Seam Scientist** — clean: no beginning-entry logic touched; notes G1 stamps enrich future
-  seam joins.
-- **Strength Ombudsman** — touched: reread-on-reject = pro-strength (refused names get fresh
-  reads); no weakness free-pass added.
-- **Forward Architect** — clean: no new hypotheses shipped; KEV_ROAD Friday grade registered.
-- **Momentum Operator** — clean: no momentum thresholds touched; velocity gate only gains
-  boundary-safe sessions.
-- **Trade Manager** — touched-with-verification: exits/stops read NONE of the new fields;
-  KEV_ROAD changes entry admission only; stop unchanged (the price statement's bound).
-- **Tape Veteran** — touched: hypothesis on record — KEV_ROAD passes may inherit the
-  runway_reject class's −$5/tr EV; Friday grades the subset.
-- **Reclaim Architect** — clean: reclaim lanes are `_bypass` live-structure; map overlay
-  irrelevant to them.
-- **Execution Surgeon** — clean: planned-R chain untouched; rr from KEV_ROAD is reporting the
-  same arithmetic on a farther target.
+## 6. ROLL CALL (data/audits/ROSTER.txt, all 31)
+- **Blast Radius Auditor** — this convening; findings B2-F1/B2-F2; money statement above.
+- **Momentum Operator** — touched: the momentum scalar's refutation is now ENFORCED for tape
+  lanes; the scalar still runs and logs (bypass rows preserve the counterfactual). Standing
+  question satisfied: nothing ships on noise — doctrine + priced specimen, Friday grade set.
+- **Systems Quant** — touched: verified the bypass condition matches exactly one reason
+  string among check_momentum's four hard rejects; verified "crowned" row = write-only.
+- **Wind Tunnel Engineer** — touched: rig AL/AM execute the REAL shipped source (loader
+  byte-parity); spec-not-impl respected; exit code judged.
+- **Statistician** — touched: +$25.14 N=1 dollar trace is ledgered in the kill-test with the
+  named trade (WETO 10:18:37); scalar_veto_bypassed = new ledger-ready row type; B2-F1's
+  extension N explicitly UNMEASURED — recorded as such, not asserted.
+- **Crown Steward** — touched: the 8/5 promise's visibility repaired; crown latency + halt-
+  crossing delay + dual prior-close flags on the Steward's docket for Marcos.
+- **Pit Crew Chief** — touched: three new envs (TAPE_LANE_SCALAR_EXEMPT, TAPE_SCALAR_
+  EXEMPT_LANES, CROWN_FIX_0817) all default-on with kill switches; batch NOT deployed;
+  book-flat + no-RTH-push laws bind the eventual ship.
+- **Trade Manager** — touched-with-verification: exits/stops/monitors read nothing new;
+  admission-only change; E3 exit note from the kill-test (trail gave back the WETO run) is
+  an EXIT finding routed to the Manager's queue, not acted on here.
+- **First Hour** — touched: WETO specimen fired 10:18; bypass rows land in the First Hour
+  attribution window; grade offered-vs-captured on them Friday.
+- **Tape Veteran** — touched: hypothesis on record — bypassed fires may still be the tired
+  late continuation the scalar meant to catch; Friday's rows decide, not the doctrine.
+- **Strength Ombudsman** — touched: exemption is PRO-strength (a proven 10s fire no longer
+  killed by a 1-min re-judgment); no weakness free-pass — floors/topping-tail stand. B2-F1
+  logged as refused-strength exposure (extension can still refuse a runner).
+- **Side Marshal** — touched: backside gate's reach over tape lanes confirmed intentional
+  (B2-F2); band edges unchanged; no side logic touched.
+- **Convexity Trader** — touched: the bypassed class is tail-shaped by construction (10s
+  momentum fires); mean-after-costs to be graded, never assumed from N=1.
+- **Curl Mechanic** — touched: grinder/bandpass in the exempt lane set; fire-count acceptance
+  unaffected (lane conditions untouched).
+- **Hidden Entry Architect** — clean: hidden_entry already in the momentum exempt tuple;
+  v2conv (the v2 conversion lane) gains the exemption — consistent with the v2 gate-stack
+  design (its own gates lead).
+- **Reclaim Architect** — clean: vwap_reclaim/zone_flip already exempt; untouched.
+- **Rocket Rider** — clean-with-note: rocket_catcher deliberately stays fully momentum-gated
+  (the gate's retained purpose); unchanged.
+- **Kev Librarian** — touched: topping-tail (Kev candle rule) explicitly preserved — the
+  bypass cannot match its reason string; corpus grounding intact.
+- **Cartographer** — clean: no map/overlay code in batch 2.
+- **Feed Engineer** — clean: no fetch-path change; check_momentum's bar diet unchanged.
+- **Webull Broker Desk** — clean: no order semantics touched; rig 401 token probe noted
+  (laptop-side, non-fatal, exit code judges).
+- **Quartermaster** — touched: WETO 10s bars cached to data/universe/bars10s/ (dir
+  gitignored, file on disk) — ferry/backup sweep should pick the file up.
+- **Dashboard Curator** — touched: two new statuses (scalar_veto_bypassed, crowned) will
+  appear in by_status censuses — display additions queued; no collision (new strings).
+- **Integrator** — touched: exemption sits inside the existing else-branch seam; single
+  call site verified; no parallel momentum logic created.
+- **Execution Surgeon** — clean: planned-R chain untouched.
 - **Handicapper** — clean: selection/scanner untouched.
-- **Rocket Rider** — clean: hidden/ignition conversion behavior unchanged (stamps only).
-- **Cartographer** — touched: breach alarm now co-fires a reread marker (:9598) — remediation
-  loop tightened; auto-map/kev_road_max interaction verified coherent (F4).
-- **Wind Tunnel Engineer** — touched: rig AJ4 asserts non-enforcement; AK frozen-clock matrix
-  executes the REAL `_live_sessions`; spec-not-impl respected (checks assert Marcos's words).
-- **Statistician** — touched: new row types (reread_on_reject, read_starvation, g1 stamps,
-  runway_pass with Kev-ceiling target) are ledger-ready; unledgered-number law satisfied by
-  the graded-rows citation above.
-- **Convexity Trader** — touched: KEV_ROAD admits farther-target trades — tail-shape friendly,
-  mean-after-costs to be graded, not assumed.
-- **Curl Mechanic** — clean: 10s fire paths untouched (stale_fire_suppressed forensic finding
-  is scan-cycle latency, out of this batch's scope, already ledgered).
-- **Project Manager** — touched: morning brief should carry [VERIFIED] hand-off live +
-  KEV_ROAD watch items; Friday grade list: KEV_ROAD passes, G1 shadow, starvation rows.
-- **Historian** — touched: record the 8/17 reaffirmation ("Kev's picks, OUR map numbers
-  ruling") alongside the 8/12 flip; the corrected-mid-build promotion spec is part of the
-  official record (PENDING doc preserved in-tree).
-- **Hidden Entry Architect** — clean: v2 untouched; notes G1/vwap_side stamps will serve the
-  v2 gate-stack evidence base.
+- **Seam Scientist** — clean: no beginning-entry logic; notes bypass rows enrich seam joins.
+- **Opening Bell** — clean: no pre-open window change in batch 2.
+- **Forward Architect** — touched: B2-F1 (extension exempt for tape lanes) registered as the
+  priced follow-up hypothesis; E3-trail exit finding queued.
+- **Project Manager** — touched: Friday grade list gains scalar_veto_bypassed rows + B2-F1
+  decision; morning brief carries [VERIFIED] batch-2 audited GREEN, NOT deployed.
+- **Historian** — touched: record that 8/17 batch2-A is the ENFORCEMENT of settled 7/26 law
+  (first tape lane ever to reach check_momentum was 8/17 — the veto class was new traffic);
+  and that the "WETO never crowned" claim is officially corrected: crowned 09:47:07.
 
 ## SHIP_CHECK
-Pre-artifact: RED on section Q only (HEAD e5f59fe not covered) — the designed interlock.
-Post-commit rerun result appended below by the convening runner.
-POST-COMMIT: SHIP_CHECK=1 rerun after this artifact's commit — section Q GREEN (bookkeeping
-exemption covers the artifact commit); full rig exit 0.
+Pre-artifact: RED on section Q only (tip 5d58e42 not covered) — the designed interlock.
+POST-COMMIT: appended below by the convening runner after this artifact commits.
+
+---
+# PRIOR CONVENING (batch 1, tree e5f59fe) — GREEN; preserved for the record
+(Verdict, KEV_ROAD price statement, findings F1-F5, walkthroughs, and roll call are in git
+history at 83ab088:data/audits/LATEST.md. Summary: GREEN; KEV_ROAD = batch-1's only money
+change, priced at ~−$5/tr EV assumption until Friday, loss bounded by the unchanged stop;
+F1 veto observe-only + F2 zero-rung road surfaced to Marcos.)

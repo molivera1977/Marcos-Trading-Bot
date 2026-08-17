@@ -1,0 +1,16 @@
+HARNESS PARITY 2026-08-17 — cadence 60s, tol 300s, exact price+stop
+
+lane        live  harness  exact   rate%  extra  notes
+kevseq        23       11      7    30.4      4  
+grinder       66       19      6     9.1     13  no tape: AIXI,MLEC
+bandpass       9        5      4    44.4      1  no tape: MEDS
+prevwap        3        3      3   100.0      0  
+v2           164      124     84    51.2     40  no tape: AIOS,BANL,BESS,CODX,CRIS,CYCN,MF,PLSM,RENX,SDOT,SUGP,SVRE,UPLD,YYAI
+
+UNMATCHED LIVE FIRES (reasons):
+  kevseq: {'no_harness_fire_for_name': 11, 'near_time_diff_price_or_stop': 4, 'same_price_wrong_time': 1}
+  grinder: {'no_harness_fire_for_name': 50, 'near_time_diff_price_or_stop': 4, 'no_tape': 3, 'same_price_wrong_time': 3}
+  bandpass: {'same_price_wrong_time': 2, 'no_tape': 1, 'no_harness_fire_for_name': 2}
+  v2: {'no_harness_fire_for_name': 37, 'no_tape': 18, 'near_time_diff_price_or_stop': 10, 'same_price_wrong_time': 15}
+
+wrote /Users/marcosolivera/Desktop/Marcos-Trading-Bot/data/killtests/harness_parity_20260817_out.json

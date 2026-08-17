@@ -3475,6 +3475,105 @@ try:
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError) as _mwe:
     check("M1W section", False, str(_mwe))
 
+print("BH) 8/17 LIVE-CODE STUDY HARNESS — studies must run the BOT'S OWN detectors "
+      "(doc: data/killtests/harness_parity_20260817.md)")
+# THE DEFECT IT KILLS: every kill-test re-implemented the lane detectors; the replicas drift
+# in the flattering direction (kevseq_frontside_tf_20260817.md: four studies with NO
+# front-side clause at all). The harness lifts the bot's real function objects by AST and
+# drives them over historical 10s bars. RESEARCH ONLY — the bot must NEVER import it.
+try:
+    _bh_hp = os.path.join(ROOT, "data", "killtests", "live_harness.py")
+    _bh_pp = os.path.join(ROOT, "data", "killtests", "harness_parity_20260817.py")
+    check("BH-a: harness + parity script exist", os.path.exists(_bh_hp) and os.path.exists(_bh_pp))
+
+    # (b) GUARD PIN — research must never leak into the trading path. One-way dependency.
+    _bh_bot = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
+    check("BH-b: marcos_trading_bot.py does NOT import/reference the harness (one-way dependency)",
+          "live_harness" not in _bh_bot)
+
+    import importlib.util as _ilu
+    _bh_spec = _ilu.spec_from_file_location("_bh_live_harness", _bh_hp)
+    _BH = _ilu.module_from_spec(_bh_spec); _bh_spec.loader.exec_module(_BH)
+
+    # (c) it imports cleanly AND every declared symbol actually lifts out of the live bot.
+    # A new un-liftable dependency in the bot turns THIS red — drift becomes a build break.
+    _bh_rep = _BH.isolability_report()["isolable"]
+    _bh_bad = {k: v for k, v in _bh_rep.items() if str(v).startswith("FAILED")}
+    check("BH-c: every declared bot symbol lifts into the isolated namespace (%d)" % len(_bh_rep),
+          not _bh_bad, str(_bh_bad)[:300])
+    check("BH-d: the real detectors are present as functions, not copies",
+          all(callable(_BH.fn(n)) for n in ("kevseq_step", "grinder_shadow_step", "bandpass_step",
+                                            "v2_pullback_step", "v2_trailing_calm", "_scaled_risk",
+                                            "_seq_events", "_wallclock_window", "ignition_10s_step")))
+
+    # (e) no network can escape a replay: `requests` inside the namespace is poisoned.
+    try:
+        _BH.ns()["requests"].get("http://example.com"); _bh_net = False
+    except _BH.HarnessError:
+        _bh_net = True
+    check("BH-e: network BLOCKED inside the isolated namespace (poisoned requests stub)", _bh_net)
+
+    # (f) THE CONTEXT CONTRACT — the actual defect, encoded. Missing ctx must REFUSE, never default.
+    _bh_bars = [{"utc": 50000 + 10 * i, "open": 1.0, "high": 1.0 + i * 0.01, "low": 0.99,
+                 "close": 1.0 + i * 0.01, "volume": 1000, "pv": 1000.0} for i in range(60)]
+    _bh_v = lambda s, i, b, ln: 1.0
+    try:
+        _BH.replay("TT", {"bars": _bh_bars}, ["kevseq"], day="2026-08-17", vwap_provider=_bh_v)
+        _bh_r1 = "NO RAISE"
+    except _BH.MissingContext as _e1:
+        _bh_r1 = str(_e1)
+    check("BH-f: kevseq with NO ctx_provider is REFUSED (the front-side hole, encoded)",
+          "front_side" in _bh_r1 and "refusing" in _bh_r1.lower(), _bh_r1[:160])
+    try:
+        _BH.replay("TT", {"bars": _bh_bars}, ["kevseq"], day="2026-08-17", vwap_provider=_bh_v,
+                   ctx_provider=lambda s, i, b, ln: {"day_gain": 50.0, "top3": True, "blue_sky": True})
+        _bh_r2 = "NO RAISE"
+    except _BH.MissingContext as _e2:
+        _bh_r2 = str(_e2)
+    check("BH-g: a ctx MISSING one field names that field and refuses (absence != None)",
+          "front_side" in _bh_r2 and "ABSENCE" in _bh_r2, _bh_r2[:160])
+    # a deliberate None IS accepted (unknown -> the detector's own refuse path), and a
+    # vwap-gated lane without a vwap_provider is refused too.
+    _bh_full = lambda s, i, b, ln: {"front_side": None, "day_gain": None, "top3": False, "blue_sky": False}
+    _BH.replay("TT", {"bars": _bh_bars}, ["kevseq"], day="2026-08-17",
+               vwap_provider=_bh_v, ctx_provider=_bh_full)
+    check("BH-h: an EXPLICIT None ctx is accepted (deliberate unknown != silent default)", True)
+    try:
+        _BH.replay("TT", {"bars": _bh_bars}, ["grinder"], day="2026-08-17")
+        _bh_r3 = "NO RAISE"
+    except _BH.MissingContext as _e3:
+        _bh_r3 = str(_e3)
+    check("BH-i: a VWAP-gated lane with no vwap_provider is REFUSED", "VWAP-gated" in _bh_r3, _bh_r3[:160])
+    try:
+        _BH.replay("TT", {"bars": _bh_bars}, ["hidden"], day="2026-08-17", vwap_provider=_bh_v)
+        _bh_r4 = "NO RAISE"
+    except _BH.HarnessError as _e4:
+        _bh_r4 = str(_e4)
+    check("BH-j: the hidden lane (wall-clock-blocked fire path) refuses without allow_blocked",
+          "NOT REPLAYABLE" in _bh_r4, _bh_r4[:160])
+
+    # (k) the MIRRORED half of the sizing chain is pinned against the bot's own source. If
+    # execute_trade's clamp arithmetic changes, this goes red instead of the study going wrong.
+    check("BH-k: mirrored sizing clamps still match the bot's source lines",
+          "_sh_risk = int(_risk_i / (entry_price - stop_loss))" in _bh_bot
+          and "_sh_notional = int(pos_size / entry_price)" in _bh_bot
+          and "shares = max(1, min(_sh_risk, _sh_notional))" in _bh_bot
+          and "position_size = min(balance * MAX_POSITION_SIZE, MAX_TRADE_DOLLARS)" in _bh_bot
+          and "_vol_cap = max(1, int(_vav * MAX_POS_VOL_PCT))" in _bh_bot)
+    _bh_sz = _BH.sizing_chain(3.0, 2.8, vwap=2.5)
+    check("BH-l: sizing_chain runs the REAL _scaled_risk and returns DOLLARS",
+          _bh_sz["scaled_risk"] == 30.0 and _bh_sz["shares"] == 74 and _bh_sz["clamp"].startswith("risk"),
+          str(_bh_sz))
+
+    # (m) the parity proof is runnable and its inputs are present.
+    check("BH-m: parity script + its live-row archive + tape are present and runnable",
+          os.path.exists(os.path.join(ROOT, "data/killtests/exit_params_our_fires_20260817_arch.json"))
+          and os.path.isdir(os.path.join(ROOT, "data/killtests/bars10s_0817_full"))
+          and compile(open(_bh_pp).read(), _bh_pp, "exec") is not None
+          and os.path.exists(os.path.join(ROOT, "data/killtests/harness_parity_20260817.md")))
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError, ImportError) as _bhe:
+    check("BH section", False, str(_bhe))
+
 print("Q) 8/12 CONVENE-OR-DON'T-SHIP interlock (Marcos: two unaudited ships tonight both hid real bugs)")
 # Under SHIP_CHECK=1 (the mandatory pre-deploy invocation), the rig goes RED unless
 # data/audits/LATEST.md records the EXACT tree being shipped (git HEAD sha + clean worktree).

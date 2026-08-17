@@ -1,0 +1,1414 @@
+{
+ "day": "2026-08-17",
+ "cadence_secs": 60,
+ "match_tol_s": 300,
+ "lanes": {
+  "kevseq": {
+   "live_fires": 23,
+   "live_names": 11,
+   "no_tape_names": [],
+   "harness_fires": 11,
+   "exact": 7,
+   "live_unmatched": [
+    {
+     "ticker": "QNTM",
+     "t": "08:12:22 AM",
+     "px": 4.59,
+     "stop": 4.55,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "IPST",
+     "t": "08:13:15 AM",
+     "px": 7.54,
+     "stop": 7.38,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WFF",
+     "t": "11:17:43 AM",
+     "px": 3.91,
+     "stop": 3.68,
+     "why": "near_time_diff_price_or_stop:[[\"WFF\", 40670, 4.77, 4.48]]"
+    },
+    {
+     "ticker": "RPGL",
+     "t": "11:46:57 AM",
+     "px": 2.64,
+     "stop": 2.55,
+     "why": "near_time_diff_price_or_stop:[[\"RPGL\", 42290, 2.55, 2.22], [\"RPGL\", 42350, 2.65, 2.5387]]"
+    },
+    {
+     "ticker": "RPGL",
+     "t": "11:58:33 AM",
+     "px": 2.55,
+     "stop": 2.38,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "11:58:33 AM",
+     "px": 2.86,
+     "stop": 2.82,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WFF",
+     "t": "11:58:33 AM",
+     "px": 4.77,
+     "stop": 4.48,
+     "why": "near_time_diff_price_or_stop:[[\"WFF\", 43130, 6.77, 6.12]]"
+    },
+    {
+     "ticker": "WFF",
+     "t": "12:01:27 PM",
+     "px": 5.1329,
+     "stop": 4.8,
+     "why": "near_time_diff_price_or_stop:[[\"WFF\", 43130, 6.77, 6.12]]"
+    },
+    {
+     "ticker": "TRUG",
+     "t": "01:36:08 PM",
+     "px": 1.67,
+     "stop": 1.64,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WETO",
+     "t": "01:50:04 PM",
+     "px": 17.11,
+     "stop": 16.93,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WETO",
+     "t": "01:54:28 PM",
+     "px": 20.0,
+     "stop": 19.577,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "TRUG",
+     "t": "02:14:06 PM",
+     "px": 1.7,
+     "stop": 1.67,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "IVF",
+     "t": "02:14:35 PM",
+     "px": 1.86,
+     "stop": 1.85,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "SLE",
+     "t": "02:32:06 PM",
+     "px": 3.0,
+     "stop": 2.98,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "OSRH",
+     "t": "03:02:30 PM",
+     "px": 0.5898,
+     "stop": 0.5837,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "OSRH",
+     "t": "03:05:53 PM",
+     "px": 0.7094,
+     "stop": 0.6788,
+     "why": "no_harness_fire_for_name"
+    }
+   ],
+   "harness_extra": 4,
+   "harness_extra_sample": [
+    [
+     "RPGL",
+     42350,
+     2.65,
+     2.5387
+    ],
+    [
+     "WFF",
+     39950,
+     3.34,
+     3.07
+    ],
+    [
+     "WFF",
+     40670,
+     4.77,
+     4.48
+    ],
+    [
+     "WFF",
+     43130,
+     6.77,
+     6.12
+    ]
+   ],
+   "vwap_src": {
+    "live_stamped": 5489,
+    "running_sip": 904
+   },
+   "match_rate_pct": 30.4
+  },
+  "grinder": {
+   "live_fires": 66,
+   "live_names": 24,
+   "no_tape_names": [
+    "AIXI",
+    "MLEC"
+   ],
+   "harness_fires": 19,
+   "exact": 6,
+   "live_unmatched": [
+    {
+     "ticker": "RBNE",
+     "t": "11:06:49 AM",
+     "px": 2.78,
+     "stop": 2.76,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "IPST",
+     "t": "11:14:24 AM",
+     "px": 7.36,
+     "stop": 7.24,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "XPON",
+     "t": "11:14:24 AM",
+     "px": 4.72,
+     "stop": 4.67,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WOK",
+     "t": "11:14:25 AM",
+     "px": 2.7373,
+     "stop": 2.59,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "NIVF",
+     "t": "11:14:25 AM",
+     "px": 0.67,
+     "stop": 0.6321,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "RBNE",
+     "t": "11:14:25 AM",
+     "px": 2.78,
+     "stop": 2.76,
+     "why": "near_time_diff_price_or_stop:[[\"RBNE\", 40370, 2.7524, 2.7]]"
+    },
+    {
+     "ticker": "ATPC",
+     "t": "11:35:52 AM",
+     "px": 2.7073,
+     "stop": 2.6816,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "GNPX",
+     "t": "11:42:24 AM",
+     "px": 4.6892,
+     "stop": 4.54,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "NIVF",
+     "t": "11:56:33 AM",
+     "px": 0.7,
+     "stop": 0.6535,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "NIVF",
+     "t": "11:58:33 AM",
+     "px": 0.6454,
+     "stop": 0.6256,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "XPON",
+     "t": "11:58:33 AM",
+     "px": 4.6295,
+     "stop": 4.42,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WTM",
+     "t": "11:58:33 AM",
+     "px": 2131.7,
+     "stop": 2130.66,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WETO",
+     "t": "11:58:33 AM",
+     "px": 17.7299,
+     "stop": 17.33,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "GNPX",
+     "t": "11:58:34 AM",
+     "px": 4.6892,
+     "stop": 4.54,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "ATPC",
+     "t": "11:58:34 AM",
+     "px": 2.7073,
+     "stop": 2.6816,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "RBNE",
+     "t": "12:01:27 PM",
+     "px": 2.78,
+     "stop": 2.76,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "PWCM",
+     "t": "12:10:41 PM",
+     "px": 1.38,
+     "stop": 1.37,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "XPON",
+     "t": "12:11:40 PM",
+     "px": 4.6392,
+     "stop": 4.54,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "UUU",
+     "t": "12:22:25 PM",
+     "px": 3.805,
+     "stop": 3.73,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "AIXI",
+     "t": "12:37:32 PM",
+     "px": 0.9,
+     "stop": 0.87,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "PWCM",
+     "t": "12:53:02 PM",
+     "px": 1.4446,
+     "stop": 1.3245,
+     "why": "near_time_diff_price_or_stop:[[\"PWCM\", 46370, 1.47, 1.3245]]"
+    },
+    {
+     "ticker": "FIEE",
+     "t": "01:03:02 PM",
+     "px": 5.99,
+     "stop": 5.56,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "RETO",
+     "t": "01:15:29 PM",
+     "px": 1.86,
+     "stop": 1.82,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "UUU",
+     "t": "01:17:15 PM",
+     "px": 4.02,
+     "stop": 3.8507,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "GNPX",
+     "t": "01:44:06 PM",
+     "px": 4.76,
+     "stop": 4.6013,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "IPST",
+     "t": "01:50:04 PM",
+     "px": 8.0749,
+     "stop": 7.9401,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WETO",
+     "t": "01:50:04 PM",
+     "px": 17.275,
+     "stop": 16.85,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "XPON",
+     "t": "01:50:05 PM",
+     "px": 4.6405,
+     "stop": 4.5218,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "YDES",
+     "t": "01:50:05 PM",
+     "px": 3.3,
+     "stop": 3.175,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "RBNE",
+     "t": "01:50:05 PM",
+     "px": 2.78,
+     "stop": 2.76,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "GNPX",
+     "t": "01:50:05 PM",
+     "px": 4.6892,
+     "stop": 4.54,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "FIEE",
+     "t": "01:50:06 PM",
+     "px": 5.99,
+     "stop": 5.7525,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "01:50:06 PM",
+     "px": 2.97,
+     "stop": 2.93,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "PWCM",
+     "t": "01:50:06 PM",
+     "px": 1.38,
+     "stop": 1.37,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WTM",
+     "t": "01:50:06 PM",
+     "px": 2129.9458,
+     "stop": 2124.33,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "GNPX",
+     "t": "01:54:27 PM",
+     "px": 4.73,
+     "stop": 4.62,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "UUU",
+     "t": "01:56:50 PM",
+     "px": 3.91,
+     "stop": 3.79,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "IPST",
+     "t": "01:59:40 PM",
+     "px": 7.99,
+     "stop": 7.78,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "XPON",
+     "t": "01:59:40 PM",
+     "px": 4.6405,
+     "stop": 4.5218,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "FIEE",
+     "t": "01:59:40 PM",
+     "px": 6.0,
+     "stop": 5.73,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WETO",
+     "t": "01:59:40 PM",
+     "px": 17.8074,
+     "stop": 17.57,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "FXHO",
+     "t": "01:59:41 PM",
+     "px": 12.4,
+     "stop": 11.91,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "YDES",
+     "t": "01:59:41 PM",
+     "px": 3.3,
+     "stop": 3.175,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "RBNE",
+     "t": "01:59:41 PM",
+     "px": 2.78,
+     "stop": 2.76,
+     "why": "near_time_diff_price_or_stop:[[\"RBNE\", 50500, 2.81, 2.71]]"
+    },
+    {
+     "ticker": "GNPX",
+     "t": "01:59:41 PM",
+     "px": 4.6892,
+     "stop": 4.54,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "01:59:41 PM",
+     "px": 2.9401,
+     "stop": 2.89,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "UUU",
+     "t": "01:59:41 PM",
+     "px": 3.91,
+     "stop": 3.79,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WTM",
+     "t": "01:59:41 PM",
+     "px": 2129.49,
+     "stop": 2126.4973,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "GRNQ",
+     "t": "02:02:59 PM",
+     "px": 8.445,
+     "stop": 8.2563,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WTM",
+     "t": "02:06:34 PM",
+     "px": 2131.905,
+     "stop": 2123.275,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "XPON",
+     "t": "02:09:31 PM",
+     "px": 4.69,
+     "stop": 4.53,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "02:25:32 PM",
+     "px": 3.02,
+     "stop": 2.84,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "CGTL",
+     "t": "02:28:02 PM",
+     "px": 4.77,
+     "stop": 4.64,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "FIEE",
+     "t": "02:51:14 PM",
+     "px": 6.03,
+     "stop": 5.8,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "MLEC",
+     "t": "02:59:12 PM",
+     "px": 8.0299,
+     "stop": 7.774,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "OSRH",
+     "t": "03:02:30 PM",
+     "px": 0.5544,
+     "stop": 0.5423,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "ADIL",
+     "t": "03:04:58 PM",
+     "px": 4.57,
+     "stop": 4.53,
+     "why": "near_time_diff_price_or_stop:[[\"ADIL\", 54490, 4.6283, 4.53]]"
+    },
+    {
+     "ticker": "FIEE",
+     "t": "03:09:26 PM",
+     "px": 6.06,
+     "stop": 5.88,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "INBS",
+     "t": "03:13:17 PM",
+     "px": 3.25,
+     "stop": 3.2001,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "MLEC",
+     "t": "03:15:37 PM",
+     "px": 8.0,
+     "stop": 7.84,
+     "why": "no_tape"
+    }
+   ],
+   "harness_extra": 13,
+   "harness_extra_sample": [
+    [
+     "ADIL",
+     40250,
+     4.2,
+     4.09
+    ],
+    [
+     "ADIL",
+     54490,
+     4.6283,
+     4.53
+    ],
+    [
+     "ADIL",
+     56810,
+     5.02,
+     4.86
+    ],
+    [
+     "ATPC",
+     40670,
+     2.4937,
+     2.41
+    ],
+    [
+     "GNPX",
+     40940,
+     4.45,
+     4.09
+    ],
+    [
+     "PWCM",
+     43190,
+     1.32,
+     1.27
+    ],
+    [
+     "PWCM",
+     46370,
+     1.47,
+     1.3245
+    ],
+    [
+     "RBNE",
+     39470,
+     2.73,
+     2.59
+    ]
+   ],
+   "vwap_src": {
+    "live_stamped": 7684,
+    "running_sip": 1957
+   },
+   "match_rate_pct": 9.1
+  },
+  "bandpass": {
+   "live_fires": 9,
+   "live_names": 7,
+   "no_tape_names": [
+    "MEDS"
+   ],
+   "harness_fires": 5,
+   "exact": 4,
+   "live_unmatched": [
+    {
+     "ticker": "IVF",
+     "t": "09:40:50 AM",
+     "px": 2.6411,
+     "stop": 2.41,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "MEDS",
+     "t": "11:17:44 AM",
+     "px": 1.56,
+     "stop": 1.51,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "YDES",
+     "t": "12:32:39 PM",
+     "px": 3.25,
+     "stop": 3.0,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "RBNE",
+     "t": "01:50:05 PM",
+     "px": 2.79,
+     "stop": 2.73,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "RBNE",
+     "t": "01:59:41 PM",
+     "px": 2.8301,
+     "stop": 2.7629,
+     "why": "no_harness_fire_for_name"
+    }
+   ],
+   "harness_extra": 1,
+   "harness_extra_sample": [
+    [
+     "IVF",
+     34550,
+     2.6411,
+     2.41
+    ]
+   ],
+   "vwap_src": {
+    "live_stamped": 1563,
+    "running_sip": 620
+   },
+   "match_rate_pct": 44.4
+  },
+  "prevwap": {
+   "live_fires": 3,
+   "live_names": 3,
+   "no_tape_names": [],
+   "harness_fires": 3,
+   "exact": 3,
+   "live_unmatched": [],
+   "harness_extra": 0,
+   "harness_extra_sample": [],
+   "vwap_src": {
+    "live_stamped": 1792,
+    "running_sip": 46
+   },
+   "match_rate_pct": 100.0
+  },
+  "v2": {
+   "live_fires": 164,
+   "live_names": 61,
+   "no_tape_names": [
+    "AIOS",
+    "BANL",
+    "BESS",
+    "CODX",
+    "CRIS",
+    "CYCN",
+    "MF",
+    "PLSM",
+    "RENX",
+    "SDOT",
+    "SUGP",
+    "SVRE",
+    "UPLD",
+    "YYAI"
+   ],
+   "harness_fires": 124,
+   "exact": 84,
+   "live_unmatched": [
+    {
+     "ticker": "FIEE",
+     "t": "04:02:02 AM",
+     "px": 7.17,
+     "stop": 6.36,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "MF",
+     "t": "04:02:03 AM",
+     "px": 13.43,
+     "stop": 12.2,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "WOK",
+     "t": "04:08:12 AM",
+     "px": 2.456,
+     "stop": 2.38,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "XPON",
+     "t": "04:08:12 AM",
+     "px": 4.829,
+     "stop": 4.74,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "JLHL",
+     "t": "04:08:12 AM",
+     "px": 8.46,
+     "stop": 8.31,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "MYSZ",
+     "t": "04:20:07 AM",
+     "px": 6.15,
+     "stop": 5.5,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "SDOT",
+     "t": "04:20:07 AM",
+     "px": 14.05,
+     "stop": 13.3,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "BRNX",
+     "t": "04:28:50 AM",
+     "px": 4.53,
+     "stop": 4.0,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "CRIS",
+     "t": "04:28:51 AM",
+     "px": 2.0,
+     "stop": 1.9,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "YXT",
+     "t": "04:35:06 AM",
+     "px": 3.895,
+     "stop": 3.83,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "SLE",
+     "t": "04:40:40 AM",
+     "px": 3.4193,
+     "stop": 3.13,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "RENX",
+     "t": "05:00:20 AM",
+     "px": 2.226,
+     "stop": 2.11,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "NIVF",
+     "t": "06:34:21 AM",
+     "px": 0.7,
+     "stop": 0.6713,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "PLSM",
+     "t": "07:15:59 AM",
+     "px": 3.3925,
+     "stop": 3.25,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "BESS",
+     "t": "07:15:59 AM",
+     "px": 4.1987,
+     "stop": 4.06,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "DFSC",
+     "t": "07:30:17 AM",
+     "px": 3.61,
+     "stop": 3.4,
+     "why": "near_time_diff_price_or_stop:[[\"DFSC\", 27050, 3.6011, 3.41]]"
+    },
+    {
+     "ticker": "UCL",
+     "t": "07:41:39 AM",
+     "px": 1.1289,
+     "stop": 1.08,
+     "why": "near_time_diff_price_or_stop:[[\"UCL\", 27650, 1.1389, 1.07]]"
+    },
+    {
+     "ticker": "CODX",
+     "t": "08:12:27 AM",
+     "px": 1.5599,
+     "stop": 1.51,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "TRUG",
+     "t": "08:49:55 AM",
+     "px": 1.6099,
+     "stop": 1.59,
+     "why": "near_time_diff_price_or_stop:[[\"TRUG\", 31790, 1.6111, 1.6]]"
+    },
+    {
+     "ticker": "UPLD",
+     "t": "09:18:07 AM",
+     "px": 6.84,
+     "stop": 6.0,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "YYAI",
+     "t": "09:23:52 AM",
+     "px": 1.65,
+     "stop": 1.61,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "BANL",
+     "t": "09:30:46 AM",
+     "px": 9.6888,
+     "stop": 9.35,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "MF",
+     "t": "09:32:12 AM",
+     "px": 12.3888,
+     "stop": 11.6,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "STFS",
+     "t": "09:32:14 AM",
+     "px": 4.6652,
+     "stop": 4.4,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "PFSA",
+     "t": "09:35:49 AM",
+     "px": 4.62,
+     "stop": 4.29,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "MF",
+     "t": "09:37:40 AM",
+     "px": 11.8945,
+     "stop": 11.73,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "09:40:49 AM",
+     "px": 2.1789,
+     "stop": 2.15,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "SVRE",
+     "t": "09:40:50 AM",
+     "px": 3.29,
+     "stop": 3.175,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "WOK",
+     "t": "09:45:43 AM",
+     "px": 2.6977,
+     "stop": 2.53,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "RPGL",
+     "t": "09:45:43 AM",
+     "px": 2.095,
+     "stop": 2.06,
+     "why": "near_time_diff_price_or_stop:[[\"RPGL\", 35150, 2.21, 2.1301]]"
+    },
+    {
+     "ticker": "STFS",
+     "t": "09:47:06 AM",
+     "px": 5.94,
+     "stop": 5.5206,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "AKTX",
+     "t": "09:47:10 AM",
+     "px": 7.9,
+     "stop": 7.84,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "SUGP",
+     "t": "10:17:22 AM",
+     "px": 2.04,
+     "stop": 2.0213,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "FTFT",
+     "t": "10:18:36 AM",
+     "px": 0.8972,
+     "stop": 0.875,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "FXHO",
+     "t": "10:47:14 AM",
+     "px": 13.5,
+     "stop": 12.5,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WFF",
+     "t": "10:55:18 AM",
+     "px": 3.215,
+     "stop": 2.94,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "MI",
+     "t": "11:09:32 AM",
+     "px": 8.29,
+     "stop": 8.09,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "IPST",
+     "t": "11:14:24 AM",
+     "px": 7.3599,
+     "stop": 7.25,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "XPON",
+     "t": "11:14:24 AM",
+     "px": 4.74,
+     "stop": 4.62,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "WFF",
+     "t": "11:14:24 AM",
+     "px": 3.99,
+     "stop": 3.52,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "PFSA",
+     "t": "11:14:24 AM",
+     "px": 5.69,
+     "stop": 5.31,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "NIVF",
+     "t": "11:14:25 AM",
+     "px": 0.6585,
+     "stop": 0.6401,
+     "why": "near_time_diff_price_or_stop:[[\"NIVF\", 40250, 0.6586, 0.6413]]"
+    },
+    {
+     "ticker": "MI",
+     "t": "11:14:25 AM",
+     "px": 8.19,
+     "stop": 8.08,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "GRNQ",
+     "t": "11:14:25 AM",
+     "px": 8.35,
+     "stop": 8.2315,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "FXHO",
+     "t": "11:17:44 AM",
+     "px": 13.5,
+     "stop": 12.5,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "AEHL",
+     "t": "11:20:06 AM",
+     "px": 5.18,
+     "stop": 5.0,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "CYCN",
+     "t": "11:32:53 AM",
+     "px": 4.21,
+     "stop": 3.98,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "RPGL",
+     "t": "11:46:57 AM",
+     "px": 2.65,
+     "stop": 2.47,
+     "why": "near_time_diff_price_or_stop:[[\"RPGL\", 42230, 2.541, 2.22]]"
+    },
+    {
+     "ticker": "RPGL",
+     "t": "11:52:28 AM",
+     "px": 2.7,
+     "stop": 2.63,
+     "why": "near_time_diff_price_or_stop:[[\"RPGL\", 42770, 2.79, 2.63]]"
+    },
+    {
+     "ticker": "RPGL",
+     "t": "11:58:33 AM",
+     "px": 2.7,
+     "stop": 2.63,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "NIVF",
+     "t": "11:58:33 AM",
+     "px": 0.6586,
+     "stop": 0.6413,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "DAIC",
+     "t": "11:58:33 AM",
+     "px": 0.6135,
+     "stop": 0.5801,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "11:58:33 AM",
+     "px": 2.85,
+     "stop": 2.81,
+     "why": "near_time_diff_price_or_stop:[[\"CDTG\", 43070, 2.9499, 2.8468]]"
+    },
+    {
+     "ticker": "WFF",
+     "t": "11:58:33 AM",
+     "px": 5.29,
+     "stop": 4.8,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "MI",
+     "t": "11:58:34 AM",
+     "px": 8.19,
+     "stop": 8.08,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "12:01:27 PM",
+     "px": 2.91,
+     "stop": 2.85,
+     "why": "near_time_diff_price_or_stop:[[\"CDTG\", 43070, 2.9499, 2.8468]]"
+    },
+    {
+     "ticker": "GRNQ",
+     "t": "12:01:27 PM",
+     "px": 8.35,
+     "stop": 8.2315,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "PWCM",
+     "t": "12:44:24 PM",
+     "px": 1.37,
+     "stop": 1.32,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "AIOS",
+     "t": "12:56:46 PM",
+     "px": 13.34,
+     "stop": 12.78,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "FXHO",
+     "t": "01:02:08 PM",
+     "px": 13.5,
+     "stop": 12.5,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "RETO",
+     "t": "01:24:27 PM",
+     "px": 1.8799,
+     "stop": 1.78,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "TRUG",
+     "t": "01:50:04 PM",
+     "px": 1.675,
+     "stop": 1.6301,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "FXHO",
+     "t": "01:50:05 PM",
+     "px": 12.65,
+     "stop": 12.55,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "YDES",
+     "t": "01:50:05 PM",
+     "px": 3.1825,
+     "stop": 3.0642,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "GNPX",
+     "t": "01:50:05 PM",
+     "px": 4.57,
+     "stop": 4.52,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "GRNQ",
+     "t": "01:50:05 PM",
+     "px": 8.445,
+     "stop": 8.23,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "01:50:06 PM",
+     "px": 2.9202,
+     "stop": 2.89,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "PWCM",
+     "t": "01:50:06 PM",
+     "px": 1.39,
+     "stop": 1.35,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "AIOS",
+     "t": "01:56:50 PM",
+     "px": 13.34,
+     "stop": 12.78,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "TRUG",
+     "t": "01:59:40 PM",
+     "px": 1.675,
+     "stop": 1.6301,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "FXHO",
+     "t": "01:59:41 PM",
+     "px": 12.65,
+     "stop": 12.55,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "YDES",
+     "t": "01:59:41 PM",
+     "px": 3.1825,
+     "stop": 3.0642,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "GNPX",
+     "t": "01:59:41 PM",
+     "px": 4.57,
+     "stop": 4.52,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "01:59:41 PM",
+     "px": 2.9202,
+     "stop": 2.89,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "AIOS",
+     "t": "02:02:03 PM",
+     "px": 13.34,
+     "stop": 12.78,
+     "why": "no_tape"
+    },
+    {
+     "ticker": "GRNQ",
+     "t": "02:02:59 PM",
+     "px": 8.445,
+     "stop": 8.23,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "NIPG",
+     "t": "02:18:46 PM",
+     "px": 11.55,
+     "stop": 11.375,
+     "why": "same_price_wrong_time"
+    },
+    {
+     "ticker": "CGTL",
+     "t": "02:28:02 PM",
+     "px": 4.66,
+     "stop": 4.45,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "NIPG",
+     "t": "02:58:16 PM",
+     "px": 11.94,
+     "stop": 11.78,
+     "why": "near_time_diff_price_or_stop:[[\"NIPG\", 53860, 12.28, 11.85]]"
+    },
+    {
+     "ticker": "OSRH",
+     "t": "03:02:30 PM",
+     "px": 0.5552,
+     "stop": 0.5443,
+     "why": "same_price_wrong_time"
+    }
+   ],
+   "harness_extra": 40,
+   "harness_extra_sample": [
+    [
+     "AEHL",
+     39510,
+     5.18,
+     5.0
+    ],
+    [
+     "AKTX",
+     34910,
+     7.8,
+     7.71
+    ],
+    [
+     "AKTX",
+     36230,
+     7.87,
+     7.8
+    ],
+    [
+     "CDTG",
+     43070,
+     2.9499,
+     2.8468
+    ],
+    [
+     "DAIC",
+     37790,
+     0.5937,
+     0.514
+    ],
+    [
+     "DFSC",
+     27050,
+     3.6011,
+     3.41
+    ],
+    [
+     "FXHO",
+     34410,
+     11.53,
+     10.81
+    ],
+    [
+     "FXHO",
+     38090,
+     11.68,
+     11.0
+    ]
+   ],
+   "vwap_src": {
+    "live_stamped": 20828,
+    "running_sip": 2172
+   },
+   "match_rate_pct": 51.2
+  }
+ },
+ "isolability": {
+  "isolable": {
+   "kevseq_step": "function",
+   "kevseq_feed_1m": "function",
+   "kevseq_front_side": "function",
+   "grinder_shadow_step": "function",
+   "bandpass_step": "function",
+   "v2_pullback_step": "function",
+   "v2_trailing_calm": "function",
+   "hidden_entry_step": "function",
+   "ignition_10s_step": "function",
+   "detect_ignition": "function",
+   "_seq_events": "function",
+   "_wallclock_window": "function",
+   "_scaled_risk": "function",
+   "aggregate_bars": "function",
+   "calculate_ema9": "function",
+   "calculate_ema20": "function",
+   "calculate_ema90": "function",
+   "_bar_high": "function",
+   "_bar_low": "function",
+   "_bar_open": "function",
+   "_bar_close": "function",
+   "_bar_vol": "function",
+   "check_momentum": "function",
+   "_ks_st": "dict",
+   "_ks_1m_agg": "dict",
+   "_gr_st": "dict",
+   "_bp_st": "dict",
+   "_pv_st": "dict",
+   "_v2_st": "dict",
+   "_v2_hist": "dict",
+   "_he_st": "dict",
+   "_ig10_st": "dict",
+   "V2_QUIET_LOOK": "int",
+   "SIM_ACCOUNT_BALANCE": "float",
+   "MAX_POSITION_SIZE": "float",
+   "MAX_TRADE_DOLLARS": "float",
+   "MAX_POS_VOL_PCT": "float",
+   "RISK_PER_TRADE": "float",
+   "RISK_PROP": "bool",
+   "RISK_PROP_REF": "float"
+  },
+  "not_isolable": {
+   "check_momentum (INJECTABLE, not free-running)": "the BODY lifts and is pure; the INPUT is a live broker fetch (get_intraday_bars). Use check_momentum_on(ticker, m1_bars) with a fixture. Bound: it routes through _fresh_session() (today-only), so past-day replays hit its insufficient-data path rather than a real read \u2014 disclosed, never defaulted.",
+   "_marked_runway": "live state + network: _effective_map(ticker) reads the running level-map store and _curl_feed(ticker) hits the recorder feed for the wall high. Replayable ONLY with a recorded map snapshot + tape; not available from the decisions archive.",
+   "kev_zoneflip_step": "wall-clock + live store: _bucket_fresh(k) compares the bar bucket to time.time() (every historical bar is 'stale' -> the fire path is unreachable in replay), and _zf_pm_floor(sym) reads the premarket-zone store built during the live premarket.",
+   "flat_top / break-attack": "not a function: the flat-top consolidation tracker + FLATTOP_BREAK_ATTACK conversion live INSIDE wait_for_flat_top_entry (~1k lines), driven by a WebullStream object, a session_cache and rescan callbacks. Lifting it would require faking the stream \u2014 i.e. exactly the replica-drift this harness exists to prevent. Left un-lifted ON PURPOSE.",
+   "sizing chain (full)": "PARTIAL. _scaled_risk IS lifted (real). The rest of the chain (risk shares vs notional shares, VWAP-side halving, MAX_POS_VOL_PCT volume cap) is INLINE in execute_trade's body, not a function, and its volume cap re-fetches 1-min bars. sizing_chain() below calls the REAL _scaled_risk and the REAL constants; the clamp arithmetic is mirrored and PINNED by rig section BH against the bot's own source lines."
+  }
+ }
+}

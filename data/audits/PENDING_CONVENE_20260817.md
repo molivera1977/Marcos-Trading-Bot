@@ -387,3 +387,49 @@ pins updated to the windowed form. FLAGGED, NOT touched (money/monitor decisions
 monitor_trade :11087 EMA-exit bars and _vride_defer :9930 (position-open paths); check_momentum
 :4199, volume guard :13113, universal liquidity :13201 (windowing routes thin names to their
 FAIL-OPEN insufficient paths = looser gates -> priced for Marcos). Spec tension in doc §5.
+
+## LIVE-CODE STUDY HARNESS (built + rig-green 8/17 evening; RESEARCH-ONLY — no deploy, no bot change)
+Doc: `data/killtests/harness_parity_20260817.md`. Marcos's order after the front-side finding.
+Kills the replica-drift class: studies now run the BOT'S OWN detector functions over historical
+10s bars instead of re-implementing them (`kevseq_frontside_tf_20260817.md` — four studies with
+NO front-side clause at all; same species as the fill-model drift).
+
+**Scope of this ship (all under `data/killtests/` + rig):**
+- `live_harness.py` — AST loader lifts 40 real bot symbols (kevseq_step / kevseq_feed_1m /
+  kevseq_front_side / grinder_shadow_step / bandpass_step (RTH+PRE) / v2_pullback_step /
+  v2_trailing_calm / ignition_10s_step / detect_ignition / _seq_events / _wallclock_window /
+  _scaled_risk / aggregate_bars / EMAs / bar helpers / check_momentum) into an isolated
+  namespace. NO `import marcos_trading_bot` (module-level side effects = a live path).
+  Network poisoned, broker SDK inert, replay clock frozen.
+- CONTEXT CONTRACT: a detector whose required ctx is missing is REFUSED by name
+  (kevseq: front_side/day_gain/top3/blue_sky; every vwap-gated lane needs a vwap_provider).
+  Explicit `None` = deliberate unknown, allowed. Absence = refused. This is the defect, encoded.
+- `harness_parity_20260817.py` + `_out.json` / `_run.txt` — today-parity vs the live rows.
+- Rig section **BH** (13 pins) incl. the GUARD PIN that `marcos_trading_bot.py` never imports
+  the harness (one-way dependency), and a source-match pin on the mirrored sizing clamps.
+
+**BOT UNCHANGED.** `marcos_trading_bot.py` was not modified at all — the AST loader made a
+bot-side "make it importable" edit unnecessary. Full rig exit 0.
+
+**TODAY-PARITY (reported, not tuned):** prevwap 3/3 = 100% · v2 84/164 = 51.2% ·
+bandpass 4/9 = 44.4% · kevseq 7/23 = 30.4% · grinder 6/66 = 9.1% (exact price AND stop to 4dp,
+|dt| <= 300s, 60s cadence). Detector fidelity is proven (exact 4dp price+stop hits are not
+coincidence); the residual is INPUT fidelity — live eats the cursor-driven recorder feed and one
+`_vr_sv` vwap scalar per rescan, the harness eats the complete SIP day. Ruled out by experiment:
+timing (whole-day tolerance moves it <=5 pts) and feed-start window (grinder fire COUNT dials
+19->44, exact matches stay 6-7).
+
+**FOR THE ROOM — two items:**
+1. **DUPLICATE LIVE FIRES (new finding, observe-only, no money change).** The 8/17 archive
+   carries repeated identical fires: grinder 66 rows -> 53 distinct (ticker,px,stop), RBNE
+   (2.78/2.76) logged 5x (11:06, 11:14, 12:01, 13:50, 13:59), GNPX 4x; v2 164 -> 143; bandpass
+   9 -> 8. Something is re-feeding already-consumed buckets. Owner: Integrator / Feed Engineer.
+2. **PROPOSED (not shipped): stamp the fed bucket epoch `k` on every shadow-fire row.** Every
+   detector already returns `k`; it is simply not logged. That single logging field would let the
+   harness replay the EXACT fed stream and turn parity into a true equivalence test. Observe-only,
+   changes no money decision — but it is a behaviour change to an approved path, so it goes to
+   Marcos priced rather than riding this research ship
+   (`feedback_auditor_cannot_authorize_behavior`).
+
+**Standing rule proposed:** until (2) exists, any study using the harness reports its lane's
+harness-vs-live parity alongside its result. Hand-rolling a detector is no longer an option.

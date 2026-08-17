@@ -1,0 +1,577 @@
+# JOINT DOOR 8/16 — Kev fingerprint (field filter) x window x pullback entries x runner exits
+cache: 729 files, 729 name-days loaded, 729 with >=60 RTH bars, 62 dates 2026-05-18..2026-08-14
+
+## LAYER 1 — fingerprint. calm X (30th pct of 1-min range/close at 09:30 stamp, n=599) = 89.9 bps; spread proxy <= 80 bps; gain >= +20% (ref = 04:00 ET first-bar open)
+09:30 stamp available 599/729; spread proxy median 57 bps (<=80: 405), calm median 153 bps, gain>=20%: 258
+08:00 stamp available 488/729 (>=10 traded bars 07:30-08:00 ET)
+
+
+# ===== SELECTION DEFINITION A_spec: spread<=80 & calm<=X & gain>=20% (the pre-registered spec) =====
+QUALIFY: 09:30 stamp 17 (2%), 08:00 stamp 6 (1%), either = KEV-SHAPED 20/729 (3%)
+  09:30 component spread<=80: 405/599
+  09:30 component calm<=X: 180/599
+  09:30 component gain>=20%: 258/599
+
+### Honesty check — Kev's nightly picks: 120 pick name-days (34 dates), 37 in the universe cache
+Kev picks passing the fingerprint: 0/37 (0%) vs universe 3% -> lift 0.00x
+Kev picks fingerprint detail (spread/calm/gain at 09:30, 08:00 pass?):
+  2026-06-29 AZI: spread 0 calm 56 gain -2% | 930 n 800 n -> -
+  2026-06-29 UPC: spread 255 calm 646 gain +117% | 930 n 800 n -> -
+  2026-06-30 BTCT: spread 94 calm 187 gain -24% | 930 n 800 n -> -
+  2026-07-01 JEM: spread 76 calm 174 gain -10% | 930 n 800 n -> -
+  2026-07-02 SURG: spread 28 calm 74 gain -13% | 930 n 800 n -> -
+  2026-07-07 TDTH: spread 60 calm 166 gain -18% | 930 n 800 n -> -
+  2026-07-07 CLRO: spread 156 calm 367 gain +37% | 930 n 800 n -> -
+  2026-07-09 SRXH: spread 53 calm 106 gain -9% | 930 n 800 n -> -
+  2026-07-13 MIMI: spread 35 calm 103 gain +4% | 930 n 800 n -> -
+  2026-07-13 FTRK: spread 78 calm 178 gain -18% | 930 n 800 n -> -
+  2026-07-14 VMAR: spread 58 calm 116 gain -15% | 930 n 800 n -> -
+  2026-07-15 SOBR: spread 62 calm 183 gain +38% | 930 n 800 n -> -
+  2026-07-16 ATPC: spread 30 calm 118 gain -20% | 930 n 800 n -> -
+  2026-07-16 TGHL: spread 81 calm 161 gain +11% | 930 n 800 n -> -
+  2026-07-20 BXBL: spread 48 calm 126 gain -5% | 930 n 800 n -> -
+  2026-07-20 ADVB: spread 62 calm 163 gain +6% | 930 n 800 n -> -
+  2026-07-21 HIHO: spread 75 calm 148 gain -1% | 930 n 800 n -> -
+  2026-07-27 STAK: spread 117 calm 384 gain -38% | 930 n 800 n -> -
+  2026-07-27 LVWR: spread 63 calm 126 gain +8% | 930 n 800 n -> -
+  2026-07-27 DFNS: spread 60 calm 121 gain +18% | 930 n 800 n -> -
+  2026-07-28 INLF: spread 44 calm 78 gain +12% | 930 n 800 n -> -
+  2026-07-29 GMM: spread 30 calm 61 gain -0% | 930 n 800 n -> -
+  2026-07-29 AMIX: spread 23 calm 113 gain +4% | 930 n 800 n -> -
+  2026-07-30 NUWE: spread 96 calm 252 gain +29% | 930 n 800 n -> -
+  2026-08-03 UPC: spread 42 calm 113 gain -1% | 930 n 800 n -> -
+  2026-08-03 FCUV: spread 73 calm 164 gain -13% | 930 n 800 n -> -
+  2026-08-05 BJDX: spread 71 calm 198 gain +6% | 930 n 800 n -> -
+  2026-08-06 CELZ: spread 86 calm 253 gain +32% | 930 n 800 n -> -
+  2026-08-06 CLRO: spread 105 calm 307 gain +51% | 930 n 800 n -> -
+  2026-08-07 NAMI: spread 80 calm 220 gain +27% | 930 n 800 n -> -
+  2026-08-10 STKH: spread 106 calm 263 gain +90% | 930 n 800 n -> -
+  2026-08-12 BOXL: spread 63 calm 163 gain +4% | 930 n 800 n -> -
+  2026-08-13 GXAI: spread 75 calm 136 gain -9% | 930 n 800 n -> -
+  2026-08-14 AKAN: spread 75 calm 156 gain -23% | 930 n 800 n -> -
+  2026-08-14 DFSC: spread 39 calm 117 gain +17% | 930 n 800 n -> -
+  2026-08-14 WETO: spread 86 calm 228 gain +188% | 930 n 800 n -> -
+  2026-08-14 XHG: spread 30 calm 92 gain -12% | 930 n 800 n -> -
+
+### CENSUS — does the fingerprint SEE the field's rockets? (name-day level)
+top-60 big rides: 1/60 name-days pass (2%)
+724 vertical legs: 3/724 legs on passing name-days (0%); leg name-days (2, 288)
+  legs at/after 09:30 ET only: 3/724 (0%)
+  legs 08:00-09:30 ET vs the 08:00 stamp only: 0/0 (0%)
+ROCKET name-days (top-60 U leg-days): 3/306 pass (1.0%); DUD name-days (neither): 17/423 pass (4.0%)
+**ENRICHMENT RATIO (rocket coverage / dud coverage) = 0.24x**; of all passing name-days 20, rockets = 3 (15%) vs base rate 42%
+  component gain>=20% @09:30 alone: rockets 88/306 (29%) duds 170/423 (40%) enrich 0.72x
+  component spread<=80 & calm alone (no gain): rockets 69/306 (23%) duds 108/423 (26%) enrich 0.88x
+
+## LAYERS 2-4 — entries 10879 signals total: {'v2cal': 6159, 'bandpass': 171, 'pre_reclaim': 97, 'BA': 4452}
+
+### W1 07:00-10:00  (RTH part flattens 15:45 ET live-parity; pre_reclaim flattens 09:25 ET)
+| cell | N | win% | $/trade | total | day mean | day med | green | halves | worst day | worst tr | HR>=250 | premium | maxDD | CONSIST | CONVEX |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| v2cal KEV E3 | 39 | 28% | $+7.13 | $+278 | $+4.48 | $+0.00 | 6/62 (10%) | $+122/$+156 | $-126 | $-37 | 1 | $+252 | $+279 | fail | fail |
+| v2cal KEV E4 | 39 | 23% | $+15.60 | $+608 | $+9.81 | $+0.00 | 4/62 (6%) | $+466/$+143 | $-123 | $-37 | 2 | $+792 | $+304 | fail | fail |
+| v2cal KEV E4W | 39 | 26% | $+17.36 | $+677 | $+10.92 | $+0.00 | 5/62 (8%) | $+602/$+76 | $-126 | $-37 | 2 | $+683 | $+194 | fail | fail |
+| v2cal KEV S5 | 39 | 28% | $+8.32 | $+325 | $+5.24 | $+0.00 | 6/62 (10%) | $+157/$+168 | $-126 | $-37 | 1 | $+252 | $+244 | fail | fail |
+| v2cal NOT E3 | 1358 | 32% | $+2.95 | $+4008 | $+64.64 | $+34.86 | 32/62 (52%) | $+1452/$+2556 | $-373 | $-177 | 7 | $+2607 | $+1229 | fail | fail |
+| v2cal NOT E4 | 1358 | 25% | $+6.74 | $+9156 | $+147.68 | $+65.13 | 37/62 (60%) | $+3543/$+5613 | $-345 | $-118 | 22 | $+9865 | $+729 | fail | PASS |
+| v2cal NOT E4W | 1358 | 20% | $+12.91 | $+17530 | $+282.74 | $+162.06 | 43/62 (69%) | $+9965/$+7566 | $-549 | $-118 | 51 | $+21385 | $+998 | fail | PASS |
+| v2cal NOT S5 | 1358 | 32% | $+3.60 | $+4892 | $+78.91 | $+40.91 | 36/62 (58%) | $+2012/$+2880 | $-358 | $-177 | 7 | $+2607 | $+1081 | fail | fail |
+| bandpass KEV E3 | 1 | 0% | $-84.64 | $-85 | $-1.37 | $+0.00 | 0/62 (0%) | $-85/$+0 | $-85 | $-85 | 0 | $+0 | $+85 | fail | fail |
+| bandpass KEV E4 | 1 | 0% | $-56.68 | $-57 | $-0.91 | $+0.00 | 0/62 (0%) | $-57/$+0 | $-57 | $-57 | 0 | $+0 | $+57 | fail | fail |
+| bandpass KEV E4W | 1 | 0% | $-84.64 | $-85 | $-1.37 | $+0.00 | 0/62 (0%) | $-85/$+0 | $-85 | $-85 | 0 | $+0 | $+85 | fail | fail |
+| bandpass KEV S5 | 1 | 0% | $-84.64 | $-85 | $-1.37 | $+0.00 | 0/62 (0%) | $-85/$+0 | $-85 | $-85 | 0 | $+0 | $+85 | fail | fail |
+| bandpass NOT E3 | 45 | 56% | $+12.26 | $+552 | $+8.90 | $+0.00 | 18/62 (29%) | $+341/$+210 | $-113 | $-101 | 0 | $+0 | $+210 | fail | fail |
+| bandpass NOT E4 | 45 | 38% | $+11.90 | $+536 | $+8.64 | $+0.00 | 14/62 (23%) | $+266/$+270 | $-140 | $-66 | 1 | $+331 | $+327 | fail | fail |
+| bandpass NOT E4W | 45 | 40% | $+53.09 | $+2389 | $+38.53 | $+0.00 | 14/62 (23%) | $+1375/$+1014 | $-119 | $-101 | 5 | $+2516 | $+258 | fail | PASS |
+| bandpass NOT S5 | 45 | 56% | $+15.24 | $+686 | $+11.06 | $+0.00 | 17/62 (27%) | $+452/$+233 | $-113 | $-101 | 0 | $+0 | $+195 | fail | fail |
+| pre_reclaim KEV E3 | 4 | 50% | $+34.07 | $+136 | $+2.20 | $+0.00 | 2/62 (3%) | $+113/$+24 | $-16 | $-16 | 0 | $+0 | $+16 | fail | fail |
+| pre_reclaim KEV E4 | 4 | 50% | $+57.62 | $+230 | $+3.72 | $+0.00 | 2/62 (3%) | $+207/$+24 | $-16 | $-16 | 0 | $+0 | $+16 | fail | fail |
+| pre_reclaim KEV E4W | 4 | 50% | $+37.01 | $+148 | $+2.39 | $+0.00 | 2/62 (3%) | $+124/$+24 | $-16 | $-16 | 0 | $+0 | $+16 | fail | fail |
+| pre_reclaim KEV S5 | 4 | 50% | $+34.07 | $+136 | $+2.20 | $+0.00 | 2/62 (3%) | $+113/$+24 | $-16 | $-16 | 0 | $+0 | $+16 | fail | fail |
+| pre_reclaim NOT E3 | 92 | 55% | $+10.78 | $+991 | $+15.99 | $+0.00 | 29/62 (47%) | $+669/$+322 | $-151 | $-161 | 1 | $+272 | $+252 | fail | fail |
+| pre_reclaim NOT E4 | 92 | 37% | $+0.87 | $+80 | $+1.29 | $+0.00 | 19/62 (31%) | $+284/$-204 | $-117 | $-78 | 1 | $+493 | $+393 | fail | fail |
+| pre_reclaim NOT E4W | 92 | 34% | $+0.52 | $+48 | $+0.77 | $+0.00 | 21/62 (34%) | $-309/$+357 | $-253 | $-112 | 1 | $+354 | $+627 | fail | fail |
+| pre_reclaim NOT S5 | 92 | 52% | $+10.94 | $+1007 | $+16.24 | $+0.00 | 26/62 (42%) | $+698/$+308 | $-132 | $-161 | 1 | $+272 | $+198 | fail | fail |
+| BA KEV E3 | 8 | 62% | $+13.81 | $+110 | $+1.78 | $+0.00 | 3/62 (5%) | $+138/$-27 | $-58 | $-58 | 0 | $+0 | $+97 | fail | fail |
+| BA KEV E4 | 8 | 50% | $+29.16 | $+233 | $+3.76 | $+0.00 | 3/62 (5%) | $+264/$-30 | $-56 | $-56 | 1 | $+299 | $+56 | fail | fail |
+| BA KEV E4W | 8 | 62% | $+14.62 | $+117 | $+1.89 | $+0.00 | 3/62 (5%) | $+175/$-58 | $-58 | $-58 | 0 | $+0 | $+97 | fail | fail |
+| BA KEV S5 | 8 | 62% | $+13.81 | $+110 | $+1.78 | $+0.00 | 3/62 (5%) | $+138/$-27 | $-58 | $-58 | 0 | $+0 | $+97 | fail | fail |
+| BA NOT E3 | 258 | 71% | $+37.96 | $+9794 | $+157.97 | $+128.20 | 51/62 (82%) | $+4900/$+4894 | $-131 | $-72 | 3 | $+1259 | $+175 | PASS | fail |
+| BA NOT E4 | 258 | 58% | $+50.45 | $+13016 | $+209.93 | $+162.92 | 51/62 (82%) | $+6188/$+6828 | $-162 | $-70 | 12 | $+5225 | $+173 | PASS | PASS |
+| BA NOT E4W | 258 | 60% | $+72.19 | $+18626 | $+300.41 | $+262.61 | 54/62 (87%) | $+9810/$+8815 | $-145 | $-72 | 26 | $+10630 | $+317 | PASS | PASS |
+| BA NOT S5 | 258 | 71% | $+40.74 | $+10511 | $+169.53 | $+154.25 | 53/62 (85%) | $+5364/$+5147 | $-131 | $-72 | 3 | $+1259 | $+153 | PASS | fail |
+
+### W2 09:30-10:30  (RTH part flattens 15:45 ET live-parity; pre_reclaim flattens 09:25 ET)
+| cell | N | win% | $/trade | total | day mean | day med | green | halves | worst day | worst tr | HR>=250 | premium | maxDD | CONSIST | CONVEX |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| v2cal KEV E3 | 57 | 25% | $+6.79 | $+387 | $+6.25 | $+0.00 | 6/62 (10%) | $+376/$+11 | $-163 | $-37 | 1 | $+252 | $+263 | fail | fail |
+| v2cal KEV E4 | 57 | 21% | $+16.85 | $+961 | $+15.49 | $+0.00 | 6/62 (10%) | $+963/$-2 | $-160 | $-37 | 4 | $+1378 | $+263 | fail | fail |
+| v2cal KEV E4W | 57 | 23% | $+15.55 | $+886 | $+14.30 | $+0.00 | 5/62 (8%) | $+955/$-69 | $-163 | $-37 | 3 | $+944 | $+273 | fail | fail |
+| v2cal KEV S5 | 57 | 25% | $+7.61 | $+434 | $+7.00 | $+0.00 | 6/62 (10%) | $+411/$+23 | $-163 | $-37 | 1 | $+252 | $+263 | fail | fail |
+| v2cal NOT E3 | 2149 | 29% | $+1.22 | $+2617 | $+42.21 | $-34.60 | 27/62 (44%) | $+133/$+2484 | $-436 | $-177 | 9 | $+3316 | $+1383 | fail | fail |
+| v2cal NOT E4 | 2149 | 23% | $+4.25 | $+9128 | $+147.22 | $+21.59 | 33/62 (53%) | $+2797/$+6330 | $-394 | $-118 | 30 | $+13106 | $+1047 | fail | fail |
+| v2cal NOT E4W | 2149 | 19% | $+9.21 | $+19790 | $+319.19 | $+207.93 | 41/62 (66%) | $+10380/$+9410 | $-813 | $-118 | 70 | $+28973 | $+1553 | fail | fail |
+| v2cal NOT S5 | 2149 | 29% | $+1.79 | $+3841 | $+61.96 | $-3.07 | 30/62 (48%) | $+1035/$+2807 | $-452 | $-177 | 9 | $+3316 | $+1263 | fail | fail |
+| bandpass KEV E3 | 1 | 0% | $-84.64 | $-85 | $-1.37 | $+0.00 | 0/62 (0%) | $-85/$+0 | $-85 | $-85 | 0 | $+0 | $+85 | fail | fail |
+| bandpass KEV E4 | 1 | 0% | $-56.68 | $-57 | $-0.91 | $+0.00 | 0/62 (0%) | $-57/$+0 | $-57 | $-57 | 0 | $+0 | $+57 | fail | fail |
+| bandpass KEV E4W | 1 | 0% | $-84.64 | $-85 | $-1.37 | $+0.00 | 0/62 (0%) | $-85/$+0 | $-85 | $-85 | 0 | $+0 | $+85 | fail | fail |
+| bandpass KEV S5 | 1 | 0% | $-84.64 | $-85 | $-1.37 | $+0.00 | 0/62 (0%) | $-85/$+0 | $-85 | $-85 | 0 | $+0 | $+85 | fail | fail |
+| bandpass NOT E3 | 73 | 53% | $+6.21 | $+453 | $+7.31 | $+0.00 | 23/62 (37%) | $+31/$+422 | $-167 | $-167 | 0 | $+0 | $+382 | fail | fail |
+| bandpass NOT E4 | 73 | 41% | $+10.81 | $+789 | $+12.73 | $+0.00 | 21/62 (34%) | $+210/$+579 | $-140 | $-66 | 1 | $+331 | $+239 | fail | fail |
+| bandpass NOT E4W | 73 | 41% | $+44.29 | $+3233 | $+52.15 | $+0.00 | 22/62 (35%) | $+1843/$+1390 | $-133 | $-103 | 7 | $+3254 | $+361 | fail | PASS |
+| bandpass NOT S5 | 73 | 53% | $+11.05 | $+806 | $+13.01 | $+0.00 | 22/62 (35%) | $+213/$+593 | $-167 | $-167 | 0 | $+0 | $+400 | fail | fail |
+| BA KEV E3 | 21 | 38% | $+2.30 | $+48 | $+0.78 | $+0.00 | 5/62 (8%) | $+324/$-275 | $-98 | $-58 | 0 | $+0 | $+287 | fail | fail |
+| BA KEV E4 | 21 | 33% | $+15.20 | $+319 | $+5.15 | $+0.00 | 5/62 (8%) | $+572/$-253 | $-81 | $-56 | 2 | $+616 | $+265 | fail | fail |
+| BA KEV E4W | 21 | 38% | $+6.27 | $+132 | $+2.12 | $+0.00 | 5/62 (8%) | $+438/$-306 | $-98 | $-58 | 1 | $+272 | $+318 | fail | fail |
+| BA KEV S5 | 21 | 38% | $+2.30 | $+48 | $+0.78 | $+0.00 | 5/62 (8%) | $+324/$-275 | $-98 | $-58 | 0 | $+0 | $+287 | fail | fail |
+| BA NOT E3 | 611 | 63% | $+27.40 | $+16741 | $+270.01 | $+268.13 | 55/62 (89%) | $+9337/$+7404 | $-131 | $-72 | 4 | $+1528 | $+131 | PASS | fail |
+| BA NOT E4 | 611 | 50% | $+33.80 | $+20652 | $+333.10 | $+300.97 | 54/62 (87%) | $+11133/$+9520 | $-192 | $-70 | 23 | $+8778 | $+192 | PASS | PASS |
+| BA NOT E4W | 611 | 51% | $+57.01 | $+34835 | $+561.85 | $+496.30 | 58/62 (94%) | $+18152/$+16683 | $-95 | $-72 | 53 | $+23347 | $+95 | PASS | PASS |
+| BA NOT S5 | 611 | 63% | $+29.66 | $+18125 | $+292.34 | $+320.75 | 56/62 (90%) | $+10068/$+8057 | $-121 | $-72 | 4 | $+1528 | $+121 | PASS | fail |
+
+(E3 reconciled to X.sim_var_live on 4621 RTH trades, max |diff| $0.0000)
+
+## SELECTION LIFT — $/trade Kev-shaped vs NOT (E3, and best exit for the Kev cell)
+| window | entry | KEV N | KEV $/tr (E3) | NOT N | NOT $/tr (E3) | lift $/tr | KEV best exit | KEV $/tr best | KEV day mean best |
+|---|---|---|---|---|---|---|---|---|---|
+| W1 07:00-10:00 | v2cal | 39 | $+7.13 | 1358 | $+2.95 | $+4.18 | E4W | $+17.36 | $+10.92 |
+| W1 07:00-10:00 | bandpass | 1 | $-84.64 | 45 | $+12.26 | $-96.90 | E4 | $-56.68 | $-0.91 |
+| W1 07:00-10:00 | pre_reclaim | 4 | $+34.07 | 92 | $+10.78 | $+23.29 | E4 | $+57.62 | $+3.72 |
+| W1 07:00-10:00 | BA | 8 | $+13.81 | 258 | $+37.96 | $-24.15 | E4 | $+29.16 | $+3.76 |
+| W2 09:30-10:30 | v2cal | 57 | $+6.79 | 2149 | $+1.22 | $+5.58 | E4 | $+16.85 | $+15.49 |
+| W2 09:30-10:30 | bandpass | 1 | $-84.64 | 73 | $+6.21 | $-90.85 | E4 | $-56.68 | $-0.91 |
+| W2 09:30-10:30 | BA | 21 | $+2.30 | 611 | $+27.40 | $-25.10 | E4 | $+15.20 | $+5.15 |
+
+## THE v2 TOLL QUESTION — Kev-shaped names, Kev window (07:00-10:00 = RTH 09:30-10:00), calibrated v2 flush
+  E3: N=39 $/trade $+7.13 -> EXCEEDS the ~$6 toll (win 28%, total $+278)
+  E4: N=39 $/trade $+15.60 -> EXCEEDS the ~$6 toll (win 23%, total $+608)
+  E4W: N=39 $/trade $+17.36 -> EXCEEDS the ~$6 toll (win 26%, total $+677)
+  S5: N=39 $/trade $+8.32 -> EXCEEDS the ~$6 toll (win 28%, total $+325)
+  (09:30-10:30 E3 for reference: N=57 $+6.79/trade)
+
+## PORTFOLIO — best entry per window on Kev-shaped names, 2 slots, live parity (B.pipeline H1-H4)
+| config | dates | N | day mean | day median | green | halves $/d | worst | 5-crit | HR>=250 | worst tr | maxDD | vs O-config +$156.76/+$130.35 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| W1 07:00-10:00 best=v2cal/E4W KEV-only 2-slot | 62d | 36 | $+9.58 | $+0.00 | 5/62 | $+20.09/$-0.94 | $-104.58 | FAIL | 2 | $-37 | $+194 | no |
+| W1 07:00-10:00 best=v2cal/E4W KEV-only 2-slot | 36d | 18 | $-3.51 | $+0.00 | 2/36 | $-10.76/$+3.74 | $-96.40 | FAIL | 0 | $-32 | $+194 | no |
+| W1 07:00-10:00 same v2cal/E4W NOT-Kev 2-slot | 62d | 382 | $+93.12 | $+82.72 | 39/62 | $+121.78/$+64.46 | $-266.64 | PASS | 22 | $-118 | $+774 | - |
+| W2 09:30-10:30 best=v2cal/E4 KEV-only 2-slot | 62d | 50 | $+15.08 | $+0.00 | 6/62 | $+31.74/$-1.59 | $-139.01 | FAIL | 4 | $-37 | $+263 | no |
+| W2 09:30-10:30 best=v2cal/E4 KEV-only 2-slot | 36d | 25 | $-5.32 | $+0.00 | 2/36 | $-14.59/$+3.96 | $-120.60 | FAIL | 0 | $-32 | $+263 | no |
+| W2 09:30-10:30 same v2cal/E4 NOT-Kev 2-slot | 62d | 760 | $+12.15 | $-18.97 | 27/62 | $+0.58/$+23.72 | $-325.95 | FAIL | 10 | $-118 | $+1639 | - |
+| JOINT (pre_reclaim E3 + v2cal/E4W W1 + v2cal/E4 W2) KEV-only 2-slot | 62d | 53 | $+18.53 | $+0.00 | 7/62 | $+36.80/$+0.26 | $-120.60 | FAIL | 4 | $-37 | $+263 | no |
+  (pre_reclaim slot key set to fill-time; pre trades are flat by 09:25 ET so they never occupy an RTH slot — disclosed)
+
+## HAND-TRACES — three Kev-pick name-days (fingerprint stamp + every in-window signal, E3 log)
+
+**AZI 2026-06-29** (Kev pick) ref 1.9000; 08:00 stamp: spread 0 calm 109 gain -6% -> fail; 09:30 stamp: spread 0 calm 56 gain -2% -> fail => NOT kev-shaped
+   v2cal sig 13:33:10Z entry 2.1100 (fill 2.1311) stop 2.0500 -> E3 $+103.01 trail@13:46:10
+      13:34:50 BANK 1/2 at +10% (2.3442)
+      13:46:10 TRAIL[t10_after] close 2.8101 fill 2.7960 hi 3.2099 (117.3 sh)
+   bandpass sig 13:37:20Z entry 2.5550 (fill 2.5806) stop 2.1000 -> E3 $+45.88 trail@13:46:10
+      13:40:00 BANK 1/2 at +10% (2.8386)
+      13:46:10 TRAIL[t10_after] close 2.8101 fill 2.7960 hi 3.2099 (96.9 sh)
+   v2cal sig 14:18:10Z entry 3.0599 (fill 3.0905) stop 2.9900 -> E3 $-18.68 stop@14:19:10
+      14:19:10 STOP 2.9900 (low 2.9900) fill 2.9751 (161.8 sh)
+   v2cal sig 14:24:10Z entry 3.0024 (fill 3.0324) stop 2.9201 -> E3 $-20.93 stop@14:26:00
+      14:26:00 STOP 2.9201 (low 2.9100) fill 2.9055 (164.9 sh)
+
+**UPC 2026-06-29** (Kev pick) ref 7.9000; 08:00 stamp: spread 89 calm 233 gain -2% -> fail; 09:30 stamp: spread 255 calm 646 gain +117% -> fail => NOT kev-shaped
+   v2cal sig 13:38:20Z entry 16.3050 (fill 16.4681) stop 14.8900 -> E3 $-50.17 stop@13:38:50
+      13:38:50 STOP 14.8900 (low 14.5500) fill 14.8155 (30.4 sh)
+   v2cal sig 13:55:20Z entry 15.5299 (fill 15.6852) stop 14.7100 -> E3 $+8.28 stop@13:58:50
+      13:58:10 BANK 1/2 at +10% (17.2537)
+      13:58:50 STOP 14.7100 (low 14.2200) fill 14.6364 (15.9 sh)
+   v2cal sig 14:00:50Z entry 15.0800 (fill 15.2308) stop 14.7800 -> E3 $-17.22 stop@14:01:50
+      14:01:50 STOP 14.7800 (low 14.7800) fill 14.7061 (32.8 sh)
+   v2cal sig 14:06:00Z entry 15.7581 (fill 15.9157) stop 15.3000 -> E3 $-21.75 stop@14:07:00
+      14:07:00 STOP 15.3000 (low 15.2900) fill 15.2235 (31.4 sh)
+   ...
+
+**BTCT 2026-06-30** (Kev pick) ref 1.4600; 08:00 stamp: spread 88 calm 129 gain -21% -> fail; 09:30 stamp: spread 94 calm 187 gain -24% -> fail => NOT kev-shaped
+   v2cal sig 13:31:20Z entry 1.0580 (fill 1.0686) stop 1.0300 -> E3 $-20.46 stop@13:32:00
+      13:32:00 STOP 1.0300 (low 1.0300) fill 1.0249 (467.9 sh)
+   v2cal sig 13:40:20Z entry 1.0350 (fill 1.0454) stop 1.0200 -> E3 $-14.56 stop@13:41:10
+      13:41:10 STOP 1.0200 (low 1.0200) fill 1.0149 (478.3 sh)
+   v2cal sig 13:50:00Z entry 0.9949 (fill 1.0048) stop 0.9850 -> E3 $-12.33 stop@13:50:50
+      13:50:50 STOP 0.9850 (low 0.9813) fill 0.9801 (497.6 sh)
+   BA sig 14:11:00Z entry 0.9348 (fill 0.9441) stop 0.8879 -> E3 $+28.66 trail@14:47:50
+      14:36:40 BANK 1/2 at +10% (1.0386)
+      14:47:50 TRAIL[t10_after] close 0.9628 fill 0.9580 hi 1.0700 (264.8 sh)
+   ...
+
+
+# ===== SELECTION DEFINITION B_tape: spread<=80 & calm<=X, no gain clause (tape-character only, ~30% bucket) =====
+QUALIFY: 09:30 stamp 177 (24%), 08:00 stamp 161 (22%), either = KEV-SHAPED 246/729 (34%)
+  09:30 component spread<=80: 405/599
+  09:30 component calm<=X: 180/599
+  09:30 component gain>=20%: 258/599
+
+### Honesty check — Kev's nightly picks: 120 pick name-days (34 dates), 37 in the universe cache
+Kev picks passing the fingerprint: 9/37 (24%) vs universe 34% -> lift 0.72x
+Kev picks fingerprint detail (spread/calm/gain at 09:30, 08:00 pass?):
+  2026-06-29 AZI: spread 0 calm 56 gain -2% | 930 Y 800 n -> KEV-SHAPED
+  2026-06-29 UPC: spread 255 calm 646 gain +117% | 930 n 800 n -> -
+  2026-06-30 BTCT: spread 94 calm 187 gain -24% | 930 n 800 n -> -
+  2026-07-01 JEM: spread 76 calm 174 gain -10% | 930 n 800 n -> -
+  2026-07-02 SURG: spread 28 calm 74 gain -13% | 930 Y 800 Y -> KEV-SHAPED
+  2026-07-07 TDTH: spread 60 calm 166 gain -18% | 930 n 800 n -> -
+  2026-07-07 CLRO: spread 156 calm 367 gain +37% | 930 n 800 Y -> KEV-SHAPED
+  2026-07-09 SRXH: spread 53 calm 106 gain -9% | 930 n 800 Y -> KEV-SHAPED
+  2026-07-13 MIMI: spread 35 calm 103 gain +4% | 930 n 800 n -> -
+  2026-07-13 FTRK: spread 78 calm 178 gain -18% | 930 n 800 n -> -
+  2026-07-14 VMAR: spread 58 calm 116 gain -15% | 930 n 800 n -> -
+  2026-07-15 SOBR: spread 62 calm 183 gain +38% | 930 n 800 n -> -
+  2026-07-16 ATPC: spread 30 calm 118 gain -20% | 930 n 800 Y -> KEV-SHAPED
+  2026-07-16 TGHL: spread 81 calm 161 gain +11% | 930 n 800 n -> -
+  2026-07-20 BXBL: spread 48 calm 126 gain -5% | 930 n 800 n -> -
+  2026-07-20 ADVB: spread 62 calm 163 gain +6% | 930 n 800 n -> -
+  2026-07-21 HIHO: spread 75 calm 148 gain -1% | 930 n 800 n -> -
+  2026-07-27 STAK: spread 117 calm 384 gain -38% | 930 n 800 n -> -
+  2026-07-27 LVWR: spread 63 calm 126 gain +8% | 930 n 800 Y -> KEV-SHAPED
+  2026-07-27 DFNS: spread 60 calm 121 gain +18% | 930 n 800 n -> -
+  2026-07-28 INLF: spread 44 calm 78 gain +12% | 930 Y 800 n -> KEV-SHAPED
+  2026-07-29 GMM: spread 30 calm 61 gain -0% | 930 Y 800 Y -> KEV-SHAPED
+  2026-07-29 AMIX: spread 23 calm 113 gain +4% | 930 n 800 n -> -
+  2026-07-30 NUWE: spread 96 calm 252 gain +29% | 930 n 800 n -> -
+  2026-08-03 UPC: spread 42 calm 113 gain -1% | 930 n 800 n -> -
+  2026-08-03 FCUV: spread 73 calm 164 gain -13% | 930 n 800 n -> -
+  2026-08-05 BJDX: spread 71 calm 198 gain +6% | 930 n 800 n -> -
+  2026-08-06 CELZ: spread 86 calm 253 gain +32% | 930 n 800 n -> -
+  2026-08-06 CLRO: spread 105 calm 307 gain +51% | 930 n 800 n -> -
+  2026-08-07 NAMI: spread 80 calm 220 gain +27% | 930 n 800 n -> -
+  2026-08-10 STKH: spread 106 calm 263 gain +90% | 930 n 800 n -> -
+  2026-08-12 BOXL: spread 63 calm 163 gain +4% | 930 n 800 n -> -
+  2026-08-13 GXAI: spread 75 calm 136 gain -9% | 930 n 800 Y -> KEV-SHAPED
+  2026-08-14 AKAN: spread 75 calm 156 gain -23% | 930 n 800 n -> -
+  2026-08-14 DFSC: spread 39 calm 117 gain +17% | 930 n 800 n -> -
+  2026-08-14 WETO: spread 86 calm 228 gain +188% | 930 n 800 n -> -
+  2026-08-14 XHG: spread 30 calm 92 gain -12% | 930 n 800 n -> -
+
+### CENSUS — does the fingerprint SEE the field's rockets? (name-day level)
+top-60 big rides: 22/60 name-days pass (37%)
+724 vertical legs: 237/724 legs on passing name-days (33%); leg name-days (88, 288)
+  legs at/after 09:30 ET only: 237/724 (33%)
+  legs 08:00-09:30 ET vs the 08:00 stamp only: 0/0 (0%)
+ROCKET name-days (top-60 U leg-days): 92/306 pass (30.1%); DUD name-days (neither): 154/423 pass (36.4%)
+**ENRICHMENT RATIO (rocket coverage / dud coverage) = 0.83x**; of all passing name-days 246, rockets = 92 (37%) vs base rate 42%
+  component gain>=20% @09:30 alone: rockets 88/306 (29%) duds 170/423 (40%) enrich 0.72x
+  component spread<=80 & calm alone (no gain): rockets 69/306 (23%) duds 108/423 (26%) enrich 0.88x
+
+## LAYERS 2-4 — entries 10879 signals total: {'v2cal': 6159, 'bandpass': 171, 'pre_reclaim': 97, 'BA': 4452}
+
+### W1 07:00-10:00  (RTH part flattens 15:45 ET live-parity; pre_reclaim flattens 09:25 ET)
+| cell | N | win% | $/trade | total | day mean | day med | green | halves | worst day | worst tr | HR>=250 | premium | maxDD | CONSIST | CONVEX |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| v2cal KEV E3 | 493 | 38% | $+15.95 | $+7861 | $+126.79 | $+100.30 | 42/62 (68%) | $+3562/$+4299 | $-286 | $-87 | 5 | $+1597 | $+349 | PASS | PASS |
+| v2cal KEV E4 | 493 | 32% | $+24.22 | $+11938 | $+192.55 | $+125.00 | 42/62 (68%) | $+5218/$+6721 | $-286 | $-69 | 19 | $+7712 | $+317 | PASS | PASS |
+| v2cal KEV E4W | 493 | 30% | $+37.29 | $+18382 | $+296.49 | $+138.69 | 41/62 (66%) | $+10843/$+7540 | $-286 | $-87 | 29 | $+12911 | $+426 | PASS | PASS |
+| v2cal KEV S5 | 493 | 38% | $+17.36 | $+8560 | $+138.07 | $+102.02 | 44/62 (71%) | $+3873/$+4687 | $-286 | $-87 | 5 | $+1597 | $+349 | PASS | PASS |
+| v2cal NOT E3 | 904 | 28% | $-3.95 | $-3575 | $-57.66 | $-92.62 | 22/62 (35%) | $-1989/$-1586 | $-513 | $-177 | 3 | $+1262 | $+3661 | fail | fail |
+| v2cal NOT E4 | 904 | 21% | $-2.40 | $-2174 | $-35.06 | $-56.22 | 23/62 (37%) | $-1208/$-966 | $-487 | $-118 | 5 | $+2945 | $+2174 | fail | fail |
+| v2cal NOT E4W | 904 | 15% | $-0.19 | $-175 | $-2.82 | $-41.78 | 24/62 (39%) | $-277/$+102 | $-501 | $-118 | 24 | $+9157 | $+2849 | fail | fail |
+| v2cal NOT S5 | 904 | 28% | $-3.70 | $-3343 | $-53.92 | $-62.77 | 22/62 (35%) | $-1704/$-1639 | $-529 | $-177 | 3 | $+1262 | $+3454 | fail | fail |
+| bandpass KEV E3 | 24 | 62% | $+17.46 | $+419 | $+6.76 | $+0.00 | 13/62 (21%) | $+201/$+218 | $-101 | $-101 | 0 | $+0 | $+126 | fail | fail |
+| bandpass KEV E4 | 24 | 38% | $+15.74 | $+378 | $+6.09 | $+0.00 | 9/62 (15%) | $+162/$+215 | $-98 | $-66 | 1 | $+331 | $+207 | fail | fail |
+| bandpass KEV E4W | 24 | 50% | $+86.99 | $+2088 | $+33.68 | $+0.00 | 10/62 (16%) | $+1220/$+868 | $-101 | $-101 | 3 | $+1867 | $+125 | fail | fail |
+| bandpass KEV S5 | 24 | 62% | $+23.23 | $+558 | $+8.99 | $+0.00 | 12/62 (19%) | $+330/$+227 | $-101 | $-101 | 0 | $+0 | $+121 | fail | fail |
+| bandpass NOT E3 | 22 | 45% | $+2.19 | $+48 | $+0.78 | $+0.00 | 9/62 (15%) | $+56/$-8 | $-113 | $-60 | 0 | $+0 | $+171 | fail | fail |
+| bandpass NOT E4 | 22 | 36% | $+4.60 | $+101 | $+1.63 | $+0.00 | 8/62 (13%) | $+47/$+54 | $-108 | $-53 | 0 | $+0 | $+162 | fail | fail |
+| bandpass NOT E4W | 22 | 27% | $+9.84 | $+216 | $+3.49 | $+0.00 | 6/62 (10%) | $+71/$+146 | $-113 | $-60 | 2 | $+649 | $+216 | fail | fail |
+| bandpass NOT S5 | 22 | 45% | $+1.98 | $+43 | $+0.70 | $+0.00 | 9/62 (15%) | $+38/$+6 | $-113 | $-60 | 0 | $+0 | $+159 | fail | fail |
+| pre_reclaim KEV E3 | 30 | 47% | $+4.05 | $+121 | $+1.96 | $+0.00 | 11/62 (18%) | $+87/$+34 | $-113 | $-161 | 0 | $+0 | $+197 | fail | fail |
+| pre_reclaim KEV E4 | 30 | 47% | $+8.59 | $+258 | $+4.16 | $+0.00 | 11/62 (18%) | $+244/$+14 | $-27 | $-50 | 0 | $+0 | $+105 | fail | fail |
+| pre_reclaim KEV E4W | 30 | 37% | $+6.73 | $+202 | $+3.26 | $+0.00 | 9/62 (15%) | $+221/$-19 | $-127 | $-94 | 0 | $+0 | $+260 | fail | fail |
+| pre_reclaim KEV S5 | 30 | 47% | $+4.42 | $+133 | $+2.14 | $+0.00 | 11/62 (18%) | $+89/$+44 | $-113 | $-161 | 0 | $+0 | $+197 | fail | fail |
+| pre_reclaim NOT E3 | 66 | 59% | $+15.25 | $+1006 | $+16.23 | $+0.00 | 24/62 (39%) | $+695/$+312 | $-151 | $-112 | 1 | $+272 | $+151 | fail | fail |
+| pre_reclaim NOT E4 | 66 | 33% | $+0.80 | $+53 | $+0.85 | $+0.00 | 13/62 (21%) | $+247/$-194 | $-117 | $-78 | 1 | $+493 | $+441 | fail | fail |
+| pre_reclaim NOT E4W | 66 | 33% | $-0.09 | $-6 | $-0.10 | $+0.00 | 15/62 (24%) | $-406/$+400 | $-253 | $-112 | 1 | $+354 | $+714 | fail | fail |
+| pre_reclaim NOT S5 | 66 | 55% | $+15.31 | $+1011 | $+16.30 | $+0.00 | 20/62 (32%) | $+722/$+288 | $-84 | $-112 | 1 | $+272 | $+122 | fail | fail |
+| BA KEV E3 | 124 | 79% | $+52.09 | $+6459 | $+104.18 | $+77.18 | 51/62 (82%) | $+2778/$+3682 | $-64 | $-66 | 2 | $+763 | $+70 | PASS | fail |
+| BA KEV E4 | 124 | 73% | $+74.37 | $+9221 | $+148.73 | $+105.86 | 47/62 (76%) | $+3893/$+5328 | $-64 | $-56 | 9 | $+3694 | $+98 | PASS | PASS |
+| BA KEV E4W | 124 | 71% | $+96.22 | $+11932 | $+192.45 | $+164.99 | 48/62 (77%) | $+5480/$+6452 | $-112 | $-66 | 15 | $+6477 | $+133 | PASS | PASS |
+| BA KEV S5 | 124 | 79% | $+55.91 | $+6933 | $+111.83 | $+93.97 | 51/62 (82%) | $+3149/$+3785 | $-64 | $-66 | 2 | $+763 | $+75 | PASS | fail |
+| BA NOT E3 | 142 | 63% | $+24.26 | $+3446 | $+55.57 | $+20.78 | 37/62 (60%) | $+2260/$+1185 | $-131 | $-72 | 1 | $+496 | $+247 | fail | fail |
+| BA NOT E4 | 142 | 44% | $+28.36 | $+4027 | $+64.96 | $+0.00 | 30/62 (48%) | $+2558/$+1469 | $-131 | $-70 | 4 | $+1831 | $+288 | fail | fail |
+| BA NOT E4W | 142 | 51% | $+47.96 | $+6811 | $+109.85 | $+35.07 | 34/62 (55%) | $+4506/$+2305 | $-131 | $-72 | 11 | $+4152 | $+362 | fail | PASS |
+| BA NOT S5 | 142 | 63% | $+25.97 | $+3688 | $+59.49 | $+26.75 | 39/62 (63%) | $+2353/$+1335 | $-131 | $-72 | 1 | $+496 | $+200 | fail | fail |
+
+### W2 09:30-10:30  (RTH part flattens 15:45 ET live-parity; pre_reclaim flattens 09:25 ET)
+| cell | N | win% | $/trade | total | day mean | day med | green | halves | worst day | worst tr | HR>=250 | premium | maxDD | CONSIST | CONVEX |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| v2cal KEV E3 | 767 | 35% | $+12.03 | $+9229 | $+148.85 | $+105.47 | 45/62 (73%) | $+4227/$+5001 | $-266 | $-87 | 5 | $+1597 | $+339 | PASS | PASS |
+| v2cal KEV E4 | 767 | 29% | $+18.36 | $+14083 | $+227.15 | $+128.72 | 44/62 (71%) | $+6404/$+7679 | $-369 | $-69 | 26 | $+9922 | $+369 | fail | PASS |
+| v2cal KEV E4W | 767 | 27% | $+27.10 | $+20783 | $+335.21 | $+184.82 | 41/62 (66%) | $+12495/$+8288 | $-418 | $-87 | 35 | $+14963 | $+503 | fail | PASS |
+| v2cal KEV S5 | 767 | 35% | $+13.20 | $+10127 | $+163.33 | $+107.51 | 46/62 (74%) | $+4725/$+5402 | $-280 | $-87 | 5 | $+1597 | $+339 | PASS | PASS |
+| v2cal NOT E3 | 1439 | 26% | $-4.33 | $-6224 | $-100.39 | $-113.58 | 17/62 (27%) | $-3719/$-2505 | $-537 | $-177 | 5 | $+1971 | $+6324 | fail | fail |
+| v2cal NOT E4 | 1439 | 19% | $-2.78 | $-3995 | $-64.44 | $-148.19 | 19/62 (31%) | $-2644/$-1351 | $-537 | $-118 | 8 | $+4562 | $+3995 | fail | fail |
+| v2cal NOT E4W | 1439 | 15% | $-0.07 | $-107 | $-1.72 | $-62.88 | 26/62 (42%) | $-1160/$+1054 | $-693 | $-118 | 38 | $+14955 | $+3935 | fail | fail |
+| v2cal NOT S5 | 1439 | 26% | $-4.07 | $-5851 | $-94.37 | $-83.78 | 19/62 (31%) | $-3280/$-2572 | $-551 | $-177 | 5 | $+1971 | $+5985 | fail | fail |
+| bandpass KEV E3 | 33 | 58% | $+5.52 | $+182 | $+2.94 | $+0.00 | 14/62 (23%) | $-31/$+213 | $-113 | $-113 | 0 | $+0 | $+273 | fail | fail |
+| bandpass KEV E4 | 33 | 39% | $+8.73 | $+288 | $+4.65 | $+0.00 | 11/62 (18%) | $+37/$+251 | $-98 | $-66 | 1 | $+331 | $+217 | fail | fail |
+| bandpass KEV E4W | 33 | 48% | $+74.86 | $+2471 | $+39.85 | $+0.00 | 12/62 (19%) | $+1408/$+1063 | $-141 | $-103 | 4 | $+2327 | $+170 | fail | fail |
+| bandpass KEV S5 | 33 | 58% | $+14.53 | $+479 | $+7.73 | $+0.00 | 13/62 (21%) | $+156/$+323 | $-113 | $-113 | 0 | $+0 | $+260 | fail | fail |
+| bandpass NOT E3 | 41 | 49% | $+4.55 | $+186 | $+3.01 | $+0.00 | 15/62 (24%) | $-22/$+208 | $-167 | $-167 | 0 | $+0 | $+284 | fail | fail |
+| bandpass NOT E4 | 41 | 41% | $+10.84 | $+444 | $+7.17 | $+0.00 | 14/62 (23%) | $+117/$+328 | $-92 | $-53 | 0 | $+0 | $+160 | fail | fail |
+| bandpass NOT E4W | 41 | 34% | $+16.54 | $+678 | $+10.94 | $+0.00 | 13/62 (21%) | $+351/$+327 | $-94 | $-86 | 3 | $+927 | $+478 | fail | fail |
+| bandpass NOT S5 | 41 | 49% | $+5.91 | $+242 | $+3.91 | $+0.00 | 15/62 (24%) | $-28/$+270 | $-167 | $-167 | 0 | $+0 | $+315 | fail | fail |
+| BA KEV E3 | 239 | 71% | $+42.88 | $+10249 | $+165.30 | $+161.98 | 55/62 (89%) | $+5011/$+5238 | $-124 | $-69 | 2 | $+763 | $+133 | PASS | fail |
+| BA KEV E4 | 239 | 64% | $+60.44 | $+14445 | $+232.98 | $+230.91 | 53/62 (85%) | $+6737/$+7708 | $-141 | $-57 | 18 | $+6524 | $+146 | PASS | PASS |
+| BA KEV E4W | 239 | 61% | $+84.65 | $+20230 | $+326.29 | $+268.61 | 54/62 (87%) | $+9291/$+10939 | $-134 | $-69 | 26 | $+12038 | $+134 | PASS | PASS |
+| BA KEV S5 | 239 | 71% | $+45.43 | $+10857 | $+175.12 | $+161.98 | 55/62 (89%) | $+5463/$+5394 | $-77 | $-69 | 2 | $+763 | $+116 | PASS | fail |
+| BA NOT E3 | 393 | 57% | $+16.64 | $+6540 | $+105.49 | $+86.31 | 45/62 (73%) | $+4649/$+1891 | $-256 | $-72 | 2 | $+765 | $+325 | PASS | fail |
+| BA NOT E4 | 393 | 41% | $+16.61 | $+6527 | $+105.27 | $+53.74 | 39/62 (63%) | $+4968/$+1559 | $-242 | $-70 | 7 | $+2871 | $+472 | PASS | PASS |
+| BA NOT E4W | 393 | 44% | $+37.50 | $+14736 | $+237.68 | $+163.84 | 48/62 (77%) | $+9299/$+5438 | $-230 | $-72 | 28 | $+11580 | $+256 | PASS | PASS |
+| BA NOT S5 | 393 | 57% | $+18.62 | $+7316 | $+118.00 | $+130.62 | 46/62 (74%) | $+4928/$+2388 | $-265 | $-72 | 2 | $+765 | $+267 | PASS | fail |
+
+(E3 reconciled to X.sim_var_live on 9254 RTH trades, max |diff| $0.0000)
+
+## SELECTION LIFT — $/trade Kev-shaped vs NOT (E3, and best exit for the Kev cell)
+| window | entry | KEV N | KEV $/tr (E3) | NOT N | NOT $/tr (E3) | lift $/tr | KEV best exit | KEV $/tr best | KEV day mean best |
+|---|---|---|---|---|---|---|---|---|---|
+| W1 07:00-10:00 | v2cal | 493 | $+15.95 | 904 | $-3.95 | $+19.90 | E4W | $+37.29 | $+296.49 |
+| W1 07:00-10:00 | bandpass | 24 | $+17.46 | 22 | $+2.19 | $+15.27 | E4W | $+86.99 | $+33.68 |
+| W1 07:00-10:00 | pre_reclaim | 30 | $+4.05 | 66 | $+15.25 | $-11.20 | E4 | $+8.59 | $+4.16 |
+| W1 07:00-10:00 | BA | 124 | $+52.09 | 142 | $+24.26 | $+27.83 | E4W | $+96.22 | $+192.45 |
+| W2 09:30-10:30 | v2cal | 767 | $+12.03 | 1439 | $-4.33 | $+16.36 | E4W | $+27.10 | $+335.21 |
+| W2 09:30-10:30 | bandpass | 33 | $+5.52 | 41 | $+4.55 | $+0.97 | E4W | $+74.86 | $+39.85 |
+| W2 09:30-10:30 | BA | 239 | $+42.88 | 393 | $+16.64 | $+26.24 | E4W | $+84.65 | $+326.29 |
+
+## THE v2 TOLL QUESTION — Kev-shaped names, Kev window (07:00-10:00 = RTH 09:30-10:00), calibrated v2 flush
+  E3: N=493 $/trade $+15.95 -> EXCEEDS the ~$6 toll (win 38%, total $+7861)
+  E4: N=493 $/trade $+24.22 -> EXCEEDS the ~$6 toll (win 32%, total $+11938)
+  E4W: N=493 $/trade $+37.29 -> EXCEEDS the ~$6 toll (win 30%, total $+18382)
+  S5: N=493 $/trade $+17.36 -> EXCEEDS the ~$6 toll (win 38%, total $+8560)
+  (09:30-10:30 E3 for reference: N=767 $+12.03/trade)
+
+## PORTFOLIO — best entry per window on Kev-shaped names, 2 slots, live parity (B.pipeline H1-H4)
+| config | dates | N | day mean | day median | green | halves $/d | worst | 5-crit | HR>=250 | worst tr | maxDD | vs O-config +$156.76/+$130.35 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| W1 07:00-10:00 best=v2cal/E4W KEV-only 2-slot | 62d | 269 | $+158.45 | $+122.64 | 40/62 | $+182.30/$+134.59 | $-239.13 | PASS | 17 | $-70 | $+415 | no |
+| W1 07:00-10:00 best=v2cal/E4W KEV-only 2-slot | 36d | 161 | $+119.51 | $+65.16 | 20/36 | $+38.20/$+200.81 | $-239.13 | PASS | 8 | $-70 | $+415 | no |
+| W1 07:00-10:00 same v2cal/E4W NOT-Kev 2-slot | 62d | 382 | $+6.73 | $-40.95 | 24/62 | $-6.53/$+19.98 | $-317.74 | FAIL | 15 | $-118 | $+1315 | - |
+| W2 09:30-10:30 best=BA/E4W KEV-only 2-slot | 62d | 130 | $+212.56 | $+196.00 | 50/62 | $+224.86/$+200.27 | $-129.11 | PASS | 19 | $-66 | $+259 | BEATS |
+| W2 09:30-10:30 best=BA/E4W KEV-only 2-slot | 36d | 76 | $+185.16 | $+163.28 | 30/36 | $+123.44/$+246.89 | $-129.11 | PASS | 8 | $-61 | $+129 | BEATS |
+| W2 09:30-10:30 same BA/E4W NOT-Kev 2-slot | 62d | 183 | $+137.95 | $+102.23 | 39/62 | $+166.72/$+109.19 | $-202.20 | PASS | 18 | $-72 | $+442 | - |
+| JOINT (pre_reclaim E3 + v2cal/E4W W1 + BA/E4W W2) KEV-only 2-slot | 62d | 307 | $+239.77 | $+190.67 | 47/62 | $+291.98/$+187.56 | $-167.13 | PASS | 24 | $-161 | $+278 | BEATS |
+  (pre_reclaim slot key set to fill-time; pre trades are flat by 09:25 ET so they never occupy an RTH slot — disclosed)
+
+## HAND-TRACES — three Kev-pick name-days (fingerprint stamp + every in-window signal, E3 log)
+
+**AZI 2026-06-29** (Kev pick) ref 1.9000; 08:00 stamp: spread 0 calm 109 gain -6% -> fail; 09:30 stamp: spread 0 calm 56 gain -2% -> PASS => KEV-SHAPED
+   v2cal sig 13:33:10Z entry 2.1100 (fill 2.1311) stop 2.0500 -> E3 $+103.01 trail@13:46:10
+      13:34:50 BANK 1/2 at +10% (2.3442)
+      13:46:10 TRAIL[t10_after] close 2.8101 fill 2.7960 hi 3.2099 (117.3 sh)
+   bandpass sig 13:37:20Z entry 2.5550 (fill 2.5806) stop 2.1000 -> E3 $+45.88 trail@13:46:10
+      13:40:00 BANK 1/2 at +10% (2.8386)
+      13:46:10 TRAIL[t10_after] close 2.8101 fill 2.7960 hi 3.2099 (96.9 sh)
+   v2cal sig 14:18:10Z entry 3.0599 (fill 3.0905) stop 2.9900 -> E3 $-18.68 stop@14:19:10
+      14:19:10 STOP 2.9900 (low 2.9900) fill 2.9751 (161.8 sh)
+   v2cal sig 14:24:10Z entry 3.0024 (fill 3.0324) stop 2.9201 -> E3 $-20.93 stop@14:26:00
+      14:26:00 STOP 2.9201 (low 2.9100) fill 2.9055 (164.9 sh)
+
+**SURG 2026-07-02** (Kev pick) ref 0.6686; 08:00 stamp: spread 35 calm 90 gain -10% -> PASS; 09:30 stamp: spread 28 calm 74 gain -13% -> PASS => KEV-SHAPED
+   v2cal sig 13:31:00Z entry 0.5795 (fill 0.5853) stop 0.5517 -> E3 $-31.06 stop@13:32:50
+      13:32:50 STOP 0.5517 (low 0.5510) fill 0.5489 (854.3 sh)
+   BA sig 14:01:40Z entry 0.5415 (fill 0.5469) stop 0.5115 -> E3 $+52.53 trail@14:54:20
+      14:18:00 BANK 1/2 at +10% (0.6016)
+      14:54:20 TRAIL[t10_after] close 0.6102 fill 0.6071 hi 0.6792 (457.1 sh)
+   v2cal sig 14:06:50Z entry 0.5650 (fill 0.5706) stop 0.5500 -> E3 $+40.99 trail@14:54:20
+      14:31:20 BANK 1/2 at +10% (0.6277)
+      14:54:20 TRAIL[t10_after] close 0.6102 fill 0.6071 hi 0.6792 (438.1 sh)
+   v2cal sig 14:14:40Z entry 0.5593 (fill 0.5649) stop 0.5550 -> E3 $+43.70 trail@14:54:20
+      14:19:00 BANK 1/2 at +10% (0.6214)
+      14:54:20 TRAIL[t10_after] close 0.6102 fill 0.6071 hi 0.6792 (442.6 sh)
+   ...
+
+**CLRO 2026-07-07** (Kev pick) ref 6.9800; 08:00 stamp: spread 0 calm 34 gain -1% -> PASS; 09:30 stamp: spread 156 calm 367 gain +37% -> fail => KEV-SHAPED
+   v2cal sig 13:49:50Z entry 9.1201 (fill 9.2113) stop 8.6994 -> E3 $+74.93 trail@14:30:10
+      13:55:10 BANK 1/2 at +10% (10.1324)
+      14:30:10 TRAIL[t10_after] close 11.1065 fill 11.0510 hi 12.4300 (27.1 sh)
+
+
+# ===== SELECTION DEFINITION C_liquid_runner: spread<=80 & gain>=20%, no calm clause =====
+QUALIFY: 09:30 stamp 97 (13%), 08:00 stamp 41 (6%), either = KEV-SHAPED 113/729 (16%)
+  09:30 component spread<=80: 405/599
+  09:30 component calm<=X: 180/599
+  09:30 component gain>=20%: 258/599
+
+### Honesty check — Kev's nightly picks: 120 pick name-days (34 dates), 37 in the universe cache
+Kev picks passing the fingerprint: 2/37 (5%) vs universe 16% -> lift 0.35x
+Kev picks fingerprint detail (spread/calm/gain at 09:30, 08:00 pass?):
+  2026-06-29 AZI: spread 0 calm 56 gain -2% | 930 n 800 n -> -
+  2026-06-29 UPC: spread 255 calm 646 gain +117% | 930 n 800 n -> -
+  2026-06-30 BTCT: spread 94 calm 187 gain -24% | 930 n 800 n -> -
+  2026-07-01 JEM: spread 76 calm 174 gain -10% | 930 n 800 n -> -
+  2026-07-02 SURG: spread 28 calm 74 gain -13% | 930 n 800 n -> -
+  2026-07-07 TDTH: spread 60 calm 166 gain -18% | 930 n 800 n -> -
+  2026-07-07 CLRO: spread 156 calm 367 gain +37% | 930 n 800 n -> -
+  2026-07-09 SRXH: spread 53 calm 106 gain -9% | 930 n 800 n -> -
+  2026-07-13 MIMI: spread 35 calm 103 gain +4% | 930 n 800 n -> -
+  2026-07-13 FTRK: spread 78 calm 178 gain -18% | 930 n 800 n -> -
+  2026-07-14 VMAR: spread 58 calm 116 gain -15% | 930 n 800 n -> -
+  2026-07-15 SOBR: spread 62 calm 183 gain +38% | 930 Y 800 n -> KEV-SHAPED
+  2026-07-16 ATPC: spread 30 calm 118 gain -20% | 930 n 800 n -> -
+  2026-07-16 TGHL: spread 81 calm 161 gain +11% | 930 n 800 n -> -
+  2026-07-20 BXBL: spread 48 calm 126 gain -5% | 930 n 800 n -> -
+  2026-07-20 ADVB: spread 62 calm 163 gain +6% | 930 n 800 n -> -
+  2026-07-21 HIHO: spread 75 calm 148 gain -1% | 930 n 800 n -> -
+  2026-07-27 STAK: spread 117 calm 384 gain -38% | 930 n 800 n -> -
+  2026-07-27 LVWR: spread 63 calm 126 gain +8% | 930 n 800 n -> -
+  2026-07-27 DFNS: spread 60 calm 121 gain +18% | 930 n 800 n -> -
+  2026-07-28 INLF: spread 44 calm 78 gain +12% | 930 n 800 n -> -
+  2026-07-29 GMM: spread 30 calm 61 gain -0% | 930 n 800 n -> -
+  2026-07-29 AMIX: spread 23 calm 113 gain +4% | 930 n 800 n -> -
+  2026-07-30 NUWE: spread 96 calm 252 gain +29% | 930 n 800 n -> -
+  2026-08-03 UPC: spread 42 calm 113 gain -1% | 930 n 800 n -> -
+  2026-08-03 FCUV: spread 73 calm 164 gain -13% | 930 n 800 n -> -
+  2026-08-05 BJDX: spread 71 calm 198 gain +6% | 930 n 800 n -> -
+  2026-08-06 CELZ: spread 86 calm 253 gain +32% | 930 n 800 n -> -
+  2026-08-06 CLRO: spread 105 calm 307 gain +51% | 930 n 800 n -> -
+  2026-08-07 NAMI: spread 80 calm 220 gain +27% | 930 Y 800 n -> KEV-SHAPED
+  2026-08-10 STKH: spread 106 calm 263 gain +90% | 930 n 800 n -> -
+  2026-08-12 BOXL: spread 63 calm 163 gain +4% | 930 n 800 n -> -
+  2026-08-13 GXAI: spread 75 calm 136 gain -9% | 930 n 800 n -> -
+  2026-08-14 AKAN: spread 75 calm 156 gain -23% | 930 n 800 n -> -
+  2026-08-14 DFSC: spread 39 calm 117 gain +17% | 930 n 800 n -> -
+  2026-08-14 WETO: spread 86 calm 228 gain +188% | 930 n 800 n -> -
+  2026-08-14 XHG: spread 30 calm 92 gain -12% | 930 n 800 n -> -
+
+### CENSUS — does the fingerprint SEE the field's rockets? (name-day level)
+top-60 big rides: 3/60 name-days pass (5%)
+724 vertical legs: 49/724 legs on passing name-days (7%); leg name-days (27, 288)
+  legs at/after 09:30 ET only: 49/724 (7%)
+  legs 08:00-09:30 ET vs the 08:00 stamp only: 0/0 (0%)
+ROCKET name-days (top-60 U leg-days): 29/306 pass (9.5%); DUD name-days (neither): 84/423 pass (19.9%)
+**ENRICHMENT RATIO (rocket coverage / dud coverage) = 0.48x**; of all passing name-days 113, rockets = 29 (26%) vs base rate 42%
+  component gain>=20% @09:30 alone: rockets 88/306 (29%) duds 170/423 (40%) enrich 0.72x
+  component spread<=80 & calm alone (no gain): rockets 69/306 (23%) duds 108/423 (26%) enrich 0.88x
+
+## LAYERS 2-4 — entries 10879 signals total: {'v2cal': 6159, 'bandpass': 171, 'pre_reclaim': 97, 'BA': 4452}
+
+### W1 07:00-10:00  (RTH part flattens 15:45 ET live-parity; pre_reclaim flattens 09:25 ET)
+| cell | N | win% | $/trade | total | day mean | day med | green | halves | worst day | worst tr | HR>=250 | premium | maxDD | CONSIST | CONVEX |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| v2cal KEV E3 | 257 | 23% | $-7.40 | $-1901 | $-30.65 | $-28.65 | 10/62 (16%) | $-1442/$-458 | $-193 | $-64 | 1 | $+252 | $+1987 | fail | fail |
+| v2cal KEV E4 | 257 | 15% | $-8.08 | $-2077 | $-33.49 | $-41.53 | 9/62 (15%) | $-1598/$-479 | $-200 | $-51 | 2 | $+792 | $+2110 | fail | fail |
+| v2cal KEV E4W | 257 | 11% | $-6.07 | $-1559 | $-25.15 | $-32.90 | 12/62 (19%) | $-1276/$-283 | $-259 | $-64 | 6 | $+2203 | $+2015 | fail | fail |
+| v2cal KEV S5 | 257 | 23% | $-7.25 | $-1863 | $-30.06 | $-28.54 | 11/62 (18%) | $-1386/$-477 | $-205 | $-64 | 1 | $+252 | $+1928 | fail | fail |
+| v2cal NOT E3 | 1140 | 33% | $+5.43 | $+6186 | $+99.78 | $+58.94 | 36/62 (58%) | $+3016/$+3171 | $-342 | $-177 | 7 | $+2607 | $+855 | fail | fail |
+| v2cal NOT E4 | 1140 | 27% | $+10.39 | $+11841 | $+190.98 | $+98.88 | 42/62 (68%) | $+5607/$+6234 | $-388 | $-118 | 22 | $+9865 | $+559 | fail | PASS |
+| v2cal NOT E4W | 1140 | 23% | $+17.34 | $+19767 | $+318.82 | $+209.13 | 43/62 (69%) | $+11842/$+7925 | $-723 | $-118 | 47 | $+19865 | $+723 | fail | PASS |
+| v2cal NOT S5 | 1140 | 33% | $+6.21 | $+7081 | $+114.20 | $+76.55 | 39/62 (63%) | $+3555/$+3526 | $-358 | $-177 | 7 | $+2607 | $+679 | fail | fail |
+| bandpass KEV E3 | 3 | 33% | $-49.94 | $-150 | $-2.42 | $+0.00 | 1/62 (2%) | $-150/$+0 | $-101 | $-101 | 0 | $+0 | $+185 | fail | fail |
+| bandpass KEV E4 | 3 | 33% | $-33.91 | $-102 | $-1.64 | $+0.00 | 1/62 (2%) | $-102/$+0 | $-66 | $-66 | 0 | $+0 | $+123 | fail | fail |
+| bandpass KEV E4W | 3 | 33% | $-49.80 | $-149 | $-2.41 | $+0.00 | 1/62 (2%) | $-149/$+0 | $-101 | $-101 | 0 | $+0 | $+185 | fail | fail |
+| bandpass KEV S5 | 3 | 33% | $-49.94 | $-150 | $-2.42 | $+0.00 | 1/62 (2%) | $-150/$+0 | $-101 | $-101 | 0 | $+0 | $+185 | fail | fail |
+| bandpass NOT E3 | 43 | 56% | $+14.34 | $+617 | $+9.95 | $+0.00 | 18/62 (29%) | $+406/$+210 | $-113 | $-60 | 0 | $+0 | $+159 | fail | fail |
+| bandpass NOT E4 | 43 | 37% | $+13.50 | $+581 | $+9.36 | $+0.00 | 14/62 (23%) | $+311/$+270 | $-140 | $-58 | 1 | $+331 | $+287 | fail | fail |
+| bandpass NOT E4W | 43 | 40% | $+57.06 | $+2454 | $+39.58 | $+0.00 | 14/62 (23%) | $+1440/$+1014 | $-119 | $-60 | 5 | $+2516 | $+213 | fail | PASS |
+| bandpass NOT S5 | 43 | 56% | $+17.46 | $+751 | $+12.11 | $+0.00 | 17/62 (27%) | $+518/$+233 | $-113 | $-60 | 0 | $+0 | $+159 | fail | fail |
+| pre_reclaim KEV E3 | 25 | 52% | $+7.82 | $+195 | $+3.15 | $+0.00 | 10/62 (16%) | $+98/$+97 | $-76 | $-47 | 0 | $+0 | $+108 | fail | fail |
+| pre_reclaim KEV E4 | 25 | 36% | $+3.16 | $+79 | $+1.27 | $+0.00 | 8/62 (13%) | $+3/$+76 | $-96 | $-59 | 0 | $+0 | $+162 | fail | fail |
+| pre_reclaim KEV E4W | 25 | 36% | $+3.28 | $+82 | $+1.32 | $+0.00 | 8/62 (13%) | $-144/$+226 | $-87 | $-49 | 0 | $+0 | $+167 | fail | fail |
+| pre_reclaim KEV S5 | 25 | 48% | $+6.58 | $+165 | $+2.65 | $+0.00 | 10/62 (16%) | $+46/$+119 | $-76 | $-47 | 0 | $+0 | $+108 | fail | fail |
+| pre_reclaim NOT E3 | 71 | 56% | $+13.13 | $+932 | $+15.03 | $+0.00 | 25/62 (40%) | $+684/$+249 | $-151 | $-161 | 1 | $+272 | $+240 | fail | fail |
+| pre_reclaim NOT E4 | 71 | 38% | $+3.26 | $+232 | $+3.74 | $+0.00 | 18/62 (29%) | $+488/$-256 | $-117 | $-78 | 1 | $+493 | $+345 | fail | fail |
+| pre_reclaim NOT E4W | 71 | 34% | $+1.61 | $+114 | $+1.84 | $+0.00 | 17/62 (27%) | $-41/$+155 | $-253 | $-112 | 1 | $+354 | $+583 | fail | fail |
+| pre_reclaim NOT S5 | 71 | 54% | $+13.78 | $+979 | $+15.78 | $+0.00 | 23/62 (37%) | $+765/$+213 | $-90 | $-161 | 1 | $+272 | $+155 | fail | fail |
+| BA KEV E3 | 31 | 55% | $+6.76 | $+209 | $+3.38 | $+0.00 | 12/62 (19%) | $+92/$+117 | $-106 | $-63 | 0 | $+0 | $+359 | fail | fail |
+| BA KEV E4 | 31 | 32% | $+5.20 | $+161 | $+2.60 | $+0.00 | 7/62 (11%) | $+98/$+63 | $-114 | $-63 | 2 | $+583 | $+446 | fail | fail |
+| BA KEV E4W | 31 | 42% | $+26.48 | $+821 | $+13.24 | $+0.00 | 9/62 (15%) | $+476/$+345 | $-114 | $-63 | 3 | $+1160 | $+364 | fail | fail |
+| BA KEV S5 | 31 | 55% | $+8.66 | $+269 | $+4.33 | $+0.00 | 13/62 (21%) | $+187/$+81 | $-106 | $-63 | 0 | $+0 | $+307 | fail | fail |
+| BA NOT E3 | 235 | 72% | $+41.26 | $+9695 | $+156.38 | $+151.15 | 52/62 (84%) | $+4946/$+4750 | $-92 | $-72 | 3 | $+1259 | $+136 | PASS | fail |
+| BA NOT E4 | 235 | 61% | $+55.69 | $+13088 | $+211.09 | $+169.68 | 51/62 (82%) | $+6353/$+6735 | $-162 | $-70 | 11 | $+4941 | $+162 | PASS | PASS |
+| BA NOT E4W | 235 | 63% | $+76.26 | $+17922 | $+289.06 | $+259.18 | 53/62 (85%) | $+9510/$+8412 | $-145 | $-72 | 23 | $+9470 | $+317 | PASS | PASS |
+| BA NOT S5 | 235 | 72% | $+44.05 | $+10353 | $+166.98 | $+156.57 | 54/62 (87%) | $+5314/$+5039 | $-96 | $-72 | 3 | $+1259 | $+113 | PASS | fail |
+
+### W2 09:30-10:30  (RTH part flattens 15:45 ET live-parity; pre_reclaim flattens 09:25 ET)
+| cell | N | win% | $/trade | total | day mean | day med | green | halves | worst day | worst tr | HR>=250 | premium | maxDD | CONSIST | CONVEX |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| v2cal KEV E3 | 380 | 23% | $-6.44 | $-2448 | $-39.48 | $-36.43 | 13/62 (21%) | $-1681/$-767 | $-282 | $-64 | 1 | $+252 | $+2497 | fail | fail |
+| v2cal KEV E4 | 380 | 16% | $-6.76 | $-2571 | $-41.46 | $-46.34 | 11/62 (18%) | $-1778/$-793 | $-314 | $-51 | 4 | $+1378 | $+2604 | fail | fail |
+| v2cal KEV E4W | 380 | 11% | $-7.23 | $-2747 | $-44.31 | $-37.81 | 11/62 (18%) | $-1903/$-844 | $-389 | $-64 | 7 | $+2464 | $+3203 | fail | fail |
+| v2cal KEV S5 | 380 | 23% | $-6.66 | $-2530 | $-40.81 | $-39.59 | 13/62 (21%) | $-1697/$-833 | $-300 | $-64 | 1 | $+252 | $+2579 | fail | fail |
+| v2cal NOT E3 | 1826 | 31% | $+2.99 | $+5452 | $+87.94 | $-5.76 | 30/62 (48%) | $+2189/$+3263 | $-316 | $-177 | 9 | $+3316 | $+977 | fail | fail |
+| v2cal NOT E4 | 1826 | 24% | $+6.93 | $+12659 | $+204.17 | $+65.63 | 39/62 (63%) | $+5537/$+7121 | $-446 | $-118 | 30 | $+13106 | $+784 | fail | PASS |
+| v2cal NOT E4W | 1826 | 20% | $+12.83 | $+23423 | $+377.80 | $+345.93 | 44/62 (71%) | $+13238/$+10185 | $-832 | $-118 | 66 | $+27453 | $+1239 | fail | fail |
+| v2cal NOT S5 | 1826 | 31% | $+3.73 | $+6805 | $+109.76 | $+41.31 | 34/62 (55%) | $+3142/$+3663 | $-356 | $-177 | 9 | $+3316 | $+752 | fail | fail |
+| bandpass KEV E3 | 6 | 33% | $-45.89 | $-275 | $-4.44 | $+0.00 | 2/62 (3%) | $-335/$+59 | $-167 | $-167 | 0 | $+0 | $+335 | fail | fail |
+| bandpass KEV E4 | 6 | 33% | $-14.41 | $-86 | $-1.39 | $+0.00 | 2/62 (3%) | $-155/$+69 | $-66 | $-66 | 0 | $+0 | $+155 | fail | fail |
+| bandpass KEV E4W | 6 | 33% | $-40.68 | $-244 | $-3.94 | $+0.00 | 2/62 (3%) | $-254/$+10 | $-101 | $-101 | 0 | $+0 | $+254 | fail | fail |
+| bandpass KEV S5 | 6 | 33% | $-45.89 | $-275 | $-4.44 | $+0.00 | 2/62 (3%) | $-335/$+59 | $-167 | $-167 | 0 | $+0 | $+335 | fail | fail |
+| bandpass NOT E3 | 68 | 54% | $+9.47 | $+644 | $+10.39 | $+0.00 | 22/62 (35%) | $+281/$+362 | $-111 | $-113 | 0 | $+0 | $+182 | fail | fail |
+| bandpass NOT E4 | 68 | 41% | $+12.04 | $+819 | $+13.21 | $+0.00 | 21/62 (34%) | $+309/$+510 | $-140 | $-65 | 1 | $+331 | $+241 | fail | fail |
+| bandpass NOT E4W | 68 | 41% | $+49.90 | $+3393 | $+54.72 | $+0.00 | 21/62 (34%) | $+2012/$+1381 | $-133 | $-103 | 7 | $+3254 | $+247 | fail | PASS |
+| bandpass NOT S5 | 68 | 54% | $+14.66 | $+997 | $+16.08 | $+0.00 | 21/62 (34%) | $+463/$+534 | $-101 | $-113 | 0 | $+0 | $+200 | fail | fail |
+| BA KEV E3 | 100 | 46% | $+1.04 | $+104 | $+1.68 | $+0.00 | 21/62 (34%) | $+360/$-256 | $-152 | $-63 | 0 | $+0 | $+404 | fail | fail |
+| BA KEV E4 | 100 | 33% | $+1.11 | $+111 | $+1.78 | $+0.00 | 19/62 (31%) | $+380/$-270 | $-138 | $-63 | 3 | $+900 | $+483 | fail | fail |
+| BA KEV E4W | 100 | 31% | $+7.03 | $+703 | $+11.33 | $+0.00 | 19/62 (31%) | $+912/$-209 | $-204 | $-63 | 5 | $+1750 | $+855 | fail | fail |
+| BA KEV S5 | 100 | 46% | $+2.30 | $+230 | $+3.70 | $+0.00 | 22/62 (35%) | $+535/$-305 | $-152 | $-63 | 0 | $+0 | $+418 | fail | fail |
+| BA NOT E3 | 532 | 65% | $+31.36 | $+16685 | $+269.12 | $+269.22 | 55/62 (89%) | $+9300/$+7385 | $-121 | $-72 | 4 | $+1528 | $+121 | PASS | fail |
+| BA NOT E4 | 532 | 52% | $+39.21 | $+20861 | $+336.47 | $+306.21 | 54/62 (87%) | $+11324/$+9537 | $-203 | $-70 | 22 | $+8494 | $+203 | PASS | PASS |
+| BA NOT E4W | 532 | 54% | $+64.41 | $+34264 | $+552.64 | $+519.15 | 58/62 (94%) | $+17678/$+16586 | $-165 | $-72 | 49 | $+21868 | $+165 | PASS | PASS |
+| BA NOT S5 | 532 | 65% | $+33.73 | $+17944 | $+289.42 | $+301.33 | 56/62 (90%) | $+9857/$+8087 | $-121 | $-72 | 4 | $+1528 | $+121 | PASS | fail |
+
+(E3 reconciled to X.sim_var_live on 13884 RTH trades, max |diff| $0.0000)
+
+## SELECTION LIFT — $/trade Kev-shaped vs NOT (E3, and best exit for the Kev cell)
+| window | entry | KEV N | KEV $/tr (E3) | NOT N | NOT $/tr (E3) | lift $/tr | KEV best exit | KEV $/tr best | KEV day mean best |
+|---|---|---|---|---|---|---|---|---|---|
+| W1 07:00-10:00 | v2cal | 257 | $-7.40 | 1140 | $+5.43 | $-12.82 | E4W | $-6.07 | $-25.15 |
+| W1 07:00-10:00 | bandpass | 3 | $-49.94 | 43 | $+14.34 | $-64.28 | E4 | $-33.91 | $-1.64 |
+| W1 07:00-10:00 | pre_reclaim | 25 | $+7.82 | 71 | $+13.13 | $-5.31 | E3 | $+7.82 | $+3.15 |
+| W1 07:00-10:00 | BA | 31 | $+6.76 | 235 | $+41.26 | $-34.50 | E4W | $+26.48 | $+13.24 |
+| W2 09:30-10:30 | v2cal | 380 | $-6.44 | 1826 | $+2.99 | $-9.43 | E3 | $-6.44 | $-39.48 |
+| W2 09:30-10:30 | bandpass | 6 | $-45.89 | 68 | $+9.47 | $-55.36 | E4 | $-14.41 | $-1.39 |
+| W2 09:30-10:30 | BA | 100 | $+1.04 | 532 | $+31.36 | $-30.32 | E4W | $+7.03 | $+11.33 |
+
+## THE v2 TOLL QUESTION — Kev-shaped names, Kev window (07:00-10:00 = RTH 09:30-10:00), calibrated v2 flush
+  E3: N=257 $/trade $-7.40 -> DOES NOT EXCEED the ~$6 toll (win 23%, total $-1901)
+  E4: N=257 $/trade $-8.08 -> DOES NOT EXCEED the ~$6 toll (win 15%, total $-2077)
+  E4W: N=257 $/trade $-6.07 -> DOES NOT EXCEED the ~$6 toll (win 11%, total $-1559)
+  S5: N=257 $/trade $-7.25 -> DOES NOT EXCEED the ~$6 toll (win 23%, total $-1863)
+  (09:30-10:30 E3 for reference: N=380 $-6.44/trade)
+
+## PORTFOLIO — best entry per window on Kev-shaped names, 2 slots, live parity (B.pipeline H1-H4)
+| config | dates | N | day mean | day median | green | halves $/d | worst | 5-crit | HR>=250 | worst tr | maxDD | vs O-config +$156.76/+$130.35 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| W1 07:00-10:00 best=BA/E4W KEV-only 2-slot | 62d | 29 | $+14.08 | $+0.00 | 10/62 | $+15.36/$+12.80 | $-113.81 | FAIL | 3 | $-63 | $+364 | no |
+| W1 07:00-10:00 best=BA/E4W KEV-only 2-slot | 36d | 13 | $+10.49 | $+0.00 | 4/36 | $-3.55/$+24.52 | $-89.02 | FAIL | 1 | $-58 | $+128 | no |
+| W1 07:00-10:00 same BA/E4W NOT-Kev 2-slot | 62d | 131 | $+165.95 | $+133.23 | 48/62 | $+195.20/$+136.69 | $-106.01 | PASS | 14 | $-72 | $+197 | - |
+| W2 09:30-10:30 best=BA/E4W KEV-only 2-slot | 62d | 78 | $+13.97 | $+0.00 | 19/62 | $+27.72/$+0.21 | $-122.54 | FAIL | 5 | $-63 | $+664 | no |
+| W2 09:30-10:30 best=BA/E4W KEV-only 2-slot | 36d | 39 | $-5.51 | $-2.30 | 7/36 | $-16.78/$+5.76 | $-122.54 | FAIL | 1 | $-58 | $+605 | no |
+| W2 09:30-10:30 same BA/E4W NOT-Kev 2-slot | 62d | 170 | $+193.30 | $+173.73 | 50/62 | $+224.85/$+161.76 | $-157.07 | PASS | 18 | $-72 | $+236 | - |
+| JOINT (pre_reclaim E3 + BA/E4W W1 + BA/E4W W2) KEV-only 2-slot | 62d | 101 | $+16.69 | $+0.00 | 19/62 | $+30.02/$+3.35 | $-158.04 | FAIL | 5 | $-63 | $+522 | no |
+  (pre_reclaim slot key set to fill-time; pre trades are flat by 09:25 ET so they never occupy an RTH slot — disclosed)
+
+## HAND-TRACES — three Kev-pick name-days (fingerprint stamp + every in-window signal, E3 log)
+
+**SOBR 2026-07-15** (Kev pick) ref 1.2100; 08:00 stamp: spread 70 calm 141 gain +17% -> fail; 09:30 stamp: spread 62 calm 183 gain +38% -> PASS => KEV-SHAPED
+   pre_reclaim sig 11:10:50Z entry 1.5700 (fill 1.5857) stop 1.4500 -> E3 $-45.07 stop@11:12:40
+      11:12:40 STOP 1.4500 (low 1.4500) fill 1.4427 (315.3 sh)
+   v2cal sig 13:31:30Z entry 1.6200 (fill 1.6362) stop 1.5500 -> E3 $+133.30 trail@13:47:00
+      13:33:00 BANK 1/2 at +10% (1.7998)
+      13:47:00 TRAIL[t10_after] close 2.3568 fill 2.3450 hi 2.6300 (152.8 sh)
+   v2cal sig 14:00:00Z entry 2.2363 (fill 2.2587) stop 2.1300 -> E3 $-30.84 stop@14:00:50
+      14:00:50 STOP 2.1300 (low 2.1300) fill 2.1193 (221.4 sh)
+   v2cal sig 14:05:30Z entry 2.2000 (fill 2.2220) stop 2.1000 -> E3 $-29.82 stop@14:07:20
+      14:07:20 STOP 2.1000 (low 2.0900) fill 2.0895 (225.0 sh)
+   ...
+
+**NAMI 2026-08-07** (Kev pick) ref 7.2000; 08:00 stamp: spread 90 calm 225 gain -13% -> fail; 09:30 stamp: spread 80 calm 220 gain +27% -> PASS => KEV-SHAPED
+   v2cal sig 13:30:30Z entry 9.1000 (fill 9.1910) stop 8.8000 -> E3 $-23.66 stop@13:30:50
+      13:30:50 STOP 8.8000 (low 8.4301) fill 8.7560 (54.4 sh)
+   BA sig 14:25:50Z entry 6.3700 (fill 6.4337) stop 5.8500 -> E3 $-47.64 stop@14:39:40
+      14:39:40 STOP 5.8500 (low 5.8300) fill 5.8207 (77.7 sh)
+
+**AZI 2026-06-29** (Kev pick) ref 1.9000; 08:00 stamp: spread 0 calm 109 gain -6% -> fail; 09:30 stamp: spread 0 calm 56 gain -2% -> fail => NOT kev-shaped
+   v2cal sig 13:33:10Z entry 2.1100 (fill 2.1311) stop 2.0500 -> E3 $+103.01 trail@13:46:10
+      13:34:50 BANK 1/2 at +10% (2.3442)
+      13:46:10 TRAIL[t10_after] close 2.8101 fill 2.7960 hi 3.2099 (117.3 sh)
+   bandpass sig 13:37:20Z entry 2.5550 (fill 2.5806) stop 2.1000 -> E3 $+45.88 trail@13:46:10
+      13:40:00 BANK 1/2 at +10% (2.8386)
+      13:46:10 TRAIL[t10_after] close 2.8101 fill 2.7960 hi 3.2099 (96.9 sh)
+   v2cal sig 14:18:10Z entry 3.0599 (fill 3.0905) stop 2.9900 -> E3 $-18.68 stop@14:19:10
+      14:19:10 STOP 2.9900 (low 2.9900) fill 2.9751 (161.8 sh)
+   v2cal sig 14:24:10Z entry 3.0024 (fill 3.0324) stop 2.9201 -> E3 $-20.93 stop@14:26:00
+      14:26:00 STOP 2.9201 (low 2.9100) fill 2.9055 (164.9 sh)

@@ -1,6 +1,7 @@
 # CONVENING ARTIFACT — 8/18 FOUNDATION REBUILD SHIP
 
-covers: cabdbf9fc9b4 — the exact tree audited (101 commits, batches A–J, plus the audit-fix commit).
+covers: 84b1af121d79 — the exact tree audited (101 commits, batches A-J, the audit-fix
+commit, and the rig AN update that pins the corrected close_position auth spec).
 
 Audit run in a SEPARATE CONTEXT per `persona_blast_radius_auditor`. Verdict: **SHIP-WITH-CONDITIONS**.
 No blocker survived verification. Every candidate blocker the auditor raised was chased to source

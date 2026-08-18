@@ -1,6 +1,6 @@
 # CONVENING ARTIFACT — 8/18 FOUNDATION REBUILD SHIP
 
-covers: 84b1af121d79 — the exact tree audited (101 commits, batches A-J, the audit-fix
+covers: 7b6f77539e76 — the exact tree audited: 101 commits (batches A-J), the audit-fix commit, the rig AN spec update, the all-tape-lane chart counterfactual, gate 10 (extension blindness) and gate 11 (refusal attribution).
 commit, and the rig AN update that pins the corrected close_position auth spec).
 
 Audit run in a SEPARATE CONTEXT per `persona_blast_radius_auditor`. Verdict: **SHIP-WITH-CONDITIONS**.
@@ -81,7 +81,12 @@ calibrated for 10s buckets. flat_top's bar is **180s** wide, so its age sweeps 0
 `LANE_FIRE_AGE_GUARD=flat_top` would eat every fire landing past 90s into a bar. It must be
 `flat_top:300`+ from a measured distribution. This is why the stamps ship ON and the guards OFF.
 
-### DECISIONS RENDERED 8/18 (Marcos, walking the ten one at a time)
+### DECISIONS RENDERED 8/18 — ALL TEN (Marcos, walking them one at a time)
+
+**Outcome: every default stands.** Three needed no sign-off (formal no-ops or already-settled
+doctrine); seven Marcos affirmed after seeing the measured scope. NOTHING was changed as a
+result of this review — but two defects the audit missed were opened and pinned (gate 10:
+extension-guard blindness on 7 lanes; gate 11: 28 of 45 refusal statuses unattributable).
 
 | # | flag | outcome | basis |
 |---|---|---|---|
@@ -91,6 +96,17 @@ calibrated for 10s buckets. flat_top's bar is **180s** wide, so its age sweeps 0
 | 4 | `V2_CAP_ON_FILLS` | **ON (reaffirmed)** | Not a new policy — it enforces the SETTLED 7/29 ruling "a slot is spent by a TRADE, not an ATTEMPT" on three lanes never wired to `_slot_refund`. Measured 8/17: 46 `premarket_shadow_entry` non-trades consumed the caps; 47 `v2conv_capped` + 51 `grinder_capped` refusals followed, 16 of them in the 09:00 hour. Ledger row `cap_spent_by_trade_not_attempt` HOLDS. |
 
 | 5 | `DEDUPE_FIRES` + `MA_PULLBACK_DEDUPE` | **ON** | "Removes trades" is misleading. Measured 8/17: 210 `triggered_ma_pullback` rows over 123 distinct (ticker,price) setups — 87 rows (41%) are RE-EMISSIONS of an already-fired setup (YDES $3.2933 x40, GRNQ $8.94 x33). The mark is a MONOTONIC high-water per (day,lane,symbol) on the 10s bucket, so a genuinely new setup carries a later bucket and still fires; only re-detections of the SAME setup bar collapse. `DEDUPE_FIRES` covers the restart class — 8/17 had 5 `boot_config` rows and each boot replayed state over bars up to 6,960s old. |
+
+| 6 | `RTH_HANDOFF_MIN=5` | **ON** | Fix for the defect Marcos watched live 8/17: at 09:30:00 the session set flipped to RTH-only while ZERO completed RTH bars existed, so `_fresh_session` consumers got `[]` and 23/26 names were skipped 09:30–09:35 (WETO/FIEE/DFSC included) while their SIP PRE bars were seconds old. Widens WHICH of today's bars are visible, never HOW stale they may be. Ledger `bell_boundary_handoff_0817` HOLDS. NOTE: row counts in the bell window are NOT evidence for this defect — the failure was in the bar fetch, not in row emission. |
+| 7 | `KEV_ROAD` | **ON** | The ONLY item of the ten that can make the bot MORE selective. Converts "no marked target above entry → `above_all_levels` → automatic pass" into a measured RR against Kev's shadow ceiling, which can newly REJECT when that road is short. Serves `our_numbers_primacy_0812` (Kev answers "is there road beyond our map?", never replaces our levels). Scope: `runway_reject` 11–22/day all lanes; KEV_ROAD engages only where our map has no target and Kev's does. UNBACKTESTABLE for days ≤8/17 — no map snapshots. |
+| 8 | `KEVSEQ_FIRE_ON_CLOSE` | **ON** | `KEVSEQ_CONVERT=0` — verified, the lane does not trade, so this cannot change a fill. Fixes a level being reported as a traded price: WFF level $5.1329 vs traded $8.20 against a $4.80 stop = 6.49% stated risk vs 41.46% real, a 6.4× understatement. |
+| 9 | `KEVSEQ_SELF_FRONTSIDE` + `M1_WALLCLOCK` | **ON** | Also dark (`KEVSEQ_CONVERT=0`); `M1_WALLCLOCK`'s only consumer is the kevseq ctx block at :9391 — verified it does not leak to converting lanes. `count=50` bars was read as "50 minutes" but spanned 243 min on RBNE and 584 min on UUU. ~50 of 97 daily `front_side_unknown` refusals become fireable. |
+| 10 | `MANUAL_CLOSE` | **ON** | The only NEW machinery. Operator-initiated only; the bot never originates a request. 23 rig checks green (section AN): unreachable dashboard → NO close (fails CLOSED, opposite polarity to `_entries_paused`), 10-min TTL, request must post-date the position's entry, trade_id beats ticker, `_mclose_fired` set BEFORE the sell, exits through the SAME choke point as stop/flatten. Hardened tonight: poll 5s→15s, non-blocking cache lock, GET authed. |
+
+**OWED — #10 is UNEXERCISED.** `manual_close` has fired ZERO times in production (checked 8/17,
+8/14, 8/13). Everything above is rig-green against lifted code and a test client, not a real exit.
+Per `feedback_no_feature_ships_unexercised`, use it once on purpose tomorrow: open a position,
+close it from the dashboard, confirm the row and the fill.
 
 **Watch item carried from #4 (not a prediction, a thing to look at):** with caps counting fills,
 more triggers reach the order path, so the binding constraint moves from the cap ledger to

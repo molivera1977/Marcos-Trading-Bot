@@ -1,0 +1,95 @@
+{
+ "_defect": "detect_ma_pullback is a pure function of the bar slice with nothing marking the setup consumed, so entry type 2 pushed a FRESH trade candidate into `breakouts` \u2014 the whole downstream gate and trade path \u2014 once per scan cycle.",
+ "_source": "data/killtests/ma_pullback_dup_20260817.md",
+ "_repro": "rows: status=='triggered_ma_pullback' and ticker=='YDES'",
+ "ticker": "YDES",
+ "date": "2026-08-17",
+ "rows": 40,
+ "price": [
+  3.2933
+ ],
+ "ma_name": [
+  null
+ ],
+ "window": [
+  "12:53:02 PM",
+  "01:27:14 PM"
+ ],
+ "window_minutes": 34,
+ "times": [
+  "12:53:02 PM",
+  "12:53:50 PM",
+  "12:54:49 PM",
+  "12:55:38 PM",
+  "12:56:46 PM",
+  "12:57:34 PM",
+  "12:58:42 PM",
+  "12:59:31 PM",
+  "01:00:04 PM",
+  "01:01:00 PM",
+  "01:02:05 PM",
+  "01:03:02 PM",
+  "01:04:04 PM",
+  "01:05:01 PM",
+  "01:05:38 PM",
+  "01:06:30 PM",
+  "01:07:33 PM",
+  "01:08:11 PM",
+  "01:08:36 PM",
+  "01:09:24 PM",
+  "01:10:32 PM",
+  "01:11:02 PM",
+  "01:11:48 PM",
+  "01:12:45 PM",
+  "01:13:30 PM",
+  "01:14:39 PM",
+  "01:15:28 PM",
+  "01:16:40 PM",
+  "01:17:14 PM",
+  "01:18:03 PM",
+  "01:19:05 PM",
+  "01:19:53 PM",
+  "01:20:49 PM",
+  "01:21:38 PM",
+  "01:22:41 PM",
+  "01:23:29 PM",
+  "01:24:25 PM",
+  "01:25:17 PM",
+  "01:26:23 PM",
+  "01:27:14 PM"
+ ],
+ "gaps_secs_head": [
+  50,
+  60,
+  50,
+  65,
+  50,
+  65,
+  50,
+  30,
+  56,
+  70,
+  55,
+  60,
+  60,
+  35
+ ],
+ "day_totals": {
+  "ma_pullback_rows": 210,
+  "distinct_upper_bound": 123,
+  "duplication_factor": 1.71,
+  "pullback_first_suppress_rows": 210,
+  "ma_pullback_fills": 0
+ },
+ "grnq": {
+  "rows": 36,
+  "distinct_prices": [
+   8.94,
+   8.98,
+   9.44
+  ]
+ },
+ "scan_passes": 40,
+ "expect_fires": 1,
+ "negative_control": "MA_PULLBACK_DEDUPE=0 (or DEDUPE_FIRES=0) -> every pass emits -> 40 fires, the exact YDES row count."
+}

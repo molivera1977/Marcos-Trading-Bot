@@ -1,0 +1,82 @@
+{
+ "_defect": "'8/17 did X' is a statement about a bag of FIVE machines. A strategy result and a config change are indistinguishable in any aggregate that does not name its epochs.",
+ "_source": "data/audits/config_hash_20260817.md (python3 data/audits/config_epochs.py 2026-08-17)",
+ "date": "2026-08-17",
+ "mode": "INFERRED (pre-stamp day: boot_config-row segmentation)",
+ "epochs": [
+  {
+   "boot": 1,
+   "from": "03:55",
+   "to": "11:13",
+   "fire_rows": 203,
+   "fills": 5,
+   "top": {
+    "ma_pullback": 95,
+    "flat_top": 44,
+    "ignition": 31,
+    "vwap_reclaim_kev3gate": 13
+   }
+  },
+  {
+   "boot": 2,
+   "from": "11:13",
+   "to": "11:51",
+   "fire_rows": 25,
+   "fills": 0,
+   "top": {
+    "ma_pullback": 8,
+    "flat_top": 6,
+    "v2conv": 5,
+    "grinder": 3
+   }
+  },
+  {
+   "boot": 3,
+   "from": "11:57",
+   "to": "13:48",
+   "fire_rows": 83,
+   "fills": 2,
+   "top": {
+    "ma_pullback": 56,
+    "flat_top": 13,
+    "kevseq": 5,
+    "v2conv": 5
+   }
+  },
+  {
+   "boot": 4,
+   "from": "13:49",
+   "to": "13:56",
+   "fire_rows": 8,
+   "fills": 0,
+   "top": {
+    "grinder": 5,
+    "kevseq": 2,
+    "ma_pullback": 1
+   }
+  },
+  {
+   "boot": 5,
+   "from": "13:58",
+   "to": "15:26",
+   "fire_rows": 82,
+   "fills": 0,
+   "top": {
+    "ma_pullback": 50,
+    "flat_top": 11,
+    "kevseq": 7,
+    "v2conv": 5
+   }
+  }
+ ],
+ "total_fire_rows": 401,
+ "total_fills": 7,
+ "dominant_epoch": {
+  "boot": 1,
+  "fire_row_share_pct": 50.6,
+  "fills": 5,
+  "of_fills": 7
+ },
+ "expect": "rows carrying different config_hash values may not be aggregated without a MIXED-EPOCH (or named-hashes) declaration inside the doc's LIMITS/CAVEATS section",
+ "negative_control": "the same range doc with no declaration (or the declaration outside LIMITS) must FLAG"
+}

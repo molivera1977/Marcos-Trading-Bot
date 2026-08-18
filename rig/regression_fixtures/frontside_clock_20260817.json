@@ -1,0 +1,390 @@
+{
+ "_defect": "Our two 1-MINUTE front-side sources run on DIFFERENT CLOCKS. The caller's M1 REST fetch returns only TRADED minutes (50-bar cap, RTH-only), so on a thin name its '1-minute EMA20' spans hours; the self 10s->1m aggregate is a contiguous WALL-CLOCK grid. Same label, different time axis.",
+ "_source": "data/killtests/kevseq_frontside_tf_20260817.md + kevseq_frontside_sources_20260817.py",
+ "_note": "The 3-MINUTE premise handed over with this task was REFUTED against HEAD (SETUP_TF_MIN never reaches _ks_ctx['front_side']). Cost of the alleged tf defect: $0 / N=0. The CLOCK defect is the real one.",
+ "disagreements_n": 31,
+ "rows": [
+  {
+   "ticker": "RPGL",
+   "hm": "13:50",
+   "caller": false,
+   "caller_n": 49,
+   "self_agg": true,
+   "self_n": 63,
+   "time": "01:50:05 PM"
+  },
+  {
+   "ticker": "RBNE",
+   "hm": "13:50",
+   "caller": true,
+   "caller_n": 48,
+   "self_agg": false,
+   "self_n": 81,
+   "time": "01:50:05 PM"
+  },
+  {
+   "ticker": "DFSC",
+   "hm": "13:50",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 56,
+   "time": "01:50:06 PM"
+  },
+  {
+   "ticker": "RPGL",
+   "hm": "13:50",
+   "caller": false,
+   "caller_n": 49,
+   "self_agg": true,
+   "self_n": 64,
+   "time": "01:50:32 PM"
+  },
+  {
+   "ticker": "TRUG",
+   "hm": "13:50",
+   "caller": false,
+   "caller_n": 49,
+   "self_agg": true,
+   "self_n": 41,
+   "time": "01:50:32 PM"
+  },
+  {
+   "ticker": "IVF",
+   "hm": "13:50",
+   "caller": false,
+   "caller_n": 49,
+   "self_agg": true,
+   "self_n": 40,
+   "time": "01:50:33 PM"
+  },
+  {
+   "ticker": "DFSC",
+   "hm": "13:50",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 57,
+   "time": "01:50:33 PM"
+  },
+  {
+   "ticker": "RBNE",
+   "hm": "13:51",
+   "caller": true,
+   "caller_n": 48,
+   "self_agg": false,
+   "self_n": 82,
+   "time": "01:51:19 PM"
+  },
+  {
+   "ticker": "DFSC",
+   "hm": "13:51",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 58,
+   "time": "01:51:20 PM"
+  },
+  {
+   "ticker": "FXHO",
+   "hm": "13:52",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 92,
+   "time": "01:52:29 PM"
+  },
+  {
+   "ticker": "RBNE",
+   "hm": "13:52",
+   "caller": true,
+   "caller_n": 48,
+   "self_agg": false,
+   "self_n": 83,
+   "time": "01:52:29 PM"
+  },
+  {
+   "ticker": "DFSC",
+   "hm": "13:52",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 59,
+   "time": "01:52:29 PM"
+  },
+  {
+   "ticker": "CDTG",
+   "hm": "13:53",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 52,
+   "time": "01:53:21 PM"
+  },
+  {
+   "ticker": "FXHO",
+   "hm": "13:53",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 93,
+   "time": "01:53:22 PM"
+  },
+  {
+   "ticker": "RBNE",
+   "hm": "13:53",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 84,
+   "time": "01:53:23 PM"
+  },
+  {
+   "ticker": "CDTG",
+   "hm": "13:54",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 53,
+   "time": "01:54:26 PM"
+  },
+  {
+   "ticker": "FXHO",
+   "hm": "13:54",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 94,
+   "time": "01:54:27 PM"
+  },
+  {
+   "ticker": "RBNE",
+   "hm": "13:54",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 85,
+   "time": "01:54:27 PM"
+  },
+  {
+   "ticker": "YYAI",
+   "hm": "13:54",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 53,
+   "time": "01:54:28 PM"
+  },
+  {
+   "ticker": "CDTG",
+   "hm": "13:54",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 53,
+   "time": "01:54:55 PM"
+  },
+  {
+   "ticker": "FXHO",
+   "hm": "13:55",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 95,
+   "time": "01:55:44 PM"
+  },
+  {
+   "ticker": "TRUG",
+   "hm": "13:55",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 46,
+   "time": "01:55:45 PM"
+  },
+  {
+   "ticker": "RBNE",
+   "hm": "13:55",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 86,
+   "time": "01:55:45 PM"
+  },
+  {
+   "ticker": "PFSA",
+   "hm": "13:56",
+   "caller": false,
+   "caller_n": 49,
+   "self_agg": true,
+   "self_n": 68,
+   "time": "01:56:49 PM"
+  },
+  {
+   "ticker": "UUU",
+   "hm": "13:56",
+   "caller": true,
+   "caller_n": 39,
+   "self_agg": false,
+   "self_n": 155,
+   "time": "01:56:50 PM"
+  },
+  {
+   "ticker": "PFSA",
+   "hm": "13:57",
+   "caller": false,
+   "caller_n": 49,
+   "self_agg": true,
+   "self_n": 69,
+   "time": "01:57:20 PM"
+  },
+  {
+   "ticker": "TRUG",
+   "hm": "13:57",
+   "caller": false,
+   "caller_n": 49,
+   "self_agg": true,
+   "self_n": 48,
+   "time": "01:57:21 PM"
+  },
+  {
+   "ticker": "RBNE",
+   "hm": "13:57",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 87,
+   "time": "01:57:21 PM"
+  },
+  {
+   "ticker": "PFSA",
+   "hm": "13:58",
+   "caller": false,
+   "caller_n": 49,
+   "self_agg": true,
+   "self_n": 69,
+   "time": "01:58:05 PM"
+  },
+  {
+   "ticker": "TRUG",
+   "hm": "13:58",
+   "caller": false,
+   "caller_n": 49,
+   "self_agg": true,
+   "self_n": 48,
+   "time": "01:58:05 PM"
+  },
+  {
+   "ticker": "RBNE",
+   "hm": "13:58",
+   "caller": true,
+   "caller_n": 49,
+   "self_agg": false,
+   "self_n": 87,
+   "time": "01:58:06 PM"
+  }
+ ],
+ "specimen": {
+  "ticker": "RBNE",
+  "hm": "13:50",
+  "caller_n": 48,
+  "caller_window_et": [
+   "09:33",
+   "13:36"
+  ],
+  "caller_span_min": 243,
+  "caller_front_side": true,
+  "self_n": 81,
+  "self_window_et": [
+   "07:55",
+   "13:39"
+  ],
+  "self_front_side": false
+ },
+ "span_census": [
+  {
+   "sym": "UUU",
+   "sip_1m_bars_all_day": 54,
+   "max_self_n": 155,
+   "caller_span_min": 584
+  },
+  {
+   "sym": "RBNE",
+   "sip_1m_bars_all_day": 67,
+   "max_self_n": 87,
+   "caller_span_min": 246
+  },
+  {
+   "sym": "FXHO",
+   "sip_1m_bars_all_day": 73,
+   "max_self_n": 95,
+   "caller_span_min": 183
+  },
+  {
+   "sym": "PFSA",
+   "sip_1m_bars_all_day": 240,
+   "max_self_n": 69,
+   "caller_span_min": 58
+  },
+  {
+   "sym": "RPGL",
+   "sip_1m_bars_all_day": 236,
+   "max_self_n": 64,
+   "caller_span_min": 53
+  },
+  {
+   "sym": "DFSC",
+   "sip_1m_bars_all_day": 560,
+   "max_self_n": 59,
+   "caller_span_min": 52
+  },
+  {
+   "sym": "CDTG",
+   "sip_1m_bars_all_day": 347,
+   "max_self_n": 53,
+   "caller_span_min": 49
+  },
+  {
+   "sym": "YYAI",
+   "sip_1m_bars_all_day": 325,
+   "max_self_n": 53,
+   "caller_span_min": 58
+  },
+  {
+   "sym": "TRUG",
+   "sip_1m_bars_all_day": 656,
+   "max_self_n": 48,
+   "caller_span_min": 48
+  },
+  {
+   "sym": "IVF",
+   "sip_1m_bars_all_day": 646,
+   "max_self_n": 40,
+   "caller_span_min": 48
+  }
+ ],
+ "liquid_names": [
+  "IVF",
+  "TRUG",
+  "CDTG",
+  "DFSC",
+  "PFSA",
+  "RPGL",
+  "YYAI"
+ ],
+ "thin_names": [
+  "UUU",
+  "RBNE",
+  "FXHO"
+ ],
+ "caller_model_fidelity": "31/31 logged caller signs reproduced (RTH-only, last 50 M1, drop the in-progress bar) \u2014 the model is exact",
+ "knife_edge": {
+  "rows_within_0p25pct": 27,
+  "of": 31,
+  "note": "27 of 31 disagreements sit inside |EMA9-EMA20| <= 0.25% \u2014 a noise-dominated sample, which is why the source swap is a PROPOSAL"
+ },
+ "expect": "once a WALL-CLOCK window is applied to the caller's traded-minute list, the two 1-min sources cover the same elapsed window and the thin-name divergence collapses",
+ "wallclock_window_min": 50,
+ "front_side_sole_blocker_rows": 8,
+ "negative_control": "with NO wall-clock window the caller keeps all 48 bars spanning 243 min (RBNE) / 584 min (UUU) \u2014 a 20-bar 'EMA20' covering 9.7 hours"
+}

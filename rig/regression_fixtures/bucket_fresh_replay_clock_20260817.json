@@ -1,0 +1,40 @@
+{
+ "_defect": "_bucket_fresh compares the bar's bucket epoch to time.time(). In replay every bar is hours old, so the guard ate 100% of replayed fires and two lanes (hidden, zone_flip) were unreplayable \u2014 every study of them was structurally impossible.",
+ "_source": "data/killtests/harness_lift_remaining_20260817.md LANE 1",
+ "lane": "hidden",
+ "names": 13,
+ "date": "2026-08-17",
+ "fires_hook_disarmed": 0,
+ "fires_hook_armed": 424,
+ "live_fires": 226,
+ "harness_hook": "_BUCKET_NOW (module-level, MUST be None in the shipped source) or the _bucket_fresh(now=) argument; the harness sets it to last fed bar epoch + 10",
+ "cohort1_unchanged": {
+  "grinder": [
+   19,
+   6
+  ],
+  "bandpass": [
+   5,
+   4
+  ],
+  "prevwap": [
+   3,
+   3
+  ],
+  "v2": [
+   124,
+   84
+  ]
+ },
+ "ages_checked": [
+  0,
+  5,
+  30,
+  89,
+  91,
+  300,
+  3600
+ ],
+ "expect": "hook UNSET in the shipped source (a live process that sets it has moved its own clock); with now= supplied, an 8/17-aged bucket is FRESH relative to that clock",
+ "negative_control": "hook disarmed / now= omitted -> the same 8/17 buckets are hours stale against the real wall clock -> 0 fires across all 13 names"
+}

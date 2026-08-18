@@ -32,6 +32,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 FAILS = []
 
+# The tree batch G branched from (merge of agent/F, 2026-08-17) — the last commit in which
+# flat_top / crown_seam / halt_ladder had no fire bar.  Pinned, never HEAD-relative: see
+# SPEC_eg1_pins_flipped_for_a_real_reason.
+PRE_G = "3d60126"
+
 
 def check(name, cond, detail=""):
     print(("  OK   " if cond else "  FAIL ") + name + (f"  [{detail}]" if detail and not cond else ""))
@@ -164,11 +169,11 @@ def SPEC_eg1_pins_flipped_for_a_real_reason():
     lanes' (b) and (c) must be FALSE there and TRUE at HEAD. Without this, flipping a pin from
     OPEN to True is an unfalsifiable edit."""
     try:
-        # HEAD~1, not HEAD: spec_gate runs this file in TWO throwaway worktrees (one checked out
-        # at the parent, one at the commit). `HEAD` would mean a different tree in each, and in
-        # the commit worktree it would compare the commit against itself. HEAD~1 is the tree one
-        # step behind whatever is checked out, which is the comparison this control wants.
-        parent = subprocess.run(["git", "-C", ROOT, "show", "HEAD~1:marcos_trading_bot.py"],
+        # A PINNED SHA, not HEAD / HEAD~1. This control must name the exact pre-batch-G tree, or
+        # it stops meaning anything the moment another commit lands on top: HEAD~1 quietly
+        # becomes batch G itself and the control inverts. 3d60126 is the base batch G branched
+        # from (the agent/F merge) — the last tree in which none of these lanes had a fire bar.
+        parent = subprocess.run(["git", "-C", ROOT, "show", f"{PRE_G}:marcos_trading_bot.py"],
                                 capture_output=True, text=True, check=True).stdout
     except Exception as e:                                              # noqa: BLE001
         return check("parent source retrievable", False, f"{type(e).__name__}: {e}")

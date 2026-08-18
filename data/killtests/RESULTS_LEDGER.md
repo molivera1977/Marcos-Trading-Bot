@@ -1052,3 +1052,69 @@ trail exit c 8.73 vs run_hi 9.94 -> $+45.9624, grader and hand-replication match
 Plist exists + LOADED (launchctl list: com.marcos.tradingbot.shadowgrade, 23:00 daily).
 Rig: python3 rig/test_shipset_20260804.py ALL GREEN exit 0 (incl. AA-a..AA-d); 11 broader-sweep
 reds documented pre-existing at baseline, not this ship's. No push, no deploy.
+
+## 2026-08-17 CORRECTION — TRIGGER/FIRE COUNTS FOR 8/17 ARE INFLATED BY RESTART REPLAY
+_Appended, not edited. No prior row is rewritten; this row supersedes the counts in them._
+
+**THE DEFECT.** 8/17 carried FIVE `boot_config` rows (03:55:08, 11:13:32, 11:57:48, 13:49:15,
+13:58:54 ET). Each restart wipes the in-memory 10s bucket cursors and the detector state maps,
+so the deep-rehydrate path re-feeds the whole day's completed buckets and every 10s detector
+REPLAYS the day, re-emitting historical fires as fresh decision rows. Signature: RBNE
+`grinder_shadow_fire` logged at 11:06:49 / 11:14:25 / 12:01:27 / 13:50:05 / 13:59:41 — all five
+carrying `seq=0` and `mins_since_1030=35`, i.e. the detector's own per-day fire counter back at
+ZERO and the same 11:05 bar re-fired, each 45s–3min after a boot row.
+
+**SCOPE, MEASURED.** 100% of the duplicates in the cursor-fed 10s lanes are CROSS-RESTART; ZERO
+occur within a single process life. DETECTOR STATE was genuinely re-derived — this is NOT a
+logging echo over a correct state — and on the conversion lanes a replayed bar was CONVERTED
+(`triggered_grinder` rows carry `fire_age_s` of 6960.2s, 2394.7s, 2264.8s, 1975.6s).
+
+| lane / row | logged rows | DISTINCT fires | inflation | note |
+|---|---|---|---|---|
+| grinder_shadow_fire | 66 | **53** | +13 | all 13 cross-restart |
+| v2_shadow_fire | 164 | **150** | +14 | all 14 cross-restart |
+| bandpass_shadow_fire | 9 | **8** | +1 | cross-restart |
+| hidden / reclaim / kevseq / prevwap / zoneflip / seam shadow | 226 / 61 / 23 / 3 / 3 / 4 | same | 0 | protected by the existing `_bucket_fresh` guard |
+| triggered_* (all lanes) | **401** | **≤399** | ≥2 | see below |
+| all fire+trigger rows | 960 | **843** | 117 | 28 of the 117 are cross-restart replay |
+
+**THE CORRECTED 8/17 TRIGGER TOTAL.** The quoted **401** is the raw `triggered_*` row count. Of
+those, `triggered_flat_top` carries 2 within-cycle repeats → **399 distinct triggers is the
+defensible figure**, and it is an UPPER bound, because `triggered_ma_pullback` (210 rows) collapses
+to at most **123** distinct (ticker, price) pairs — two names alone, YDES at $3.2933 and GRNQ at
+$8.94, account for 73 rows re-logged once per ~60s scan cycle. That collapse is a SEPARATE and
+still-undiagnosed inflation: it is entirely WITHIN a process life, so it is NOT the restart-replay
+defect, and it cannot be resolved from the archive alone because ma_pullback rows carry no bucket
+stamp. **If those 87 repeats are logging, the true trigger total for 8/17 is 312.** Range therefore:
+**312 ≤ distinct 8/17 triggers ≤ 399**, and 401 should not be quoted again in either case.
+
+**EARLIER DAYS.** Any prior ledger entry or artifact quoting a trigger/fire count for a day with
+more than one `boot_config` row carries the same inflation, in proportion to its restart count.
+Those days have NOT been re-counted here. The check is one query: count `boot_config` rows for the
+date; if > 1, the lane counts are upper bounds.
+
+**FIXED FORWARD (built + rig-proven 8/17, NOT deployed).** `_fire_once` — a monotonic, persisted
+per-(day, lane, symbol) high-water mark of the last bucket epoch that emitted — makes a bucket
+emit at most once, ever. Bars still feed the detectors unchanged (cursor seeding was considered
+and REJECTED at marcos_trading_bot.py:4995 and that ruling stands: replay is needed to rebuild
+state). Kill switch `DEDUPE_FIRES=0`; every rejection logs `replay_fire_suppressed`.
+Acceptance: `rig/test_gates_20260817.py::SPEC_fire_hwm_dedupe` (proven to FAIL at the parent).
+
+**KNOCK-ON — HARNESS PARITY.** Every parity rate ever measured was computed against these inflated
+denominators and is therefore UNDERSTATED. `data/killtests/harness_parity.json` records the numbers
+as measured (grinder 9.1%, kevseq 30.4%, bandpass 44.4%, v2 51.2%, prevwap 100%) together with the
+distinct counts, and gate EG2b now refuses any artifact dated 8/18+ that grades a sub-90% lane
+without stating its parity. True equivalence testing begins with **2026-08-18** rows, the first to
+carry the A2 provenance stamps (`fire_k`, `fed_k0`, `fed_k1`, `fed_n`).
+
+Commands that reproduce every number above:
+```
+python3 - <<'PY'
+import json,collections
+a=json.load(open('data/killtests/exit_params_our_fires_20260817_arch.json'))['rows']
+print(collections.Counter(r['status'] for r in a if r.get('status')=='boot_config'))
+print(len([r for r in a if str(r.get('status','')).startswith('triggered_')]))
+PY
+python3 data/killtests/harness_parity_v2_20260818.py 2026-08-17 \
+  data/killtests/exit_params_our_fires_20260817_arch.json data/killtests/bars10s_0817_full   # exits 2: unstamped day
+```

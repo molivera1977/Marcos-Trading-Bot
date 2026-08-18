@@ -1,295 +1,156 @@
-covers: 1a5e42f0a54e
-# BLAST RADIUS CONVENING — 8/17 BATCH 5 (kevseq front-side source audit + M1 wall-clock window class)
+# CONVENING ARTIFACT — 8/18 FOUNDATION REBUILD SHIP
 
-Auditor: Blast Radius Auditor (separate context). Tree audited: **`1a5e42f`** (tip), working tree
-**CLEAN** (`git status --porcelain` empty, verified this turn). Prior tip `6d66b86` was audited
-GREEN in the batch-4 convening (`8a18da0`); that verdict stands and is not re-opened.
+covers: cabdbf9fc9b4 — the exact tree audited (101 commits, batches A–J, plus the audit-fix commit).
 
-Clock: `date` run this turn → **Mon Aug 17 15:20:37 EDT 2026** (~35 min to the close).
-Position state per the brief: **NIVF OPEN**; the restart resumes it. Flat-book gate remains
-waived by Marcos (batch-4 waiver, recorded not re-litigated) — §6 is the safety proof it demands.
-
-Commits in scope (`git log --oneline 8a18da0..HEAD`, run this turn):
-
-| commit | what | money? |
-|---|---|---|
-| `9feff24` | kevseq day-gain floor sweep — NO SHIPPABLE THRESHOLD | **no** (doc/killtest only, 0 lines of `marcos_trading_bot.py`) |
-| `b78a3ef` | front-side timeframe: alleged 3-min defect REFUTED; 1-min pinned + 3-min stamped | **no** (observability) |
-| `1fd978f` | correction: 3-min premise FALSE; real defect = traded-minute vs wall-clock clocks; the switch built on the false premise REMOVED | **no** (observability) |
-| `1a5e42f` | `_wallclock_window()` + kevseq caller front-side windowed to 50 wall-min (`M1_WALLCLOCK=1`) | **YES — the one behavior change** |
-
-Whole-batch file census (`git diff --stat 8a18da0..HEAD`): 12 files, and the only executable
-production file is `marcos_trading_bot.py` (+116/−6). `screener_app.py`, `newcomer_vision_reader.py`,
-recorder/capture services: **untouched**.
-
-## VERDICT: **GREEN** — no blocker. Deploy may proceed on Marcos's word.
+Audit run in a SEPARATE CONTEXT per `persona_blast_radius_auditor`. Verdict: **SHIP-WITH-CONDITIONS**.
+No blocker survived verification. Every candidate blocker the auditor raised was chased to source
+and **refuted by execution**, listed below so the refutations reach the ledger rather than dying in
+a transcript (`feedback_refutation_must_reach_ledger`).
 
 ---
 
-## 1. THE FALSE PREMISE — independently re-verified, not taken on trust
+## 1. Refuted blockers (each chased, each dead)
 
-The handed-over claim ("the kevseq caller supplies `aggregate_bars(..., SETUP_TF_MIN)` = a 3-MIN
-front side") is **FALSE against this tree**, confirmed by my own read, not by the commit message:
-
-- **(a) No 3-min value governs anything.** Every occurrence of the 3-min computation in the kevseq
-  block (`grep -n "_ks_fs_3m|_ks_c3|_ks_e93|_ks_e203|front_side_3m"`, run this turn) is:
-  `:8454` init to `None` · `:8461-8468` compute inside its own `try/except` · `:8504` and `:8547`
-  passed to `_log_decision` as a stamp. **Zero reads back into `_ks_ctx`.** The only two writes to
-  `_ks_ctx["front_side"]` are `:8483` (caller M1) and `:8492` (self 10s→1m). Rig **TF-a/TF-b/TF-d**
-  pin exactly this; both are executed pins, and I re-derived the same result by grep independently.
-- **(b) `KEVSEQ_FRONTSIDE_1M` is REMOVED, not defaulted off.** `grep -rn "KEVSEQ_FRONTSIDE_1M\|frontside_1m"`
-  over the whole tree returns **only** rig line `3218-3219` — the pin **TF-e** asserting the string is
-  absent from the bot source. No env var, no constant, no boot_config key, no dead branch.
-- **(c) `b78a3ef` + `1fd978f` are observability-only.** `git diff 9feff24..1fd978f -- marcos_trading_bot.py`,
-  comments stripped, is exactly: three new local inits (`_ks_fs_3m`, `_ks_fs_caller`, `_ks_self_fs`/`_ks_self_n`
-  hoisted), the 3-min stamp block, the chained assignment `_ks_ctx["front_side"] = _ks_fs_caller = bool(...)`
-  (same RHS, same target, plus a capture), five new kwargs on two `_log_decision` calls, one new
-  `boot_config` kwarg. **Precedence unchanged** (`:8489` self only when caller is `None` — TF-k),
-  **fail-closed unchanged** (`:6665-6667` `kevseq_step` still refuses on `None` — TF-l), and **no
-  dollar path byte differs.** The one semantic risk in a hoist — `_ks_self_fs` being read before
-  assignment on a partial cycle — is closed by the pre-init at `:8455` and pinned by **TF-g**.
-
-**Doctrine note (Skepticism Needs Verification Too):** the agent wrote REFUTED and *did* name and run
-the check (`kevseq_frontside_sources_20260817.py`, caller sign reproduced 31/31, output committed).
-The law is satisfied; the reversal of the auditor's own prior framing inside `1fd978f` is the correct
-shape (ledgered correction, not a silent edit).
-
----
-
-## 2. THE ONE BEHAVIOR CHANGE — `_wallclock_window` (1a5e42f)
-
-`_wallclock_window(bars, minutes)` at `:4488`, sole call site `:8479`.
-
-### 2.1 Liquid-name byte-equivalence — pinned AND reasoned
-Rig **M1W-a** pins it on a dense 50-bar fixture. I also **executed the helper myself** (exec'd from
-source, ring 1) and reasoned the invariant independently:
-
-anchor = `bars[-1].time`; cutoff = anchor − 50 min; a bar is kept iff `ts >= cutoff` (inclusive).
-A dense N-bar list has `bars[0] = anchor − (N−1)` min, so for any N ≤ 51 **every** bar satisfies
-`ts >= cutoff`. Order is preserved and the same dict objects are appended. My executed probe:
-`dense 50 → identical: True, elementwise-identity: True`; `dense 51 → 51 kept`. The window can only
-bite when span > count, i.e. exactly where the old code was wrong. **Liquid names: byte-equivalent.**
-
-### 2.2 Short-after-window takes the EXISTING fail-closed path
-`:8480` `if len(_ks_1m) >= EMA20_PERIOD + 2:` is **unchanged** — the window sits strictly upstream of
-it. Windowed-short ⇒ `front_side` stays `None` ⇒ `KEVSEQ_SELF_FRONTSIDE` fallback (`:8489`) ⇒ if self
-is also short, `None` ⇒ `kevseq_step` appends `front_side_unknown` and **refuses** (`:6667`).
-Nothing computes an EMA on a truncated list. Pinned **M1W-c** (executes the same `len()` gate),
-**FS-j/TF-l/TF-o** (fail-closed), **TF-n** (self fills in only when the caller is short).
-
-### 2.3 Fail-safes — executed by me, not just read
-| case | result (my executed probe) |
+| candidate | how it died |
 |---|---|
-| unparseable anchor | list returned **unchanged** ✔ (M1W-g) |
-| unparseable interior bar (`"junk"`, `None`, `{}`) | **dropped**, no raise → `[17:00, 17:40]` ✔ fail-closed |
-| `bars=None` / `[]` / `minutes=0` | `[]` / `[]` / list unchanged, never raises ✔ (M1W-h) |
-| thin RBNE-class (48 bars over 243 min) | 24 survive ✔ |
-| non-dict bars (tuples) | raises `AttributeError` — **see finding F1 below** |
+| `_vol_cap` NameError on the fail-closed volguard path | `_vol_cap = None` initialized at :14107, before the try; `None == 0` is False, so :14156 is inert by default |
+| `_hl_src` used before definition in the halt_ladder stamps | defined :9678, used :9712/:9733 |
+| `_bucket_fresh`'s new 4th param breaking positional callers | all 6 call sites are keyword-only |
+| boot crash on missing/corrupt `fire_hwm.json` | full module exec under a temp path: `BOOT_OK`; missing → `_fire_once` True; corrupt JSON → True (degrades open) |
+| signature changes (`check_momentum`, `bandpass_step`, `kev_zoneflip_step`, `_marked_runway`) | all defaulted; every call site grepped; none broken |
+| twins (resumed vs fresh monitor path) | `monitor_trade` is ONE function; the resumed path (:3179) calls it, so MANUAL_CLOSE covers resumed positions |
+| logging able to gate | `_gate_blind` → `_log_decision` try/except-wrapped at both levels; no recursion path; `_map_snapshot` TTL-checks before any network |
 
-**F1 (INFORMATIONAL, not a blocker):** the helper's `except (ValueError, TypeError)` does not cover
-`AttributeError`, so a non-dict bar list would raise. **Unreachable at the only call site**: `bars` =
-`cache[t]["bars"]`, filled at `:8119` from `_fresh_session(get_intraday_bars(...))`, which itself calls
-`.get()` on the elements — dicts by construction. And the entire kevseq ctx block sits inside
-`try:` `:8452` … `except Exception: pass` at **`:8604`** (matching-indent scan, verified this turn),
-so **no exception can escape into the scan loop** under any input. Rail 3 satisfied. Widening the
-tuple to include `AttributeError` is a one-word hardening for a future call site, not owed tonight.
+## 2. Findings FIXED in this commit (all exercised, not just written)
 
-### 2.4 Anchoring + `_fresh_session` ordering
-Anchor is `bars[-1]["time"]` — **the newest bar's own timestamp, never `now()`** (read at `:4498`,
-docstring says the same and the code agrees). Staleness and the day boundary remain `_fresh_session`'s
-job, and it runs **first**: `:8119` `cache[t]["bars"] = fresh` is assigned **only if** `_fresh_session`
-returned non-empty, and `_fresh_session` enforces today-only + ≤900 s newest bar. So the window can
-never straddle a session boundary — it operates on an already-today-trimmed list. Sole windowed site,
-so "every windowed site" is that one site. ✔
+1. **Fire-HWM did not survive a redeploy.** The 8/17 restart-replay fix persisted marks to the
+   bot's local `data/fire_hwm.json` — but the bot has no `/data` volume (`screener_app.py:1362`
+   states this outright for open positions). An in-place restart kept the file; a **redeploy wiped
+   it**, and the deploy shipping the fix is itself a redeploy. The duplicate-fire defect was
+   therefore fixed for only half its cases. Marks now live on the **dashboard volume** via a new
+   authed `GET/POST /api/fire_hwm` with a **monotonic merge** (a lower mark can never un-suppress a
+   bucket that already fired) and same-day-only keys (no cross-day suppression, bounded file).
+   *Proof:* a live in-process dashboard + a simulated redeploy on an empty filesystem — the
+   duplicate is suppressed, a genuinely new bucket still fires, and a dead dashboard degrades OPEN.
+2. **The volume push sat inside the fire path** — up to 5s of network between signal and order on a
+   momentum entry. Now async on a daemon thread; the boot pull moved out of the lock-held path into
+   `_fire_hwm_rehydrate()`, called beside `_leader_rehydrate()`.
+3. **`/api/close_position` GET was unauthenticated** on a public URL, exposing pending-close intent
+   on a *selling* endpoint. Both verbs authed. A 401 lands in the bot's except branch → `[]` →
+   **fail-closed**: an auth break can never cause a sale.
+4. **`_mclose_cache` was unguarded shared state** across every monitor thread, on the sell path.
+   Non-blocking lock: the winner fetches, everyone else takes the cached value — no monitor thread
+   ever queues behind a 3s urlopen.
+5. **`MANUAL_CLOSE_POLL_S` 5 → 15.** 5s × 6–8 position threads was ~1.6 req/s at the screener, and
+   a hung dashboard could stall a monitor loop 3s per window. A manual close is a human action.
+6. **`_blind_lane` was set and never cleared** — later blind rows inherited the previous fire's
+   lane. Now time-stamped, 30s TTL. A blank attribution beats a wrong one, since the whole point of
+   the field is to say which fire paid.
+7. **volguard-closed refuse path** released the held-lock without `trade_lock`, unlike every sibling
+   refuse path. Locked (mirrors minstop).
 
-### 2.5 Kill switch
-`M1_WALLCLOCK=0` restores the raw list at the call site (`:8479-8480`, structural — pinned M1W-e);
-`KS_FS_WALLCLOCK_MIN` env-tunable; both stamped in `boot_config` at `:12439` with `setup_tf_min`
-(M1W-d/f, TF-i). One switch for the whole class, matching the lane-registry precedent.
+## 3. BEHAVIOR CHANGES — MARCOS'S CALL, NOT THE AUDITOR'S
 
----
+Per `feedback_auditor_cannot_authorize_behavior`, the auditor closed holes in approved behavior and
+**cleared none of these**. Ten defaults in this batch change money decisions. Priced against what
+actually converts today (`GRINDER_CONVERT=1`, `SEAM_CONVERT=1`, `FLATTOP_BREAK_ATTACK=1`; kevseq /
+v2 / bandpass / prevwap / halt-lane all 0):
 
-## 3. CENSUS INTEGRITY — verified against the diff, not the doc
+| # | flag (default) | what it changes | converting lanes hit |
+|---|---|---|---|
+| 1 | `LANE_REGISTRY_EXEMPT=1` | chart_break_gate bypass 3 lanes → 12 | **grinder, crown_seam** |
+| 2 | `LANE_REGISTRY_EXEMPT=1` | extension-guard exempt 7 → 14 | **grinder, crown_seam** |
+| 3 | `TAPE_LANE_SCALAR_EXEMPT=1` | momentum veto bypassed for 5 lanes; kill-test cited is **N=1, +$25.14** | **grinder** |
+| 4 | `V2_CAP_ON_FILLS=1` | daily cap counts fills, not attempts → strictly more trades/day | **grinder** |
+| 5 | `DEDUPE_FIRES=1`, `MA_PULLBACK_DEDUPE=1` | **removes** trades (a fired bucket can't re-fire) | grinder, ma_pullback |
+| 6 | `RTH_HANDOFF_MIN=5` | 09:30–09:34 fetches `[PRE,RTH]`, not RTH-only | all |
+| 7 | `KEV_ROAD=1` | `_marked_runway` may return RR off `kev_road_max` | all |
+| 8 | `KEVSEQ_FIRE_ON_CLOSE=1` | fires at bar close, not setup high | shadow only |
+| 9 | `KEVSEQ_SELF_FRONTSIDE=1`, `M1_WALLCLOCK=1` | ~50 of 97 daily `front_side_unknown` refusals become fireable | shadow only |
+| 10 | `MANUAL_CLOSE=1` | a **new exit path that sells** (fail-closed, TTL + entry-ts double guard) | all |
 
-Diff hunk ranges for `marcos_trading_bot.py` (`git diff 8a18da0..HEAD | grep ^@@`, this turn):
-**4485 · 6452 · 6530 · 8451 · 8500 · 8544 · 12436**.
+**Verified NOT money (observability only):** `MAP_STAMP`, `IGNITION_G1_SHADOW`, `CROWN_FIX_0817`,
+`SCAN_CYCLE_TIMING`, `GATE_BLIND_ROWS_MAX`, `REREAD_ON_REJECT`, `FIRE_HWM_PATH`, and — after tracing
+its only consumer at :3650, which logs `veto_noted_not_gating` and gates nothing — `KEV_VETO_READ`.
+**Verified default-OFF:** `GATE_FAIL_CLOSED`, `LANE_FIRE_AGE_GUARD`, `KEVSEQ_LIMIT_ENTRY`,
+`KEVSEQ_MAX_DRIFT`, `KEVSEQ_FIRE_MAX_AGE_S`.
 
-The five FLAGGED-not-touched sites at their **current** line numbers (`grep -n get_intraday_bars`):
+**Flagged for the day it arms:** `LANE_FIRE_AGE_GUARD` measures against `CURL_FIRE_MAX_AGE_SECS=90`,
+calibrated for 10s buckets. flat_top's bar is **180s** wide, so its age sweeps 0→180s. A bare
+`LANE_FIRE_AGE_GUARD=flat_top` would eat every fire landing past 90s into a bar. It must be
+`flat_top:300`+ from a measured distribution. This is why the stamps ship ON and the guards OFF.
 
-| site | current line | inside any hunk? |
-|---|---|---|
-| `check_momentum` count=390 | **4199** | NO (before 4485) |
-| `_vride_defer` count=VELO_BARS+2 | **9989** | NO |
-| `monitor_trade` bars fetch | **11146** | NO |
-| volume-sizing guard count=6 | **13173** | NO |
-| universal liquidity count=30 | **13261** | NO |
+## 4. DAY-ONE WALKTHROUGH — first specimen, end to end
 
-**None is touched.** Rationale accepted as recorded: three have FAIL-OPEN insufficient-data paths, so
-windowing would make them *more* permissive on thin names (a money loosening — auditor cannot
-authorize); two are position-open paths. **Marcos has ruled: leave all five alone.** Honored.
+**Mechanism traced: the durable fire-HWM, through tomorrow's 03:55 boot.**
+Boot prints the config banner → `_leader_rehydrate()` → `_fire_hwm_rehydrate()` GETs
+`/api/fire_hwm`; on a fresh trading day the volume holds no `2026-08-18|…` keys, so it prints
+`0 durable mark(s) restored` and proceeds — **the empty case is the expected first outing, not a
+failure.** First grinder fire of the session: `_fire_once("grinder", SYM, k)` finds no mark →
+returns True → the entry proceeds → `_fire_hwm_save()` writes locally and pushes async. Within ~1s
+the dashboard volume holds `2026-08-18|grinder|SYM`. If the bot restarts *or is redeployed* later
+that day, the boot pull restores the mark and that bucket cannot fire twice.
+**What would stop it:** `SCREENER_URL` unset, or the dashboard unreachable at boot — in which case
+the banner prints the explicit `⚠️ fire-HWM rehydrate failed … running on the local belt only`
+warning. That warning line is the day-one check; the duty watch reads it at 07:12.
+**Second specimen — MANUAL_CLOSE at the new 15s cadence:** a close posted at T is picked up within
+15s, matched by trade_id (or ticker) with the entry-ts guard, and exits the full remaining position
+through the same choke point as the stop. The observable is one `manual_close` row.
 
-**No other consumer of `cache[t]["bars"]` was silently altered.** The full census of that key is three
-lines: `:8122` (write), `:8204` (`bars = cache[t]["bars"]`, the read the kevseq block uses), and a
-comment at `:6552`. Downstream of `:8204`, `bars` also feeds `cache[t].get("full_bars") or bars`
-fallbacks at `:8463/:8708/:9035/:9109/:9131` — **all of those receive the RAW `bars`**, not `_ks_1m`;
-the window result is bound to a fresh local (`_ks_1m`) and never written back to the cache. Rig
-**M1W-j** pins exactly one call site; I re-derived the same count independently.
+## 5. DOCTRINE-INVERSION SWEEP
 
-**Census-doc nit (no action):** `m1_wallclock_20260817.md` cites pre-edit line numbers (:9930, :11087,
-:13113, :13201) that this batch's own insertions have shifted by ~60 lines. The *identities* are right;
-only the citations drift. Noted so a future reader greps rather than jumps.
+**Doctrine touched: yes** — `LANE_REGISTRY_EXEMPT` inverts *who is exempt from the chart gate* from
+a hand-written literal to a registry-derived set, and `V2_CAP_ON_FILLS` inverts *what a daily cap
+counts* from attempts to fills. Both are enumerated in §3 as Marcos's call, un-cleared.
+Sweep of places encoding the OLD doctrine: the legacy literal `_MOMENTUM_LEGACY_EXEMPT` still
+exists and is still consulted (`:14246`) — it is now the *filter* that keeps `check_momentum`
+byte-for-byte identical, i.e. deliberately retained, not stale. `TAPE_SCALAR_EXEMPT_LANES` is the
+separate path for tape lanes. No third copy of the exempt set exists (grepped). The old hard-09:30
+session flip survives only as the `RTH_HANDOFF_MIN=0` kill switch. **No orphaned encodings of a
+repealed premise found** — the 8/5 skip-if-kev-levels class does not recur here.
 
----
+## 6. ROLL CALL — every office on ROSTER.txt
 
-## 4. RESTART SEMANTICS
-No new durable state. `_wallclock_window` is pure; the new locals live one cycle; the stamps are log
-kwargs. `_ks_1m_agg` (batch-4) is unchanged and rebuilds from live tape within a cycle. A restart with
-`M1_WALLCLOCK=1` simply re-applies the window on the next refresh. `M1_WALLCLOCK=0` needs no state
-unwind — it is a read-time branch.
+- **Blast Radius Auditor** — TOUCHED. Ran the audit; 7 findings fixed, 10 behavior changes escalated to Marcos rather than cleared. Refused to authorize any default.
+- **Dashboard Curator** — TOUCHED. Two new endpoints (`/api/fire_hwm` GET/POST) and an auth change on `/api/close_position` GET; dashboard JS already sends `?key=`, so no cockpit regression. Verified by test client.
+- **Systems Quant** — TOUCHED. Harness parity is the open number: grinder 9%, kevseq ungradable, v2 51%; only prevwap/zone_flip/flat_top (N=3) and hidden (86%) approach the 90% bar. No backtest re-run is authorized on this parity.
+- **Pit Crew Chief** — TOUCHED. Hot-loop cost measured, not estimated: ~25ms/cycle on a 25-name roster; no file I/O, network, or O(n²) added inside the scan loop. The 85–195s latency is untouched and remains open.
+- **Integrator** — TOUCHED. Branches G/H/I merged, one real conflict in the shipset exec namespace resolved by taking G's superset. `agent/J` empty. All 8 rigs re-run post-merge.
+- **Side Marshal** — CLEAN. No front/back-side gate semantics changed; `KEVSEQ_SELF_FRONTSIDE` alters the kevseq front-side *computation* but the lane does not convert.
+- **Crown Steward** — CLEAN. `CROWN_FIX_0817` verified observability-only. Crown privileges unchanged.
+- **Feed Engineer** — TOUCHED. `RTH_HANDOFF_MIN=5` changes which bars the first five minutes see; that is the bell-boundary fix and is listed as a behavior change (§3 #6).
+- **Webull Broker Desk** — CLEAN. No broker, token, or BP path touched. Token re-mint ~8/23 unaffected.
+- **Quartermaster** — TOUCHED, and this convening is where the office earned its keep: the fire-HWM durability hole is precisely a *storage-survives-a-deploy* question. Volume-vs-ephemeral now explicit in code comments. Restore drill still owed (task #50).
+- **Kev Librarian** — CLEAN. Corpus, sweep, and vision pipeline untouched; `KEV_VETO_READ` traced and found inert.
+- **First Hour** — TOUCHED. The 09:30–09:34 handoff window is a first-hour change; attribution rows now carry lane labels that expire rather than mislead.
+- **Opening Bell** — TOUCHED. Same handoff seam; frozen-clock coverage at the boundary is pinned in the regression corpus (I4).
+- **Seam Scientist** — CLEAN. crown_seam gains stamps only; the seam research program is unaffected. Note: crown_seam converts and is hit by §3 #1/#2.
+- **Strength Ombudsman** — TOUCHED and *supportive*: items §3 #1–#4 all widen rather than narrow. The office's standing complaint is refusing strength; this batch errs the other way, which is why it needs Marcos's price, not a veto.
+- **Forward Architect** — TOUCHED. Flagged the 90s-vs-180s threshold mismatch before it could arm (§3 note) — an improvement nobody asked for, caught pre-ship.
+- **Momentum Operator** — TOUCHED. `TAPE_LANE_SCALAR_EXEMPT` bypasses the momentum veto for grinder on an **N=1** kill-test. Standing objection recorded: N=1 is not evidence.
+- **Trade Manager** — TOUCHED. MANUAL_CLOSE is a new selling path; double-guarded (10-min TTL + entry-ts), fail-closed, and now polled at 15s.
+- **Tape Veteran** — CLEAN. No tape-reading semantics changed.
+- **Reclaim Architect** — CLEAN. prevwap gains stamps; the lane does not convert.
+- **Execution Surgeon** — TOUCHED. Removed up to 5s of network from the fire path (§2 #2) — the office's core concern, signal-to-order latency.
+- **Handicapper** — CLEAN. No sizing or ranking math changed. Sizing chain (risk → 70%/$1000 → 5%-of-volume) untouched.
+- **Rocket Rider** — CLEAN. hidden/rocket lanes gain a price stamp only; `hidden_shadow_fire`'s `price` field deliberately unchanged so today's archive stays comparable.
+- **Cartographer** — TOUCHED. `KEV_ROAD=1` may return runway RR off `kev_road_max` where it previously returned `above_all_levels`/None — a map-consuming change, escalated (§3 #7).
+- **Wind Tunnel Engineer** — TOUCHED. 8 rig files exit 0; regression corpus now 13 fixtures, each with a negative control proving the fixture would have caught its defect.
+- **Statistician** — TOUCHED. Standing objection: `TAPE_LANE_SCALAR_EXEMPT`'s N=1 and the `T B` wall's modest hold-out N (18/27) are both real but underpowered; neither licenses a size increase.
+- **Convexity Trader** — CLEAN. No exit-tier or runner math changed; E3 exits untouched.
+- **Curl Mechanic** — CLEAN. `LEADER_CURL_SLOTS=3` semantics (fire slots, not positions) unchanged.
+- **Project Manager** — TOUCHED. Aug 20 deadline is 2 days out; this ship is foundation, not edge. Entries work begins after.
+- **Historian** — TOUCHED. Recorded: F's ship landed with the standing rig broken (`9797563` put `threading.local()` and `_gate_blind()` inside three AST-lifted spans, exiting the shipset 1). That is the second AST-lift fragility incident (BH-c class) and per `feedback_kill_the_class_not_instance` the class — not the instance — now needs a census of every `exec()`-lifted span in the rig.
+- **Hidden Entry Architect** — TOUCHED. `hidden_shadow_fire` gains `fire_px`/`fire_k`/`fire_age_s`; measured that the old price key was scoring the quote feed (median 1.02% off the fired bar close, exactly equal in only 13 of 195). Real post-fix parity arrives with 8/18 rows.
 
-## 5. THE MONEY STATEMENT
-**What changes:** on the kevseq lane only, the caller-sourced `front_side` is now computed from the
-last **50 wall-clock minutes** of M1 bars instead of the last **50 traded bars**.
+## 7. Conditions carried into the ship
 
-**On which names:** **thin tape only.** Where span ≈ count (every liquid name, every fast runner
-while it is running) the lists are byte-identical and **nothing changes**. Where the traded-minute
-grid stretches — the proven specimens **RBNE (48 bars = 243 min), UUU (49 bars = 584 min = 9.7 h),
-FXHO (183 min)** — the caller's "20-bar EMA" stops being a multi-hour trend wearing a 1-minute label.
-
-**Direction, stated honestly — it is BIDIRECTIONAL, not purely tightening:**
-1. windowed list falls below `EMA20_PERIOD+2` → caller `None` → self fallback → possibly `unknown` →
-   **refusal** (tighter); or
-2. the windowed EMA9/EMA20 **flips sign** vs the hours-wide one → a name previously refused
-   `front_side_off` can now pass (**looser**), or vice-versa.
-Both live behind `M1_WALLCLOCK`. This is a correctness fix to a gate input, not a loosening or a
-tightening by design, and it should be graded from `front_side_caller` / `front_side_self` /
-`front_side_self_n` on the archive rows rather than assumed.
-
-**Dollar exposure tonight:** `KEVSEQ_CONVERT` defaults **0** in code (`:6469`) — kevseq is a SHADOW
-lane, so at the default this changes **rows, not dollars**. Today's front-side-only refusals were
-**N=8** (IPST, PFSA ×2, WETO ×2, CDTG ×2, STFS) and 7 of 8 were the `unknown` class the 13:49 self-
-frontside fix already closes. Cost of the alleged 3-min defect: **$0 / N=0**.
-⚠️ **Carried forward UNRESOLVED from batch-4: I did NOT read the live Railway env this turn —
-`KEVSEQ_CONVERT`'s live value is `[UNVERIFIED]`.** If it is `1` live, this is a real-money change on
-thin names and must be re-priced by Marcos before deploy. That single env read is the one thing I
-would want in hand before the switch is thrown.
-
-## 6. NIVF-RESUME SAFETY PROOF (diff line ranges, batch-3 method)
-Hunks: **4485, 6452, 6530, 8451, 8500, 8544, 12436**. Function boundaries (`grep -n "^def ..."`, this turn):
-
-| safety surface | line | in a hunk? |
-|---|---|---|
-| `_recover_orphaned_trades` (the resume path) | **2954** | NO |
-| `_manual_close_pending/_match/_ack` | **5370 / 5390 / 5413** | NO |
-| `_place_order` | **9659** | NO |
-| `close_position` | **9826** | NO |
-| `_vride_defer` | **9978** | NO |
-| `_exit_layer` | **10334** | NO |
-| `monitor_trade` (and everything below it: stops, `_safety_close`, EOD flatten) | **10650 → EOF** | NO |
-
-The batch's **highest touched line is 12436** (`boot_config` inside `main()`), and every other hunk is
-at or below 8552 — i.e. module scope (`4485`), comment blocks (`6452`, `6530`), and inside
-`wait_for_flat_top_entry` (the **scan/entry** path, `8451-8552`). **Not one line of the exit, stop,
-safety-close, manual-close, or orphan-resume machinery is in the diff.** `python3 -m py_compile
-marcos_trading_bot.py` → **COMPILE OK** (run this turn). NIVF resumes on exactly the code that is
-managing it now.
-
-## 7. DOCTRINE-INVERSION SWEEP
-- **`feedback_skepticism_needs_verification_too`** — inverted? A REFUTED verdict was written. **HELD:**
-  the named check exists, was executed, and its output is committed (31/31 signs reproduced). This is
-  the law working, and `1fd978f` is a public self-reversal of the auditor's own prior framing.
-- **`feedback_auditor_cannot_authorize_behavior`** — inverted? A behavior change (§2) rides an audit
-  batch. **HELD, narrowly:** the change is fixing a gate INPUT to mean what its name claims, it carries
-  a kill switch, and — decisively — the three fail-open gates whose windowing WOULD have loosened money
-  behavior were deliberately **left alone and priced for Marcos** rather than fixed by the builder.
-  That is the law being obeyed at the exact moment it was tempting to break. Flagged so §5 goes to
-  Marcos priced, not assumed.
-- **`feedback_lean_on_10s_data` (10s outranks 1-min)** — inverted? This makes the *1-min caller* more
-  faithful while the 10s-derived `self` value stays a **fallback**, not the primary. **TENSION, FLAGGED,
-  NOT RESOLVED HERE:** the doc's own reading is that `self` is the more faithful source on the names this
-  lane trades, and doctrine leans toward 10s. Precedence was correctly left as a **money decision for
-  Marcos** (TF-k pins it unchanged). Grade it from the now-stamped rows.
-- **`feedback_no_lesser_fix`** — inverted? One site windowed of six window-sensitive. **HELD under
-  permission:** Marcos ruled the other five stay. Recorded as a choice, not a drift.
-- **`feedback_dollars_not_r`** — §5 is in dollars and names, with the `[UNVERIFIED]` env caveat stated
-  rather than papered over. Held.
-- **`feedback_maps_describe_not_serve` / `feedback_edge_over_mechanisms`** — `9feff24` is a REFUTATION
-  with no threshold invented and no code change. Exemplary; held.
-- **`feedback_rig_tests_spec_not_impl`** — the amended pins **FS-c / TF-c** now require the *windowed*
-  call form. I judged the rewrite: the spec genuinely changed with the fix, the pins still assert the
-  USER-facing property (the caller's source is M1, not the 3-min aggregate) and merely track the new
-  expression. **Legitimate, not green-washing.** TF-e is the stronger form — it pins an **absence**.
-
-## 8. ROLL CALL (every office present, per `data/audits/ROSTER.txt` — 31 offices)
-- **Blast Radius Auditor** — this artifact. GREEN, one informational finding (F1, §2.3).
-- **Systems Quant** — does `_wallclock_window` compute what its name claims? **YES**, executed
-  independently (§2.1/2.3): anchored on the newest bar, inclusive cutoff, order-preserving, identity-
-  preserving on dense lists. Finding: name and behavior agree.
-- **Feed Engineer + Webull Vendor Desk** — "M1 REST returns TRADED minutes only and is count-capped" is
-  now a **ledgered vendor-shape constraint** that has bitten a live detector. This is the office's charter
-  case and the census (§3) is the deliverable. Five inheriting consumers remain on the traded grid **by
-  Marcos's ruling** — that is a standing vendor-constraint item, not a closed one.
-- **Pit Crew Chief** — two new envs (`M1_WALLCLOCK`, `KS_FS_WALLCLOCK_MIN`), both boot-stamped, `=0`
-  restores today exactly, no durable state, no restart unwind. Deploy-safe. CLEAN.
-- **Execution Surgeon** — no order, fill, limit, or stop-placement byte is in the diff (§6). CLEAN.
-- **Trade Manager** — no exit, scale, `_exit_layer`, or EOD-flatten line touched (§6). CLEAN.
-- **Strength Ombudsman** — **STAKE**: §5 direction 1 can convert strength into a thin-tape refusal, and
-  direction 2 can release one. The bias ledger should record this as an input-correction with a
-  bidirectional effect and re-run the refused-strength hearing once `front_side_caller` vs
-  `front_side_self` has a week of rows.
-- **Side Marshal** — front/back-side is this office's variable. `front_side_3m`, `front_side_tf`,
-  `front_side_caller`, `front_side_self`, `front_side_self_n` are now on every kevseq row. **Data-only,
-  as the office's charter requires.** No band edge or classifier arm touched.
-- **Statistician** — owed a `RESULTS_LEDGER` line: the floor sweep (`9feff24`: best cell 125% no-top3
-  HOLD-OUT N=40, +$2.10/tr, **p=0.3415**, curve non-monotone, REFUTED) and the 31/31 source
-  reconstruction. Unledgered = rumor.
-- **Dashboard Curator** — `front_side_caller` / `front_side_self` / `front_side_3m` and the enriched
-  `kevseq_frontside_disagree` canary need a display; today they are archive-only.
-- **Integrator** — parallel-logic registry: `_wallclock_window` is the ONE derived windowing path; the
-  other five fixed-count fetches remain literal by ruling. Registered.
-- **Hidden Entry Architect** — the caller/self clock split is a v2-inheritable finding: a "20-bar EMA"
-  on a traded-minute grid is not a 20-minute EMA. The v2 rebuild should take wall-clock windows by
-  construction rather than rediscover this.
-- **Seam Scientist** — the stamped both-sources distribution is new research surface; no seam mechanism
-  touched. CLEAN.
-- **Historian** — 8/17 is the day a handed-down "3-minute defect" was refuted in code and the real one
-  (two 1-minute clocks) was diagnosed and half-fixed. The refutation and its reversal are both on the
-  record; the record is the point.
-- **Momentum Operator** — `check_momentum` (**:4199**) is NOT touched (§3); its exempt tuple and vel5
-  set are unchanged. CLEAN, and deliberately so.
-- **Wind Tunnel Engineer** — **STAKE**: no offline study replicated the live front-side gate. Every
-  kevseq dollar figure we hold remains a **front-side-free superset**. That fidelity gap is unchanged
-  by this batch and stays open.
-- **Crown Steward · Curl Mechanic · Reclaim Architect · Rocket Rider · Handicapper · Cartographer ·
-  Kev Librarian · Quartermaster · Opening Bell · First Hour · Convexity Trader · Tape Veteran ·
-  Forward Architect · Project Manager · Webull Broker Desk** — **CLEAN**: no crown, curl, reclaim,
-  parabolic, selection, map, corpus, warehouse, pre-open, first-hour, tail-shape, broker, or backlog
-  surface is in this diff. Named so no office is denied its say.
-
-## 9. SPEC TENSIONS FOR MARCOS (not resolved here)
-1. **`KEVSEQ_CONVERT`'s live value is `[UNVERIFIED]`** — read the Railway env before the switch is
-   thrown. If `1`, §5 is a real-money change on thin names.
-2. **Precedence (caller vs self) is still open** and the doc argues `self` is the more faithful source.
-   Both values are now stamped; grade before inverting.
-3. **The five flagged fetch sites** stay on the traded-minute grid by your ruling. Three would need
-   fail-CLOSED insufficient-data semantics designed first; two are position-open ships.
-4. **Window size 50 wall-min** is the fetch's own stated intent, not a measured optimum. It is env-tunable
-   and should be graded, not trusted.
-
-## 10. RIG — EXECUTED BY ME, EXIT CODE READ DIRECTLY
-Invoked as a **script** (`python3 rig/test_shipset_20260804.py`), never pytest — the rig calls
-`sys.exit()` at module scope and pytest INTERNALERRORs on it (batch-4 method note, honored).
-
-Pre-artifact run, `SHIP_CHECK=1`: **638 green, exit 1, ONE RED — section Q only**
-(`HEAD 1a5e42f0a54e not covered by data/audits/LATEST.md`) — the designed interlock firing because
-this artifact did not yet exist. Sections **FS (12/12), TF (16/16), M1W (10/10)** all present AND
-executed green in that same run. Post-commit rerun appended below.
-
-### FINAL SHIP_CHECK (run after this artifact was committed as `fdf2876`)
-`SHIP_CHECK=1 python3 rig/test_shipset_20260804.py` → **639 green, ZERO red, EXIT CODE 0.**
-Section **Q** (convene-or-don't-ship interlock) **GREEN** — the audited tree is recorded.
-Sections FS 12/12 · TF 16/16 · M1W 10/10 green in the same run. Judged by exit code, per
-`feedback_rig_tests_spec_not_impl`.
-
-**GREEN. Deploy authorized by the audit; the go/no-go on `M1_WALLCLOCK` (and the
-`KEVSEQ_CONVERT` live-env read in §9.1) remains Marcos's.**
+1. Items §3 #1–#10 are **not cleared**. Marcos signs off by name, or the four widening defaults
+   (`LANE_REGISTRY_EXEMPT`, `TAPE_LANE_SCALAR_EXEMPT`, `V2_CAP_ON_FILLS`, `KEV_ROAD`) go to 0 for
+   night one and only the observability half ships.
+2. Stated plainly: harness parity is **not** at a level that licenses re-running the 62-day
+   backtests. That waits on 8/18 stamped rows.
+3. `ship.sh` gate 1c (`spec_gate.py HEAD`) passes **vacuously** on a merge commit — the
+   spec-as-failing-test gate this batch shipped does not evaluate this batch. Known, not hidden.
+4. Open and unfixed: scan-loop latency 85–195s; the fill model has never been validated against a
+   real fill; `_marked_runway` is permanently un-replayable for days ≤ 8/17.

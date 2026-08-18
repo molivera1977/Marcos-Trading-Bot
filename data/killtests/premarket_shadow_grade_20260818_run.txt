@@ -1,0 +1,51 @@
+shadow rows fetched: 544 over 10 sessions
+
+SKIPPED: {'no_bars_in_cache': 293, 'fired_after_0925': 20, 'stop_above_entry': 1}
+
+========================================================================
+PREMARKET SHADOW BOOK — E3 exits, real sizing, 09:25 flatten
+========================================================================
+  gradable trades : 230
+  TOTAL           : $-1,236.40
+  per trade       : $-5.38
+  win rate        : 95/230 (41%)
+  green days      : 3/10
+
+  by day:
+    2026-08-04  $   -63.13
+    2026-08-05  $  +138.24
+    2026-08-06  $   -52.99
+    2026-08-07  $  -244.71
+    2026-08-10  $  -681.57
+    2026-08-11  $   +56.20
+    2026-08-12  $   -71.11
+    2026-08-13  $  -343.72
+    2026-08-14  $   +62.45
+    2026-08-17  $   -36.06
+
+  by lane:
+    vwap_reclaim     n=   2  $   -60.23  ($ -30.12/tr)
+    hidden_entry     n=  22  $  -199.99  ($  -9.09/tr)
+    flat_top         n=  62  $  -438.87  ($  -7.08/tr)
+    ma_pullback      n= 144  $  -537.31  ($  -3.73/tr)
+
+  exits: {'stop': 100, 'trail': 85, 'flatten_0925': 45}
+
+  biggest single name-days:
+    2026-08-05 INLF   $  +411.27  (33% of |total|)
+    2026-08-10 XHLD   $  -338.30  (27% of |total|)
+    2026-08-10 JWEL   $  -247.94  (20% of |total|)
+    2026-08-13 CURI   $  -199.05  (16% of |total|)
+    2026-08-14 DFSC   $  +187.88  (15% of |total|)
+
+========================================================================
+PRE-REGISTERED CHECKS
+========================================================================
+  N >= 100                     : PASS (n=230)
+  total dollars positive       : FAIL — premarket stays shut on this evidence ($-1,236.40)
+  not concentrated (<60% one)  : PASS (33%)
+
+  KNOWN OPTIMISM: no halt-gap rule (this cache carries no gaps table), so a premarket halt that gapped through a stop is modelled as a clean stop fill.
+  SCOPE: shadowed lanes only. Says NOTHING about hidden_entry / vwap_reclaim, the two lanes whitelisted for PRE but currently switched off.
+
+No recommendation. Numbers only.

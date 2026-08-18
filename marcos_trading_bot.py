@@ -6062,6 +6062,16 @@ def _entries_paused():
 #    shape as _entries_paused, OPPOSITE failure polarity: pausing fails OPEN (keeps last-known),
 #    closing fails CLOSED — an unreachable dashboard must never sell. Failure-condition doc:
 #    data/killtests/manual_close_20260817.md. Kill: MANUAL_CLOSE=0. ──
+# ── 8/18 SERVER-SIDE DUTY WATCH (see _duty_watch_loop). The intraday watch used to live in
+# the laptop scheduler, where three jobs died silently for a week+ (tombstones dated 7/26 and
+# 7/27) and `kev-daily-scorecard` silently missed Monday 8/17. Detection belongs on the server.
+# Kill: DUTY_WATCH=0. ──
+DUTY_WATCH = os.environ.get("DUTY_WATCH", "1") == "1"
+DUTY_WATCH_TIMES = [t.strip() for t in os.environ.get(
+    "DUTY_WATCH_TIMES", "07:12,09:42,12:48,15:52").split(",") if t.strip()]
+# a lane must fire at least this many times with ZERO fills before the watch calls it starved —
+# one unfilled fire is noise, not a symptom.
+DUTY_WATCH_MIN_FIRES = int(os.environ.get("DUTY_WATCH_MIN_FIRES", "3"))
 MANUAL_CLOSE       = os.environ.get("MANUAL_CLOSE", "1") == "1"
 MANUAL_CLOSE_POLL_S = float(os.environ.get("MANUAL_CLOSE_POLL_S", "15"))  # 8/17 audit: 5s x 6-8
 # position threads = ~1.6 req/s at the screener, and a hung dashboard stalls a monitor loop up to
@@ -15081,6 +15091,108 @@ if __name__ == "__main__":
             time.sleep(60)
     threading.Thread(target=_preopen_health_loop, daemon=True, name="preopen_health").start()
     print("🩺 Pre-open health thread started (09:05 ET sheet-freshness row)")
+
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    # 8/18 SERVER-SIDE DUTY WATCH (Marcos: "are they actually going to do something")
+    #
+    # The intraday watch was supposed to run as laptop scheduled tasks at 07:12/09:42/12:48/
+    # 15:52 ET. It does not survive contact with reality: THREE tasks in that scheduler carry
+    # the tombstone "RETIRED — Laptop scheduler silently dead since 7/26/7/27", and as of
+    # 8/18 `kev-daily-scorecard` (enabled, weekdays 16:22) last ran 8/14 — it silently missed
+    # Monday. A watch that needs a laptop awake is not a watch, and Marcos is back at work
+    # 8/20.  So the DETECTION moves server-side, exactly like kev_sweep and preopen_health
+    # did on 8/4.  Interpretation still needs a session; the RECORD no longer does.
+    #
+    # THE MARCOS CHECK (feedback_live_watch_duty): "lanes fired, no fill -> NAME THE GATE."
+    # That question was unanswerable until tonight, because refusal rows carried no lane
+    # (gate 11). It is answerable now, which is what makes this thread possible at all.
+    #
+    # Reads ONLY the durable decisions archive + trades — no vendor calls, no new state, and
+    # it can never touch a position. Fail-soft everywhere; one row per checkpoint per ET day.
+    # Kill: DUTY_WATCH=0.  Times: DUTY_WATCH_TIMES="07:12,09:42,12:48,15:52".
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    def _duty_watch_loop():
+        fired = set()          # (day, checkpoint) already emitted this process
+        while True:
+            try:
+                if not DUTY_WATCH:
+                    time.sleep(300); continue
+                now = datetime.now(EASTERN)
+                day, hm = now.strftime("%Y-%m-%d"), now.strftime("%H:%M")
+                if now.weekday() >= 5:
+                    time.sleep(300); continue
+                # a checkpoint fires within a 3-minute window so a slow loop cannot skip it
+                cp = next((t for t in DUTY_WATCH_TIMES
+                           if t <= hm <= "%02d:%02d" % (int(t[:2]) + (int(t[3:]) + 3) // 60,
+                                                        (int(t[3:]) + 3) % 60)), None)
+                if not cp or (day, cp) in fired:
+                    time.sleep(45); continue
+                fired.add((day, cp))
+
+                import urllib.request as _dw_ureq
+                rows = json.load(_dw_ureq.urlopen(
+                    f"{SCREENER_URL}/api/decisions_archive?date={day}&limit=50000", timeout=25)).get("rows") or []
+                trades = json.load(_dw_ureq.urlopen(
+                    f"{SCREENER_URL}/api/trades", timeout=20)).get("trades") or []
+                trades = [t for t in trades if str(t.get("date") or t.get("entry_time") or "").startswith(day)]
+
+                _REFUSE = ("reject", "skip", "block", "refus", "suppress", "denied", "capped", "paused")
+                fires, refus, blind = {}, {}, {}
+                for r in rows:
+                    st = str(r.get("status") or "")
+                    lane = str(r.get("lane") or r.get("machine") or r.get("entry_type") or "") or None
+                    if st.startswith("triggered_"):
+                        fires[st[10:]] = fires.get(st[10:], 0) + 1
+                    elif any(w in st for w in _REFUSE):
+                        # gate 11: refusal rows name their lane, so this is attributable now
+                        key = lane or st
+                        refus.setdefault(key, {})
+                        refus[key][st] = refus[key].get(st, 0) + 1
+                    elif st.startswith("gate_blind"):
+                        g = str(r.get("gate") or "?")
+                        blind[g] = blind.get(g, 0) + 1
+                filled = {}
+                for t in trades:
+                    lane = str(t.get("entry_type") or "?")
+                    filled[lane] = filled.get(lane, 0) + 1
+
+                # THE MARCOS CHECK — a lane that FIRED but never FILLED, with the gate named
+                starved = []
+                for lane, n in sorted(fires.items(), key=lambda x: -x[1]):
+                    if filled.get(lane, 0) == 0 and n >= DUTY_WATCH_MIN_FIRES:
+                        gates = refus.get(lane) or {}
+                        top = max(gates.items(), key=lambda x: x[1])[0] if gates else "NO REFUSAL ROW"
+                        starved.append({"lane": lane, "fires": n, "fills": 0,
+                                        "top_gate": top, "gates": gates})
+
+                _log_decision("_WATCH", "watch_check", checkpoint=cp,
+                              fires=fires, fills=filled, starved=starved,
+                              blind_gates=blind, rows_seen=len(rows), trades_today=len(trades),
+                              fire_hwm_marks=len(_fire_hwm), dry_run=int(DRY_RUN))
+                print(f"\n{'='*70}\n👁️  DUTY WATCH {cp} ET — {len(rows)} rows, {len(trades)} trades today")
+                print(f"   fires: {fires or '(none)'}")
+                print(f"   fills: {filled or '(none)'}")
+                if blind:
+                    print(f"   ⚠️  BLIND GATE PASSES (decided without their data): {blind}")
+                if starved:
+                    for s in starved:
+                        _detail = s["gates"] or ("(NO refusal row logged at all — the fire died "
+                                                 "somewhere UNINSTRUMENTED, which is its own defect)")
+                        print(f"   🚨 {s['lane']}: {s['fires']} fires, ZERO fills — "
+                              f"top gate: {s['top_gate']}  {_detail}")
+                else:
+                    print("   ✅ no lane fired-without-filling above the threshold")
+                print("="*70 + "\n", flush=True)
+            except Exception as _dw_e:
+                try:
+                    _log_decision("_WATCH", "watch_check_failed", err=str(_dw_e)[:140])
+                except Exception:
+                    pass
+                print(f"duty watch error (non-fatal): {_dw_e}", flush=True)
+            time.sleep(45)
+    threading.Thread(target=_duty_watch_loop, daemon=True, name="duty_watch").start()
+    print(f"👁️  Duty-watch thread started ({','.join(DUTY_WATCH_TIMES)} ET — "
+          f"fires vs fills, gate named; server-side so it survives a closed laptop)")
 
     # Day-2 observation runs on its own isolated daemon thread (never touches trading).
     threading.Thread(target=_day2_observer_loop, daemon=True, name="day2_observer").start()

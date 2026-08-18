@@ -3751,7 +3751,9 @@ try:
     # deliberate, reviewable edit; drifting into or out of one without editing it is RED.
     _E1_PIN = {
         # lane            a                                        b     c     d     e     f     g
-        "kevseq":       {"a": "OPEN:PENDING_CONVENE_20260817#EG1-a", "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
+        # 8/17 B1 CLOSED EG1-a: kevseq now prices off the fill bar's close (KEVSEQ_FIRE_ON_CLOSE,
+        # default ON).  Doc data/killtests/kevseq_fire_price_20260817.md.  Pin flipped OPEN->True.
+        "kevseq":       {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
         "v2conv":       {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
         "grinder":      {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
         "bandpass":     {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
@@ -3935,6 +3937,124 @@ try:
           str({b: _e2_tripped.get(b) for b in _E2_CONTAM}))
 except (AssertionError, ValueError, KeyError, AttributeError, TypeError, OSError) as _e2e:
     check("EG2 section", False, f"{type(_e2e).__name__}: {_e2e}")
+
+print("EG2b) 8/17 ENFORCEMENT GATE 2b — HARNESS PARITY THRESHOLD (a study may not grade a lane "
+      "the harness cannot reproduce)")
+# WHY THIS EXISTS: EG2 forces a study to use the bot's own detectors. That is necessary and not
+# sufficient — running the real detector over a stream the live machine never saw is still a
+# study of a different machine. harness_parity_20260817.md measured 9% grinder / 30% kevseq /
+# 44% bandpass / 51% v2 / 100% prevwap. "Don't trust grinder studies" then lived only in one
+# artifact's prose, which is exactly the class of knowledge that evaporates (the 7/14 breach-mode
+# finding lived in a code comment and the 7/27 verdict never saw it).
+# THE RULE, ENFORCED: data/killtests/harness_parity.json stores measured parity per lane. Any
+# .md that GRADES a lane whose parity is below the stored threshold (90%) must state that lane's
+# parity number in its own LIMITS/CAVEATS section. Grading = a verdict-bearing line naming the lane.
+# FAILURE CONDITION (written first): wrong if a study can grade the grinder lane without ever
+# printing "9.1", or if a doc that DOES disclose the number is flagged.
+try:
+    _P_FILE = os.path.join(ROOT, "data", "killtests", "harness_parity.json")
+    check("EG2b: the measured-parity store exists", os.path.exists(_P_FILE))
+    _P = json.load(open(_P_FILE))
+    _P_THRESH = float(_P["threshold_pct"])
+    check("EG2b: the store carries a threshold and it is the agreed 90%", _P_THRESH == 90.0,
+          str(_P_THRESH))
+    check("EG2b: every convertible 10s lane has a measured parity number",
+          set(_P["lanes"]) >= {"kevseq", "grinder", "bandpass", "prevwap", "v2"},
+          str(sorted(_P["lanes"])))
+    check("EG2b: every lane row carries parity_pct + when + how it was measured",
+          all({"parity_pct", "measured_on", "method", "source"} <= set(v)
+              for v in _P["lanes"].values()),
+          str({k: sorted(v) for k, v in _P["lanes"].items()}))
+    _P_LOW = {k: v["parity_pct"] for k, v in _P["lanes"].items() if v["parity_pct"] < _P_THRESH}
+    check("EG2b: the store is seeded with tonight's numbers (grinder is the worst lane at 9.1%)",
+          _P["lanes"]["grinder"]["parity_pct"] == 9.1 and "grinder" in _P_LOW)
+
+    # ── the enforcement: a doc that GRADES a low-parity lane must disclose that lane's number ──
+    _P_VERDICT = re.compile(r'^(?!\|).*\b(VERDICT|BOTTOM LINE|CONCLUSION|HEADLINE)\b.*$', re.I | re.M)
+    _P_LIMSEC = re.compile(r'^#+.*\b(LIMITS?|CAVEATS?)\b.*$', re.M | re.I)
+
+    def _p_limits_block(t):
+        """Everything from the first LIMITS/CAVEATS heading to the next heading of the same
+        or higher level — the section the parity number has to appear inside."""
+        m = _P_LIMSEC.search(t)
+        if not m:
+            return ""
+        lvl = len(m.group(0)) - len(m.group(0).lstrip("#"))
+        rest = t[m.end():]
+        nxt = re.search(r'^#{1,%d}\s' % max(lvl, 1), rest, re.M)
+        return rest[:nxt.start()] if nxt else rest
+
+    def _p_grades(path):
+        """[(lane, parity)] for every low-parity lane this artifact GRADES without disclosing
+        the parity number in its LIMITS section. Empty = compliant."""
+        t = open(path, errors="replace").read()
+        lim = _p_limits_block(t)
+        bad = []
+        _vlines = [m.group(0) for m in _P_VERDICT.finditer(t)]
+        for lane, pct in _P_LOW.items():
+            # "grades the lane" = the lane is named on a verdict-bearing line
+            if not any(re.search(r'\b%s\b' % lane, ln, re.I) for ln in _vlines):
+                continue
+            if ("%.1f" % pct) in lim or ("%g" % pct) in lim or "harness_parity" in lim:
+                continue                        # the number (or its source) IS disclosed
+            bad.append((lane, pct))
+        return bad
+
+    # FORWARD-ENFORCED from 2026-08-18, same freeze line EG4 uses: tonight's 87 artifacts predate
+    # the rule and are not retro-graded (inventing caveats after the fact is the story-first sin).
+    _p_future = {}
+    import glob as _p_glob
+    for _p in sorted(_p_glob.glob(os.path.join(ROOT, "data", "killtests", "*.md"))):
+        _b = os.path.basename(_p)
+        if not re.search(r'20260(8(1[89]|[2-9]\d)|9\d\d)|2026[1-9]\d{4}', _b):
+            continue
+        _bad = _p_grades(_p)
+        if _bad:
+            _p_future[_b] = _bad
+    check("EG2b: ENFORCED FORWARD — no artifact dated 2026-08-18+ grades a low-parity lane "
+          "without stating that lane's parity in its LIMITS section",
+          not _p_future, f"MUST DISCLOSE: {_p_future}")
+
+    # ── NEGATIVE CONTROLS ─────────────────────────────────────────────────────────────────
+    import tempfile as _p_tmp
+    _p_dir = _p_tmp.mkdtemp()
+    _p_bad = os.path.join(_p_dir, "fake_study_20260819.md")
+    open(_p_bad, "w").write("# study\n## LIMITS\nsingle day only\n\n## VERDICT\n"
+                            "the grinder lane is a keeper, +$400\n")
+    check("EG2b-NC: a doc that grades GRINDER with no parity number in LIMITS is CAUGHT",
+          _p_grades(_p_bad) == [("grinder", 9.1)], str(_p_grades(_p_bad)))
+    # the SAME doc, with the number disclosed, must come back clean
+    open(_p_bad, "w").write("# study\n## LIMITS\nsingle day only; grinder harness parity is "
+                            "9.1% — this lane is not reproducible offline.\n\n## VERDICT\n"
+                            "the grinder lane is a keeper, +$400\n")
+    check("EG2b-NC: the same doc disclosing '9.1' in LIMITS is CLEAN (no false positive)",
+          _p_grades(_p_bad) == [], str(_p_grades(_p_bad)))
+    # a doc grading only the 100%-parity lane must never be flagged
+    open(_p_bad, "w").write("# study\n## LIMITS\nN=3\n\n## VERDICT\nprevwap holds up\n")
+    check("EG2b-NC: a doc grading only an ABOVE-threshold lane is never flagged",
+          _p_grades(_p_bad) == [], str(_p_grades(_p_bad)))
+    # and the real 8/17 artifact that grades grinder without the number reproduces the defect
+    _p_real = os.path.join(ROOT, "data", "killtests", "hidden_signal_grade_20260817.md")
+    if os.path.exists(_p_real):
+        print(f"      (grandfathered 8/17 example — {os.path.basename(_p_real)}: "
+              f"{_p_grades(_p_real) or 'compliant'})")
+    os.remove(_p_bad)
+
+    # the exact-fed-stream replayer + its refusal path must exist (the way OUT of low parity)
+    _p_v2 = os.path.join(ROOT, "data", "killtests", "harness_parity_v2_20260818.py")
+    check("EG2b: the exact-fed-stream parity replayer exists", os.path.exists(_p_v2))
+    _p_v2_src = open(_p_v2).read()
+    check("EG2b: it consumes the A2 stamps and REFUSES to grade an unstamped day",
+          "fed_slices=" in _p_v2_src and "REFUSING to grade" in _p_v2_src
+          and "fed_k0" in _p_v2_src)
+    check("EG2b: it de-duplicates the live side by (ticker, fire_k) — the A1 defect would "
+          "otherwise depress every parity rate",
+          'key = (r["ticker"], r["fire_k"])' in _p_v2_src)
+    check("EG2b: live_harness accepts an exact fed-slice sequence",
+          "fed_slices=None" in open(os.path.join(ROOT, "data", "killtests",
+                                                 "live_harness.py")).read())
+except (AssertionError, ValueError, KeyError, AttributeError, TypeError, OSError) as _e2be:
+    check("EG2b section", False, f"{type(_e2be).__name__}: {_e2be}")
 
 print("EG3) 8/17 ENFORCEMENT GATE 3 — CLAIMS LEDGER (a fact without a command is a rumour)")
 # WHY THIS EXISTS: the six facts in the user's memory file project_verified_machine_facts.md are

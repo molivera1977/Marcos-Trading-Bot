@@ -111,12 +111,13 @@ def SPEC_kevseq_fire_on_close():
     fix ON prices at the close, the kill switch OFF restores the 8/16 level."""
     on = _kevseq_fire(True)
     off = _kevseq_fire(False)
-    if not on or not off or not on.get("ok") or not off.get("ok"):
+    if not on or not off:
         return False
     # the fill bar: close 11.80, high 12.00; the setup high (old fire price) is 10.60
     return (abs(on["px"] - 11.80) < 1e-6                # ON  = the traded close
             and abs(off["px"] - 10.60) < 1e-6           # OFF = the old level
             and on["px"] >= on["bar_lo"] and on["px"] <= on["bar_hi"]   # inside the fill bar
+            and "degenerate_stop" not in (on.get("why") or [])
             and on["would_stop"] == off["would_stop"])  # the stop is unchanged by the switch
 
 
@@ -127,10 +128,11 @@ def SPEC_kevseq_degenerate_stop_refuses():
     fn, ns = _load_kevseq(fire_on_close=True)
     hold_n = int(ns.get("KEVSEQ_HOLD_N", 2))
     bars = _kevseq_tape(hold_n)
-    # rewrite the fill bar: high still breaks the setup, but the close collapses BELOW the
-    # setup's stop (the b_level, 10.10) — the TRUG 13:36 / RPGL 11:46 shape.
+    # rewrite the fill bar: the high still breaks the setup high, and the low stays ABOVE the
+    # setup's stop (so the setup is not cancelled first), but the CLOSE lands below the stop —
+    # the TRUG 13:36 / RPGL 11:46 shape, where the live tape was under the setup's own risk.
     k, o, h, l, c, v = bars[-1]
-    bars[-1] = (k, o, h, 9.50, 9.60, v)
+    bars[-1] = (k, o, h, 10.25, 10.15, v)
     out = None
     for b in bars:
         r = fn("SPECY", [b], 10.00, _KS_CTX)

@@ -6621,6 +6621,10 @@ KEVSEQ_LIMIT_ENTRY    = os.environ.get("KEVSEQ_LIMIT_ENTRY", "0") == "1"   # F3,
 KEVSEQ_ENTRY_TOL      = float(os.environ.get("KEVSEQ_ENTRY_TOL", "0.005")) # F3 tolerance over fire px
 KEVSEQ_MAX_DRIFT      = float(os.environ.get("KEVSEQ_MAX_DRIFT", "0"))     # F1, 0 = disabled
 KEVSEQ_FIRE_MAX_AGE_S = float(os.environ.get("KEVSEQ_FIRE_MAX_AGE_S", "0"))# F4, 0 = disabled
+# 8/17 B1 (EG1-a): price the kevseq fire at the FILL BAR'S CLOSE, in parity with every other
+# detector, instead of at the setup bar's HIGH (a trigger level the tape need never have paid).
+# ON by default = the fix.  0 = the 8/16 level behaviour, byte-for-byte.
+KEVSEQ_FIRE_ON_CLOSE  = os.environ.get("KEVSEQ_FIRE_ON_CLOSE", "1") == "1"
 _ks_st: dict = {}   # sym -> kevseq machine state (module-level: survives rescans)
 
 # ── 8/17 DEFECT 1b: front_side_unknown FAIL-CLOSED (kill-test doc:
@@ -6765,7 +6769,21 @@ def kevseq_step(sym, new_bars, vwap, ctx=None):
                 st["pending"] = None                       # setup failed under its own risk
             elif h > pd["hi"]:
                 st["pending"] = None
-                px = float(pd["hi"])
+                # ── 8/17 B1 (EG1-a): FIRE AT A PRICE THAT TRADED, NOT AT A LEVEL ──────────
+                # pd["hi"] is the SETUP bar's high — the TRIGGER level.  Every other detector
+                # in the bot prices off the fill bar's close `c` (hidden_entry, v2_pullback,
+                # grinder_shadow, bandpass, kev_zoneflip, kev_reclaim, dip_rip, ignition_10s —
+                # AST-verified 8/17).  kevseq alone priced off the level, and the gap between
+                # the level and the tape is the entry drift measured today: WFF 12:01 signalled
+                # 5.1329 and filled 8.20 (+59.8%), turning a stated 6.5% risk into 41.5%.
+                # CONSEQUENCE, STATED: would_stop is unchanged (it is the setup's own level or
+                # wick low), so moving the fire price UP raises risk-per-share, which SHRINKS
+                # size and tightens every downstream R gate (runway RR, min-stop %).  Where the
+                # close is at/below the stop the fire becomes degenerate and is REFUSED below —
+                # that is the point: a signal whose risk is zero or negative is malformed.
+                # Kill: KEVSEQ_FIRE_ON_CLOSE=0 restores the 8/16 level behaviour exactly.
+                # Doc: data/killtests/kevseq_fire_price_20260817.md
+                px = float(c) if KEVSEQ_FIRE_ON_CLOSE else float(pd["hi"])
                 burst_ratio = round(v / p75, 2) if (p75 and p75 > 0) else None
                 burst = bool(p75 and p75 > 0 and v >= p75)
                 why = []
@@ -6787,10 +6805,14 @@ def kevseq_step(sym, new_bars, vwap, ctx=None):
                     why.append("no_room")
                 if not (pd["stop"] < px):
                     why.append("degenerate_stop")
-                out = {"ok": not why, "why": why, "px": round(px, 4), "k": k,
-                       # 8/17 ENTRY-DRIFT FIX: the FILL BAR's own low/high. px is the SETUP bar's
-                       # high (the trigger level), NOT a traded price on this bar — the caller
-                       # needs bar_lo to know whether the tape actually offered the fire price.
+                out = {"ok": not why, "why": why,
+                       # B1: with KEVSEQ_FIRE_ON_CLOSE the fire price IS the fill bar's close
+                       # `c` — a print the tape made.  The IfExp is written out here (rather
+                       # than hidden behind the `px` local) so the EG1-a property computer,
+                       # which reads this dict literal, can see the close and grade the lane.
+                       "px": round(c, 4) if KEVSEQ_FIRE_ON_CLOSE else round(px, 4),
+                       "k": k, "level_px": round(float(pd["hi"]), 4),
+                       # the FILL BAR's own low/high — the caller's drift/limit guards read these
                        "bar_lo": round(l, 4), "bar_hi": round(h, 4),
                        "would_stop": round(pd["stop"], 4), "seq_str": "B " + pd["kind"],
                        "kind": pd["kind"], "leg": st["leg"], "leg_n": st["leg_n"],

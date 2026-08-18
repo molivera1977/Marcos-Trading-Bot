@@ -90,6 +90,8 @@ calibrated for 10s buckets. flat_top's bar is **180s** wide, so its age sweeps 0
 | 3 | `TAPE_LANE_SCALAR_EXEMPT` | **ON (affirmed)** | Already live since 8/17 12:01 (WFF row), so ON is the status quo and OFF was the change. Scope measured: 7 of 95 refusals over 14 sessions; 88 keep their veto. OFF would destroy the only gradable population. Ledger row `scalar_exempt_affirmed_0818`. The +$25.14 N=1 is explicitly NOT the basis. |
 | 4 | `V2_CAP_ON_FILLS` | **ON (reaffirmed)** | Not a new policy — it enforces the SETTLED 7/29 ruling "a slot is spent by a TRADE, not an ATTEMPT" on three lanes never wired to `_slot_refund`. Measured 8/17: 46 `premarket_shadow_entry` non-trades consumed the caps; 47 `v2conv_capped` + 51 `grinder_capped` refusals followed, 16 of them in the 09:00 hour. Ledger row `cap_spent_by_trade_not_attempt` HOLDS. |
 
+| 5 | `DEDUPE_FIRES` + `MA_PULLBACK_DEDUPE` | **ON** | "Removes trades" is misleading. Measured 8/17: 210 `triggered_ma_pullback` rows over 123 distinct (ticker,price) setups — 87 rows (41%) are RE-EMISSIONS of an already-fired setup (YDES $3.2933 x40, GRNQ $8.94 x33). The mark is a MONOTONIC high-water per (day,lane,symbol) on the 10s bucket, so a genuinely new setup carries a later bucket and still fires; only re-detections of the SAME setup bar collapse. `DEDUPE_FIRES` covers the restart class — 8/17 had 5 `boot_config` rows and each boot replayed state over bars up to 6,960s old. |
+
 **Watch item carried from #4 (not a prediction, a thing to look at):** with caps counting fills,
 more triggers reach the order path, so the binding constraint moves from the cap ledger to
 CAPITAL on $3,000. Expect `no_capital_skip` to become the visible limiter instead of `*_capped`.

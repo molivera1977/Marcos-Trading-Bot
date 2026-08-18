@@ -1548,7 +1548,7 @@ try:
     # outside _safety_close + the ladder-aware tier branch.
     _ym = _y[_y.index("def monitor_trade"):_y.index("def check_token_expiry")]
     assert "_cancel_sell_ladder(ticker, _ladder)" in _ym.split("def _safety_close")[1][:400]
-    assert _ym.count("_safety_close(remaining_shares)") == 17, _ym.count("_safety_close(remaining_shares)")  # 8/14: +1 E3 stop/trail; 8/17: +1 manual close
+    assert _ym.count("_safety_close(remaining_shares)") == 18, _ym.count("_safety_close(remaining_shares)")  # 8/14: +1 E3 stop/trail; 8/17: +1 manual close; 8/18: +1 the 9/90 lane's VWAP exit
     for _anchor in ["premarket flatten: closing", "Force closing all positions",
                     "force-closing {remaining_shares} sh", "Instant cut (Kev",
                     "Cutting loss now.", "≤ stop ${current_stop:.2f}\")",
@@ -1558,12 +1558,14 @@ try:
                     "no 3-min-close wait", "CRATER FLOOR: ${current_price",
                     "hit! Selling {remaining_shares}",
                     "90% of run-high",
-                    "MANUAL CLOSE requested"]:   # 8/14 E3 stop/trail + 8/17 manual close funnel through _safety_close too
+                    "MANUAL CLOSE requested",
+                    "Kev's rule, the trade is over"]:   # 8/14 E3 stop/trail + 8/17 manual close
+                                                        # + 8/18 the 9/90 lane's lose-VWAP exit
         _yi = _ym.index(_anchor)
         assert "_safety_close(remaining_shares)" in _ym[_yi:_yi + 600], "path missing cancel: " + _anchor
     # stray-sell sweep: close_position inside the monitor ONLY via _safety_close + tier branch
     assert _ym.count("close_position(ticker") == 2, _ym.count("close_position(ticker")
-    check("Y-b: 17 market exit paths funnel through _safety_close (ladder cancelled first)", True)
+    check("Y-b: 18 market exit paths funnel through _safety_close (ladder cancelled first)", True)
 except (AssertionError, ValueError) as _yx:
     check("Y-b: exit-path ladder cancel", False, str(_yx))
 
@@ -3720,6 +3722,9 @@ try:
         "flat_top":     ("FLATTOP_CONVERT",     None,                  None,          "_ft_age"),
         "crown_seam":   ("SEAM_CONVERT",        None,                  None,          "_ss["),
         "halt_ladder":  ("HALT_LANE_CONVERT",   None,                  None,          "_hl_px"),
+        # 8/18 Marcos's 9/90 lane: fires on a traded price (the crossing 1-min bar's CLOSE),
+        # stop is the 5-min swing low, both stamped on the fire row.
+        "ema9x90":      ("EMA9X90_CONVERT",     "ema9x90_step",        "_x9f",        "_x9f["),
     }
 
     # ── GUARD RAIL: no convertible lane may be born outside the registry ──────────────────
@@ -3882,6 +3887,15 @@ try:
         "flat_top":     {"a": None, "b": True, "c": True, "d": True, "e": True, "f": True, "g": None},
         "crown_seam":   {"a": None, "b": True, "c": True, "d": True, "e": True, "f": True, "g": None},
         "halt_ladder":  {"a": None, "b": True, "c": True, "d": True, "e": True, "f": True, "g": None},
+        # 8/18 Marcos's 9/90 lane — the full checklist, all seven True.
+        # (d) deserves a note: the lane has NO DAILY CAP, deliberately (Marcos killed the v2 cap
+        # the same session after five non-fill triggers ate the entire V2 cap by 04:35 and
+        # starved the lane all day). So `_slot_refund` carries an EXPLICIT no-op branch for it
+        # that logs `slot_refund_noop` rather than falling through to the silent `else: return`.
+        # That is why (d) is True and not None: the lane IS wired into the counter economy, and
+        # what it refunds is nothing, on purpose and on the record. My first pin said None —
+        # wrong, because the property is perfectly decidable once the branch exists.
+        "ema9x90":      {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
     }
     _E1_NAME = {"a": "traded-price fire", "b": "fire-age guard", "c": "drift+age stamps",
                 "d": "cap refunded", "e": "in lane registry", "f": "ctx computed in-lane",

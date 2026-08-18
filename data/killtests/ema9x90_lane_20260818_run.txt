@@ -1,0 +1,50 @@
+====================================================================================================
+THE 1-MIN 9/90 LANE — entry 1m cross, exit 1m 9/20, STOPPED (the shippable form)
+====================================================================================================
+universe: 736 name-days / 63 dates  2026-05-18 .. 2026-08-17
+
+9x90 up-crosses found: 2316
+
+FULL SAMPLE
+  all crosses
+    L_S_e90   n= 2316  total=$ -17334.93  $/tr=  -7.48  win=  11%  green= 13%
+    L_S_swing n= 2316  total=$ -16056.72  $/tr=  -6.93  win=  16%  green= 13%
+    L_S_pct   n= 2316  total=$ -16127.32  $/tr=  -6.96  win=  16%  green= 14%
+    X_1m20    n= 2316  total=$ -13296.00  $/tr=  -5.74  win=  18%  green= 16%
+    X_hold    n= 2316  total=$  +5562.30  $/tr=  +2.40  win=  38%  green= 51%
+
+HOLD-OUT (unseen 19 dates)
+  all crosses
+    L_S_e90   n=  655  total=$  -4133.63  $/tr=  -6.31  win=  11%  green= 16%
+    L_S_swing n=  655  total=$  -3812.89  $/tr=  -5.82  win=  16%  green= 11%
+    L_S_pct   n=  655  total=$  -4074.91  $/tr=  -6.22  win=  16%  green= 11%
+    X_1m20    n=  655  total=$  -3150.36  $/tr=  -4.81  win=  18%  green= 16%
+    X_hold    n=  655  total=$ +11796.93  $/tr= +18.01  win=  44%  green= 68%
+
+  HOLD-OUT — cross ABOVE vwap
+    L_S_e90   n=  190  total=$  +1663.60  $/tr=  +8.76  win=  18%  green= 32%
+    L_S_swing n=  190  total=$  +2387.54  $/tr= +12.57  win=  25%  green= 42%
+    L_S_pct   n=  190  total=$  +1632.38  $/tr=  +8.59  win=  21%  green= 32%
+    X_1m20    n=  190  total=$  +2436.56  $/tr= +12.82  win=  25%  green= 42%
+    X_hold    n=  190  total=$ +10450.78  $/tr= +55.00  win=  48%  green= 74%
+
+  HOLD-OUT — cross BELOW vwap  <-- Marcos: 'even under vwap'
+    L_S_e90   n=  465  total=$  -5797.24  $/tr= -12.47  win=   8%  green=  0%
+    L_S_swing n=  465  total=$  -6200.43  $/tr= -13.33  win=  13%  green=  0%
+    L_S_pct   n=  465  total=$  -5707.29  $/tr= -12.27  win=  14%  green=  0%
+    X_1m20    n=  465  total=$  -5586.91  $/tr= -12.01  win=  15%  green=  6%
+    X_hold    n=  465  total=$  +1346.15  $/tr=  +2.89  win=  43%  green= 50%
+
+====================================================================================================
+PRE-REGISTERED CHECKS
+====================================================================================================
+  best hold-out arm: X_hold  $+18.01/tr  n=655  win 44%
+  halves: $+7440.58 / $+4356.35
+  PASS  signal is REAL (hold-out $/tr>0, n>=100, both halves +)
+  PASS  'EVEN UNDER VWAP' — below-vwap cell $+2.89/tr n=465
+        => the VWAP gate shipped 11:29 IS refusing good trades on this signal.
+  FAIL  'time to bail' — X_e3x $-10.11 vs X_e3 $-7.89
+
+LIMITS: no funnel, no gates, no caps — this is the raw signal on raw tape, so fire counts
+far exceed anything tradeable; read $/trade and direction. Fixed E.POS sizing per fire.
+One position per name-day at a time. Nothing ships from this script.

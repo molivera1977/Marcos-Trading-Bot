@@ -403,6 +403,7 @@ LANE_CLASS = {
     "prevwap":        "tape",   # premarket VWAP reclaim convert
     "crown_seam":     "tape",   # 5s seam pull on a crowned name (SEAM_CONVERT)
     "halt_ladder":    "tape",   # LULD halt-ladder arm on a crowned name (HALT_LANE_CONVERT)
+    "ema9x90":        "tape",   # 8/18 Marcos: 1-min 9-over-90 cross above VWAP
     # ── CHART (level/pattern derived) ──────────────────────────────────────────────────────
     "flat_top":       "chart",
     "ma_pullback":    "chart",
@@ -3567,6 +3568,57 @@ def _blended_pnl(entry_price, total_shares, partial_fills, exit_price):
 
 _move_pct: dict = {}   # sym -> the scanner's Move % (vendor change_ratio x100) — refreshed each gapper scan
 
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# 8/18 LANE EXPECTANCY (Marcos: "add lane expectancy", after reading _entry_priority and seeing
+# that capital is handed out by the STOCK's pedigree alone — Kev-sheet, then Move % — with the
+# LANE ignored entirely. Two consequences he named: (1) the `T B` sequence gate SURVIVED the OOS
+# wall at +$29.49/tr with the explicit finding "rank and size with it, never filter" and there
+# was no ranking mechanism to put it in; (2) a proven lane queues behind an unproven one whenever
+# the unproven one's ticker happens to have a bigger Move %.)
+#
+# EVERY NUMBER HERE IS MEASURED, WITH ITS SOURCE. A lane with no wall gets None — NOT a guess.
+# None sorts NEUTRAL (between positive and negative), so an unmeasured lane is neither promoted
+# nor silently demoted; it keeps exactly the priority it has today until someone measures it.
+# Units: E3-parity dollars per trade, hold-out where a hold-out exists.
+LANE_EXPECTANCY = {
+    # lane            $/trade   source
+    "flat_top":       ( 24.94, "seq_gate_oos_wall_20260817.md — hold-out ungated, n=187"),
+    "grinder":        ( 21.90, "seq_gate_oos_wall_20260817.md — hold-out ungated, n=142"),
+    "ema9x90":        ( 22.33, "ema9x90_wall_20260818.md — full sample above VWAP, n=319"),
+    "hidden_entry":   (-10.21, "hidden_wall_20260818.md — hold-out, n=1550. NEGATIVE and the "
+                               "lane is OFF; listed so nobody re-enables it blind."),
+    # UNMEASURED — no wall has run. They sort neutral. Do not invent numbers for these.
+    "ignition":       (None, "no wall"),
+    "dip_rip":        (None, "no wall"),
+    "ma_pullback":    (None, "no wall — no faithful universe-replay detector exists (pilot §)"),
+    "kevseq":         (None, "harness parity 0.0% (stale artifact) — ungradable until post-B1"),
+    "v2conv":         (None, "harness parity 51.2% — below the 90 trust floor"),
+    "crown_seam":     (None, "no wall"),
+    "halt_ladder":    (None, "arm study +$840.93/110 arms, but no per-trade wall"),
+    "vwap_reclaim":   (None, "not in the harness registry until 8/18; wall BLOCKED (0 replay fires)"),
+    "bandpass":       (None, "harness parity 44.4%"),
+    "prevwap":        (None, "N=3"),
+    "orb":            (None, "no wall"),
+    "ema_bounce":     (None, "no wall"),
+    "bounce":         (None, "observe-only"),
+    "zone_flip":      (None, "N=3"),
+    "rocket_catcher": (None, "superseded 7/24"),
+}
+# Kill: LANE_EXPECTANCY_SORT=0 restores the 7/26 pure (Kev-tier, Move %) order exactly.
+LANE_EXPECTANCY_SORT = os.environ.get("LANE_EXPECTANCY_SORT", "1") == "1"
+# 8/18: Marcos superseded the 7/26 "every Kev name first" tier. KEV_TIER_FIRST=1 restores it.
+KEV_TIER_FIRST = os.environ.get("KEV_TIER_FIRST", "0") == "1"
+
+
+def _lane_exp(lane):
+    """Measured $/trade for a lane, or None when no wall has run. None is NEUTRAL in the sort."""
+    try:
+        v = LANE_EXPECTANCY.get(str(lane))
+        return v[0] if v else None
+    except Exception:
+        return None
+
+
 def _entry_priority(b):
     """CAPITAL-PRIORITY key (Marcos 7/26: "I want Kev's list and the ranked movers list in the
     scanner to determine level of priority" ... "not the internal scoring, but the actual column
@@ -3580,7 +3632,34 @@ def _entry_priority(b):
     _mv = _move_pct.get(b[0])
     if _mv is None:
         _mv = b[4].get("day_gain")
-    return (0 if _kev_sheet_name(b[0]) else 1, -(_mv if _mv is not None else -999.0))
+    _tier = 0 if _kev_sheet_name(b[0]) else 1
+    _mvk = -(_mv if _mv is not None else -999.0)
+    # ── 8/18 SUPERSEDES THE 7/26 TIER RULING (Marcos: "i think move percentage should take over
+    # just kev names. Not all of his names move."). The 7/26 rule put EVERY Kev-sheet name ahead
+    # of EVERY other name regardless of movement, so a flat Kev pick took capital before a name
+    # running +234%. Move % is now primary; the Kev tier survives only as the TIEBREAKER between
+    # names of equal movement. His picks lose no protection elsewhere — the DAY-GAIN FLOOR
+    # EXEMPTION (:10869) is a separate mechanism and is deliberately untouched, so a Kev name
+    # that sits flat or red still cannot be blocked by the gain floor. Only the capital QUEUE
+    # changed. Kill: KEV_TIER_FIRST=1 restores the 7/26 order.
+    if KEV_TIER_FIRST:
+        if not LANE_EXPECTANCY_SORT:
+            return (_tier, _mvk)      # the original 7/26 order, exactly
+        _e0 = _lane_exp(b[3])
+        _b0 = 1 if _e0 is None else (0 if _e0 > 0 else 2)
+        return (_tier, _b0, -(_e0 if _e0 is not None else 0.0), _mvk)
+    if not LANE_EXPECTANCY_SORT:
+        return (_mvk, _tier)          # movement first, Kev breaks ties
+    # 8/18: LANE EXPECTANCY sits BETWEEN the Kev tier and Move %. Kev's picks still go first
+    # (his ruling, untouched); within a tier, a lane with MEASURED positive expectancy gets
+    # capital before an unmeasured one, and a lane measured NEGATIVE goes last. Move % remains
+    # the tiebreaker inside an expectancy band, so the "run after the big boys" rule still
+    # decides between two lanes of equal standing.
+    _e = _lane_exp(b[3])
+    _band = 1 if _e is None else (0 if _e > 0 else 2)   # 0 proven+, 1 unmeasured, 2 proven-
+    # band -> movement -> lane expectancy -> Kev tier. A lane MEASURED negative still sorts last;
+    # a big mover on an unmeasured lane now outranks a flat Kev name, which is the change.
+    return (_band, _mvk, -(_e if _e is not None else 0.0), _tier)
 
 
 def _kev_sheet_name(ticker):
@@ -6389,6 +6468,18 @@ def _slot_refund(sym, entry_type):
                 _ledger["n"] -= 1
             else:
                 return
+        elif entry_type == "ema9x90":
+            # 8/18: THE LANE HAS NO DAILY CAP, DELIBERATELY — Marcos removed the v2 cap the same
+            # session ("why are we capping this detector?") after five non-fill triggers ate the
+            # entire V2 cap by 04:35 and starved the lane all day. There is no ticket to give
+            # back, so this branch is an EXPLICIT no-op rather than a silent fall-through to the
+            # `else: return` below. Explicit, because a reader (and the lane-registry gate) must
+            # be able to see that the lane was CONSIDERED in the counter economy and found to
+            # have nothing to refund — not that it was forgotten. Capital and the $30 risk
+            # ceiling are its only limits, which is the whole design.
+            _log_decision(sym, "slot_refund_noop", machine=entry_type,
+                          why="lane has no daily cap by design (8/18)")
+            return
         elif entry_type == "kevseq":
             # kevseq's cap is PER-LEG inside the detector (_ks_st[sym]["leg_n"]), not a day
             # ledger — refund the leg ticket so the leg's next setup can still convert.
@@ -7036,6 +7127,123 @@ GRINDER_W30_SECS  = 1800         # net-up lookback
 GRINDER_W15_SECS  = 900          # pullback / would-stop window
 GRINDER_MAX_DD    = 0.03         # no >=3% pullback from running high in last 15 min
 _gr_st: dict = {}   # sym -> machine state (module-level: survives rescans)
+
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# 8/18 — THE 9/90 LANE (Marcos's signal, found by reading charts and refined by him all day)
+#
+#   "every time the 9 crosses the 90, it's going up"          -> the trigger
+#   "try the one minute time frame"                           -> the frame (10s = noise-rate)
+#   "so what are your exits, they didn't look good"           -> STOP ONLY, no exit rule
+#
+# MEASURED (data/killtests/ema9x90_wall_20260818.md), 63 dates / 736 name-days, 656 fires:
+#   above VWAP, swing stop, no exit rule : +$26.06/tr  n=319  31% win  54% green
+#   below VWAP, same construction        : -$10.27/tr  n=337
+#   two independent fresh splits both positive (+$34.65 / +$18.72)
+#   permutation null on the VWAP label   : p=0.0005 (0 of 2,000 shuffles reproduced it)
+#   pre-registered bar FAILED ONE CONDITION ONLY: hold-out n=55 < 100, because the 50/13 split
+#   left too few dates. Not a weakness in the signal - a design error in my wall. Marcos's call
+#   to run it live and let it earn the sample forward: "fucking built it and let it live."
+#
+# THE EXIT — Marcos: "i just can't understand how you can't figure out a working exit that is
+# better than waiting until close." He was right, and the answer was KEV'S OWN RULE all along:
+# the trade is over when it LOSES VWAP. Measured on the fresh 13-date hold-out, above VWAP:
+#   lose-VWAP + swing stop  +$60.10/tr  31% win  69% green   <-- SHIPPED
+#   hold (stop only)        +$34.65/tr  25% win  46% green
+#   25%-off-high trail      +$28.53/tr  38% win  69% green
+#   15%-off-high trail      +$33.16/tr  36% win  54% green
+# Full sample above VWAP: lose-VWAP +$22.33 vs hold +$26.06 — holding edges it on the full
+# sample, lose-VWAP wins clearly on the unseen dates and is far steadier (69% vs 46% green).
+# WHY the earlier arms failed: trailing the 9-EMA (-$5.18) or a 9/20 cross capped the TAIL, and
+# on a 24-31% win rate the tail IS the edge. VWAP is a far wider leash — a runner pulls back to
+# its 9-EMA constantly and never touches VWAP. Kill: EMA9X90_VWAP_EXIT=0 -> stop-or-flatten.
+#
+# WHY VWAP IS A CONDITION AND NOT A TUNABLE: below-VWAP crosses were tested to destruction on
+# 1,492 fires (13% win). Distance, VWAP slope, 9/20 stack, 1-min and 3-min velocity, volume
+# surge and 9-EMA slope ALL failed to separate 195 winners from 1,297 losers - velocity
+# INVERTED (harder cross = worse, -$20 to -$27). Those crosses are drawn from names already
+# ~24% off their session high: the dead-cat-bounce population.
+#
+# Half size at birth (EMA9X90_HALF_SIZE=1). Kill: EMA9X90=0. Shadow-only: EMA9X90_CONVERT=0.
+# ══════════════════════════════════════════════════════════════════════════════════════════
+EMA9X90            = os.environ.get("EMA9X90", "1") == "1"
+EMA9X90_CONVERT    = os.environ.get("EMA9X90_CONVERT", "1") == "1"
+EMA9X90_HALF_SIZE  = os.environ.get("EMA9X90_HALF_SIZE", "1") == "1"
+EMA9X90_SWING_BARS = int(os.environ.get("EMA9X90_SWING_BARS", "30"))   # 5 min of 10s bars
+EMA9X90_MAX_STOP   = float(os.environ.get("EMA9X90_MAX_STOP", "0.20")) # 8/18: was 0.12 and it
+# refused legitimate fires — instrumented on 8/10 JWEL: 8 crosses, 7 correctly blocked by the
+# VWAP condition, and the ONE survivor thrown out by a 12% cap. These names carry wide swings;
+# the sizing chain already converts a wide stop into a small position, so the cap only needs to
+# stop the absurd. The measured arm used the raw swing low with no cap at all.
+EMA9X90_VWAP_EXIT  = os.environ.get("EMA9X90_VWAP_EXIT", "1") == "1"
+EMA9X90_OPEN       = os.environ.get("EMA9X90_OPEN", "09:30")   # RTH only — the measured window
+EMA9X90_CLOSE      = os.environ.get("EMA9X90_CLOSE", "15:45")   # before the flatten
+_x90_st: dict = {}   # sym -> machine state (module-level: survives rescans)
+
+
+def ema9x90_step(sym, new_bars, vwap):
+    """Advance sym's 9/90 machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
+
+    Aggregates the 10s feed to 1-MINUTE internally (six 10s buckets), then fires when the
+    1-min EMA9 crosses UP through the 1-min EMA90 AND the crossing price is at/above the
+    session VWAP. Returns at most one fire dict per call, else None.
+
+    The stop is the lowest LOW of the last EMA9X90_SWING_BARS 10s bars (the swing the move
+    left behind) - the arm that won on both honest splits. `px` is the crossing bar's CLOSE,
+    a traded price, never a level (the kevseq lesson).
+    """
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    st = _x90_st.get(sym)
+    if not st or st.get("day") != day:
+        st = {"day": day, "m1": [], "part": [], "e9": None, "e90": None,
+              "prev_above": None, "lows": [], "n": 0}
+        _x90_st[sym] = st
+    if not vwap or vwap <= 0:
+        return None
+    fired = None
+    K9, K90 = 2.0 / 10.0, 2.0 / 91.0
+    for k, o, h, l, c, v in new_bars:
+        st["lows"].append((k, l))
+        if len(st["lows"]) > EMA9X90_SWING_BARS:
+            st["lows"].pop(0)
+        st["part"].append((k, c))
+        if len(st["part"]) < 6:
+            continue
+        m1_close = st["part"][-1][1]
+        st["part"] = []
+        st["m1"].append(m1_close)
+        st["e9"] = m1_close if st["e9"] is None else (m1_close - st["e9"]) * K9 + st["e9"]
+        st["e90"] = m1_close if st["e90"] is None else (m1_close - st["e90"]) * K90 + st["e90"]
+        if len(st["m1"]) < 90:          # 90 minutes of 1-min bars before the 90-EMA means anything
+            st["prev_above"] = st["e9"] > st["e90"]
+            continue
+        above = st["e9"] > st["e90"]
+        cross_up = (st["prev_above"] is False) and above
+        st["prev_above"] = above
+        if not cross_up or fired is not None:
+            continue
+        # 8/18 SESSION WINDOW — the measured arm was RTH ONLY (the wall gated 13:30-20:00Z).
+        # Caught by exercising the detector on real tape: without this it fired at 18:59 and
+        # 19:59 ET on 8/10 MTEN, hours outside anything that was ever measured. A lane must not
+        # trade a window its evidence never covered.
+        _hm_x9 = datetime.now(EASTERN).strftime("%H:%M")
+        if not (EMA9X90_OPEN <= _hm_x9 < EMA9X90_CLOSE):
+            continue
+        if c < vwap:                    # THE condition. p=0.0005. Not a tunable.
+            continue
+        stop = min((x[1] for x in st["lows"]), default=None)
+        if not stop or stop >= c or (c - stop) / c > EMA9X90_MAX_STOP:
+            continue
+        # (b) NEW-LANE CHECKLIST — the shared fire-age guard, same call every mature lane makes.
+        # Disarmed by default (LANE_FIRE_AGE_GUARD names no lane); when armed it consumes the
+        # setup rather than acting on a stale bar. kevseq shipped without this and cost a session.
+        if _lane_fire_stale(sym, "ema9x90", k, round(c, 4)):
+            continue
+        st["n"] += 1
+        fired = {"px": round(c, 4), "stop": round(stop, 4), "k": k, "n": st["n"],
+                 "vwap": round(vwap, 4), "e9": round(st["e9"], 4), "e90": round(st["e90"], 4),
+                 "stop_pct": round((c - stop) / c * 100, 2)}
+    return fired
+
 
 def grinder_shadow_step(sym, new_bars, vwap):
     """Advance sym's grinder-1030 SHADOW machine over NEW completed 10s bars
@@ -9272,6 +9480,47 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                           day_n=_v2_conv_day["n"], seq=_v2f["seq"], **_fed_stamp(_nb, _v2f))
                             except Exception:
                                 pass
+                        # ── 8/18 THE 9/90 LANE (Marcos's signal) — same fed 10s bars + session
+                        # line as hidden/v2/grinder, zero new fetches. CONVERTS by default: no
+                        # shadow mode (Marcos: "Enough of this stupid shadow shit. We never look
+                        # back at this shadow stuff anyway." — and he is right, the seam lane has
+                        # been shadow-pending-grading since 8/8). Half size at birth. The lane
+                        # carries NO exit rule by design: stop, or the flatten. Measured: every
+                        # exit rule cost money on top of the stop (see the detector's header).
+                        if EMA9X90:
+                            try:
+                                _x9f = ema9x90_step(t, _nb, _vr_sv)
+                                if _x9f and not _fire_once("ema9x90", t, _x9f.get("k")):
+                                    _replay_suppressed(t, "ema9x90", _x9f.get("k"), _x9f.get("px"))
+                                    _x9f = None
+                                if _x9f:
+                                    _log_decision(t, "ema9x90_fire", price=_x9f["px"],
+                                                  lane="ema9x90", fire_px=_x9f["px"],
+                                                  stop=_x9f["stop"], stop_pct=_x9f["stop_pct"],
+                                                  vwap=_x9f["vwap"], ema9=_x9f["e9"], ema90=_x9f["e90"],
+                                                  fire_k=_x9f["k"], n=_x9f["n"],
+                                                  # (c) drift + age: what the tape did between
+                                                  # the fire bar and the moment we act on it
+                                                  fire_age_s=(round(time.time() - _x9f["k"], 1) if _x9f.get("k") else None),
+                                                  drift_pct=(round((price - _x9f["px"]) / _x9f["px"] * 100, 2)
+                                                             if price and _x9f.get("px") else None),
+                                                  convert=int(EMA9X90_CONVERT),
+                                                  eyes=_eyes_compact(_eyes_snapshot(t, _x9f["px"], "entry", {"vwap": _vr_sv, "zone_stop": _x9f["stop"]})),
+                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"),
+                                                  **_fed_stamp(_nb, _x9f))
+                                    print(f"\n⚡ {t} 9/90 CROSS! ${_x9f['px']:.4f} above VWAP "
+                                          f"${_x9f['vwap']:.4f} (9 {_x9f['e9']:.4f} > 90 "
+                                          f"{_x9f['e90']:.4f}) — stop ${_x9f['stop']:.4f} "
+                                          f"({_x9f['stop_pct']}%), NO exit rule (stop or flatten)")
+                                    if EMA9X90_CONVERT and _x9f["stop"] < _x9f["px"]:
+                                        breakouts.append((t, _x9f["px"], _vr_sv, "ema9x90", {
+                                            "zone_stop": _x9f["stop"],
+                                            "half_size": bool(EMA9X90_HALF_SIZE),
+                                            "ema9": _x9f["e9"], "ema90": _x9f["e90"],
+                                            "fire_px": _x9f["px"], "fire_k": _x9f["k"]}))
+                            except Exception as _x9e:
+                                _gate_failopen("ema9x90", why=str(_x9e)[:60])
+
                         # ── 8/14 GRINDER-1030 shadow (#48 lane; E3 OOS-wall nominee): same fed
                         # 10s bars + session line as hidden/v2 (zero new fetches). The shadow row
                         # ALWAYS logs (evidence ledger rides along). 8/14 night (Marcos: "sim
@@ -12471,7 +12720,20 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     if HEALTH_VWAP_SESSION and _vw > 0 and _vw_roll > 0 and abs(_vw_roll - _vw) / _vw >= 0.03:
                         print(f"   🔍 {ticker} VWAP session ${_vw:.3f} vs old rolling-45 ${_vw_roll:.3f} "
                               f"({(_vw_roll - _vw) / _vw * 100:+.0f}%) — health read now uses SESSION VWAP")
-                    if _hc > 0 and _e9 > 0 and _vw > 0 and _hc < _e9 and _hc < _vw:
+                    # ── 8/18 THE 9/90 LANE'S EXIT: VWAP ALONE (Kev's rule, measured). The
+                    # health fold below needs BOTH the EMA9 and VWAP lost; for ema9x90 the
+                    # measured exit is VWAP by itself — on the fresh 13-date hold-out it made
+                    # +$60.10/tr vs +$34.65 for holding, and lifted green days 46% -> 69%.
+                    # Trailing anything faster (9-EMA, 9/20 cross) capped the tail and LOST.
+                    if (EMA9X90_VWAP_EXIT and str(entry_type) == "ema9x90"
+                            and _hc > 0 and _vw > 0 and _hc < _vw and remaining_shares > 0):
+                        print(f"⚡ {ticker}: 9/90 lane lost session VWAP (${_hc:.4f} < ${_vw:.4f}) "
+                              f"— Kev's rule, the trade is over. Folding the runner.")
+                        _safety_close(remaining_shares)
+                        result["exit_price"]  = current_price
+                        result["exit_reason"] = "9/90 LANE: lost VWAP"
+                        remaining_shares = 0
+                    elif _hc > 0 and _e9 > 0 and _vw > 0 and _hc < _e9 and _hc < _vw:
                         print(f"🩺 {ticker}: 3-min close ${_hc:.2f} below EMA9 ${_e9:.2f} AND session-VWAP ${_vw:.2f} "
                               f"(rolling-45 was ${_vw_roll:.2f}) — pullback structure gone, fold the runner.")
                         _safety_close(remaining_shares)   # #53: ladder-cancel first, then stop, then market

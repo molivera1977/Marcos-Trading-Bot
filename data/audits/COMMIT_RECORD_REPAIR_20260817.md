@@ -91,3 +91,51 @@ Acceptance: rig/test_batchB_20260817.py::SPEC_fail_open_gates_observable_and_arm
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 
 ```
+
+---
+
+## Addendum — AST evidence on WHY 460dca5 classified behaviour-changing
+
+Filed after the fact. In the A-batch report I stated the reason as "spec_gate's stripper does
+not clean `If`/`Try` bodies, so my `_log_decision` kwarg reordering survives normalisation."
+I asserted that from reading `_Strip` rather than running it. Both halves have now been
+executed and the picture is **two causes, not one**:
+
+**(a) CONFIRMED — my half.** Isolated test on `spec_gate.normalize()`:
+
+```
+_log_decision(...) nested inside if/try, kwargs reordered  -> normalized IDENTICAL? False
+_log_decision(...) at the top of a function body, same edit -> normalized IDENTICAL? True
+```
+
+`_Strip` cleans only `Module`, `FunctionDef` and `ClassDef` bodies. Every fire-row logging
+call in the scan loop sits inside `if`/`try`, so it is never stripped, and a pure-formatting
+kwarg move reaches the AST. That is the classifier's documented conservative direction, and
+it correctly demanded a test — `SPEC_stamp_position` now covers it.
+
+**(b) NOT MENTIONED, AND IT CAME FIRST — their half.** A full normalised-AST diff of
+`marcos_trading_bot.py` between 460dca5 and its parent 6ee3fe2 puts the **first** divergence
+at the B-batch agent's B5 code, not mine:
+
+```
++ Assign(targets=[Name(id='GATE_FAIL_CLOSED', ...)], value=Call(... 'GATE_FAIL_CLOSED', '' ...))
++ FunctionDef(name='_fail_closed', ...)
+```
+
+That is a genuine money-behaviour change (the fail-open gate conversion), swept into my
+commit by incident 1 above. So **460dca5 carried TWO behaviour changes and a trailer for
+neither**; the one I later attached covers only the formatting half.
+
+**For the convening:** the finding in incident 1 stands and is now evidenced, not inferred —
+460dca5 must be audited as carrying the B5 gate change unlabelled. Its acceptance test is
+`rig/test_batchB_20260817.py::SPEC_fail_open_gates_observable_and_armable`.
+
+Reproduce:
+```
+python3 - <<'PY'
+import sys; sys.path.insert(0,'rig'); import spec_gate as SG
+s='def f():\n    if x:\n        _log_decision(t, "r", **st(1), price=1)\n'
+print(SG.normalize(s)==SG.normalize(s.replace('**st(1), price=1','price=1, **st(1)')))
+PY
+python3 rig/spec_gate.py 460dca5 --verbose
+```

@@ -2237,3 +2237,31 @@ sleeping to 03:55 ET; book flat.
   fills (~$3,000, no concurrency cap — concurrency is capital-emergent).
 - Harness parity still does NOT license re-running the 62-day backtests. That waits on today's
   stamped rows.
+
+## 8/18 01:35 ET — SERVER-SIDE DUTY WATCH SHIPPED (`b4a0c25`)
+
+Marcos: "are they actually going to do something." Checked the laptop scheduler and the answer
+was NO — three tasks tombstoned "Laptop scheduler silently dead since 7/26 / 7/27", and
+`kev-daily-scorecard` (enabled, weekdays 16:22) last ran 8/14: it silently missed Monday 8/17.
+
+`_duty_watch_loop` now runs in the bot process — checkpoints 07:12/09:42/12:48/15:52 ET, one
+`watch_check` row per (day, checkpoint), reading only the durable archive + trades. Answers THE
+MARCOS CHECK: per-lane fires vs fills, and for any lane that fired >=3 times with ZERO fills it
+NAMES the top blocking gate plus the full refusal breakdown. A lane that died with no refusal row
+at all is called out explicitly — an uninstrumented death is its own defect, not a blank.
+
+This was impossible before gate 11 (refusal rows carry a lane), shipped hours earlier the same
+night. Gate 12 pins the dependency and AST-proves the watch cannot call execute_trade /
+place_order / monitor_trade / _slot_refund.
+
+EXERCISED against a live in-process dashboard over real HTTP with a frozen clock: grinder 5 fires
+/ 0 fills -> FLAGGED, top_gate=momentum_reject; flat_top 4 fires WITH a real trade record ->
+correctly NOT flagged. The first version of that second assertion passed for the WRONG reason and
+was rewritten. Two of gate 12's own checks were also wrong on first run and were corrected to
+test the real thing rather than weakened.
+
+VERIFIED LIVE: boot log reads `👁️  Duty-watch thread started (07:12,09:42,12:48,15:52 ET ...)`.
+Kill: DUTY_WATCH=0. All 11 rigs exit 0.
+
+**Doctrine:** detection belongs on the server; interpretation needs a session. Do not migrate a
+check back onto the laptop scheduler — that is now a three-time-proven silent-failure mode.

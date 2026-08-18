@@ -1807,17 +1807,28 @@ except (AssertionError, ValueError) as _abe:
 # (c) flat_top break-attack: in-window-only conversion at the break print; out-of-window arm
 # machinery + observe-only both intact; retest wait + observe strip bypassed ONLY for break_attack
 try:
-    assert '"09:30" <= _hm_ft < "10:30"' in _y                # the tested cell, exactly
+    # 8/17 BATCH D: the decision core moved OUT of wait_for_flat_top_entry into the pure
+    # flat_top_step (so the study harness can replay our best-validated lane). The pins below
+    # follow it — same assertions, new home. `_z` = the extracted core; `_y` = the whole bot source.
+    _z = _y[_y.index("def flat_top_step("):_y.index("def wait_for_flat_top_entry(")]
+    assert '"09:30" <= time_hm < "10:30"' in _y                # the tested cell, exactly
+    assert 'return bool(FLATTOP_BREAK_ATTACK) and "09:30" <= time_hm < "10:30"' in _y
     assert '_log_decision(t, "break_attack"' in _y
     assert '"break_armed"' in _y                              # out-of-window arm path retained
     assert "if _pb_enter or _ft_attack:" in _y
-    assert "_stop = round(w_low, 4)   # TEST L spec: stop = base low, exact" in _y
+    assert "def _ft_attack_stop(w_low):" in _y
+    assert "return round(w_low, 4)   # TEST L spec: stop = base low, exact" in _y
+    assert "_stop = _ft_attack_stop(w_low)" in _y             # attack stop = base low, exact
     assert '_ft_extra["exit_mode"] = "E3"' in _y and '_ft_extra["break_attack"] = True' in _y
     assert 'b[3] == "flat_top" and not FLATTOP_CONVERT and not b[4].get("break_attack")' in _y
     assert 'entry_type in RETEST_LANES and not (extra or {}).get("break_attack")' in _y
-    # the attack fires only from the fresh-break branch (inside `if is_flat and price > w_high`)
-    _abf = _y[_y.index("FLAT_TOP BREAK-ATTACK"):_y.index("if _pb_enter or _ft_attack:")]
-    assert "if is_flat and price > w_high and not _pb:" in _abf
+    # the attack fires only from the fresh break (flat base + price through the high + unarmed)
+    assert 'if not (d["is_flat"] and price > d["w_high"] and not ctx["armed"]):' in _z
+    assert 'd["action"] = "attack"' in _z and 'd["action"] = "arm"' in _z
+    # the live loop CONSUMES the core's verdict — one implementation, never two
+    assert "_ftd = flat_top_step(t, _sess3, price, vwap," in _y
+    assert '_ft_attack = (_ftd["action"] == "attack")' in _y
+    assert '_ft_veto = _ft_vwap_veto(price, vwap)' in _y
     check("AB-c: flat_top break-attack converts in-window at the break print; observe/arm out-of-window", True)
 except (AssertionError, ValueError) as _abe:
     check("AB-c: flat_top break-attack", False, str(_abe))

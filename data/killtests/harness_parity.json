@@ -1,11 +1,11 @@
 {
- "_doc": "MEASURED HARNESS PARITY PER LANE — the machine-readable store the EG2b threshold gate reads. A study may not grade a lane whose parity sits below `threshold_pct` unless the artifact states the parity number in its LIMITS/CAVEATS section. This makes 'don't trust grinder studies' mechanical instead of a thing somebody has to remember.",
+ "_doc": "MEASURED HARNESS PARITY PER LANE \u2014 the machine-readable store the EG2b threshold gate reads. A study may not grade a lane whose parity sits below `threshold_pct` unless the artifact states the parity number in its LIMITS/CAVEATS section. This makes 'don't trust grinder studies' mechanical instead of a thing somebody has to remember.",
  "_rule": "EG2b, rig/test_shipset_20260804.py. Seeded 2026-08-17 from harness_parity_20260817_out.json. Rewritten by data/killtests/harness_parity_v2_20260818.py whenever a stamped day is graded.",
  "threshold_pct": 90.0,
  "_threshold_note": "Starts at 90. It is a FLOOR ON TRUST, not a target to tune toward: raising it makes the gate stricter, lowering it needs Marcos.",
  "measured_on": "2026-08-17",
  "method": "time_and_price_approximation",
- "_method_note": "batch_secs=60 nominal cadence, exact price+stop, |dt| <= 300s. This is NOT an equivalence test: the two sides were not fed the same bars, so a miss cannot be attributed between the detector and the feed. It is also DEPRESSED by the A1 duplicate-fire defect — the live denominators below include restart replays (grinder 66 rows / 53 distinct, v2 164 / 150, bandpass 9 / 8). Both problems are fixed forward: the A2 provenance stamps shipped 2026-08-17 night and 2026-08-18 is the first day supporting exact_fed_stream parity.",
+ "_method_note": "batch_secs=60 nominal cadence, exact price+stop, |dt| <= 300s. This is NOT an equivalence test: the two sides were not fed the same bars, so a miss cannot be attributed between the detector and the feed. It is also DEPRESSED by the A1 duplicate-fire defect \u2014 the live denominators below include restart replays (grinder 66 rows / 53 distinct, v2 164 / 150, bandpass 9 / 8). Both problems are fixed forward: the A2 provenance stamps shipped 2026-08-17 night and 2026-08-18 is the first day supporting exact_fed_stream parity.",
  "lanes": {
   "prevwap": {
    "parity_pct": 100.0,
@@ -51,6 +51,17 @@
    "method": "time_and_price_approximation",
    "source": "harness_parity_20260817_out.json",
    "note": "WORST LANE. Denominator includes 13 restart-replay duplicates (53 distinct). DO NOT GRADE THE GRINDER LANE FROM HARNESS OUTPUT without stating this number."
+  },
+  "flat_top": {
+   "parity_pct": 100.0,
+   "live_fires": 3,
+   "exact": 3,
+   "measured_on": "2026-08-17",
+   "method": "time_and_price_approximation",
+   "source": "harness_parity_flattop_20260817_out.json",
+   "note": "N=3. The break-attack cell fired exactly three times on 8/17 (IPST/CDTG/LBGJ, all 09:30) and the extracted core reproduces all three from the tape, within 37s. 100% on three fires is the ABSENCE OF A DISAGREEMENT, not a strong claim. LEVELS: w_high matches to the cent on 2/3, w_low on 1/3 \u2014 IPST's base reads 8.1399/7.49 off our 10s SIP roll vs 8.09/7.46 off the broker's M1. That is a FEED difference (it moves the stop 3c) and cannot be attributed to the detector from this day. DENOMINATOR BOUND: this counts LIVE fires only. Replayed over all 56 captured names the core also attacks on 29 names the live bot never fired on \u2014 the live funnel (scanner board membership, slot limits, found_entry/traded suppression, an existing retest arm) sits UPSTREAM of the detector and is not modelled here. The harness grades the DETECTOR, never the funnel; a flat_top study must say so.",
+   "extraction": "8/17 batch D \u2014 flat_top_step/_ft_window_stats/_ft_vwap_veto/_ft_attack_window/_ft_attack_stop; live loop calls them (rig AB-c, rig/test_batchD_20260817.py).",
+   "driver": "live_harness.replay_flat_top (NOT replay(): 3-min/whole-session lane)"
   }
  }
 }

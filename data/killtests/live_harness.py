@@ -303,6 +303,12 @@ ALL_SYMBOLS = [
     # LIFT, or kevseq_step/grinder_shadow_step/bandpass_step/v2_pullback_step cannot.
     "_parse_lane_age_guard", "_lane_fire_stale", "_LANE_AGE_GUARD", "LANE_FIRE_AGE_GUARD",
     "_bucket_fresh", "_log_stale_fire", "_halted_secs_since",
+    # flat_top / BREAK-ATTACK lane (8/17 batch D extraction). Previously the one lane the
+    # harness could not lift at all — it lived inline in wait_for_flat_top_entry behind a
+    # WebullStream. Now a pure bar-driven core, called BY the live loop, replayed here.
+    "flat_top_step", "_ft_window_stats", "_ft_vwap_veto", "_ft_attack_window",
+    "_ft_attack_stop", "_latest_session",
+    "FLAT_TOP_WINDOW", "FLAT_TOP_MAX_RANGE", "FLATTOP_BREAK_ATTACK", "SETUP_TF_MIN",
     # shared machinery studies keep re-implementing
     "_seq_events", "_wallclock_window", "_scaled_risk", "aggregate_bars",
     "calculate_ema9", "calculate_ema20", "calculate_ema90",
@@ -354,11 +360,15 @@ NOT_ISOLABLE = {
         "wall-clock + live store: _bucket_fresh(k) compares the bar bucket to time.time() "
         "(every historical bar is 'stale' -> the fire path is unreachable in replay), and "
         "_zf_pm_floor(sym) reads the premarket-zone store built during the live premarket.",
-    "flat_top / break-attack":
-        "not a function: the flat-top consolidation tracker + FLATTOP_BREAK_ATTACK conversion "
-        "live INSIDE wait_for_flat_top_entry (~1k lines), driven by a WebullStream object, a "
-        "session_cache and rescan callbacks. Lifting it would require faking the stream — i.e. "
-        "exactly the replica-drift this harness exists to prevent. Left un-lifted ON PURPOSE.",
+    "flat_top RETEST arm/reclaim (the break-attack DETECTION is now lifted — batch D 8/17)":
+        "the break/arm/attack verdict, the base stats and the VWAP gate were extracted 8/17 into "
+        "flat_top_step/_ft_window_stats/_ft_vwap_veto/_ft_attack_window/_ft_attack_stop, which "
+        "the live loop CALLS — replay them with replay_flat_top(). What did NOT move, and cannot "
+        "without faking the stream: the retest state machine (arm ts + PULLBACK_TIMEOUT_SECS on "
+        "time.time(), _recent_low_dip/_confirm_reclaim on the live 1-min tape), which is why "
+        "`armed` is a REQUIRED ctx field a study must supply rather than a thing the harness "
+        "reconstructs. Also still live-only (both OBSERVE-ONLY today, neither can block a "
+        "break-attack fire): get_daily_levels/daily_first_ok and compute_room.",
     "sizing chain (full)":
         "PARTIAL. _scaled_risk IS lifted (real). The rest of the chain (risk shares vs notional "
         "shares, VWAP-side halving, MAX_POS_VOL_PCT volume cap) is INLINE in execute_trade's "
@@ -478,6 +488,16 @@ LANES = {
         # never report "hidden fires" from it.
         "blocked": "_bucket_fresh wall-clock stale-guard suppresses 100% of replay fires",
     },
+    "flat_top": {
+        # 8/17 batch D. NOT driven by replay(): this lane is 3-MIN-bar driven (Kev's setup
+        # timeframe) and needs the WHOLE session's base, not the new-bar slice every 10s lane
+        # takes. Use replay_flat_top() — replay() refuses it by name so nobody silently feeds
+        # it 10s tuples and reports the number.
+        "fn": "flat_top_step", "needs_vwap": True,
+        "ctx_required": ("armed", "time_hm", "ma_first", "ma_only_window"),
+        "state": (), "call": None,
+        "driver": "replay_flat_top",
+    },
     "ignition10s": {
         "fn": "ignition_10s_step", "needs_vwap": False, "ctx_required": (),
         "state": ("_ig10_st",),
@@ -552,6 +572,11 @@ def replay(sym, bars, lanes, ctx_provider=None, vwap_provider=None, day=None,
     for ln in lanes:
         if ln not in LANES:
             raise HarnessError(f"unknown lane '{ln}' (have {sorted(LANES)})")
+        if LANES[ln].get("driver"):
+            raise HarnessError(
+                f"lane '{ln}' has its own driver: call {LANES[ln]['driver']}(). replay() feeds "
+                "10s new-bar slices; this lane is 3-min-bar/whole-session driven and would be "
+                "silently wrong here.")
         if LANES[ln].get("blocked") and not allow_blocked:
             raise HarnessError(
                 f"lane '{ln}' is NOT REPLAYABLE: {LANES[ln]['blocked']}. Pass "
@@ -616,6 +641,87 @@ def replay(sym, bars, lanes, ctx_provider=None, vwap_provider=None, day=None,
                           "vwap": round(vwap, 4), "ctx": ctx})
                 out.append(r)
     return out
+
+
+# ─────────────── flat_top / break-attack driver (8/17 batch D) ───────────────
+def bars10s_to_m1(B):
+    """Roll normalised 10s tuples [(k,o,h,l,c,v)] into the 1-min DICT bars the flat-top path
+    reads (ISO-UTC 'time' + full-name OHLCV) — the shape get_intraday_bars returns, which is
+    what aggregate_bars()/_latest_session() key off. Bars are stamped at the minute's START,
+    exactly like the broker's M1."""
+    out, key, cur = [], None, None
+    for k, o, h, l, c, v in B:
+        slot = int(k) // 60
+        if slot != key:
+            if cur:
+                out.append(cur)
+            key = slot
+            cur = {"time": _dt.datetime.fromtimestamp(slot * 60, _dt.timezone.utc)
+                                  .strftime("%Y-%m-%dT%H:%M:%SZ"),
+                   "open": o, "high": h, "low": l, "close": c, "volume": v}
+        else:
+            cur["high"] = max(cur["high"], h)
+            if l > 0:
+                cur["low"] = min(cur["low"], l) if cur["low"] > 0 else l
+            cur["close"] = c
+            cur["volume"] += v
+    if cur:
+        out.append(cur)
+    return out
+
+
+def replay_flat_top(sym, bars, day, vwap_provider, ctx_provider, cadence_secs=60,
+                    every_bar=False):
+    """Drive the BOT'S OWN flat_top_step over one name-day.
+
+    Mirrors the live pipeline exactly: 10s tape -> 1-min bars -> aggregate_bars(SETUP_TF_MIN)
+    -> drop the incomplete last bar -> _latest_session() -> flat_top_step(). Every one of
+    those steps is the bot's real function object (bars10s_to_m1 is the only harness-side
+    roll, and it is the broker's own minute bucketing, pinned by rig section BD).
+
+    ctx_provider  f(sym, i, bar) -> dict with ALL FOUR required keys. MANDATORY — no
+                  defaulting (see the contract note at the top of this module).
+    cadence_secs  60 = the live rescan cadence (one decision per minute). every_bar=True
+                  evaluates on each 10s bar (upper bound on fires, not live-comparable).
+
+    Returns every decision dict flat_top_step produced whose action != 'none', stamped with
+    the bar index / epoch / vwap / ctx.
+
+    BOUND, stated not hidden: `armed` (the retest arm) is NOT reconstructed here — the arm
+    state machine is wall-clock + 1-min-tape driven and stayed inline (see NOT_ISOLABLE).
+    A study must supply it; supplying armed=False measures the break-attack cell on the
+    assumption no out-of-window arm was live for the name, which is the 09:30-10:30 case
+    whenever the name's first break of the session happens inside the window."""
+    set_replay_day(day)
+    B = norm_bars(bars, day=day)
+    N = ns()
+    F = fn("flat_top_step")
+    step = 1 if every_bar else max(1, int(cadence_secs // 10))
+    out = []
+    for i in range(len(B)):
+        if not every_bar and (i + 1) % step:
+            continue
+        m1 = bars10s_to_m1(B[:i + 1])
+        completed = N["aggregate_bars"](m1, N["SETUP_TF_MIN"])[:-1]
+        sess3 = N["_latest_session"](completed)
+        if len(sess3) < N["FLAT_TOP_WINDOW"]:
+            continue
+        bar = B[i]
+        price = float(bar[4])
+        vwap = float(vwap_provider(sym, i, bar, "flat_top"))
+        ctx = _check_ctx("flat_top", ctx_provider(sym, i, bar, "flat_top"))
+        d = F(sym, sess3, price, vwap, ctx)
+        if d and d["action"] != "none":
+            d = dict(d)
+            d.update({"lane": "flat_top", "sym": sym, "i": i, "bar": bar,
+                      "vwap": round(vwap, 4), "ctx": ctx})
+            out.append(d)
+    return out
+
+
+def et_hm(k):
+    """'HH:MM' ET for an epoch-second bucket — what flat_top_step's time_hm ctx wants."""
+    return _dt.datetime.fromtimestamp(int(k), EASTERN).strftime("%H:%M")
 
 
 # ─────────────────── sizing chain (partial-isolable; see NOT_ISOLABLE) ───────────────────

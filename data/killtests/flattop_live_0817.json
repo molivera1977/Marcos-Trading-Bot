@@ -1,0 +1,35 @@
+[
+ {
+  "date": "2026-08-17",
+  "price": 8.155,
+  "recorded_at": "2026-08-17T09:30:50.316333-04:00",
+  "status": "break_attack",
+  "ticker": "IPST",
+  "time": "09:30:45 AM",
+  "time_hm": "09:30",
+  "w_high": 8.09,
+  "w_low": 7.46
+ },
+ {
+  "date": "2026-08-17",
+  "price": 2.17,
+  "recorded_at": "2026-08-17T09:30:50.316333-04:00",
+  "status": "break_attack",
+  "ticker": "CDTG",
+  "time": "09:30:47 AM",
+  "time_hm": "09:30",
+  "w_high": 2.09,
+  "w_low": 2.0008
+ },
+ {
+  "date": "2026-08-17",
+  "price": 3.16,
+  "recorded_at": "2026-08-17T09:30:50.316333-04:00",
+  "status": "break_attack",
+  "ticker": "LBGJ",
+  "time": "09:30:47 AM",
+  "time_hm": "09:30",
+  "w_high": 3.1,
+  "w_low": 3.07
+ }
+]

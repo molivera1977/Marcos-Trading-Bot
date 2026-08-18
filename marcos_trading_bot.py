@@ -8445,6 +8445,118 @@ INTRADAY_RESCAN_INTERVAL = int(os.environ.get("RESCAN_SECS", "60"))   # 8/10 lat
 # board's own server cache (30s TTL) means browser + bot never double-spend Webull budget.
 
 
+# ══ 8/17 BATCH D — BREAK-ATTACK EXTRACTION ══════════════════════════════════════════════
+# WHY: break-attack is one of the two lanes that passed the weekend bar (O-config, TEST L /
+# edge_stresstest_G_20260815.md) and was the ONLY lane the live-code harness could not lift —
+# its logic lived inline in wait_for_flat_top_entry, behind a WebullStream. Our best-validated
+# lane could not be independently verified by anything. The primitives below are now the ONE
+# implementation: the live loop calls them, and the study harness under data/killtests/ calls
+# the SAME function objects (AST-lifted), so a study can never drift from the machine.
+# (The harness module is deliberately NOT named here: rig BH-b pins the one-way dependency by
+# asserting its module name never appears in this file.)
+# BEHAVIOUR: unchanged by construction — every expression is the live expression, in the live
+# order. There is no new gate, no new env switch, and no new numeric. Doc:
+# data/killtests/breakattack_extraction_20260817.md (failure condition stated first).
+def _ft_window_stats(sess3):
+    """Flat-top base stats off the last FLAT_TOP_WINDOW completed 3-min SESSION bars.
+    Returns None when the base does not exist yet (fewer than FLAT_TOP_WINDOW bars) — the
+    live loop's own length guard. Otherwise (w_high, w_low, rng, is_flat); rng/is_flat are
+    None when w_low <= 0, which is exactly the live `if w_low > 0:` fork."""
+    if not sess3 or len(sess3) < FLAT_TOP_WINDOW:
+        return None
+    window = sess3[-FLAT_TOP_WINDOW:]
+    highs = [float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in window]
+    lows  = [float(b.get("low")  or b.get("l") or b.get("close") or b.get("c") or 0) for b in window]
+    w_high = max(h for h in highs if h > 0)
+    w_low  = min(l for l in lows  if l > 0)
+    if w_low <= 0:
+        return (w_high, w_low, None, None)
+    rng = (w_high - w_low) / w_low
+    return (w_high, w_low, rng, rng <= FLAT_TOP_MAX_RANGE)
+
+
+def _ft_vwap_veto(price, vwap):
+    """The flat-top VWAP gate. Shared by the retest path and the break-attack path — one
+    implementation, so the two can never diverge. Returns the live decision-row status
+    string ('broke_no_vwap' / 'broke_below_vwap') or None to pass."""
+    if vwap <= 0:
+        return "broke_no_vwap"
+    if price < vwap:
+        return "broke_below_vwap"
+    return None
+
+
+def _ft_attack_window(time_hm):
+    """The tested cell: FLATTOP_BREAK_ATTACK on AND 09:30 <= ET < 10:30. Kill: env=0."""
+    return bool(FLATTOP_BREAK_ATTACK) and "09:30" <= time_hm < "10:30"
+
+
+def _ft_attack_stop(w_low):
+    return round(w_low, 4)   # TEST L spec: stop = base low, exact (no ZONE_STOP_BUFFER)
+
+
+def flat_top_step(sym, sess3, price, vwap, ctx=None):
+    """PURE, bar-driven flat_top / break-attack decision core — the sibling of
+    grinder_shadow_step / kevseq_step / v2_pullback_step, and the thing that makes the
+    weekend-bar lane replayable.
+
+    sess3  TODAY's COMPLETED 3-min bars (i.e. _latest_session(aggregate_bars(m1)[:-1])),
+           oldest-first, dict bars with high/low/close.
+    price  the live/last price the live loop is deciding on.
+    vwap   the session VWAP scalar the live loop passes.
+    ctx    REQUIRED keys (no defaulting — absence is a bug, None is a value):
+             armed           bool  — a pullback arm already exists for this name (cache 'pb')
+             time_hm         str   — 'HH:MM' ET of the decision
+             ma_first        bool  — PULLBACK_FIRST pre-pass fired (flat_top is skipped live)
+             ma_only_window  bool  — MA_WARMUP_SEED window (only ma_pullback may look)
+
+    Returns None when there is no base yet, else a decision dict:
+      action  'attack' (convert AT the break print) | 'arm' (out-of-window: start the
+              retest state machine) | 'none'
+      ok      True only for an attack that also clears the VWAP gate
+      why     the live decision-row status strings that explain a non-fire
+    NOT included, by design: the retest/reclaim state machine (wall-clock + 1-min tape),
+    the daily-level veto and the room read (both network, and both OBSERVE-ONLY today) —
+    see NOT_EXTRACTABLE in the doc. None of them can block a break-attack fire."""
+    ctx = ctx or {}
+    for k in ("armed", "time_hm", "ma_first", "ma_only_window"):
+        if k not in ctx:
+            raise KeyError(f"flat_top_step: ctx field '{k}' is required (None allowed, absence is not)")
+    d = {"lane": "flat_top", "sym": sym, "action": "none", "ok": False, "why": [],
+         "price": price, "time_hm": ctx["time_hm"], "w_high": None, "w_low": None,
+         "rng": None, "is_flat": None, "stop": None, "break_attack": False}
+    if ctx["ma_first"] or ctx["ma_only_window"]:
+        d["why"].append("pullback_first_suppress" if ctx["ma_first"] else "ma_warmup_window")
+        return d
+    st = _ft_window_stats(sess3)
+    if st is None:
+        return None
+    d["w_high"], d["w_low"], d["rng"], d["is_flat"] = st
+    if d["w_low"] <= 0:
+        d["why"].append("no_base_low")
+        return d
+    if not (d["is_flat"] and price > d["w_high"] and not ctx["armed"]):
+        d["why"].append("consolidating" if d["is_flat"] else
+                        ("broke_not_flat" if price > d["w_high"] else "no_break"))
+        return d
+    if not _ft_attack_window(ctx["time_hm"]):
+        d["action"] = "arm"
+        d["why"].append("break_armed")
+        return d
+    d["action"] = "attack"
+    d["break_attack"] = True
+    veto = _ft_vwap_veto(price, vwap)
+    if veto:
+        # The stop is deliberately left None here: the live loop `continue`s on the veto and
+        # never computes one, and rig D3's differential grid holds this exact field to the
+        # pre-refactor behaviour. Do not "helpfully" fill it in.
+        d["why"].append(veto)
+        return d
+    d["stop"] = _ft_attack_stop(d["w_low"])
+    d["ok"] = True
+    return d
+
+
 def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                              rescan_callback=None, traded_tickers: set = None,
                              reentry: dict = None, session_cache: dict = None):
@@ -9661,21 +9773,27 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # overnight gap (prior-day consolidation) and fire a spurious open-gap "breakout".
             _sess3 = _latest_session(completed)
             if len(_sess3) >= FLAT_TOP_WINDOW and not _ma_first_fire and not _ma_only_window:
-                window = _sess3[-FLAT_TOP_WINDOW:]
-                highs = [float(b.get("high") or b.get("h") or b.get("close") or b.get("c") or 0) for b in window]
-                lows  = [float(b.get("low")  or b.get("l") or b.get("close") or b.get("c") or 0) for b in window]
-                w_high = max(h for h in highs if h > 0)
-                w_low  = min(l for l in lows  if l > 0)
+                # ── 8/17 BATCH D: the base stats + the break/arm/attack verdict now come from
+                # the EXTRACTED pure core (flat_top_step, defined above wait_for_flat_top_entry)
+                # so the harness replays the SAME function objects the live loop runs. Same
+                # expressions, same order, same numbers — no behaviour change. ──
+                _pb = cache[t].get("pb")
+                _hm_ft = datetime.now(EASTERN).strftime("%H:%M")
+                _ftd = flat_top_step(t, _sess3, price, vwap,
+                                     {"armed": bool(_pb), "time_hm": _hm_ft,
+                                      "ma_first": bool(_ma_first_fire),
+                                      "ma_only_window": bool(_ma_only_window)})
+                w_high = _ftd["w_high"]
+                w_low  = _ftd["w_low"]
 
                 if w_low > 0:
-                    rng = (w_high - w_low) / w_low
-                    is_flat = rng <= FLAT_TOP_MAX_RANGE
+                    rng = _ftd["rng"]
+                    is_flat = _ftd["is_flat"]
 
                     # ── PULLBACK-ENTRY STATE MACHINE (7/2): arm on the break, ENTER only on the retest+reclaim
                     #    of the level (Kev buys the pullback, not the spike). P0-crude was the winner — every
                     #    added filter (green-close, front-side, wick) HURT it. Dead-duck data: break bars carry
                     #    a median 4% of the day's peak volume, so chasing the tick buys the exhaustion top. ──
-                    _pb = cache[t].get("pb")
                     # ── 8/14 FLAT_TOP BREAK-ATTACK (Marcos: "sim money live"; TEST L,
                     # edge_stresstest_G_20260815.md: break-attack beats the retest on EVERY column
                     # — 61% win vs 37%, +$9,220 vs +$1,280, shallower worst day; the retest was
@@ -9684,18 +9802,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     # and (downstream) the RETEST_ENTRY wait for this lane; stop = base low;
                     # exit_mode=E3. Out-of-window: the arm/observe machinery continues unchanged
                     # (FLATTOP_CONVERT still governs it). Kill: FLATTOP_BREAK_ATTACK=0. ──
-                    _ft_attack = False
-                    _hm_ft = datetime.now(EASTERN).strftime("%H:%M")
-                    if is_flat and price > w_high and not _pb:
-                        if FLATTOP_BREAK_ATTACK and "09:30" <= _hm_ft < "10:30":
-                            _ft_attack = True
-                            _log_decision(t, "break_attack", price=price, w_high=w_high,
-                                          w_low=w_low, time_hm=_hm_ft)
-                        else:
-                            cache[t]["pb"] = {"level": w_high, "zone": w_low, "ts": time.time(), "dipped": False}
-                            _log_decision(t, "break_armed", price=price, w_high=w_high)
-                            status_parts.append(f"{t}:${price:.2f} broke ${w_high:.2f} → waiting for pullback")
-                            continue
+                    _ft_attack = (_ftd["action"] == "attack")
+                    if _ft_attack:
+                        _log_decision(t, "break_attack", price=price, w_high=w_high,
+                                      w_low=w_low, time_hm=_hm_ft)
+                    elif _ftd["action"] == "arm":
+                        cache[t]["pb"] = {"level": w_high, "zone": w_low, "ts": time.time(), "dipped": False}
+                        _log_decision(t, "break_armed", price=price, w_high=w_high)
+                        status_parts.append(f"{t}:${price:.2f} broke ${w_high:.2f} → waiting for pullback")
+                        continue
                     _pb_enter = False
                     if _pb:
                         if time.time() - _pb["ts"] > PULLBACK_TIMEOUT_SECS:
@@ -9714,11 +9829,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 continue
 
                     if _pb_enter or _ft_attack:
-                        if vwap <= 0:
+                        # 8/17 BATCH D: one VWAP gate, shared with flat_top_step (_ft_vwap_veto).
+                        _ft_veto = _ft_vwap_veto(price, vwap)
+                        if _ft_veto == "broke_no_vwap":
                             status_parts.append(f"{t}:${price:.2f} BREAK but no VWAP — skipped")
                             _log_decision(t, "broke_no_vwap", price=price, w_high=w_high)
                             continue
-                        if price < vwap:
+                        if _ft_veto == "broke_below_vwap":
                             status_parts.append(f"{t}:${price:.2f} BREAK but below VWAP{vwap_tag}")
                             _log_decision(t, "broke_below_vwap", price=price, vwap=vwap, w_high=w_high)
                             continue
@@ -9733,7 +9850,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         _zone = round(w_low * (1 - ZONE_STOP_BUFFER), 4)
                         _stop = max(_zone, round(price * (1 - STOP_LOSS_PCT), 4))
                         if _ft_attack:
-                            _stop = round(w_low, 4)   # TEST L spec: stop = base low, exact
+                            _stop = _ft_attack_stop(w_low)   # TEST L spec: stop = base low, exact
                         # ── Kev DAILY-FIRST veto (#067 "if the daily is bad I will not take the trade")
                         #    + room to the next SIGNIFICANT level on the DAILY chart (#057). Daily levels
                         #    fetched once per ticker per session and cached. ──

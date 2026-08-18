@@ -1,0 +1,211 @@
+{
+ "lane": "flat_top",
+ "day": "2026-08-17",
+ "live_fires": 3,
+ "matched": 3,
+ "parity_pct": 100.0,
+ "w_high_exact": 2,
+ "w_low_exact": 1,
+ "method": "time_and_price_approximation",
+ "tolerance_secs": 300,
+ "names_with_replay_attacks_and_no_live_row": [
+  [
+   "ADIL",
+   1,
+   "09:31"
+  ],
+  [
+   "AEHL",
+   1,
+   "09:52"
+  ],
+  [
+   "AKAN",
+   2,
+   "09:30"
+  ],
+  [
+   "AKTX",
+   1,
+   "10:18"
+  ],
+  [
+   "CGTL",
+   7,
+   "09:38"
+  ],
+  [
+   "DAIC",
+   2,
+   "09:31"
+  ],
+  [
+   "FTFT",
+   2,
+   "09:36"
+  ],
+  [
+   "FXHO",
+   2,
+   "09:31"
+  ],
+  [
+   "HAO",
+   6,
+   "09:51"
+  ],
+  [
+   "HHS",
+   2,
+   "09:31"
+  ],
+  [
+   "INBS",
+   5,
+   "09:30"
+  ],
+  [
+   "IVF",
+   2,
+   "09:59"
+  ],
+  [
+   "JDZG",
+   6,
+   "09:33"
+  ],
+  [
+   "JLHL",
+   2,
+   "10:11"
+  ],
+  [
+   "MI",
+   1,
+   "10:07"
+  ],
+  [
+   "NIPG",
+   2,
+   "09:51"
+  ],
+  [
+   "NIVF",
+   4,
+   "09:43"
+  ],
+  [
+   "OSRH",
+   7,
+   "09:32"
+  ],
+  [
+   "PFSA",
+   3,
+   "09:33"
+  ],
+  [
+   "RETO",
+   1,
+   "09:30"
+  ],
+  [
+   "RPGL",
+   4,
+   "09:32"
+  ],
+  [
+   "STFS",
+   2,
+   "09:31"
+  ],
+  [
+   "STKH",
+   6,
+   "09:33"
+  ],
+  [
+   "TRUG",
+   3,
+   "09:44"
+  ],
+  [
+   "UUU",
+   1,
+   "10:12"
+  ],
+  [
+   "WETO",
+   1,
+   "09:34"
+  ],
+  [
+   "WFF",
+   6,
+   "09:31"
+  ],
+  [
+   "WOK",
+   3,
+   "09:39"
+  ],
+  [
+   "YDES",
+   1,
+   "09:30"
+  ]
+ ],
+ "rows": [
+  {
+   "ticker": "CDTG",
+   "live_time": "09:30:47 AM",
+   "live_price": 2.17,
+   "live_w_high": 2.09,
+   "live_w_low": 2.0008,
+   "replay_time": "09:30",
+   "replay_price": 2.15,
+   "replay_w_high": 2.09,
+   "replay_w_low": 2.0,
+   "replay_stop": 2.0,
+   "dt_secs": 37,
+   "matched": true,
+   "w_high_exact": true,
+   "w_low_exact": true,
+   "replay_attacks_on_name": 2
+  },
+  {
+   "ticker": "IPST",
+   "live_time": "09:30:45 AM",
+   "live_price": 8.155,
+   "live_w_high": 8.09,
+   "live_w_low": 7.46,
+   "replay_time": "09:30",
+   "replay_price": 8.2,
+   "replay_w_high": 8.1399,
+   "replay_w_low": 7.49,
+   "replay_stop": 7.49,
+   "dt_secs": 5,
+   "matched": true,
+   "w_high_exact": false,
+   "w_low_exact": false,
+   "replay_attacks_on_name": 5
+  },
+  {
+   "ticker": "LBGJ",
+   "live_time": "09:30:47 AM",
+   "live_price": 3.16,
+   "live_w_high": 3.1,
+   "live_w_low": 3.07,
+   "replay_time": "09:30",
+   "replay_price": 3.1296,
+   "replay_w_high": 3.1,
+   "replay_w_low": 3.06,
+   "replay_stop": 3.06,
+   "dt_secs": 37,
+   "matched": true,
+   "w_high_exact": true,
+   "w_low_exact": false,
+   "replay_attacks_on_name": 1
+  }
+ ]
+}

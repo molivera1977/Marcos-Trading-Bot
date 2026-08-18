@@ -31,6 +31,15 @@ Rig: `rig/test_batchE_20260817.py` (15 specs, all green). Parity run:
 
 ---
 
+## VERDICT
+
+Three of the four lanes are LIFTED (`_bucket_fresh`/hidden, zone_flip, `check_momentum`); the
+fourth (`_marked_runway`) is injectable **but** remains historically un-replayable and always
+will be. **This is a plumbing verdict, not a trading one** — nothing here grades an edge, sizes a
+ticket, or moves a dollar. The parity figures are single-day (2026-08-17) and
+approximate: zone_flip's is n=3, and *only* the detector is graded, never the funnel. Read the
+LIMITS & CAVEATS section before citing any number below.
+
 ## THE PATTERN
 
 Every one of the four blockers was the same species: *the function reads a live global instead
@@ -226,6 +235,24 @@ safe direction — with the finding written into the lane's note. **Owed: a bise
 the kevseq lane.** Until then, do not grade kevseq from harness output.
 
 ---
+
+## LIMITS & CAVEATS
+
+- **Single day.** Every parity figure is 2026-08-17 only. n=3 for zone_flip — the absence of a
+  disagreement, not evidence of agreement. Do not cite either lane as "validated".
+- **Approximation, not equivalence.** 8/17 rows carry no `fed_k0/fed_k1` provenance, so the two
+  sides were not fed the same bars; a miss cannot be attributed between detector and feed.
+  2026-08-18 is the first day supporting an exact-fed-stream equivalence test.
+- **Detector, never funnel.** Harness-extra fires (hidden 424 vs 226 live) are not missed trades;
+  the live funnel sits upstream and is not modelled here.
+- **The bar clock is a reconstruction.** `k_last + 10` is the earliest instant the live rescan
+  could have held the slice, so it biases toward MORE fires than a live cycle that arrived later.
+- **Runway has no parity number at all** and cannot have one for any historical day.
+- **`check_momentum` has no parity number** — it emits no rows; its lift is proven by rig
+  equivalence only.
+- **kevseq is at 0.0% and the cause is unbisected** (see the regression section). Not ours, but
+  outstanding.
+- **No trading claim is made anywhere in this artifact.** No P&L, no expectancy, no go/no-go.
 
 ## WHAT REMAINS IMPOSSIBLE, AND WHY
 

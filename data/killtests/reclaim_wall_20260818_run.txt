@@ -1,0 +1,8 @@
+========================================================================================================
+VWAP_RECLAIM — THE WALL + CONSTRUCTION SWEEP (kev_reclaim_step, 3-gate grammar)
+========================================================================================================
+universe: 736 name-days / 63 dates. Detections held FIXED (bot's own kev_reclaim_step); everything downstream swept.
+
+detections captured: 0
+
+no fires

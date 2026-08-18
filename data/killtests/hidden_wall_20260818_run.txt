@@ -1,0 +1,35 @@
+================================================================================================
+HIDDEN LANE — THE WALL   (bot's own hidden_entry_step via live_harness; E3 exits)
+================================================================================================
+universe: 736 name-days over 63 dates  2026-05-18 .. 2026-08-17
+fires graded: 6105   skipped: none
+
+FULL SAMPLE
+  hidden, all 63 dates       n= 6105  total=$ -53090.39  $/tr=  -8.70  win=  30%  green= 16%  worst=$-5673.75
+
+CHRONOLOGICAL SPLIT — train 2026-05-18..2026-07-21 (44) | HOLD-OUT 2026-07-22..2026-08-17 (19)
+  train (context only)       n= 4555  total=$ -37260.57  $/tr=  -8.18  win=  30%  green= 14%  worst=$-5673.75
+  HOLD-OUT (unseen)          n= 1550  total=$ -15829.82  $/tr= -10.21  win=  30%  green= 21%  worst=$-1735.88
+
+  hold-out halves: first $-9646.78   second $-6183.04
+
+================================================================================================
+PRE-REGISTERED BAR (written before the run)
+================================================================================================
+  FAIL  (a) hold-out $/trade > 0             $-10.21
+  PASS  (b) hold-out N >= 100                n=1550
+  FAIL  (c) both hold-out halves positive    $-9646.78 / $-6183.04
+  FAIL  (d) hold-out total > 0               $-15829.82
+
+  VERDICT: BAR NOT MET — hidden stays OFF. 'It sees things early' is not enough;
+           early detection that does not survive honest intrabar stops is not edge.
+
+  exits: {'trail': 1431, 'stop': 4204, 'eod': 465, 'haltgap': 5}
+
+LIMITS
+  * DETECTOR ONLY — no funnel (board membership, slots, caps sit upstream, unmodelled).
+    Fire counts exceed what the live bot would take; read $/trade and direction.
+  * hidden's harness parity is 86.3% (195/226, matched on stop+time — the row's `price`
+    is the live quote, not a detector output). 13.7% of live fires are NOT reproduced.
+  * RTH bars only; hidden also fires premarket live, which is not graded here.
+  * E3 exits, not the ladder the live lane would use if reinstated today.

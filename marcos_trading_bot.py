@@ -6734,6 +6734,22 @@ HIDDEN_CONVERT    = os.environ.get("HIDDEN_CONVERT", "0") == "1"
 # (in_cell = day_gain<40 AND ET<10:30, the era's paying cell +$105..+$159 vs bleed -$290..-$278);
 # "1" = ENFORCE (consume fire, log ignition_cell_reject, skip conversion when out of cell).
 # Cell definition FROZEN pre-registered; graded on proving-week OOS only (fitted on ~50 trades).
+# ── 8/18 KEV'S TWO CONDITIONS ON IGNITION (Marcos directive, same session as the SXTC/EJH
+# specimens). Independent kill switches so either can be reverted alone. TOL is a hair of
+# slack so a tick of noise at the line does not refuse a genuine at-VWAP entry.
+IGNITION_VWAP_GATE  = os.environ.get("IGNITION_VWAP_GATE", "1") == "1"
+IGNITION_STACK_GATE = os.environ.get("IGNITION_STACK_GATE", "1") == "1"
+# 8/18 NUANCE (Marcos: "it was RISING TO the VWAP, we need to be smart enough to see that
+# and let the trade go. The others it was way below or trending down"). A hard side-of-VWAP
+# line is wrong: it refuses a name climbing INTO VWAP with the fast MA already turned up,
+# which is the IPST class (-1.03% below, 9 over 20, went +50% and paid +$57.41). The honest
+# separator on the day's four specimens is DISTANCE + STACK, not side:
+#     IPST  -1.03%  9>20 (7.300/7.200)  -> ALLOW   (rising into it)
+#     EJH   -9.28%  9<20 (1.861/1.893)  -> REFUSE  (far below AND rolling)
+#     SXTC -11.41%  9<20 (4.700/4.850)  -> REFUSE  (far below AND rolling)
+# So: below VWAP is allowed ONLY inside IGNITION_VWAP_TOL and ONLY with the 9 over the 20.
+# Beyond the band, refuse regardless of stack.
+IGNITION_VWAP_TOL   = float(os.environ.get("IGNITION_VWAP_TOL", "0.02"))   # 2% approach band
 IGNITION_CELL_GATE = os.environ.get("IGNITION_CELL_GATE", "0")
 # flat_top + vwap_reclaim → observe-only (era books graded CODE-DEFECTS, not designs — audit 3:
 # flat_top/orb bought the break print in a retest costume; coded vwap_reclaim = the refuted
@@ -10018,6 +10034,48 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # 8/17 G1 SHADOW stamps (guidance ship-shape: observe-first, NO enforcement)
                         _g1 = _ignition_g1_stamp(price, vwap,
                                                  _latest_session(cache[t].get("full_bars") or bars))
+                        # ── 8/18 IGNITION: KEV'S TWO CONDITIONS (Marcos: "add those two
+                        # conditions for ignition"). Kev says it constantly: AT OR ABOVE VWAP,
+                        # and the 9 over the 20. Ignition had NEITHER — it was the only
+                        # converting lane with no VWAP requirement and no EMA-stack requirement,
+                        # and it bought three back-side entries on 8/18 alone:
+                        #   SXTC $4.5999 — 11.4% UNDER a declining VWAP        -> -$7.62
+                        #   EJH  $1.9397 —  9%   UNDER VWAP, stack 9<20<90     -> open, red
+                        #   (PFSA was ABOVE vwap; its defect was extension, a separate item)
+                        # Marcos, same session: "we seem to soooo easily let bad trades through
+                        # yet stack the deck against good stuff." This is the correction on the
+                        # let-through side. NOT a new invention — it enforces doctrine already
+                        # ruled, on the one lane that was exempt from it by omission.
+                        # Kill: IGNITION_VWAP_GATE=0 / IGNITION_STACK_GATE=0 (independent).
+                        # inside the band = "rising into VWAP" (allowed if the stack agrees);
+                        # outside the band = far below, refused regardless of stack.
+                        _ig_vwap_bad = (IGNITION_VWAP_GATE and vwap and vwap > 0
+                                        and price < vwap * (1 - IGNITION_VWAP_TOL))
+                        _ig_stack_bad = (IGNITION_STACK_GATE and _e9 > 0 and _e20 > 0
+                                         and _e9 < _e20)
+                        if _ig_vwap_bad or _ig_stack_bad:
+                            _why = ("below_vwap" if _ig_vwap_bad else "") + \
+                                   ("+" if (_ig_vwap_bad and _ig_stack_bad) else "") + \
+                                   ("ema9_under_ema20" if _ig_stack_bad else "")
+                            _log_decision(t, "ignition_kev_gate_reject", price=price,
+                                          lane="ignition", reason=_why,
+                                          vwap=round(vwap, 4) if vwap else None,
+                                          vwap_dist_pct=(round((price / vwap - 1) * 100, 2)
+                                                         if vwap else None),
+                                          ema9=round(_e9, 4), ema20=round(_e20, 4),
+                                          volx=ign["volx"])
+                            print(f"   ⛔ {t} ignition REFUSED — {_why} "
+                                  f"(px ${price:.4f} vs vwap ${vwap or 0:.4f}, "
+                                  f"9 {_e9:.4f} / 20 {_e20:.4f}) [Kev's two conditions]")
+                            # 7/29 DOCTRINE ("a slot is spent by a TRADE, not an ATTEMPT"):
+                            # mark the setup handled for this cycle, but DO NOT bump
+                            # ignition_n — a gate REFUSAL must not consume a leader-ammo
+                            # refire ticket. The rig caught this: it pins the counter-bump
+                            # to exactly 2 sites (the two real FIRE paths), and my first
+                            # version added a third on the refusal path — the ghost-cap
+                            # defect again, in a new lane.
+                            cache[t]["ignition_fired"] = True
+                            continue
                         breakouts.append((t, price, vwap, "ignition",
                                           {"zone_stop": _istop, "room": room, "base_hi": ign["base_hi"],
                                            "base_lo": ign["base_lo"], "volx": ign["volx"], "ext_pct": ign["ext_pct"],

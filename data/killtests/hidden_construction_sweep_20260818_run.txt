@@ -1,0 +1,43 @@
+========================================================================================================
+HIDDEN — AFTER-THE-DETECTION SWEEP + THE 9/20 SWITCH
+========================================================================================================
+universe: 736 name-days / 63 dates. Detections held FIXED (bot's own hidden_entry_step); everything downstream swept.
+
+detections captured: 6069
+
+HOLD-OUT (unseen 19 dates) — $/trade by construction. BASELINE = s_det / E3 / f_none
+
+  stop     exit |                 f_none |              f_9over20 |                f_cross |               f_9o20_v
+  s_det    E3   | $ -10.26 n= 1541 w 30% | $  -9.07 n=  915 w 33% | $ -10.33 n= 1099 w 31% | $  -9.07 n=  915 w 33%
+  s_det    E1   | $  -8.88 n= 1541 w 40% | $  -7.58 n=  915 w 42% | $  -9.27 n= 1099 w 40% | $  -7.58 n=  915 w 42%
+  s_det    E4   | $ -12.31 n= 1541 w 20% | $ -12.17 n=  915 w 22% | $ -12.90 n= 1099 w 20% | $ -12.17 n=  915 w 22%
+  s_1.5x   E3   | $ -11.34 n= 1541 w 40% | $ -10.10 n=  915 w 42% | $ -11.28 n= 1099 w 40% | $ -10.10 n=  915 w 42%
+  s_1.5x   E1   | $ -10.98 n= 1541 w 47% | $  -9.93 n=  915 w 48% | $ -11.55 n= 1099 w 47% | $  -9.93 n=  915 w 48%
+  s_1.5x   E4   | $ -15.81 n= 1541 w 24% | $ -16.04 n=  915 w 25% | $ -16.55 n= 1099 w 23% | $ -16.04 n=  915 w 25%
+  s_2x     E3   | $ -12.10 n= 1541 w 45% | $ -11.49 n=  915 w 46% | $ -11.27 n= 1099 w 45% | $ -11.49 n=  915 w 46%
+  s_2x     E1   | $ -11.70 n= 1541 w 53% | $ -10.86 n=  915 w 53% | $ -11.70 n= 1099 w 53% | $ -10.86 n=  915 w 53%
+  s_2x     E4   | $ -16.60 n= 1541 w 25% | $ -15.92 n=  915 w 27% | $ -16.73 n= 1099 w 25% | $ -15.92 n=  915 w 27%
+  s_vwap   E3   | $  -4.51 n= 1541 w 31% | $  -3.54 n=  915 w 30% | $  -3.97 n= 1099 w 31% | $  -3.54 n=  915 w 30%
+  s_vwap   E1   | $  -5.33 n= 1541 w 38% | $  -3.48 n=  915 w 38% | $  -4.63 n= 1099 w 39% | $  -3.48 n=  915 w 38%
+  s_vwap   E4   | $  -8.29 n= 1541 w 18% | $  -7.25 n=  915 w 18% | $  -8.08 n= 1099 w 18% | $  -7.25 n=  915 w 18%
+  s_e20    E3   | $  -7.65 n= 1541 w  8% | $  -7.70 n=  915 w 12% | $  -7.91 n= 1099 w  9% | $  -7.70 n=  915 w 12%
+  s_e20    E1   | $  -7.19 n= 1541 w 14% | $  -6.97 n=  915 w 20% | $  -7.77 n= 1099 w 15% | $  -6.97 n=  915 w 20%
+  s_e20    E4   | $  -8.12 n= 1541 w  6% | $  -8.50 n=  915 w  9% | $  -8.45 n= 1099 w  6% | $  -8.50 n=  915 w  9%
+
+========================================================================================================
+PRE-REGISTERED CHECKS
+========================================================================================================
+  baseline (the wall): $-10.26/tr  n=1541  win 30%
+  NO construction clears (hold-out $/tr > 0 AND n >= 100).
+  => Hidden is dead on this tape. The problem is NOT the exits or the 9/20 switch.
+
+  THE 9/20 SWITCH, isolated (baseline stop+exit, filter varied):
+    f_none     $ -10.26/tr  n= 1541  win  30%
+    f_9over20  $  -9.07/tr  n=  915  win  33%  Δ vs f_none   +1.19
+    f_cross    $ -10.33/tr  n= 1099  win  31%  Δ vs f_none   -0.07
+    f_9o20_v   $  -9.07/tr  n=  915  win  33%  Δ vs f_none   +1.19
+
+    9/20 CONFIRMED as an edge on this lane? NO (bar: lift >= $3.00 and n >= 100; measured lift $+1.19, n=915)
+
+LIMITS: detector-only (no funnel); RTH bars; hidden parity 86.3%; sizing is the
+engine's fixed POS per fire, so totals scale with fire count — read $/trade.

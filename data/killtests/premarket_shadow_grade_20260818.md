@@ -43,7 +43,11 @@ counterfactual with no gate opinion and no lookahead.
   stays shut on this evidence.*
 - **not concentrated — PASS** (largest single name-day is INLF 8/05 at 33% of |total|)
 
-## Verdict
+## Verdict — CONTAMINATED COHORT, DIRECTIONAL ONLY
+
+**Epochs: this spans 8/04-8/17, MULTIPLE config epochs (v2/grinder/kevseq conversion flags and the
+8/17 batch all moved inside the window) and 42% coverage. Treat as directional, not a clean
+measurement.**
 
 **Opening premarket to the currently-shadowed lanes would have LOST money** — about −$1,236
 across ten sessions, on a 41% win rate, red on 7 of 10 days. **The `PRE_LANES` whitelist is not
@@ -51,6 +55,15 @@ a bug. It is doing its job**, and the instinct to "reopen premarket because it's
 is refuted for these lanes.
 
 ## LIMITS — read before believing
+
+- **LOW-PARITY LANES IN THIS COHORT (EG2b disclosure).** The graded set includes lanes whose
+  harness parity is below the 90% trust floor: **v2 = 51.2%**, **grinder = 9.1%** (measured
+  2026-08-17, `data/killtests/harness_parity.json`). Their rows are a small share of the total
+  (v2conv 5 of 544; grinder does not appear), but the disclosure is required and the number is
+  stated rather than buried: no claim in this document about those two lanes is trustworthy.
+- **EPOCH DECLARATION — MIXED-EPOCH.** 2026-08-04..2026-08-17 spans multiple config hashes — v2/kevseq/grinder
+  conversion flags and the entire 8/17 foundation batch moved inside the window. Per-epoch splits
+  were not computed. Directional only.
 
 - **42% coverage.** 293 of 544 rows could not be graded because the name is absent from the
   curated 10s cache. That cache is a top-mover roster, so the excluded names are **not a random
@@ -73,3 +86,6 @@ is refuted for these lanes.
   gets made.
 
 *No recommendation. Numbers only — Marcos decides.*
+
+**EPOCH DECLARATION:** 2026-08-04..2026-08-17 spans more than one config epoch; per-epoch
+splits were NOT computed, so no single-config claim is made here.

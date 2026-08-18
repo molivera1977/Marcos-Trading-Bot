@@ -577,6 +577,15 @@ LANES = {
         "state": ("_v2_st", "_v2_hist"),
         "call": lambda F, sym, nb, vwap, ctx: F(sym, nb, vwap),
     },
+    "reclaim": {           # 8/18: kev_reclaim_step (the 3-gate VWAP-reclaim grammar). Same
+                           # (sym, new_bars, vwap) shape as grinder/v2/hidden; returns
+                           # {'px','stop','wick_low','seq','k'} on the curl, so unlike hidden
+                           # it DOES emit a detector price (the fire bar close) and can be
+                           # graded on price+stop without borrowing the live quote.
+        "fn": "kev_reclaim_step", "needs_vwap": True, "ctx_required": (),
+        "state": ("_reclaim_st",),
+        "call": lambda F, sym, nb, vwap, ctx: F(sym, nb, vwap),
+    },
     "hidden": {
         "fn": "hidden_entry_step", "needs_vwap": True, "ctx_required": (),
         "state": ("_he_st",),

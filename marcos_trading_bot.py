@@ -4509,7 +4509,9 @@ def check_momentum(ticker, session_bars=None) -> tuple[bool, dict]:
             # 8/15 eyes: distinct queryable row — this reject previously surfaced ONLY as
             # truncated momentum_reject text, invisible to every status census
             _log_decision(ticker, "ambient_reject", median_dvol=round(_am_med),
-                          need=round(_am_need), src="check_momentum")
+                          need=round(_am_need), src="check_momentum",
+                          lane=_blind_lane())   # 8/18: check_momentum has no lane arg by
+                          # design (5 callers); F1's thread-local IS the carrier for exactly this
             print(f"❌ {ticker} momentum FAIL: {details['reason']}")
             return False, details
 
@@ -10127,6 +10129,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 if _ma_first_fire and not (MA_PULLBACK_DEDUPE
                                            and _fire_seen("ma_pullback", t, _ma_first_fire.get("k"))):
                     _log_decision(t, "pullback_first_suppress", price=price,
+                                  # 8/18: the row records ma_pullback WINNING the race and
+                                  # flat_top being the one suppressed — name BOTH, or the
+                                  # archive cannot say which lane paid for this refusal.
+                                  lane="ma_pullback", suppressed_lane="flat_top",
                                   ma=_ma_first_fire["ma_name"], stop=_ma_first_fire["stop"],
                                   fire_k=_ma_first_fire.get("k"))
 
@@ -10628,7 +10634,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                       # slow triggers ran 1.69R medMFE / 65% >=1R — ABOVE the kept benchmark (RESULTS_LEDGER 7/26).
                                       # A confirmed retest at a level is not a chase; chart gate still owns level sanity.
                 elif _e90 > 0 and (b[1] - _e90) / _e90 > EXTENSION_MAX_PCT:
-                    _shadow_keep.add(b[0]); _log_decision(b[0], "extension_reject", price=b[1], ext_pct=round((b[1] - _e90) / _e90 * 100, 1))
+                    _shadow_keep.add(b[0]); _log_decision(b[0], "extension_reject", price=b[1], lane=b[3], ext_pct=round((b[1] - _e90) / _e90 * 100, 1))
                 else:
                     # ── 8/18 DEFECT OPENED: THE EXTENSION GUARD IS BLIND ON 7 LANES ──────────
                     # This else-branch is BOTH "measured, not extended" and "could not measure at
@@ -13869,7 +13875,7 @@ def main():
                   f"{_cg_verdict.upper()} ({_cg_reason}) — entry ${float(entry_price):.4f} vs level "
                   f"{('$%.4f' % _cg_level) if _cg_level else 'none'}")
             if CHART_GATE_ENFORCE and _cg_verdict != "allow":
-                _log_decision(ticker, "chart_gate_blocked_trade",
+                _log_decision(ticker, "chart_gate_blocked_trade", lane=entry_type,
                               entry=round(float(entry_price), 4), break_level=_cg_level, reason=_cg_reason)
                 print(f"   ⛔ CHART-GATE BLOCKED {ticker} entry (no break of marked level) — no trade")
                 _slot_refund(ticker, entry_type)
@@ -13902,7 +13908,7 @@ def main():
             # C: Kev tight-setup gate — a structural stop >X% away means the base is sloppy, not a Kev setup. Skip.
             if MAX_STOP_DIST_PCT and _stop_dist > MAX_STOP_DIST_PCT:
                 print(f"⚠️ {ticker} stop {_stop_dist*100:.1f}% away > {MAX_STOP_DIST_PCT*100:.0f}% tight-setup gate — skipping")
-                _log_decision(ticker, "wide_stop_reject", price=entry_price, stop_dist_pct=round(_stop_dist * 100, 1))
+                _log_decision(ticker, "wide_stop_reject", price=entry_price, lane=entry_type, stop_dist_pct=round(_stop_dist * 100, 1))
                 _slot_refund(ticker, entry_type)   # 8/7 (#34 invariant catch): slot was leaking here
                 with trade_lock:
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
@@ -13918,7 +13924,7 @@ def main():
             # the now-fixed price swap made it look sizeable).
             if stop_loss >= entry_price:
                 print(f"⚠️ {ticker} stop ${stop_loss:.2f} ≥ entry ${entry_price:.2f} — unsizeable, skipping")
-                _log_decision(ticker, "bad_stop_skip", price=entry_price, stop=round(stop_loss, 4))
+                _log_decision(ticker, "bad_stop_skip", price=entry_price, lane=entry_type, stop=round(stop_loss, 4))
                 _slot_refund(ticker, entry_type)
                 with trade_lock:
                     reentry["held"].discard(ticker)   # pre-reservation: nothing to refund
@@ -14314,7 +14320,7 @@ def main():
 
             if entry_price > current_balance:
                 print(f"⚠️ {ticker} @ ${entry_price:.2f} exceeds balance — skipping")
-                _log_decision(ticker, "balance_skip", price=entry_price)   # 8/7 auditor #3: was silent
+                _log_decision(ticker, "balance_skip", price=entry_price, lane=entry_type)   # 8/7 auditor #3: was silent
                 _slot_refund(ticker, entry_type)                           # 8/7 auditor #3: slot leaked
                 with trade_lock:
                     settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
@@ -14330,7 +14336,7 @@ def main():
             spread_ok, spread_pct = check_bid_ask_spread(ticker)
             if not spread_ok:
                 print(f"⚠️ {ticker} spread {spread_pct*100:.2f}% too wide — skipping")
-                _log_decision(ticker, "spread_reject", price=entry_price, spread_pct=round(spread_pct*100, 2))
+                _log_decision(ticker, "spread_reject", price=entry_price, lane=entry_type, spread_pct=round(spread_pct*100, 2))
                 _slot_refund(ticker, entry_type)
                 with trade_lock:
                     settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
@@ -14340,7 +14346,7 @@ def main():
             l2_ok, l2_details = check_level2(ticker, entry_price)
             if not l2_ok:
                 print(f"⚠️ {ticker} L2 rejected: {l2_details.get('reason','')} — skipping")
-                _log_decision(ticker, "l2_reject", price=entry_price, reason=str(l2_details.get('reason', ''))[:80])
+                _log_decision(ticker, "l2_reject", price=entry_price, lane=entry_type, reason=str(l2_details.get('reason', ''))[:80])
                 _slot_refund(ticker, entry_type)   # 8/7 auditor #3: slot leaked here too
                 with trade_lock:
                     settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
@@ -14428,7 +14434,7 @@ def main():
                     mom_ok, mom_details = True, {"exempt": f"tape_scalar:{entry_type}"}
             if not mom_ok:
                 print(f"⚠️ {ticker} momentum rejected: {mom_details.get('reason','')} — skipping")
-                _log_decision(ticker, "momentum_reject", price=entry_price, reason=str(mom_details.get('reason', ''))[:80])
+                _log_decision(ticker, "momentum_reject", price=entry_price, lane=entry_type, reason=str(mom_details.get('reason', ''))[:80])
                 _slot_refund(ticker, entry_type)   # 8/7 (#34): was the ONLY worker reject path
                 # without a refund — survived the 7/29 "every refusal refunds" sweep; the 8/6
                 # ambient floor routed new traffic through it (leader-ammo drain risk, flagged 8/7 AM).
@@ -14515,7 +14521,7 @@ def main():
                         # decrement a slot some non-crown trade paid for
                 if not _pre_ok:
                     print(f"🎫 {ticker} PRE cap reached at execution (race) — refunding, no trade")
-                    _log_decision(ticker, "pre_capped_at_exec", price=entry_price)
+                    _log_decision(ticker, "pre_capped_at_exec", price=entry_price, lane=entry_type)
                     _slot_refund(ticker, entry_type)
                     with trade_lock:
                         settled_remaining += _reservations.pop(ticker, 0)

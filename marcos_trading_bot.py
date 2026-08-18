@@ -10630,6 +10630,27 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 elif _e90 > 0 and (b[1] - _e90) / _e90 > EXTENSION_MAX_PCT:
                     _shadow_keep.add(b[0]); _log_decision(b[0], "extension_reject", price=b[1], ext_pct=round((b[1] - _e90) / _e90 * 100, 1))
                 else:
+                    # ── 8/18 DEFECT OPENED: THE EXTENSION GUARD IS BLIND ON 7 LANES ──────────
+                    # This else-branch is BOTH "measured, not extended" and "could not measure at
+                    # all", and nothing distinguished them. Measured across 15 sessions
+                    # (8/17,8/14,8/13,8/12,8/11,8/10,8/08,8/07,8/06,8/05,8/04,7/31,7/29,7/28,
+                    # 7/25): extension_reject fired ZERO times. Not "rarely" — never.
+                    # Cause, by AST census of all 17 breakouts.append sites: v2conv, grinder,
+                    # bandpass, kevseq, prevwap, crown_seam and halt_ladder never put "ema90" in
+                    # their detail dict, so _e90 is 0 and the guard silently falls open. All seven
+                    # are TAPE lanes born after the guard was written — the same
+                    # lane-born-after-a-gate class as the copy-pasted tuples (kill-the-class).
+                    # The guard has therefore never policed grinder or crown_seam, the two blind
+                    # lanes that actually convert.
+                    # NOT ARMED HERE. Making these lanes measurable would START rejecting entries
+                    # that fill today — a money change, and Marcos's priced call, not an auditor's
+                    # (feedback_auditor_cannot_authorize_behavior). This records the blindness so
+                    # it is COUNTABLE per lane; the decision to arm it comes after the count.
+                    if _e90 <= 0:
+                        _gate_blind("extension", b[0], missing="ema90 absent from fire detail",
+                                    decision="pass_open", lane=b[3], price=b[1],
+                                    note="lane never stamps ema90 -> guard cannot measure "
+                                         "extension; fails open by construction")
                     _kept.append(b)   # fail-open when there's no 90-EMA to measure
             breakouts = _kept
         if breakouts:

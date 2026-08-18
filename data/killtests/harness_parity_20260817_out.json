@@ -8,8 +8,15 @@
    "live_names": 11,
    "no_tape_names": [],
    "harness_fires": 11,
-   "exact": 7,
+   "exact": 0,
    "live_unmatched": [
+    {
+     "ticker": "IVF",
+     "t": "04:49:55 AM",
+     "px": 2.39,
+     "stop": 2.25,
+     "why": "near_time_diff_price_or_stop:[[\"IVF\", 17390, 2.44, 2.25]]"
+    },
     {
      "ticker": "QNTM",
      "t": "08:12:22 AM",
@@ -25,25 +32,53 @@
      "why": "no_harness_fire_for_name"
     },
     {
+     "ticker": "IPST",
+     "t": "08:56:24 AM",
+     "px": 8.1,
+     "stop": 7.91,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 32150, 8.05, 7.91]]"
+    },
+    {
+     "ticker": "WETO",
+     "t": "10:18:36 AM",
+     "px": 18.4499,
+     "stop": 17.88,
+     "why": "near_time_diff_price_or_stop:[[\"WETO\", 37070, 18.855, 17.88]]"
+    },
+    {
+     "ticker": "PFSA",
+     "t": "10:22:30 AM",
+     "px": 6.17,
+     "stop": 5.9,
+     "why": "near_time_diff_price_or_stop:[[\"PFSA\", 37370, 6.3034, 5.9]]"
+    },
+    {
      "ticker": "WFF",
      "t": "11:17:43 AM",
      "px": 3.91,
      "stop": 3.68,
-     "why": "near_time_diff_price_or_stop:[[\"WFF\", 40670, 4.77, 4.48]]"
+     "why": "near_time_diff_price_or_stop:[[\"WFF\", 40670, 4.9656, 4.48]]"
+    },
+    {
+     "ticker": "RPGL",
+     "t": "11:44:31 AM",
+     "px": 2.55,
+     "stop": 2.22,
+     "why": "near_time_diff_price_or_stop:[[\"RPGL\", 42290, 2.6421, 2.22], [\"RPGL\", 42350, 2.62, 2.5387]]"
     },
     {
      "ticker": "RPGL",
      "t": "11:46:57 AM",
      "px": 2.64,
      "stop": 2.55,
-     "why": "near_time_diff_price_or_stop:[[\"RPGL\", 42290, 2.55, 2.22], [\"RPGL\", 42350, 2.65, 2.5387]]"
+     "why": "near_time_diff_price_or_stop:[[\"RPGL\", 42290, 2.6421, 2.22], [\"RPGL\", 42350, 2.62, 2.5387]]"
     },
     {
      "ticker": "RPGL",
      "t": "11:58:33 AM",
      "px": 2.55,
      "stop": 2.38,
-     "why": "same_price_wrong_time"
+     "why": "no_harness_fire_for_name"
     },
     {
      "ticker": "CDTG",
@@ -57,14 +92,14 @@
      "t": "11:58:33 AM",
      "px": 4.77,
      "stop": 4.48,
-     "why": "near_time_diff_price_or_stop:[[\"WFF\", 43130, 6.77, 6.12]]"
+     "why": "near_time_diff_price_or_stop:[[\"WFF\", 43130, 6.87, 6.12]]"
     },
     {
      "ticker": "WFF",
      "t": "12:01:27 PM",
      "px": 5.1329,
      "stop": 4.8,
-     "why": "near_time_diff_price_or_stop:[[\"WFF\", 43130, 6.77, 6.12]]"
+     "why": "near_time_diff_price_or_stop:[[\"WFF\", 43130, 6.87, 6.12]]"
     },
     {
      "ticker": "TRUG",
@@ -102,11 +137,25 @@
      "why": "no_harness_fire_for_name"
     },
     {
+     "ticker": "WETO",
+     "t": "02:18:45 PM",
+     "px": 23.8,
+     "stop": 22.7307,
+     "why": "near_time_diff_price_or_stop:[[\"WETO\", 51530, 23.37, 22.7307]]"
+    },
+    {
      "ticker": "SLE",
      "t": "02:32:06 PM",
      "px": 3.0,
      "stop": 2.98,
      "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "WETO",
+     "t": "02:51:14 PM",
+     "px": 28.51,
+     "stop": 27.77,
+     "why": "near_time_diff_price_or_stop:[[\"WETO\", 53450, 29.3341, 27.77]]"
     },
     {
      "ticker": "OSRH",
@@ -123,38 +172,62 @@
      "why": "no_harness_fire_for_name"
     }
    ],
-   "harness_extra": 4,
+   "harness_extra": 11,
    "harness_extra_sample": [
+    [
+     "IPST",
+     32150,
+     8.05,
+     7.91
+    ],
+    [
+     "IVF",
+     17390,
+     2.44,
+     2.25
+    ],
+    [
+     "PFSA",
+     37370,
+     6.3034,
+     5.9
+    ],
+    [
+     "RPGL",
+     42290,
+     2.6421,
+     2.22
+    ],
     [
      "RPGL",
      42350,
-     2.65,
+     2.62,
      2.5387
     ],
     [
-     "WFF",
-     39950,
-     3.34,
-     3.07
+     "WETO",
+     37070,
+     18.855,
+     17.88
     ],
     [
-     "WFF",
-     40670,
-     4.77,
-     4.48
+     "WETO",
+     51530,
+     23.37,
+     22.7307
     ],
     [
-     "WFF",
-     43130,
-     6.77,
-     6.12
+     "WETO",
+     53450,
+     29.3341,
+     27.77
     ]
    ],
    "vwap_src": {
     "live_stamped": 5489,
     "running_sip": 904
    },
-   "match_rate_pct": 30.4
+   "match_rate_pct": 0.0
   },
   "grinder": {
    "live_fires": 66,
@@ -1372,6 +1445,30 @@
    "hidden_entry_step": "function",
    "ignition_10s_step": "function",
    "detect_ignition": "function",
+   "_parse_lane_age_guard": "function",
+   "_lane_fire_stale": "function",
+   "_LANE_AGE_GUARD": "dict",
+   "LANE_FIRE_AGE_GUARD": "str",
+   "_bucket_fresh": "function",
+   "_log_stale_fire": "function",
+   "_halted_secs_since": "function",
+   "kev_zoneflip_step": "function",
+   "_zf_st": "dict",
+   "ZONEFLIP_BAND": "float",
+   "ZONEFLIP_FLUSH": "float",
+   "_zf_pm_floor": "function",
+   "_zf_zone": "dict",
+   "_marked_runway": "function",
+   "flat_top_step": "function",
+   "_ft_window_stats": "function",
+   "_ft_vwap_veto": "function",
+   "_ft_attack_window": "function",
+   "_ft_attack_stop": "function",
+   "_latest_session": "function",
+   "FLAT_TOP_WINDOW": "int",
+   "FLAT_TOP_MAX_RANGE": "float",
+   "FLATTOP_BREAK_ATTACK": "bool",
+   "SETUP_TF_MIN": "int",
    "_seq_events": "function",
    "_wallclock_window": "function",
    "_scaled_risk": "function",
@@ -1404,10 +1501,9 @@
    "RISK_PROP_REF": "float"
   },
   "not_isolable": {
-   "check_momentum (INJECTABLE, not free-running)": "the BODY lifts and is pure; the INPUT is a live broker fetch (get_intraday_bars). Use check_momentum_on(ticker, m1_bars) with a fixture. Bound: it routes through _fresh_session() (today-only), so past-day replays hit its insufficient-data path rather than a real read \u2014 disclosed, never defaulted.",
-   "_marked_runway": "live state + network: _effective_map(ticker) reads the running level-map store and _curl_feed(ticker) hits the recorder feed for the wall high. Replayable ONLY with a recorded map snapshot + tape; not available from the decisions archive.",
-   "kev_zoneflip_step": "wall-clock + live store: _bucket_fresh(k) compares the bar bucket to time.time() (every historical bar is 'stale' -> the fire path is unreachable in replay), and _zf_pm_floor(sym) reads the premarket-zone store built during the live premarket.",
-   "flat_top / break-attack": "not a function: the flat-top consolidation tracker + FLATTOP_BREAK_ATTACK conversion live INSIDE wait_for_flat_top_entry (~1k lines), driven by a WebullStream object, a session_cache and rescan callbacks. Lifting it would require faking the stream \u2014 i.e. exactly the replica-drift this harness exists to prevent. Left un-lifted ON PURPOSE.",
+   "_marked_runway (INJECTABLE; HISTORICALLY UN-REPLAYABLE \u2014 the one real wall)": "batch E3 made the FUNCTION replayable: marked_runway_on(ticker, entry, stop, level_map, wall_high) passes the map and the session high straight in, so neither _effective_map's live store nor _curl_feed's recorder fetch is touched. What injection CANNOT fix: no map snapshot was ever recorded. The level-map store is mutated all day (night sheet -> vision re-reads -> auto-map overlay on a freshness breach), so the map a past row was decided under is unrecoverable \u2014 every day <= 2026-08-17 stays un-replayable for runway, permanently. Batch E3b started the recording (map_break/map_targets/map_next_supply/map_zone/map_age_min/map_src on every triggered row); 2026-08-18 is the first day the archive can reconstruct.",
+   "_zf_pm_floor (the zone_flip lane itself IS lifted \u2014 batch E2)": "the premarket-zone computation still reads the live premarket store via _curl_feed. A study supplies the floor explicitly through the zone_flip lane's REQUIRED ctx field 'pm_floor' ({zone, src, open930}); the harness refuses to run the lane without it rather than defaulting to a zone it invented.",
+   "flat_top RETEST arm/reclaim (the break-attack DETECTION is now lifted \u2014 batch D 8/17)": "the break/arm/attack verdict, the base stats and the VWAP gate were extracted 8/17 into flat_top_step/_ft_window_stats/_ft_vwap_veto/_ft_attack_window/_ft_attack_stop, which the live loop CALLS \u2014 replay them with replay_flat_top(). What did NOT move, and cannot without faking the stream: the retest state machine (arm ts + PULLBACK_TIMEOUT_SECS on time.time(), _recent_low_dip/_confirm_reclaim on the live 1-min tape), which is why `armed` is a REQUIRED ctx field a study must supply rather than a thing the harness reconstructs. Also still live-only (both OBSERVE-ONLY today, neither can block a break-attack fire): get_daily_levels/daily_first_ok and compute_room.",
    "sizing chain (full)": "PARTIAL. _scaled_risk IS lifted (real). The rest of the chain (risk shares vs notional shares, VWAP-side halving, MAX_POS_VOL_PCT volume cap) is INLINE in execute_trade's body, not a function, and its volume cap re-fetches 1-min bars. sizing_chain() below calls the REAL _scaled_risk and the REAL constants; the clamp arithmetic is mirrored and PINNED by rig section BH against the bot's own source lines."
   }
  }

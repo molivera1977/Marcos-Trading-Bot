@@ -1,6 +1,6 @@
 {
  "_doc": "MEASURED HARNESS PARITY PER LANE \u2014 the machine-readable store the EG2b threshold gate reads. A study may not grade a lane whose parity sits below `threshold_pct` unless the artifact states the parity number in its LIMITS/CAVEATS section. This makes 'don't trust grinder studies' mechanical instead of a thing somebody has to remember.",
- "_rule": "EG2b, rig/test_shipset_20260804.py. Seeded 2026-08-17 from harness_parity_20260817_out.json. Rewritten by data/killtests/harness_parity_v2_20260818.py whenever a stamped day is graded.",
+ "_rule": "EG2b, rig/test_shipset_20260804.py. Seeded 2026-08-17 from harness_parity_20260817_out.json. Rewritten by data/killtests/harness_parity_v2_20260818.py whenever a stamped day is graded. Batch-E lanes (hidden, zone_flip) added 2026-08-17 from harness_parity_batchE_20260817_out.json; cohort-1 lanes re-measured at HEAD in the same run.",
  "threshold_pct": 90.0,
  "_threshold_note": "Starts at 90. It is a FLOOR ON TRUST, not a target to tune toward: raising it makes the gate stricter, lowering it needs Marcos.",
  "measured_on": "2026-08-17",
@@ -35,13 +35,13 @@
    "note": "denominator includes 1 restart-replay duplicate (8 distinct)"
   },
   "kevseq": {
-   "parity_pct": 30.4,
+   "parity_pct": 0.0,
    "live_fires": 23,
-   "exact": 7,
-   "measured_on": "2026-08-17",
+   "exact": 0,
+   "measured_on": "2026-08-17 (re-measured at commit bbe419f, batch E)",
    "method": "time_and_price_approximation",
    "source": "harness_parity_20260817_out.json",
-   "note": "no duplicates measured; the gap is feed/ctx reconstruction, not restarts"
+   "note": "REGRESSION, NOT BATCH E'S: the 30.4%% (7/23) seeded earlier on 8/17 NO LONGER REPRODUCES. Re-running harness_parity_20260817.py at HEAD gives 0.0%% (0/23) with the same 11 harness fires but on ENTIRELY DIFFERENT NAMES (was RPGL/WFF, now IPST/IVF/PFSA). PROVEN INDEPENDENT of batch E: the identical 0.0%% comes out with the HEAD bot source (batch E's changes leave every cohort-1 lane's fire count and match count byte-identical \u2014 grinder 19/6, bandpass 5/4, prevwap 3/3, v2 124/84 before and after). Something in the 8/17 B/C batches moved kevseq's fire set. OWED: a bisect by whoever owns the kevseq lane. Until then DO NOT GRADE KEVSEQ FROM HARNESS OUTPUT."
   },
   "grinder": {
    "parity_pct": 9.1,
@@ -62,6 +62,28 @@
    "note": "N=3. The break-attack cell fired exactly three times on 8/17 (IPST/CDTG/LBGJ, all 09:30) and the extracted core reproduces all three from the tape, within 37s. 100% on three fires is the ABSENCE OF A DISAGREEMENT, not a strong claim. LEVELS: w_high matches to the cent on 2/3, w_low on 1/3 \u2014 IPST's base reads 8.1399/7.49 off our 10s SIP roll vs 8.09/7.46 off the broker's M1. That is a FEED difference (it moves the stop 3c) and cannot be attributed to the detector from this day. DENOMINATOR BOUND: this counts LIVE fires only. Replayed over all 56 captured names the core also attacks on 29 names the live bot never fired on \u2014 the live funnel (scanner board membership, slot limits, found_entry/traded suppression, an existing retest arm) sits UPSTREAM of the detector and is not modelled here. The harness grades the DETECTOR, never the funnel; a flat_top study must say so.",
    "extraction": "8/17 batch D \u2014 flat_top_step/_ft_window_stats/_ft_vwap_veto/_ft_attack_window/_ft_attack_stop; live loop calls them (rig AB-c, rig/test_batchD_20260817.py).",
    "driver": "live_harness.replay_flat_top (NOT replay(): 3-min/whole-session lane)"
+  },
+  "hidden": {
+   "parity_pct": 86.3,
+   "live_fires": 226,
+   "exact": 195,
+   "measured_on": "2026-08-17",
+   "method": "time_and_price_approximation",
+   "match_key": "stop+time (row 'price' is the live quote, not the detector px)",
+   "source": "harness_parity_batchE_20260817_out.json",
+   "note": "WAS BLOCKED until 8/17 batch E1: the shared _bucket_fresh wall-clock stale-guard ate 100% of replay fires (counterfactual in the same run: 0 fires across 13 names with the clock hook disarmed, 424 with it). Matched on EXACT STOP + time, NOT price: the hidden_shadow_fire row stamps `price` = the live QUOTE at log time (bot :8931), which is not a detector output \u2014 matching on it measures the quote feed and scores 5.8%. 424 harness fires vs 226 live: the harness grades the DETECTOR, the live funnel (scanner board, slot/cap limits, HIDDEN observe-only routing) sits upstream and is not modelled. Do not read the extra fires as missed trades.",
+   "extraction": "8/17 batch E1 \u2014 bot hook _BUCKET_NOW (None live); live_harness.replay drives it to the fed slice's bar epoch + 10s."
+  },
+  "zone_flip": {
+   "parity_pct": 100.0,
+   "live_fires": 3,
+   "exact": 3,
+   "measured_on": "2026-08-17",
+   "method": "time_and_price_approximation",
+   "match_key": "price+stop+time",
+   "source": "harness_parity_batchE_20260817_out.json",
+   "note": "N=3 (JLHL 09:35, LBGJ 09:40 + 09:44). 100%% on three fires is the ABSENCE OF A DISAGREEMENT, not a strong claim. WAS NOT_ISOLABLE on two counts (wall clock + the live premarket store); E1 fixed the clock, E2 added kev_zoneflip_step(pm_floor=...). SEPARATE EQUIVALENCE PROOF: the premarket floor was computed by the BOT'S OWN _zf_pm_floor over the day's tape (live_harness.pm_floor_from_tape) and matched the live-stamped zone EXACTLY on both names \u2014 JLHL 8.4658/pm_shelf3, LBGJ 3.06/pm_shelf3. 1 harness extra fire (detector-vs-funnel, as everywhere).",
+   "extraction": "8/17 batch E2 \u2014 kev_zoneflip_step(sym, new_bars, pm_floor=None); live caller (:8899) unchanged."
   }
  }
 }

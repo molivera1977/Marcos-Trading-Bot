@@ -303,6 +303,11 @@ ALL_SYMBOLS = [
     # LIFT, or kevseq_step/grinder_shadow_step/bandpass_step/v2_pullback_step cannot.
     "_parse_lane_age_guard", "_lane_fire_stale", "_LANE_AGE_GUARD", "LANE_FIRE_AGE_GUARD",
     "_bucket_fresh", "_log_stale_fire", "_halted_secs_since",
+    # 8/17 batch E: zone_flip + the runway. Both were NOT_ISOLABLE until the bot grew explicit
+    # injection points (E1 clock hook, E2 pm_floor arg, E3 lvd/wall_high args).
+    "kev_zoneflip_step", "_zf_st", "ZONEFLIP_BAND", "ZONEFLIP_FLUSH",
+    "_zf_pm_floor", "_zf_zone",
+    "_marked_runway",
     # flat_top / BREAK-ATTACK lane (8/17 batch D extraction). Previously the one lane the
     # harness could not lift at all — it lived inline in wait_for_flat_top_entry behind a
     # WebullStream. Now a pure bar-driven core, called BY the live loop, replayed here.
@@ -324,7 +329,33 @@ ALL_SYMBOLS = [
 ]
 
 
-def check_momentum_on(ticker, m1_bars):
+# ─────────────── the bar clock (batch E1) ───────────────
+# `_bucket_fresh` is the shared stale-fire suppressor EVERY 10s lane calls before it may fire.
+# It compares the bar bucket to time.time(); in replay every bar is hours old, so before E1 it
+# ate 100% of replayed fires (IVF: hidden armed correctly, 78 suppressions, 0 fires) and made
+# hidden + zone_flip's fire paths structurally unreachable.  The bot now carries a module hook
+# `_BUCKET_NOW`, None in the live process (so the live expression collapses to the old
+# time.time() call verbatim).  replay() drives it to each fed slice's LAST bar epoch — the value
+# the live clock read when it saw that bar.
+_BAR_NOW = {"k": None}
+
+
+def _install_bar_clock():
+    """Point the bot's _BUCKET_NOW hook at the replay bar clock. Idempotent."""
+    N = ns()
+    if "_BUCKET_NOW" not in N:
+        raise NotIsolable(
+            "_BUCKET_NOW hook missing from the bot — batch E1 was reverted; the fire path of "
+            "every 10s lane is unreplayable again. Refusing to run a flattering replay.")
+    N["_BUCKET_NOW"] = lambda: (_BAR_NOW["k"] if _BAR_NOW["k"] is not None else _time.time())
+
+
+def set_bar_now(k):
+    """Set the replay 'now' to bucket epoch k (None restores the wall clock)."""
+    _BAR_NOW["k"] = None if k is None else float(k)
+
+
+def check_momentum_on(ticker, m1_bars, session_bars=None):
     """Run the bot's REAL check_momentum against a supplied 1-min bar fixture.
 
     check_momentum's BODY is pure; only its input is live (`get_intraday_bars(ticker, ...)`).
@@ -334,8 +365,16 @@ def check_momentum_on(ticker, m1_bars):
       * replaying a PAST day yields an empty session -> check_momentum's own
         insufficient-data path, NOT a real read.  Use only for same-day work, or state the
         bound in the doc.  This is disclosed, never silently defaulted.
+
+    8/17 batch E4 LIFTS THAT BOUND.  check_momentum now accepts `session_bars`: an
+    ALREADY-SESSIONISED 1-min list that bypasses both the fetch and _fresh_session's
+    today-only filter.  Pass session_bars=<the past day's session> to replay a PAST day for
+    real.  The live call passes neither argument and is byte-identical (rig SPEC_momentum_default).
+    Precedence: session_bars wins; m1_bars alone keeps the old today-only semantics.
     """
     N = ns()
+    if session_bars is not None:
+        return N["check_momentum"](ticker, session_bars=list(session_bars))
     prev = N.get("get_intraday_bars")
     N["get_intraday_bars"] = lambda t, count=None, sessions=None, **kw: list(m1_bars)
     try:
@@ -344,22 +383,82 @@ def check_momentum_on(ticker, m1_bars):
         if prev is not None:
             N["get_intraday_bars"] = prev
 
+
+def pm_floor_from_tape(sym, bars, day):
+    """Compute the zone_flip premarket floor by running the BOT'S OWN _zf_pm_floor over a
+    TAPE FIXTURE instead of the live premarket store (batch E2).
+
+    _zf_pm_floor's body is pure arithmetic over 10s buckets; its ONE live dependency is
+    _curl_feed(sym, n=720), which is swapped here for the day's captured tape in the feed's
+    own dict shape.  So the zone a study uses is the bot's computation, not a study's replica
+    — and it can be cross-checked against the `zone`/`zone_src` the live rows stamped, which
+    is exactly how the batch-E parity run validated it.
+
+    Returns the {"zone","src","open930"} dict (or None), ready to hand to the lane's
+    REQUIRED `pm_floor` ctx field.  Requires premarket bars in the fixture: without 09:00-09:29
+    coverage the honest answer is None, not a guess.
+    """
+    set_replay_day(day)
+    B = norm_bars(bars, day=day)
+    feed = {int(k): {"o": o, "h": h, "l": l, "c": c, "v": v} for k, o, h, l, c, v in B}
+    N = ns()
+    N.setdefault("_zf_zone", {})
+    N["_zf_zone"].pop((day, sym), None)          # never serve another run's cached verdict
+    prev = N.get("_curl_feed")
+    N["_curl_feed"] = lambda t, n=90: (feed, "harness_tape")
+    try:
+        return N["_zf_pm_floor"](sym)
+    finally:
+        if prev is not None:
+            N["_curl_feed"] = prev
+
+
+def marked_runway_on(ticker, entry_price, stop_loss, level_map, wall_high=None):
+    """Run the bot's REAL _marked_runway against an INJECTED map + wall high (batch E3).
+
+    level_map  the effective map dict the gates saw: {break, targets, next_supply, zone,
+               kev_road_max, ...}.  MANDATORY — the harness will not invent one.
+    wall_high  today's session high at decision time (the RUNWAY_WALL input).  None means
+               "let the wall gate fall back to the live feed", which a replay must never do,
+               so None is REFUSED here; pass 0.0 to study the wall-disabled case explicitly.
+
+    HISTORICAL BOUND — READ IT: this makes runway replayable WHEN A MAP SNAPSHOT EXISTS.  For
+    every day up to and including 2026-08-17 NO SNAPSHOT WAS EVER RECORDED (the level-map store
+    is mutated all day and is unrecoverable after the fact), so historical runway replay remains
+    IMPOSSIBLE and no amount of injection fixes it.  The bot began stamping map_break /
+    map_targets / map_next_supply / map_zone / map_age_min / map_src on every triggered row on
+    2026-08-17 (batch E3b); 2026-08-18 is the first day reconstructable from the archive.
+    """
+    if not isinstance(level_map, dict):
+        raise MissingContext(
+            "marked_runway_on requires an explicit level_map (the map the gates saw). "
+            "No snapshot exists for days <= 2026-08-17 — the honest answer there is "
+            "'un-replayable', not a map the study made up.")
+    if wall_high is None:
+        raise MissingContext(
+            "marked_runway_on requires wall_high (today's session high at decision time). "
+            "Omitting it would let RUNWAY_WALL fall through to the live recorder feed.")
+    return fn("_marked_runway")(ticker, float(entry_price), float(stop_loss),
+                                lvd=dict(level_map), wall_high=float(wall_high))
+
 # NOT ISOLABLE — each with its concrete blocker.  Do NOT hand-roll these in a study; if a
 # study needs one, the honest move is to say so in the doc and bound the claim.
 NOT_ISOLABLE = {
-    "check_momentum (INJECTABLE, not free-running)":
-        "the BODY lifts and is pure; the INPUT is a live broker fetch (get_intraday_bars). Use "
-        "check_momentum_on(ticker, m1_bars) with a fixture. Bound: it routes through "
-        "_fresh_session() (today-only), so past-day replays hit its insufficient-data path "
-        "rather than a real read — disclosed, never defaulted.",
-    "_marked_runway":
-        "live state + network: _effective_map(ticker) reads the running level-map store and "
-        "_curl_feed(ticker) hits the recorder feed for the wall high. Replayable ONLY with a "
-        "recorded map snapshot + tape; not available from the decisions archive.",
-    "kev_zoneflip_step":
-        "wall-clock + live store: _bucket_fresh(k) compares the bar bucket to time.time() "
-        "(every historical bar is 'stale' -> the fire path is unreachable in replay), and "
-        "_zf_pm_floor(sym) reads the premarket-zone store built during the live premarket.",
+    "_marked_runway (INJECTABLE; HISTORICALLY UN-REPLAYABLE — the one real wall)":
+        "batch E3 made the FUNCTION replayable: marked_runway_on(ticker, entry, stop, level_map, "
+        "wall_high) passes the map and the session high straight in, so neither _effective_map's "
+        "live store nor _curl_feed's recorder fetch is touched. What injection CANNOT fix: no map "
+        "snapshot was ever recorded. The level-map store is mutated all day (night sheet -> vision "
+        "re-reads -> auto-map overlay on a freshness breach), so the map a past row was decided "
+        "under is unrecoverable — every day <= 2026-08-17 stays un-replayable for runway, "
+        "permanently. Batch E3b started the recording (map_break/map_targets/map_next_supply/"
+        "map_zone/map_age_min/map_src on every triggered row); 2026-08-18 is the first day the "
+        "archive can reconstruct.",
+    "_zf_pm_floor (the zone_flip lane itself IS lifted — batch E2)":
+        "the premarket-zone computation still reads the live premarket store via _curl_feed. A "
+        "study supplies the floor explicitly through the zone_flip lane's REQUIRED ctx field "
+        "'pm_floor' ({zone, src, open930}); the harness refuses to run the lane without it rather "
+        "than defaulting to a zone it invented.",
     "flat_top RETEST arm/reclaim (the break-attack DETECTION is now lifted — batch D 8/17)":
         "the break/arm/attack verdict, the base stats and the VWAP gate were extracted 8/17 into "
         "flat_top_step/_ft_window_stats/_ft_vwap_veto/_ft_attack_window/_ft_attack_stop, which "
@@ -482,11 +581,19 @@ LANES = {
         "fn": "hidden_entry_step", "needs_vwap": True, "ctx_required": (),
         "state": ("_he_st",),
         "call": lambda F, sym, nb, vwap, ctx: F(sym, nb, vwap),
-        # PROVEN 8/17 on IVF: the detector lifts and ARMS correctly, but every fire is eaten by
-        # the _bucket_fresh(k) wall-clock stale-guard (bar age vs time.time()), so the fire path
-        # is structurally unreachable in replay. Opt in ONLY to study the ARM/setup side, and
-        # never report "hidden fires" from it.
-        "blocked": "_bucket_fresh wall-clock stale-guard suppresses 100% of replay fires",
+        # WAS BLOCKED (8/17 morning): the detector lifted and ARMED correctly, but every fire was
+        # eaten by the _bucket_fresh(k) wall-clock stale-guard (IVF: 78 suppressions, 0 fires).
+        # UNBLOCKED by batch E1 — replay() now drives the bot's own _BUCKET_NOW hook to the fed
+        # slice's bar epoch, so the guard measures the same age the live machine measured.
+    },
+    "zone_flip": {          # 8/17 batch E2 — the Z1/Z2/Z3 premarket-zone flip
+        "fn": "kev_zoneflip_step", "needs_vwap": False,
+        # pm_floor is REQUIRED and never defaulted: it is the live premarket store's output
+        # ({"zone": float, "src": str, "open930": float}). None means "no zone" -> the detector
+        # returns None on every bar, which is a legitimate (and honest) study result.
+        "ctx_required": ("pm_floor",),
+        "state": ("_zf_st",),
+        "call": lambda F, sym, nb, vwap, ctx: F(sym, nb, pm_floor=ctx["pm_floor"]),
     },
     "flat_top": {
         # 8/17 batch D. NOT driven by replay(): this lane is 3-MIN-bar driven (Kev's setup
@@ -615,9 +722,20 @@ def replay(sym, bars, lanes, ctx_provider=None, vwap_provider=None, day=None,
         if cur:
             batches.append(cur)
 
+    # batch E1: drive the bot's own stale-fire clock off the tape instead of the wall.
+    # THE VALUE, and why: live, `_bucket_fresh` measures (time.time() - k) at the moment the
+    # rescan hands the slice over — which is at the earliest the instant the newest bucket
+    # CLOSED, i.e. k_last + 10.  That is the tightest defensible reconstruction and the one
+    # most FAVOURABLE to the guard's own limit being met, so it can only over-count fires
+    # relative to a live cycle that arrived later; the parity doc states that direction.
+    # It is exact in relative terms for every OLDER bar in the same slice, which is what the
+    # 90s ceiling (60s PRE) actually discriminates on.
+    _install_bar_clock()
+
     for batch in batches:
         i_last = batch[-1]
         nb = [B[i] for i in batch]
+        set_bar_now(B[i_last][0] + 10)
         for ln in lanes:
             L = LANES[ln]
             F = fn(L["fn"])
@@ -640,6 +758,7 @@ def replay(sym, bars, lanes, ctx_provider=None, vwap_provider=None, day=None,
                 r.update({"lane": ln, "sym": sym, "i": i_last, "bar": bar,
                           "vwap": round(vwap, 4), "ctx": ctx})
                 out.append(r)
+    set_bar_now(None)
     return out
 
 

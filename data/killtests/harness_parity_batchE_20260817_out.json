@@ -1,0 +1,335 @@
+{
+ "day": "2026-08-17",
+ "cadence_secs": 60,
+ "match_tol_s": 300,
+ "method": "time_and_price_approximation",
+ "lanes": {
+  "hidden": {
+   "live_fires": 226,
+   "live_names": 13,
+   "no_tape_names": [],
+   "no_pm_floor_names": [],
+   "harness_fires": 424,
+   "exact": 195,
+   "live_unmatched": [
+    {
+     "ticker": "IVF",
+     "t": "05:01:50 AM",
+     "px": 2.6,
+     "stop": 2.47,
+     "why": "near_time_diff_price_or_stop:[[\"IVF\", 18050, 2.5994, 2.4694], [\"IVF\", 18110, 2.61, 2.4795]]"
+    },
+    {
+     "ticker": "IPST",
+     "t": "05:07:09 AM",
+     "px": 6.8087,
+     "stop": 6.4695,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 18170, 6.78, 6.441], [\"IPST\", 18350, 6.71, 6.3745]]"
+    },
+    {
+     "ticker": "IPST",
+     "t": "05:10:19 AM",
+     "px": 6.64,
+     "stop": 6.3745,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 18350, 6.71, 6.3745], [\"IPST\", 18410, 6.69, 6.3555]]"
+    },
+    {
+     "ticker": "IVF",
+     "t": "05:23:02 AM",
+     "px": 2.4507,
+     "stop": 2.3744,
+     "why": "near_time_diff_price_or_stop:[[\"IVF\", 19250, 2.54, 2.413], [\"IVF\", 19310, 2.4996, 2.3746]]"
+    },
+    {
+     "ticker": "SLE",
+     "t": "05:30:55 AM",
+     "px": 3.66,
+     "stop": 3.3535,
+     "why": "near_time_diff_price_or_stop:[[\"SLE\", 19790, 3.55, 3.3725], [\"SLE\", 19850, 3.57, 3.3915]]"
+    },
+    {
+     "ticker": "IVF",
+     "t": "06:45:52 AM",
+     "px": 2.7006,
+     "stop": 2.3839,
+     "why": "near_time_diff_price_or_stop:[[\"IVF\", 24290, 2.5206, 2.3946], [\"IVF\", 24650, 2.66, 2.52]]"
+    },
+    {
+     "ticker": "IPST",
+     "t": "07:15:58 AM",
+     "px": 6.099,
+     "stop": 5.8995,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 26090, 6.17, 5.8615], [\"IPST\", 26150, 6.15, 5.8425]]"
+    },
+    {
+     "ticker": "IVF",
+     "t": "07:21:01 AM",
+     "px": 2.6993,
+     "stop": 2.4971,
+     "why": "near_time_diff_price_or_stop:[[\"IVF\", 26390, 2.6494, 2.5169], [\"IVF\", 26450, 2.6706, 2.5371]]"
+    },
+    {
+     "ticker": "IVF",
+     "t": "07:26:36 AM",
+     "px": 2.6915,
+     "stop": 2.5821,
+     "why": "near_time_diff_price_or_stop:[[\"IVF\", 26750, 2.68, 2.546], [\"IVF\", 26810, 2.6898, 2.5553]]"
+    },
+    {
+     "ticker": "BRNX",
+     "t": "08:26:07 AM",
+     "px": 4.13,
+     "stop": 4.12,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "IPST",
+     "t": "08:49:55 AM",
+     "px": 7.85,
+     "stop": 7.2295,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 31730, 7.62, 7.239], [\"IPST\", 32090, 7.75, 7.3625]]"
+    },
+    {
+     "ticker": "IPST",
+     "t": "09:30:45 AM",
+     "px": 8.155,
+     "stop": 7.543,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 34010, 7.89, 7.4955], [\"IPST\", 34070, 7.86, 7.467]]"
+    },
+    {
+     "ticker": "IPST",
+     "t": "09:40:47 AM",
+     "px": 8.37,
+     "stop": 7.714,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 34610, 8.095, 7.6902], [\"IPST\", 34790, 8.0274, 7.626]]"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "10:02:31 AM",
+     "px": 2.8291,
+     "stop": 2.736,
+     "why": "near_time_diff_price_or_stop:[[\"CDTG\", 35870, 2.7581, 2.6202], [\"CDTG\", 35930, 2.8699, 2.7264]]"
+    },
+    {
+     "ticker": "IPST",
+     "t": "10:04:12 AM",
+     "px": 7.5099,
+     "stop": 7.0585,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 36050, 7.38, 7.011], [\"IPST\", 36230, 7.41, 7.0395]]"
+    },
+    {
+     "ticker": "IVF",
+     "t": "10:05:49 AM",
+     "px": 2.58,
+     "stop": 2.3655,
+     "why": "near_time_diff_price_or_stop:[[\"IVF\", 36170, 2.49, 2.3655], [\"IVF\", 36470, 2.5404, 2.4134]]"
+    },
+    {
+     "ticker": "CDTG",
+     "t": "10:05:49 AM",
+     "px": 3.1201,
+     "stop": 2.7372,
+     "why": "near_time_diff_price_or_stop:[[\"CDTG\", 36230, 2.8401, 2.6981], [\"CDTG\", 36470, 2.8906, 2.7461]]"
+    },
+    {
+     "ticker": "IVF",
+     "t": "10:11:22 AM",
+     "px": 2.6099,
+     "stop": 2.4272,
+     "why": "near_time_diff_price_or_stop:[[\"IVF\", 36470, 2.5404, 2.4134], [\"IVF\", 36590, 2.56, 2.432]]"
+    },
+    {
+     "ticker": "NIVF",
+     "t": "10:11:22 AM",
+     "px": 0.6311,
+     "stop": 0.6095,
+     "why": "near_time_diff_price_or_stop:[[\"NIVF\", 36520, 0.6536, 0.6209], [\"NIVF\", 36590, 0.652, 0.6194]]"
+    },
+    {
+     "ticker": "NIVF",
+     "t": "10:17:20 AM",
+     "px": 0.631,
+     "stop": 0.6074,
+     "why": "no_harness_fire_for_name"
+    },
+    {
+     "ticker": "IPST",
+     "t": "10:34:50 AM",
+     "px": 7.4,
+     "stop": 6.9159,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 37970, 7.3, 6.935], [\"IPST\", 38090, 7.22, 6.859]]"
+    },
+    {
+     "ticker": "DAIC",
+     "t": "10:37:21 AM",
+     "px": 0.5333,
+     "stop": 0.5084,
+     "why": "near_time_diff_price_or_stop:[[\"DAIC\", 38150, 0.5564, 0.5201], [\"DAIC\", 38210, 0.56, 0.5083]]"
+    },
+    {
+     "ticker": "DAIC",
+     "t": "10:59:03 AM",
+     "px": 0.5584,
+     "stop": 0.5482,
+     "why": "near_time_diff_price_or_stop:[[\"DAIC\", 39410, 0.58, 0.5481], [\"DAIC\", 39470, 0.5797, 0.5507]]"
+    },
+    {
+     "ticker": "IPST",
+     "t": "11:07:47 AM",
+     "px": 8.2761,
+     "stop": 7.864,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 40070, 8.2073, 7.7969], [\"IPST\", 40130, 8.2313, 7.8197]]"
+    },
+    {
+     "ticker": "DAIC",
+     "t": "11:07:47 AM",
+     "px": 0.5619,
+     "stop": 0.5468,
+     "why": "near_time_diff_price_or_stop:[[\"DAIC\", 39770, 0.58, 0.5458], [\"DAIC\", 40010, 0.5889, 0.5358]]"
+    },
+    {
+     "ticker": "IPST",
+     "t": "11:11:03 AM",
+     "px": 8.285,
+     "stop": 7.847,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 40070, 8.2073, 7.7969], [\"IPST\", 40130, 8.2313, 7.8197]]"
+    },
+    {
+     "ticker": "IPST",
+     "t": "11:14:24 AM",
+     "px": 8.42,
+     "stop": 7.847,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 40250, 8.2546, 7.8419], [\"IPST\", 40310, 8.27, 7.8565]]"
+    },
+    {
+     "ticker": "IPST",
+     "t": "11:46:57 AM",
+     "px": 8.3299,
+     "stop": 7.9421,
+     "why": "near_time_diff_price_or_stop:[[\"IPST\", 42170, 8.4082, 7.9878], [\"IPST\", 42290, 8.3099, 7.8944]]"
+    },
+    {
+     "ticker": "WETO",
+     "t": "03:04:58 PM",
+     "px": 26.78,
+     "stop": 26.182,
+     "why": "near_time_diff_price_or_stop:[[\"WETO\", 54110, 27.49, 26.1155], [\"WETO\", 54170, 27.3097, 25.9442]]"
+    },
+    {
+     "ticker": "WETO",
+     "t": "03:24:59 PM",
+     "px": 25.8,
+     "stop": 24.5955,
+     "why": "near_time_diff_price_or_stop:[[\"WETO\", 55250, 25.9416, 24.6445], [\"WETO\", 55430, 25.8999, 24.6049]]"
+    },
+    {
+     "ticker": "WETO",
+     "t": "03:26:10 PM",
+     "px": 25.7501,
+     "stop": 24.6051,
+     "why": "near_time_diff_price_or_stop:[[\"WETO\", 55430, 25.8999, 24.6049], [\"WETO\", 55490, 25.9999, 24.6999]]"
+    }
+   ],
+   "harness_extra": 229,
+   "harness_extra_sample": [
+    [
+     "BRNX",
+     16250,
+     4.0,
+     3.69
+    ],
+    [
+     "BRNX",
+     16430,
+     3.96,
+     3.762
+    ],
+    [
+     "BRNX",
+     16670,
+     4.01,
+     3.8095
+    ],
+    [
+     "BRNX",
+     16910,
+     3.93,
+     3.7335
+    ],
+    [
+     "BRNX",
+     17750,
+     4.07,
+     3.8665
+    ],
+    [
+     "BRNX",
+     18290,
+     4.06,
+     3.857
+    ],
+    [
+     "BRNX",
+     18350,
+     4.09,
+     3.8855
+    ],
+    [
+     "BRNX",
+     30050,
+     4.04,
+     3.838
+    ]
+   ],
+   "pm_floor_vs_live_zone": [],
+   "match_key": "stop+time (row 'price' is the live quote, not the detector px)",
+   "exact_price_and_stop": 13,
+   "match_rate_price_and_stop_pct": 5.8,
+   "match_rate_pct": 86.3
+  },
+  "zone_flip": {
+   "live_fires": 3,
+   "live_names": 2,
+   "no_tape_names": [],
+   "no_pm_floor_names": [],
+   "harness_fires": 4,
+   "exact": 3,
+   "live_unmatched": [],
+   "harness_extra": 1,
+   "harness_extra_sample": [
+    [
+     "JLHL",
+     34550,
+     8.715,
+     8.49
+    ]
+   ],
+   "pm_floor_vs_live_zone": [
+    {
+     "ticker": "JLHL",
+     "tape_zone": 8.4658,
+     "live_zone": 8.4658,
+     "tape_src": "pm_shelf3",
+     "live_src": "pm_shelf3",
+     "match": true
+    },
+    {
+     "ticker": "LBGJ",
+     "tape_zone": 3.06,
+     "live_zone": 3.06,
+     "tape_src": "pm_shelf3",
+     "live_src": "pm_shelf3",
+     "match": true
+    }
+   ],
+   "match_key": "price+stop+time",
+   "exact_price_and_stop": 3,
+   "match_rate_price_and_stop_pct": 100.0,
+   "match_rate_pct": 100.0
+  }
+ },
+ "e1_counterfactual_hidden_clock_disarmed": {
+  "names": 13,
+  "fires": 0
+ }
+}

@@ -171,8 +171,14 @@ check("band defaults 15-30 / 20m", lo == 15.0 and hi == 30.0 and st == 20.0)
 print("10) halt-aware clocks + carry-overs")
 src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
 check("halt-credit tracker exists", "def _halt_credit_note" in src and "def _halted_secs_since" in src)
-check("bucket_fresh halt-aware (sym param)", "def _bucket_fresh(k, hm=None, sym=None):" in src
-      and "_age -= _halted_secs_since(sym, k)" in src)
+# 8/17 batch E1: the signature grew a REPLAY-ONLY `now` (and the module hook _BUCKET_NOW),
+# which is what unblocked the hidden + zone_flip fire paths for the harness. The halt-aware
+# sym param is unchanged and still pinned; the live default path is pinned by
+# rig/test_batchE_20260817.py::SPEC_bucket_fresh_live_default.
+check("bucket_fresh halt-aware (sym param) + E1 replay clock",
+      "def _bucket_fresh(k, hm=None, sym=None, now=None):" in src
+      and "_age -= _halted_secs_since(sym, k)" in src
+      and "_BUCKET_NOW = None" in src)
 # 8/17 B2: 4 in-detector sites + the 5th inside the SHARED `_lane_fire_stale`
 # suppressor, which carries the halt-aware call for v2conv/grinder/bandpass/prevwap.
 check("all halt-aware fire-age sites pass sym (4 in-detector + 1 shared helper)",
@@ -3590,13 +3596,24 @@ try:
     except _BH.MissingContext as _e3:
         _bh_r3 = str(_e3)
     check("BH-i: a VWAP-gated lane with no vwap_provider is REFUSED", "VWAP-gated" in _bh_r3, _bh_r3[:160])
+    # 8/17 batch E1 SUPERSEDES the old BH-j: hidden was refused because the _bucket_fresh
+    # wall-clock guard ate 100% of replay fires. The bot now carries the _BUCKET_NOW hook and
+    # replay() drives it off the tape, so the lane RUNS — and must no longer be flagged blocked.
     try:
         _BH.replay("TT", {"bars": _bh_bars}, ["hidden"], day="2026-08-17", vwap_provider=_bh_v)
-        _bh_r4 = "NO RAISE"
-    except _BH.HarnessError as _e4:
-        _bh_r4 = str(_e4)
-    check("BH-j: the hidden lane (wall-clock-blocked fire path) refuses without allow_blocked",
-          "NOT REPLAYABLE" in _bh_r4, _bh_r4[:160])
+        _bh_r4 = "RAN"
+    except Exception as _e4:                                            # noqa: BLE001
+        _bh_r4 = "%s: %s" % (type(_e4).__name__, _e4)
+    check("BH-j: the hidden lane RUNS (E1 clock hook unblocked its fire path)",
+          _bh_r4 == "RAN" and not _BH.LANES["hidden"].get("blocked"), _bh_r4[:160])
+    # BH-j2: zone_flip is registered and REFUSES without its premarket floor (E2 contract).
+    try:
+        _BH.replay("TT", {"bars": _bh_bars}, ["zone_flip"], day="2026-08-17")
+        _bh_r4b = "NO RAISE"
+    except _BH.MissingContext as _e4b:
+        _bh_r4b = str(_e4b)
+    check("BH-j2: zone_flip refuses without an explicit pm_floor",
+          "pm_floor" in _bh_r4b, _bh_r4b[:160])
 
     # (k) the MIRRORED half of the sizing chain is pinned against the bot's own source. If
     # execute_trade's clamp arithmetic changes, this goes red instead of the study going wrong.

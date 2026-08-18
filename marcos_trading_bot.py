@@ -2626,6 +2626,56 @@ def _config_stamp_wanted(status) -> bool:
     return s in _CONFIG_STAMPED or s.startswith("triggered_")
 
 
+# ── 8/17 BATCH E3b — MAP SNAPSHOT RECORDING (observe-only; the durable half of the runway lift)
+# THE HOLE, stated plainly: _marked_runway is now injectable (E3), but NO HISTORICAL DAY CAN BE
+# REPLAYED THROUGH IT, because the archive never recorded WHAT MAP THE GATES SAW.  The level-map
+# store is mutated all day (night sheet -> vision re-reads -> auto-map overlay on a freshness
+# breach), so the map a row was decided under is unrecoverable after the fact.  Injection alone
+# would only let a study feed a map it INVENTED — exactly the replica drift the harness exists
+# to kill.  So: stamp the map on every triggered row, from tonight, at the same choke point the
+# config hash uses.  Historical days stay un-replayable for runway and always will be.
+# COST/SAFETY: no fetch, no computation, no recursion.  It reads the 20s _effective_map cache if
+# warm, else the same-day TTL-warm kev-levels cache; if NEITHER is warm it stamps map_src=None
+# and nothing else.  It never calls _effective_map (which can log its own breach row -> recursion)
+# and never calls _fetch_kev_levels (which can hit the network).  Kill: MAP_STAMP=0.
+_MAP_STAMPED = frozenset(("filled", "retest_fill", "tier_fill"))
+
+
+def _map_stamp_wanted(status) -> bool:
+    s = str(status)
+    return s in _MAP_STAMPED or s.startswith("triggered_")
+
+
+def _map_snapshot(ticker) -> dict:
+    """The effective map, as the gates could see it, from WARM CACHES ONLY. Never throws."""
+    try:
+        if os.environ.get("MAP_STAMP", "1") != "1":
+            return {}
+        rec, src = None, None
+        _c = _effmap_cache.get(ticker)
+        if _c and _c[0] > time.time():
+            rec, src = _c[1], "effmap_cache"
+        else:
+            _kc = _kev_levels_cache
+            if (_kc.get("date") == datetime.now(EASTERN).strftime("%Y-%m-%d")
+                    and (time.time() - float(_kc.get("ts") or 0)) < KEV_LEVELS_TTL_SECS):
+                rec, src = _freshest_rec(ticker), "kev_cache"   # cache-warm => no network
+        if not isinstance(rec, dict) or not rec:
+            return {"map_src": None}
+        _age, _ = _map_freshness(rec, 0.0)
+        return {"map_src": (rec.get("_freshest_src") or src),
+                "map_cache": src,
+                "map_break": rec.get("break"),
+                "map_targets": list(rec.get("targets") or []) or None,
+                "map_next_supply": rec.get("next_supply"),
+                "map_zone": rec.get("zone") or rec.get("stop"),
+                "map_kev_road_max": rec.get("kev_road_max"),
+                "map_auto": bool(rec.get("auto_map")),
+                "map_age_min": (round(_age, 1) if _age is not None else None)}
+    except Exception:
+        return {}
+
+
 def _log_decision(ticker, status, **fields):
     # Wrapped so observability can NEVER throw into the trading hot path (this is called for every
     # candidate every cycle). A logging bug must not be able to stop the bot from trading.
@@ -2647,6 +2697,10 @@ def _log_decision(ticker, status, **fields):
         # day carry no verdict anyone aggregates. An explicitly-passed config_hash always wins.
         if "config_hash" not in fields and _config_stamp_wanted(status):
             fields.update(_config_hash())
+        # 8/17 E3b: the map the gates saw, on the same rows, for the same reason — without it
+        # no runway verdict is ever reconstructable. Explicitly-passed fields always win.
+        if "map_src" not in fields and _map_stamp_wanted(status):
+            fields.update({k: v for k, v in _map_snapshot(ticker).items() if k not in fields})
         _eyes_note_gate(ticker, status)   # 8/16 build #0: feeds gates_hit on the eyes snapshot
         prev = _decision_last.get(ticker)
         now = time.time()
@@ -4324,7 +4378,7 @@ def _ambient_dvol_ok(bars, ticker=None):
         _gate_failopen("ambient", why="exception")
         return True, 0.0, 0.0
 
-def check_momentum(ticker) -> tuple[bool, dict]:
+def check_momentum(ticker, session_bars=None) -> tuple[bool, dict]:
     """
     Fetch recent 1-min bars and read momentum at execution time. Kev's concept = "volume on the break".
     HARD rejects (ok=False): (1) VOLUME SURGE — the break bar's volume must be ≥ MOMENTUM_VOL_ACCEL× the
@@ -4332,11 +4386,18 @@ def check_momentum(ticker) -> tuple[bool, dict]:
     PRIMARY entry filter, replacing the de-inverted room gate; see MOMENTUM_VOL_ACCEL note); (2) TOPPING
     TAIL on the last completed bar (Kev "don't enter into a candle rejected at the high"). The volume-FLOOR
     and green-count thresholds stay OBSERVE-only (soft, logged 'momentum_soft'). Returns (ok, details).
+    8/17 E4 (REPLAY INJECTION, live path untouched): `session_bars` supplies the ALREADY-SESSIONISED
+    1-min bar list, bypassing BOTH the live fetch and _fresh_session's today-only filter — which is
+    what made past-day replays fall into the insufficient-data branch rather than reading momentum.
+    Live callers pass nothing -> fetch + _fresh_session exactly as before.
     """
     details = {"passed": False, "reason": ""}
     try:
-        full = get_intraday_bars(ticker, count=390, sessions=_live_sessions())
-        sess = _fresh_session(full) if full else []   # B16: decision gate — today-only
+        if session_bars is not None:
+            sess = list(session_bars)
+        else:
+            full = get_intraday_bars(ticker, count=390, sessions=_live_sessions())
+            sess = _fresh_session(full) if full else []   # B16: decision gate — today-only
         if len(sess) < MOMENTUM_BARS:
             details["reason"] = f"only {len(sess)} session bars available (need {MOMENTUM_BARS})"
             _bump("fail_open")
@@ -5281,16 +5342,38 @@ def _vwap_warn_ok(sym):
     except Exception:
         return True
 
-def _bucket_fresh(k, hm=None, sym=None):
+# ── 8/17 BATCH E1 — THE REPLAY CLOCK HOOK (research plumbing; LIVE PATH UNCHANGED) ──
+# `_bucket_fresh` is the shared stale-fire suppressor every 10s detector lane calls before it
+# is allowed to FIRE.  It compares the bar's bucket epoch to `time.time()`.  That is correct
+# live and structurally fatal in replay: every historical bar is hours old, so the guard eats
+# 100% of replayed fires (proven 8/17 on IVF — hidden armed correctly, 78 suppressions, 0
+# fires; zone_flip's fire path was likewise unreachable).  Two lanes were unliftable for this
+# one reason.
+# THE INJECTION: a module-level hook that is None in the live process, so the expression below
+# collapses to exactly the old `time.time()` call — byte-identical behaviour, no new branch
+# taken.  The harness sets it to a callable returning the REPLAY BAR'S OWN epoch, which is
+# what the live machine's clock read when it saw that bar.  Never set anywhere in the bot.
+# Rig pin: default path identical with the hook unset (test_batchE_20260817.py::SPEC_bucket_fresh_default).
+_BUCKET_NOW = None      # replay-only: callable() -> epoch seconds. LIVE LEAVES THIS None.
+
+
+def _bucket_fresh(k, hm=None, sym=None, now=None):
     """True when 10s bucket epoch `k` is recent enough to ACT on (fire). 0/None never fresh.
     8/4 DXST SURGERY part 2: PRE gets its OWN, tighter ceiling (CURL_FIRE_MAX_AGE_PRE).
-    8/5 HALT-AWARE: when sym is given, halted seconds since k don't count against the age."""
+    8/5 HALT-AWARE: when sym is given, halted seconds since k don't count against the age.
+    8/17 E1: `now` (or the module hook _BUCKET_NOW) replaces the wall clock for REPLAY ONLY;
+    both unset -> the pre-8/17 code path exactly."""
     try:
+        _now = now if now is not None else (_BUCKET_NOW() if _BUCKET_NOW else None)
         _lim = CURL_FIRE_MAX_AGE_SECS
-        _hm = hm or datetime.now(EASTERN).strftime("%H:%M")
+        if _now is None:
+            _hm = hm or datetime.now(EASTERN).strftime("%H:%M")
+            _now = time.time()
+        else:
+            _hm = hm or datetime.fromtimestamp(float(_now), EASTERN).strftime("%H:%M")
         if _hm < "09:30":
             _lim = min(_lim, CURL_FIRE_MAX_AGE_PRE)
-        _age = time.time() - float(k)
+        _age = _now - float(k)
         if sym:
             _age -= _halted_secs_since(sym, k)
         return bool(k) and _age <= _lim
@@ -7220,13 +7303,16 @@ def kevseq_step(sym, new_bars, vwap, ctx=None):
     return out
 
 
-def kev_zoneflip_step(sym, new_bars):
+def kev_zoneflip_step(sym, new_bars, pm_floor=None):
     """Advance sym's Z1–Z3 machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
+    8/17 E2: `pm_floor` is the REPLAY injection of the premarket zone dict
+    ({"zone","src","open930"}) that _zf_pm_floor() otherwise computes off the live premarket
+    store. The live caller (:8813) passes nothing -> _zf_pm_floor() as before, byte-identical.
     Z1 arm: 9:30–9:45 flush ≥ZONEFLIP_FLUSH from the 9:30 open, low inside zone±band, vol ≥2×
     rolling avg. Z2: bottoming wick in the band. Z3 (fire): close > wick high — the live 10s
     analog of the tested model-B break-fill. Fires at most once per call; resets to re-arm so
     later setups keep getting DETECTED all day (seq 1+ = shadow evidence, mirror of reclaim)."""
-    z = _zf_pm_floor(sym)
+    z = pm_floor if pm_floor is not None else _zf_pm_floor(sym)
     if not z:
         return None
     zone, open930 = z["zone"], z["open930"]
@@ -10874,13 +10960,18 @@ def _effective_map(ticker, live_px=0.0):
     _effmap_cache[ticker] = (time.time() + 20, eff)
     return eff
 
-def _marked_runway(ticker, entry_price, stop_loss):
+def _marked_runway(ticker, entry_price, stop_loss, lvd=None, wall_high=None):
     """MARKED RUNWAY (Marcos's thesis): R-multiples of room from entry to the sheet's first target
     above (fallback next_supply). Fully knowable at entry. Returns (rr|'above_all_levels'|None, tgt).
     7/29: extracted so the LIVE card shows the road DURING the trade, not only in the post-mortem —
-    identical inputs at entry and at record time, so the two stamps always agree."""
+    identical inputs at entry and at record time, so the two stamps always agree.
+    8/17 E3 (REPLAY INJECTION, live path untouched): `lvd` supplies the effective map dict that
+    _effective_map() otherwise reads from the running level-map store, and `wall_high` supplies
+    the session high that _curl_feed() otherwise fetches from the recorder feed. Both default
+    None -> the exact pre-8/17 live path. Historical replay still needs a RECORDED map: see the
+    map_* stamp shipped alongside this (E3b), which starts the archive that makes it possible."""
     try:
-        _lvd = _effective_map(ticker, entry_price)   # 8/7 freshness contract (was _freshest_rec)
+        _lvd = lvd if lvd is not None else _effective_map(ticker, entry_price)   # 8/7 freshness contract (was _freshest_rec)
         _rps = entry_price - stop_loss
         if _rps <= 0:
             return None, None
@@ -10893,8 +10984,11 @@ def _marked_runway(ticker, entry_price, stop_loss):
         # (MB 8/7: "150.1R" to a $19.75 ghost while the wall sat 4% up.) Kill: RUNWAY_WALL=0.
         if os.environ.get("RUNWAY_WALL", "1") == "1":
             try:
-                _wb, _wb_src = _curl_feed(ticker, n=720)   # 8/14: missing unpack — tuple .values() AttributeError was swallowed below, _whi=0.0, wall inert since 8/8
-                _whi = max((float(b.get("h") or 0) for b in _wb.values()), default=0.0) if _wb else 0.0
+                if wall_high is not None:                 # 8/17 E3 replay injection
+                    _whi = float(wall_high)
+                else:
+                    _wb, _wb_src = _curl_feed(ticker, n=720)   # 8/14: missing unpack — tuple .values() AttributeError was swallowed below, _whi=0.0, wall inert since 8/8
+                    _whi = max((float(b.get("h") or 0) for b in _wb.values()), default=0.0) if _wb else 0.0
             except Exception:
                 _whi = 0.0
             if _whi > 0:

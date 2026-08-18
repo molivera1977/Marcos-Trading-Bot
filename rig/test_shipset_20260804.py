@@ -2847,6 +2847,12 @@ try:
     _mc_saved = dict(_mcs._pending_closes); _mcs._pending_closes.clear()
     try:
         # 1) AUTH: POST requires the secret; GET is read-only
+        # 8/18 blast-radius audit: GET was PUBLIC and leaked which positions are queued to be
+        # sold. Both verbs are authed now, and the rig pins it so it cannot silently reopen.
+        check("AN: unauthed GET rejected 401 (8/18: was public)",
+              _mc_c.get("/api/close_position").status_code == 401)
+        check("AN: GET accepts ?key= (browser) as well as the header",
+              _mc_c.get("/api/close_position?key=" + _mcs.API_SECRET).status_code == 200)
         check("AN: unauthed POST rejected 401",
               _mc_c.post("/api/close_position", json={"ticker": "AAAA"}).status_code == 401
               and not _mcs._pending_closes)
@@ -2855,25 +2861,25 @@ try:
               and len(_mcs._pending_closes) == 1)
         # 2) MERGE-ONLY (7/24 wipe law): a second request must not drop the first
         _mc_c.post("/api/close_position", json={"ticker": "BBBB"}, headers=_MCH)
-        _pend = _mc_c.get("/api/close_position").get_json()["pending"]
+        _pend = _mc_c.get("/api/close_position", headers=_MCH).get_json()["pending"]
         check("AN: merge-only — two names queue simultaneously",
               sorted(p["ticker"] for p in _pend) == ["AAAA", "BBBB"])
         # 3) EXPLICIT CLEAR / ACK path
         _mc_c.post("/api/close_position", json={"ticker": "BBBB", "clear": True}, headers=_MCH)
         check("AN: clear removes only its own key",
-              [p["ticker"] for p in _mc_c.get("/api/close_position").get_json()["pending"]] == ["AAAA"])
+              [p["ticker"] for p in _mc_c.get("/api/close_position", headers=_MCH).get_json()["pending"]] == ["AAAA"])
         # 4) 10-MIN AUTO-EXPIRY (guard #1 against firing on a LATER position in the same name)
         check("AN: TTL is 10 minutes", _mcs.MANUAL_CLOSE_TTL_S == 600)
         for _v in _mcs._pending_closes.values():
             _v["expires_epoch"] = _mct.time() - 1
         check("AN: expired requests pruned on read",
-              _mc_c.get("/api/close_position").get_json()["pending"] == []
+              _mc_c.get("/api/close_position", headers=_MCH).get_json()["pending"] == []
               and not _mcs._pending_closes)
     finally:
         _mcs._pending_closes.clear(); _mcs._pending_closes.update(_mc_saved)
 
     # ── bot side: exec the matcher/poller in isolation with a fabricated dashboard ──
-    _mcn = {"time": _mct, "json": json, "os": os, "requests": types.SimpleNamespace(post=lambda *a, **k: None),
+    _mcn = {"time": _mct, "json": json, "os": os, "threading": __import__("threading"), "requests": types.SimpleNamespace(post=lambda *a, **k: None),
             "SCREENER_URL": "http://fake", "DASHBOARD_SECRET": "s"}
     for _c in ("MANUAL_CLOSE ", "MANUAL_CLOSE_POLL_S "):
         _i = _mc_src.index("\n" + _c) + 1

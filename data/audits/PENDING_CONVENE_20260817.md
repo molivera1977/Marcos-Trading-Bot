@@ -630,3 +630,19 @@ Two EG1-support pins were also updated, deliberately and visibly:
    unlabelled behaviour change**, and the two-agents-one-worktree pattern is itself a finding:
    B1/B2 were staged via synthesized blobs (`git update-index --cacheinfo`) specifically to
    avoid destroying the concurrent work, and that is not a mechanism that scales.
+
+### Batch-B addendum — a SECOND sweep collision (recorded, not hidden)
+
+`be32e2e` ("B4 (REFUTED as stated) + B5 acceptance & docs") no longer exists in history: the
+concurrent agent's `5cd2d34` absorbed its content. **The content is intact in HEAD** — both
+`data/killtests/bad_stop_20260817.md` and `data/killtests/fail_open_gates_20260817.md`, and
+`SPEC_fail_open_gates_observable_and_armable` — but the commit message carrying the B4
+refutation and the B5 quantification is gone, and so is that Acceptance trailer.
+
+Worse, the sweep captured an **intermediate** version of the B5 volume guard (`shares = 0`
+and fall through), which is unsafe: a zero-share position passes the capital reservation
+(`_reserved` = 0) and reaches the order path. Corrected in the following commit to refuse
+through the `no_capital_skip` shape. **Between `460dca5` and that correction, HEAD carried an
+unsafe (though default-unreachable) sizing path.** The convening should confirm no other
+half-finished edit was swept in the same way — two agents on one working tree with `git add -A`
+is the finding here, and it is a process defect, not a code one.

@@ -2,6 +2,11 @@
 
 FOUNDATION BATCH C, item C1. Written 2026-08-17 (night). Failure condition written BEFORE the fix.
 
+## VERDICT
+CONFIRMED as a STATE defect (the lane re-attempted the trade, it did not merely re-log) — but the
+count correction is a single-day, upper-bound estimate ONLY, and no dollar claim is made or
+implied: ma_pullback had zero fills on 8/17. See LIMITS below before citing any number here.
+
 ## LIMITS / CAVEATS
 - Single day of archive evidence (2026-08-17 only). The mechanism is read from CODE, not inferred
   from the row spacing alone; the row spacing only CONFIRMS the code read. Earlier days are

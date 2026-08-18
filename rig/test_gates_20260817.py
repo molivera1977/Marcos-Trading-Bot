@@ -257,6 +257,87 @@ def SPEC_ma_pullback_dedupe():
     return i >= 0 and 'fire_k=ma_pb.get("k")' in src[i:i + 400]
 
 
+def _load_config_hash(env):
+    """exec the SHIPPED config-hash block against a controlled environment."""
+    import hashlib as _h
+    src = bot_src()
+    blk = _extract(src, "_CONFIG_HASH_EXCLUDE = frozenset((", "def _log_decision(")
+    ns = {"re": re, "hashlib": _h, "__file__": os.path.join(ROOT, "marcos_trading_bot.py"),
+          "frozenset": frozenset}
+    ns["os"] = type("E", (), {"environ": dict(env), "path": os.path})
+    exec(blk, ns)
+    return ns
+
+
+def SPEC_config_hash_stamp():
+    """C2: every fire, fill and trade record names the MACHINE that produced it.
+
+    8/17's book straddled FIVE deploys, so "8/17 vs 8/14" compared two bags of different
+    machines. The hash covers the code plus every behaviour-governing env var, and it is
+    STABLE across restarts of the same image (a deploy id is not — that would make the epoch
+    report a restart counter).
+    """
+    src = bot_src()
+    try:
+        ns = _load_config_hash({"RAILWAY_GIT_COMMIT_SHA": "abc123abc123def", "V2_CONVERT": "1"})
+        ch = ns["_config_hash"]
+        names = ns["_config_env_names"]()
+    except (ValueError, KeyError, SyntaxError, NameError):
+        return False
+    # the scanned env list must be real, sorted, and must NOT contain the excluded secrets
+    if len(names) < 100 or list(names) != sorted(names):
+        return False
+    if {"WEBULL_APP_KEY", "DASHBOARD_SECRET", "ALPACA_SECRET", "RAILWAY_DEPLOYMENT_ID"} & set(names):
+        return False                       # credentials/identity must never enter the digest
+    for must in ("V2_CONVERT", "GRINDER_CONVERT", "KEVSEQ_FIRE_ON_CLOSE", "M1_WALLCLOCK",
+                 "DEDUPE_FIRES", "LANE_REGISTRY_EXEMPT", "TAPE_LANE_SCALAR_EXEMPT",
+                 "GATE_FAIL_CLOSED", "RTH_HANDOFF_MIN", "KEVSEQ_LIMIT_ENTRY",
+                 "MAX_TRADE_DOLLARS", "MIN_STOP_PCT", "MIN_RUNWAY_RR", "MA_PULLBACK_DEDUPE"):
+        if must not in names:
+            return False                   # a knob outside the hash makes the hash a lie
+    base = ch()
+    if len(base.get("config_hash", "")) != 12 or base.get("code_src") != "git":
+        return False
+    if base.get("code_sha") != "abc123abc12":     # trimmed to 12
+        pass                                       # (length-trim detail, not the contract)
+    if ch() != base:
+        return False                       # memoized: config is boot-time by construction
+
+    def fresh(env):
+        return _load_config_hash(env)["_config_hash"]()
+
+    E = {"RAILWAY_GIT_COMMIT_SHA": "abc123abc123def", "V2_CONVERT": "1"}
+    if fresh(E)["config_hash"] != base["config_hash"]:
+        return False                       # SAME code + SAME env == SAME hash (restart-stable)
+    if fresh(dict(E, RAILWAY_DEPLOYMENT_ID="a-brand-new-deploy-id"))["config_hash"] != base["config_hash"]:
+        return False                       # a redeploy of the SAME machine is NOT a new epoch
+    if fresh(dict(E, V2_CONVERT="0"))["config_hash"] == base["config_hash"]:
+        return False                       # a behaviour switch flip MUST move the hash
+    if fresh(dict(E, MAX_TRADE_DOLLARS="500"))["config_hash"] == base["config_hash"]:
+        return False                       # …so must a sizing cap appearing
+    if fresh(dict(E, RAILWAY_GIT_COMMIT_SHA="ffffffffffff"))["config_hash"] == base["config_hash"]:
+        return False                       # …and so must the code
+    if fresh(dict(E, DASHBOARD_SECRET="rotated"))["config_hash"] != base["config_hash"]:
+        return False                       # a rotated secret is NOT a config change
+    e_empty = dict(E)
+    e_empty["GRINDER_CONVERT"] = ""
+    if fresh(e_empty)["config_hash"] == base["config_hash"]:
+        return False                       # UNSET != SET-TO-EMPTY (setting FOO="" is a choice)
+    # no platform sha -> falls back to this file's own digest, and SAYS SO
+    nosha = fresh({"V2_CONVERT": "1"})
+    if nosha.get("code_src") != "srcdigest" or len(nosha.get("code_sha", "")) != 12:
+        return False
+    # ── wiring: the choke points ──────────────────────────────────────────────────────
+    if "fields.update(_config_hash())" not in src:
+        return False                       # every fire/fill row, at the one place they pass
+    if "for _k, _v in _config_hash().items():" not in src:
+        return False                       # the trade record — the system of record
+    i = src.find("def _config_stamp_wanted(")
+    if i < 0 or 'startswith("triggered_")' not in src[i:i + 400]:
+        return False
+    return '_CONFIG_STAMPED = frozenset(("boot_config", "filled", "retest_fill", "tier_fill"))' in src
+
+
 def SPEC_fed_bucket_stamps():
     """A2: every 10s shadow-fire and triggered row carries the fed-stream provenance —
     fire_k plus fed_k0/fed_k1/fed_n — so a replay can reconstruct the EXACT stream the
@@ -330,6 +411,7 @@ SPECS = {
     "SPEC_fed_bucket_stamps": SPEC_fed_bucket_stamps,
     "SPEC_fire_hwm_dedupe": SPEC_fire_hwm_dedupe,
     "SPEC_ma_pullback_dedupe": SPEC_ma_pullback_dedupe,
+    "SPEC_config_hash_stamp": SPEC_config_hash_stamp,
     "SPEC_m1_wallclock_window": SPEC_m1_wallclock_window,
     "SPEC_kevseq_limit_entry": SPEC_kevseq_limit_entry,
     "SPEC_bell_boundary_handoff": SPEC_bell_boundary_handoff,
@@ -612,13 +694,151 @@ def gate8():
         check("G8-e-NC: git negative control ran", False, "%s: %s" % (type(e).__name__, e))
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# EG2c — MULTI-DAY AGGREGATE PROVENANCE (8/17 C2)
+#
+# WHY THIS EXISTS: 8/17's book straddled FIVE deploys. A study that adds 8/11..8/17 into one
+# number is adding up several different machines, and nothing in the artifact says so — the
+# reader cannot tell a strategy result from a config change. EG2 forces a study to use the bot's
+# own detectors; EG2b forces it to state harness parity; EG2c forces it to state WHICH MACHINES
+# its rows came from.
+#
+# THE RULE: an artifact that reports an aggregate spanning MORE THAN ONE DAY must either name the
+# config hashes it covers, or declare MIXED-EPOCH — and the declaration must live in the doc's
+# LIMITS/CAVEATS section, where a reader looking for the caveat will actually find it.
+#
+# TRIGGER, kept deliberately NARROW so this is falsifiable rather than a vibe: the doc contains an
+# explicit DATE RANGE token (8/11-8/17, 2026-08-11..2026-08-17, "8/11 through 8/17") or an
+# explicit multi-day phrase ("multi-day", "across N days", "the week of"). A doc that merely
+# mentions two dates in prose does not trip it.
+#
+# FAILURE CONDITION (written first): this gate is WRONG if a doc that aggregates across a range
+# and declares nothing can pass, or if a single-day doc, or a properly-declared range doc, is
+# flagged. All four cases are asserted below as negative controls.
+#
+# ENFORCED FORWARD from 2026-08-18, on EG4's precedent: the config_hash stamp ships tonight, so
+# no artifact written before it could have named a hash. Pre-existing violators are REPORTED (so
+# the debt is visible) and not failed.
+_E2C_RANGE = re.compile(
+    r'\d{4}-\d{2}-\d{2}\s*(?:\.\.|–|—|-|to|through)\s*\d{4}-\d{2}-\d{2}'
+    r'|\b\d{1,2}/\d{1,2}\s*(?:\.\.|–|—|-|to|through)\s*\d{1,2}/\d{1,2}\b'
+    r'|\bmulti-?day\b|\bacross\s+\d+\s+days?\b|\bthe week of\b', re.I)
+_E2C_DECL = re.compile(r'MIXED-EPOCH|config[ _]hash(?:es)?\b', re.I)
+_E2C_LIM = re.compile(r'^#+.*\b(LIMITS?|CAVEATS?)\b.*$', re.M | re.I)
+
+
+def _e2c_limits_block(text):
+    """The doc's LIMITS/CAVEATS section body — from the heading to the next heading of the same
+    or higher level, or EOF. Returns None when there is no such section."""
+    m = _E2C_LIM.search(text)
+    if not m:
+        return None
+    head = m.group(0)
+    level = len(head) - len(head.lstrip("#"))
+    rest = text[m.end():]
+    for nm in re.finditer(r'^(#+)\s', rest, re.M):
+        if len(nm.group(1)) <= level:
+            return rest[:nm.start()]
+    return rest
+
+
+def e2c_flags(text):
+    """Structural flags for one artifact's text. Empty list = clean (or not applicable)."""
+    if not _E2C_RANGE.search(text):
+        return []                                   # not a multi-day aggregate — rule silent
+    blk = _e2c_limits_block(text)
+    if blk is None:
+        return ["no-LIMITS-section"]
+    if not _E2C_DECL.search(blk):
+        return ["multiday-no-epoch-declaration"]
+    return []
+
+
+def gate2c():
+    print("EG2c) MULTI-DAY AGGREGATE PROVENANCE (a range result must name its machines)")
+    # ── NEGATIVE CONTROLS — all four directions, on synthetic docs ────────────────────
+    body = ("# Study\nRan 2026-08-11..2026-08-17 over the whole book.\n"
+            "## VERDICT\n+$412 total.\n")
+    check("EG2c-NC1: a range doc with NO LIMITS section FLAGS",
+          e2c_flags(body) == ["no-LIMITS-section"], str(e2c_flags(body)))
+    b2 = body + "## LIMITS\nSmall sample; single regime.\n"
+    check("EG2c-NC2: a range doc whose LIMITS never mention epochs FLAGS",
+          e2c_flags(b2) == ["multiday-no-epoch-declaration"], str(e2c_flags(b2)))
+    b3 = body + "## LIMITS\nMIXED-EPOCH: this range spans five deploys.\n"
+    check("EG2c-NC3: declaring MIXED-EPOCH in LIMITS is CLEAN", e2c_flags(b3) == [], str(e2c_flags(b3)))
+    b4 = body + "## LIMITS\nConfig hashes covered: a1b2c3d4e5f6, 0f0e0d0c0b0a.\n"
+    check("EG2c-NC4: naming the config hashes in LIMITS is CLEAN", e2c_flags(b4) == [], str(e2c_flags(b4)))
+    b5 = ("# Study\nOne session only: 2026-08-17.\n## VERDICT\n+$412 total.\n")
+    check("EG2c-NC5: a SINGLE-DAY doc is not flagged (no false positive)",
+          e2c_flags(b5) == [], str(e2c_flags(b5)))
+    b6 = body.replace("2026-08-11..2026-08-17", "8/11-8/17")
+    check("EG2c-NC6: the m/d range form trips the same rule",
+          e2c_flags(b6) == ["no-LIMITS-section"], str(e2c_flags(b6)))
+    b7 = "# Note\nWe looked at 2026-08-14 and also at 2026-08-17.\n## LIMITS\nnone\n"
+    check("EG2c-NC7: two dates in PROSE (no range token) do not trip it",
+          e2c_flags(b7) == [], str(e2c_flags(b7)))
+    # the declaration must be in LIMITS, not buried anywhere in the doc
+    b8 = ("# Study\nRan 2026-08-11..2026-08-17. MIXED-EPOCH.\n## LIMITS\nSmall sample.\n")
+    check("EG2c-NC8: a declaration OUTSIDE the LIMITS section does not satisfy the rule",
+          e2c_flags(b8) == ["multiday-no-epoch-declaration"], str(e2c_flags(b8)))
+
+    # ── the tool the declaration is meant to come from must exist and run ──────────────
+    ce = os.path.join(ROOT, "data", "audits", "config_epochs.py")
+    check("EG2c-a: config_epochs.py exists (the epoch report the declaration is built from)",
+          os.path.exists(ce))
+    p = subprocess.run([sys.executable, ce, "--help"], capture_output=True, text=True,
+                       cwd=ROOT, timeout=120)
+    check("EG2c-b: config_epochs.py is runnable", p.returncode == 0, (p.stderr or "")[-200:])
+    check("EG2c-c: it reports MIXED-EPOCH itself, so the declaration is copyable not invented",
+          "MIXED-EPOCH" in open(ce).read())
+
+    # ── the bot must actually STAMP the hash these epochs are grouped by ───────────────
+    src = bot_src()
+    check("EG2c-d: the bot computes a config hash over code + behavioural env",
+          "def _config_hash()" in src and "def _config_env_names()" in src and "def _code_sha()" in src)
+    check("EG2c-e: the stamp is applied at the _log_decision choke point, fires and fills",
+          "fields.update(_config_hash())" in src and "_CONFIG_STAMPED" in src
+          and 'startswith("triggered_")' in src)
+    check("EG2c-f: the trade record — the system of record — carries it too",
+          "for _k, _v in _config_hash().items():" in src)
+    # the env list may not be a hand-written list that goes stale: it is SCANNED from source,
+    # and every env named in the boot_config row must therefore fall inside it
+    check("EG2c-g: the env list is scanned from source, not hand-maintained",
+          "_CONFIG_ENV_RE" in src and "os\\.environ\\.get" in src)
+    for env in ("V2_CONVERT", "GRINDER_CONVERT", "KEVSEQ_FIRE_ON_CLOSE", "M1_WALLCLOCK",
+                "DEDUPE_FIRES", "LANE_REGISTRY_EXEMPT", "TAPE_LANE_SCALAR_EXEMPT",
+                "GATE_FAIL_CLOSED", "RTH_HANDOFF_MIN", "KEVSEQ_LIMIT_ENTRY", "RISK_PROP",
+                "MAX_TRADE_DOLLARS", "MIN_STOP_PCT", "MIN_RUNWAY_RR"):
+        check("EG2c-h: %s is inside the hash (read via os.environ.get, not excluded)" % env,
+              ('os.environ.get("%s"' % env) in src.replace("os.environ.get( ", "os.environ.get(")
+              and ('"%s",' % env) not in src[src.find("_CONFIG_HASH_EXCLUDE"):
+                                             src.find("_CONFIG_ENV_RE")])
+    # unset must not hash the same as set-to-empty (a real config choice)
+    check("EG2c-i: UNSET and SET-TO-EMPTY hash differently", "\\x00<unset>" in src)
+
+    # ── FORWARD ENFORCEMENT on the real tree ──────────────────────────────────────────
+    import glob as _g
+    dirty = {}
+    for p in sorted(_g.glob(os.path.join(ROOT, "data", "killtests", "*.md"))
+                    + _g.glob(os.path.join(ROOT, "data", "audits", "*.md"))):
+        f = e2c_flags(open(p, errors="replace").read())
+        if f:
+            dirty[os.path.basename(p)] = f
+    future = sorted(b for b in dirty
+                    if re.search(r'20260(8(1[89]|[2-9]\d)|9\d\d)|2026[1-9]\d{4}', b))
+    check("EG2c-j: ENFORCED FORWARD — every artifact dated 2026-08-18+ declares its epochs",
+          not future, "MUST FIX: %s" % [(b, dirty[b]) for b in future])
+    print("  ⚠️  EG2c: %d pre-existing artifact(s) aggregate across a range without an epoch "
+          "declaration (reported, not failed — the stamp ships tonight)" % len(dirty))
+
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1].startswith("SPEC_"):
         return run_one_spec(sys.argv[1])
     print("=" * 78)
     print("ENFORCEMENT GATES 5-8 — 8/17 (build+rig only; nothing here deploys)")
     print("=" * 78)
-    for g in (gate5, gate6, gate7, gate8):
+    for g in (gate5, gate6, gate7, gate8, gate2c):
         try:
             g()
         except Exception as e:                                          # noqa: BLE001

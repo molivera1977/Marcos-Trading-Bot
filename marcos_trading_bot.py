@@ -2518,6 +2518,114 @@ _decision_flusher_started = False
 _side_memo = {}   # ticker -> (expires, side) — 8/8: one tape read per 20s per name
 _SIDE_STAMPED = ("_reject", "_capped", "_skip")   # every refusal row carries its story position
 
+
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# 8/17 C2 — CONFIG HASH (makes cross-day comparison meaningful)
+#
+# THE DEFECT: 8/17's book straddles FIVE deploys (five boot_config rows). Comparing "8/17 vs
+# 8/14" compares two BAGS OF DIFFERENT MACHINES, not two days of one machine. Every multi-day
+# aggregate this system has produced is a mixture whose composition was never recorded.
+#
+# THE HASH: a 12-hex digest over exactly two things —
+#   (a) the CODE: RAILWAY_GIT_COMMIT_SHA (or the usual aliases) when the platform supplies it;
+#       otherwise the sha256 of this module's own bytes. Both are stable across restarts of the
+#       same image, which the deploy id is NOT — a restart with identical code and identical env
+#       must produce the SAME hash, or the epoch report becomes a restart counter.
+#   (b) the ENV: every behaviour-governing variable's raw value, name-sorted, with unset spelled
+#       distinctly from set-to-empty (setting FOO="" IS a config change).
+#
+# HOW THE ENV LIST IS BUILT — by scanning THIS FILE for `os.environ.get("NAME"`, minus an
+# explicit non-behavioural exclusion set. Deliberately NOT a hand-written list: a hand list goes
+# stale the first night someone adds a switch and forgets, and a hash that silently stops
+# covering a knob is worse than no hash, because it reads as proof of sameness. The boot_config
+# row's fields are a SUBSET of what this catches (the gate asserts that).
+#
+# LIMITS, stated plainly:
+#   * The hash proves the CODE and the LISTED ENV matched. It cannot see broker-side state,
+#     the Kev sheet of the day, data-vendor behaviour, or the market. Same hash != same world.
+#   * Falling back to the source-file digest means a repo-dirty local run hashes differently
+#     from the committed tree. That is correct (different code) but is NOT a git sha, so
+#     `code_sha` is stamped alongside `config_hash` and labelled by `code_src`.
+#   * Rows logged BEFORE this ship carry no hash. 8/17 and earlier are reconstructible only by
+#     boot_config-row segmentation (that is exactly what config_epochs.py does for them).
+# ══════════════════════════════════════════════════════════════════════════════════════════
+_CONFIG_HASH_EXCLUDE = frozenset((
+    # credentials / endpoints / identity — change constantly, govern no behaviour
+    "ALPACA_KEY", "ALPACA_SECRET", "ALP_CAPTURE_URL", "ALP_HOT_SECRET", "ANTHROPIC_API_KEY",
+    "DASHBOARD_SECRET", "EMAIL_ADDRESS", "EMAIL_APP_PASSWORD", "RESEND_API_KEY", "SUMMARY_EMAIL",
+    "SCREENER_URL", "WEBULL_ACCESS_TOKEN", "WEBULL_ACCOUNT_ID", "WEBULL_APP_KEY",
+    "WEBULL_APP_SECRET", "RAILWAY_DEPLOYMENT_ID", "RAILWAY_GIT_COMMIT_SHA",
+    # filesystem paths and account state — not strategy
+    "FIRE_HWM_PATH", "ACCOUNT_BALANCE",
+    # one-shot operator actions, not standing configuration
+    "MANUAL_CLOSE", "MANUAL_CLOSE_POLL_S", "TEST_TRADE", "WAKE_ET",
+))
+_CONFIG_ENV_RE = re.compile(r'os\.environ\.get\(\s*"([A-Z][A-Z0-9_]*)"')
+_config_hash_cache = None
+
+
+def _config_env_names() -> tuple:
+    """Behaviour-governing env var names, scanned from this module's own source. Empty tuple on
+    any problem — the caller then stamps nothing rather than stamping a LIE (a hash computed
+    over zero variables would compare equal across genuinely different machines)."""
+    try:
+        with open(os.path.abspath(__file__), "rb") as _f:
+            src = _f.read().decode("utf-8", "replace")
+        return tuple(sorted(set(_CONFIG_ENV_RE.findall(src)) - _CONFIG_HASH_EXCLUDE))
+    except Exception:
+        return ()
+
+
+def _code_sha() -> tuple:
+    """(sha, source-label). Platform git sha when available, else this file's own digest."""
+    for _k in ("RAILWAY_GIT_COMMIT_SHA", "GIT_COMMIT_SHA", "GIT_SHA", "SOURCE_VERSION"):
+        _v = (os.environ.get(_k) or "").strip()
+        if _v:
+            return _v[:12], "git"
+    try:
+        with open(os.path.abspath(__file__), "rb") as _f:
+            return hashlib.sha256(_f.read()).hexdigest()[:12], "srcdigest"
+    except Exception:
+        return "", "unknown"
+
+
+def _config_hash() -> dict:
+    """{config_hash, code_sha, code_src, cfg_n} — computed ONCE per process (config is boot-time
+    by construction: every switch is read into a module constant at import). Returns {} on any
+    problem, and a stamp that fails is simply absent — never wrong."""
+    global _config_hash_cache
+    if _config_hash_cache is not None:
+        return _config_hash_cache
+    try:
+        names = _config_env_names()
+        if not names:
+            _config_hash_cache = {}
+            return _config_hash_cache
+        sha, src_kind = _code_sha()
+        h = hashlib.sha256()
+        h.update(("code=%s\n" % sha).encode())
+        for n in names:                       # already sorted -> order-stable
+            v = os.environ.get(n)
+            # UNSET and SET-TO-EMPTY must hash differently: "FOO=" is a real config choice
+            h.update(("%s=%s\n" % (n, "\x00<unset>" if v is None else v)).encode("utf-8", "replace"))
+        _config_hash_cache = {"config_hash": h.hexdigest()[:12], "code_sha": sha,
+                              "code_src": src_kind, "cfg_n": len(names)}
+    except Exception:
+        _config_hash_cache = {}
+    return _config_hash_cache
+
+
+# The rows that must carry the epoch stamp: the boot marker, every lane FIRE, and every FILL.
+# Deliberately NOT every row — `watching`/`consolidating` alone are ~6,700 rows a day and carry
+# no verdict anyone aggregates. These are the rows studies are built from.
+_CONFIG_STAMPED = frozenset(("boot_config", "filled", "retest_fill", "tier_fill"))
+
+
+def _config_stamp_wanted(status) -> bool:
+    s = str(status)
+    return s in _CONFIG_STAMPED or s.startswith("triggered_")
+
+
 def _log_decision(ticker, status, **fields):
     # Wrapped so observability can NEVER throw into the trading hot path (this is called for every
     # candidate every cycle). A logging bug must not be able to stop the bot from trading.
@@ -2534,6 +2642,11 @@ def _log_decision(ticker, status, **fields):
                 _sv = _side_state(ticker)
                 _side_memo[ticker] = (time.time() + 20, _sv)
                 fields["side"] = _sv
+        # 8/17 C2: the epoch stamp, at the one choke point every decision row passes through.
+        # Fires and fills only (see _CONFIG_STAMPED) — the ~6,700 watching/consolidating rows a
+        # day carry no verdict anyone aggregates. An explicitly-passed config_hash always wins.
+        if "config_hash" not in fields and _config_stamp_wanted(status):
+            fields.update(_config_hash())
         _eyes_note_gate(ticker, status)   # 8/16 build #0: feeds gates_hit on the eyes snapshot
         prev = _decision_last.get(ticker)
         now = time.time()
@@ -12029,6 +12142,14 @@ def post_to_dashboard(trade_payload: dict) -> bool:
 
 def post_trade_record_reliably(trade_payload: dict, attempts: int = 3, wait_secs: float = 5.0) -> bool:
     """A1: the trade record is the system of record — retry before giving up. Returns True on success."""
+    # 8/17 C2: the system of record carries the machine that produced it. Stamped HERE (the single
+    # choke point every trade record passes through) rather than at each payload build site, so a
+    # new exit path cannot ship an unstamped trade. Never overwrites an explicit value.
+    try:
+        for _k, _v in _config_hash().items():
+            trade_payload.setdefault(_k, _v)
+    except Exception:
+        pass
     for i in range(attempts):
         if post_to_dashboard(trade_payload):
             return True

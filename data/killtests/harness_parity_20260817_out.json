@@ -8,15 +8,8 @@
    "live_names": 11,
    "no_tape_names": [],
    "harness_fires": 11,
-   "exact": 0,
+   "exact": 7,
    "live_unmatched": [
-    {
-     "ticker": "IVF",
-     "t": "04:49:55 AM",
-     "px": 2.39,
-     "stop": 2.25,
-     "why": "near_time_diff_price_or_stop:[[\"IVF\", 17390, 2.44, 2.25]]"
-    },
     {
      "ticker": "QNTM",
      "t": "08:12:22 AM",
@@ -32,53 +25,25 @@
      "why": "no_harness_fire_for_name"
     },
     {
-     "ticker": "IPST",
-     "t": "08:56:24 AM",
-     "px": 8.1,
-     "stop": 7.91,
-     "why": "near_time_diff_price_or_stop:[[\"IPST\", 32150, 8.05, 7.91]]"
-    },
-    {
-     "ticker": "WETO",
-     "t": "10:18:36 AM",
-     "px": 18.4499,
-     "stop": 17.88,
-     "why": "near_time_diff_price_or_stop:[[\"WETO\", 37070, 18.855, 17.88]]"
-    },
-    {
-     "ticker": "PFSA",
-     "t": "10:22:30 AM",
-     "px": 6.17,
-     "stop": 5.9,
-     "why": "near_time_diff_price_or_stop:[[\"PFSA\", 37370, 6.3034, 5.9]]"
-    },
-    {
      "ticker": "WFF",
      "t": "11:17:43 AM",
      "px": 3.91,
      "stop": 3.68,
-     "why": "near_time_diff_price_or_stop:[[\"WFF\", 40670, 4.9656, 4.48]]"
-    },
-    {
-     "ticker": "RPGL",
-     "t": "11:44:31 AM",
-     "px": 2.55,
-     "stop": 2.22,
-     "why": "near_time_diff_price_or_stop:[[\"RPGL\", 42290, 2.6421, 2.22], [\"RPGL\", 42350, 2.62, 2.5387]]"
+     "why": "near_time_diff_price_or_stop:[[\"WFF\", 40670, 4.77, 4.48]]"
     },
     {
      "ticker": "RPGL",
      "t": "11:46:57 AM",
      "px": 2.64,
      "stop": 2.55,
-     "why": "near_time_diff_price_or_stop:[[\"RPGL\", 42290, 2.6421, 2.22], [\"RPGL\", 42350, 2.62, 2.5387]]"
+     "why": "near_time_diff_price_or_stop:[[\"RPGL\", 42290, 2.55, 2.22], [\"RPGL\", 42350, 2.65, 2.5387]]"
     },
     {
      "ticker": "RPGL",
      "t": "11:58:33 AM",
      "px": 2.55,
      "stop": 2.38,
-     "why": "no_harness_fire_for_name"
+     "why": "same_price_wrong_time"
     },
     {
      "ticker": "CDTG",
@@ -92,14 +57,14 @@
      "t": "11:58:33 AM",
      "px": 4.77,
      "stop": 4.48,
-     "why": "near_time_diff_price_or_stop:[[\"WFF\", 43130, 6.87, 6.12]]"
+     "why": "near_time_diff_price_or_stop:[[\"WFF\", 43130, 6.77, 6.12]]"
     },
     {
      "ticker": "WFF",
      "t": "12:01:27 PM",
      "px": 5.1329,
      "stop": 4.8,
-     "why": "near_time_diff_price_or_stop:[[\"WFF\", 43130, 6.87, 6.12]]"
+     "why": "near_time_diff_price_or_stop:[[\"WFF\", 43130, 6.77, 6.12]]"
     },
     {
      "ticker": "TRUG",
@@ -137,25 +102,11 @@
      "why": "no_harness_fire_for_name"
     },
     {
-     "ticker": "WETO",
-     "t": "02:18:45 PM",
-     "px": 23.8,
-     "stop": 22.7307,
-     "why": "near_time_diff_price_or_stop:[[\"WETO\", 51530, 23.37, 22.7307]]"
-    },
-    {
      "ticker": "SLE",
      "t": "02:32:06 PM",
      "px": 3.0,
      "stop": 2.98,
      "why": "no_harness_fire_for_name"
-    },
-    {
-     "ticker": "WETO",
-     "t": "02:51:14 PM",
-     "px": 28.51,
-     "stop": 27.77,
-     "why": "near_time_diff_price_or_stop:[[\"WETO\", 53450, 29.3341, 27.77]]"
     },
     {
      "ticker": "OSRH",
@@ -172,62 +123,38 @@
      "why": "no_harness_fire_for_name"
     }
    ],
-   "harness_extra": 11,
+   "harness_extra": 4,
    "harness_extra_sample": [
-    [
-     "IPST",
-     32150,
-     8.05,
-     7.91
-    ],
-    [
-     "IVF",
-     17390,
-     2.44,
-     2.25
-    ],
-    [
-     "PFSA",
-     37370,
-     6.3034,
-     5.9
-    ],
-    [
-     "RPGL",
-     42290,
-     2.6421,
-     2.22
-    ],
     [
      "RPGL",
      42350,
-     2.62,
+     2.65,
      2.5387
     ],
     [
-     "WETO",
-     37070,
-     18.855,
-     17.88
+     "WFF",
+     39950,
+     3.34,
+     3.07
     ],
     [
-     "WETO",
-     51530,
-     23.37,
-     22.7307
+     "WFF",
+     40670,
+     4.77,
+     4.48
     ],
     [
-     "WETO",
-     53450,
-     29.3341,
-     27.77
+     "WFF",
+     43130,
+     6.77,
+     6.12
     ]
    ],
    "vwap_src": {
     "live_stamped": 5489,
     "running_sip": 904
    },
-   "match_rate_pct": 0.0
+   "match_rate_pct": 30.4
   },
   "grinder": {
    "live_fires": 66,

@@ -219,7 +219,7 @@ and is not modelled. Same bound as flat_top's.
 
 ---
 
-## ⚠️ REGRESSION FOUND, NOT OURS: kevseq parity 30.4% → 0.0%
+## ⚠️ ~~REGRESSION FOUND, NOT OURS~~ — **SUPERSEDED 8/17 night: BISECTED, NOT A DEFECT**
 
 Re-running the cohort-1 parity script at HEAD gives **kevseq 0.0% (0/23)**, against the 30.4%
 (7/23) seeded earlier on 8/17. Same 11 harness fires — but on **entirely different names**
@@ -233,6 +233,19 @@ the 8/17 B/C batches moved kevseq's fire set.
 `harness_parity.json` has been updated to 0.0 — which makes the EG2b trust gate **stricter**, the
 safe direction — with the finding written into the lane's note. **Owed: a bisect by whoever owns
 the kevseq lane.** Until then, do not grade kevseq from harness output.
+
+> **RESOLVED 8/17 night — the DIAGNOSIS in this section is WRONG; the 0.0% number is right.**
+> The fire set never moved: the harness produces the SAME 11 fires, on the SAME names (RPGL, WFF,
+> IPST, IVF, PFSA, WETO), at the SAME bar epochs, with the SAME stops, under both trees. **Only the
+> fire PRICE moved**, from the setup bar's level `pd["hi"]` to the fill bar's close `c` — which is
+> **B1, commit `2d0a6cb`**, an intended, source-commented, documented and env-killable change that
+> is NOT in the suspected `8ac6791..bbe419f` window (B1 is the first B-batch commit). At HEAD,
+> `KEVSEQ_FIRE_ON_CLOSE=0` restores 30.4% (7/23) exactly. The 8/17 live rows are PRE-B1 and
+> level-priced, so exact-price parity against a close-priced detector is structurally impossible —
+> 0.0% is the honest reading of a STALE ARTIFACT and stays. Also: the "PROVEN INDEPENDENT of batch
+> E" run above cannot have been performed as described (`_install_bar_clock()` raises `NotIsolable`
+> on any pre-E tree); its conclusion holds anyway, by AST diff. Full bisect: `RESULTS_LEDGER.md`,
+> 8/17 night entry.
 
 ---
 

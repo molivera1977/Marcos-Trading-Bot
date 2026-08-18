@@ -1437,6 +1437,67 @@ def get_open_trades():
     return jsonify({"open_trades": list(_open_trades.values())})
 
 
+# ── 8/18 blast-radius audit fix: DURABLE FIRE HIGH-WATER MARKS ──────────────────────────────
+# The 8/17 restart-replay fix persisted per-(day,lane,symbol) fire marks to the BOT's local
+# data/fire_hwm.json.  The audit found the hole: the bot has no /data volume (see the open-trade
+# note above), so an in-place restart kept the file but a REDEPLOY wiped it — and the deploy that
+# shipped the fix is itself a redeploy.  The mark therefore has to live on the volume that
+# actually survives, exactly like open positions do.
+FIRE_HWM_FILE = pathlib.Path("/data/fire_hwm.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/fire_hwm.json")
+_fire_hwm_store: dict = {}
+
+def _load_fire_hwm():
+    global _fire_hwm_store
+    if FIRE_HWM_FILE.exists():
+        try:
+            _d = json.loads(FIRE_HWM_FILE.read_text())
+            if isinstance(_d, dict):
+                _fire_hwm_store = {str(k): int(v) for k, v in _d.items()
+                                   if isinstance(v, (int, float))}
+        except Exception:
+            _fire_hwm_store = {}
+
+_load_fire_hwm()
+
+
+@app.route("/api/fire_hwm", methods=["GET"])
+def get_fire_hwm():
+    """Bot pulls today's marks on boot. Only TODAY's keys are returned, so the store can never
+    suppress a fire on a later date even if the file is never pruned."""
+    _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    return jsonify({"marks": {k: v for k, v in _fire_hwm_store.items()
+                              if k.startswith(_today + "|")}, "day": _today})
+
+
+@app.route("/api/fire_hwm", methods=["POST"])
+def post_fire_hwm():
+    """Bot pushes marks after a fire. MONOTONIC MERGE — a mark only ever advances, and only
+    today's keys are accepted. A lower value can never un-suppress a bucket that already fired,
+    which is what makes this safe against an out-of-order or replayed post."""
+    if request.headers.get("X-Dashboard-Secret") != API_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+    _marks = (request.get_json(silent=True) or {}).get("marks") or {}
+    if not isinstance(_marks, dict):
+        return jsonify({"error": "marks must be an object"}), 400
+    _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    _n = 0
+    with _store_lock:
+        for k, v in _marks.items():
+            k = str(k)
+            if not k.startswith(_today + "|") or not isinstance(v, (int, float)):
+                continue
+            if int(v) > int(_fire_hwm_store.get(k, -1)):
+                _fire_hwm_store[k] = int(v); _n += 1
+        # prune anything that is not today's — bounded file, no cross-day suppression
+        for k in [k for k in _fire_hwm_store if not k.startswith(_today + "|")]:
+            del _fire_hwm_store[k]
+        try:
+            _atomic_write_text(FIRE_HWM_FILE, json.dumps(_fire_hwm_store))
+        except Exception as e:
+            print(f"⚠️  Could not save fire HWM: {e}")
+    return jsonify({"status": "ok", "advanced": _n, "total": len(_fire_hwm_store)})
+
+
 # ── Room gate: rejections (entries blocked for <2:1 room) — to AUDIT the supply detection ──
 ROOM_SKIPS_FILE = pathlib.Path("/data/room_skips.json") if pathlib.Path("/data").exists() else pathlib.Path("/tmp/room_skips.json")
 _room_skips: list = []
@@ -2246,9 +2307,12 @@ def close_position_request():
         this itself after acting, so a consumed request cannot re-fire.
     Operator-initiated only — the bot never originates a request here."""
     _mc_prune()
+    # 8/18 blast-radius audit: GET was UNAUTHENTICATED on a public URL — it leaked which positions
+    # are queued to be sold, on a selling endpoint. Both verbs are authed now; the bot sends the
+    # header and the dashboard JS sends ?key=, so both existing callers already carry the secret.
+    if not _endpoint_authed():
+        return jsonify({"error": "unauthorized"}), 401
     if request.method == "POST":
-        if not _endpoint_authed():
-            return jsonify({"error": "unauthorized"}), 401
         d = request.get_json(silent=True) or {}
         ticker   = str(d.get("ticker") or "").upper().strip()
         trade_id = str(d.get("trade_id") or "").strip() or None

@@ -1118,3 +1118,79 @@ PY
 python3 data/killtests/harness_parity_v2_20260818.py 2026-08-17 \
   data/killtests/exit_params_our_fires_20260817_arch.json data/killtests/bars10s_0817_full   # exits 2: unstamped day
 ```
+
+---
+
+## 2026-08-17 night — KEVSEQ HARNESS PARITY 30.4% → 0.0%: BISECTED. **NOT A DEFECT.**
+
+**VERDICT: an intended, labelled, env-killable behaviour change (B1, commit `2d0a6cb`). The
+parity artifact went stale. Nothing was shipped unlabelled.**
+
+**The prior diagnosis in `harness_lift_remaining_20260817.md` ("REGRESSION FOUND, NOT OURS") and
+the note previously carried in `harness_parity.json` were WRONG on the mechanism.** They recorded
+"the same 11 harness fires but on ENTIRELY DIFFERENT NAMES (was RPGL/WFF, now IPST/IVF/PFSA)".
+The fire SET did not move at all. Dumping the raw kevseq harness fires under both trees:
+
+```
+OLD (harness+bot @83c33e1): IPST 32150 8.1    /7.91   IVF 17390 2.39  /2.25   PFSA 37370 6.17  /5.90
+NEW (harness+bot @HEAD   ): IPST 32150 8.05   /7.91   IVF 17390 2.44  /2.25   PFSA 37370 6.3034/5.90
+                            RPGL 42290 2.55/2.6421   RPGL 42350 2.65/2.62     WETO 37070 18.4499/18.855
+                            WETO 51530 23.8/23.37    WETO 53450 28.51/29.3341 WFF 39950 3.34/3.43
+                            WFF  40670 4.77/4.9656   WFF  43130 6.77/6.87
+```
+
+**Identical 11 names. Identical 11 bar epochs. Identical 11 stops. Only `px` moved.** Both runs
+name RPGL, WFF, IPST, IVF, PFSA, WETO — there was never a different name set. The parity matcher
+requires an EXACT price, so an across-the-board price shift zeroes the rate by construction.
+
+**THE CAUSE — B1, `2d0a6cb` "kevseq fires at the FILL BAR'S CLOSE, not at the setup bar's HIGH".**
+Not in the suspected `8ac6791..bbe419f` window: B1 is the FIRST commit of the B batch and lands
+before `efcb86b`. It replaced `px = float(pd["hi"])` (the setup bar's trigger LEVEL) with
+`px = float(c) if KEVSEQ_FIRE_ON_CLOSE else float(pd["hi"])` (the fill bar's close), default ON.
+That is exactly the entry-drift fix B1 set out to make, it is commented in the source, it carries
+its own doc (`kevseq_fire_price_20260817.md`) and its own kill switch. `would_stop` is untouched by
+design — which is why every stop matches to 4dp across the two trees.
+
+**THE PROOF, one command.** At HEAD, with the kill switch thrown, the seeded artifact returns
+byte-for-byte — 7/23, 30.4%, 4 extras — and every other lane is unchanged in both runs:
+
+```
+$ KEVSEQ_FIRE_ON_CLOSE=0 python3 data/killtests/harness_parity_20260817.py
+lane        live  harness  exact   rate%  extra
+kevseq        23       11      7    30.4      4      <-- the seeded 8/17 number, restored
+grinder       66       19      6     9.1     13
+bandpass       9        5      4    44.4      1
+prevwap        3        3      3   100.0      0
+v2           164      124     84    51.2     40
+
+$ python3 data/killtests/harness_parity_20260817.py        # default (B1 live)
+kevseq        23       11      0     0.0     11          <-- price-only shift, same 11 fires
+```
+
+**WHY 0.0% IS THE HONEST NUMBER AND MUST NOT BE "FIXED".** The 23 live kevseq rows in the 8/17
+archive were logged by the PRE-B1 live process (B1 shipped tonight, after the close). Those rows
+are level-priced; the HEAD detector is close-priced. An exact-price parity between a pre-B1 record
+and a post-B1 detector is **structurally impossible**, not a disagreement. 0.0% is the correct
+reading of a stale artifact, and leaving it at 0.0 keeps the EG2b gate strict, which is the safe
+direction. **kevseq's real parity is unmeasurable until an 8/18+ day, whose rows are produced by
+the post-B1 code (and carry the A2 provenance stamps for a true equivalence run).**
+
+**BISECT METHOD, so it can be attacked.** `git show <c>:marcos_trading_bot.py` per commit, an AST
+source-diff of the kevseq symbol set (`kevseq_step`, `kevseq_feed_1m`, `kevseq_front_side`,
+`_lane_fire_stale`, `_parse_lane_age_guard`, `_LANE_AGE_GUARD`, `LANE_FIRE_AGE_GUARD`,
+`_bucket_fresh`) across `3fc2e1a..bbe419f` — **byte-identical at every one of those commits**,
+which cleared the whole suspected window (B2 `_lane_fire_stale`, the M1 wall-clock window, the
+front-side clause, C1, C2) in one step. The only kevseq-relevant diff at HEAD is batch E1's
+`_bucket_fresh(now=)` replay hook, which changes no price. `git log -S KEVSEQ_FIRE_ON_CLOSE`
+then named `2d0a6cb` directly, and the kill switch confirmed it.
+
+**ONE CORRECTION TO THE RECORD.** The prior doc's claim that the 0.0% was "PROVEN INDEPENDENT of
+batch E" by running the script against a batch-E-absent bot source cannot have been done as
+described: `live_harness.py` at HEAD calls `_install_bar_clock()`, which raises `NotIsolable`
+("_BUCKET_NOW hook missing from the bot — batch E1 was reverted") against any pre-E tree. Verified
+this turn against `bot_bbe419f.py`. The CONCLUSION (not batch E) is nonetheless correct, by the
+AST diff above.
+
+**NOTHING DEPLOYED, PUSHED, RESTARTED OR ENV-CHANGED.** All runs were read-only replays in a
+scratch directory; `harness_parity_20260817_out.json` was re-run at default settings afterward and
+is back to the HEAD (0.0%) state.

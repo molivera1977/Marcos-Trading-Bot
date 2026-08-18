@@ -5586,17 +5586,22 @@ _fire_hwm_lock = threading.Lock()
 
 
 def _fire_hwm_load():
-    """Read the persisted marks once per process. Missing/corrupt file = start empty (the
-    guard degrades to in-process only; it never blocks trading)."""
+    """Read the persisted marks once per process. Missing/corrupt = start empty (the guard
+    degrades to in-process only; it never blocks trading).
+
+    8/18 blast-radius audit: the local file is kept as a fast belt, but the AUTHORITATIVE copy is
+    the dashboard's /data volume. The bot's own filesystem is ephemeral — an in-place restart kept
+    the file, a REDEPLOY wiped it, so the duplicate-fire fix silently covered only half the cases.
+    The volume copy is merged on top of the local one, taking the HIGHER mark of the two."""
     global _fire_hwm_loaded
     if _fire_hwm_loaded:
         return
     _fire_hwm_loaded = True
+    _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
     try:
         with open(FIRE_HWM_PATH) as _f:
             _d = json.load(_f)
         if isinstance(_d, dict):
-            _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
             # keep only today's marks — the file must not grow without bound
             _fire_hwm.update({k: int(v) for k, v in _d.items()
                               if isinstance(v, (int, float)) and str(k).startswith(_today + "|")})
@@ -5604,8 +5609,34 @@ def _fire_hwm_load():
         pass
 
 
+def _fire_hwm_rehydrate():
+    """Pull the durable marks off the dashboard volume. CALLED AT BOOT ONLY — never from the fire
+    path, which holds _fire_hwm_lock and must not wait on the network."""
+    if not SCREENER_URL:
+        return                      # no dashboard = local-only, i.e. no worse than before this fix
+    _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    try:
+        import urllib.request as _fh_ureq
+        _m = json.load(_fh_ureq.urlopen(SCREENER_URL + "/api/fire_hwm", timeout=10)).get("marks") or {}
+        _n = 0
+        with _fire_hwm_lock:
+            _fire_hwm_load()        # local belt first, then take the HIGHER of the two
+            for _k, _v in _m.items():
+                if not isinstance(_v, (int, float)) or not str(_k).startswith(_today + "|"):
+                    continue
+                if int(_v) > int(_fire_hwm.get(_k, -1)):
+                    _fire_hwm[_k] = int(_v); _n += 1
+        print(f"🔁 fire-HWM rehydrate: {_n} durable mark(s) restored from the volume "
+              f"({len(_fire_hwm)} total for {_today}) — these buckets already fired today "
+              f"and will NOT fire again", flush=True)
+    except Exception as _e:
+        print(f"⚠️  fire-HWM rehydrate failed ({_e}); running on the local belt only — a "
+              f"REDEPLOY today could allow one duplicate fire per lane/name", flush=True)
+
+
 def _fire_hwm_save():
-    """Best-effort durable write (atomic replace). Never raises into the hot path."""
+    """Best-effort durable write. Local file (fast belt) + the dashboard volume (the copy that
+    actually survives a redeploy). Never raises into the hot path."""
     try:
         _dir = os.path.dirname(FIRE_HWM_PATH)
         if _dir:
@@ -5614,6 +5645,26 @@ def _fire_hwm_save():
         with open(_tmp, "w") as _f:
             json.dump(_fire_hwm, _f)
         os.replace(_tmp, FIRE_HWM_PATH)
+    except Exception:
+        pass
+    if not SCREENER_URL:
+        return
+    # ASYNC. _fire_hwm_save() runs INSIDE THE FIRE PATH — a synchronous post would put up to
+    # 5s of network between the signal and the order on a momentum entry. The local write above
+    # already happened; the volume copy is a durability belt and is never worth a delayed fill.
+    _body = json.dumps({"marks": dict(_fire_hwm)}).encode()
+
+    def _push():
+        try:
+            import urllib.request as _fh_ureq
+            _rq = _fh_ureq.Request(SCREENER_URL + "/api/fire_hwm", data=_body,
+                                   headers={"Content-Type": "application/json",
+                                            "X-Dashboard-Secret": DASHBOARD_SECRET})
+            _fh_ureq.urlopen(_rq, timeout=5).read()
+        except Exception:
+            pass   # local belt still holds; a missed push costs at most one duplicate on redeploy
+    try:
+        threading.Thread(target=_push, daemon=True, name="fire-hwm-push").start()
     except Exception:
         pass
 
@@ -5899,6 +5950,7 @@ def _gate_failopen(gate, ticker="_GATE", why=""):
 GATE_BLIND_ROWS_MAX = int(os.environ.get("GATE_BLIND_ROWS_MAX", "2000"))
 _gate_blind_st = {"date": "", "n": 0, "capped": False}
 _gate_blind_tl = threading.local()
+_BLIND_LANE_TTL_S = float(os.environ.get("BLIND_LANE_TTL_S", "30"))   # one evaluation's worth
 
 
 def _blind_lane(lane=None):
@@ -5906,11 +5958,22 @@ def _blind_lane(lane=None):
 
     check_momentum() and _ambient_dvol_ok() take no lane argument and have several callers,
     so the lane travels with the thread rather than through five signature changes (which
-    would be a far larger blast radius for a logging field)."""
+    would be a far larger blast radius for a logging field).
+
+    8/17 audit: the label is STAMPED WITH A TIME and expires. It used to be set and never cleared,
+    so any later blind row on the same thread inherited the last fire's lane — a wrong attribution
+    is worse than a blank one, because the whole point of the field is to say which fire paid.
+    Pass lane="" to clear explicitly."""
     try:
         if lane is not None:
-            _gate_blind_tl.v = str(lane)
-        return getattr(_gate_blind_tl, "v", "") or ""
+            _gate_blind_tl.v = (str(lane), time.monotonic())
+        _v = getattr(_gate_blind_tl, "v", None)
+        if not _v:
+            return ""
+        _lane, _at = _v
+        if time.monotonic() - _at > _BLIND_LANE_TTL_S:
+            return ""          # older than one evaluation — refuse to guess
+        return _lane or ""
     except Exception:
         return ""
 
@@ -5969,8 +6032,13 @@ def _entries_paused():
 #    closing fails CLOSED — an unreachable dashboard must never sell. Failure-condition doc:
 #    data/killtests/manual_close_20260817.md. Kill: MANUAL_CLOSE=0. ──
 MANUAL_CLOSE       = os.environ.get("MANUAL_CLOSE", "1") == "1"
-MANUAL_CLOSE_POLL_S = float(os.environ.get("MANUAL_CLOSE_POLL_S", "5"))   # >=5s: never hammer
+MANUAL_CLOSE_POLL_S = float(os.environ.get("MANUAL_CLOSE_POLL_S", "15"))  # 8/17 audit: 5s x 6-8
+# position threads = ~1.6 req/s at the screener, and a hung dashboard stalls a monitor loop up to
+# 3s per window. 15s is the day-one default; a manual close is a human action, not a race.
 _mclose_cache = {"t": 0.0, "pending": []}
+_mclose_lock  = threading.Lock()   # 8/17 audit: the cache is shared by every monitor thread and
+# was unguarded on a SELLING path. Acquired NON-BLOCKING: the thread that wins does the one fetch,
+# every other thread returns the cached value immediately rather than queueing behind a 3s urlopen.
 
 def _manual_close_pending():
     """Cached poll of the dashboard's pending-close set. FAIL-CLOSED: any error, timeout, 401 or
@@ -5982,10 +6050,25 @@ def _manual_close_pending():
     now = time.time()
     if now - _mclose_cache["t"] < MANUAL_CLOSE_POLL_S:
         return _mclose_cache["pending"]
-    _mclose_cache["t"] = now
+    if not _mclose_lock.acquire(blocking=False):
+        return _mclose_cache["pending"]   # another thread is refreshing; never block a monitor
+    try:
+        now = time.time()                 # re-check under the lock: the winner may have just run
+        if now - _mclose_cache["t"] < MANUAL_CLOSE_POLL_S:
+            return _mclose_cache["pending"]
+        _mclose_cache["t"] = now
+        return _mclose_fetch()
+    finally:
+        _mclose_lock.release()
+
+def _mclose_fetch():
     try:
         import urllib.request as _ur
-        with _ur.urlopen(SCREENER_URL + "/api/close_position", timeout=3) as r:
+        # 8/18: GET is authed now (it was public and leaked pending-close intent). A 401 lands in
+        # the except below and yields [], i.e. FAIL-CLOSED — an auth break can never cause a sale.
+        _rq = _ur.Request(SCREENER_URL + "/api/close_position",
+                          headers={"X-Dashboard-Secret": DASHBOARD_SECRET})
+        with _ur.urlopen(_rq, timeout=3) as r:
             _p = json.load(r).get("pending")
         _mclose_cache["pending"] = [x for x in (_p or []) if isinstance(x, dict)]
     except Exception:
@@ -13380,6 +13463,7 @@ def main():
                       grinder_convert=int(GRINDER_CONVERT), grinder_daily_cap=GRINDER_DAILY_CAP,
                       flattop_break_attack=int(FLATTOP_BREAK_ATTACK), e3_exits=int(E3_EXITS))
         _leader_rehydrate()   # 8/5: earned leader status survives restarts
+        _fire_hwm_rehydrate() # 8/18: fired buckets survive a REDEPLOY, not just a restart
     except Exception as _bc_e:
         print(f"⚠️  boot_config row failed (banner above still printed): {_bc_e}")
 
@@ -14158,7 +14242,8 @@ def main():
                 _log_decision(ticker, "volguard_closed_skip", price=entry_price,
                               entry_type=entry_type, shares_requested=shares)
                 _slot_refund(ticker, entry_type)
-                reentry["held"].discard(ticker)
+                with trade_lock:                      # 8/18 audit: every sibling refuse path takes
+                    reentry["held"].discard(ticker)   # the lock here; this one didn't (mirror minstop)
                 return
 
             # ── DOLLAR-TRACKED CAPITAL (7/11): reserve the ACTUAL notional against the sim account (margin

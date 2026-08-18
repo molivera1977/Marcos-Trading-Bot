@@ -38,10 +38,11 @@
    "parity_pct": 0.0,
    "live_fires": 23,
    "exact": 0,
-   "measured_on": "2026-08-17 (re-measured at commit bbe419f, batch E)",
+   "measured_on": "2026-08-17 (re-measured at HEAD; BISECTED 8/17 night)",
    "method": "time_and_price_approximation",
    "source": "harness_parity_20260817_out.json",
-   "note": "REGRESSION, NOT BATCH E'S: the 30.4%% (7/23) seeded earlier on 8/17 NO LONGER REPRODUCES. Re-running harness_parity_20260817.py at HEAD gives 0.0%% (0/23) with the same 11 harness fires but on ENTIRELY DIFFERENT NAMES (was RPGL/WFF, now IPST/IVF/PFSA). PROVEN INDEPENDENT of batch E: the identical 0.0%% comes out with the HEAD bot source (batch E's changes leave every cohort-1 lane's fire count and match count byte-identical \u2014 grinder 19/6, bandpass 5/4, prevwap 3/3, v2 124/84 before and after). Something in the 8/17 B/C batches moved kevseq's fire set. OWED: a bisect by whoever owns the kevseq lane. Until then DO NOT GRADE KEVSEQ FROM HARNESS OUTPUT."
+   "note": "NOT A REGRESSION AND NOT A DEFECT \u2014 BISECTED 8/17 night; see RESULTS_LEDGER.md 'KEVSEQ HARNESS PARITY 30.4% -> 0.0%: BISECTED'. CAUSE: B1, commit 2d0a6cb ('kevseq fires at the FILL BAR'S CLOSE, not at the setup bar's HIGH'), an INTENDED, source-commented, documented (kevseq_fire_price_20260817.md) and env-killable change. It is NOT in the suspected 8ac6791..bbe419f window: B1 is the first B-batch commit, landing before efcb86b. CORRECTION TO THE EARLIER NOTE: the fire SET did not move. The harness produces the SAME 11 fires, on the SAME names (RPGL, WFF, IPST, IVF, PFSA, WETO), at the SAME bar epochs, with the SAME stops to 4dp, under both trees. ONLY px moved -- from the setup bar's trigger level pd['hi'] to the fill bar's close c (would_stop deliberately untouched). The matcher demands an exact price, so a uniform price shift zeroes the rate by construction. PROOF: KEVSEQ_FIRE_ON_CLOSE=0 python3 data/killtests/harness_parity_20260817.py restores the seeded 30.4% (7/23, 4 extras) exactly at HEAD, every other lane unchanged. WHY 0.0 STAYS: the 23 live rows were logged by the PRE-B1 process (B1 shipped after 8/17's close), so exact-price parity between a level-priced record and a close-priced detector is STRUCTURALLY IMPOSSIBLE. 0.0 is the honest reading of a STALE ARTIFACT, and it keeps EG2b strict, which is the safe direction. DO NOT TUNE IT BACK. kevseq's real parity is unmeasurable until an 8/18+ day, whose rows are post-B1 and carry the A2 provenance stamps for a true exact_fed_stream equivalence run. Until then: do not grade kevseq from harness output.",
+   "stale_artifact": true
   },
   "grinder": {
    "parity_pct": 9.1,

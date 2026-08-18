@@ -1,5 +1,7 @@
 # Sunday Afternoon Studies — 2026-08-16 (agenda item 3 + registry quick-checks)
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** a mixed-power sweep — the T2/T3/T4 refutations rest on N=36 to N=1356, but named survivor cells fall to n=2. The refutations stand; the survivor-precondition and power-hour figures are descriptive of a 62-date cache with no out-of-sample wall.
+
 Analysis only; no bot code touched. Script: `data/killtests/sunday_afternoon_studies_20260816.py`
 (imports edge_stresstest_G -> F -> C -> B -> engine of record, unchanged). Raw run log:
 `sunday_afternoon_studies_20260816_run.txt` (all tables below are copied from it).

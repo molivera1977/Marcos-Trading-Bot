@@ -1,5 +1,7 @@
 # KEVSEQ RECONCILIATION — 8/16 "+$340" vs 8/17 "−$3.54" (8/17/26)
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** IN-SAMPLE across two single days, on a SUPERSET linkage. It is also on the EG2 KNOWN-CONTAMINATED list — it consumes the fires of three front-side-free studies and inherits their contamination. The drift-vs-cohort attribution is a mechanism story that reproduces; the dollar split between the two is not a measured quantity. kevseq harness parity is 30.4%, far below the 90% floor (data/killtests/harness_parity.json).
+
 **Analysis only. Nothing shipped, nothing deployed, no bot edits.**
 Script `data/killtests/kevseq_reconciliation_20260817.py` · run log `_run.txt` · JSON `_out.json`.
 Engine imported **unchanged** from `sunday_afternoon_studies_20260816` (→ G → F → C → B → E) —

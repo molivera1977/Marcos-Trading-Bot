@@ -1,5 +1,7 @@
 # BIG RIDES REVERSE-ENGINEER — 8/16 (analysis only; no behavior change)
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** IN-SAMPLE, no OOS wall, and the smallest shape cluster is n=9. The k=4 fingerprint clustering was fitted on the same name-days it is described from; a 60-name random contrast is a sanity check, not a hold-out. Treat every shape here as a HYPOTHESIS awaiting an out-of-sample week.
+
 Script: `data/killtests/big_rides_reverse_20260816.py` (chain FP -> S -> G -> F -> C -> B -> E imported unchanged; live parity 15:30 cutoff / 15:45 flatten; E3 = bank 50% @+10% then 10%-off-high trail; E4 = never-bank 10%-off-high trail; $500, +1% entry slip, 0.5% mkt exit, halt_rule on). Raw output: `big_rides_reverse_20260816_out.md`; vectors/clusters: `big_rides_reverse_20260816.json`.
 Universe: 729 RTH name-days, 62 dates (5/18-8/14). Marcos's framing: start from the WINNERS ("reverse engineering the big winners and seeing the doorways"); STEP 0 added on his correction ("we are throwing darts... break down the replay and the patterns should show themselves") — hypothesis-free fingerprints FIRST, doorway mapping second.
 

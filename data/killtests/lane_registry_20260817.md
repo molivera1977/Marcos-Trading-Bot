@@ -1,5 +1,7 @@
 # LANE CLASSIFICATION REGISTRY — 8/17 (Marcos: "build it now")
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** the doc's own verdict already states the counterfactual is NET NEGATIVE and that the 8/17 rows are NOT CLEAN pending a full-day re-grade. 'Built and rig-pinned as ordered' is a BUILD verdict about the registry, not an edge verdict about any lane in it.
+
 ## ⚠️ READ THIS FIRST — THE COUNTERFACTUAL IS NET NEGATIVE
 
 The era-wide (7/13+) counterfactual on the lanes this change newly exempts is **−$64.25 over

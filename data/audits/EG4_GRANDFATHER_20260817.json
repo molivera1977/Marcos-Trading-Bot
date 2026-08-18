@@ -4,12 +4,10 @@
    "no-LIMITS"
   ],
   "FABLE_REVIEW_20260726_pnl.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "FIX_SPECS_20260729.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "HANDOFF_20260727_tonight.md": [
    "no-LIMITS"
@@ -19,9 +17,6 @@
   ],
   "RESULTS_LEDGER.md": [
    "no-LIMITS"
-  ],
-  "big_rides_reverse_20260816.md": [
-   "bare-verdict"
   ],
   "big_rides_reverse_20260816_out.md": [
    "no-LIMITS",
@@ -45,9 +40,6 @@
   "crown_pipeline_forensic_20260817.md": [
    "no-LIMITS"
   ],
-  "crown_rockets_20260816.md": [
-   "bare-verdict"
-  ],
   "edge_stresstest_20260815.md": [
    "no-LIMITS"
   ],
@@ -58,28 +50,23 @@
    "no-LIMITS"
   ],
   "edge_stresstest_E_20260815.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "edge_stresstest_F_20260815.md": [
    "no-LIMITS",
    "no-verdict-line"
   ],
   "edge_stresstest_G_20260815.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "entry_drift_20260817.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "entry_rebuilds_v2_fullcache_20260814.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "exit_params_our_fires_20260817.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "fastchart_2tf_rerun_20260817.md": [
    "no-LIMITS"
@@ -91,8 +78,7 @@
    "no-LIMITS"
   ],
   "flattop_retrial_v2_20260814.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "frontside_selfcompute_20260817.md": [
    "no-LIMITS",
@@ -107,8 +93,7 @@
    "no-verdict-line"
   ],
   "hidden_signal_grade_20260817.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "ignition_guidance_20260817.md": [
    "no-LIMITS"
@@ -126,29 +111,22 @@
    "no-LIMITS"
   ],
   "kev_latest_mining_20260815.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "kevseq_frontside_tf_20260817.md": [
    "no-LIMITS"
   ],
-  "kevseq_reconciliation_20260817.md": [
-   "bare-verdict"
-  ],
   "lane_registry_20260817.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "level_primacy_ab_PREREG_20260812.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "m1_wallclock_20260817.md": [
    "no-LIMITS"
   ],
   "open_holes_sweep1_20260816.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "orb_vs_ba_20260816.md": [
    "no-LIMITS"
@@ -203,12 +181,8 @@
    "no-LIMITS",
    "no-verdict-line"
   ],
-  "sunday_afternoon_studies_20260816.md": [
-   "bare-verdict"
-  ],
   "v2_calibration_20260814.md": [
-   "no-LIMITS",
-   "bare-verdict"
+   "no-LIMITS"
   ],
   "wall_drill_20260815.md": [
    "no-LIMITS"
@@ -216,5 +190,8 @@
  },
  "frozen": "2026-08-17",
  "note": "These artifacts predate the rule and are pinned AS THEY STAND. Cleaning one means REMOVING it here (the rig checks for stale entries). Nothing dated 2026-08-18 or later may be added \u2014 forward enforcement is absolute.",
- "rule": "rig section EG4 \u2014 every killtest .md needs a LIMITS/CAVEATS section, and a doc disclosing a limitation may not carry a headline verdict that reads clean"
+ "rule": "rig section EG4 \u2014 every killtest .md needs a LIMITS/CAVEATS section, and a doc disclosing a limitation may not carry a headline verdict that reads clean",
+ "_amendments": [
+  "2026-08-17 A4: 18 bare-verdict artifacts received a one-line VERDICT QUALIFIER derived from each doc's OWN disclosed limitation. The analyses were NOT rewritten. Their pinned flag sets are refreshed here: 'bare-verdict' clears, 'no-LIMITS' remains where the doc still has no LIMITS/CAVEATS heading (a structural rewrite, deliberately not done tonight)."
+ ]
 }

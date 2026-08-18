@@ -1,5 +1,7 @@
 # PRE-REGISTRATION — Level Primacy A/B (charts vs Kev), frozen 2026-08-12 ~21:15 ET
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** this is a PRE-REGISTRATION, not a result — nothing in it is a finding. The doc itself records the Statistician's objection that n=13 trades / n=9 head-to-head front-runs the operation's own n>=50 standing-verdict rule, and that zone-edges were rejected because they would CONTAMINATE attribution. No verdict may be cited from this file until the n>=50 bar is met.
+
 **Marcos's leader decision (verbatim intent):** chart-derived vision levels govern Kev's tickers
 COMPLETELY, without modification (panel conditions #1 nearer-of-two-tiers and #3 round-number
 zone-edges REJECTED — they would contaminate attribution). Kev's numbers recorded verbatim in

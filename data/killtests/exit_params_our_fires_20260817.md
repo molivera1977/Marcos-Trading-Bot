@@ -1,5 +1,7 @@
 # STOP / TRAIL SWEEP ON OUR OWN REAL FIRES — 2026-08-17
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** IN-SAMPLE on a SINGLE DAY's own fires, and the sweep's best cell is UNDERPOWERED — n=46 filled of 592 fires, with named cells as thin as n=3. The 67.1% stopped-then-recovered phenomenon is a robust description of today's tape; the winning stop/trail/bank triple is a one-day in-sample optimum and must not be shipped off this doc.
+
 **Analysis only. No code changed, nothing deployed, no env touched.**
 
 Marcos's objection to `runner_model_test_20260817.md` was correct: that study entered on a

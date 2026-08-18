@@ -1,5 +1,7 @@
 # FABLE REVIEW — 7/26: the stored-P&L correction, and what it exposes
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** this review's conclusions rest on a SINGLE DAY's corrected book and carry an n=6 cell plus items the doc itself marks [UNVERIFIED]; the P&L-correction finding is structural (a named bug in `_blended_pnl`) and stands on its own, but every EXPECTANCY number downstream of it is single-day and unqualified. Read section 2 before citing any figure here.
+
 **Opus ran every check below and both verifications. Fable renders the verdicts in §7.**
 Standing rules apply: [[feedback_replay_rig_gate]], [[feedback_backtest_before_recommend]], DRY_RUN only.
 Session date: 2026-07-26 (Sun). Market closed. No writes were made to the live store. Nothing pushed.

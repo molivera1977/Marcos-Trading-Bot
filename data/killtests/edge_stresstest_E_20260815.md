@@ -1,5 +1,7 @@
 # EDGE STRESS-TEST E — FAIR CAPACITY + THE PRE STREAM (run 8/14 eve, filed 20260815)
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** the doc discloses LOOKAHEAD in its own construction and a CONTAMINATED input stream. TEST I's negative finding (the participation guard does NOT rescue sizing) is the direction lookahead makes HARDER to reach, so it survives; any POSITIVE cell in this doc does not, and must not be cited as an edge.
+
 **NEITHER TEST-I ARM PASSES (I(i) 0/5 median -$42.25; I(ii) 1/5 median $0.00),
 and TEST K FAILS 3/5 — mean +$28.01, median +$34.24, both dollar criteria short.
 The PRE stream as detected SUBTRACTS: K is worse in dollars than grinder-solo

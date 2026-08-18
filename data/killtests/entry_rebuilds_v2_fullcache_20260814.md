@@ -1,4 +1,6 @@
 # ENTRY REBUILDS — FULL-CACHE RE-RUN (8/14/2026 PM)
+
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** the doc discloses LOOKAHEAD in the rebuild. Its own verdict is already split — HOLDS in-window / WEAKENS on full day — and the full-day weakening is the half that governs a live deployment, since the bot has no way to know in advance which window a fire will land in.
 Third pass on the three rebuilt entries, at the current universe cache. Engines
 UNCHANGED from the prior passes (scratchpad `rebuild_bt.py` for v2-flush + vwap
 band-pass; `flattop_v2.py` for flat_top — the `flattop_retrial_v2_20260814.md`

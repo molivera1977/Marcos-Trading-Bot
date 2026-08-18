@@ -1,5 +1,7 @@
 # EDGE STRESS-TEST G — KEV'S AGGRESSION (run 8/14/2026 eve, filed 20260815)
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** IN-SAMPLE with disclosed LOOKAHEAD, and the re-attack evidence is a handful of hand-traced trades. The aggression comparison is illustrative of the mechanism; it is not a measured expectancy and carries no OOS wall.
+
 **FIRST LINE: AGGRESSION BEATS THE E3 BASELINE — the Kev-aggression portfolio
 (flat_top BREAK-attack + grinder full-clip re-attack, all E3 exits) passes 5/5
 at mean +$156.64/d and MEDIAN +$134.44/d vs E3's +$94.96/+$62.09; green 89%

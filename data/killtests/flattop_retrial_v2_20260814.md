@@ -1,4 +1,6 @@
 # FLAT_TOP RETRIAL v2 — COOLDOWN + PULLBACK-DEPTH SWEEP (8/14/2026)
+
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** the doc discloses LOOKAHEAD in the scratch backtester it runs on. The cooldown/pullback-depth sweep is a parameter search over one construction with no OOS wall; its ranking is a hypothesis, not a verdict.
 Follow-up to `entry_rebuilds_20260814_RESULTS.md` Strategy 1, whose verdict was
 "churns 8 fires/day; needs a cooldown + minimum pullback depth before even shadow."
 Backtester: scratchpad `flattop_v2.py` (v1 detector unchanged; walk-forward, bars in

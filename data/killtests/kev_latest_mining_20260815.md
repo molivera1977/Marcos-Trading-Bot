@@ -1,5 +1,7 @@
 # Kev Latest Mining — 2026-08-15 (overnight 8/14) — Kev Librarian
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** the staleness verdict is a COUNT of what the sweep was missing, not an evaluation. Several dates in this doc are marked [UNVERIFIED] — inferred from weekday and ticker internal evidence rather than sourced — so any lesson keyed to a specific date inherits that flag.
+
 Ordered by Marcos 8/14: "delve into his latest videos and shorts to find the latest strategies," plus two
 testimony lenses added mid-session (afternoon exception; "pre-market has been big for him lately").
 Officers convened/touched: Kev Librarian (owner), Hidden Entry Architect, Rocket Rider, Trade Manager,

@@ -1,4 +1,6 @@
 # V2 SHADOW CALIBRATION — 8/14/2026 (first live afternoon)
+
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** first-afternoon calibration on a partial session — in_window is 0/250 by construction (the lane deployed after the window), so the window-restricted backtest verdict is NOT re-tested here. The L4 cohort assumption is marked [UNVERIFIED] in the doc's own table. This is a distribution snapshot, not a grade. v2 harness parity is 51.2%, below the 90% floor (data/killtests/harness_parity.json).
 Hidden Entry Architect. ANALYSIS ONLY — no code edits. Live rows: 250 v2_shadow_fire
 (14:02–15:13 ET, 29 tickers) vs backtest census ~12.5 fires/runner-day all-session
 (~2.9/day in-window) — live is roughly an order of magnitude looser.

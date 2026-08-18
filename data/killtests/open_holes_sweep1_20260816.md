@@ -1,5 +1,7 @@
 # OPEN-HOLES SWEEP #1 — 8/16 (analysis only, no behavior change)
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** cells range from N=4,584 down to n=4, and the thin cells carry no OOS wall. The REFUTATIONS here are the trustworthy half (large-N, both-halves-negative); any surviving POSITIVE cell in the same tables is thin, in-sample and must not be shipped off this doc.
+
 Marcos: "well start the process now" — three standing holes graded on the full 62-date universe
 (data/universe/bars10s, 729 files, 2026-05-18..2026-08-14) under LIVE-PARITY E3 via the unchanged
 engine chain (`flatten_parity_20260816.py` -> S -> G -> F -> C -> B -> E): +1% chase fill, 0.5%

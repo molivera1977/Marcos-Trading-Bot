@@ -1,5 +1,7 @@
 # HIDDEN LANE — GRADE THE SIGNAL (8/17/26)
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** the doc discloses UNDERPOWERED cells (n=4), a SUPERSET linkage, IN-SAMPLE construction and CONTAMINATED inputs. The direction of the verdict (SIGNAL IS ALSO BAD) is the conservative one — it argues AGAINST building on v1 — so the caveats do not rescue the lane. Separately, harness parity for the lanes graded here is far below the 90% floor (grinder 9.1%, v2 51.2%; see data/killtests/harness_parity.json), so no positive claim may be drawn from these numbers.
+
 **Analysis only. Nothing shipped, nothing deployed, no bot edits, no live path touched.**
 Script `data/killtests/hidden_signal_grade_20260817.py` · run log `_run.txt` · JSON `_out.json`.
 Engine chain imported **UNCHANGED**: `flatten_parity_20260816` → `sunday_afternoon_studies_20260816`

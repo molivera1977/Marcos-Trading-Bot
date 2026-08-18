@@ -1,5 +1,7 @@
 # CROWN-ONLY ROCKET STUDY — 2026-08-16 (Sunday)
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** IN-SAMPLE over 97 crown name-days with cells as thin as n=8; no out-of-sample wall was run. The headline table describes what the crowned cohort DID, not what a rule over it would earn forward.
+
 Marcos: "how about study just the crowns." Analysis only; nothing shipped. Script:
 `data/killtests/crown_rockets_20260816.py` → rows `crown_rockets_20260816_rows.json`. Tick/quote caches under
 `data/universe/ticks_precursor/` (gitignored). Officers touched: Crown Steward (crown table $), Seam Scientist

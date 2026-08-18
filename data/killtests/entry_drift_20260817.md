@@ -1,5 +1,7 @@
 # ENTRY-DRIFT DEFECT — kill-test + fix (8/17/26)
 
+**VERDICT QUALIFIER (LIMITS, added 2026-08-17):** the doc discloses that its linked-row set is a SUPERSET (reject rows matched to fires within 120s, so some links are spurious) and that the resulting cells are UNDERPOWERED. It is ALSO on the EG2 KNOWN-CONTAMINATED list — it applies no front-side clause while the live kevseq lane requires one, so it grades a machine that is not ours. The entry-drift DEFECT is real and independently reproduced; the per-gate counts are not a verdict.
+
 Script: `data/killtests/entry_drift_20260817.py` · run log: `entry_drift_20260817_run.txt` ·
 JSON: `entry_drift_20260817_out.json` · rig: section **AP** (25 checks) in
 `rig/test_shipset_20260804.py`.

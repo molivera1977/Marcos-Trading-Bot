@@ -5184,6 +5184,117 @@ def _log_stale_fire(sym, lane, k, px):
     except Exception:
         pass
 
+
+# ── 8/17 A1 — FIRED-BUCKET HIGH-WATER MARK (duplicate-fire root fix) ─────────────────
+# THE DEFECT, PROVEN FROM THE 8/17 ARCHIVE (not asserted): the day carried FIVE boot_config
+# rows (03:55:08, 11:13:32, 11:57:48, 13:49:15, 13:58:54 ET).  Every restart wipes the
+# module-level bucket cursors (_reclaim_cursor / _zf_cursor / _ig_cursor) and the detector
+# state maps, so the deep-rehydrate path (REHYDRATE_BARS when `not _last_k`) re-feeds the
+# whole day's completed 10s buckets and every 10s detector REPLAYS the day from scratch —
+# re-emitting historical fires as fresh rows.  The signature is unmistakable: RBNE
+# grinder_shadow_fire logged at 11:06:49 / 11:14:25 / 12:01:27 / 13:50:05 / 13:59:41, all
+# carrying seq=0 and mins_since_1030=35, i.e. the detector's own per-day fire counter back
+# at ZERO and the SAME 11:05 bar re-fired.  Each of those five timestamps is 45s-3min after
+# a boot row.  Measured: 100% of the duplicate rows in the cursor-fed lanes are
+# CROSS-RESTART; ZERO are within a single process life.
+#
+# WHY THE FIX IS NOT "PERSIST THE CURSOR AND SKIP THE BARS": that was already CONSIDERED AND
+# REJECTED at :4995 — "Cursor seeding ... would skip state-building and lose in-progress
+# setups for every newcomer".  That ruling stands.  Replay is GOOD; the machines need the
+# history to rebuild state.  What must happen exactly once is the FIRE.
+#
+# THE RULE: a (day, lane, symbol) pair may EMIT a fire for a given 10s bucket epoch at most
+# once, ever.  Bars still feed the detectors unchanged; only the emission is idempotent.
+# The high-water mark is monotonic and PERSISTED, so it survives the restart that causes the
+# defect in the first place (an in-memory mark would be wiped by the very event it guards).
+#
+# SCOPE / BLAST RADIUS: this changes what is LOGGED and — for the conversion lanes — stops a
+# replayed historical bar from being converted a second time.  It cannot suppress a genuine
+# NEW bucket: the mark only ever advances to a bucket that actually emitted.  k=0/None is
+# never blocked (unknown bucket -> always allowed).  Every rejection is LOGGED
+# (replay_fire_suppressed) so the guard's cost is visible from day one, exactly as the
+# stale-fire guard's is.
+# KILL SWITCH: DEDUPE_FIRES=0 -> _fire_once always returns True (pre-fix behaviour).
+# FAILURE CONDITION (pre-registered): this is WRONG if a lane legitimately needs to fire twice
+# on the SAME bucket epoch (none does — every detector returns at most one fire per call and
+# stamps that fire's k), or if FIRE_HWM_PATH lands on an ephemeral filesystem, in which case
+# the mark is per-process and the fix degrades to no-worse-than-today rather than failing shut.
+DEDUPE_FIRES  = os.environ.get("DEDUPE_FIRES", "1") == "1"
+FIRE_HWM_PATH = os.environ.get("FIRE_HWM_PATH", "data/fire_hwm.json")
+_fire_hwm: dict = {}          # "day|lane|sym" -> highest 10s bucket epoch that EMITTED a fire
+_fire_hwm_loaded = False
+_fire_hwm_dirty = 0.0
+_fire_hwm_lock = threading.Lock()
+
+
+def _fire_hwm_load():
+    """Read the persisted marks once per process. Missing/corrupt file = start empty (the
+    guard degrades to in-process only; it never blocks trading)."""
+    global _fire_hwm_loaded
+    if _fire_hwm_loaded:
+        return
+    _fire_hwm_loaded = True
+    try:
+        with open(FIRE_HWM_PATH) as _f:
+            _d = json.load(_f)
+        if isinstance(_d, dict):
+            _today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+            # keep only today's marks — the file must not grow without bound
+            _fire_hwm.update({k: int(v) for k, v in _d.items()
+                              if isinstance(v, (int, float)) and str(k).startswith(_today + "|")})
+    except Exception:
+        pass
+
+
+def _fire_hwm_save():
+    """Best-effort durable write (atomic replace). Never raises into the hot path."""
+    try:
+        _dir = os.path.dirname(FIRE_HWM_PATH)
+        if _dir:
+            os.makedirs(_dir, exist_ok=True)
+        _tmp = FIRE_HWM_PATH + ".tmp"
+        with open(_tmp, "w") as _f:
+            json.dump(_fire_hwm, _f)
+        os.replace(_tmp, FIRE_HWM_PATH)
+    except Exception:
+        pass
+
+
+def _fire_once(lane, sym, k, day=None) -> bool:
+    """True iff (day, lane, sym) has never emitted a fire at bucket epoch `k` or later.
+    Advances the monotonic mark as a side effect when it returns True.
+
+    Returns True (never blocks) when the guard is off or `k` is unknown."""
+    if not DEDUPE_FIRES:
+        return True
+    try:
+        _k = int(k or 0)
+        if _k <= 0:
+            return True                      # unknown bucket — cannot dedupe, never block
+        _day = day or datetime.now(EASTERN).strftime("%Y-%m-%d")
+        _key = f"{_day}|{lane}|{sym}"
+        with _fire_hwm_lock:
+            _fire_hwm_load()
+            if _k <= _fire_hwm.get(_key, 0):
+                return False                 # this bucket (or a later one) already fired
+            _fire_hwm[_key] = _k
+        _fire_hwm_save()
+        return True
+    except Exception:
+        return True                          # a bookkeeping bug must never stop a fire
+
+
+def _replay_suppressed(sym, lane, k, px=None):
+    """Visible-cost canary for every duplicate suppressed by the high-water mark."""
+    try:
+        print(f"♻️  {sym} {lane} fire SUPPRESSED — bucket {k} already emitted today "
+              f"(restart replay); row not re-logged")
+        _log_decision(sym, "replay_fire_suppressed", lane=lane, bucket_k=k, px=px,
+                      hwm=_fire_hwm.get(f"{datetime.now(EASTERN).strftime('%Y-%m-%d')}|{lane}|{sym}"))
+    except Exception:
+        pass
+
+
 # ── 7/24 CURL LIVE-SLOT FIX (Marcos: "we were shadowing for premarket NOT RTH") ──
 # The old rule was seq==0 = the day's first fire gets the live slot — but the premarket seed (#98)
 # started the machines at 4am, so premarket fires BURNED the slot before trades could even open
@@ -8287,6 +8398,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     if len(_v2h) > 90:
                                         del _v2h[:-90]
                                 _v2f = v2_pullback_step(t, _nb, _vr_sv)
+                                # 8/17 A1: emit each bucket at most once per day (restart replay)
+                                if _v2f and not _fire_once("v2", t, _v2f.get("k")):
+                                    _replay_suppressed(t, "v2", _v2f.get("k"), _v2f.get("px"))
+                                    _v2f = None
                                 if _v2f:
                                     _hm_v2 = datetime.now(EASTERN).strftime("%H:%M")
                                     # quiet-tape gate — computed from bars STRICTLY BEFORE fire_k
@@ -8353,6 +8468,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         if GRINDER_SHADOW:
                             try:
                                 _grf = grinder_shadow_step(t, _nb, _vr_sv)
+                                # 8/17 A1: emit each bucket at most once per day (restart replay)
+                                if _grf and not _fire_once("grinder", t, _grf.get("k")):
+                                    _replay_suppressed(t, "grinder", _grf.get("k"), _grf.get("px"))
+                                    _grf = None
                                 if _grf:
                                     _log_decision(t, "grinder_shadow_fire", price=_grf["px"],
                                                   eyes=_eyes_compact(_eyes_snapshot(t, _grf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _grf.get("would_stop")})),
@@ -8402,6 +8521,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         if BANDPASS_SHADOW:
                             try:
                                 _bpf = bandpass_step(t, _nb, _vr_sv, _bp_st, 570, 960)
+                                # 8/17 A1: emit each bucket at most once per day (restart replay)
+                                if _bpf and not _fire_once("bandpass", t, _bpf.get("k")):
+                                    _replay_suppressed(t, "bandpass", _bpf.get("k"), _bpf.get("px"))
+                                    _bpf = None
                                 if _bpf:
                                     _hm_bp = datetime.now(EASTERN).strftime("%H:%M")
                                     _bp_in = bool("09:30" <= _hm_bp < "10:30")
@@ -8514,6 +8637,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 except Exception:
                                     pass
                                 _ksf = kevseq_step(t, _nb, _vr_sv, _ks_ctx)
+                                # 8/17 A1: emit each bucket at most once per day (restart replay)
+                                if _ksf and not _fire_once("kevseq", t, _ksf.get("k")):
+                                    _replay_suppressed(t, "kevseq", _ksf.get("k"), _ksf.get("px"))
+                                    _ksf = None
                                 if _ksf:
                                     _hm_ks = datetime.now(EASTERN).strftime("%H:%M")
                                     # ── 8/17 ENTRY-DRIFT STAMPS (ALWAYS ON, every kevseq row:
@@ -8606,6 +8733,10 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         if PREVWAP_SHADOW:
                             try:
                                 _pvf = bandpass_step(t, _nb, _vr_sv, _pv_st, 420, 565)
+                                # 8/17 A1: emit each bucket at most once per day (restart replay)
+                                if _pvf and not _fire_once("prevwap", t, _pvf.get("k")):
+                                    _replay_suppressed(t, "prevwap", _pvf.get("k"), _pvf.get("px"))
+                                    _pvf = None
                                 if _pvf:
                                     _pv_sp = None
                                     try:

@@ -119,7 +119,70 @@ def SPEC_stale_ah_display():
     return "if after_hours or premarket:" in src[max(0, idx[-1] - 1200):idx[-1]]
 
 
+def _load_fire_once(src=None):
+    """exec the SHIPPED _fire_once / _fire_hwm_* block in an isolated namespace, pointed at a
+    throwaway HWM file. Tests the code that ACTUALLY ships, not a copy of it."""
+    src = src if src is not None else bot_src()
+    blk = _extract(src, "DEDUPE_FIRES  = os.environ.get(", "def _replay_suppressed(")
+    tmpf = os.path.join(tempfile.mkdtemp(), "fire_hwm.json")
+    import threading as _th
+    from zoneinfo import ZoneInfo as _Z
+    ns = {"os": os, "json": json, "threading": _th, "datetime": datetime.datetime,
+          "EASTERN": _Z("America/New_York")}
+    ns["os"] = type("E", (), {"environ": {"DEDUPE_FIRES": "1", "FIRE_HWM_PATH": tmpf},
+                              "path": os.path, "makedirs": os.makedirs, "replace": os.replace})
+    exec(blk, ns)
+    return ns
+
+
+def SPEC_fire_hwm_dedupe():
+    """A1: a (day, lane, symbol) may emit a fire for a given 10s bucket epoch AT MOST ONCE.
+
+    Falsifies the 8/17 duplicate-fire defect directly: the archive showed RBNE
+    grinder_shadow_fire re-emitted five times, all seq=0, once after each of the day's five
+    boot_config rows — the restart replay re-feeding buckets that had already fired.
+    """
+    src = bot_src()
+    try:
+        ns = _load_fire_once(src)
+        fo = ns["_fire_once"]
+    except (ValueError, KeyError, SyntaxError, NameError):
+        return False
+    D = "2026-08-17"
+    # RBNE's real bucket: 11:05:50 ET on 8/17 (the bar all five rows carried).
+    k = 1755443150
+    if not fo("grinder", "RBNE", k, day=D):
+        return False                       # first emission must pass
+    if fo("grinder", "RBNE", k, day=D):
+        return False                       # the replay must be REFUSED (the whole defect)
+    if fo("grinder", "RBNE", k - 600, day=D):
+        return False                       # monotonic: an EARLIER bucket is also a replay
+    if not fo("grinder", "RBNE", k + 10, day=D):
+        return False                       # a genuinely NEW bucket must still fire
+    if not fo("v2", "RBNE", k, day=D):
+        return False                       # lanes are independent
+    if not fo("grinder", "GNPX", k, day=D):
+        return False                       # symbols are independent
+    if not fo("grinder", "RBNE", k, day="2026-08-18"):
+        return False                       # days are independent
+    if not fo("grinder", "RBNE", 0, day=D) or not fo("grinder", "RBNE", None, day=D):
+        return False                       # unknown bucket is NEVER blocked
+    # and the guard must be WIRED at every 10s emission point the defect was measured in
+    for lane, call in (("grinder", '_fire_once("grinder", t, _grf.get("k"))'),
+                       ("v2", '_fire_once("v2", t, _v2f.get("k"))'),
+                       ("bandpass", '_fire_once("bandpass", t, _bpf.get("k"))'),
+                       ("kevseq", '_fire_once("kevseq", t, _ksf.get("k"))'),
+                       ("prevwap", '_fire_once("prevwap", t, _pvf.get("k"))')):
+        if call not in src:
+            return False
+    # …with a kill switch and a logged, visible cost
+    return ('DEDUPE_FIRES", "1"' in src
+            and 'if not DEDUPE_FIRES:' in src
+            and '"replay_fire_suppressed"' in src)
+
+
 SPECS = {
+    "SPEC_fire_hwm_dedupe": SPEC_fire_hwm_dedupe,
     "SPEC_m1_wallclock_window": SPEC_m1_wallclock_window,
     "SPEC_kevseq_limit_entry": SPEC_kevseq_limit_entry,
     "SPEC_bell_boundary_handoff": SPEC_bell_boundary_handoff,

@@ -2277,3 +2277,28 @@ Kill: DUTY_WATCH=0. All 11 rigs exit 0.
 
 **Doctrine:** detection belongs on the server; interpretation needs a session. Do not migrate a
 check back onto the laptop scheduler — that is now a three-time-proven silent-failure mode.
+
+## 2026-08-18 — OFFICIAL DAY RECORD (corrected)
+
+**RTH: +$11.51 on 11 trades, 6/11 winners.**  **PRE: −$13.29 on 1 trade** (separate line, per
+`feedback_rth_official_pre_separate`). The two are never summed.
+
+By lane (RTH): ignition **+$34.11** · ma_pullback **+$22.00** · SXTC-corrected ignition leg
+included above · kevseq −$14.64 · grinder −$24.80 · dip_rip −$34.67.
+
+**This number is corrected from the −$18.00 / −$31.29 first reported.** Two errors, both found
+because Marcos refused the number ("−$31 is wrong"):
+1. The headline merged RTH and PRE — an 8/4 rule violation.
+2. **SXTC lost two tier banks on the 10:07 restart**: stored −$7.62, TRUE **+$21.89** (54 sh @
+   $4.8207 and 27 sh @ $5.0415, both verified on the SIP tape). Cause: the resumed monitor does
+   not rebuild `partial_fills` from durable `tier_fill` rows. Scope swept across all 27 era
+   dates: **2 of 188 tier fills lost (1%), 1 day of 27** — isolated, not systemic.
+   Doc: `data/killtests/sxtc_tier_loss_20260818.md`.
+
+**The day in one line:** the two lanes that converted most (ignition, ma_pullback) were both net
+positive; PFSA paid +$48.76 on ma_pullback's second attempt after costing −$34.67 on dip_rip's
+chase; AIXC was crowned at $1.74, ran +276%, and was never entered.
+
+**Shipped live during the session:** ignition's Kev conditions (VWAP band + 9/20), the halt
+ladder converting, v2 cap 5→99, the ema9x90 lane, lane expectancy in the capital sort, and
+Move %-over-Kev-tier priority.

@@ -136,6 +136,7 @@ check("rehydrate fail-soft", "rehydrate skipped" in src)
 # unit: sticky logic exercised in isolation
 import types, datetime as _dt
 ns2 = {"os": __import__("os"), "datetime": _dt.datetime, "EASTERN": __import__("zoneinfo").ZoneInfo("America/New_York"),
+       "threading": __import__("threading"),   # 8/17: F1's _gate_blind_tl = threading.local() landed inside this slice; the exec namespace must mirror the module's own imports
        "_log_decision": lambda *a, **k: None, "print": lambda *a, **k: None}
 blk = src[src.index("LEADER_AMMO         ="):src.index("def _curl_rth_slot")]
 exec(blk, ns2)

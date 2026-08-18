@@ -2680,6 +2680,12 @@ def _log_decision(ticker, status, **fields):
     # Wrapped so observability can NEVER throw into the trading hot path (this is called for every
     # candidate every cycle). A logging bug must not be able to stop the bot from trading.
     try:
+        # 8/17 F1: opt-in bypass of the (ticker,status) heartbeat de-dupe below.  Rows that must
+        # be PER-EVENT — one per fire, countable — cannot live under a 120s collapse: two fires on
+        # the same name inside two minutes would silently become one row and every count derived
+        # from them would be a floor, not a number.  ONLY _gate_blind() passes this; its own daily
+        # cap (GATE_BLIND_ROWS_MAX) is what bounds the volume instead.
+        _nodedup = bool(fields.pop("_nodedup", False))
         # 8/8 (Marcos: "make sure the machinery is giving us the details we need"): REJECTS carry
         # the SIDE stamp too — refusal grading needs to know if we refused front-side strength or
         # back-side chop. Memoized 20s/name; fills+heartbeats already stamp at their sites.
@@ -2704,7 +2710,7 @@ def _log_decision(ticker, status, **fields):
         _eyes_note_gate(ticker, status)   # 8/16 build #0: feeds gates_hit on the eyes snapshot
         prev = _decision_last.get(ticker)
         now = time.time()
-        if prev and prev[0] == status and (now - prev[1]) < DECISION_HEARTBEAT_SECS:
+        if prev and prev[0] == status and (now - prev[1]) < DECISION_HEARTBEAT_SECS and not _nodedup:
             return   # same status, within heartbeat window — skip to bound volume
         _decision_last[ticker] = (status, now)
         if not os.environ.get("SCREENER_URL", "").rstrip("/"):
@@ -4367,6 +4373,10 @@ def _ambient_dvol_ok(bars, ticker=None):
             _gate_failopen("ambient", why="<5 bars")   # 8/8 #33: counted, still open by design
             # 8/17 B5: fail CLOSED only when armed (GATE_FAIL_CLOSED contains "ambient").
             # Measured cost today: 6 fail-opens, every one "<5 bars".
+            # 8/17 F1: and now ATTRIBUTABLE — the six were unattachable to any fire.
+            _gate_blind("ambient", ticker, missing="%d<5 completed bars" % len(dv),
+                        decision=("refuse_closed" if _fail_closed("ambient") else "pass_open"),
+                        bars_have=len(dv), bars_need=5, bars_seen=len(comp))
             return (not _fail_closed("ambient")), 0.0, 0.0
         med = dv[len(dv) // 2]
         need = AMBIENT_DVOL_MULT * MAX_TRADE_DOLLARS
@@ -4374,8 +4384,12 @@ def _ambient_dvol_ok(bars, ticker=None):
             _eye_heartbeat("ambient_checked", ticker, median_dvol=round(med),
                            need=round(need), mult=AMBIENT_DVOL_MULT, ok=bool(med >= need))
         return med >= need, med, need
-    except Exception:
+    except Exception as _e:
         _gate_failopen("ambient", why="exception")
+        # 8/17 F1: an exception here is a BLIND PASS too — and it never fails closed, armed or
+        # not, so it is the one ambient path that can never be tightened.  Say so in the row.
+        _gate_blind("ambient", ticker, missing="exception: %s" % type(_e).__name__,
+                    decision="pass_open", note="exception path — never honours GATE_FAIL_CLOSED")
         return True, 0.0, 0.0
 
 def check_momentum(ticker, session_bars=None) -> tuple[bool, dict]:
@@ -4406,6 +4420,12 @@ def check_momentum(ticker, session_bars=None) -> tuple[bool, dict]:
             # ON; the REFUSAL ships OFF (GATE_FAIL_CLOSED must name "momentum").
             _gate_failopen("momentum", why=f"{len(sess)}<{MOMENTUM_BARS} session bars",
                            ticker=ticker)
+            # 8/17 F1: per-fire row — the 60s-per-gate throttle above makes any count a floor,
+            # and this gate is the one whose cost was completely unknown on 8/17 (zero rows).
+            _gate_blind("momentum", ticker,
+                        missing=f"{len(sess)}<{MOMENTUM_BARS} session bars",
+                        decision=("refuse_closed" if _fail_closed("momentum") else "pass_open"),
+                        bars_have=len(sess), bars_need=MOMENTUM_BARS, bars_fetched=len(full or []))
             if _fail_closed("momentum"):
                 print(f"❌ {ticker} momentum FAIL-CLOSED: {details['reason']}")
                 return False, details
@@ -5837,6 +5857,85 @@ def _gate_failopen(gate, ticker="_GATE", why=""):
             _log_decision(ticker, "gate_fail_open", gate=gate, why=str(why)[:60])
     except Exception:
         pass
+
+
+# ── 8/17 F1 — GATE-BLIND ROWS: per-fire attribution for the gates that PASS ON IGNORANCE ────
+#
+# WHAT WAS WRONG WITH THE 8/8 COUNTER ABOVE (measured tonight, not asserted):
+#   15,253 decision rows on 8/17 contained SIX gate_fail_open records.  Every one was
+#   `ambient`, every one sat under the "_GATE" pseudo-ticker, and NOT ONE could be attached
+#   to a fire.  Two of the three fail-open gates (check_momentum, the volume-sizing guard)
+#   reached the archive not at all — they moved in-memory `_bump` counters that die with the
+#   process.  And `_gate_failopen` throttles to one row per GATE per 60s, so even the six are
+#   a FLOOR, not a count.  We cannot tighten what we cannot see, and B5's fail-CLOSED
+#   conversion stays parked at default-OFF precisely because its price is unknown.
+#
+# WHAT THIS WRITES INSTEAD — one row PER OCCURRENCE, carrying:
+#   ticker · lane (thread-local, set at the entry path) · gate · what was MISSING (bar count,
+#   volume sample size, and the threshold each needed) · the DECISION actually taken
+#   ("pass_open" / "refuse_closed") · whether the gate was ARMED at the time.
+#   Status is `gate_blind_<gate>` — one queryable stream per gate, and distinct from the old
+#   `gate_fail_open` so 8/17's archive stays comparable rather than being retconned.
+#
+# THE VOLUME BOUND, AND WHY THIS ONE:
+#   GATE_BLIND_ROWS_MAX = 2000 rows/day across all three gates (ET day, resets at date change).
+#   8/17 wrote 15,253 rows total, so the worst case is ~13% archive growth — affordable.
+#   EXPECTED volume is FAR lower: these fire only when a gate has no data to judge with, which
+#   on 8/17 happened 6+ times.  Order-of-magnitude tens/day is the prediction.
+#   >>> IF THE CAP IS HIT, THAT IS THE FINDING, NOT A NUISANCE <<< — it would mean these gates
+#   pass on ignorance hundreds of times a day, and the fail-CLOSED conversion is then a
+#   priority, not an option.  On hitting the cap we log ONE `gate_blind_capped` row (so the
+#   truncation is never silent) and fall back to the old 60s-throttled counter for the rest of
+#   the day — the day's data is bounded but never simply lost.
+#
+# HOW TO READ IT TOMORROW (the whole point — the number must EXIST):
+#   status LIKE 'gate_blind_%'                 -> every blind pass, per fire
+#   GROUP BY gate                              -> how often each gate judged with no data
+#   GROUP BY gate, lane                        -> WHICH lane is paying for it
+#   COUNT(status='gate_blind_capped')          -> was the day's count truncated? (must be 0)
+#   join ticker+date to the fills stream       -> the DOLLARS behind each blind pass
+#   The pricing question this answers: "how often do these gates pass on ignorance, and what
+#   did those passes make or lose?"  Neither half was answerable on 8/17.
+GATE_BLIND_ROWS_MAX = int(os.environ.get("GATE_BLIND_ROWS_MAX", "2000"))
+_gate_blind_st = {"date": "", "n": 0, "capped": False}
+_gate_blind_tl = threading.local()
+
+
+def _blind_lane(lane=None):
+    """Set (when `lane` is given) / read this thread's current lane, for gate_blind rows.
+
+    check_momentum() and _ambient_dvol_ok() take no lane argument and have several callers,
+    so the lane travels with the thread rather than through five signature changes (which
+    would be a far larger blast radius for a logging field)."""
+    try:
+        if lane is not None:
+            _gate_blind_tl.v = str(lane)
+        return getattr(_gate_blind_tl, "v", "") or ""
+    except Exception:
+        return ""
+
+
+def _gate_blind(gate, ticker="_GATE", missing="", decision="pass_open", **detail):
+    """One attributable row EVERY time `gate` decides without the data it needs."""
+    try:
+        today = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        if _gate_blind_st["date"] != today:
+            _gate_blind_st.update({"date": today, "n": 0, "capped": False})
+        if _gate_blind_st["n"] >= GATE_BLIND_ROWS_MAX:
+            if not _gate_blind_st["capped"]:
+                _gate_blind_st["capped"] = True
+                _log_decision("_GATE", "gate_blind_capped", gate=gate, cap=GATE_BLIND_ROWS_MAX,
+                              note="per-fire blind rows truncated for the rest of the ET day")
+            _gate_failopen(gate, ticker=ticker, why=missing)   # 60s-throttled fallback
+            return
+        _gate_blind_st["n"] += 1
+        _log_decision(ticker or "_GATE", "gate_blind_" + str(gate), gate=gate,
+                      lane=_blind_lane(), missing=str(missing)[:60], decision=decision,
+                      armed=bool(_fail_closed(gate)), seq=_gate_blind_st["n"],
+                      _nodedup=True, **detail)
+    except Exception:
+        pass
+
 
 def _entries_paused():
     if not PAUSE_ENTRIES_RESPECT or not SCREENER_URL:
@@ -13905,6 +14004,14 @@ def main():
                         # ON; refusing to size without a tape ships OFF (GATE_FAIL_CLOSED must
                         # name "volguard"), because today's rows cannot price it.
                         _gate_failopen("volguard", why="no avg 1-min volume", ticker=ticker)
+                        # 8/17 F1: per-fire row, with the SAMPLE SIZE that came back empty and
+                        # the size we were about to take against tape we could not see.
+                        _gate_blind("volguard", ticker, missing="no avg 1-min volume",
+                                    decision=("refuse_closed" if _fail_closed("volguard")
+                                              else "pass_open"),
+                                    vol_samples=len(_vcomp[-3:]), bars_fetched=len(_vgb),
+                                    avg_vol=round(float(_vav), 2), price=entry_price,
+                                    shares_uncapped=shares)
                         _clamp = _clamp + "+volguard_failopen"
                         if _fail_closed("volguard"):
                             # refuse: a name whose tape we cannot see is not a name we can size.
@@ -13919,8 +14026,15 @@ def main():
                                   f"({MAX_POS_VOL_PCT*100:.0f}% of {int(_vav):,}/min avg tape)")
                             shares = _vol_cap
                             _clamp = "volume"          # tape, not risk, decided this size
-                except Exception:
+                except Exception as _ve:
                     _clamp = _clamp + "+volguard_failopen"   # F4 witness: the guard was BLIND here
+                    # 8/17 F1: the _clamp string was the ONLY witness on this path, and it is not
+                    # queryable as a count.  This path never fails closed either — an exception
+                    # sizes at full risk against tape the guard never read.
+                    _gate_blind("volguard", ticker,
+                                missing="exception: %s" % type(_ve).__name__,
+                                decision="pass_open", price=entry_price, shares_uncapped=shares,
+                                note="exception path — never honours GATE_FAIL_CLOSED")
                     pass   # guard is best-effort; never blocks an entry on a data hiccup
 
             # 8/17 B5: ARMED fail-closed volume guard — refuse through the SAME shape as the
@@ -14003,6 +14117,12 @@ def main():
             # source). Membership here is UNCHANGED — the derived set is filtered back to the
             # legacy literal so check_momentum's behavior is byte-for-byte identical; the tape
             # lanes reach their exemption through the TAPE_SCALAR_EXEMPT_LANES path below.
+            # 8/17 F1: name the lane for this thread's blind-gate rows.  check_momentum() and
+            # _ambient_dvol_ok() take no lane argument and are called from several places; the
+            # thread-local is how their gate_blind_* rows become ATTRIBUTABLE TO A FIRE instead
+            # of landing under the "_GATE" pseudo-ticker with no lane — which is exactly why the
+            # 8/17 archive could not say what its six fail-opens cost.
+            _blind_lane(entry_type)
             if entry_type in _MOMENTUM_LEGACY_EXEMPT:
                 mom_ok, mom_details = True, {"exempt": entry_type}
                 # ── UNIVERSAL GATES (7/10 un-bundle): topping-tail + liquidity are NOT momentum rules — they were

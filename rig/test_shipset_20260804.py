@@ -3067,9 +3067,25 @@ try:
           in _ao_src)
     check("AO: newly-granted bypasses log lane_exempt_applied (extension gate)",
           '_log_decision(b[0], "lane_exempt_applied", lane=b[3], gate="extension"' in _ao_src)
-    check("AO: the row fires only for NEWLY-granted lanes (legacy lanes stay silent)",
-          'entry_type not in _LEGACY_CHART_BYPASS' in _ao_src
-          and 'b[3] not in _LEGACY_EXT_EXEMPT' in _ao_src)
+    # 8/18 SPEC CHANGE (Marcos: "should we put the stamp to all of the tape lanes so after we
+    # backtest all of them we can more easily switch them on or off"). The chart-gate row used to
+    # fire ONLY for newly-granted lanes, which left hidden_entry / vwap_reclaim / zone_flip — the
+    # three ORIGINAL bypass lanes, exempt for weeks — with no counterfactual on record at all.
+    # EVERY tape lane stamps now, so each can be switched on/off on its own evidence.
+    # (The EXTENSION gate is unchanged and still newly-granted-only — that is item #2, not yet
+    # decided; this check pins the asymmetry deliberately so the two cannot drift together.)
+    check("AO: chart-gate counterfactual covers EVERY tape lane, not just newly-granted",
+          'if entry_type != "ignition":' in _ao_src
+          and 'entry_type not in _LEGACY_CHART_BYPASS' not in _ao_src.split("_bypass = _chart_bypass_lanes()")[1][:2000])
+    check("AO: ignition is excluded from the shared probe (it stamps its own at its fire site)",
+          _ao_src.count('_chart_break_gate(ticker, entry_price, "_shadow_legacy")') == 1
+          and _ao_src.count('_chart_break_gate(t, price, "_shadow_legacy")') == 1)
+    check("AO: the counterfactual verdict rides on the row (would_have_blocked + shadow_gate)",
+          'would_have_blocked=' in _ao_src and 'shadow_gate=_slv' in _ao_src)
+    check("AO: rows carry which population they belong to (legacy vs registry grant)",
+          'grant=("legacy" if entry_type in _LEGACY_CHART_BYPASS' in _ao_src)
+    check("AO: extension gate row still newly-granted-only (item #2 undecided)",
+          'b[3] not in _LEGACY_EXT_EXEMPT' in _ao_src)
     check("AO: failure-condition doc filed FIRST", os.path.exists(os.path.join(
           ROOT, "data", "killtests", "lane_registry_20260817.md")))
     check("AO: kill-test script filed", os.path.exists(os.path.join(

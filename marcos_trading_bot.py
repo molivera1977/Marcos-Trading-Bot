@@ -3625,10 +3625,39 @@ def _chart_break_gate(ticker, entry_price, entry_type=None):
     # keeps its EXACT env-conditional membership. Kill: LANE_REGISTRY_EXEMPT=0.
     _bypass = _chart_bypass_lanes()
     if entry_type in _bypass:
-        if LANE_REGISTRY_EXEMPT and entry_type not in _LEGACY_CHART_BYPASS and entry_type != "ignition":
-            try:    # newly-granted bypass — Friday grades these rows
+        # ── 8/18 CHART-GATE COUNTERFACTUAL, EVERY TAPE LANE ────────────────────────────────
+        # Marcos: "would that give us more data until we back test it?" — yes, but ONLY if each
+        # fire records what the OLD gate WOULD have said. Running open without the label buys
+        # trades with no counterfactual, and it would have to be reconstructed later from maps
+        # that have since moved. You can always SUBTRACT a blocked trade after the fact; you can
+        # never invent one. So the open config is the richer experiment IF the verdict rides along.
+        #
+        # Marcos, same night: "should we put the stamp to all of the tape lanes so after we
+        # backtest all of them we can more easily switch them on or off" — yes, and it exposed a
+        # bigger hole than the one I was fixing. The first cut only stamped NEWLY-GRANTED lanes,
+        # which left hidden_entry / vwap_reclaim / zone_flip unstamped: the three ORIGINAL bypass
+        # lanes, exempt for weeks, with the LONGEST unmeasured history of any lane in the system.
+        # Every tape lane stamps now, so each one can be switched on or off on its own evidence.
+        #
+        # ignition is excluded here ONLY because it already stamps the identical probe at its own
+        # fire site (:9989 since 7/30) — stamping twice would double-count it in the grade.
+        # "_shadow_legacy" is not in LANE_CLASS, so the probe walks the full GATED path and cannot
+        # re-enter this branch (no recursion). Cost is one gate evaluation PER FIRE, not per scan.
+        if entry_type != "ignition":
+            _slv = _slr = _sll = None
+            try:
+                _slv, _slr, _sll, _ = _chart_break_gate(ticker, entry_price, "_shadow_legacy")
+            except Exception:
+                pass
+            try:
                 _log_decision(ticker, "lane_exempt_applied", lane=entry_type, gate="chart_break",
-                              price=round(float(entry_price), 4))
+                              price=round(float(entry_price), 4),
+                              lane_class=LANE_CLASS.get(entry_type),
+                              # which population this row belongs to, so the grade never mixes them
+                              grant=("legacy" if entry_type in _LEGACY_CHART_BYPASS
+                                     else "registry" if LANE_REGISTRY_EXEMPT else "legacy"),
+                              shadow_gate=_slv, shadow_gate_reason=_slr, shadow_gate_level=_sll,
+                              would_have_blocked=(1 if _slv == "block" else 0 if _slv else None))
             except Exception:
                 pass
         # LIVE-STRUCTURE lanes (Marcos 7/24: "switch the reclaim and zone flip"): these trade

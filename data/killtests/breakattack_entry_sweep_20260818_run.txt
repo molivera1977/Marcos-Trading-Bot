@@ -1,0 +1,49 @@
+====================================================================================================
+BREAK-ATTACK ENTRY SWEEP — 8/18   (engine S->G->F->C->B->E unchanged; exits E3 live-parity)
+====================================================================================================
+universe: 736 name-days over 63 dates  2026-05-18 .. 2026-08-17
+window 09:30-10:30 ET. Baseline = entry at the BREAKING BAR'S CLOSE, stop at the BASE LOW,
+base width <= 12%. One knob at a time; a win is attributable or it is not reported.
+
+BASELINE (what the bot does today)
+  e_close / s_baselo / 12% n=  575  total=$ +16112.99  $/tr= +28.02  win=  62%  green= 90%  worst=$ -109.54
+
+ENTRY TIMING (stop + width held at baseline)
+  e_level                  n=  576  total=$ +18553.40  $/tr= +32.21  win=  64%  green= 92%  worst=$  -43.84   Δ/tr   +4.19
+  e_retest 0.5%            n=  489  total=$ +12042.05  $/tr= +24.63  win=  57%  green= 84%  worst=$  -85.43   Δ/tr   -3.40
+  e_retest 1.0%            n=  461  total=$ +11032.64  $/tr= +23.93  win=  56%  green= 81%  worst=$ -124.79   Δ/tr   -4.09
+  e_retest 2.0%            n=  377  total=$  +6475.49  $/tr= +17.18  win=  49%  green= 68%  worst=$ -150.24   Δ/tr  -10.85
+
+STOP ANCHOR (entry + width held at baseline)
+  s_barlow                 n=  669  total=$  +1610.99  $/tr=  +2.41  win=  20%  green= 49%  worst=$ -258.91   Δ/tr  -25.61
+  s_halfway                n=  655  total=$  +8448.75  $/tr= +12.90  win=  40%  green= 78%  worst=$ -191.52   Δ/tr  -15.12
+  s_level                  n=  765  total=$  -1335.03  $/tr=  -1.75  win=  11%  green= 30%  worst=$ -222.35   Δ/tr  -29.77
+
+BASE TIGHTNESS (entry + stop held at baseline)
+  w_08                     n=  441  total=$ +13515.33  $/tr= +30.65  win=  61%  green= 90%  worst=$  -47.48   Δ/tr   +2.62
+  w_06                     n=  335  total=$ +11322.77  $/tr= +33.80  win=  60%  green= 97%  worst=$  -47.40   Δ/tr   +5.78
+
+====================================================================================================
+CHRONOLOGICAL OOS WALL — re-rank on the earliest 44 dates, freeze, apply to the unseen 18
+====================================================================================================
+TRAIN 2026-05-18..2026-07-21 (44)   HOLD-OUT 2026-07-22..2026-08-17 (19)
+
+  baseline  TRAIN $/tr  +28.26 (n=401)   HOLD-OUT $/tr  +27.46 (n=174)
+
+  e_level          TRAIN Δ/tr   +4.27 (n= 402)   HOLD-OUT Δ/tr   +4.00 (n= 174)   CANDIDATE
+  w_08             TRAIN Δ/tr   +3.19 (n= 307)   HOLD-OUT Δ/tr   +1.33 (n= 134)   CANDIDATE
+  w_06             TRAIN Δ/tr   +8.30 (n= 223)   HOLD-OUT Δ/tr   +0.84 (n= 112)   CANDIDATE
+
+====================================================================================================
+LIMITS
+  * Detector-only. The live FUNNEL (scanner board membership, slot limits, found_entry
+    suppression, an existing retest arm) sits UPSTREAM and is NOT modelled — the harness
+    grades the detector, never the funnel. Fire counts here exceed live fire counts.
+  * flat_top harness parity is 100% but on N=3 live fires (8/17). That is the ABSENCE of
+    a disagreement, not a strong claim.
+  * Base levels come off the 10s SIP roll; the live bot's M1 base can differ by cents
+    (IPST 8/17: 8.1399/7.49 vs 8.09/7.46), which moves the stop ~3c. Feed difference,
+    not a detector difference, and not attributable from this data.
+  * retest cells count the COST OF PATIENCE: a break with no pullback inside 15 min is NO
+    TRADE, and those forgone fires are simply absent from n. Compare $/tr AND n together.
+  * No cell ships from this script.

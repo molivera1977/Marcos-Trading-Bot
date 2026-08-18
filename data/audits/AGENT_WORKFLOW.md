@@ -109,3 +109,61 @@ there. Scan mode reports that, over a range, in one pass.
 checkouts per commit is far too slow over a range), so a commit that names a test is reported
 `CLAIMED`, never `PROVEN`. Only `spec_gate.py <sha>` proves. That column exists so an audit
 can never mistake "named a test" for "watched the test fail at the parent."
+
+---
+
+## 7. REQUIRED PREAMBLE FOR ARTIFACTS — name the command, or tag it `[UNVERIFIED]`
+
+*(appended 2026-08-17 by batch H. Rules 1-6 above are other agents' sections; nothing there was
+rewritten.)*
+
+> **Every equivalence claim and every provenance claim in a killtest or audit artifact must name,
+> in its own paragraph, the command that produced it. If you cannot name one, write
+> `[UNVERIFIED]`.**
+
+**Equivalence claims** are "identical", "byte-identical", "unchanged", "untouched", "equivalent",
+"entirely different", "the same X as Y". **Provenance claims** are "proven", "verified",
+"measured", "confirmed", "reproduced", "independent of X", "pinned by".
+
+Naming means a reproduce command, a script or output file by path (`..._out.json`,
+`..._run.txt`, `*.py`), a rig spec (`SPEC_foo`), a commit sha, an `/api/...` query, or the table
+or code fence the claim sits directly on. It does **not** mean a vague noun phrase. "The
+cohort-1 parity script" is not a citation; `python3 data/killtests/harness_parity_20260817.py`
+is.
+
+### Why this rule and not a softer one
+
+Three false load-bearing claims shipped on 8/17, each caught only by a later agent, each living
+in an **artifact** rather than in chat where Gate 6 could see it:
+
+1. `harness_lift_remaining_20260817.md` — "same 11 harness fires, but on **entirely different
+   names** (was RPGL/WFF, now IPST/IVF/PFSA)". The bisect found the same 11 names, the same 11
+   bar epochs and the same 11 stops. Only the price moved.
+2. same doc — "**PROVEN INDEPENDENT of batch E** — identical 0.0% against the HEAD bot source".
+   That run is impossible as described: `_install_bar_clock()` raises `NotIsolable` against any
+   pre-E tree. The conclusion was right; the stated evidence was fabricated.
+3. `breakattack_extraction_20260817.md` — a mechanism stated from **reading** code rather than
+   executing it. The reading was right about its own change and missed the larger cause in the
+   same commit.
+
+Every one of the three was a paragraph that gestured at evidence instead of naming it. The
+paragraph three inches below instance 1 — the honest, bisected one — names commit `2d0a6cb` and
+`KEVSEQ_FIRE_ON_CLOSE=0`, and grounds cleanly. The rule is literally the difference between
+those two paragraphs.
+
+### The gate
+
+```bash
+python3 data/audits/artifact_claims.py <doc.md>            # report: GROUNDED / ASSERTED / CONTRADICTED
+python3 data/audits/artifact_claims.py --gate <doc.md>     # exit 1 on an ungrounded (b)/(c) claim
+python3 rig/test_gates_20260817.py                         # G9 section enforces it repo-wide
+```
+
+Enforced on artifacts whose filename date is **2026-08-18 or later**. The 115 artifacts that
+existed when the gate was built are grandfathered by name in
+`data/audits/ARTIFACT_CLAIMS_GRANDFATHER.json` — adding a name there is an admission, not a fix.
+Numeric and negative claims are **reported, not gated**: measured precision on those classes in
+this corpus is too low to gate without producing a gate people route around.
+
+A false positive costs one line of citation, which is never the wrong thing to add. That is why
+this ships as a gate rather than a report.

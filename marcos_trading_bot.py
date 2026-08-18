@@ -13493,7 +13493,6 @@ def main():
                             # shares -> 0 lands on the SAME no-size path an unfundable position
                             # takes; nothing new is invented downstream.
                             _vol_cap = 0
-                            shares = 0
                             _clamp = "volguard_closed"
                     if _vav > 0:
                         _vol_cap = max(1, int(_vav * MAX_POS_VOL_PCT))
@@ -13505,6 +13504,18 @@ def main():
                 except Exception:
                     _clamp = _clamp + "+volguard_failopen"   # F4 witness: the guard was BLIND here
                     pass   # guard is best-effort; never blocks an entry on a data hiccup
+
+            # 8/17 B5: ARMED fail-closed volume guard — refuse through the SAME shape as the
+            # capital skip (row + slot refund + held-lock release), never by sizing to zero
+            # shares and letting the order path see a degenerate position.  Default: never
+            # taken (GATE_FAIL_CLOSED must name "volguard").
+            if _vol_cap == 0 and _clamp == "volguard_closed":
+                print(f"⛔ {ticker}: volume guard FAIL-CLOSED — no 1-min tape to size against")
+                _log_decision(ticker, "volguard_closed_skip", price=entry_price,
+                              entry_type=entry_type, shares_requested=shares)
+                _slot_refund(ticker, entry_type)
+                reentry["held"].discard(ticker)
+                return
 
             # ── DOLLAR-TRACKED CAPITAL (7/11): reserve the ACTUAL notional against the sim account (margin
             # semantics — released on exit). Replaces the old flat-$100 reservation. When free capital can't

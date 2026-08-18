@@ -1,6 +1,6 @@
 # CONVENING ARTIFACT — 8/18 FOUNDATION REBUILD SHIP
 
-covers: 7b6f77539e76 — the exact tree audited: 101 commits (batches A-J), the audit-fix commit, the rig AN spec update, the all-tape-lane chart counterfactual, gate 10 (extension blindness) and gate 11 (refusal attribution).
+covers: b4a0c2559ec3 — the audited tree, plus the 8/18 post-ship additions: gate 10 (extension blindness), gate 11 (refusal attribution) and gate 12 (server-side duty watch).
 commit, and the rig AN update that pins the corrected close_position auth spec).
 
 Audit run in a SEPARATE CONTEXT per `persona_blast_radius_auditor`. Verdict: **SHIP-WITH-CONDITIONS**.
@@ -175,6 +175,22 @@ repealed premise found** — the 8/5 skip-if-kev-levels class does not recur her
 - **Project Manager** — TOUCHED. Aug 20 deadline is 2 days out; this ship is foundation, not edge. Entries work begins after.
 - **Historian** — TOUCHED. Recorded: F's ship landed with the standing rig broken (`9797563` put `threading.local()` and `_gate_blind()` inside three AST-lifted spans, exiting the shipset 1). That is the second AST-lift fragility incident (BH-c class) and per `feedback_kill_the_class_not_instance` the class — not the instance — now needs a census of every `exec()`-lifted span in the rig.
 - **Hidden Entry Architect** — TOUCHED. `hidden_shadow_fire` gains `fire_px`/`fire_k`/`fire_age_s`; measured that the old price key was scoring the quote feed (median 1.02% off the fired bar close, exactly equal in only 13 of 195). Real post-fix parity arrives with 8/18 rows.
+
+## 6b. POST-SHIP ADDITION — THE DUTY WATCH IS NOW SERVER-SIDE (8/18 01:35)
+
+Marcos asked whether the laptop watch crons "are actually going to do something." Checked: no.
+Three tasks in that scheduler are tombstoned "Laptop scheduler silently dead since 7/26/7/27",
+and `kev-daily-scorecard` (enabled, weekdays) last ran 8/14 — it silently missed Monday 8/17.
+A watch that needs a laptop awake is not a watch, and Marcos returns to work 8/20.
+
+`_duty_watch_loop` moves DETECTION into the bot process, the same migration kev_sweep and
+preopen_health made on 8/4. Checkpoints 07:12/09:42/12:48/15:52 ET, one row per
+(day, checkpoint), reads only the durable archive + trades. Gate 12 proves by AST that it
+cannot call `execute_trade` / `place_order` / `monitor_trade` / `_slot_refund`.
+
+It answers THE MARCOS CHECK — "lanes fired, no fill → name the gate" — which was impossible
+before tonight, because refusal rows carried no lane until gate 11. Gate 12 pins that
+dependency so the watch cannot degrade back to "something was refused" with no lane.
 
 ## 7. Conditions carried into the ship
 

@@ -181,6 +181,82 @@ def SPEC_fire_hwm_dedupe():
             and '"replay_fire_suppressed"' in src)
 
 
+def SPEC_ma_pullback_dedupe():
+    """C1: the ma_pullback lane consumes its setup — one emission per confirmation candle.
+
+    Falsifies the 8/17 WITHIN-PROCESS duplication directly: 210 `triggered_ma_pullback` rows for
+    at most 123 distinct setups, YDES printing 40 rows at ONE price ($3.2933) over 34 minutes on
+    the scan cadence. detect_ma_pullback is a pure function of the bar slice and nothing marked
+    the setup consumed, so every pass re-logged AND re-pushed a full trade candidate.
+
+    Four properties, all required:
+      (a) _bar_epoch turns a bar into a usable bucket, and returns 0 (= never blocks) on junk;
+      (b) _fire_seen PEEKS without consuming — the PULLBACK_FIRST pre-pass runs one block above
+          the real fire, so a consuming check there would silence the lane entirely;
+      (c) the detector returns that bucket as `k`;
+      (d) the fire is gated on _fire_once, the suppression is LOGGED, and there is a kill switch.
+    """
+    src = bot_src()
+    # ── (a) _bar_epoch, behaviourally ────────────────────────────────────────────────────
+    try:
+        blk = _extract(src, "def _bar_epoch(b) -> int:", "def _pivot_highs(")
+        ns = {"datetime": datetime.datetime, "timezone": datetime.timezone}
+        exec(blk, ns)
+        be = ns["_bar_epoch"]
+    except (ValueError, KeyError, SyntaxError):
+        return False
+    K = 1786979100                                   # 2026-08-17 11:05:00 ET == 15:05:00 UTC
+    if be({"time": "2026-08-17T15:05:00Z"}) != K:
+        return False                                 # the live ISO-UTC bar shape
+    if be({"time": "2026-08-17T15:05:00+00:00"}) != K or be({"t": K}) != K:
+        return False                                 # offset form and raw-epoch form
+    if be({"t": K * 1000}) != K:
+        return False                                 # millisecond epochs must not become year 57000
+    if be({"time": "2026-08-17T15:08:00Z"}) <= K:
+        return False                                 # a LATER candle must sort strictly greater
+    for junk in ({}, {"time": ""}, {"time": "not-a-date"}, {"time": None}):
+        if be(junk) != 0:
+            return False                             # unparseable -> 0 -> _fire_once NEVER blocks
+    # ── (b) _fire_seen peeks, _fire_once consumes ────────────────────────────────────────
+    try:
+        fns = _load_fire_once(src)
+        fo, fs = fns["_fire_once"], fns["_fire_seen"]
+    except (ValueError, KeyError, SyntaxError, NameError):
+        return False
+    D = "2026-08-17"
+    if fs("ma_pullback", "YDES", K, day=D):
+        return False                                 # nothing emitted yet — must read "not seen"
+    if fs("ma_pullback", "YDES", K, day=D):
+        return False                                 # …and the PEEK ITSELF must not have marked it
+    if not fo("ma_pullback", "YDES", K, day=D):
+        return False                                 # the real fire is admitted (the peek ate nothing)
+    if not fs("ma_pullback", "YDES", K, day=D):
+        return False                                 # now it reads as seen
+    if fo("ma_pullback", "YDES", K, day=D):
+        return False                                 # …and the 39 repeat passes are REFUSED
+    if not fo("ma_pullback", "YDES", K + 180, day=D):
+        return False                                 # a NEW confirmation candle still fires
+    if fs("ma_pullback", "YDES", 0, day=D) or fs("ma_pullback", "YDES", None, day=D):
+        return False                                 # unknown bucket -> "not seen" -> pre-fix behaviour
+    if fs("ma_pullback", "GRNQ", K, day=D) or fs("grinder", "YDES", K, day=D):
+        return False                                 # symbols and lanes stay independent
+    # ── (c) the detector hands back the confirmation candle's epoch ──────────────────────
+    if '"k": _bar_epoch(conf)' not in src:
+        return False
+    # ── (d) wired at the fire, logged, killable, and the pre-pass row uses the PEEK ──────
+    if '_fire_once("ma_pullback", t, ma_pb.get("k"))' not in src:
+        return False
+    if '_fire_seen("ma_pullback", t, _ma_first_fire.get("k"))' not in src:
+        return False
+    if '"ma_pullback_dup_suppressed"' not in src:
+        return False                                 # the counterfactual must stay visible
+    if 'MA_PULLBACK_DEDUPE = os.environ.get("MA_PULLBACK_DEDUPE", "1") == "1"' not in src:
+        return False                                 # kill switch, defaulting ON
+    # the fire row must now carry the bucket the archive lacked (that absence WAS the diagnosis gap)
+    i = src.find('_log_decision(t, "triggered_ma_pullback"')
+    return i >= 0 and 'fire_k=ma_pb.get("k")' in src[i:i + 400]
+
+
 def SPEC_fed_bucket_stamps():
     """A2: every 10s shadow-fire and triggered row carries the fed-stream provenance —
     fire_k plus fed_k0/fed_k1/fed_n — so a replay can reconstruct the EXACT stream the
@@ -253,6 +329,7 @@ SPECS = {
     "SPEC_stamp_position": SPEC_stamp_position,
     "SPEC_fed_bucket_stamps": SPEC_fed_bucket_stamps,
     "SPEC_fire_hwm_dedupe": SPEC_fire_hwm_dedupe,
+    "SPEC_ma_pullback_dedupe": SPEC_ma_pullback_dedupe,
     "SPEC_m1_wallclock_window": SPEC_m1_wallclock_window,
     "SPEC_kevseq_limit_entry": SPEC_kevseq_limit_entry,
     "SPEC_bell_boundary_handoff": SPEC_bell_boundary_handoff,

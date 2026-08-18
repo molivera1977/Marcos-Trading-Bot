@@ -4717,6 +4717,41 @@ def _bar_low(b):   return float(b.get("low")   or b.get("l") or b.get("close") o
 def _bar_open(b):  return float(b.get("open")  or b.get("o") or b.get("close") or b.get("c") or 0)
 def _bar_close(b): return float(b.get("close") or b.get("c") or 0)
 
+
+def _bar_epoch(b) -> int:
+    """A bar's identity as an integer epoch-second, for use as a `_fire_once` bucket key.
+
+    8/17 C1: the chart lanes (ma_pullback) had NO bucket at all, which is why they re-emitted
+    the same confirmed setup every scan cycle and why the archive could not diagnose it — the
+    rows carried nothing to dedupe on. The 10s lanes already carry `k`; this gives the 3-min
+    bar lanes the same currency.
+
+    Bars carry an ISO-UTC `time` field (see _latest_session). Alpaca/SDK variants use `t`, which
+    may be ISO or already an epoch (s or ms). Anything unparseable returns 0 — and `_fire_once`
+    treats k<=0 as UNKNOWN and NEVER blocks, so a parse failure degrades to the pre-fix behaviour
+    rather than to a missed trade. A bookkeeping helper must never cost a fire."""
+    try:
+        v = b.get("time") or b.get("t")
+        if v is None:
+            return 0
+        if isinstance(v, (int, float)):
+            v = float(v)
+            return int(v / 1000) if v > 1e11 else int(v)      # ms vs s
+        s = str(v).strip()
+        if not s:
+            return 0
+        if s.isdigit():
+            n = float(s)
+            return int(n / 1000) if n > 1e11 else int(n)
+        s = s.replace("Z", "+00:00")
+        dt_ = datetime.fromisoformat(s)
+        if dt_.tzinfo is None:
+            dt_ = dt_.replace(tzinfo=timezone.utc)            # bar times are ISO-UTC
+        return int(dt_.timestamp())
+    except Exception:
+        return 0
+
+
 def _pivot_highs(bars, window=PIVOT_WINDOW):
     """Swing highs = a bar whose high tops the `window` bars on each side (a real local peak =
     a level where price topped and reversed = supply). What Kev marks by eye."""
@@ -4951,7 +4986,11 @@ def _detect_ma_pullback(completed, price, warmup_closes=None):
     ma, period = min(held, key=lambda x: x[0])           # deepest support the low reached and held
     # Risk off the LOW where the buyer stepped in: just below the lower of the MA and the wick low,
     # so the stop is never inside the wick (Kev risks off the candle low / the level held).
-    return {"ma_name": f"ema{period}", "ma": round(ma, 4),
+    # 8/17 C1: `k` = the CONFIRMATION CANDLE's epoch. That candle is the consumable unit — one
+    # buyer stepped in, once. While it remains the last completed bar this pure function returns
+    # the identical fire on every scan pass; the caller dedupes on this key. A new buyer prints a
+    # NEW candle with a strictly greater epoch, which _fire_once's monotonic mark admits.
+    return {"ma_name": f"ema{period}", "ma": round(ma, 4), "k": _bar_epoch(conf),
             "stop": round(min(ma, clo) * (1 - MA_PULLBACK_STOP_BUFFER), 4)}
 
 
@@ -5320,6 +5359,9 @@ def _log_stale_fire(sym, lane, k, px):
 # stamps that fire's k), or if FIRE_HWM_PATH lands on an ephemeral filesystem, in which case
 # the mark is per-process and the fix degrades to no-worse-than-today rather than failing shut.
 DEDUPE_FIRES  = os.environ.get("DEDUPE_FIRES", "1") == "1"
+# 8/17 C1 kill switch — MA_PULLBACK_DEDUPE=0 restores the pre-fix behaviour (the chart pullback
+# lane re-emitting its confirmed setup once per scan cycle). DEDUPE_FIRES=0 disables it too.
+MA_PULLBACK_DEDUPE = os.environ.get("MA_PULLBACK_DEDUPE", "1") == "1"
 FIRE_HWM_PATH = os.environ.get("FIRE_HWM_PATH", "data/fire_hwm.json")
 _fire_hwm: dict = {}          # "day|lane|sym" -> highest 10s bucket epoch that EMITTED a fire
 _fire_hwm_loaded = False
@@ -5382,6 +5424,30 @@ def _fire_once(lane, sym, k, day=None) -> bool:
         return True
     except Exception:
         return True                          # a bookkeeping bug must never stop a fire
+
+
+def _fire_seen(lane, sym, k, day=None) -> bool:
+    """NON-CONSUMING peek: True iff (day, lane, sym) has ALREADY emitted at bucket `k` or later.
+
+    8/17 C1: the PULLBACK_FIRST pre-pass calls the same detector one block ABOVE the real fire.
+    If the pre-pass used `_fire_once` it would eat the mark and the real fire would be blocked
+    forever — the lane would go silent. This peek reads the mark and advances NOTHING, so the
+    pre-pass can suppress its duplicate ROW without touching the fire's bookkeeping.
+
+    Mirrors _fire_once's never-block posture inverted: guard off, or unknown bucket -> False
+    ("not seen"), i.e. the caller behaves exactly as it did pre-fix."""
+    if not DEDUPE_FIRES:
+        return False
+    try:
+        _k = int(k or 0)
+        if _k <= 0:
+            return False
+        _day = day or datetime.now(EASTERN).strftime("%Y-%m-%d")
+        with _fire_hwm_lock:
+            _fire_hwm_load()
+            return _k <= _fire_hwm.get(f"{_day}|{lane}|{sym}", 0)
+    except Exception:
+        return False
 
 
 # ── 8/17 A2 — FED-BUCKET PROVENANCE (observability only; unblocks harness parity) ────
@@ -9466,9 +9532,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             _ma_first_fire = None
             if PULLBACK_FIRST and not found_entry and vwap > 0 and price > vwap:
                 _ma_first_fire = detect_ma_pullback(completed, price, _wm_seed)
-                if _ma_first_fire:
+                # 8/17 C1: the ROW is deduped, the CONTROL FLOW is not. `_ma_first_fire` still
+                # suppresses flat_top exactly as before on every pass (touching that would be a
+                # behaviour change nobody asked for); only the duplicate log row is dropped, via
+                # a NON-CONSUMING peek so the real fire below still gets its mark.
+                if _ma_first_fire and not (MA_PULLBACK_DEDUPE
+                                           and _fire_seen("ma_pullback", t, _ma_first_fire.get("k"))):
                     _log_decision(t, "pullback_first_suppress", price=price,
-                                  ma=_ma_first_fire["ma_name"], stop=_ma_first_fire["stop"])
+                                  ma=_ma_first_fire["ma_name"], stop=_ma_first_fire["stop"],
+                                  fire_k=_ma_first_fire.get("k"))
 
             # ── Entry type 1: Flat top breakout ──────────────────────
             # The intraday BASE must be TODAY's 3-min bars — `completed` spans prior days (for the EMAs),
@@ -9674,6 +9746,19 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # across all of Kev's MAs.
             if not found_entry and vwap > 0 and price > vwap:   # above VWAP (don't fight below it)
                 ma_pb = detect_ma_pullback(completed, price, _wm_seed)
+                # ── 8/17 C1 CONSUMED-SETUP GUARD ────────────────────────────────────────────
+                # detect_ma_pullback is a PURE FUNCTION of the bar slice: while the confirmation
+                # candle stays the last completed bar it returns the identical fire every scan
+                # pass. Nothing marked the setup consumed, so the lane re-logged AND re-pushed a
+                # full trade candidate every cycle (8/17: YDES 40 rows at one price over 34 min;
+                # 210 rows for ~123 distinct setups). This is the same consumed-setup pattern the
+                # 10s lanes already use — _fire_once keyed on the confirmation candle's epoch.
+                # The suppression is LOGGED so the counterfactual stays visible from day one.
+                # Kill: MA_PULLBACK_DEDUPE=0 (or DEDUPE_FIRES=0). k<=0 never blocks.
+                if ma_pb and MA_PULLBACK_DEDUPE and not _fire_once("ma_pullback", t, ma_pb.get("k")):
+                    _log_decision(t, "ma_pullback_dup_suppressed", price=price,
+                                  ma=ma_pb["ma_name"], stop=ma_pb["stop"], fire_k=ma_pb.get("k"))
+                    ma_pb = None                        # consumed — no duplicate row, no re-attempt
                 if ma_pb:
                     ma_stop = ma_pb["stop"]
                     if "daily" not in cache[t]:
@@ -9699,7 +9784,8 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             "ema90": round(ema90, 4), "room": room, "ma_held": ma_pb["ma_name"],
                             "front_side": True, "ema9": round(ema9, 4), "ema20": round(ema20, 4),   # pullback is 9>20-gated
                         }))
-                        _log_decision(t, "triggered_ma_pullback", price=price, ma=ma_pb["ma_name"])
+                        _log_decision(t, "triggered_ma_pullback", price=price, ma=ma_pb["ma_name"],
+                                      fire_k=ma_pb.get("k"))   # 8/17 C1: the bucket the archive lacked
                         found_entry = True
 
             # ── Entry type 4: MEAN-REVERSION BOUNCE (Kev #28) — a dumped former runner reclaims a demand

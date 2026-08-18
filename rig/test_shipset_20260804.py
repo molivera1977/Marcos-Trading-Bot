@@ -135,8 +135,13 @@ check("rehydrate: earned status survives restart", "def _leader_rehydrate" in sr
 check("rehydrate fail-soft", "rehydrate skipped" in src)
 # unit: sticky logic exercised in isolation
 import types, datetime as _dt
+# 8/17 G: `threading` added to the exec namespace.  The lifted block runs raw source between
+# LEADER_AMMO and _curl_rth_slot; F1 (commit 9797563) introduced `_gate_blind_tl =
+# threading.local()` inside that span, so the exec raised NameError and took the WHOLE rig file
+# down with a traceback (exit 1 at HEAD, before any batch-G edit — verified by running this file
+# unmodified on the base tree).  This is the AST-lift fragility BH-c already warned about.
 ns2 = {"os": __import__("os"), "datetime": _dt.datetime, "EASTERN": __import__("zoneinfo").ZoneInfo("America/New_York"),
-       "threading": __import__("threading"),   # 8/17: F1's _gate_blind_tl = threading.local() landed inside this slice; the exec namespace must mirror the module's own imports
+       "threading": __import__("threading"), "time": __import__("time"),
        "_log_decision": lambda *a, **k: None, "print": lambda *a, **k: None}
 blk = src[src.index("LEADER_AMMO         ="):src.index("def _curl_rth_slot")]
 exec(blk, ns2)
@@ -328,7 +333,10 @@ check("ring-1 executed vs live stub (8/6 ledger)", True)
 _ab=src2[src2.index("AMBIENT_DVOL_MULT = float"):src2.index("def check_momentum")]
 _ns={"os":os,"MAX_TRADE_DOLLARS":1000.0}
 _ns["_gate_failopen"]=lambda *a,**k: None   # 8/8: counter stub
-_ns["_gate_blind"]=lambda *a,**k: None   # 8/17 F1: per-fire blind-row logger — logging must never affect gating, so a no-op stub is the faithful rig double
+_ns["_gate_blind"]=lambda *a,**k: None      # 8/17 G: F1 (9797563) row stub — same fragility as
+                                            # the LEADER_AMMO block above; without it the lifted
+                                            # _ambient_dvol_ok raised NameError on the fail-open
+                                            # paths and this file exited 1 at HEAD.
 exec(_ab,_ns); _adv=_ns["_ambient_dvol_ok"]
 _mkb=lambda v,c,n=12:[{"volume":v,"close":c} for _ in range(n)]
 check("ambient: SUGP-class ($5.2k/min) blocked", _adv(_mkb(2400,2.17))[0] is False)
@@ -1904,7 +1912,7 @@ try:
     _ey_rows = []
     _eyn["_log_decision"] = lambda tk, st, **f: _ey_rows.append((tk, st, f))
     _eyn["_gate_failopen"] = lambda *a, **k: None
-    _eyn["_gate_blind"] = lambda *a, **k: None   # 8/17 F1 stub (see ambient block note)
+    _eyn["_gate_blind"] = lambda *a, **k: None      # 8/17 G: F1 row stub (see :335)
     # real helper block (from _standdown = {} through _standdown_lift)
     _hb = _ey[_ey.index("_standdown = {}"):_ey.index("# 8/4 ~01:15 RETEST DEPTH BAND")]
     exec(_hb, _eyn)
@@ -1996,6 +2004,7 @@ try:
     _adn["_marked_runway"] = lambda t, e, sl: (1.5, 3.90)
     _adn["_calc_ema"] = lambda closes, period: sum(closes[-period:]) / period
     _adn["_gate_failopen"] = lambda *a, **k: None
+    _adn["_gate_blind"] = lambda *a, **k: None      # 8/17 G: F1 row stub (see :335)
     exec(_ey2[_ey2.index("EYES_TODO = ("):_ey2.index("def _e3_eval")], _adn)
     _snap = _adn["_eyes_snapshot"]("EYEX", 3.72, "entry", {"vwap": 3.40, "zone_stop": 3.30, "day_gain": 86.0, "l1_spread": 0.01})
     _keys = _adn["_EYES_KEYS"]
@@ -3680,9 +3689,15 @@ try:
         "hidden_entry": ("HIDDEN_CONVERT",      "hidden_entry_step",   "_he_day",     "he[\"k\"]"),
         "zone_flip":    ("ZONEFLIP_CONVERT",    "kev_zoneflip_step",   "_curl_rth_n", "zf[\"px\"]"),
         "vwap_reclaim": ("VWAPRECLAIM_CONVERT", "kev_reclaim_step",    "_curl_rth_n", "vr[\"px\"]"),
-        "flat_top":     ("FLATTOP_CONVERT",     None,                  None,          None),
-        "crown_seam":   ("SEAM_CONVERT",        None,                  None,          None),
-        "halt_ladder":  ("HALT_LANE_CONVERT",   None,                  None,          None),
+        # 8/17 G1: these three now carry a REAL fire bar (flat_top off the 3-min base bar batch
+        # D's extraction exposed; crown_seam off the last 5s bar _seam5_check reads; halt_ladder
+        # off the last bar of whichever feed armed it).  They still have no separable *_step
+        # detector — they are emitted inline by the caller — so (a)/(g) stay undecidable, but
+        # (b)/(c) are now asserted AT THE CALLER, exactly as this registry's comment above always
+        # promised.  Doc: data/killtests/lane_fire_bars_20260817.md
+        "flat_top":     ("FLATTOP_CONVERT",     None,                  None,          "_ft_age"),
+        "crown_seam":   ("SEAM_CONVERT",        None,                  None,          "_ss["),
+        "halt_ladder":  ("HALT_LANE_CONVERT",   None,                  None,          "_hl_px"),
     }
 
     # ── GUARD RAIL: no convertible lane may be born outside the registry ──────────────────
@@ -3758,7 +3773,14 @@ try:
                   or ("_lane_fire_stale(sym, lane," in fsrc and lane in ("bandpass", "prevwap"))
                   or f'_log_stale_fire(sym, "{lane.split("_")[0]}"' in fsrc
                   or bool(re.search(r'%s_FIRE_MAX_AGE_S\s*>\s*0' % lane.upper(), src))
-                  or bool(re.search(r'KEVSEQ_FIRE_MAX_AGE_S\s*>\s*0', src) and lane == "kevseq"))
+                  or bool(re.search(r'KEVSEQ_FIRE_MAX_AGE_S\s*>\s*0', src) and lane == "kevseq")
+                  # 8/17 G1: a lane with NO separable detector (fn is None -> fsrc is "") can
+                  # still carry the guard — it just lives in the CALLER, which is where this
+                  # registry's own comment says such lanes must be asserted.  The caller's symbol
+                  # variable is `t`, so the literal differs from the detector form above.  This
+                  # does not loosen the property: the SAME `_lane_fire_stale` mechanism must be
+                  # named with THIS lane's literal.  Doc: lane_fire_bars_20260817.md
+                  or (fn is None and f'_lane_fire_stale(t, "{lane}"' in src))
 
         # (c) drift_pct AND fire_age_s STAMPED ON THE LANE'S ROWS.  Presence assertion: both
         # keywords must appear inside the caller block that names this lane.  The block is
@@ -3827,9 +3849,17 @@ try:
         "hidden_entry": {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
         "zone_flip":    {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
         "vwap_reclaim": {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
-        "flat_top":     {"a": None, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": "OPEN:PENDING_CONVENE_20260817#EG1-c", "d": True, "e": True, "f": True, "g": None},
-        "crown_seam":   {"a": None, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": "OPEN:PENDING_CONVENE_20260817#EG1-c", "d": True, "e": True, "f": True, "g": None},
-        "halt_ladder":  {"a": None, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": "OPEN:PENDING_CONVENE_20260817#EG1-c", "d": True, "e": True, "f": True, "g": None},
+        # 8/17 G1 CLOSED EG1-b AND EG1-c FOR ALL THREE.  Batch B recorded these lanes as having
+        # "no detector, no fire dict, no bucket epoch — their fire price is the live quote".  That
+        # was true of flat_top only, and only until batch D extracted its detector; crown_seam and
+        # halt_ladder were pure BAR readers the whole time (crown_seam prices off cl[-1] of the 5s
+        # feed, halt_ladder off _hl_d10[_hl_ks[-1]]["c"]).  All three now stamp a REAL bar epoch +
+        # age + drift and call the shared disarmed guard.  (a)/(g) stay None: still no separable
+        # detector, so the AST computer cannot decide them — a limit of the gate, not of the lanes.
+        # Doc: data/killtests/lane_fire_bars_20260817.md
+        "flat_top":     {"a": None, "b": True, "c": True, "d": True, "e": True, "f": True, "g": None},
+        "crown_seam":   {"a": None, "b": True, "c": True, "d": True, "e": True, "f": True, "g": None},
+        "halt_ladder":  {"a": None, "b": True, "c": True, "d": True, "e": True, "f": True, "g": None},
     }
     _E1_NAME = {"a": "traded-price fire", "b": "fire-age guard", "c": "drift+age stamps",
                 "d": "cap refunded", "e": "in lane registry", "f": "ctx computed in-lane",

@@ -8435,9 +8435,15 @@ def _seam5_check(t):
             return None
         pb_hi = max(h for h, l in zip(w2h, w2l) if l <= trough * 1.002)
         if px > pb_hi and cl[-2] <= pb_hi:
+            # 8/17 G1: THE FIRE BAR. Batch B recorded this lane as having "no bucket epoch — its
+            # fire price is the live quote". That was wrong: `px` IS `cl[-1]`, the close of the
+            # LAST 5s bar this function read, and `_ks5[-1]` is that bar's epoch. The lane is a
+            # pure bar reader and always was. Stamping the real epoch (never a synthetic one) is
+            # what lets tomorrow measure this lane's fire age and drift.
+            # Doc: data/killtests/lane_fire_bars_20260817.md
             return {"price": round(px, 4), "stop": round(trough, 4),
                     "pull_pct": round((peak - trough) / peak * 100, 1),
-                    "peak": round(peak, 4),
+                    "peak": round(peak, 4), "fire_k": _ks5[-1], "bar_secs": 5,
                     "hi_window": "60m"}   # audit F1: the 90% gate measures a 1-HOUR high, not session — stamped so grading knows
         return None
     except Exception:
@@ -9029,7 +9035,23 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 try:
                                     _hpx = price if price and price > 0 else _he_fire.get("px") or 0
                                     _hg, _hbp = _level_gap(t, _hpx)   # 7/27 ballpark stamp
+                                    # ── 8/17 G2: THE DETECTOR'S OWN FIRE PRICE, STAMPED. ──
+                                    # `_hpx` above is the LIVE QUOTE at log time, not a detector
+                                    # output — batch E measured hidden parity at 86.3% on
+                                    # stop+time but 5.8% on price for exactly this reason: the
+                                    # `price` key was grading the quote feed. `_he_fire["px"]` is
+                                    # round(c,4) of the fed 10s bar, i.e. what the detector
+                                    # actually decided on, and it was being discarded on THIS row
+                                    # only (hidden_observe_only and triggered_hidden_entry already
+                                    # carry it). `price` is deliberately UNCHANGED so today's
+                                    # archive stays comparable and batch E's 5.8% reproducible.
+                                    # Doc: data/killtests/lane_fire_bars_20260817.md
                                     _log_decision(t, "hidden_shadow_fire", price=_hpx,
+                                                  fire_px=_he_fire.get("px"), fire_k=_he_fire.get("k"),
+                                                  fire_age_s=(round(time.time() - _he_fire["k"], 1)
+                                                              if _he_fire.get("k") else None),
+                                                  drift_pct=(round((_hpx - _he_fire["px"]) / _he_fire["px"] * 100, 2)
+                                                             if (_he_fire.get("px") and _hpx) else None),
                                                   stop=_he_fire["stop"], anchor=_he_fire["anchor"],
                                                   ext_vwap=_he_fire["ext_vwap"], seq=_he_fire["seq"],
                                                   time_hm=datetime.now(EASTERN).strftime("%H:%M"),
@@ -9613,9 +9635,28 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         _ss = _seam5_check(t)
                         if _ss:
                             _seam_shadow_t[t] = time.time()
-                            _log_decision(t, "seam_shadow_fire", convert=SEAM_CONVERT, **_ss)
+                            # ── 8/17 G1: fire-bar stamps + the shared age guard. The age is
+                            # measured from the 5s bar's CLOSE (fire_k + bar_secs), so it means
+                            # the same thing as every other lane's: seconds since this data could
+                            # first have been acted on. `drift_pct` compares the LIVE quote to the
+                            # detector's price — note this lane converts AT _ss['price'], not at
+                            # the quote, so drift here is a LATENCY reading, not slippage.
+                            # The guard is DISARMED unless "crown_seam" is named in
+                            # LANE_FIRE_AGE_GUARD (empty by default — batch B's precedent: never
+                            # arm a suppressor whose cost has not been measured).
+                            _ss_k = _ss.get("fire_k")
+                            _ss_age = (round(time.time() - (_ss_k + _ss.get("bar_secs", 5)), 1)
+                                       if _ss_k else None)
+                            _log_decision(t, "seam_shadow_fire", convert=SEAM_CONVERT,
+                                          fire_px=_ss["price"], fire_age_s=_ss_age,
+                                          drift_pct=(round((price - _ss["price"]) / _ss["price"] * 100, 2)
+                                                     if (price and _ss.get("price")) else None),
+                                          **_ss)
                             print(f"🧵 {t} SEAM: entry ${_ss['price']} stop ${_ss['stop']} "
                                   f"(pull {_ss['pull_pct']}%){' -> CONVERT' if SEAM_CONVERT else ' (shadow)'}")
+                            if _ss_k and _lane_fire_stale(t, "crown_seam", _ss_k + _ss.get("bar_secs", 5),
+                                                          _ss["price"]):
+                                continue                       # guard armed + bar stale: consumed, not traded
                             if SEAM_CONVERT and float(_ss['stop']) < float(_ss['price']):
                                 breakouts.append((t, float(_ss['price']), 0, "crown_seam", {
                                     "zone_stop": float(_ss['stop']),
@@ -9643,6 +9684,18 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         _hl_ks = sorted(_hl_d10)
                         if len(_hl_ks) >= _hl_min:
                             _hl_px = float(_hl_d10[_hl_ks[-1]].get("c") or 0)
+                            # ── 8/17 G1: THE FIRE BAR. Batch B recorded halt_ladder as having no
+                            # bucket epoch; it does — `_hl_ks[-1]` is the last bar of whichever
+                            # feed armed the ladder, and `_hl_px` is that bar's close (the price
+                            # the lane converts at). The CADENCE IS MEASURED, not assumed: this
+                            # feed is 5s under HALT_ARM_5S and 10s otherwise, and an age stamped
+                            # against the wrong bar width is a lie about how stale the arm was.
+                            # Doc: data/killtests/lane_fire_bars_20260817.md
+                            _hl_k = _hl_ks[-1]
+                            _hl_cad = (_hl_ks[-1] - _hl_ks[-2]) if len(_hl_ks) >= 2 else 10
+                            _hl_age = round(time.time() - (_hl_k + _hl_cad), 1) if _hl_k else None
+                            _hl_drift = (round((price - _hl_px) / _hl_px * 100, 2)
+                                         if (price and price > 0 and _hl_px > 0) else None)
                             _hl_w5 = [_hl_d10[k] for k in _hl_ks if k >= _hl_ks[-1] - 300]
                             _hl_ref = sum(float(b.get("c") or 0) for b in _hl_w5) / max(len(_hl_w5), 1)
                             _hl_band = 0.10 if _hl_px >= 3 else (0.20 if _hl_px >= 0.75 else 0.75)
@@ -9654,6 +9707,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     and time.time() - _halt_early_t.get(t, 0) >= 120:
                                 _halt_early_t[t] = time.time()
                                 _log_decision(t, "halt_early_arm", price=round(_hl_px, 4),
+                                              fire_px=round(_hl_px, 4), fire_k=_hl_k,
+                                              fire_age_s=_hl_age, drift_pct=_hl_drift,
+                                              bar_secs=_hl_cad, feed_src=_hl_src,
                                               prox=round(_hl_prox, 2), vel1m=round(_hl_vel, 1))
                                 # 8/8 (Marcos: get in BEFORE... from the beginning) — shadow meter
                                 # of the EARLIER boarding point; weekend grades the prox bands.
@@ -9669,8 +9725,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 _hl_gaps = [_hl_ks[_gi] for _gi in range(1, len(_hl_ks))
                                             if _hl_ks[_gi] - _hl_ks[_gi-1] >= 270]
                                 _hl_shalt = round((_hl_ks[-1] - _hl_gaps[-1]) / 60, 1) if _hl_gaps else None
+                                # 8/17 G1: fire-bar stamps on the convert-deciding row.
                                 _log_decision(t, "halt_arm", mins_since_halt=_hl_shalt,
                                               price=round(_hl_px, 4),
+                                              fire_px=round(_hl_px, 4), fire_k=_hl_k,
+                                              fire_age_s=_hl_age, drift_pct=_hl_drift,
+                                              bar_secs=_hl_cad, feed_src=_hl_src,
                                               prox=round(_hl_prox, 2), vel1m=round(_hl_vel, 1),
                                               confirm5s=_hl_ok, upratio=_hl_up, maxpull=_hl_pull,
                                               stop=round(_hl_stop, 4) if _hl_stop else None,
@@ -9681,6 +9741,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 # logs ok/up/pull on every arm row, converts nothing, earns gate
                                 # status only on unseen-day evidence. HALT_CONFIRM_GATE=1 re-arms.
                                 _hl_go = _hl_ok or not HALT_CONFIRM_GATE
+                                # 8/17 G1: shared age guard, DISARMED unless "halt_ladder" is
+                                # named in LANE_FIRE_AGE_GUARD (empty by default). Measured from
+                                # the fire bar's CLOSE, same convention as every other lane.
+                                if _hl_k and _lane_fire_stale(t, "halt_ladder", _hl_k + _hl_cad,
+                                                              round(_hl_px, 4)):
+                                    continue                   # consumed, not traded
                                 print(f"🪜 {t} HALT-LADDER ARM ${_hl_px:.2f} prox {_hl_prox:.2f} "
                                       f"vel {_hl_vel:.1f}%/m 5s-confirm={_hl_ok}"
                                       f"{' -> CONVERT' if HALT_LANE_CONVERT and _hl_go else ' (shadow)'}")
@@ -9970,6 +10036,32 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                       "ma_only_window": bool(_ma_only_window)})
                 w_high = _ftd["w_high"]
                 w_low  = _ftd["w_low"]
+                # ── 8/17 G1: THE FIRE BAR flat_top finally has. Batch B could not give this lane
+                # an age stamp because it had no detector and no bucket; batch D's extraction
+                # (flat_top_step) supplied the detector, and the bar was always here — the base is
+                # read off `_sess3`, TODAY's completed 3-min bars, and `_sess3[-1]` is the bar the
+                # decision is made on. `_bar_epoch` (batch C1) is the same helper ma_pullback's
+                # dedupe already uses.
+                # AGE IS MEASURED FROM THE BAR'S CLOSE (_bar_epoch returns the OPEN; a 3-min bar
+                # cannot be acted on until it closes), so it means the same thing as the 10s
+                # lanes' ages: seconds since this data could first have been acted on.
+                # THERE IS NO fire_px FOR THIS LANE, BY DESIGN: flat_top's trigger is the LIVE
+                # QUOTE crossing w_high, so the bar supplies the LEVEL and the AGE and never a
+                # fire price. `fire_bar_close` is stamped instead, named for exactly what it is;
+                # inventing a fire_px here would be a fiction.
+                # ⚠️ THRESHOLD WARNING: the shared guard measures against CURL_FIRE_MAX_AGE_SECS
+                # (90s), calibrated for 10s buckets. This lane's bar is 180s wide and is re-read
+                # every scan cycle until the next one completes, so its age sweeps 0->180s across
+                # a bar. Arming it bare would suppress roughly half of all flat_top fires, chosen
+                # by nothing meaningful. If it is ever armed it must be `flat_top:300` or higher,
+                # from a measured distribution — which is what these stamps exist to produce.
+                # Doc: data/killtests/lane_fire_bars_20260817.md
+                _ft_k     = _bar_epoch(_sess3[-1]) if _sess3 else 0
+                _ft_close = _bar_close(_sess3[-1]) if _sess3 else 0
+                _ft_kc    = (_ft_k + SETUP_TF_MIN * 60) if _ft_k else 0
+                _ft_age   = round(time.time() - _ft_kc, 1) if _ft_kc else None
+                _ft_drift = (round((price - _ft_close) / _ft_close * 100, 2)
+                             if (_ft_close > 0 and price) else None)
 
                 if w_low > 0:
                     rng = _ftd["rng"]
@@ -9990,7 +10082,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     _ft_attack = (_ftd["action"] == "attack")
                     if _ft_attack:
                         _log_decision(t, "break_attack", price=price, w_high=w_high,
-                                      w_low=w_low, time_hm=_hm_ft)
+                                      w_low=w_low, time_hm=_hm_ft,
+                                      fire_k=_ft_k or None, fire_bar_close=_ft_close or None,
+                                      fire_age_s=_ft_age, drift_pct=_ft_drift)
+                        # 8/17 G1: the shared age guard, DISARMED by default (see the block
+                        # comment above for why a bare arm would be wrong for a 3-min lane).
+                        if _ft_kc and _lane_fire_stale(t, "flat_top", _ft_kc, price):
+                            continue                       # consumed, not traded
                     elif _ftd["action"] == "arm":
                         cache[t]["pb"] = {"level": w_high, "zone": w_low, "ts": time.time(), "dipped": False}
                         _log_decision(t, "break_armed", price=price, w_high=w_high)
@@ -10077,7 +10175,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             _ft_extra["break_attack"] = True
                         breakouts.append((t, price, vwap, "flat_top", _ft_extra))
                         _log_decision(t, "triggered_flat_top", price=price, room_rr=rr, w_high=w_high,
-                                      front_side=_front, break_attack=_ft_attack)
+                                      front_side=_front, break_attack=_ft_attack,
+                                      fire_k=_ft_k or None, fire_bar_close=_ft_close or None,
+                                      fire_age_s=_ft_age, drift_pct=_ft_drift)
                         cache[t]["pb"] = None          # armed pullback consumed by the entry
                         found_entry = True
                     elif is_flat:
@@ -10199,7 +10299,19 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             "ema90": round(ema90, 4), "room": room, "ma_held": ma_pb["ma_name"],
                             "front_side": True, "ema9": round(ema9, 4), "ema20": round(ema20, 4),   # pullback is 9>20-gated
                         }))
+                        # 8/17 G3: THE STOP, STAMPED. This row logged price/ma/fire_k and no stop
+                        # at all, while `ma_stop` — the exact value the ticket is built with,
+                        # three lines up — sat unrecorded. That hole is why the 8/17 exit study
+                        # had to INVENT a stop for this lane and produced 17 phantom "bad stop"
+                        # fires. Read from the same variable the trade uses, so row and ticket
+                        # cannot disagree; nothing is recomputed. `fire_age_s` rides the existing
+                        # C1 bucket, measured from the confirmation candle's CLOSE (fire_k is the
+                        # bar's OPEN and a 3-min bar cannot be acted on until it closes).
+                        # Observability only. Doc: data/killtests/lane_fire_bars_20260817.md
                         _log_decision(t, "triggered_ma_pullback", price=price, ma=ma_pb["ma_name"],
+                                      stop=ma_stop,
+                                      fire_age_s=(round(time.time() - (ma_pb["k"] + SETUP_TF_MIN * 60), 1)
+                                                  if ma_pb.get("k") else None),
                                       fire_k=ma_pb.get("k"))   # 8/17 C1: the bucket the archive lacked
                         found_entry = True
 

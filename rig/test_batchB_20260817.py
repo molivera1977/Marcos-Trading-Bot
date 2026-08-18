@@ -209,8 +209,44 @@ def SPEC_no_detector_emits_bad_stop():
     return all(g in src for g in guards.values())
 
 
+def SPEC_fail_open_gates_observable_and_armable():
+    """B5: each of the three fail-open gates (check_momentum's insufficient-bars path, the
+    volume SIZING guard's no-tape path, the ambient/universal liquidity gate's <5-bars path)
+    must (a) WRITE a gate_fail_open row every time it fails open — two of the three were
+    silent, which is why 8/17 could not price them — and (b) be convertible to fail-CLOSED
+    through GATE_FAIL_CLOSED, which defaults to REFUSING NOTHING.  The switch itself is
+    EXECUTED, not grepped."""
+    src = bot_src()
+    ns = {"os": types.SimpleNamespace(environ={})}
+    exec(_extract(src, "GATE_FAIL_CLOSED = os.environ.get", "def _ambient_dvol_ok("), ns)
+    fc = ns["_fail_closed"]
+    if fc("momentum") or fc("volguard") or fc("ambient"):
+        return False                                   # default MUST refuse nothing
+    ns2 = {"os": types.SimpleNamespace(environ={"GATE_FAIL_CLOSED": "momentum, ambient"})}
+    exec(_extract(src, "GATE_FAIL_CLOSED = os.environ.get", "def _ambient_dvol_ok("), ns2)
+    fc2 = ns2["_fail_closed"]
+    ns3 = {"os": types.SimpleNamespace(environ={"GATE_FAIL_CLOSED": "all"})}
+    exec(_extract(src, "GATE_FAIL_CLOSED = os.environ.get", "def _ambient_dvol_ok("), ns3)
+    fc3 = ns3["_fail_closed"]
+    armed_ok = (fc2("momentum") and fc2("ambient") and not fc2("volguard")
+                and fc3("momentum") and fc3("volguard") and fc3("ambient"))
+    # every fail-open path is now WITNESSED, and every one is armable
+    wired = (src.count('_gate_failopen("momentum"') == 1
+             and src.count('_gate_failopen("volguard"') == 1
+             and src.count('_gate_failopen("ambient"') == 2      # <5 bars + exception
+             and 'return (not _fail_closed("ambient")), 0.0, 0.0' in src
+             and 'if _fail_closed("momentum"):' in src
+             and 'if _fail_closed("volguard"):' in src
+             # the armed volume guard must REFUSE through the capital-skip shape, never by
+             # handing a zero-share position to the order path
+             and '_log_decision(ticker, "volguard_closed_skip"' in src
+             and 'GATE_FAIL_CLOSED", ""' in src)
+    return bool(armed_ok and wired)
+
+
 SPECS = {
     "SPEC_kevseq_fire_on_close": SPEC_kevseq_fire_on_close,
+    "SPEC_fail_open_gates_observable_and_armable": SPEC_fail_open_gates_observable_and_armable,
     "SPEC_kevseq_degenerate_stop_refuses": SPEC_kevseq_degenerate_stop_refuses,
     "SPEC_lane_fire_age_mechanism": SPEC_lane_fire_age_mechanism,
     "SPEC_lane_fire_age_suppresses": SPEC_lane_fire_age_suppresses,

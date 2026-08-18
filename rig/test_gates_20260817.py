@@ -218,7 +218,39 @@ def SPEC_fed_bucket_stamps():
     return True
 
 
+def SPEC_stamp_position():
+    """The A2 provenance stamp rides as a TRAILING kwarg, never a leading one.
+
+    In leading position `**_fed_stamp(...)` splices between the status literal and the
+    first named kwarg, which breaks the contiguous literals rig section AD-b anchors the
+    eyes-wire pin on. Behaviour is identical either way; the pin is not, and a rig that
+    goes red on formatting is a rig nobody reads. Both properties are asserted together:
+    the anchors are intact AND the stamp is still inside every one of those calls."""
+    src = bot_src()
+    # (a) the two AD-b anchor literals must be contiguous
+    for anchor in ('"v2_shadow_fire", price=_v2f["px"],\n'
+                   '                                                      eyes=_eyes_compact(',
+                   '"grinder_shadow_fire", price=_grf["px"],\n'
+                   '                                                  eyes=_eyes_compact('):
+        if anchor not in src:
+            return False
+    # (b) no fire row may carry the stamp in leading position…
+    rows = ("v2_shadow_fire", "triggered_v2conv", "grinder_shadow_fire", "triggered_grinder",
+            "bandpass_shadow_fire", "triggered_bandpass", "prevwap_shadow_fire",
+            "triggered_prevwap", "kevseq_shadow_fire", "triggered_kevseq",
+            "hidden_shadow_fire")
+    for row in rows:
+        if ('_log_decision(t, "%s", **_fed_stamp' % row) in src:
+            return False
+        # …and every one must still carry it somewhere inside its own call
+        i = src.find('_log_decision(t, "%s"' % row)
+        if i < 0 or "**_fed_stamp(_nb," not in src[i:i + 2600]:
+            return False
+    return True
+
+
 SPECS = {
+    "SPEC_stamp_position": SPEC_stamp_position,
     "SPEC_fed_bucket_stamps": SPEC_fed_bucket_stamps,
     "SPEC_fire_hwm_dedupe": SPEC_fire_hwm_dedupe,
     "SPEC_m1_wallclock_window": SPEC_m1_wallclock_window,

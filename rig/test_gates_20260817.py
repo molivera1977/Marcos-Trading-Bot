@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ENFORCEMENT GATES 5-8 RIG — 8/17.  Judged by EXIT CODE (sweep law).
+"""ENFORCEMENT GATES 5-9 RIG — 8/17.  Judged by EXIT CODE (sweep law).
 
 Separate file from rig/test_shipset_20260804.py on purpose: a concurrent agent was building
 gates 1-4 in that file the same night, and two writers on one file is how a ship gets lost.
@@ -12,6 +12,11 @@ line in ship.sh instead of an edit inside a 3,800-line file being written by som
                                      negative control proving every row can go DRIFTED
   G8  regression corpus            — today's five defects pinned as permanent fixtures, each
                                      with a negative control proving it fails on the pre-fix path
+  G9  artifact-claim verification  — data/audits/artifact_claims.py: every EQUIVALENCE and
+                                     PROVENANCE claim in an artifact dated 2026-08-18+ must
+                                     name the command that produced it, or carry [UNVERIFIED].
+                                     Gate 6 checks chat; all three of 8/17's false load-bearing
+                                     claims lived in ARTIFACTS, where nothing looked.
 
 TWO MODES
   python3 rig/test_gates_20260817.py               run everything, exit 0/1
@@ -832,19 +837,116 @@ def gate2c():
           "declaration (reported, not failed — the stamp ships tonight)" % len(dirty))
 
 
+def scan_asserted(AC, path):
+    return [x for x in AC.scan_doc(path, classes=("b", "c"))
+            if x["gated"] and x["verdict"] == "ASSERTED"]
+
+
+def gate_artifact_claims():
+    """G9 — THE ARTIFACT-CLAIM VERIFICATION GATE (batch H).
+
+    Gate 6 checks claims in CHAT.  All three of 8/17's false load-bearing claims lived in
+    ARTIFACTS instead, where nothing looked:
+
+      E-1  "entirely different names (was RPGL/WFF, now IPST/IVF/PFSA)" — the bisect found the
+           same 11 names, epochs and stops; only the price moved.
+      E-2  "PROVEN INDEPENDENT of batch E ... identical 0.0% against the HEAD bot source" — that
+           run cannot have happened (`_install_bar_clock()` raises NotIsolable on a pre-E tree).
+      D-3  a mechanism ("same expressions, byte-for-byte") stated from READING code rather than
+           running a diff.
+
+    Every one was an EQUIVALENCE or PROVENANCE claim whose paragraph named no command.  Naming
+    it is what this gate requires, on artifacts dated 2026-08-18 and later.
+    """
+    print("G9) ARTIFACT-CLAIM VERIFICATION (data/audits/artifact_claims.py)")
+    ac = os.path.join(ROOT, "data", "audits", "artifact_claims.py")
+    check("G9-a: artifact-claim auditor present", os.path.exists(ac))
+    p = subprocess.run([sys.executable, ac, "--self-test"], capture_output=True, text=True,
+                       cwd=ROOT, timeout=600)
+    for ln in p.stdout.splitlines():
+        print("    " + ln)
+    check("G9-b: the three known 8/17 instances are still caught", p.returncode == 0,
+          (p.stderr or p.stdout)[-300:])
+    check("G9-c: catch rate is REPORTED as a number, not asserted in prose",
+          bool(re.search(r"CATCH RATE: (\d+) of (\d+)", p.stdout)))
+
+    sys.path.insert(0, os.path.join(ROOT, "data", "audits"))
+    import artifact_claims as AC
+
+    gf = AC.load_grandfather()
+    check("G9-d: grandfather list exists and names the pre-gate corpus", len(gf) >= 50,
+          "%d names" % len(gf))
+    check("G9-e: the gate floor is dated, not open-ended", AC.GATE_FROM == "20260818")
+
+    # ── NEGATIVE CONTROLS, BOTH DIRECTIONS.  A gate that cannot go red on a synthetic
+    #    offender, and green on its fixed twin, is decoration. ─────────────────────────────
+    OFFENDER = ("# TEST ARTIFACT\n\n## FINDINGS\n\n"
+                "The refactored lane produces byte-identical rows to the pre-refactor path,\n"
+                "and the fire set is unchanged across both trees.\n")
+    FIXED_CMD = OFFENDER.rstrip("\n") + (
+        " Reproduce: `python3 data/killtests/harness_parity_20260817.py`\n")
+    FIXED_TAG = OFFENDER.rstrip("\n") + " [UNVERIFIED]\n"
+    tmp = tempfile.mkdtemp(prefix="g9nc_")
+    try:
+        def _w(name, body):
+            q = os.path.join(tmp, name)
+            open(q, "w").write(body)
+            return q
+
+        bad = _w("g9_negcontrol_20260901.md", OFFENDER)
+        check("G9-NC1: an ungrounded 'byte-identical' claim IS flagged",
+              len(scan_asserted(AC, bad)) >= 1, str(scan_asserted(AC, bad))[:200])
+        check("G9-NC2: ...and the GATE goes RED on it (exit 1)", AC.gate([bad], verbose=False)[0] == 1)
+
+        ok1 = _w("g9_negcontrol_cmd_20260901.md", FIXED_CMD)
+        check("G9-NC3: the SAME doc PASSES once it names the reproduce command",
+              AC.gate([ok1], verbose=False)[0] == 0, str(scan_asserted(AC, ok1))[:200])
+
+        ok2 = _w("g9_negcontrol_tag_20260901.md", FIXED_TAG)
+        check("G9-NC4: the SAME doc PASSES once tagged [UNVERIFIED]",
+              AC.gate([ok2], verbose=False)[0] == 0, str(scan_asserted(AC, ok2))[:200])
+
+        old = _w("g9_negcontrol_20260817.md", OFFENDER)
+        check("G9-NC5: a doc dated BEFORE the floor is not gated (the date floor works)",
+              AC.gate([old], verbose=False)[0] == 0)
+
+        hedge = _w("g9_negcontrol_hedge_20260901.md",
+                   "# T\n\n## FC\n\nThis work is wrong if the rows are not byte-identical to "
+                   "the pre-refactor path.\n")
+        check("G9-NC6: a FAILURE-CONDITION conditional is NOT flagged (precision guard)",
+              AC.gate([hedge], verbose=False)[0] == 0, str(scan_asserted(AC, hedge))[:200])
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    # ── FORWARD ENFORCEMENT on the real tree ─────────────────────────────────────────────
+    import glob as _g
+    real = sorted(_g.glob(os.path.join(ROOT, "data", "killtests", "*.md"))
+                  + _g.glob(os.path.join(ROOT, "data", "audits", "*.md")))
+    rc, bad_rows = AC.gate(real, verbose=False)
+    check("G9-f: ENFORCED FORWARD — every artifact dated 2026-08-18+ grounds or tags its "
+          "equivalence/provenance claims", rc == 0,
+          "MUST FIX: %s" % [(x["doc"], x["line"], x["sentence"][:70]) for x in bad_rows][:6])
+    pre = [x for pth in real if os.path.basename(pth) in gf
+           for x in AC.scan_doc(pth, classes=("b", "c"))
+           if x["gated"] and x["verdict"] == "ASSERTED"]
+    print("  ⚠️  G9: %d ungrounded equivalence/provenance claim(s) across the %d grandfathered "
+          "artifacts (reported, not failed — measured precision ~65%%, see the module "
+          "docstring)" % (len(pre), len(gf)))
+
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1].startswith("SPEC_"):
         return run_one_spec(sys.argv[1])
     print("=" * 78)
-    print("ENFORCEMENT GATES 5-8 — 8/17 (build+rig only; nothing here deploys)")
+    print("ENFORCEMENT GATES 5-9 — 8/17 (build+rig only; nothing here deploys)")
     print("=" * 78)
-    for g in (gate5, gate6, gate7, gate8, gate2c):
+    for g in (gate5, gate6, gate7, gate8, gate2c, gate_artifact_claims):
         try:
             g()
         except Exception as e:                                          # noqa: BLE001
             check("%s section" % g.__name__, False, "%s: %s" % (type(e).__name__, e))
         print()
-    print("GATES 5-8: " + ("ALL GREEN" if not FAILS else "RED: " + ", ".join(FAILS)))
+    print("GATES 5-9: " + ("ALL GREEN" if not FAILS else "RED: " + ", ".join(FAILS)))
     return 1 if FAILS else 0
 
 

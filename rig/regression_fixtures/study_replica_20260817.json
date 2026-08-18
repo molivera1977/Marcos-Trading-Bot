@@ -1,0 +1,14 @@
+{
+ "_defect": "Every kill-test script re-implemented the lane detectors instead of calling the bot's. Replicas drift, and always in the flattering direction.",
+ "_source": "rig/test_shipset_20260804.py gate EG2 + data/killtests/live_harness.py",
+ "gate": "EG2",
+ "gate_file": "rig/test_shipset_20260804.py",
+ "known_contaminated": [
+  "entry_drift_20260817.py",
+  "burst_saturation_20260817.py",
+  "kevseq_floor_sweep_20260817.py",
+  "kevseq_reconciliation_20260817.py"
+ ],
+ "expect": "a killtest script that hand-rolls a bot detector TRIPS; the same script importing live_harness is CLEAN",
+ "negative_control": "synthetic hand-rolled script (kevseq_scan + pctile) must trip own-detector-def and burst-percentile; the harness-importing twin must not"
+}

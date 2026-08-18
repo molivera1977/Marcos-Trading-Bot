@@ -1,0 +1,87 @@
+{
+ "_defect": "A restart wipes the in-memory 10s bucket cursors; the deep-rehydrate path re-feeds the whole day and every 10s detector RE-EMITS historical fires as fresh decision rows \u2014 and on the conversion lanes a replayed bar was CONVERTED.",
+ "_source": "data/killtests/RESULTS_LEDGER.md '2026-08-17 CORRECTION \u2014 TRIGGER/FIRE COUNTS FOR 8/17 ARE INFLATED BY RESTART REPLAY' + exit_params_our_fires_20260817_arch.json",
+ "_repro": "rows: status=='boot_config'  /  status=='grinder_shadow_fire' and ticker=='RBNE'",
+ "date": "2026-08-17",
+ "boot_config_rows": [
+  "03:55:08 AM",
+  "11:13:32 AM",
+  "11:57:48 AM",
+  "01:49:15 PM",
+  "01:58:54 PM"
+ ],
+ "boot_config_n": 5,
+ "rbne_grinder_shadow_fires": [
+  {
+   "time": "11:06:49 AM",
+   "seq": 0,
+   "mins_since_1030": 35
+  },
+  {
+   "time": "11:14:25 AM",
+   "seq": 0,
+   "mins_since_1030": 35
+  },
+  {
+   "time": "12:01:27 PM",
+   "seq": 0,
+   "mins_since_1030": 35
+  },
+  {
+   "time": "12:26:52 PM",
+   "seq": 1,
+   "mins_since_1030": 116
+  },
+  {
+   "time": "01:50:05 PM",
+   "seq": 0,
+   "mins_since_1030": 35
+  },
+  {
+   "time": "01:59:41 PM",
+   "seq": 0,
+   "mins_since_1030": 35
+  },
+  {
+   "time": "02:02:03 PM",
+   "seq": 1,
+   "mins_since_1030": 211
+  }
+ ],
+ "rbne_seq0_n": 5,
+ "lane_inflation": {
+  "grinder_shadow_fire": {
+   "logged": 66,
+   "distinct": 53,
+   "inflation": 13,
+   "all_cross_restart": true
+  },
+  "v2_shadow_fire": {
+   "logged": 164,
+   "distinct": 150,
+   "inflation": 14,
+   "all_cross_restart": true
+  },
+  "bandpass_shadow_fire": {
+   "logged": 9,
+   "distinct": 8,
+   "inflation": 1,
+   "all_cross_restart": true
+  }
+ },
+ "all_fire_trigger_rows": {
+  "logged": 960,
+  "distinct": 843,
+  "inflation": 117,
+  "cross_restart": 28
+ },
+ "converted_replay_fire_age_s": [
+  6960.2,
+  2394.7,
+  2264.8,
+  1975.6
+ ],
+ "expect_fires_from_one_bucket_refed_n_times": 1,
+ "refeed_passes": 5,
+ "negative_control": "DEDUPE_FIRES=0 -> _fire_once always True -> the same re-fed bucket emits once per restart (5), reproducing the five seq=0 RBNE rows."
+}

@@ -1,0 +1,36 @@
+{
+ "_defect": "A detector invoked without a required ctx field silently DEFAULTS. That is how four studies graded a front-side-FREE kevseq while the live lane requires the clause \u2014 four studies grading a machine that is not ours.",
+ "_source": "data/killtests/live_harness.py (THE CONTEXT CONTRACT) + data/killtests/kevseq_frontside_tf_20260817.md \u00a74",
+ "contaminated_studies": [
+  "entry_drift_20260817",
+  "burst_saturation_20260817",
+  "kevseq_floor_sweep_20260817",
+  "kevseq_reconciliation_20260817"
+ ],
+ "studies_replicating_live_gate": 0,
+ "studies_audited": 6,
+ "lane_ctx_required": {
+  "kevseq": [
+   "front_side",
+   "day_gain",
+   "top3",
+   "blue_sky"
+  ],
+  "zone_flip": [
+   "pm_floor"
+  ],
+  "flat_top": [
+   "armed",
+   "time_hm",
+   "ma_first",
+   "ma_only_window"
+  ],
+  "grinder": [],
+  "bandpass": [],
+  "v2": [],
+  "hidden": [],
+  "ignition_10s": []
+ },
+ "expect": "MissingContext naming the absent field(s); ctx=None also refuses; a value of None is ALLOWED (kevseq: front_side=None -> unknown -> refuse) but the KEY may not be absent",
+ "negative_control": "a PERMISSIVE _check_ctx variant (missing key -> None) returns a ctx and the lane runs \u2014 reproducing the front-side-free studies. Simulated explicitly: the pre-harness scripts had no ctx contract at all to git-show."
+}

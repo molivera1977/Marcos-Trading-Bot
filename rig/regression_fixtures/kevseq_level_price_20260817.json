@@ -1,0 +1,103 @@
+{
+ "_defect": "kevseq_step returned px = float(pd['hi']) \u2014 the setup bar's trigger LEVEL, not a traded price. A level is not a price: the fill bar qualifies by having a HIGH above the level, and its close can be far above. Sizing was handed a fictitious risk-per-share.",
+ "_source": "data/killtests/kevseq_fire_price_20260817.md (commit 2d0a6cb)",
+ "fix_commit": "2d0a6cb",
+ "pre_fix_commit": "2d0a6cb^",
+ "env": "KEVSEQ_FIRE_ON_CLOSE",
+ "default": "1",
+ "siblings_pricing_off_close": [
+  "hidden_entry_step",
+  "v2_pullback_step",
+  "grinder_shadow_step",
+  "bandpass_step",
+  "kev_zoneflip_step",
+  "kev_reclaim_step",
+  "dip_rip_step",
+  "ignition_10s_step"
+ ],
+ "specimens": [
+  {
+   "ticker": "WFF",
+   "time": "12:01:27 PM",
+   "level_px": 5.1329,
+   "traded_px": 8.2,
+   "would_stop": 4.8,
+   "old_risk_pct": 6.49,
+   "new_risk_pct": 41.46,
+   "drift_pct": 59.75,
+   "sizing": {
+    "slot_usd": 500,
+    "planned_shares": 97,
+    "planned_risk_usd": 32,
+    "real_shares": 61,
+    "real_risk_usd": 207,
+    "risk_multiple": 6.4
+   }
+  },
+  {
+   "ticker": "WFF",
+   "time": "11:58:33 AM",
+   "level_px": 4.77,
+   "traded_px": 6.92,
+   "would_stop": null,
+   "old_risk_pct": 6.08,
+   "new_risk_pct": 35.26,
+   "drift_pct": 45.07
+  },
+  {
+   "ticker": "WETO",
+   "time": "13:50:04",
+   "level_px": 17.11,
+   "traded_px": 18.81,
+   "would_stop": 16.93,
+   "old_risk_pct": 1.05,
+   "new_risk_pct": 9.99,
+   "fire_age_s": 2284.8,
+   "note": "compound: level-priced AND fired off a 38-minute-old bar (B1+B2 in one row)"
+  },
+  {
+   "ticker": "WETO",
+   "time": "13:54:28",
+   "fire_age_s": 18.0,
+   "drift_pct": 0.95,
+   "note": "same name four minutes later \u2014 a FRESH bar makes level and close nearly agree"
+  },
+  {
+   "ticker": "TRUG",
+   "time": "13:36:08",
+   "level_px": 1.67,
+   "traded_px": 1.585,
+   "would_stop": 1.64,
+   "old_risk_pct": 1.8,
+   "expect": "degenerate_stop refusal (px <= would_stop)"
+  }
+ ],
+ "day_distribution": {
+  "n": 23,
+  "old": {
+   "min": 0.54,
+   "median": 2.6,
+   "mean": 3.56,
+   "max": 12.94,
+   "over10": 1,
+   "over20": 0
+  },
+  "new": {
+   "n": 21,
+   "min": 0.25,
+   "median": 3.34,
+   "mean": 9.28,
+   "max": 41.46,
+   "over10": 5,
+   "over20": 3
+  },
+  "refused_degenerate_stop": 2
+ },
+ "drift_across_23": {
+  "median_pct": 0.97,
+  "mean_pct": 7.05,
+  "max_pct": 59.75,
+  "min_pct": -5.49
+ },
+ "negative_control": "KEVSEQ_FIRE_ON_CLOSE=0 restores px = float(pd['hi']); the pre-fix tree (2d0a6cb^) has the unconditional level assignment and no switch at all."
+}

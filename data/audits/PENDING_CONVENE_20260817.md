@@ -543,3 +543,90 @@ one of them refuses at BUILD time, never at trade time.
 - **`KEVSEQ_LIMIT_ENTRY` stays default OFF.** Fixture (b) pins its ARITHMETIC only. Turning it
   on vetoes 16 of 25 kevseq fires and costs money on today's tape
   (`today_counterfactual_20260817.md`) — a money decision, Marcos's to price, not an auditor's.
+
+---
+
+# RELIABILITY BATCH B — LANE DETECTOR/GATE DEFECTS (8/17, BUILD + RIG ONLY)
+
+Marcos: *"fix everything that will make things reliable."* **No deploy, no push, no env change,
+no restart.** Commits: `2d0a6cb` (B1), `6ee3fe2` (B2), `be32e2e` (B4 + B5 acceptance/docs).
+B5's bot edits were swept into `460dca5` — see the collision note below. Full rig exit 0 on
+`rig/test_shipset_20260804.py`, `rig/test_gates_20260817.py` and the new
+`rig/test_batchB_20260817.py` at close.
+
+## Money-behaviour changes in this batch (Marcos prices these, not an auditor)
+
+1. **B1 `KEVSEQ_FIRE_ON_CLOSE` (default ON)** — kevseq now prices its fire at the fill bar's
+   close instead of the setup bar's high. **Changes sizing on every kevseq fire** and turns 2 of
+   today's 23 into `degenerate_stop` refusals. Risk% on today's 23: median 2.60 → 3.34, mean
+   3.56 → 9.28, max 12.94 → 41.46, >20% risk 0 → 3. The old column was fictitious, not smaller.
+   Doc `data/killtests/kevseq_fire_price_20260817.md` (WFF 12:01 and WETO 13:50 hand-traced).
+2. **B2 `LANE_FIRE_AGE_GUARD` (default `""` — ARMED ON NOTHING)** — the mechanism exists for
+   v2conv/grinder/bandpass/prevwap; no lane suppresses anything until Marcos arms one.
+   Recommended first: `grinder` (4 of its 5 stamped fires today were >90s, median 38 minutes),
+   after one session of stamped rows. Doc `data/killtests/lane_fire_age_20260817.md`.
+3. **B5 `GATE_FAIL_CLOSED` (default `""` — REFUSES NOTHING)** — momentum / volguard / ambient
+   can each be armed to fail CLOSED. Cost unquantifiable today (see below), so all OFF.
+   Doc `data/killtests/fail_open_gates_20260817.md`.
+
+## EG1 matrix — pins changed
+
+| pin | was | now | why |
+|---|---|---|---|
+| `kevseq.a` | OPEN (EG1-a) | **True** | B1 |
+| `v2conv.b` `grinder.b` `bandpass.b` `prevwap.b` | OPEN (EG1-b) | **True** | B2 (mechanism present; armed on nothing — same scoring rule EG1 already applied to `KEVSEQ_FIRE_MAX_AGE_S`) |
+| `flat_top.b/.c` `crown_seam.b/.c` `halt_ladder.b/.c` | OPEN | **STILL OPEN** | see "not built" |
+
+Two EG1-support pins were also updated, deliberately and visibly:
+- **`AP-w` INVERTED.** It asserted *"kevseq is the ONLY detector returning a SETUP-BAR HIGH"*.
+  B1 closed that, so the check now asserts the opposite and additionally pins `level_px` and the
+  kill switch — the old shape must be **gone**, not merely different.
+- **`AG-i` repinned** from `px == 10.29` (the W setup high) to `px == 10.30` (the fill close)
+  **plus** `level_px == 10.29`, so neither the price nor the level can drift unnoticed.
+- **halt-aware site count 4 → 5** `_bucket_fresh(k, sym=)` sites (4 in-detector + the shared
+  `_lane_fire_stale` helper). The EG1 property computer now recognises `_lane_fire_stale` as
+  the shared form of the same mechanism.
+
+## NOT BUILT — named, with reasons
+
+- **B3 (drift/age stamps on flat_top, crown_seam, halt_ladder) — NOT SHIPPED.** These three have
+  no separable detector, no fire dict and **no bucket epoch**: their fire price is the live
+  quote, appended to `breakouts` inline by the caller. There is nothing to age or to drift
+  against without first giving them a fire-bar identity. Doing that is a change to how three
+  approved lanes report their entries and belongs in a scoped item, not a stamp.
+- **B2 for those same three lanes — NOT SHIPPED**, for the same reason. Porting "the same
+  mechanism" to a lane with no bar to measure would mean inventing a different mechanism and
+  calling it the same one.
+- **B4 — no detector change, by diagnosis.** Zero fires today had a stop at/above their own fire
+  price. 17 of the 35 were the study's hand-rolled stop (`ma_pullback` logs no stop); 9 were the
+  study comparing against the live quote instead of `fire_px`; 9 were the `hidden_shadow_fire`
+  ROW pairing a live quote with a fire-bar stop. The last is a real defect **on the logging
+  side**, which a concurrent agent owns — handed off, not edited from two directions.
+  Doc `data/killtests/bad_stop_20260817.md`.
+
+## What the convening must cover
+
+1. **B1 blast radius.** `_ksf["px"]` feeds: the drift stamp (:8715), the `KEVSEQ_LIMIT_ENTRY`
+   limit (`_ks_lim`), the `bar_lo > _ks_lim` unfillable-limit veto, `intended_risk_pct`, the
+   conversion guard `_ksf["would_stop"] < _ksf["px"]`, and `breakouts.append`. All now see the
+   honest price; confirm the F1/F3/F4 guard ladder still reads correctly against a close-based
+   fire (their thresholds were calibrated against a LEVEL-based one — **the drift-guard
+   tolerances may now be mis-scaled and should be re-graded, not assumed**).
+2. **`level_px` is a NEW key on the kevseq fire dict.** Confirm no downstream consumer iterates
+   the dict's keys.
+3. **B2 restart semantics.** `_LANE_AGE_GUARD` is parsed lazily into a module-level dict and
+   never re-read; an env change requires a restart to take effect. On a suppression the setup is
+   consumed (`st["n"]`++ and cooldown), so a restart that replays buckets will re-arm the lane
+   from scratch — the interaction with the A1 fired-bucket high-water mark should be checked by
+   whoever owns A1.
+4. **B5 `volguard` armed path** returns from inside `execute_trade`'s sizing block via the
+   capital-skip shape. Confirm `_slot_refund` + `held`-lock release is the complete undo at that
+   point (it is the same undo `no_capital_skip` performs three lines later).
+5. **⚠️ GATE-5 COLLISION.** The concurrent agent commits with `git add -A` on the shared working
+   tree and swept (a) this session's new rig file into `543888f` and (b) **this session's B5 bot
+   edits into `460dca5`** — so a behaviour change landed without an `Acceptance:` trailer. Its
+   acceptance test exists (`SPEC_fail_open_gates_observable_and_armable`, committed in
+   `be32e2e`) and fails at `6ee3fe2`. **The convening must treat `460dca5` as carrying an
+   unlabelled behaviour change**, and the two-agents-one-worktree pattern is itself a finding:
+   B1/B2 were staged via synthesized blobs (`git update-index --cacheinfo`) specifically to
+   avoid destroying the concurrent work, and that is not a mechanism that scales.

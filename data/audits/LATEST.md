@@ -81,6 +81,20 @@ calibrated for 10s buckets. flat_top's bar is **180s** wide, so its age sweeps 0
 `LANE_FIRE_AGE_GUARD=flat_top` would eat every fire landing past 90s into a bar. It must be
 `flat_top:300`+ from a measured distribution. This is why the stamps ship ON and the guards OFF.
 
+### DECISIONS RENDERED 8/18 (Marcos, walking the ten one at a time)
+
+| # | flag | outcome | basis |
+|---|---|---|---|
+| 1 | `LANE_REGISTRY_EXEMPT` (chart gate) | **ON** | Mechanism is right (registry beats copy-paste; it was the WFF killer). Scope unpriced, so the counterfactual now ships on ALL 11 tape lanes — `shadow_gate` / `would_have_blocked` / `grant` — making it gradable Friday instead of arguable. |
+| 2 | `LANE_REGISTRY_EXEMPT` (extension gate) | **NO SIGN-OFF NEEDED — formal no-op** | Measured: `extension_reject` = ZERO across 15 sessions. AST census: the 7 lanes it newly exempts are EXACTLY the 7 that never stamp `ema90`, so the guard already failed open on them. The audit's "grinder and crown_seam now un-capped" was wrong — they were never capped. Separate defect opened + gate 10. |
+| 3 | `TAPE_LANE_SCALAR_EXEMPT` | **ON (affirmed)** | Already live since 8/17 12:01 (WFF row), so ON is the status quo and OFF was the change. Scope measured: 7 of 95 refusals over 14 sessions; 88 keep their veto. OFF would destroy the only gradable population. Ledger row `scalar_exempt_affirmed_0818`. The +$25.14 N=1 is explicitly NOT the basis. |
+| 4 | `V2_CAP_ON_FILLS` | **ON (reaffirmed)** | Not a new policy — it enforces the SETTLED 7/29 ruling "a slot is spent by a TRADE, not an ATTEMPT" on three lanes never wired to `_slot_refund`. Measured 8/17: 46 `premarket_shadow_entry` non-trades consumed the caps; 47 `v2conv_capped` + 51 `grinder_capped` refusals followed, 16 of them in the 09:00 hour. Ledger row `cap_spent_by_trade_not_attempt` HOLDS. |
+
+**Watch item carried from #4 (not a prediction, a thing to look at):** with caps counting fills,
+more triggers reach the order path, so the binding constraint moves from the cap ledger to
+CAPITAL on $3,000. Expect `no_capital_skip` to become the visible limiter instead of `*_capped`.
+That is a different failure mode than 8/17 showed; it should be watched, not forecast.
+
 ## 4. DAY-ONE WALKTHROUGH — first specimen, end to end
 
 **Mechanism traced: the durable fire-HWM, through tomorrow's 03:55 boot.**

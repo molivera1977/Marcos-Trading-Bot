@@ -5174,6 +5174,72 @@ def _cyc_emit(cyc, n_candidates):
         pass
 
 
+# ── 8/17 B2 (EG1-b): FIRE-AGE GUARD PORTED TO THE UNCOVERED DETECTOR LANES ───────────
+# `_log_stale_fire` (the CURL_FIRE_MAX_AGE_SECS suppressor) covered only vwap_reclaim,
+# hidden_entry, zone_flip and ignition10s.  v2conv, grinder, bandpass and prevwap had no
+# staleness mechanism at all — and today's archive shows why that matters: of the five
+# grinder fires that carry a fire_age_s stamp, FOUR were older than 90s (median 2264.8s =
+# 38 minutes), and the one kevseq fire with a stamp over 90s (WETO 13:50, 2284.8s) was also
+# the day's second-worst entry drift.  A 38-minute-old bar is not a signal, it is a replay.
+#
+# THIS IS THE SAME MECHANISM, NOT A NEW ONE: the shared `_bucket_fresh` test and the shared
+# `_log_stale_fire` canary row, called from the detector at the fire site exactly as the four
+# covered lanes call them.
+#
+# DEFAULT: EVERY LANE OFF.  `LANE_FIRE_AGE_GUARD` is an empty comma list, so no lane
+# suppresses anything until Marcos arms it.  Reason, stated honestly: an age guard REMOVES
+# TRADES, and for six of the seven lanes today's cost CANNOT BE QUANTIFIED — the fires carry
+# no age stamp, which is precisely defect EG1-c.  Arming a suppressor whose cost is unmeasured
+# would be a silent tightening.  One shared env (rather than seven) because the lanes share
+# one threshold source (CURL_FIRE_MAX_AGE_SECS) and one mechanism; a per-lane override is
+# accepted as "lane:secs" for the day a lane earns its own number.
+# Doc: data/killtests/lane_fire_age_20260817.md
+def _parse_lane_age_guard(spec):
+    """'grinder,v2conv:45' -> {'grinder': CURL_FIRE_MAX_AGE_SECS, 'v2conv': 45.0}."""
+    out = {}
+    try:
+        for part in (spec or "").split(","):
+            part = part.strip()
+            if not part:
+                continue
+            if ":" in part:
+                nm, _, sec = part.partition(":")
+                out[nm.strip()] = float(sec)
+            else:
+                out[part] = CURL_FIRE_MAX_AGE_SECS
+    except Exception:
+        return {}
+    return out
+
+
+LANE_FIRE_AGE_GUARD = os.environ.get("LANE_FIRE_AGE_GUARD", "")   # default: NO lane armed
+# Parsed LAZILY, on the first guard call, into a plain module-level dict.  It is deliberately
+# NOT `_LANE_AGE_GUARD = _parse_lane_age_guard(...)` at import time: the isolation rig lifts bot
+# symbols by replaying assignments BEFORE function defs, so a module-level assign that calls a
+# module-level function is un-liftable and takes every 10s detector down with it (BH-c).
+_LANE_AGE_GUARD: dict = {}
+_LANE_AGE_PARSED = [False]
+
+
+def _lane_fire_stale(sym, lane, k, px):
+    """True when `lane`'s guard is ARMED and bucket `k` is too old to act on — the caller
+    must then consume the setup and NOT fire.  False when the guard is disarmed (the default)
+    or the bar is fresh.  Logs the same stale_fire_suppressed canary as the covered lanes so
+    the cost of an armed guard is always visible.  Never raises."""
+    try:
+        if not _LANE_AGE_PARSED[0]:
+            _LANE_AGE_GUARD.update(_parse_lane_age_guard(LANE_FIRE_AGE_GUARD))
+            _LANE_AGE_PARSED[0] = True
+        if lane not in _LANE_AGE_GUARD:
+            return False                       # guard not armed for this lane — no behaviour
+        if _bucket_fresh(k, sym=sym):
+            return False
+        _log_stale_fire(sym, lane, k, px)
+        return True
+    except Exception:
+        return False                           # a bookkeeping bug must never stop a fire
+
+
 def _log_stale_fire(sym, lane, k, px):
     """Visible-cost canary for every suppressed stale fire. Never raises."""
     try:
@@ -6398,6 +6464,13 @@ def v2_pullback_step(sym, new_bars, vwap):
                     # C3: per-name cooldown 300s after any fire
                     if _ok and st.get("cool_k") is not None and k - st["cool_k"] < V2_COOL_SECS:
                         _ok = False
+                # 8/17 B2 (EG1-b): fire-age guard, same mechanism as the four covered lanes.
+                # Disarmed unless "v2conv" is in LANE_FIRE_AGE_GUARD; when armed the setup is
+                # CONSUMED (st["n"] advances, cooldown starts) and no fire is emitted.
+                if _ok and _lane_fire_stale(sym, "v2conv", k, round(c, 4)):
+                    st["n"] += 1
+                    st["cool_k"] = k
+                    _ok = False
                 if _ok:
                     fired = {"px": round(c, 4), "k": k,
                              "flush_low": round(fl["low"], 4),
@@ -6472,6 +6545,13 @@ def grinder_shadow_step(sym, new_bars, vwap):
         lo15 = min(x[2] for x in w15)
         if not (lo15 < c):                                 # degenerate-stop guard (TEST H spec)
             continue
+        # 8/17 B2 (EG1-b): fire-age guard.  Disarmed unless "grinder" is in
+        # LANE_FIRE_AGE_GUARD.  This is the lane the archive convicts: 4 of the 5 stamped
+        # grinder fires today were on bars older than 90s (median 38 minutes).
+        if _lane_fire_stale(sym, "grinder", k, round(c, 4)):
+            st["n"] += 1
+            st["cool_k"] = k
+            continue
         _1030 = _t.replace(hour=10, minute=30, second=0, microsecond=0)
         fired = {"px": round(c, 4), "k": k, "session_hi": round(st["sess_hi"], 4),
                  "would_stop": round(lo15, 4),
@@ -6519,7 +6599,7 @@ _bp_st: dict = {}   # sym -> RTH band-pass machine state (module-level: survives
 _pv_st: dict = {}   # sym -> PRE band-pass machine state
 _bp_conv_day = {"d": None, "n": 0}   # bandpass conversions charged per day (cap ledger)
 
-def bandpass_step(sym, new_bars, vwap, st_map, hm_lo, hm_hi):
+def bandpass_step(sym, new_bars, vwap, st_map, hm_lo, hm_hi, lane="bandpass"):
     """Advance sym's band-pass VWAP-reclaim SHADOW machine over NEW completed 10s bars
     [(k,o,h,l,c,vol),...] whose ET minute-of-day is in [hm_lo, hm_hi). Detection only — the
     caller logs the row (and, for the RTH lane, converts ONLY under BANDPASS_CONVERT).
@@ -6555,7 +6635,15 @@ def bandpass_step(sym, new_bars, vwap, st_map, hm_lo, hm_hi):
                     n_cross = len(st["crosses"])
                     stop = st["hold_lo"]
                     cool = st.get("cool_k") is not None and k - st["cool_k"] < BP_COOL_SECS
-                    if stop < c and n_cross < BP_CHOP_CROSSES and not cool:
+                    # 8/17 B2 (EG1-b): fire-age guard.  `lane` is a PARAMETER because this one
+                    # detector serves BOTH bandpass (RTH) and prevwap (Kev's 8AM trade) — the
+                    # suppressed row must be attributed to the lane that actually fired, not to
+                    # whichever name the function happens to be called.
+                    _bp_stale = _lane_fire_stale(sym, lane, k, round(c, 4))
+                    if _bp_stale:
+                        st["n"] += 1
+                        st["cool_k"] = k
+                    if stop < c and n_cross < BP_CHOP_CROSSES and not cool and not _bp_stale:
                         fired = {"px": round(c, 4), "k": k, "would_stop": round(stop, 4),
                                  "hold_n": st["streak"], "hold_hi": round(st["hold_hi"], 4),
                                  "crosses_20m": n_cross, "seq": st["n"]}
@@ -8575,7 +8663,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # PRE lane has NO conversion path (hard-coded shadow).
                         if BANDPASS_SHADOW:
                             try:
-                                _bpf = bandpass_step(t, _nb, _vr_sv, _bp_st, 570, 960)
+                                _bpf = bandpass_step(t, _nb, _vr_sv, _bp_st, 570, 960, lane="bandpass")
                                 # 8/17 A1: emit each bucket at most once per day (restart replay)
                                 if _bpf and not _fire_once("bandpass", t, _bpf.get("k")):
                                     _replay_suppressed(t, "bandpass", _bpf.get("k"), _bpf.get("px"))
@@ -8787,7 +8875,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 pass
                         if PREVWAP_SHADOW:
                             try:
-                                _pvf = bandpass_step(t, _nb, _vr_sv, _pv_st, 420, 565)
+                                _pvf = bandpass_step(t, _nb, _vr_sv, _pv_st, 420, 565, lane="prevwap")
                                 # 8/17 A1: emit each bucket at most once per day (restart replay)
                                 if _pvf and not _fire_once("prevwap", t, _pvf.get("k")):
                                     _replay_suppressed(t, "prevwap", _pvf.get("k"), _pvf.get("px"))

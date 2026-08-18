@@ -154,9 +154,14 @@ def SPEC_lane_fire_age_mechanism():
     ok = True
     for lane, blk in spans.items():
         ok = ok and "_lane_fire_stale(" in blk and "LANE_AGE_GUARD" in src
-    # bandpass serves BOTH bandpass and prevwap: the lane name must be a parameter, so the
+    # each detector must name ITS OWN lane in the guard call
+    ok = ok and '_lane_fire_stale(sym, "v2conv"' in spans["v2conv"]
+    ok = ok and '_lane_fire_stale(sym, "grinder"' in spans["grinder"]
+    # bandpass serves BOTH bandpass and prevwap: the lane name must be a PARAMETER, so the
     # prevwap caller's suppressed rows are attributed to prevwap and not to bandpass.
-    ok = ok and 'lane="bandpass"' in src and re.search(r'lane\s*=\s*_bp_lane|lane=lane', spans["bandpass"]) is not None
+    ok = ok and '_lane_fire_stale(sym, lane,' in spans["bandpass"]
+    ok = ok and 'lane="bandpass"):' in src            # the detector's default
+    ok = ok and 'lane="bandpass")' in src and 'lane="prevwap")' in src   # both call sites
     return bool(ok)
 
 
@@ -167,15 +172,19 @@ def SPEC_lane_fire_age_suppresses():
     src = bot_src()
     blk = _extract(src, "def _lane_fire_stale(", "def _log_stale_fire(")
     ns = {"time": __import__("time"), "_LANE_AGE_GUARD": {"grinder": 90.0},
+      "_LANE_AGE_PARSED": [True],   # pre-parsed: the spec supplies the armed map
+      "_parse_lane_age_guard": (lambda spec: {}),
           "_bucket_fresh": lambda k, **kw: False,
           "_log_stale_fire": lambda *a, **k: None}
     exec(blk, ns)
     fn = ns["_lane_fire_stale"]
     armed_stale = fn("T", "grinder", 1, 1.0)
     ns["_bucket_fresh"] = lambda k, **kw: True
+    ns["_LANE_AGE_PARSED"] = [True]
     exec(blk, ns)
     armed_fresh = ns["_lane_fire_stale"]("T", "grinder", 1, 1.0)
     ns["_LANE_AGE_GUARD"] = {}
+    ns["_LANE_AGE_PARSED"] = [True]
     ns["_bucket_fresh"] = lambda k, **kw: False
     exec(blk, ns)
     disarmed = ns["_lane_fire_stale"]("T", "grinder", 1, 1.0)

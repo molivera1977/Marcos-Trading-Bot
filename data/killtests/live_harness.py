@@ -289,6 +289,11 @@ ALL_SYMBOLS = [
     # other 10s lanes
     "grinder_shadow_step", "bandpass_step", "v2_pullback_step", "v2_trailing_calm",
     "hidden_entry_step", "ignition_10s_step", "detect_ignition",
+    # 8/17 B2: the shared fire-age suppressor the detector lanes now call (and its env
+    # parser).  Disarmed by default, so lifting it changes no harness result — but it must
+    # LIFT, or kevseq_step/grinder_shadow_step/bandpass_step/v2_pullback_step cannot.
+    "_parse_lane_age_guard", "_lane_fire_stale", "_LANE_AGE_GUARD", "LANE_FIRE_AGE_GUARD",
+    "_bucket_fresh", "_log_stale_fire", "_halted_secs_since",
     # shared machinery studies keep re-implementing
     "_seq_events", "_wallclock_window", "_scaled_risk", "aggregate_bars",
     "calculate_ema9", "calculate_ema20", "calculate_ema90",

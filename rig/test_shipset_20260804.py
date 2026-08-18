@@ -173,7 +173,10 @@ src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
 check("halt-credit tracker exists", "def _halt_credit_note" in src and "def _halted_secs_since" in src)
 check("bucket_fresh halt-aware (sym param)", "def _bucket_fresh(k, hm=None, sym=None):" in src
       and "_age -= _halted_secs_since(sym, k)" in src)
-check("all 4 detector sites pass sym", src.count("_bucket_fresh(k, sym=") == 4)
+# 8/17 B2: 4 in-detector sites + the 5th inside the SHARED `_lane_fire_stale`
+# suppressor, which carries the halt-aware call for v2conv/grinder/bandpass/prevwap.
+check("all halt-aware fire-age sites pass sym (4 in-detector + 1 shared helper)",
+      src.count("_bucket_fresh(k, sym=") == 5, str(src.count("_bucket_fresh(k, sym=")))
 check("credit fed from curl loop", "_halt_credit_note(t, _ks[_i-1], _ks[_i])" in src)
 check("dip_rip window halt-aware", '(k - st["r_k"]) - _halted_secs_since(sym, st["r_k"]) > DIPRIP_WINDOW_S' in src)
 check("ammo rehydrate on boot", "ammo rehydrate:" in src and '_curl_rth_n[_kk] = _curl_rth_n.get(_kk, 0) + 1' in src)
@@ -1610,7 +1613,12 @@ try:
     # (f) v2 detector EXECUTED on a synthetic flush->confirmation tape (three-rings ring 1)
     from zoneinfo import ZoneInfo as _YZ
     import datetime as _ydt
-    _yd = {"os": os, "datetime": _ydt.datetime, "EASTERN": _YZ("America/New_York")}
+    _yd = {"os": os, "datetime": _ydt.datetime, "EASTERN": _YZ("America/New_York"),
+           "_lane_fire_stale": (lambda *a, **k: False)}
+    # 8/17 B2: the detectors now call the shared `_lane_fire_stale` suppressor.  These
+    # isolated execs have no module globals, so the guard is stubbed DISARMED here —
+    # which is also its shipped default.  Its own behaviour is graded by
+    # rig/test_batchB_20260817.py::SPEC_lane_fire_age_suppresses.
     exec(_y[_y.index('V2_SHADOW      = os.environ.get'):_y.index("def kev_zoneflip_step")], _yd)
     _bars = [(0, 9.8, 10.0, 9.7, 9.9, 100),      # push high 10.0
              (10, 9.9, 9.9, 9.5, 9.55, 100),     # flush -5% within 10s -> armed, low 9.5
@@ -1632,7 +1640,8 @@ def _z_make(env):
     from zoneinfo import ZoneInfo as _Z
     import types as _t, datetime as _dt
     _fo = _t.SimpleNamespace(environ=env)
-    ns = {"os": _fo, "datetime": _dt.datetime, "EASTERN": _Z("America/New_York")}
+    ns = {"os": _fo, "datetime": _dt.datetime, "EASTERN": _Z("America/New_York"),
+          "_lane_fire_stale": (lambda *a, **k: False)}   # 8/17 B2 stub (disarmed = shipped default)
     exec(_ZSEG, ns)
     return ns
 
@@ -1717,7 +1726,7 @@ try:
     from zoneinfo import ZoneInfo as _AAZ
     import types as _aat, datetime as _aadt
     _AA_SEG = _y[_y.index('GRINDER_SHADOW   = os.environ.get'):_y.index("def kev_zoneflip_step")]
-    _aan = {"os": _aat.SimpleNamespace(environ={}), "datetime": _aadt.datetime,
+    _aan = {"os": _aat.SimpleNamespace(environ={}), "datetime": _aadt.datetime, "_lane_fire_stale": (lambda *a, **k: False),
             "EASTERN": _AAZ("America/New_York")}
     exec(_AA_SEG, _aan)
     assert _aan["GRINDER_SHADOW"] is True                          # default ON with empty env
@@ -2119,7 +2128,7 @@ try:
     import types as _aft, datetime as _afdt
     _af_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
     _AF_SEG = _af_src[_af_src.index('BANDPASS_SHADOW    = os.environ.get'):_af_src.index("def kev_zoneflip_step")]
-    _afn = {"os": _aft.SimpleNamespace(environ={}), "datetime": _afdt.datetime,
+    _afn = {"os": _aft.SimpleNamespace(environ={}), "datetime": _afdt.datetime, "_lane_fire_stale": (lambda *a, **k: False),
             "EASTERN": _AFZ("America/New_York")}
     exec(_AF_SEG, _afn)
     check("AF-a: envs default — BANDPASS_SHADOW on, BANDPASS_CONVERT OFF, PREVWAP_SHADOW on, cap 3",
@@ -2251,8 +2260,11 @@ try:
         return t
     # (i) EXECUTED: B then W with burst -> fires, seq "B W", stop = wick low, px = W-bar high
     _f = _ks("KA", _agbw(_agwarm(), 300), 10.0, _ctx)
-    check("AG-i: B->W + burst fires: ok, seq 'B W', stop 10.06 (wick low), px 10.29, burst_ratio>1, fresh_touch_n 0, leg 1",
-          bool(_f) and _f["ok"] and _f["seq_str"] == "B W" and _f["would_stop"] == 10.06 and _f["px"] == 10.29
+    # 8/17 B1: px is now the FILL BAR'S CLOSE (10.30), not the W setup bar's high (10.29).
+    # The level is still returned, as level_px — both are pinned so neither can drift.
+    check("AG-i: B->W + burst fires: ok, seq 'B W', stop 10.06 (wick low), px 10.30 = fill close (level_px 10.29), burst_ratio>1, fresh_touch_n 0, leg 1",
+          bool(_f) and _f["ok"] and _f["seq_str"] == "B W" and _f["would_stop"] == 10.06
+          and _f["px"] == 10.30 and _f["level_px"] == 10.29
           and _f["burst"] and _f["burst_ratio"] > 1 and _f["fresh_touch_n"] == 0 and _f["leg"] == 1 and _f["seq"] == 0, str(_f))
     # (ii) same tape, fill bar volume 40 (< p75) -> NOT ok, why no_burst (evidence row, no fire)
     _f2 = _ks("KB", _agbw(_agwarm(), 40), 10.0, _ctx)
@@ -3142,8 +3154,17 @@ try:
                                      "kevseq_max_drift=KEVSEQ_MAX_DRIFT", "kevseq_fire_max_age_s=KEVSEQ_FIRE_MAX_AGE_S")))
 
     # ── (8) BLAST RADIUS (step 4): the structural defect is kevseq-ONLY; siblings get stamps ──
-    check("AP-w: kevseq is the ONLY detector returning a SETUP-BAR HIGH — every sibling returns the close",
-          _ap_src.count('"px": round(c, 4)') >= 7 and '"px": round(px, 4), "k": k,' in _ap_src)
+    # 8/17 B1 CLOSED THIS: kevseq was the ONLY detector returning a SETUP-BAR HIGH.  It now
+    # prices off the fill bar's close like all eight siblings (KEVSEQ_FIRE_ON_CLOSE, default
+    # ON), with the level preserved as `level_px` for slicing.  The check is INVERTED, not
+    # deleted: the old shape must be gone, the level must still be recorded, and the kill
+    # switch must still be able to restore it.  Doc: data/killtests/kevseq_fire_price_20260817.md
+    check("AP-w: EVERY detector now prices off the fill bar's close — the setup-high fire is gone",
+          _ap_src.count('"px": round(c, 4)') >= 7
+          and '"px": round(px, 4), "k": k,' not in _ap_src
+          and '"px": round(c, 4) if KEVSEQ_FIRE_ON_CLOSE else round(px, 4),' in _ap_src
+          and '"level_px": round(float(pd["hi"]), 4),' in _ap_src
+          and 'KEVSEQ_FIRE_ON_CLOSE", "1"' in _ap_src)
     check("AP-x: v2conv/grinder/bandpass/prevwap triggered rows now stamp fire_age_s + drift_pct (observe-only)",
           all(_ap_src.count(f'_log_decision(t, "triggered_{ln}"') == 1
               and "fire_age_s=" in _ap_src[_ap_src.index(f'_log_decision(t, "triggered_{ln}"'):
@@ -3689,7 +3710,15 @@ try:
         # (b) FIRE-AGE / STALENESS GUARD ON THE PATH.  Presence assertion (cannot be decided
         # structurally): either the detector calls the shared _log_stale_fire suppressor, or
         # the caller carries a named <LANE>_FIRE_MAX_AGE_S veto.
+        # 8/17 B2: the shared `_lane_fire_stale(sym, lane, k, px)` suppressor counts too — it
+        # IS the same mechanism (it runs _bucket_fresh and emits the same _log_stale_fire
+        # canary row); it exists so the four uncovered detector lanes could be given the
+        # guard without copying it four times.  `_lane_fire_stale(sym, lane,` (the bare NAME,
+        # not a literal) is bandpass_step serving both bandpass and prevwap through its lane
+        # parameter.  Doc: data/killtests/lane_fire_age_20260817.md
         P["b"] = (f'_log_stale_fire(sym, "{lane}"' in fsrc
+                  or f'_lane_fire_stale(sym, "{lane}"' in fsrc
+                  or ("_lane_fire_stale(sym, lane," in fsrc and lane in ("bandpass", "prevwap"))
                   or f'_log_stale_fire(sym, "{lane.split("_")[0]}"' in fsrc
                   or bool(re.search(r'%s_FIRE_MAX_AGE_S\s*>\s*0' % lane.upper(), src))
                   or bool(re.search(r'KEVSEQ_FIRE_MAX_AGE_S\s*>\s*0', src) and lane == "kevseq"))
@@ -3754,10 +3783,10 @@ try:
         # 8/17 B1 CLOSED EG1-a: kevseq now prices off the fill bar's close (KEVSEQ_FIRE_ON_CLOSE,
         # default ON).  Doc data/killtests/kevseq_fire_price_20260817.md.  Pin flipped OPEN->True.
         "kevseq":       {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
-        "v2conv":       {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
-        "grinder":      {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
-        "bandpass":     {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
-        "prevwap":      {"a": True, "b": "OPEN:PENDING_CONVENE_20260817#EG1-b", "c": True, "d": True, "e": True, "f": True, "g": True},
+        "v2conv":       {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
+        "grinder":      {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
+        "bandpass":     {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
+        "prevwap":      {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
         "hidden_entry": {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
         "zone_flip":    {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
         "vwap_reclaim": {"a": True, "b": True, "c": True, "d": True, "e": True, "f": True, "g": True},
@@ -4236,10 +4265,37 @@ try:
     # is precisely how its headline got reported without the caveat travelling with it)
     check("EG4-NC: burst_saturation_20260817.md (the specimen) FLAGS as it stands",
           "no-LIMITS" in _e4_bs, str(_e4_bs))
-    check("EG4-NC: kevseq_reconciliation_20260817.md also flags (bare verdict over its own "
-          "contamination)", "bare-verdict" in _e4_flags(
-              os.path.join(_E4_DIR, "kevseq_reconciliation_20260817.md")),
-          str(_e4_flags(os.path.join(_E4_DIR, "kevseq_reconciliation_20260817.md"))))
+    # kevseq_reconciliation was this gate's second specimen — a bare verdict over its own
+    # disclosed contamination. The A4 pass (commit bbe1d37) gave it, and the other 17 flagged
+    # artifacts, a one-line VERDICT QUALIFIER derived from each doc's OWN disclosure. So the
+    # control now runs BOTH WAYS off real git trees: the PRE-A4 blob must still flag (proving
+    # the detector is not vacuous) and the CURRENT file must be clean (proving the fix landed).
+    _E4_PREA4 = "efcb86b"          # A4's parent
+    try:
+        import tempfile as _e4t0
+        _e4_pre_dir = _e4t0.mkdtemp()
+        _e4_pre_p = os.path.join(_e4_pre_dir, "kevseq_reconciliation_20260817.md")
+        _e4_pre_txt = subprocess.run(
+            ["git", "-C", ROOT, "show",
+             "%s:data/killtests/kevseq_reconciliation_20260817.md" % _E4_PREA4],
+            capture_output=True, text=True, timeout=120).stdout
+        open(_e4_pre_p, "w").write(_e4_pre_txt)
+        check("EG4-NC: at %s kevseq_reconciliation_20260817.md FLAGS bare-verdict — the "
+              "defect reproduces on the pre-A4 tree" % _E4_PREA4,
+              bool(_e4_pre_txt) and "bare-verdict" in _e4_flags(_e4_pre_p),
+              str(_e4_flags(_e4_pre_p)))
+        check("EG4-NC: and the A4 qualifier CLEARED it on the current tree",
+              "bare-verdict" not in _e4_flags(
+                  os.path.join(_E4_DIR, "kevseq_reconciliation_20260817.md")),
+              str(_e4_flags(os.path.join(_E4_DIR, "kevseq_reconciliation_20260817.md"))))
+        check("EG4-NC: the qualifier is derived from the doc's OWN disclosure, not boilerplate "
+              "(it names the contamination the doc discloses)",
+              "KNOWN-CONTAMINATED" in open(
+                  os.path.join(_E4_DIR, "kevseq_reconciliation_20260817.md"),
+                  errors="replace").read()[:2000])
+    except (OSError, subprocess.SubprocessError) as _e4ncg:
+        check("EG4-NC: git negative control ran", False,
+              f"{type(_e4ncg).__name__}: {_e4ncg}")
     # (2) synthetic: a doc that discloses UNDERPOWERED and reports a clean headline must flag;
     # the SAME doc with the qualifier carried into the headline + a LIMITS section must pass.
     import tempfile as _e4tmp

@@ -139,3 +139,50 @@ print(SG.normalize(s)==SG.normalize(s.replace('**st(1), price=1','price=1, **st(
 PY
 python3 rig/spec_gate.py 460dca5 --verbose
 ```
+
+---
+
+## Incident 3 — the D-batch swept three staged files of the concurrent agent (8/17 night)
+
+Filed by the **D-batch (break-attack extraction) agent. This incident is mine.**
+
+My doc-only commit **1b5a8dc** ("D doc: LIMITS/CAVEATS section + an explicit qualified
+VERDICT") carried three files that are not mine and are not the D batch's work:
+
+- `data/audits/AGENT_WORKFLOW.md` (new, 111 lines)
+- `rig/agent_worktree.sh` (new, 106 lines)
+- `rig/spec_gate.py` (+85 lines)
+
+**How.** I ran `git status --short` before staging, exactly as the standing rule requires, and
+it was clean of those paths. Between that call and my `git add`, the other agent staged them
+into the shared index. I then staged one path of my own and committed, and everything already
+in the index rode along. `git add <paths>` does not commit only those paths — it commits the
+index. **The standing rule is therefore insufficient as written**, and the correction is
+recorded below.
+
+**Nothing was lost.** All three files are present and correct in the tree exactly as their
+author wrote them; only the commit they are attributed to is wrong.
+
+**No unlabelled behaviour change landed.** All three paths are `rig/` and `data/audits/`,
+which Gate 5 classifies as always-exempt, and my own D-batch commit (`ef0dfe5`, the one that
+does touch `marcos_trading_bot.py`) carries its Acceptance trailer and was verified against
+real git trees (`rig/spec_gate.py ef0dfe5` → PROVEN, green). So 1b5a8dc is a **record defect
+only**, not a money-behaviour defect.
+
+**History was NOT rewritten**, for the same reason as incidents 1 and 2: the other agent is a
+live concurrent writer and may already have built on HEAD. The record is repaired here.
+
+### Correction to the standing rule
+
+The rule in this document said: *never `--amend`, never `git add -A`, and re-read `git log -1`
+immediately before every commit.* That is necessary but **not sufficient** — it does not
+protect the INDEX, which is shared mutable state between concurrent agents. Two agents cannot
+safely share one index. The rule should read:
+
+> Never `--amend`, never `git add -A`. Before committing, re-read BOTH `git log -1` AND
+> `git status --short`, and **commit with explicit pathspecs** — `git commit -- <paths>` —
+> which commits only those paths regardless of what else is in the index. Better still, give
+> each concurrent agent its own `git worktree` so there is no shared index at all.
+
+The `rig/agent_worktree.sh` that rode into 1b5a8dc appears to be the other agent reaching the
+same conclusion independently, on the same night.

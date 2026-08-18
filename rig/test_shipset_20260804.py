@@ -3321,7 +3321,18 @@ try:
     _gc_blk = _gc_src[_gc_src.index("def _slot_refund(sym, entry_type):"):
                       _gc_src.index("def _slot_refund(sym, entry_type):") +
                       _gc_src[_gc_src.index("def _slot_refund(sym, entry_type):"):].index("\ndef ")]
-    _gc_day = _gc_dt.datetime.now().strftime("%Y-%m-%d")
+    # 8/17 A-batch RIG FIX (diagnosis, not a workaround): the fixture used to key its
+    # ledgers off a NAIVE now(), while _slot_refund keys off datetime.now(EASTERN) with
+    # the stub tz injected below (UTC+0). After 20:00 EDT those are DIFFERENT DATES, the
+    # day-guard inside _slot_refund refuses, and GC-h..GC-l go red on the clock alone —
+    # green when authored in the afternoon, red every evening. The fixture now reads the
+    # SAME clock the function under test reads. This is a rig defect; the bot is correct.
+    class _GCTZ(_gc_dt.tzinfo):
+        def utcoffset(self, d): return _gc_dt.timedelta(0)
+        def tzname(self, d): return "ET"
+        def dst(self, d): return _gc_dt.timedelta(0)
+    _GC_TZ = _GCTZ()
+    _gc_day = _gc_dt.datetime.now(_GC_TZ).strftime("%Y-%m-%d")
     def _mk_ns(on):
         ns = {"datetime": _gc_dt.datetime, "EASTERN": None, "os": os,
               "V2_CAP_ON_FILLS": on,
@@ -3332,12 +3343,7 @@ try:
               "_curl_rth_n": {}, "_he_day": {}, "_he_name": {},
               "_log_decision": lambda *a, **k: ns.setdefault("_rows", []).append((a, k)),
               "_is_leader": lambda s: False}
-        # EASTERN must behave like a tzinfo for strftime; naive now() is fine for the key
-        class _TZ(_gc_dt.tzinfo):
-            def utcoffset(self, d): return _gc_dt.timedelta(0)
-            def tzname(self, d): return "ET"
-            def dst(self, d): return _gc_dt.timedelta(0)
-        ns["EASTERN"] = _TZ()
+        ns["EASTERN"] = _GC_TZ   # the SAME clock _gc_day was built from
         exec(_gc_blk, ns)
         return ns
     _n1 = _mk_ns(True)
@@ -4272,10 +4278,11 @@ try:
     # the detector is not vacuous) and the CURRENT file must be clean (proving the fix landed).
     _E4_PREA4 = "efcb86b"          # A4's parent
     try:
+        import subprocess as _e4sp
         import tempfile as _e4t0
         _e4_pre_dir = _e4t0.mkdtemp()
         _e4_pre_p = os.path.join(_e4_pre_dir, "kevseq_reconciliation_20260817.md")
-        _e4_pre_txt = subprocess.run(
+        _e4_pre_txt = _e4sp.run(
             ["git", "-C", ROOT, "show",
              "%s:data/killtests/kevseq_reconciliation_20260817.md" % _E4_PREA4],
             capture_output=True, text=True, timeout=120).stdout
@@ -4293,7 +4300,7 @@ try:
               "KNOWN-CONTAMINATED" in open(
                   os.path.join(_E4_DIR, "kevseq_reconciliation_20260817.md"),
                   errors="replace").read()[:2000])
-    except (OSError, subprocess.SubprocessError) as _e4ncg:
+    except (OSError, _e4sp.SubprocessError) as _e4ncg:
         check("EG4-NC: git negative control ran", False,
               f"{type(_e4ncg).__name__}: {_e4ncg}")
     # (2) synthetic: a doc that discloses UNDERPOWERED and reports a clean headline must flag;

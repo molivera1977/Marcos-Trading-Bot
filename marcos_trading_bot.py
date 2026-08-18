@@ -4159,6 +4159,30 @@ def check_level2(ticker, entry_price) -> tuple[bool, dict]:
 # live slippage mostly eats). Era cohort under the floor: 25 trades, -$66.95 net.
 AMBIENT_DVOL_MULT = float(os.environ.get("AMBIENT_DVOL_MULT", "15.0"))
 
+# ── 8/17 B5: THE THREE FAIL-OPEN GATES (doc: data/killtests/fail_open_gates_20260817.md) ──
+# m1_wallclock_20260817.md named three gates that PASS BY DEFAULT when data is insufficient —
+# they are most permissive exactly when they know least, and on thin names that is backwards.
+#   (1) check_momentum: fewer than MOMENTUM_BARS session bars -> "passing by default"
+#   (2) the volume SIZING guard: avg 1-min volume == 0 -> NO share cap at all
+#   (3) the universal/ambient liquidity gate: fewer than 5 completed bars -> pass
+# CONVERSION IS AVAILABLE BUT DEFAULT OFF, WITH THE NUMBER STATED: today's archive can only
+# quantify (3) — 6 fail-opens, all "<5 bars".  (1) and (2) leave NO ROW AT ALL, so their cost
+# is UNKNOWN and a fail-closed default would be a silent tightening of unmeasured size.
+# What ships ON is the OBSERVABILITY: every fail-open now writes a gate_fail_open row, so
+# tomorrow the number exists and the conversion can be priced.  Arm with GATE_FAIL_CLOSED,
+# a comma list: "momentum", "volguard", "ambient" (or "all").
+GATE_FAIL_CLOSED = os.environ.get("GATE_FAIL_CLOSED", "")
+
+
+def _fail_closed(gate):
+    """True when `gate` has been ARMED to REFUSE on insufficient data.  Default: False."""
+    try:
+        _g = {x.strip() for x in GATE_FAIL_CLOSED.split(",") if x.strip()}
+        return bool(_g & {gate, "all"})
+    except Exception:
+        return False
+
+
 def _ambient_dvol_ok(bars, ticker=None):
     """(ok, median_dvol, need). Median $ volume of the last 10 COMPLETED bars vs the floor.
     Fail-OPEN on missing data (<5 completed bars) — a data gap is not evidence of thin tape;
@@ -4174,7 +4198,9 @@ def _ambient_dvol_ok(bars, ticker=None):
                     for b in comp[-10:])
         if len(dv) < 5:
             _gate_failopen("ambient", why="<5 bars")   # 8/8 #33: counted, still open by design
-            return True, 0.0, 0.0
+            # 8/17 B5: fail CLOSED only when armed (GATE_FAIL_CLOSED contains "ambient").
+            # Measured cost today: 6 fail-opens, every one "<5 bars".
+            return (not _fail_closed("ambient")), 0.0, 0.0
         med = dv[len(dv) // 2]
         need = AMBIENT_DVOL_MULT * MAX_TRADE_DOLLARS
         if ticker:
@@ -4200,8 +4226,16 @@ def check_momentum(ticker) -> tuple[bool, dict]:
         sess = _fresh_session(full) if full else []   # B16: decision gate — today-only
         if len(sess) < MOMENTUM_BARS:
             details["reason"] = f"only {len(sess)} session bars available (need {MOMENTUM_BARS})"
-            print(f"⚠️  {ticker} momentum: {details['reason']} — passing by default")
             _bump("fail_open")
+            # 8/17 B5: this path was SILENT — _bump is an in-memory counter and nothing reached
+            # the archive, which is why its cost could not be quantified on 8/17.  The row ships
+            # ON; the REFUSAL ships OFF (GATE_FAIL_CLOSED must name "momentum").
+            _gate_failopen("momentum", why=f"{len(sess)}<{MOMENTUM_BARS} session bars",
+                           ticker=ticker)
+            if _fail_closed("momentum"):
+                print(f"❌ {ticker} momentum FAIL-CLOSED: {details['reason']}")
+                return False, details
+            print(f"⚠️  {ticker} momentum: {details['reason']} — passing by default")
             return True, details
         bars = sess[-(MOMENTUM_BARS + 2):]
         # session peak 1-min volume SO FAR (completed bars) — denominator for the peak-relative gate
@@ -8519,11 +8553,11 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 try:
                                     _hpx = price if price and price > 0 else _he_fire.get("px") or 0
                                     _hg, _hbp = _level_gap(t, _hpx)   # 7/27 ballpark stamp
-                                    _log_decision(t, "hidden_shadow_fire", **_fed_stamp(_nb, _he_fire), price=_hpx,
+                                    _log_decision(t, "hidden_shadow_fire", price=_hpx,
                                                   stop=_he_fire["stop"], anchor=_he_fire["anchor"],
                                                   ext_vwap=_he_fire["ext_vwap"], seq=_he_fire["seq"],
                                                   time_hm=datetime.now(EASTERN).strftime("%H:%M"),
-                                                  level_gap_pct=_hg, ballpark=_hbp)
+                                                  level_gap_pct=_hg, ballpark=_hbp, **_fed_stamp(_nb, _he_fire))
                                 except Exception:
                                     pass
                         # ── 8/14 V2 CONFIRMED-PULLBACK shadow: same fed 10s bars + session line
@@ -8551,7 +8585,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     _q_bps, _q_n = v2_trailing_calm(t, _v2f["k"])
                                     _v2_quiet = bool(_q_bps is not None and _q_bps <= V2_QUIET_BPS)
                                     if V2_SHADOW:
-                                        _log_decision(t, "v2_shadow_fire", **_fed_stamp(_nb, _v2f), price=_v2f["px"],
+                                        _log_decision(t, "v2_shadow_fire", price=_v2f["px"],
                                                       eyes=_eyes_compact(_eyes_snapshot(t, _v2f["px"], "entry", {"vwap": _vr_sv, "zone_stop": _v2f.get("would_stop")})),
                                                       flush_low=_v2f["flush_low"],
                                                       flush_depth=_v2f["flush_depth"],
@@ -8563,7 +8597,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                       calib=_v2f.get("calib", "legacy"),
                                                       quiet_tape=_v2_quiet, quiet_bps=_q_bps, quiet_n=_q_n,
                                                       convert_on=bool(V2_CONVERT),
-                                                      seq=_v2f["seq"], time_hm=_hm_v2)
+                                                      seq=_v2f["seq"], time_hm=_hm_v2, **_fed_stamp(_nb, _v2f))
                                     # ── 8/16 V2 QUIET-TAPE conversion (joint_door_20260816.md; ALL
                                     # SIM). Convert when V2_CONVERT and (not V2_QUIET_ONLY or the
                                     # causal quiet gate passes) and the stop sits below entry. Lane
@@ -8591,13 +8625,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "quiet_bps": _q_bps, "flush_depth": _v2f["flush_depth"],
                                                 "v2_seq": _v2f["seq"],
                                             }))
-                                            _log_decision(t, "triggered_v2conv", **_fed_stamp(_nb, _v2f), price=_v2_px,
+                                            _log_decision(t, "triggered_v2conv", price=_v2_px,
                                                           fire_age_s=(round(time.time() - _v2f["k"], 1) if _v2f.get("k") else None),
                                                           drift_pct=(round((_v2_px - _v2f["px"]) / _v2f["px"] * 100, 2) if _v2f.get("px") else None),
                                                           stop=_v2f["would_stop"], fire_px=_v2f["px"],
                                                           vwap=round(_vr_sv, 4), quiet_tape=_v2_quiet,
                                                           quiet_bps=_q_bps, session=_v2_sess,
-                                                          day_n=_v2_conv_day["n"], seq=_v2f["seq"])
+                                                          day_n=_v2_conv_day["n"], seq=_v2f["seq"], **_fed_stamp(_nb, _v2f))
                             except Exception:
                                 pass
                         # ── 8/14 GRINDER-1030 shadow (#48 lane; E3 OOS-wall nominee): same fed
@@ -8616,14 +8650,14 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     _replay_suppressed(t, "grinder", _grf.get("k"), _grf.get("px"))
                                     _grf = None
                                 if _grf:
-                                    _log_decision(t, "grinder_shadow_fire", **_fed_stamp(_nb, _grf), price=_grf["px"],
+                                    _log_decision(t, "grinder_shadow_fire", price=_grf["px"],
                                                   eyes=_eyes_compact(_eyes_snapshot(t, _grf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _grf.get("would_stop")})),
                                                   session_hi=_grf["session_hi"],
                                                   vwap=round(_vr_sv, 4),
                                                   mins_since_1030=_grf["mins_since_1030"],
                                                   would_stop=_grf["would_stop"],
                                                   in_lane=True, seq=_grf["seq"],
-                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"))
+                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"), **_fed_stamp(_nb, _grf))
                                     if GRINDER_CONVERT:
                                         _grday = datetime.now(EASTERN).strftime("%Y-%m-%d")
                                         if _gr_conv_day.get("d") != _grday:
@@ -8646,13 +8680,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "session_hi": _grf["session_hi"], "gr_seq": _grf["seq"],
                                                 "mins_since_1030": _grf["mins_since_1030"],
                                             }))
-                                            _log_decision(t, "triggered_grinder", **_fed_stamp(_nb, _grf), price=_gr_px,
+                                            _log_decision(t, "triggered_grinder", price=_gr_px,
                                                           fire_age_s=(round(time.time() - _grf["k"], 1) if _grf.get("k") else None),
                                                           drift_pct=(round((_gr_px - _grf["px"]) / _grf["px"] * 100, 2) if _grf.get("px") else None),
                                                           stop=_grf["would_stop"],
                                                           session_hi=_grf["session_hi"],
                                                           fire_px=_grf["px"], seq=_grf["seq"],
-                                                          day_n=_gr_conv_day["n"])
+                                                          day_n=_gr_conv_day["n"], **_fed_stamp(_nb, _grf))
                             except Exception:
                                 pass
                         # ── 8/16 BAND-PASS VWAP RECLAIM (RTH) shadow + PRE-VWAP RECLAIM (Kev 8AM)
@@ -8671,13 +8705,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 if _bpf:
                                     _hm_bp = datetime.now(EASTERN).strftime("%H:%M")
                                     _bp_in = bool("09:30" <= _hm_bp < "10:30")
-                                    _log_decision(t, "bandpass_shadow_fire", **_fed_stamp(_nb, _bpf), price=_bpf["px"],
+                                    _log_decision(t, "bandpass_shadow_fire", price=_bpf["px"],
                                                   eyes=_eyes_compact(_eyes_snapshot(t, _bpf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _bpf.get("would_stop")})),
                                                   vwap=round(_vr_sv, 4), hold_n=_bpf["hold_n"],
                                                   hold_hi=_bpf["hold_hi"], crosses_20m=_bpf["crosses_20m"],
                                                   would_stop=_bpf["would_stop"], in_window=_bp_in,
                                                   convert_on=bool(BANDPASS_CONVERT),
-                                                  seq=_bpf["seq"], time_hm=_hm_bp)
+                                                  seq=_bpf["seq"], time_hm=_hm_bp, **_fed_stamp(_nb, _bpf))
                                     if BANDPASS_CONVERT and _bp_in:
                                         _bpday = datetime.now(EASTERN).strftime("%Y-%m-%d")
                                         if _bp_conv_day.get("d") != _bpday:
@@ -8697,12 +8731,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "hold_n": _bpf["hold_n"], "hold_hi": _bpf["hold_hi"],
                                                 "bp_seq": _bpf["seq"], "crosses_20m": _bpf["crosses_20m"],
                                             }))
-                                            _log_decision(t, "triggered_bandpass", **_fed_stamp(_nb, _bpf), price=_bp_px,
+                                            _log_decision(t, "triggered_bandpass", price=_bp_px,
                                                           fire_age_s=(round(time.time() - _bpf["k"], 1) if _bpf.get("k") else None),
                                                           drift_pct=(round((_bp_px - _bpf["px"]) / _bpf["px"] * 100, 2) if _bpf.get("px") else None),
                                                           stop=_bpf["would_stop"], hold_n=_bpf["hold_n"],
                                                           fire_px=_bpf["px"], seq=_bpf["seq"],
-                                                          day_n=_bp_conv_day["n"])
+                                                          day_n=_bp_conv_day["n"], **_fed_stamp(_nb, _bpf))
                             except Exception:
                                 pass
                         # ── 8/16 KEV SEQUENCE lane ("kevseq") shadow: same fed 10s bars + session
@@ -8823,9 +8857,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     if not _ksf["ok"]:
                                         _log_decision(t, "kevseq_reject", why=",".join(_ksf["why"]), **_ks_row)
                                     else:
-                                        _log_decision(t, "kevseq_shadow_fire", **_fed_stamp(_nb, _ksf),
+                                        _log_decision(t, "kevseq_shadow_fire",
                                                       eyes=_eyes_compact(_eyes_snapshot(t, _ksf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _ksf.get("would_stop")})),
-                                                      **_ks_row)
+                                                      **_ks_row, **_fed_stamp(_nb, _ksf))
                                         # ── 8/17 ENTRY-DRIFT GUARDS (all default-OFF; env restores
                                         # today's behaviour exactly by leaving them unset) ──
                                         _ks_veto = None
@@ -8863,14 +8897,14 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "ks_leg_n": _ksf["leg_n"], "burst_ratio": _ksf["burst_ratio"],
                                                 "fresh_touch_n": _ksf["fresh_touch_n"], "ks_seq": _ksf["seq"],
                                             }))
-                                            _log_decision(t, "triggered_kevseq", **_fed_stamp(_nb, _ksf), price=_ks_px,
+                                            _log_decision(t, "triggered_kevseq", price=_ks_px,
                                                           stop=_ksf["would_stop"], seq_str=_ksf["seq_str"],
                                                           fire_px=_ksf["px"], leg=_ksf["leg"], leg_n=_ksf["leg_n"],
                                                           seq=_ksf["seq"], fire_age_s=_ks_age,
                                                           drift_pct=_ks_drift, quote_px=_ks_quote,
                                                           limit_px=(_ks_lim if KEVSEQ_LIMIT_ENTRY else None),
                                                           intended_risk_pct=round((_ksf["px"] - _ksf["would_stop"]) / _ksf["px"] * 100, 2),
-                                                          actual_risk_pct=round((_ks_px - _ksf["would_stop"]) / _ks_px * 100, 2))
+                                                          actual_risk_pct=round((_ks_px - _ksf["would_stop"]) / _ks_px * 100, 2), **_fed_stamp(_nb, _ksf))
                             except Exception:
                                 pass
                         if PREVWAP_SHADOW:
@@ -8889,7 +8923,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                             _pv_sp = round((_aq - _bq) / _aq * 100.0, 3)
                                     except Exception:
                                         _pv_sp = None
-                                    _log_decision(t, "prevwap_shadow_fire", **_fed_stamp(_nb, _pvf), price=_pvf["px"],
+                                    _log_decision(t, "prevwap_shadow_fire", price=_pvf["px"],
                                                   eyes=_eyes_compact(_eyes_snapshot(t, _pvf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _pvf.get("would_stop")})),
                                                   vwap=round(_vr_sv, 4), hold_n=_pvf["hold_n"],
                                                   hold_hi=_pvf["hold_hi"], crosses_20m=_pvf["crosses_20m"],
@@ -8897,7 +8931,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                   spread_pct=_pv_sp, catalyst=None,
                                                   convert_on=bool(PREVWAP_CONVERT),
                                                   seq=_pvf["seq"],
-                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"))
+                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"), **_fed_stamp(_nb, _pvf))
                                     # ── 8/16 PREVWAP conversion (Marcos: "switch pre-vwap ... to live
                                     # in pre" — ALL SIM, DRY_RUN true): lane "prevwap", stop =
                                     # would_stop, E3 exits, session PRE (09:25 flatten); not in any
@@ -8913,12 +8947,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                             "crosses_20m": _pvf["crosses_20m"],
                                             "spread_pct": _pv_sp, "pv_seq": _pvf["seq"],
                                         }))
-                                        _log_decision(t, "triggered_prevwap", **_fed_stamp(_nb, _pvf), price=_pv_px,
+                                        _log_decision(t, "triggered_prevwap", price=_pv_px,
                                                       fire_age_s=(round(time.time() - _pvf["k"], 1) if _pvf.get("k") else None),
                                                       drift_pct=(round((_pv_px - _pvf["px"]) / _pvf["px"] * 100, 2) if _pvf.get("px") else None),
                                                       stop=_pvf["would_stop"], hold_n=_pvf["hold_n"],
                                                       fire_px=_pvf["px"], vwap=round(_vr_sv, 4),
-                                                      spread_pct=_pv_sp, seq=_pvf["seq"])
+                                                      spread_pct=_pv_sp, seq=_pvf["seq"], **_fed_stamp(_nb, _pvf))
                             except Exception:
                                 pass
 
@@ -13447,6 +13481,20 @@ def main():
                     _vgb = _fresh_session(get_intraday_bars(ticker, count=6, sessions=_live_sessions()))   # B16
                     _vcomp = _vgb[:-1] if len(_vgb) >= 2 else _vgb
                     _vav = (sum(float(b.get("volume") or b.get("v") or 0) for b in _vcomp[-3:]) / min(3, len(_vcomp))) if _vcomp else 0
+                    if _vav <= 0:
+                        # 8/17 B5: NO TAPE -> the guard previously applied NO CAP, silently, on
+                        # exactly the names whose tape it could not see.  The witness row ships
+                        # ON; refusing to size without a tape ships OFF (GATE_FAIL_CLOSED must
+                        # name "volguard"), because today's rows cannot price it.
+                        _gate_failopen("volguard", why="no avg 1-min volume", ticker=ticker)
+                        _clamp = _clamp + "+volguard_failopen"
+                        if _fail_closed("volguard"):
+                            # refuse: a name whose tape we cannot see is not a name we can size.
+                            # shares -> 0 lands on the SAME no-size path an unfundable position
+                            # takes; nothing new is invented downstream.
+                            _vol_cap = 0
+                            shares = 0
+                            _clamp = "volguard_closed"
                     if _vav > 0:
                         _vol_cap = max(1, int(_vav * MAX_POS_VOL_PCT))
                         if shares > _vol_cap:

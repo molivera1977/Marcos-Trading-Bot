@@ -210,7 +210,10 @@ def SPEC_fed_bucket_stamps():
                 "triggered_grinder", "bandpass_shadow_fire", "triggered_bandpass",
                 "prevwap_shadow_fire", "triggered_prevwap", "kevseq_shadow_fire",
                 "triggered_kevseq", "hidden_shadow_fire"):
-        if ('"%s", **_fed_stamp(_nb,' % row) not in src:
+        # the stamp rides as a TRAILING kwarg (leading position split the literals the
+        # AD-b eyes-wire pin anchors on) — assert it inside THAT call, not merely in the file
+        i = src.find('_log_decision(t, "%s"' % row)
+        if i < 0 or ("**_fed_stamp(_nb," not in src[i:i + 2600]):
             return False
     return True
 

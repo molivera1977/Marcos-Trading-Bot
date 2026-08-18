@@ -503,7 +503,7 @@ def _check_ctx(lane, ctx):
 
 # ─────────────────── the replay entry point ───────────────────
 def replay(sym, bars, lanes, ctx_provider=None, vwap_provider=None, day=None,
-           batch_secs=None, reset=True, allow_blocked=False):
+           batch_secs=None, reset=True, allow_blocked=False, fed_slices=None):
     """Drive the BOT'S OWN detectors over one name-day's 10s bars.
 
     sym            ticker (the detectors key their state on it)
@@ -517,6 +517,17 @@ def replay(sym, bars, lanes, ctx_provider=None, vwap_provider=None, day=None,
                    60    = mimic the live 60s rescan cadence.  MATTERS: every detector
                           returns AT MOST ONE fire per call, so batching SUPPRESSES fires.
                           Live cadence is the 60s rescan -> use 60 for parity work.
+    fed_slices     [(k0, k1), ...] — the EXACT bucket-epoch ranges the live bot fed, taken
+                   from the A2 provenance stamps (fed_k0/fed_k1 on every fire row, shipped
+                   2026-08-17). Supplying this makes the replay a TRUE EQUIVALENCE TEST: the
+                   detector sees the same bars, in the same calls, in the same order the live
+                   machine saw them, so a disagreement can only be the detector. Overrides
+                   batch_secs. Ranges are inclusive of both ends and are fed in the order
+                   given; a range that selects no bars is fed as an EMPTY call (live does not
+                   call the detector at all on an empty slice, so those are skipped).
+                   ONLY days whose rows carry the stamps (2026-08-18 onward) support this;
+                   for earlier days the honest tool is batch_secs=60 and the result is an
+                   approximation, not an equivalence.
     Returns list of fire dicts with the live decision-row fields plus harness stamps
     (lane, sym, i, bar, ctx, vwap).
     """
@@ -546,7 +557,13 @@ def replay(sym, bars, lanes, ctx_provider=None, vwap_provider=None, day=None,
     out = []
     # build the call batches
     batches = []
-    if not batch_secs:
+    if fed_slices:
+        # EXACT fed stream from the live provenance stamps — one call per live call.
+        for k0, k1 in fed_slices:
+            sel = [i for i, b in enumerate(B) if k0 <= b[0] <= k1]
+            if sel:
+                batches.append(sel)
+    elif not batch_secs:
         batches = [[i] for i in range(len(B))]
     else:
         cur, cur_k = [], None

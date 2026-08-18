@@ -5284,6 +5284,39 @@ def _fire_once(lane, sym, k, day=None) -> bool:
         return True                          # a bookkeeping bug must never stop a fire
 
 
+# ── 8/17 A2 — FED-BUCKET PROVENANCE (observability only; unblocks harness parity) ────
+# harness_parity_20260817.md measured lane parity at 9% grinder / 30% kevseq / 51% v2 /
+# 100% prevwap.  The parity number is not interpretable today because the archive does not
+# record WHICH BARS the detector was actually fed on the call that fired: the harness replays
+# a reconstructed stream on a nominal 60s cadence, while live the slice is whatever the
+# rescan's cursor happened to hand over on a jittered 48-72s cycle.  A parity miss cannot be
+# attributed between "the detector disagrees" and "the harness fed a different stream".
+#
+# THE STAMP: fire_k (the bucket epoch of the FIRE BAR) plus fed_k0/fed_k1 (first and last
+# bucket epochs of the `new_bars` slice fed on THAT call) plus fed_n (how many were fed).
+# Every detector already returns `k` and every caller already has `_nb` in hand, so this
+# costs one dict build per fire and changes NO decision.  With these four fields a replay can
+# reconstruct the EXACT fed stream and parity becomes a true equivalence test rather than a
+# fuzzy time-and-price match.
+# LIMITS: rows logged BEFORE this ship carry none of it — 8/18 is the first day whose rows
+# support true equivalence testing.  Every parity figure quoted for 8/17 or earlier is a
+# time-and-price approximation and must be labelled as one.
+def _fed_stamp(nb, fire=None):
+    """Provenance for one detector call: the fire's bucket + the slice that was fed.
+    Returns {} on any problem — a stamp must never break a decision row."""
+    try:
+        _d = {}
+        if isinstance(fire, dict) and fire.get("k"):
+            _d["fire_k"] = int(fire["k"])
+        if nb:
+            _d["fed_k0"] = int(nb[0][0])
+            _d["fed_k1"] = int(nb[-1][0])
+            _d["fed_n"] = len(nb)
+        return _d
+    except Exception:
+        return {}
+
+
 def _replay_suppressed(sym, lane, k, px=None):
     """Visible-cost canary for every duplicate suppressed by the high-water mark."""
     try:
@@ -8398,7 +8431,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 try:
                                     _hpx = price if price and price > 0 else _he_fire.get("px") or 0
                                     _hg, _hbp = _level_gap(t, _hpx)   # 7/27 ballpark stamp
-                                    _log_decision(t, "hidden_shadow_fire", price=_hpx,
+                                    _log_decision(t, "hidden_shadow_fire", **_fed_stamp(_nb, _he_fire), price=_hpx,
                                                   stop=_he_fire["stop"], anchor=_he_fire["anchor"],
                                                   ext_vwap=_he_fire["ext_vwap"], seq=_he_fire["seq"],
                                                   time_hm=datetime.now(EASTERN).strftime("%H:%M"),
@@ -8430,7 +8463,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     _q_bps, _q_n = v2_trailing_calm(t, _v2f["k"])
                                     _v2_quiet = bool(_q_bps is not None and _q_bps <= V2_QUIET_BPS)
                                     if V2_SHADOW:
-                                        _log_decision(t, "v2_shadow_fire", price=_v2f["px"],
+                                        _log_decision(t, "v2_shadow_fire", **_fed_stamp(_nb, _v2f), price=_v2f["px"],
                                                       eyes=_eyes_compact(_eyes_snapshot(t, _v2f["px"], "entry", {"vwap": _vr_sv, "zone_stop": _v2f.get("would_stop")})),
                                                       flush_low=_v2f["flush_low"],
                                                       flush_depth=_v2f["flush_depth"],
@@ -8470,7 +8503,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "quiet_bps": _q_bps, "flush_depth": _v2f["flush_depth"],
                                                 "v2_seq": _v2f["seq"],
                                             }))
-                                            _log_decision(t, "triggered_v2conv", price=_v2_px,
+                                            _log_decision(t, "triggered_v2conv", **_fed_stamp(_nb, _v2f), price=_v2_px,
                                                           fire_age_s=(round(time.time() - _v2f["k"], 1) if _v2f.get("k") else None),
                                                           drift_pct=(round((_v2_px - _v2f["px"]) / _v2f["px"] * 100, 2) if _v2f.get("px") else None),
                                                           stop=_v2f["would_stop"], fire_px=_v2f["px"],
@@ -8495,7 +8528,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     _replay_suppressed(t, "grinder", _grf.get("k"), _grf.get("px"))
                                     _grf = None
                                 if _grf:
-                                    _log_decision(t, "grinder_shadow_fire", price=_grf["px"],
+                                    _log_decision(t, "grinder_shadow_fire", **_fed_stamp(_nb, _grf), price=_grf["px"],
                                                   eyes=_eyes_compact(_eyes_snapshot(t, _grf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _grf.get("would_stop")})),
                                                   session_hi=_grf["session_hi"],
                                                   vwap=round(_vr_sv, 4),
@@ -8525,7 +8558,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "session_hi": _grf["session_hi"], "gr_seq": _grf["seq"],
                                                 "mins_since_1030": _grf["mins_since_1030"],
                                             }))
-                                            _log_decision(t, "triggered_grinder", price=_gr_px,
+                                            _log_decision(t, "triggered_grinder", **_fed_stamp(_nb, _grf), price=_gr_px,
                                                           fire_age_s=(round(time.time() - _grf["k"], 1) if _grf.get("k") else None),
                                                           drift_pct=(round((_gr_px - _grf["px"]) / _grf["px"] * 100, 2) if _grf.get("px") else None),
                                                           stop=_grf["would_stop"],
@@ -8550,7 +8583,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 if _bpf:
                                     _hm_bp = datetime.now(EASTERN).strftime("%H:%M")
                                     _bp_in = bool("09:30" <= _hm_bp < "10:30")
-                                    _log_decision(t, "bandpass_shadow_fire", price=_bpf["px"],
+                                    _log_decision(t, "bandpass_shadow_fire", **_fed_stamp(_nb, _bpf), price=_bpf["px"],
                                                   eyes=_eyes_compact(_eyes_snapshot(t, _bpf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _bpf.get("would_stop")})),
                                                   vwap=round(_vr_sv, 4), hold_n=_bpf["hold_n"],
                                                   hold_hi=_bpf["hold_hi"], crosses_20m=_bpf["crosses_20m"],
@@ -8576,7 +8609,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "hold_n": _bpf["hold_n"], "hold_hi": _bpf["hold_hi"],
                                                 "bp_seq": _bpf["seq"], "crosses_20m": _bpf["crosses_20m"],
                                             }))
-                                            _log_decision(t, "triggered_bandpass", price=_bp_px,
+                                            _log_decision(t, "triggered_bandpass", **_fed_stamp(_nb, _bpf), price=_bp_px,
                                                           fire_age_s=(round(time.time() - _bpf["k"], 1) if _bpf.get("k") else None),
                                                           drift_pct=(round((_bp_px - _bpf["px"]) / _bpf["px"] * 100, 2) if _bpf.get("px") else None),
                                                           stop=_bpf["would_stop"], hold_n=_bpf["hold_n"],
@@ -8702,7 +8735,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     if not _ksf["ok"]:
                                         _log_decision(t, "kevseq_reject", why=",".join(_ksf["why"]), **_ks_row)
                                     else:
-                                        _log_decision(t, "kevseq_shadow_fire",
+                                        _log_decision(t, "kevseq_shadow_fire", **_fed_stamp(_nb, _ksf),
                                                       eyes=_eyes_compact(_eyes_snapshot(t, _ksf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _ksf.get("would_stop")})),
                                                       **_ks_row)
                                         # ── 8/17 ENTRY-DRIFT GUARDS (all default-OFF; env restores
@@ -8742,7 +8775,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                 "ks_leg_n": _ksf["leg_n"], "burst_ratio": _ksf["burst_ratio"],
                                                 "fresh_touch_n": _ksf["fresh_touch_n"], "ks_seq": _ksf["seq"],
                                             }))
-                                            _log_decision(t, "triggered_kevseq", price=_ks_px,
+                                            _log_decision(t, "triggered_kevseq", **_fed_stamp(_nb, _ksf), price=_ks_px,
                                                           stop=_ksf["would_stop"], seq_str=_ksf["seq_str"],
                                                           fire_px=_ksf["px"], leg=_ksf["leg"], leg_n=_ksf["leg_n"],
                                                           seq=_ksf["seq"], fire_age_s=_ks_age,
@@ -8768,7 +8801,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                             _pv_sp = round((_aq - _bq) / _aq * 100.0, 3)
                                     except Exception:
                                         _pv_sp = None
-                                    _log_decision(t, "prevwap_shadow_fire", price=_pvf["px"],
+                                    _log_decision(t, "prevwap_shadow_fire", **_fed_stamp(_nb, _pvf), price=_pvf["px"],
                                                   eyes=_eyes_compact(_eyes_snapshot(t, _pvf["px"], "entry", {"vwap": _vr_sv, "zone_stop": _pvf.get("would_stop")})),
                                                   vwap=round(_vr_sv, 4), hold_n=_pvf["hold_n"],
                                                   hold_hi=_pvf["hold_hi"], crosses_20m=_pvf["crosses_20m"],
@@ -8792,7 +8825,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                             "crosses_20m": _pvf["crosses_20m"],
                                             "spread_pct": _pv_sp, "pv_seq": _pvf["seq"],
                                         }))
-                                        _log_decision(t, "triggered_prevwap", price=_pv_px,
+                                        _log_decision(t, "triggered_prevwap", **_fed_stamp(_nb, _pvf), price=_pv_px,
                                                       fire_age_s=(round(time.time() - _pvf["k"], 1) if _pvf.get("k") else None),
                                                       drift_pct=(round((_pv_px - _pvf["px"]) / _pvf["px"] * 100, 2) if _pvf.get("px") else None),
                                                       stop=_pvf["would_stop"], hold_n=_pvf["hold_n"],

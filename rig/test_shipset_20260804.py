@@ -3990,7 +3990,18 @@ try:
         t = open(path, errors="replace").read()
         lim = _p_limits_block(t)
         bad = []
-        _vlines = [m.group(0) for m in _P_VERDICT.finditer(t)]
+        # the verdict BLOCK, not the verdict LINE — a bare '## VERDICT' heading carries its
+        # content underneath (same shape EG4's _e4_headline uses, for the same reason)
+        _vlines = []
+        for m in _P_VERDICT.finditer(t):
+            _tail = t[m.start():].splitlines()
+            _blk = [_tail[0]]
+            for _ln in _tail[1:]:
+                if _ln.strip():
+                    _blk.append(_ln)
+                if len(_blk) >= 4:
+                    break
+            _vlines.append("\n".join(_blk))
         for lane, pct in _P_LOW.items():
             # "grades the lane" = the lane is named on a verdict-bearing line
             if not any(re.search(r'\b%s\b' % lane, ln, re.I) for ln in _vlines):

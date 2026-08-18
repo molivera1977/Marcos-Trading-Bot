@@ -1,0 +1,56 @@
+{
+ "_doc": "MEASURED HARNESS PARITY PER LANE — the machine-readable store the EG2b threshold gate reads. A study may not grade a lane whose parity sits below `threshold_pct` unless the artifact states the parity number in its LIMITS/CAVEATS section. This makes 'don't trust grinder studies' mechanical instead of a thing somebody has to remember.",
+ "_rule": "EG2b, rig/test_shipset_20260804.py. Seeded 2026-08-17 from harness_parity_20260817_out.json. Rewritten by data/killtests/harness_parity_v2_20260818.py whenever a stamped day is graded.",
+ "threshold_pct": 90.0,
+ "_threshold_note": "Starts at 90. It is a FLOOR ON TRUST, not a target to tune toward: raising it makes the gate stricter, lowering it needs Marcos.",
+ "measured_on": "2026-08-17",
+ "method": "time_and_price_approximation",
+ "_method_note": "batch_secs=60 nominal cadence, exact price+stop, |dt| <= 300s. This is NOT an equivalence test: the two sides were not fed the same bars, so a miss cannot be attributed between the detector and the feed. It is also DEPRESSED by the A1 duplicate-fire defect — the live denominators below include restart replays (grinder 66 rows / 53 distinct, v2 164 / 150, bandpass 9 / 8). Both problems are fixed forward: the A2 provenance stamps shipped 2026-08-17 night and 2026-08-18 is the first day supporting exact_fed_stream parity.",
+ "lanes": {
+  "prevwap": {
+   "parity_pct": 100.0,
+   "live_fires": 3,
+   "exact": 3,
+   "measured_on": "2026-08-17",
+   "method": "time_and_price_approximation",
+   "source": "harness_parity_20260817_out.json",
+   "note": "N=3. 100% on three fires is not a strong claim; it is the absence of a disagreement."
+  },
+  "v2": {
+   "parity_pct": 51.2,
+   "live_fires": 164,
+   "exact": 84,
+   "measured_on": "2026-08-17",
+   "method": "time_and_price_approximation",
+   "source": "harness_parity_20260817_out.json",
+   "note": "denominator includes 14 restart-replay duplicates (150 distinct)"
+  },
+  "bandpass": {
+   "parity_pct": 44.4,
+   "live_fires": 9,
+   "exact": 4,
+   "measured_on": "2026-08-17",
+   "method": "time_and_price_approximation",
+   "source": "harness_parity_20260817_out.json",
+   "note": "denominator includes 1 restart-replay duplicate (8 distinct)"
+  },
+  "kevseq": {
+   "parity_pct": 30.4,
+   "live_fires": 23,
+   "exact": 7,
+   "measured_on": "2026-08-17",
+   "method": "time_and_price_approximation",
+   "source": "harness_parity_20260817_out.json",
+   "note": "no duplicates measured; the gap is feed/ctx reconstruction, not restarts"
+  },
+  "grinder": {
+   "parity_pct": 9.1,
+   "live_fires": 66,
+   "exact": 6,
+   "measured_on": "2026-08-17",
+   "method": "time_and_price_approximation",
+   "source": "harness_parity_20260817_out.json",
+   "note": "WORST LANE. Denominator includes 13 restart-replay duplicates (53 distinct). DO NOT GRADE THE GRINDER LANE FROM HARNESS OUTPUT without stating this number."
+  }
+ }
+}

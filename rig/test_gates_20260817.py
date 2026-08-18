@@ -181,7 +181,42 @@ def SPEC_fire_hwm_dedupe():
             and '"replay_fire_suppressed"' in src)
 
 
+def SPEC_fed_bucket_stamps():
+    """A2: every 10s shadow-fire and triggered row carries the fed-stream provenance —
+    fire_k plus fed_k0/fed_k1/fed_n — so a replay can reconstruct the EXACT stream the
+    detector saw and parity becomes an equivalence test, not a time-and-price match."""
+    src = bot_src()
+    try:
+        blk = _extract(src, "def _fed_stamp(", "def _replay_suppressed(")
+        ns = {}
+        exec(blk, ns)
+        fs = ns["_fed_stamp"]
+    except (ValueError, KeyError, SyntaxError):
+        return False
+    nb = [(1755443100, 1, 2, 0.5, 1.5, 10), (1755443110, 1, 2, 0.5, 1.5, 10),
+          (1755443120, 1, 2, 0.5, 1.5, 10)]
+    got = fs(nb, {"k": 1755443120, "px": 2.78})
+    if got != {"fire_k": 1755443120, "fed_k0": 1755443100, "fed_k1": 1755443120, "fed_n": 3}:
+        return False
+    if fs([], None) != {} or fs(None, None) != {}:
+        return False          # empty inputs must not fabricate provenance
+    if fs(nb, {"px": 2.78}) != {"fed_k0": 1755443100, "fed_k1": 1755443120, "fed_n": 3}:
+        return False          # a fire with no k contributes no fire_k (never a fake 0)
+    if fs("not-bars", {"k": 1}) != {}:
+        return False          # malformed input degrades to NO stamp, never a raise and never
+                              # a fabricated one (documented: "{} on any problem")
+    # …and it must be WIRED on both the shadow and the triggered row of every 10s lane
+    for row in ("v2_shadow_fire", "triggered_v2conv", "grinder_shadow_fire",
+                "triggered_grinder", "bandpass_shadow_fire", "triggered_bandpass",
+                "prevwap_shadow_fire", "triggered_prevwap", "kevseq_shadow_fire",
+                "triggered_kevseq", "hidden_shadow_fire"):
+        if ('"%s", **_fed_stamp(_nb,' % row) not in src:
+            return False
+    return True
+
+
 SPECS = {
+    "SPEC_fed_bucket_stamps": SPEC_fed_bucket_stamps,
     "SPEC_fire_hwm_dedupe": SPEC_fire_hwm_dedupe,
     "SPEC_m1_wallclock_window": SPEC_m1_wallclock_window,
     "SPEC_kevseq_limit_entry": SPEC_kevseq_limit_entry,

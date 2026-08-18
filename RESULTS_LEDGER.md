@@ -2197,3 +2197,43 @@ band-pass, v2. Holes registry H-SEQ-<lane> per lane. The grammar, not the letter
 - **8/17 EPOCH REPORT (INFERRED — pre-stamp day, boot-row segmentation, which OVERCOUNTS):** boot#1 03:55-11:13 fire_rows=203 fills=5 · boot#2 11:13-11:51 fire_rows=25 fills=0 · boot#3 11:57-13:48 fire_rows=83 fills=2 · boot#4 13:49-13:56 fire_rows=8 fills=0 · boot#5 13:58-15:26 fire_rows=82 fills=0. TOTAL fire_rows=401 fills=7 (filled 4 + retest_fill 2 + tier_fill 1). **One machine produced 51% of the day's fire rows and 5 of its 7 fills; another lived seven minutes.** Any single 8/17 number is dominated by boot#1. Tool: `data/audits/config_epochs.py`.
 - **GATE EG2c** (rig/test_gates_20260817.py): a multi-day aggregate must name its config hashes or declare `MIXED-EPOCH` **inside its LIMITS section**. Eight negative controls both directions (incl. a declaration outside LIMITS NOT satisfying the rule, and a single-day doc not flagged). Enforced forward from 2026-08-18 on EG4's precedent; **61 pre-existing artifacts** aggregate across a range with no epoch declaration — reported, not failed.
 - RIGS: test_shipset_20260804.py rc=0 · test_gates_20260817.py rc=0 · test_batchB_20260817.py rc=0. NOTHING DEPLOYED (build + rig only). HEAD not yet audited — the convene interlock stands.
+
+## 8/18 01:16 ET — FOUNDATION REBUILD SHIPPED (bot + dashboard)
+
+Deployed `e963fb2` after the full convening. **Every one of the ten money-behavior defaults
+STANDS** — Marcos walked all ten one at a time; nothing was changed as a result of the review.
+Three needed no sign-off (formal no-ops or already-settled doctrine); seven he affirmed on
+measured scope. Artifact: `data/audits/LATEST.md`. Decision ledger: 10/10 HOLD.
+
+**The two defects the blast-radius audit MISSED, both found by measuring instead of arguing:**
+1. **The extension guard is blind on 7 lanes.** `extension_reject` = ZERO across 15 sessions.
+   AST census of all 17 fire sites: v2conv/grinder/bandpass/kevseq/prevwap/crown_seam/halt_ladder
+   never stamp `ema90`, so `_e90` is 0 and the guard fails open by construction. It has never
+   policed grinder or crown_seam, the two blind lanes that convert. This also RESOLVED review
+   item #2: the 7 lanes the registry newly exempts are exactly the 7 already blind, so that item
+   is a formal no-op and the audit's "grinder and crown_seam now un-capped" was wrong — they were
+   never capped. NOT armed (money change, Marcos's call). Gate 10 + doc.
+2. **28 of 45 refusal STATUSES could not be assigned to a lane.** `momentum_reject` carried no
+   lane at all, which is the real reason item #3's kill-test is N=1: 7 of 95 refusals over 14
+   sessions carry the bypassed reason, and 6 of the 7 were unattributable. 11 sites fixed. Gate 11.
+
+**Also shipped:** durable fire-HWM on the dashboard volume (the bot has no `/data`; a redeploy
+wiped the 8/17 fix, and the deploy shipping it IS a redeploy — proven end-to-end against a live
+in-process dashboard with a simulated redeploy); chart-gate counterfactual on ALL 11 tape lanes
+(the 3 LEGACY lanes had been exempt for weeks with no counterfactual on record); MANUAL_CLOSE
+hardening (poll 5s→15s, non-blocking cache lock, GET authed — it was public on a selling
+endpoint); 5 more audit fixes.
+
+**Verified post-deploy, in-turn:** `/api/fire_hwm` live (`{"day":"2026-08-18","marks":{}}`);
+`/api/close_position` GET 401 unauthed / 200 with key; bot booted clean, all threads armed,
+sleeping to 03:55 ET; book flat.
+
+**OWED:**
+- `manual_close` has NEVER fired in production (0 rows 8/17, 8/14, 8/13). Exercise it once on
+  purpose — open a position, close from the dashboard, confirm row + fill.
+- 03:55 boot must print the fire-HWM rehydrate line (count, or the explicit degraded warning).
+  That is the day-one check for the durability fix.
+- Watch for `no_capital_skip` replacing `*_capped` as the binding limiter now that caps count
+  fills (~$3,000, no concurrency cap — concurrency is capital-emergent).
+- Harness parity still does NOT license re-running the 62-day backtests. That waits on today's
+  stamped rows.

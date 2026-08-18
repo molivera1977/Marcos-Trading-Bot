@@ -2240,9 +2240,21 @@ sleeping to 03:55 ET; book flat.
 
 ## 8/18 01:35 ET — SERVER-SIDE DUTY WATCH SHIPPED (`b4a0c25`)
 
-Marcos: "are they actually going to do something." Checked the laptop scheduler and the answer
-was NO — three tasks tombstoned "Laptop scheduler silently dead since 7/26 / 7/27", and
-`kev-daily-scorecard` (enabled, weekdays 16:22) last ran 8/14: it silently missed Monday 8/17.
+Marcos: "are they actually going to do something."
+
+**CORRECTION (Marcos: "the background tasks say they are").** My first answer was that the four
+watch crons did not exist. That was WRONG — I listed the scheduled TASKS and never ran CronList.
+All four exist (07:12 `e2d14a5a`, 09:42 `6f2df5df`, 12:48 `bcb46013`, 15:52 `b5860ebf`). Two
+separate schedulers; I checked one and reported a negative about both. Second time in one night I
+did that (the other: OS crontab vs Claude scheduled tasks). The build below is still right, for a
+DIFFERENT reason than I first gave:
+  * those four crons are **[session-only]** — they die with the Claude session, so they were never
+    going to cover Thursday whether or not they were armed;
+  * the laptop SCHEDULED-TASK layer has a proven silent-death record — three tasks tombstoned
+    "Laptop scheduler silently dead since 7/26 / 7/27", and `kev-daily-scorecard` (enabled,
+    weekdays 16:22) last ran 8/14: it silently missed Monday 8/17.
+The crons are the INTERPRETATION layer (fragile by construction). The thread below is the
+DETECTION layer (must not depend on a laptop).
 
 `_duty_watch_loop` now runs in the bot process — checkpoints 07:12/09:42/12:48/15:52 ET, one
 `watch_check` row per (day, checkpoint), reading only the durable archive + trades. Answers THE

@@ -15095,13 +15095,19 @@ if __name__ == "__main__":
     # ══════════════════════════════════════════════════════════════════════════════════════
     # 8/18 SERVER-SIDE DUTY WATCH (Marcos: "are they actually going to do something")
     #
-    # The intraday watch was supposed to run as laptop scheduled tasks at 07:12/09:42/12:48/
-    # 15:52 ET. It does not survive contact with reality: THREE tasks in that scheduler carry
-    # the tombstone "RETIRED — Laptop scheduler silently dead since 7/26/7/27", and as of
-    # 8/18 `kev-daily-scorecard` (enabled, weekdays 16:22) last ran 8/14 — it silently missed
-    # Monday. A watch that needs a laptop awake is not a watch, and Marcos is back at work
-    # 8/20.  So the DETECTION moves server-side, exactly like kev_sweep and preopen_health
-    # did on 8/4.  Interpretation still needs a session; the RECORD no longer does.
+    # CORRECTION ON THE RECORD (Marcos: "the background tasks say they are"): my first answer
+    # was that the four 07:12/09:42/12:48/15:52 watch crons did not exist. WRONG — I listed the
+    # scheduled tasks and never ran CronList. All four DO exist. Two schedulers; I checked one
+    # and reported a negative about both. The conclusion below stands, for a DIFFERENT reason:
+    #   • those four crons are [session-only] — they die with the Claude session, so they were
+    #     never going to cover Thursday whether or not they were armed;
+    #   • the laptop SCHEDULED-TASK layer has a proven silent-death record — three tasks
+    #     tombstoned "Laptop scheduler silently dead since 7/26/7/27", and `kev-daily-scorecard`
+    #     (enabled, weekdays 16:22) last ran 8/14: it silently missed Monday 8/17.
+    # So: those crons are the INTERPRETATION layer and are fragile by construction. This thread
+    # is the DETECTION layer and must not depend on any laptop being awake — Marcos is back at
+    # work 8/20. Same migration kev_sweep and preopen_health made on 8/4: interpretation still
+    # needs a session; the RECORD no longer does.
     #
     # THE MARCOS CHECK (feedback_live_watch_duty): "lanes fired, no fill -> NAME THE GATE."
     # That question was unanswerable until tonight, because refusal rows carried no lane

@@ -3,15 +3,27 @@
 GATE 12 — THE DUTY WATCH MUST BE SERVER-SIDE AND MUST ACTUALLY FIRE (8/18)
 
 WHY THIS GATE EXISTS
-  Marcos: "are they actually going to do something." The intraday watch was supposed to run
-  as laptop scheduled tasks. Checked, and the honest answer was no:
-    • `bot-preopen-health-check` — "RETIRED 8/4 — Laptop scheduler silently dead since 7/27"
-    • `kev-sweep-night`          — "RETIRED 8/4 — Laptop scheduler was silently dead since 7/26"
-    • `postah-bars-backfill`     — "RETIRED 8/4 — Laptop scheduler silently dead since 7/26"
-    • `kev-daily-scorecard`      — ENABLED, weekdays 16:22, lastRunAt 2026-08-14. It silently
-                                   missed Monday 8/17.
-  Three tombstones and a live miss. A watch that needs a laptop awake is not a watch, and
-  Marcos returns to work 8/20.
+  Marcos: "are they actually going to do something."
+
+  CORRECTION, on the record (Marcos: "the background tasks say they are"). My first answer was
+  that the four intraday watch crons did not exist. That was WRONG — I ran the scheduled-tasks
+  listing and never ran CronList. All four DO exist (07:12 `e2d14a5a`, 09:42 `6f2df5df`,
+  12:48 `bcb46013`, 15:52 `b5860ebf`). Two separate schedulers, and I checked one and reported a
+  negative about both. The reasoning below survives the correction, but for a DIFFERENT reason
+  than I first gave, and the difference matters:
+
+    • The four watch crons are marked **[session-only]** — they die when the Claude session ends.
+      They were never going to cover Thursday, whether or not they were armed today.
+    • The laptop SCHEDULED-TASK layer has a proven silent-death record:
+        `bot-preopen-health-check` — "RETIRED 8/4 — Laptop scheduler silently dead since 7/27"
+        `kev-sweep-night`          — "RETIRED 8/4 — Laptop scheduler was silently dead since 7/26"
+        `postah-bars-backfill`     — "RETIRED 8/4 — Laptop scheduler silently dead since 7/26"
+        `kev-daily-scorecard`      — ENABLED, weekdays 16:22, lastRunAt 2026-08-14: it silently
+                                     missed Monday 8/17.
+
+  So the split is: those crons are the INTERPRETATION layer (wake a session, read the row, say
+  what it means) and they are fragile by construction. This thread is the DETECTION layer, and it
+  must not depend on any laptop being awake — Marcos returns to work 8/20.
 
   So this gate pins the migration: DETECTION lives in the bot process (like kev_sweep and
   preopen_health after 8/4), where it runs whether or not anyone's laptop is open.

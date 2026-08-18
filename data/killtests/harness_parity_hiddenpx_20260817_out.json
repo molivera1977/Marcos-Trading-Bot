@@ -1,0 +1,94 @@
+{
+ "day": "2026-08-17",
+ "match_tol_s": 300,
+ "live_fires": 226,
+ "live_names": 13,
+ "harness_fires": 424,
+ "note": "SYNTHETIC \u2014 8/17 rows carry no fire_px; see docstring",
+ "stop_time_matches": 195,
+ "stop_time_parity_pct": 86.3,
+ "price_stop_time_matches_OLD_FIELD": 13,
+ "price_stop_time_parity_pct_OLD_FIELD": 5.8,
+ "quote_vs_detector_px_gap_pct": {
+  "n": 195,
+  "median": 1.015,
+  "p90": 4.547,
+  "max": 16.0,
+  "exactly_equal": 13,
+  "within_0_1pct": 20,
+  "comment": "this is the QUOTE FEED's drift from the fired bar close \u2014 it is what the old price key was scoring, and it is not a detector property"
+ },
+ "stop_over_floor_recovery": {
+  "n": 192,
+  "agree": 173,
+  "agree_pct": 90.1,
+  "disagreements": [
+   {
+    "ticker": "IVF",
+    "t": "06:51:29 AM",
+    "recovered_close": 2.6526,
+    "harness_px": 2.66,
+    "row_quote": 2.7906,
+    "stop": 2.52
+   },
+   {
+    "ticker": "IPST",
+    "t": "07:52:29 AM",
+    "recovered_close": 6.4421,
+    "harness_px": 6.45,
+    "row_quote": 6.2882,
+    "stop": 6.12
+   },
+   {
+    "ticker": "NIVF",
+    "t": "09:51:31 AM",
+    "recovered_close": 0.6527,
+    "harness_px": 0.6597,
+    "row_quote": 0.6597,
+    "stop": 0.6201
+   },
+   {
+    "ticker": "STFS",
+    "t": "09:54:08 AM",
+    "recovered_close": 5.5368,
+    "harness_px": 5.74,
+    "row_quote": 5.9899,
+    "stop": 5.26
+   },
+   {
+    "ticker": "STFS",
+    "t": "09:55:28 AM",
+    "recovered_close": 5.7158,
+    "harness_px": 5.8,
+    "row_quote": 5.7181,
+    "stop": 5.43
+   },
+   {
+    "ticker": "CDTG",
+    "t": "09:56:45 AM",
+    "recovered_close": 2.8316,
+    "harness_px": 2.8874,
+    "row_quote": 2.875,
+    "stop": 2.69
+   },
+   {
+    "ticker": "PFSA",
+    "t": "10:11:22 AM",
+    "recovered_close": 5.2795,
+    "harness_px": 5.29,
+    "row_quote": 4.9361,
+    "stop": 5.0155
+   },
+   {
+    "ticker": "STFS",
+    "t": "10:11:22 AM",
+    "recovered_close": 6.1896,
+    "harness_px": 6.3,
+    "row_quote": 6.19,
+    "stop": 5.8801
+   }
+  ],
+  "method": "guess the fired bar close as stop/0.95 (the 5% risk floor inverted) and compare it to the harness detector's px, agreeing within half a cent.",
+  "HONEST LIMIT \u2014 READ THIS": "the admission filter does NOT actually isolate the floor-binding rows. stop/0.95 round-trips for ANY stop, so the only real filter left is the +/-10% sanity band, which admits 192 of the 195 stop+time matches. This is therefore a WEAK RECOVERY HEURISTIC, not a clean invertible subset: it says the guess lands within half a cent of the detector's px 90% of the time, which is a statement about how often the 5% floor happens to bind, NOT a price-parity measurement. It cannot substitute for the real number, which arrives with 8/18 rows."
+ }
+}

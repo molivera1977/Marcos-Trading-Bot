@@ -328,6 +328,7 @@ check("ring-1 executed vs live stub (8/6 ledger)", True)
 _ab=src2[src2.index("AMBIENT_DVOL_MULT = float"):src2.index("def check_momentum")]
 _ns={"os":os,"MAX_TRADE_DOLLARS":1000.0}
 _ns["_gate_failopen"]=lambda *a,**k: None   # 8/8: counter stub
+_ns["_gate_blind"]=lambda *a,**k: None   # 8/17 F1: per-fire blind-row logger — logging must never affect gating, so a no-op stub is the faithful rig double
 exec(_ab,_ns); _adv=_ns["_ambient_dvol_ok"]
 _mkb=lambda v,c,n=12:[{"volume":v,"close":c} for _ in range(n)]
 check("ambient: SUGP-class ($5.2k/min) blocked", _adv(_mkb(2400,2.17))[0] is False)
@@ -1903,6 +1904,7 @@ try:
     _ey_rows = []
     _eyn["_log_decision"] = lambda tk, st, **f: _ey_rows.append((tk, st, f))
     _eyn["_gate_failopen"] = lambda *a, **k: None
+    _eyn["_gate_blind"] = lambda *a, **k: None   # 8/17 F1 stub (see ambient block note)
     # real helper block (from _standdown = {} through _standdown_lift)
     _hb = _ey[_ey.index("_standdown = {}"):_ey.index("# 8/4 ~01:15 RETEST DEPTH BAND")]
     exec(_hb, _eyn)

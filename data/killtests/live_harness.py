@@ -136,6 +136,11 @@ _PROVIDED = {
     # Nothing the harness exposes reads them — they are reached only as dead references
     # inside transitively-lifted fetch helpers, which studies replace with fixtures.
     "ApiClient", "WebullDataClient", "WEBULL_SDK_AVAILABLE",
+    # 8/17 C2: the config-hash block is reached transitively from _log_decision. It digests the
+    # bot's own source (hashlib) and locates it via __file__ — both are supplied REAL in ns(),
+    # pointed at the actual bot file, so the isolated namespace computes the same hash the live
+    # process would. Neither touches the network or the broker.
+    "hashlib", "__file__",
 }
 
 
@@ -246,7 +251,11 @@ def ns():
     import statistics as _s
     import threading as _th
     import atexit as _ax
+    import hashlib as _hl
     n = {
+        # 8/17 C2: real, and pointed at the real bot file — the isolated namespace must compute
+        # the SAME config hash the live process does, not a different one.
+        "hashlib": _hl, "__file__": str(BOT),
         "threading": _th, "atexit": _ax, "requests": _NoNetwork(),
         "concurrent": __import__("concurrent.futures").futures and __import__("concurrent"),
         "ApiClient": None, "WebullDataClient": None, "WEBULL_SDK_AVAILABLE": False,

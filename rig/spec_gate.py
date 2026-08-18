@@ -288,12 +288,97 @@ def check_commit(repo, sha, verbose=False):
     return {"ok": ok, "sha": sha, "status": "PROVEN" if ok else "RED", "reason": why, "specs": results}
 
 
+# ── SCAN MODE (8/17 F2) — the retroactive audit the concurrency hole made necessary ──────
+#
+# GATE 5 was built to be run on ONE candidate commit before pushing it.  That is a
+# per-commit discipline, and on 8/17 it was bypassed WITHOUT ANYONE LYING: two agents shared
+# a worktree, one agent's `git add` swept the other's in-flight bot edits into its commit,
+# and a money-behaviour change (the B5 fail-open conversion) rode into 460dca5 under a
+# message about something else entirely — no Acceptance trailer, gate never invoked.
+#
+# The signature of that failure is dull and completely computable AFTER the fact:
+#
+#     a commit that IS behaviour-changing and carries NO Acceptance trailer.
+#
+# It does not matter whether the contamination came from `add -A`, a shared path, an
+# --amend, or plain forgetfulness — every one of them produces that same signature.  So
+# scan mode does NOT try to detect "two disjoint feature regions" (which would need a
+# feature-region model the repo does not have, and would be a guess dressed as a check).
+# It reports the signature that is exactly computable, over a whole range, in one pass.
+#
+# It is a REPORT, not a verdict: it does not run acceptance tests (that needs two worktree
+# checkouts per commit and is far too slow over a range), so a commit that HAS a trailer is
+# reported as CLAIMED, not PROVEN.  Only `spec_gate.py <sha>` proves.  The column exists so
+# an audit cannot mistake "named a test" for "the test was watched to fail at the parent".
+#
+#     python3 rig/spec_gate.py --scan c388ab7..HEAD
+#     python3 rig/spec_gate.py --scan HEAD~20..HEAD --markdown
+#
+# Exit 0 = no unlabelled behaviour changes in the range.  Exit 1 = at least one FLAGGED.
+def scan_range(repo, rng):
+    """-> list of dicts, oldest first, one per commit in <rng>."""
+    shas = [s for s in _git(repo, "rev-list", "--reverse", rng).split() if s]
+    rows = []
+    for sha in shas:
+        behav, why, touched = classify(repo, sha)
+        trailers = acceptance_trailers(repo, sha)
+        malformed = [t for t in trailers if t[2]]
+        rows.append({
+            "sha": sha,
+            "subject": _git(repo, "log", "-1", "--format=%s", sha).strip(),
+            "behavior": behav,
+            "reason": why,
+            "touched": touched,
+            "trailers": ["%s::%s" % (p, n) for p, n, e in trailers if not e],
+            "malformed": ["%s (%s)" % (p, e) for p, n, e in malformed],
+            # FLAGGED = the exact 8/17 signature: money-behaviour changed, nothing named it.
+            "flagged": bool(behav and not [t for t in trailers if not t[2]]),
+        })
+    return rows
+
+
+def _print_scan(rows, markdown=False):
+    n_flag = sum(1 for r in rows if r["flagged"])
+    if markdown:
+        print("| commit | subject | behaviour-changing? | Acceptance? | proven at parent? | flagged |")
+        print("|---|---|---|---|---|---|")
+        for r in rows:
+            acc = ", ".join("`%s`" % t for t in r["trailers"]) or "—"
+            if r["malformed"]:
+                acc += " ⚠️ MALFORMED: " + "; ".join(r["malformed"])
+            proven = "not run (scan reports, does not prove)" if r["trailers"] else \
+                     ("n/a (exempt)" if not r["behavior"] else "**NO TEST NAMED**")
+            print("| `%s` | %s | %s | %s | %s | %s |" % (
+                r["sha"][:12], r["subject"].replace("|", "\\|")[:88],
+                "YES" if r["behavior"] else "no (exempt)", acc, proven,
+                "🚩 **YES**" if r["flagged"] else ""))
+        print()
+        print("**%d commit(s) scanned, %d FLAGGED** (behaviour-changing with no Acceptance trailer)."
+              % (len(rows), n_flag))
+    else:
+        for r in rows:
+            mark = "🚩" if r["flagged"] else ("  " if not r["behavior"] else "✅")
+            print("%s %s  %-11s  acc=%s  %s" % (
+                mark, r["sha"][:12], "BEHAVIOUR" if r["behavior"] else "exempt",
+                ",".join(r["trailers"]) or "-", r["subject"][:70]))
+            if r["behavior"]:
+                print("      %s" % r["reason"])
+        print("\n%d scanned, %d FLAGGED" % (len(rows), n_flag))
+    return n_flag
+
+
 def main():
     ap = argparse.ArgumentParser(description="GATE 5 — spec-as-failing-test")
     ap.add_argument("commit", nargs="?", default="HEAD")
     ap.add_argument("--repo", default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--scan", metavar="RANGE",
+                    help="audit every commit in RANGE (e.g. c388ab7..HEAD): report which are "
+                         "behaviour-changing and which carry no Acceptance trailer")
+    ap.add_argument("--markdown", action="store_true", help="scan output as a markdown table")
     a = ap.parse_args()
+    if a.scan:
+        return 1 if _print_scan(scan_range(a.repo, a.scan), markdown=a.markdown) else 0
     r = check_commit(a.repo, a.commit, verbose=a.verbose)
     print("SPEC GATE  %s  %s" % (r["sha"][:12], r["status"]))
     print("  classification: %s" % r["reason"])

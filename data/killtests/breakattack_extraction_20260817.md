@@ -55,7 +55,7 @@ So the lane we are betting the go-live on was the one nothing could independentl
 | **Room** | `compute_room(...)` → reads bars + daily | **soft since 7/2** — logs `low_room_soft`, does not block |
 | **Session cache / rescan / stream** | the *caller's* concern: which names get scanned, when, and with what bars | outside the decision |
 
-**The map's conclusion, reached before any edit:** the break-attack decision is genuinely
+**The map's finding, reached before any edit:** the break-attack decision is genuinely
 separable. Everything that can *block or price* a break-attack fire is a pure function of
 (3-min session bars, price, vwap, clock, three booleans). Nothing that touches the network or
 the stream can block it. The stream-dependence in the old `NOT_ISOLABLE` note was real for the
@@ -160,7 +160,7 @@ Read it with its bounds:
   all of which sits *upstream* of the detector and is deliberately not modelled. The harness
   grades the detector, never the funnel.
 
-## WHAT REMAINS UN-EXTRACTABLE (stated plainly)
+## LIMITS AND CAVEATS — WHAT REMAINS UN-EXTRACTABLE (stated plainly)
 
 - **The retest arm / reclaim state machine.** `PULLBACK_TIMEOUT_SECS` against `time.time()`,
   `_recent_low_dip` and `_confirm_reclaim` against the live 1-min tape. It stayed inline, and
@@ -175,6 +175,16 @@ Read it with its bounds:
   (scanner board, the lens, re-entry, slots, rescan cadence). Not a detector property.
 - **`replay()` cannot drive this lane** and refuses it by name: it feeds 10s new-bar slices,
   while flat_top is 3-min / whole-session. Use `replay_flat_top()` (rig D5 pins the refusal).
+
+## VERDICT
+
+**The extraction is PROVEN equivalent; the parity number is UNDERPOWERED and is not a verdict
+on the lane.** Equivalence to the pre-refactor logic is proven three ways (1,200-combination
+differential, the three real 8/17 triggers, the Gate 5 acceptance) and that claim stands on
+its own. The parity figure that comes with it — 100%, n = 3 — is only the absence of a
+disagreement on a single day, it carries a known feed difference on 1 of 3 bases, and it says
+nothing whatever about whether break-attack makes money. Cite the equivalence; do not cite
+the 100%.
 
 ## FILES
 

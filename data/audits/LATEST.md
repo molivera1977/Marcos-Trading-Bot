@@ -1,75 +1,74 @@
-# CONVENING ARTIFACT — 8/18 INTRADAY: IGNITION'S TWO CONDITIONS
+# CONVENING ARTIFACT — 8/18 AFTERNOON: THE 9/90 LANE + CAPITAL-PRIORITY REWRITE
 
-covers: a53e45506f1d — RTH deploy on Marcos's explicit override, book NOT flat (EJH, XOS open).
+covers: 39247f1e70f1
 
-## The change
-Ignition was the only converting lane with NO VWAP requirement and NO EMA-stack requirement.
-Three back-side entries on 8/18 proved it: SXTC -11.41% under a declining VWAP (9<20, -$7.62),
-EJH -9.28% under VWAP (9<20<90, red). Now: below VWAP allowed ONLY inside a 2% approach band
-AND only with the 9 over the 20; beyond the band, refused regardless.
+## What ships
+1. **ema9x90 — a NEW CONVERTING LANE** (Marcos's signal, refined by him through six studies in
+   one session). Entry: 1-min 9/90 up-cross at/above session VWAP, RTH only. Stop: 5-min swing
+   low. Exit: lose session VWAP. Half size, no daily cap, no shadow mode. Kill: EMA9X90=0.
+2. **Lane expectancy in the capital sort** — measured lanes first (flat_top +24.94 / ema9x90
+   +22.33 / grinder +21.90), unmeasured neutral with written reasons, hidden_entry carried at
+   its measured −$10.21. Kill: LANE_EXPECTANCY_SORT=0.
+3. **Move % supersedes the 7/26 Kev tier** (Marcos, twice, with AUUD-vs-PFSA as specimen).
+   Kev tier survives as tiebreaker; the day-gain-floor exemption is untouched. Ledgered
+   (`move_pct_over_kev_tier_0818`, 11/11 HOLD). Kill: KEV_TIER_FIRST=1.
 
-**Marcos's nuance, and it is the load-bearing part:** a hard side-of-VWAP line would refuse
-IPST (-1.03%, 9 over 20) — the day's winner, +$57.41 on a name that reached $20.25. Distance
-AND direction, not side. Verified on all four of today's ignition specimens.
+## Evidence, stated with its limits
+656 fires / 63 dates / 736 name-days. Above VWAP +$22.33/tr (n=319, green 54%); below VWAP
+−$10.27 (n=337) with FIVE rescue attempts dead (distance/slope/stack: no separation; velocity &
+volume: INVERTED; reclaim: −$10.29 n=90; crowns-only: structurally zero fires). Two fresh splits
+both positive; permutation null p=0.0005 (0/2000). **The pre-registered bar FAILED condition (b)
+— hold-out n=55 < 100** — because a 13-date split cannot seat 100 fires at ~0.9/day. Marcos
+ruled it live to earn the sample forward; that ruling, not the wall, is what converts this lane.
+MIXED-EPOCH note: config hashes moved intraday today (cap 99 at 10:07, ignition gate at 11:29).
 
-## Findings
-1. **The rig caught a real bug in the first version.** The refusal path bumped `ignition_n`,
-   spending a leader-ammo refire ticket on an ATTEMPT — the 7/29 doctrine violation and the
-   ghost-cap defect in a new lane. Fixed; the counter-bump is pinned to the 2 real fire paths.
-2. Refusals emit an attributed `ignition_kev_gate_reject` row (lane, price, vwap_dist_pct,
-   ema9/ema20, reason), so the gate is priceable from tomorrow's rows.
-3. Independent kill switches: `IGNITION_VWAP_GATE`, `IGNITION_STACK_GATE`, band
-   `IGNITION_VWAP_TOL` (0.02).
-
-## BEHAVIOR CHANGE — Marcos's call, made explicitly
-This refuses ignition entries that would fill today. Marcos directed it in-session after the
-SXTC/EJH specimens and set the nuance himself. It enforces doctrine already ruled (Kev's "at
-or above VWAP" + the 9/20), on the one lane exempt by omission.
-
-## LIMITS — stated, not buried
-* **The 2% band is fit to four specimens from one session.** The RULE is doctrine; the NUMBER
-  is not measured. Tonight's wall tests 1%/2%/3%/no-band plus the 9-over-90-on-10s arm over
-  the 63-date cache with the full ignition era as cohort. The band may move.
-* No kill-test has run on this gate. It ships on Marcos's authority as doctrine enforcement,
-  not on measured expectancy. MIXED-EPOCH: it lands mid-session.
-* Deploying with an open book (EJH, XOS). Resume proven twice today (10:07 and 10:54 restarts;
-  IPST survived the first and closed +$57.41).
+## Findings during the build (the rig earning its keep)
+- Missing RTH window: the detector fired 18:59/19:59 ET on 8/10 tape — a window its evidence
+  never covered. Caught by exercising on real tape; fixed (EMA9X90_OPEN/CLOSE 09:30–15:45).
+- My first EG1 pin for (d) was None — wrong; the explicit no-op refund branch makes it
+  decidable and True. Corrected with the reason in the pin.
+- MAX_STOP 12%→20%: the cap was refusing legitimate fires (JWEL: the one surviving cross).
+- Exercised on TODAY'S tape: fires PFSA $12.44 (the recovery leg), IPST $7.50, XOS $4.74;
+  refuses EJH (day's worst loser) and AIXC. Three fires ≠ proof; it shows placement.
 
 ## DOCTRINE-INVERSION SWEEP
-Doctrine touched: none inverted — this RESTORES "at or above VWAP" and the 9/20 to a lane that
-never had them. Swept for other lanes lacking both: dip_rip (chart-class, has the extension
-guard — separate open defect), grinder/v2/kevseq (tape lanes, own burst gates). No lane
-encodes a contradictory "ignore VWAP" premise. doctrine-inversion sweep: no inversion found.
+The 7/26 "every Kev name first" premise is REPEALED in the capital sort. Swept for other
+encodings of it: the day-gain-floor exemption (:10869 class) reads Kev-ness for a DIFFERENT
+purpose (never blocked for sitting flat) and is deliberately kept; the *KEV console label is
+display-only; `_entry_priority` was the only ranking consumer. No orphaned encodings found.
 
 ## ROLL CALL
-- **Blast Radius Auditor** — TOUCHED. Caught the ignition_n ghost-ticket before deploy.
-- **Momentum Operator** — TOUCHED. This is his standing objection satisfied: the lane that
-  bought weakness now must show strength.
-- **Strength Ombudsman** — TOUCHED, and cautions the reverse risk: a VWAP gate can refuse a
-  strong name that dipped. The 2% band is the concession; the reject rows will price it.
-- **Trade Manager** — TOUCHED. Notes the day's larger leak is EXITS: IPST captured $57 of a
-  ~$684 move. Ships tonight, not now.
-- **Execution Surgeon** — CLEAN. Gate is two comparisons on values already computed at the
-  fire site; no added latency, no new fetch.
-- **Historian** — records: first intraday RTH code deploy of the proving week, on Marcos's
-  override, with two positions open.
-- **Reclaim Architect** — CLEAN on this diff, but TOUCHED today: `kev_reclaim_step` was
-  registered in the harness LANES for the first time and returns 0 replay fires — a wall-clock
-  staleness guard, the same class batch E1 fixed for hidden. The reclaim wall is BLOCKED on it.
-- **Convexity Trader** — CLEAN on this diff (no exit-tier or runner math changes), and states
-  the day's biggest number for the record: IPST captured $57.41 of a ~$684 move because the
-  ladder banked 74% by +9.2%. Exits are tonight's work, not this deploy's.
-- **Cartographer / Feed Engineer / Quartermaster / Kev Librarian / First Hour / Opening Bell /
-  Seam Scientist / Forward Architect / Crown Steward / Side Marshal / Webull Broker Desk /
-  Dashboard Curator / Systems Quant / Pit Crew Chief / Integrator / Tape Veteran / Handicapper / Rocket Rider / Wind Tunnel Engineer / Statistician / Curl Mechanic / Project Manager / Hidden Entry Architect / Opening Bell** — CLEAN:
-  no map, feed, storage, corpus, session-boundary, seam, crown, side, broker, dashboard,
-  parity, latency, merge, tape, reclaim, sizing, rocket, rig, statistics, exit-tier, curl,
-  schedule or hidden-lane path is touched by this diff. Hidden Entry Architect additionally
-  notes the construction sweep (VWAP-stop +$5.75/tr, 9/20 +$1.19) as the v2 rebuild spec.
+- **Blast Radius Auditor** — TOUCHED. EG1 checklist enforced all seven properties on the new
+  lane; caught the unregistered CONVERT env and the 18th exit path before ship.
+- **Momentum Operator / Strength Ombudsman** — TOUCHED. The lane trades strength by
+  construction (above-VWAP cross); the priority rewrite ends flat-Kev-name queue-jumping.
+- **Handicapper** — TOUCHED. Half size at birth; sizing chain unchanged; no-cap is deliberate
+  (capital + $30 risk are the limits).
+- **Trade Manager / Convexity Trader** — TOUCHED. Lose-VWAP exit is the measured winner
+  (+$60.10 hold-out); every faster trail cut the tail and lost. 18th exit path pinned.
+- **Execution Surgeon** — TOUCHED. Detector is O(1) per bar on the fed stream; no new fetches.
+- **Statistician** — TOUCHED, standing objection RECORDED: n=55 hold-out failed the
+  pre-registered bar; the lane ships on Marcos's ruling, not on statistical sufficiency. The
+  forward sample is the remedy and the lane's rows are fully stamped for it.
+- **Wind Tunnel Engineer** — TOUCHED. 11/11 rigs green; two negative controls on the new pins.
+- **Kev Librarian** — TOUCHED. Both lane rules are Kev doctrine (at/above VWAP; lose VWAP =
+  done). The 9/90 cross itself is Marcos's observation, not corpus-sourced.
+- **Historian** — records: first lane ever born through the full checklist with its wall,
+  its failure honestly stated, and a capital-priority supersession the same hour.
+- **Cartographer / Side Marshal / Crown Steward / Feed Engineer / Webull Broker Desk /
+  Quartermaster / Dashboard Curator / Systems Quant / Pit Crew Chief / Integrator /
+  First Hour / Opening Bell / Seam Scientist / Forward Architect / Tape Veteran / Reclaim Architect /
+  Rocket Rider / Curl Mechanic / Project Manager / Hidden Entry Architect** — CLEAN: no map,
+  side, crown, feed, broker, storage, dashboard, parity, latency, merge, open-window, seam,
+  tape-doctrine, reclaim-lane, rocket, curl, schedule or hidden-lane path touched. Hidden
+  Entry Architect notes the −$10.21 now rides the sort as a warning label.
 
 ## DAY-ONE WALKTHROUGH
-Next ignition fire: `_e9/_e20/vwap` are already computed at the fire site. If price >= vwap*0.98
-AND 9 >= 20 -> unchanged path, `breakouts.append`. Else -> `ignition_kev_gate_reject` row +
-console line, `ignition_fired` set (no counter bump), `continue`. Observable within minutes of
-the next ignition setup; the 12:48 duty-watch checkpoint will show ignition fires vs fills and
-name this gate if it starts refusing.
+Next 1-min 9/90 up-cross above VWAP on a fed name → `ema9x90_fire` row (px/stop/fire_k/age/
+drift stamped) → console ⚡ line → breakouts.append half_size → priority sort seats it by
+(band 0, move%) → worker: chart gate (tape-class bypass, counterfactual stamped), Kev gate
+N/A (not ignition), sizing at half → fill → monitor holds until swing stop or a 1-min close
+below session VWAP ("9/90 LANE: lost VWAP") or the 15:45 flatten. Every stop on the path has
+a named kill switch. The 15:52 duty-watch checkpoint will show the lane's fires vs fills.
+
+doctrine-inversion sweep: recorded above.

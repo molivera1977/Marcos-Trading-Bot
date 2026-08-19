@@ -3681,6 +3681,36 @@ _move_pct: dict = {}   # sym -> the scanner's Move % (vendor change_ratio x100) 
 # None sorts NEUTRAL (between positive and negative), so an unmeasured lane is neither promoted
 # nor silently demoted; it keeps exactly the priority it has today until someone measures it.
 # Units: E3-parity dollars per trade, hold-out where a hold-out exists.
+# ── 8/19 LANE RANK (Marcos: "i want my best lanes and best tested lanes first" ...
+# "do it the right way and not some fucked up add on"). Until now a lane's turn at capital was
+# decided by NESTING DEPTH in the scan loop — the order the lanes were written in, 2026-06
+# through 8/19 — which nobody chose and which put `hidden` (wall FAILED, -$10.21/tr) above
+# `ema9x90` (wall PASSED, p=0.0005). Measured 8/18: the live order sits at p18 of a 200-shuffle
+# null, i.e. 82% of RANDOM orders beat it, and Marcos's own ordering was the best arm tested
+# (+$102.50/day @N=6, +$161.27 @N=8, vs +$67.52 live).
+#
+# THE RIGHT PLACE IS HERE, NOT A CLAIM BOLTED ONTO NINE CALL SITES. Every lane already funnels
+# into one `breakouts` list resolved by one arbiter (`_entry_priority`, sorted at :14556). Lanes
+# PROPOSE; this disposes. Rank is DATA, so reordering is an edit to this list — never a
+# restructure of the scan loop.
+# Order is Marcos's: the two lanes that cleared their own pre-registered walls, then the pullback
+# rebuilt to his definition (ma_pullback v2: -$3.69/tr -> +$13.66/tr hold-out).
+# Kill: LANE_RANK_SORT=0 restores the previous behaviour exactly.
+LANE_RANK = [s.strip() for s in os.environ.get(
+    "LANE_RANK", "ignition,ema9x90,ma_pullback").split(",") if s.strip()]
+LANE_RANK_SORT = os.environ.get("LANE_RANK_SORT", "1") == "1"
+# 8/19: one position per ticker per cycle — the CDTG double-fill fix, same arbiter.
+ONE_PER_TICKER = os.environ.get("ONE_PER_TICKER", "1") == "1"
+
+
+def _lane_rank(lane):
+    """Position in LANE_RANK; unranked lanes sort AFTER every ranked one, order unchanged."""
+    try:
+        return LANE_RANK.index(lane)
+    except ValueError:
+        return len(LANE_RANK) + 1
+
+
 LANE_EXPECTANCY = {
     # lane            $/trade   source
     "flat_top":       ( 24.94, "seq_gate_oos_wall_20260817.md — hold-out ungated, n=187"),
@@ -3735,6 +3765,10 @@ def _entry_priority(b):
         _mv = b[4].get("day_gain")
     _tier = 0 if _kev_sheet_name(b[0]) else 1
     _mvk = -(_mv if _mv is not None else -999.0)
+    # 8/19: LANE RANK IS PRIMARY. Marcos's named lanes take capital first; Move % still decides
+    # BETWEEN names inside a rank, so "run after the big boys" is intact within each lane.
+    if LANE_RANK_SORT:
+        return (_lane_rank(b[3]), _mvk, _tier)
     # ── 8/18 SUPERSEDES THE 7/26 TIER RULING (Marcos: "i think move percentage should take over
     # just kev names. Not all of his names move."). The 7/26 rule put EVERY Kev-sheet name ahead
     # of EVERY other name regardless of movement, so a flat Kev pick took capital before a name
@@ -14553,7 +14587,30 @@ def main():
         # the premarket 6-cap used to keep the FIRST six in arrival order — premarket is exactly
         # where the big boys gap, so the cap must keep the BEST six. Workers later spawn in this
         # order too, so capital reservations follow it all day (near-priority, no preemption). ──
+        # ── 8/19 ONE POSITION PER TICKER, BEST LANE WINS ────────────────────────────────
+        # CDTG 8/18 14:16:43: kevseq AND ma_pullback both filled the SAME name in the SAME
+        # second — two positions, two stops, two risk allocations, and the capital split into
+        # $225 and $93 clips instead of one ~$500. Combined -$59.63
+        # (data/audits/DEFECT_20260818_cdtg_double_fill.md). Nothing anywhere enforced
+        # one-position-per-name; the two lanes fire from different branches and never saw each
+        # other. Enforcing it HERE — at the single arbiter every lane already funnels into —
+        # fixes it for every lane pair at once, present and future, instead of patching a guard
+        # into nine call sites. Sort first so rank decides the winner, then keep the first per
+        # ticker. Kill: ONE_PER_TICKER=0.
         breakouts.sort(key=_entry_priority)
+        if ONE_PER_TICKER:
+            _seen_t, _kept = set(), []
+            for _b in breakouts:
+                if _b[0] in _seen_t:
+                    _log_decision(_b[0], "lane_outranked", price=_b[1], lane=_b[3],
+                                  won_by=next((x[3] for x in _kept if x[0] == _b[0]), None),
+                                  rank=_lane_rank(_b[3]))
+                    continue
+                _seen_t.add(_b[0]); _kept.append(_b)
+            if len(_kept) != len(breakouts):
+                print(f"   🎟️  one-per-ticker: {len(breakouts) - len(_kept)} lower-ranked "
+                      f"candidate(s) yielded the name")
+            breakouts = _kept
         if len(breakouts) > 1:
             print("🎖️ entry priority: " + "  >  ".join(
                 f"{b[0]}{'*KEV' if _kev_sheet_name(b[0]) else ''}(mv {_move_pct.get(b[0], b[4].get('day_gain'))})"
@@ -15828,7 +15885,16 @@ except Exception:
     WAKE_H, WAKE_M = 3, 55
 ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "09:30").strip()
 # 7/25 premarket-paper profile (Marcos: premarket != RTH): only 10s live-structure lanes, tiny cap.
-PRE_LANES = set((os.environ.get("PRE_LANES", "hidden_entry,vwap_reclaim")).split(","))
+# 8/19 (Marcos: "i want pullback for both pre and RTH"). ma_pullback v2 is a two-timeframe
+# structure read — 3-min flag, 1-min break confirmation — and nothing in it is RTH-specific, so
+# it works on premarket tape the same way. Its own conditions do the gating: above VWAP, quiet
+# dip, within 2% of the session high. It rides MA_PULLBACK_V2; with v2 OFF the old fire-in-the-
+# flag behaviour would be loose in premarket, so v1 is deliberately NOT admitted here.
+# UNMEASURED IN PREMARKET, stated plainly: every ma_pullback figure tonight is RTH tape
+# (09:30-16:00). The premarket arm has NOT been graded. Kill: PRE_LANES env override.
+PRE_LANES = set((os.environ.get(
+    "PRE_LANES",
+    "hidden_entry,vwap_reclaim" + (",ma_pullback" if MA_PULLBACK_V2 else ""))).split(","))
 # 8/16 PREVWAP conversion (Marcos: "switch pre-vwap ... to live in pre" — ALL SIM): the prevwap
 # lane fires ONLY 07:00-09:25, so it must be a PRE lane or the premarket gate shadows every fire.
 # Rides the convert switch — PREVWAP_CONVERT=0 (default) leaves PRE_LANES exactly as before.

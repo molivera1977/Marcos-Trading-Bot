@@ -307,6 +307,28 @@ ALL_SYMBOLS = [
     # injection points (E1 clock hook, E2 pm_floor arg, E3 lvd/wall_high args).
     # 8/18: the 9/90 lane shipped 12:43 today and was NOT in this list, so it could not be
     # lifted, exercised, or parity-measured at all. Added with its state + config.
+    # ── 8/18: FIVE DETECTORS THE LIVE LOOP CALLS THAT WERE NEVER REGISTERED ──
+    # Found by censusing the scan loop against this list (rig gate 17). Two of them TRADED on
+    # 8/18 while being impossible to lift, replay or parity-measure:
+    #   detect_ma_pullback  2 fills (-$26.76, +$48.76) — and it is the lane that bought CDTG
+    #                       66% above VWAP at 14:16:43, the open extension defect
+    #   dip_rip_step        1 fill (-$34.67 PFSA)
+    # The other three are live-callable but did not fire today. ema9x90 shipped 12:43 the same
+    # way and ran a full session with a wall-clock bug nothing could test.
+    "detect_ma_pullback", "_detect_ma_pullback", "MA_PULLBACK_LEVELS", "MA_PULLBACK_TOUCH_TOL",
+    "MA_PULLBACK_STOP_BUFFER", "MA_PULLBACK_DEDUPE", "MA_WARMUP_SEED", "_calc_ema", "_extract_closes",
+    "dip_rip_step", "_dr_st", "DIPRIP_ZONE", "DIPRIP_WINDOW_S",
+    "detect_bounce", "BOUNCE_MIN_RUN", "BOUNCE_MIN_DD",
+    "detect_rocket", "_rocket_day", "ROCKET_CATCHER", "ROCKET_VEL_PCT", "ROCKET_VEL_BARS",
+    "ROCKET_DAILY_CAP",
+    "detect_gate",
+    # kev_reclaim_step: it HAS a LANES entry ("reclaim") pointing at a symbol that was never
+    # extracted — so replay("reclaim") raised NotIsolable and every study reported the lane as
+    # "0 fires" instead of "could not run". The premarket bake-off printed reclaim n=0 in a
+    # results table; vwap_reclaim is the -$648.24 line, the largest single loss in the PRE book,
+    # and it has been UNMEASURABLE the whole time. Caught by gate 17 on its first run.
+    "kev_reclaim_step", "_reclaim_st", "_reclaim_cursor", "RECLAIM_KEV",
+    "RECLAIM_LIVE", "RECLAIM_LIVE_START", "RECLAIM_LIVE_END", "RECLAIM_FIREVOL",
     # 8/18: the VWAP adjudication chain, so the CDTG 7.11 class is testable at all.
     "_tick_vwap_ok", "_vwap_coverage_min", "_vwap_bar_trusted",
     "VWAP_COVERAGE_GUARD", "VWAP_MIN_SPAN_MIN",

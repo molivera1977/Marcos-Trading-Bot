@@ -16088,6 +16088,50 @@ if __name__ == "__main__":
           f"vwap={DATA_PRIMARY} capture_hot={'SET' if ALP_CAPTURE_URL else 'unset(dash-fallback)'} "
           f"alp_keys={'yes' if (_ALP_KEY and _ALP_SECRET) else 'NO'}")
 
+    # ── 8/19 SESSION MAP BANNER (Marcos: "ship the banner") ──────────────────────────────────
+    # Same contract as the #97 DATA SOURCES line above: the deploy acceptance READS this, it never
+    # assumes an env stuck. Lane arbitration stopped being an accident of code nesting depth on
+    # 2026-08-19 -- it is now LANE_RANK sort -> one-per-ticker dedupe -> session whitelist. None of
+    # that was visible anywhere at boot, so a morning where a lane fired that shouldn't have (or
+    # ma_pullback stayed silent) had to be reconstructed from source instead of read from a log.
+    # The 07:12 duty-watch row names fires-vs-fills; it cannot name the WHITELIST that produced
+    # them. This line closes that gap. Observability only -- it prints state, it never sets it.
+    try:
+        # PRE_LANES/RTH_LANES are SETS (:15998, :16013), not strings. Rendering them in LANE_RANK
+        # order first, then alphabetically, so the line is stable across boots and diffable.
+        def _order(s):
+            _c = sorted(x.strip() for x in (s or ()) if x and x.strip())
+            return [x for x in LANE_RANK if x in _c] + [x for x in _c if x not in LANE_RANK]
+        _pre_l = _order(PRE_LANES)
+        _rth_l = _order(RTH_LANES)
+        _ranked = [x for x in LANE_RANK if x in _rth_l]
+        _rest = [x for x in sorted(LANE_EXPECTANCY.keys()) if x not in _rth_l and x not in _pre_l]
+        print(f"🗺️  SESSION MAP  PRE {ENTRY_OPEN_ET}-{PRE_FLAT_HHMM}: {','.join(_pre_l) or 'NONE'}")
+        print(f"🗺️  SESSION MAP  RTH 09:30-16:00: {','.join(_rth_l) or 'NONE'}"
+              f"   (rank: {'>'.join(_ranked) or 'none'}"
+              f"{'' if LANE_RANK_SORT else ' — RANK SORT OFF'})")
+        print(f"🚫 RESTRICTED ({len(_rest)}): {','.join(_rest) or 'none'}"
+              f"   — these still DETECT and LOG; they cannot convert")
+        print(f"🎯 ma_pullback v2={'ON' if MA_PULLBACK_V2 else 'OFF'} "
+              f"depth<={MAPB_MAX_DEPTH_PCT}% quiet<{MAPB_QUIET_MAX} stopbuf={MAPB_FLAG_BUF*100:.0f}% "
+              f"runway={'REQUIRED' if MAPB_REQUIRE_RUNWAY else 'off'} | "
+              f"ignition_pre={'ON' if IGNITION_PRE else 'OFF'} | one_per_ticker="
+              f"{'ON' if ONE_PER_TICKER else 'OFF'} | DRY_RUN={DRY_RUN}")
+        # durable stamp: the log scrolls, the ledger does not. Same pattern as the boot config row.
+        try:
+            _log_decision("boot_session_map", "SYSTEM", {
+                "pre_lanes": _pre_l, "rth_lanes": _rth_l, "lane_rank": list(LANE_RANK),
+                "lane_rank_sort": bool(LANE_RANK_SORT), "restricted": _rest,
+                "entry_open_et": ENTRY_OPEN_ET, "pre_flat": PRE_FLAT_HHMM,
+                "ma_pullback_v2": bool(MA_PULLBACK_V2), "ignition_pre": bool(IGNITION_PRE),
+                "one_per_ticker": bool(ONE_PER_TICKER), "dry_run": bool(DRY_RUN),
+            })
+        except Exception:
+            pass   # a stamp that fails must never keep the bot from booting
+    except Exception as _e:
+        # fail LOUD but never fatal: a banner that crashes the boot is worse than no banner
+        print(f"⚠️  SESSION MAP banner failed to render: {_e}")
+
     # 7/15: SIGTERM → bulk-flush the in-memory 10s collection before Railway swaps the container.
     # Deploys must never be data events. (Main thread only — signal module requirement.)
     try:

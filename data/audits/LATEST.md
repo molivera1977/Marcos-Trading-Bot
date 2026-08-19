@@ -223,6 +223,10 @@ action, eaten by a handler) + the reread fix + two gates:
 3. `urllib` never imported — tape pre-break + retest-band gates fail-open dead since 8/3.
 4. Dist-primary rereads (REREAD_DIST_ONLY, default on; measured: 53% of breaches fired on
    maps within 3%) + breach rows stamp trigger=age|dist|both.
+5. Ignition relvol graded the STILL-FORMING minute (_rvc[-1], the element every sibling
+   call site drops): 0.1x stamps on 6.8x surges, 35 refusals on its first live day vs zero
+   ever before, fires 27 -> 7. Now grades the last COMPLETED minute — the quantity the 8/18
+   study actually measured. Synthetic check: old 0.26x/refuse vs new 6.0x/pass on the same tape.
 Gates 19 (reread contract, 9 checks) and 20 (pyflakes undefined-name sweep, both services).
 Re-pins: resting_stop DRY_RUN pin → the 8/8 auditor-C spec; kev_merge harness given module
 globals (its NameError was a harness artifact, NOT a live defect — corrected on the record).

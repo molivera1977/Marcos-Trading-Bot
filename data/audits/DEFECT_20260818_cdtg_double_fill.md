@@ -51,9 +51,25 @@ so the census CANNOT bound how often a single lane stamps a wrong VWAP with no s
 disagree with it — that is a real blind spot in this measurement, stated rather than papered
 over).
 
-CANNOT ADJUDICATE YET: the 10s SIP universe cache has no `2026-08-18_CDTG.json` (cache runs
-through 8/17; today's tape is not ferried). Computing the true session VWAP for 14:16:43 ET
-is the deciding check and it HAS NOT RUN. Neither number is claimed correct.
+**ADJUDICATED 8/18 22:3x ET** — after harvesting today's tape (see "THE CACHE WAS NOT BEING
+MAINTAINED" below). CDTG 2026-08-18: 310,022 SIP ticks -> 3,954 10s bars.
+
+    session VWAP at 14:16:43, PRE+RTH anchor (04:00)  = $4.6719
+    session VWAP at 14:16:43, RTH-only anchor (09:30) = $4.7850
+    ma_pullback stamped 4.6719  -> EXACT MATCH to 4dp, PRE+RTH anchor. CORRECT.
+    kevseq      stamped 7.11    -> matches NEITHER anchor. WRONG.
+
+This is not an anchor disagreement — no anchor of the session line produces 7.11. Price at that
+instant was $7.78, so 7.11 appears to be derived from the PRICE rather than from a
+volume-weighted line. The specific source of 7.11 is NOT yet identified (candidates untested:
+the recorder tick-VWAP overlay `_recorder_tick_vwap`, a stale cached value, or a per-lane line).
+
+CONSEQUENCE, which is worse than a bad stamp:
+  * ma_pullback's own row read "+66.53% above VWAP" and that was TRUE. It saw the extension
+    correctly and bought anyway -> D3 below is a REAL, unmitigated entry defect.
+  * kevseq's row read "+9.12% above VWAP" when the honest figure was ~66%. ITS GATE WAS FED A
+    FALSE LINE and passed a trade it should have refused. That leg lost -$32.87.
+  So the lanes did not disagree about a fact; one of them was blind.
 
 ## D3 (observation, not yet a defect) — EXTENSION
 
@@ -76,3 +92,23 @@ exactly what D2 blocks answering.
 
 OPEN. Nothing shipped, nothing committed against this. Cost to date: −$59.63 (the pair),
 of which −$26.76 is the overlapping leg that per-name exclusion would have prevented.
+
+
+## THE CACHE WAS NOT BEING MAINTAINED (found 8/18 while unblocking D2)
+
+`data/universe/harvester.py` is a ONE-SHOT BACKFILL: `START, END = "2026-05-15", "2026-08-13"`
+are hardcoded and phase 1 short-circuits whenever `manifest.json` exists. Nothing ran nightly.
+Verified: the cache held 738 name-days ending 2026-08-17, ZERO files for 2026-08-18, newest
+mtimes stuck at Aug 17 11:33.
+
+Every kill-test, wall and counterfactual in `data/killtests` reads this cache. A cache that
+silently stops advancing means studies keep reporting confident hold-out numbers over tape that
+no longer includes recent days — and nothing anywhere warns about it.
+
+FIXED FOR THE DAY, NOT FOR THE CLASS: `data/universe/harvest_day.py` (new) harvests one date on
+demand, same schema as harvester.py phase 2, resumable, run under `railway run` so credentials
+are never printed. 8/18 harvested: 210 name-days.
+
+STILL OPEN: no scheduled nightly harvest exists. Per feedback_kill_the_class_not_instance the
+fix belongs on the class — a scheduled harvest plus a staleness assert in the study loader, so a
+stale cache FAILS a study rather than silently ageing it. NOT built.

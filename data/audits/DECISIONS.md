@@ -43,3 +43,5 @@ Never edit a row's meaning in place; add a new row and mark the old one supersed
 record of what drifted survives.
 
 | 2026-08-18 | cdtg_double_fill_0818 | OPEN DEFECT | CDTG 14:16:43 kevseq+ma_pullback filled the same name in the same second (-$59.63; overlapping leg -$26.76) AND stamped session_vwap 7.11 vs 4.6719 (52% apart). Era census 7/13+ (437 rows): 1 event both tests — ISOLATED, not endemic. Cause UNKNOWN, VWAP unadjudicated (no 8/18 SIP cache). See data/audits/DEFECT_20260818_cdtg_double_fill.md |
+
+| 2026-08-19 | ma_pullback_no_pullback | OPEN DEFECT | ma_pullback's held-MA test has NO ceiling on distance above the MA, so a VERTICAL EXPANSION BAR passes: CDTG 8/18 14:16:43 filled $7.78 after +57% in 11 min with no retrace; the 'dip' and the 'reclaim' were the low and close of ONE +36% candle, 40% apart. Lane doc also wrong (says +$160.82/70.6%; actual +$460.95/55.6%, two days carry it). Fix shape known, THRESHOLD UNMEASURED — driver unexercised. See data/audits/DEFECT_20260819_ma_pullback_no_pullback.md |

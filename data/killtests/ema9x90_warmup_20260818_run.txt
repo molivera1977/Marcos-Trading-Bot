@@ -1,0 +1,35 @@
+====================================================================================================
+THE 9/90 WARM-UP — is the first 90 minutes worth having?
+====================================================================================================
+universe 736 name-days / 63 dates
+
+FULL SAMPLE
+  RTH_ONLY     n=  240  total=$   -693.01  $/tr=  -2.89  win=  15%  green= 22%
+  WARMED       n=  370  total=$  +2421.81  $/tr=  +6.55  win=  24%  green= 39%
+  WARMED_AM    n=  242  total=$  +2624.64  $/tr= +10.85  win=  31%  green= 43%
+
+HOLD-OUT (unseen 19)
+  RTH_ONLY     n=   56  total=$    -89.58  $/tr=  -1.60  win=  21%  green= 28%
+  WARMED       n=   95  total=$   +127.44  $/tr=  +1.34  win=  23%  green= 33%
+  WARMED_AM    n=   57  total=$   +695.87  $/tr= +12.21  win=  26%  green= 35%
+
+CAPACITY — hold-out $/day, first N fires per day
+  arm                   N=2          N=4          N=6
+  RTH_ONLY    $       10.68$       -2.02$       -4.71
+  WARMED      $        2.76$       29.07$       10.36
+
+====================================================================================================
+PRE-REGISTERED VERDICT
+====================================================================================================
+  WARMED $+29.07/day @N=4 vs RTH_ONLY $-2.02 (Δ $+31.09);  @N=6 $+10.36 vs $-4.71 (Δ $+15.07)
+  PASS  WARMED beats RTH_ONLY at N=4 AND N=6
+  PASS  the ADDED early crosses pay on their own: $+12.21/tr  n=57  win 26%  green 35%
+
+  => WARMING THE LANE IS SUPPORTED. It is still a live-path change to a lane that
+     shipped today: env kill switch + rig pin + gauntlet before anything moves.
+
+SEPARATE AND STILL OPEN: whether the LIVE feed already carries premarket (no RTH gate
+on the feed path at :9561). If it does, the lane is ALREADY warm and none of this is a
+change — it is a confirmation. That is a live check, not a tape check.
+
+LIMITS: detector-only, no funnel; levels overstate live, compare the arms.

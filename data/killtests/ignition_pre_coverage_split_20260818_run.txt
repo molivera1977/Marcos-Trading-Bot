@@ -1,0 +1,34 @@
+==========================================================================================================
+PREMARKET IGNITION SPLIT BY TAPE COVERAGE — is the edge real, or thin-tape fiction?
+==========================================================================================================
+fires: 230   window 07:00-09:25 ET   coverage = share of 870 possible 10s bars carrying a print
+
+FULL SAMPLE
+  Q1 <25%   (thinnest)   n=   9  total=$  +232.74  $/tr= +25.86  win= 33%  green= 33%  med base prints= 24
+  Q2 25-50%              n=  31  total=$   +30.60  $/tr=  +0.99  win= 32%  green= 35%  med base prints= 24
+  Q3 50-75%              n=  38  total=$ +2036.53  $/tr= +53.59  win= 42%  green= 43%  med base prints= 24
+  Q4 >=75%  (densest)    n= 152  total=$ +2555.11  $/tr= +16.81  win= 36%  green= 47%  med base prints= 24
+
+HOLD-OUT (unseen 19)
+  Q1 <25%   (thinnest)   n=   1  total=$    -4.81  $/tr=  -4.81  win=  0%  green=  0%  med base prints= 24  << UNDERPOWERED
+  Q2 25-50%              n=  10  total=$   -89.36  $/tr=  -8.94  win= 30%  green= 33%  med base prints= 24  << UNDERPOWERED
+  Q3 50-75%              n=   8  total=$  +349.61  $/tr= +43.70  win= 62%  green= 62%  med base prints= 24  << UNDERPOWERED
+  Q4 >=75%  (densest)    n=  51  total=$  +507.18  $/tr=  +9.94  win= 35%  green= 59%  med base prints= 24
+
+BY LARGEST PRINT-FREE GAP (hold-out)
+  gap <= 5 min   n=  63  $/tr= +10.38  win= 38%  green= 56%
+  gap  > 5 min   n=   7  $/tr= +15.57  win= 29%  green= 29%
+
+==========================================================================================================
+PRE-REGISTERED VERDICT
+==========================================================================================================
+  DENSE (Q3+Q4, >=50% coverage): n=59  $+14.52/tr  green=59%
+  THIN  (Q1+Q2, <50% coverage) : n=11  $-8.56/tr  green=33%
+
+  PASS  the edge survives in TRADEABLE (dense) tape: $/tr>0 with n>=25
+  => THE EDGE IS IN THE DENSE COHORT. Thin tape is noise (or worse). A coverage
+     floor becomes the lane's ELIGIBILITY RULE, not a cosmetic filter.
+
+LIMITS: study reimplementation (live detector refuses premarket, :7945); detector-only,
+no board/chart gate/slots. The RTH slip model FLATTERS THIN TAPE MOST — so this test is
+biased toward finding a fake edge in Q1/Q2, which is the safe direction here.

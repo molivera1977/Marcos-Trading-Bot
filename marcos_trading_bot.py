@@ -6859,6 +6859,27 @@ IGNITION_VWAP_TOL   = float(os.environ.get("IGNITION_VWAP_TOL", "0.02"))   # 2% 
 # shipping the prior-session seed instead would be shipping an untested thing.
 # Kill: IGNITION_STACK_WARMUP=0 restores the RTH-only (inert) gate exactly.
 IGNITION_STACK_WARMUP = os.environ.get("IGNITION_STACK_WARMUP", "1") == "1"
+# ── 8/18 PREMARKET IGNITION + THE 9/90 WARM-UP (Marcos: "ignition for both pre and RTH, have
+# 9/90 running in pre but not trade until 9:30"). Both numbers below are hold-out, 19 unseen
+# dates, premarket reported on its OWN line and never summed with RTH.
+#   IGNITION IN PRE (ignition_pre_window_20260818 / premarket_bakeoff_20260818):
+#     07:00-09:25 +$10.58/tr n=71 green 58% -> earns the seat and LEADS the premarket bake-off
+#     08:00-09:25 -$10.22/tr green 12%      -> the later start buys the losers; 07:00 is the floor
+#     coverage split: >=50% tape +$14.52/tr green 59% | <50% tape -$8.56/tr  -> eligibility rule
+#   THE 9/90 IN PRE: measured and REFUSED. -$4.49/tr, 13% win, 26% green (premarket_bakeoff).
+#     It is fed premarket bars for WARM-UP ONLY and does not fire until EMA9X90_OPEN (09:30).
+IGNITION_PRE          = os.environ.get("IGNITION_PRE", "1") == "1"
+IGNITION_PRE_OPEN_M   = int(os.environ.get("IGNITION_PRE_OPEN_M", "420"))    # 07:00 ET
+IGNITION_PRE_CLOSE_M  = int(os.environ.get("IGNITION_PRE_CLOSE_M", "565"))   # 09:25 live PRE flatten
+IGNITION_PRE_COVERAGE = float(os.environ.get("IGNITION_PRE_COVERAGE", "50")) # % of elapsed window that printed
+# The 9/90 accumulates its 90-bar 1-min series from premarket, GAP-FILLED (last print carried
+# through empty minutes). Measured (gap-fill vs prints-only, hold-out): warm at the bell on 93%
+# of name-days vs 69%, and the added fires are BETTER — $/tr +$14.68 vs +$11.75, green 61% vs
+# 56%. Marcos's readiness instinct was right: premarket rippers are 88-90% ready. The gap-fill
+# also covers the QUIET-premarket names, which measured as the lane's best cohort (41% win,
+# 65% green) and which rip-based steering would have excluded.
+# Kill: EMA9X90_WARMUP=0 restores the cold-start (blind until ~11:00) behaviour exactly.
+EMA9X90_WARMUP        = os.environ.get("EMA9X90_WARMUP", "1") == "1"
 IGNITION_CELL_GATE = os.environ.get("IGNITION_CELL_GATE", "0")
 # flat_top + vwap_reclaim → observe-only (era books graded CODE-DEFECTS, not designs — audit 3:
 # flat_top/orb bought the break print in a retest costume; coded vwap_reclaim = the refuted
@@ -7213,7 +7234,8 @@ def ema9x90_step(sym, new_bars, vwap):
     st = _x90_st.get(sym)
     if not st or st.get("day") != day:
         st = {"day": day, "m1": [], "part": [], "e9": None, "e90": None,
-              "prev_above": None, "lows": [], "n": 0}
+              "prev_above": None, "lows": [], "n": 0,
+              "last_m": None, "warm_pre": 0}      # 8/18 gap-filled premarket warm-up
         _x90_st[sym] = st
     if not vwap or vwap <= 0:
         return None
@@ -7228,6 +7250,26 @@ def ema9x90_step(sym, new_bars, vwap):
             continue
         m1_close = st["part"][-1][1]
         st["part"] = []
+        # ── 8/18 GAP-FILLED WARM-UP (Marcos: "if you run 9/90 from 4 how could it not be ready
+        # by 9:30????"). A 1-min bar only exists where a PRINT exists, so a thin premarket
+        # yields far fewer than 90 bars and the lane stayed blind until ~11:00 (measured:
+        # earliest cross 10:59, MEDIAN 12:42 on a cold start). Carrying the last print through
+        # empty minutes makes the 90-EMA seated at the bell on 93% of name-days vs 69%, and the
+        # fires it adds are BETTER, not worse: $/tr +$14.68 vs +$11.75, green 61% vs 56%
+        # (hold-out, 19 unseen dates). Kill: EMA9X90_WARMUP=0.
+        _mnow = datetime.fromtimestamp(k, EASTERN)
+        _mod = _mnow.hour * 60 + _mnow.minute
+        if EMA9X90_WARMUP and st["last_m"] is not None and 1 < (_mod - st["last_m"]) <= 330:
+            _carry = st["m1"][-1] if st["m1"] else m1_close
+            for _ in range(_mod - st["last_m"] - 1):
+                st["m1"].append(_carry)
+                st["e9"] = _carry if st["e9"] is None else (_carry - st["e9"]) * K9 + st["e9"]
+                st["e90"] = _carry if st["e90"] is None else (_carry - st["e90"]) * K90 + st["e90"]
+                if _mod < 570:
+                    st["warm_pre"] += 1
+        st["last_m"] = _mod
+        if _mod < 570:
+            st["warm_pre"] += 1                  # premarket bars WARM the lane; they never fire
         st["m1"].append(m1_close)
         st["e9"] = m1_close if st["e9"] is None else (m1_close - st["e9"]) * K9 + st["e9"]
         st["e90"] = m1_close if st["e90"] is None else (m1_close - st["e90"]) * K90 + st["e90"]
@@ -7243,7 +7285,15 @@ def ema9x90_step(sym, new_bars, vwap):
         # Caught by exercising the detector on real tape: without this it fired at 18:59 and
         # 19:59 ET on 8/10 MTEN, hours outside anything that was ever measured. A lane must not
         # trade a window its evidence never covered.
-        _hm_x9 = datetime.now(EASTERN).strftime("%H:%M")
+        # 8/18 BAR-CLOCK, NOT WALL-CLOCK. This read datetime.now(EASTERN), so the window was
+        # judged by when the PROCESS happened to be running rather than by when the BAR closed.
+        # Exercising the lane through the harness fired it 30x before 09:30 and again at 18h/19h
+        # — the same shape as the 8/10 MTEN 18:59/19:59 fires the window was added to stop.
+        # Ignition derives its minute from the bar (`m`); this now does the same, which makes the
+        # gate deterministic and testable instead of dependent on process wall-clock.
+        # Marcos 8/18: "have 9/90 running in pre but not trade until 9:30" — premarket bars WARM
+        # the machine above; this line is what keeps them from ever becoming a trade.
+        _hm_x9 = datetime.fromtimestamp(k, EASTERN).strftime("%H:%M")
         if not (EMA9X90_OPEN <= _hm_x9 < EMA9X90_CLOSE):
             continue
         if c < vwap:                    # THE condition. p=0.0005. Not a tunable.
@@ -7259,6 +7309,8 @@ def ema9x90_step(sym, new_bars, vwap):
         st["n"] += 1
         fired = {"px": round(c, 4), "stop": round(stop, 4), "k": k, "n": st["n"],
                  "vwap": round(vwap, 4), "e9": round(st["e9"], 4), "e90": round(st["e90"], 4),
+                 "warm_pre": st["warm_pre"],                    # 8/18: premarket bars that warmed it
+                 "warm_src": "premarket" if st["warm_pre"] >= 90 else "rth_cold",
                  "stop_pct": round((c - stop) / c * 100, 2)}
     return fired
 
@@ -7936,24 +7988,58 @@ def ignition_10s_step(sym, new_bars):
         today = datetime.now(EASTERN).strftime("%Y-%m-%d")
         st = _ig10_st.get(sym)
         if st is None or st["d"] != today:
-            st = {"d": today, "bars": [], "openp": 0.0}
+            st = {"d": today, "bars": [], "openp": 0.0,
+                  "openp_pre": 0.0, "pre_min": set()}   # 8/18 premarket anchor + printed-minute census
             _ig10_st[sym] = st
         fire = None
         for k, o, h, l, c, v in new_bars:
             et = datetime.fromtimestamp(k, EASTERN)
             m = et.hour * 60 + et.minute
-            if m < 570 or c <= 0:
-                continue                                   # premarket / bad bar: not this machine's regime
-            if st["openp"] <= 0 and o > 0:
+            if c <= 0:
+                continue
+            # ── 8/18 PREMARKET IGNITION (Marcos: "i want ignition for pre as well" ->
+            # "ignition for both pre and RTH"). This line used to read `if m < 570` and skipped
+            # every premarket bar by hand, which is why 551 name-days of premarket tape produced
+            # ZERO fires and why the era book has zero pre-09:30 ignition fills.
+            #   MEASURED (ignition_pre_window_20260818, hold-out 19 unseen dates):
+            #     07:00-09:25  +$10.58/tr  n=71  green 58%   <- Marcos's floor, PASSES
+            #     08:00-09:25  -$10.22/tr  n=61  green 12%   <- his fallback, FAILS badly
+            #   The fires cluster early (04h 64, 05h 40, 07h 62, 08h 48, 09h 12), so an 08:00
+            #   start arrives after the move. 07:00 is the floor the tape supports.
+            #   COVERAGE FLOOR (ignition_pre_coverage_split_20260818): premarket tape is sparse
+            #   (median 60% of the window carries a print, 25th pct 10.9%). Split by coverage,
+            #   the edge is entirely in the DENSE half — >=50% coverage +$14.52/tr green 59%,
+            #   <50% coverage -$8.56/tr. So coverage is an ELIGIBILITY RULE, not a filter picked
+            #   for looking good. It costs almost nothing: 84% of fires already clear it.
+            # Kill: IGNITION_PRE=0 restores the hard 09:30 skip exactly.
+            _pre_bar = m < 570
+            if _pre_bar:
+                if not (IGNITION_PRE and IGNITION_PRE_OPEN_M <= m < IGNITION_PRE_CLOSE_M):
+                    continue                               # outside the premarket window
+                st["pre_min"].add(m)                       # distinct minutes that PRINTED
+                if st["openp_pre"] <= 0 and o > 0:
+                    st["openp_pre"] = o                    # window open = the premarket anchor
+            elif st["openp"] <= 0 and o > 0:
                 st["openp"] = o                            # first RTH 10s bar's open = session open
             base = st["bars"][-_IG10_BASE_BARS:]
             st["bars"].append((k, o, h, l, c, v))
             if len(st["bars"]) > _IG10_BASE_BARS * 3:
                 st["bars"] = st["bars"][-_IG10_BASE_BARS * 2:]
-            if m > 570 + IGNITION_WINDOW_MIN:
+            if not _pre_bar and m > 570 + IGNITION_WINDOW_MIN:
                 continue                                   # same 90-min envelope as the 1-min detector
-            if len(base) < IGNITION_BASE_MIN * 6 or st["openp"] <= 0:
+            # premarket uses its own open; RTH is unchanged
+            _openp = st["openp_pre"] if _pre_bar else st["openp"]
+            if len(base) < IGNITION_BASE_MIN * 6 or _openp <= 0:
                 continue
+            if _pre_bar:
+                # tape-coverage eligibility, measured above. Minutes elapsed in the window vs
+                # minutes that actually printed. A gate that cannot see enough tape must not fire.
+                # +1: at the window's first minute ONE minute has elapsed, not zero. Without
+                # it the ratio exceeded 100% early (measured: median 101%) and the floor was
+                # vacuous for the first minutes — caught by exercising, not by reading.
+                _elapsed = max(m - IGNITION_PRE_OPEN_M + 1, 1)
+                if (100.0 * len(st["pre_min"]) / _elapsed) < IGNITION_PRE_COVERAGE:
+                    continue
             base_hi_c = max(b[4] for b in base)            # max CLOSE = wick-robust breakout reference
             _lows = [b[3] for b in base if b[3] > 0]
             if not _lows:
@@ -7962,7 +8048,7 @@ def ignition_10s_step(sym, new_bars):
             base_vol = (sum(b[5] for b in base) / len(base)) or 1
             rng = (h - l) or 1e-9
             strong = (c - l) / rng
-            ext_bar = (c - st["openp"]) / st["openp"]
+            ext_bar = (c - _openp) / _openp        # 8/18: premarket uses its window open
             if (v >= IGNITION_VOL_MULT * base_vol          # volume ACCELERATION — the tell
                     and v >= _IG10_MIN_ABS_VOL             # liquidity floor (per-bar scaled)
                     and c > o                              # green ignition bar
@@ -7975,7 +8061,10 @@ def ignition_10s_step(sym, new_bars):
                 fire = {"stop": round(base_lo * (1 - ZONE_STOP_BUFFER), 4),
                         "base_hi": round(base_hi_c, 4), "base_lo": round(base_lo, 4),
                         "volx": round(v / base_vol, 1), "ext_pct": round(ext_bar * 100, 1),
-                        "px": round(c, 4), "openp": round(st["openp"], 4), "bar_epoch": k}
+                        "px": round(c, 4), "openp": round(_openp, 4), "bar_epoch": k,
+                        "sess": "PRE" if _pre_bar else "RTH",          # 8/18
+                        "pre_cov": (round(100.0 * len(st["pre_min"]) /
+                                    max(m - IGNITION_PRE_OPEN_M + 1, 1), 1) if _pre_bar else None)}
         return fire                                        # latest qualifying bar in the fed batch
     except Exception as e:
         print(f"⚠️  ignition_10s_step error ({e}) — no entry this pass")

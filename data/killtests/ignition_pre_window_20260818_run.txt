@@ -1,0 +1,33 @@
+========================================================================================================
+IGNITION IN PREMARKET — Marcos: "Kev is always finding these big runs in pre"
+========================================================================================================
+name-days with premarket tape: 551
+STUDY REIMPLEMENTATION of the detector (the live one refuses premarket by hand, :7945).
+PRE IS ITS OWN LINE — never summed with RTH.
+
+FULL SAMPLE
+  W0700 (07:00-09:25)    n= 233  total=$ +4816.05  $/tr= +20.67  win=  36%  green= 44%  med bar vol=13,768  med bar $vol=$34,751
+  W0800 (08:00-09:25)    n= 227  total=$ -2078.30  $/tr=  -9.16  win=  19%  green= 10%  med bar vol=19,036  med bar $vol=$68,660
+  W0400 (04:00-09:25)    n= 253  total=$ +7143.83  $/tr= +28.24  win=  41%  green= 56%  med bar vol=10,026  med bar $vol=$24,738
+
+HOLD-OUT (unseen 19)
+  W0700 (07:00-09:25)    n=  71  total=$  +751.20  $/tr= +10.58  win=  37%  green= 58%  med bar vol=12,792  med bar $vol=$56,108
+  W0800 (08:00-09:25)    n=  61  total=$  -623.49  $/tr= -10.22  win=  21%  green= 12%  med bar vol=18,185  med bar $vol=$88,491
+  W0400 (04:00-09:25)    n=  77  total=$  +803.34  $/tr= +10.43  win=  39%  green= 53%  med bar vol=9,366  med bar $vol=$37,293
+
+FIRES BY ET HOUR (W0400 arm)
+  {'04h': 64, '05h': 40, '06h': 27, '07h': 62, '08h': 48, '09h': 12}
+
+========================================================================================================
+PRE-REGISTERED VERDICT
+========================================================================================================
+  best arm: W0700 (07:00-09:25)   $+10.58/tr  n=71  green=58%
+  PASS  $/tr>0 AND n>=40 AND green>=40%
+  PASS  liquidity: median fire-bar $vol $56,108 >= 5x a $500 clip
+
+  => PREMARKET IGNITION IS SUPPORTED on this bar. NEXT (not done here): change the
+     detector's own m<570 skip + session-open anchor, then RE-VERIFY against the
+     REAL function — this study is a reimplementation and cannot stand as the proof.
+
+LIMITS: study reimplementation, not the bot's function (parity caveat). Detector-only,
+no premarket board/chart gate/slots. RTH slip model applied to premarket = FLATTERING.

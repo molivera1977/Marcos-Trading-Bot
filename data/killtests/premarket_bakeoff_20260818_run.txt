@@ -1,0 +1,48 @@
+============================================================================================================
+THE PREMARKET BAKE-OFF — 07:00-09:25 ET, who deserves the seat?
+============================================================================================================
+name-days with a usable 07:00-09:25 window: 533
+LIVE PRE BOOK, era 7/13+: 41 fills, -$696.53 (vwap_reclaim -$648.24 of it); prevwap has ZERO live fills.
+PRE IS ITS OWN LINE — never summed with RTH.
+
+FULL SAMPLE
+  ign_pre   n= 230  total=$ +4854.97  $/tr= +21.11  win= 37%  green= 46%  med $vol=$   35,688  (!) study
+  x9_pre    n= 209  total=$  -530.99  $/tr=  -2.54  win= 15%  green= 24%  med $vol=$   18,397  (!) study
+  prevwap   n=  84  total=$ +1101.66  $/tr= +13.12  win= 29%  green= 28%  med $vol=$   32,081  
+  hidden    n= 274  total=$ +2693.35  $/tr=  +9.83  win= 21%  green= 33%  med $vol=$  104,313  (!) parity 86%
+  v2        n= 349  total=$  -210.24  $/tr=  -0.60  win= 15%  green= 14%  med $vol=$   40,911  (!) parity 51%
+  grinder   n=0                                                    (!) parity 9%
+  reclaim   n=0                                                    
+
+HOLD-OUT (unseen 19)
+  ign_pre   n=  70  total=$  +762.62  $/tr= +10.89  win= 37%  green= 58%  med $vol=$   57,076  (!) study
+  x9_pre    n=  54  total=$  -242.73  $/tr=  -4.49  win= 13%  green= 26%  med $vol=$   35,933  (!) study
+  prevwap   n=  24  total=$  -203.77  $/tr=  -8.49  win= 21%  green= 23%  med $vol=$   42,347  
+  hidden    n=  56  total=$   -20.31  $/tr=  -0.36  win= 20%  green= 18%  med $vol=$  134,701  (!) parity 86%
+  v2        n=  91  total=$ +1341.85  $/tr= +14.75  win= 20%  green= 16%  med $vol=$   33,982  (!) parity 51%
+  grinder   n=0                                                    (!) parity 9%
+  reclaim   n=0                                                    
+
+CAPACITY — hold-out $/day (premarket concurrency is low; N=2 and N=4)
+  lane              N=2         N=4
+  ign_pre         31.09       44.82
+  x9_pre          -8.74      -10.38
+  prevwap         -9.18      -10.72
+  hidden          16.07        2.19
+  v2             105.30       79.08
+
+============================================================================================================
+PRE-REGISTERED VERDICT
+============================================================================================================
+  LANES THAT EARN A SEAT (hold-out $/tr>0, n>=30, green>=40%), ranked by $/day @N=4:
+    ign_pre   $ +44.82/day @N=4  $ +31.09 @N=2   $+10.89/tr  n= 70  green  58%  (!) study
+
+  LEADS THE PACK ON THIS EVIDENCE: ign_pre
+  of the two you named, these earned a seat: ['ign_pre']
+
+  ANY lane marked (!) cannot take a live seat on this evidence alone: study
+  reimplementations need re-verification against the real function; sub-90% parity lanes
+  are measuring the harness as much as the lane.
+
+LIMITS: detector-only, no premarket board/chart gate/slots/capital. RTH slip model on
+premarket prints FLATTERS every arm equally. One position per name-day per lane.

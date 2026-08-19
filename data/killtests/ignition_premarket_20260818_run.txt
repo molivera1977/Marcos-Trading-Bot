@@ -1,0 +1,8 @@
+====================================================================================================
+IGNITION IN PREMARKET — Marcos: "i want ignition for pre as well"
+====================================================================================================
+premarket ignition fires (post floor3+relvol2+vwap-band+warmed stack): 0   skipped: none
+PRE AND RTH ARE NEVER SUMMED — premarket stands on its own line.
+
+NO PREMARKET FIRES ON THE TAPE — nothing to build. The lane's premarket silence is
+not a gate problem; the detector itself does not trigger on premarket structure.

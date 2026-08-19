@@ -293,3 +293,24 @@ stamped on every row.
 Nightly harvest credentials (launchd); the CAUSE of truncated bar sets; the 60 historical rows
 are uncorrected and every study reading them inherits the values — **hidden's failed wall
 specifically must be re-graded**; the CDTG double-fill cause; the 92%-vs-69% reconciliation.
+
+
+### CORRECTION (23:0x, post-ship) — hidden's wall was NOT contaminated
+
+Addendum 2's roll call recorded: *"Hidden Entry Architect additionally FLAGS that hidden's wall
+verdict read 52 breached rows and is now SUSPECT."* **That flag was WRONG.**
+`hidden_wall_20260818.py` reads NO live rows (grep: api/trades / entry_session_vwap / dashboard
+= 0 hits) and builds its VWAP from tape. The 60 bad stamps never entered it. I asserted
+contamination without checking the study's own VWAP source — and committed it into an audit doc.
+
+A REAL but smaller defect did surface: the wall anchored VWAP at 09:30 (RTH-only) while the live
+bot anchors at 04:00 (ENTRY_VWAP_PREMARKET=True). Hidden's gate is VWAP-relative, so the study
+was not modelling the bot. Regraded on both lines
+(`data/killtests/hidden_wall_regrade_20260818.py`, hold-out 20 unseen dates):
+    RTH anchor  -$9.59/tr  n=1719   |   PRE+RTH anchor (live)  -$10.55/tr  n=1917
+**VERDICT STANDS** — correcting the anchor makes it slightly WORSE. Hidden loses money on the
+line the bot actually uses.
+
+Reconciliation: the original wall reported -$10.21/tr on the RTH arm; this run shows -$9.59
+because tonight's harvest grew the universe from 736 name-days/63 dates to 935/64. Same
+direction, same verdict, different denominator.

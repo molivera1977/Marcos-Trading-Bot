@@ -3,7 +3,7 @@
 Verifies TODAY's trades fill-by-fill against 10s tape; appends a dated section to
 data/history/VERIFIED_BOOK.md and updates the nightly log. Post-8/13 fix, ANY fiction fill is a
 REGRESSION ALARM (exit 2 + loud line). Runs from launchd at 22:45 ET nightly."""
-import json, urllib.request, pathlib, datetime, sys
+import json, os, urllib.request, pathlib, datetime, sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 U = "https://zestful-intuition-production-b16a.up.railway.app"
 ET = datetime.timezone(datetime.timedelta(hours=-4))
@@ -34,8 +34,18 @@ def bars(tk):
 # reported rather than swallowed — a watchdog that silently grades zero rows is worse than none.
 try:
     import subprocess as _vw_sp
-    _hv = _vw_sp.run([sys.executable, str(ROOT / "data/universe/harvest_day.py"), DAY],
-                     capture_output=True, text=True, timeout=1800)
+    # 8/18: the harvest needs ALPACA_KEY/ALPACA_SECRET, which are NOT in the launchd env
+    # (verified: the first wired run failed exactly there). They live in the Railway service, so
+    # the harvest — and ONLY the harvest — runs under `railway run`, which injects them without
+    # ever writing a secret to disk.
+    # DELIBERATELY NOT wrapping the whole plist in `railway run`: that would make the ledger
+    # verification below depend on Railway auth too, and a token hiccup would break a working
+    # check to fix a broken one. This sub-step already fails gracefully and says so.
+    _RW = os.path.expanduser("~/.railway/bin/railway")
+    _hv_cmd = ([_RW, "run", "--service", "Marcos-Trading-Bot", sys.executable]
+               if os.path.exists(_RW) else [sys.executable])
+    _hv = _vw_sp.run(_hv_cmd + [str(ROOT / "data/universe/harvest_day.py"), DAY],
+                     capture_output=True, text=True, timeout=1800, cwd=str(ROOT))
     if _hv.returncode != 0:
         print(f"⚠️  VWAP watchdog: harvest of {DAY} did not run "
               f"({(_hv.stderr or _hv.stdout).strip().splitlines()[-1:] or ['?']}). "

@@ -168,3 +168,5 @@ HEADLINE OF RECORD (Historian): CHARITABLE, RTH and PRE separate; strict beside 
 ## NIGHTLY 2026-08-14: 7 trades raw $-54.35 | fills ok 4 | FICTION 0  | no-bars none
 
 ## NIGHTLY 2026-08-18: 12 trades raw $-31.29 | fills ok 4 | FICTION 0  | no-bars ['WFF:no_entry_ts', 'IPST:no_entry_ts']
+
+## NIGHTLY 2026-08-18: 12 trades raw $-31.29 | fills ok 4 | FICTION 0  | no-bars ['WFF:no_entry_ts', 'IPST:no_entry_ts']

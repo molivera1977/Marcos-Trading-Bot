@@ -1,6 +1,6 @@
 # CONVENING — 2026-08-19 03:0x EDT — session map, ma_pullback v2, tier rehydrate, VWAP coverage guard
 
-**TREE UNDER AUDIT: `037baea93cb0`** — clean worktree at audit time.
+**TREE UNDER AUDIT: `1aeb11ed67e5`** (supersedes `037baea93cb0`) — clean worktree at audit time.
 Flat book verified in-turn 03:05:00 EDT: **0 open positions**.
 Rig: 38 green. Two gates re-pinned to the new spec (P7, BH-b). **18 gates were already RED on
 `5e6422bc02f0` before this batch and are NOT cleared by it** — see Blast Radius Auditor.
@@ -165,3 +165,44 @@ Each standing rule inverted, and asked whether the inverse is the better reading
 - 60 historical VWAP-breach rows uncorrected; cause of truncated bar sets unknown.
 - `ship.sh` reports success on exit code without checking deployment STATUS.
 - Nightly ledger line still prints a merged PRE+RTH figure, against the separation rule.
+
+## ADDENDUM — `1aeb11ed67e5` — BOOT SESSION-MAP BANNER (observability only)
+
+Marcos: *"ship the banner."* Shipped at 03:2x EDT, book flat, DRY_RUN, outside RTH.
+
+The session map shipped in `037baea93cb0` was **never printed at boot** — a grep for a printed
+`PRE_LANES`/`RTH_LANES`/`LANE_RANK` returned empty. The bot now prints the map and stamps a
+`boot_session_map` decision row. It prints state; it never sets it. Zero behavior change.
+
+**Blast Radius Auditor** — Observability only, and it fails loud but never fatal: a banner that
+crashes the boot is worse than no banner. **It was exercised before shipping and that caught a
+real bug** — `PRE_LANES`/`RTH_LANES` are SETS (:15998, :16013), not strings; the first draft
+called `.split(",")` on them. The `try/except` would have swallowed the `AttributeError`, the bot
+would have booted normally, and the feature would have been dead on arrival while appearing
+shipped. That is the exact class this office exists to catch.
+
+**Historian** — **CORRECTION TO THE RECORD:** restricted is **13**, not the 11 reported earlier
+tonight. `bounce` and `ema_bounce` are in `LANE_EXPECTANCY` and fall outside both whitelists.
+Same rule applies — they detect and log, they cannot convert.
+
+**Dashboard Curator / Project Manager / every other office** — no surface changed, nothing gated,
+nothing sized. Standing questions unaffected.
+
+### DOCTRINE-INVERSION SWEEP (addendum)
+
+*Inverse: a banner is decoration, and restarting 30 minutes before the 03:55 wake to add one is
+gratuitous risk.* Weighed and rejected on the narrow ground that today is the first session the
+new session map governs, and without the banner the morning is unauditable — the 07:12 duty-watch
+row names fires-vs-fills but cannot name the whitelist behind them. Restart cost is a flat book
+outside RTH under DRY_RUN. Had the book been open or the clock inside RTH, the answer would have
+been no.
+
+**Verified live env at ship time:** `ENTRY_OPEN_ET=07:00`, `DRY_RUN=true`. `PRE_LANES`,
+`RTH_LANES`, `LANE_RANK`, `MA_PULLBACK_V2`, `IGNITION_PRE` are unset on the service and correctly
+fall through to the shipped code defaults. First live proof of the map arrives in the 03:55 boot
+log; first behavioral proof at the 07:12 duty-watch row.
+
+**Also corrected tonight:** the `screener_app.py:2152` NameError reported earlier is a
+test-harness artifact, not a live defect — `screener_app.py:11` imports `datetime` at module
+level; the rig lifts the function into a fresh namespace without module globals. Live kev-level
+merging is not broken. That leaves 17, not 18, pre-existing red gates worth triage.

@@ -1,6 +1,6 @@
 # CONVENING — 2026-08-19 03:0x EDT — session map, ma_pullback v2, tier rehydrate, VWAP coverage guard
 
-**TREE UNDER AUDIT: `1aeb11ed67e5`** (supersedes `037baea93cb0`) — clean worktree at audit time.
+**TREE UNDER AUDIT: `RTH-HOTFIX head` (supersedes `1aeb11ed67e5`)** — clean worktree at audit time.
 Flat book verified in-turn 03:05:00 EDT: **0 open positions**.
 Rig: 38 green. Two gates re-pinned to the new spec (P7, BH-b). **18 gates were already RED on
 `5e6422bc02f0` before this batch and are NOT cleared by it** — see Blast Radius Auditor.
@@ -206,3 +206,38 @@ log; first behavioral proof at the 07:12 duty-watch row.
 test-harness artifact, not a live defect — `screener_app.py:11` imports `datetime` at module
 level; the rig lifts the function into a fresh namespace without module globals. Live kev-level
 merging is not broken. That leaves 17, not 18, pre-existing red gates worth triage.
+
+## ADDENDUM 2 — RTH HOTFIX BATCH (Marcos: "ship it" / "fix everything you can", ~10:45-11:05 ET)
+
+**Explicit Marcos override of the no-RTH-push law**, priced to him first (flat book, DRY_RUN,
+every hour of waiting = dead 9/90 + ghosted exits). First ship attempt HELD at the flat-book
+gate — TNON was live (kevseq, the day's winner, +$60.42); shipped only after its exit and the
+hand repair of its ghost. Flat book re-verified in-turn at ship time.
+
+**WHAT SHIPS** — the 8/18 batch's three kills (one class: an exception between detection and
+action, eaten by a handler) + the reread fix + two gates:
+1. `cache` NameError in the exit-record payload — every exit since 8/18 22:56 ghosted
+   (VRAX −$17.46, CISS −$55.80, TNON +$60.42, all repaired by hand). Traceback on file.
+2. ema9x90 `_log_decision` kwargs collision — six 9/90 fires (09:33–10:16) died as
+   gate_fail_open during CDTG's +50% run; the rank-#2 lane could not convert.
+3. `urllib` never imported — tape pre-break + retest-band gates fail-open dead since 8/3.
+4. Dist-primary rereads (REREAD_DIST_ONLY, default on; measured: 53% of breaches fired on
+   maps within 3%) + breach rows stamp trigger=age|dist|both.
+Gates 19 (reread contract, 9 checks) and 20 (pyflakes undefined-name sweep, both services).
+Re-pins: resting_stop DRY_RUN pin → the 8/8 auditor-C spec; kev_merge harness given module
+globals (its NameError was a harness artifact, NOT a live defect — corrected on the record).
+
+**Blast Radius Auditor** — four code changes, each cause-confirmed from live evidence, each
+exercised (gate 19 drives the real _effective_map; the ema9x90 call shape replayed; pyflakes
+sweep green with guarded-b4 allowlisted). 16 pre-existing red gates remain, all stale-pin
+classes, listed in PUNCHLIST_20260819.md. The runway gate was E3-replayed across 95 archived
+refusals before anyone touched it: REFUSE-ALL beats TAKE-ALL by $543.66 — the gate stands,
+untouched, vindicated; the wall-strength arm (+$39.58, n=10, join-dirty) stays HYPOTHESIS.
+
+**Statistician** — the TNON 09:35 "miss" was REFUTED by hand-trace (stopped 09:58 at 10.4948
+on the resumption flush the 1-min chart hid). Eyeball grading reversed by tape, again.
+
+**All other offices** — standing positions unchanged from the two convenings above; no gate
+loosened, no lane added, no sizing touched. Doctrine-inversion: *"a hotfix during RTH is the
+exact class the law exists to stop"* — weighed; overridden by the owner with the book flat and
+paper-only, after the alternative (a session of known-dead lanes) was priced. n/a otherwise.

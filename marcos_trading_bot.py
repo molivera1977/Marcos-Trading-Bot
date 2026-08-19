@@ -2039,6 +2039,7 @@ REENGAGE_RECOVER = 1.15       # re-admit only if current score >= 1.15× last sc
 
 BOARD_FUNNEL = os.environ.get("BOARD_FUNNEL", "1") == "1"
 _board_last = {"t": 0, "out": None}   # auditor F14: last-good board cache   # 8/10 Marcos: THE BOARD IS THE UNIVERSE
+_rvol10d: dict = {}   # sym -> (Webull relative_volume_10d, epoch) — 8/19 fire-time RVOL ledger (funnel-fed)
 
 def _board_candidates():
     """8/10 (Marcos: "Our scanner is already calibrated... The scanner has been created
@@ -2083,6 +2084,18 @@ def _board_candidates():
             except Exception:
                 pass
             _board_last["t"] = time.time(); _board_last["out"] = out
+            # ── 8/19 FIRE-TIME RVOL LEDGER (Marcos: "i do want it rechecked at fire time").
+            # The scanner's relative_volume is Webull's REAL 10-day same-time RVOL — the measure
+            # Marcos actually approved. Cached here (the funnel is the choke point every candidate
+            # passes each cycle) so the ignition consume can re-check the APPROVED number at fire
+            # time instead of computing a homemade proxy. (value, epoch) — age is stamped on rows.
+            try:
+                for c in out:
+                    _rv = c.get("relative_volume")
+                    if c.get("symbol") and _rv is not None:
+                        _rvol10d[c["symbol"]] = (float(_rv), time.time())
+            except Exception:
+                pass
             print(f"🧭 BOARD FUNNEL: {len(out)} candidates from the dashboard scanner "
                   f"(internal scan retired — Marcos 8/10)")
             return out
@@ -8218,6 +8231,7 @@ IGNITION_RELVOL      = float(os.environ.get("IGNITION_RELVOL", "0"))      # 0 = 
 # as DATA so the true multi-day version can be measured and brought back for approval.
 # Re-arm (session-self semantics, completed-bar formula): IGNITION_RELVOL=2.0.
 IGNITION_RELVOL_MODE = os.environ.get("IGNITION_RELVOL_MODE", "session")  # session | 30m
+IGNITION_RVOL10D     = float(os.environ.get("IGNITION_RVOL10D", "2.0"))   # 8/19 Marcos-approved: Webull 10-day RVOL re-checked at fire time; 0 = off
 DAYGAIN_LEGACY    = ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
 
 # ── IGNITION-10S (7/26, Marcos: "Move it to 10 second bars. The idea of knowingly being blind is dumb.")
@@ -10859,6 +10873,31 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                     _ig_rv = round(_last / _base, 2)
                         except Exception:
                             _ig_rv = None
+                        # ── 8/19 FIRE-TIME RVOL GATE (Marcos: "i do want it rechecked at fire
+                        # time") — the APPROVED measure: Webull's 10-day same-time relative volume,
+                        # from the scanner feed (the number on the board), re-checked at the fire.
+                        # Candidacy already required >=2x at scan time; this catches the name whose
+                        # rvol has DECAYED below 2x by the time ignition fires. Missing/stale ledger
+                        # value -> FAIL-OPEN with a witness stamp (never fail-closed on absent
+                        # context — new-lane checklist). Kill: IGNITION_RVOL10D=0.
+                        _rv10, _rv10_age = None, None
+                        try:
+                            _rv_ent = _rvol10d.get(t)
+                            if _rv_ent:
+                                _rv10 = float(_rv_ent[0])
+                                _rv10_age = round(time.time() - _rv_ent[1], 1)
+                                if _rv10_age > 600:
+                                    _rv10 = None          # stale ledger = no opinion, fail open
+                        except Exception:
+                            _rv10 = None
+                        if IGNITION_RVOL10D > 0 and _rv10 is not None and _rv10 < IGNITION_RVOL10D:
+                            _log_decision(t, "ignition_rvol10d_reject", price=price, lane="ignition",
+                                          rvol10d=_rv10, rvol10d_age_s=_rv10_age,
+                                          need=IGNITION_RVOL10D, volx=ign["volx"],
+                                          stop=round(ign["stop"], 4), day_gain=_ig_dg,
+                                          vwap=round(vwap, 4) if vwap else None)
+                            print(f"   \u26d4 {t} ignition REFUSED \u2014 RVOL10d {_rv10}x < {IGNITION_RVOL10D}x (Webull, age {_rv10_age}s)")
+                            continue
                         if _ig_rv is not None and _ig_rv < IGNITION_RELVOL:
                             _log_decision(t, "ignition_relvol_reject", price=price, lane="ignition",
                                           relvol_sess=_ig_rv, need=IGNITION_RELVOL,

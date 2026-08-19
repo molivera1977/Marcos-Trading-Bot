@@ -319,7 +319,9 @@ ALL_SYMBOLS = [
     # 1-min break, stop 4% under the flag low). Registered so gate 17 sees it and studies
     # exercise the SHIPPED function rather than a reimplementation.
     "ma_pullback_v2_step", "_mapb_arm", "MA_PULLBACK_V2", "MAPB_QUIET_MAX",
-    "MAPB_NEAR_HIGH_PCT", "MAPB_FLAG_BUF", "MAPB_WAIT_MIN",
+    "MAPB_MAX_DEPTH_PCT", "MAPB_FLAG_BUF", "MAPB_WAIT_MIN",
+    "MAPB_REQUIRE_RUNWAY", "_marked_runway", "_effective_map",
+    "MIN_RUNWAY_RR", "RUNWAY_MIN_RR_MAJOR", "RUNWAY_MIN_RR_RUNG",
     "detect_ma_pullback", "_detect_ma_pullback", "MA_PULLBACK_LEVELS", "MA_PULLBACK_TOUCH_TOL",
     "MA_PULLBACK_STOP_BUFFER", "MA_PULLBACK_DEDUPE", "MA_WARMUP_SEED", "_calc_ema", "_extract_closes",
     "dip_rip_step", "_dr_st", "DIPRIP_ZONE", "DIPRIP_WINDOW_S",

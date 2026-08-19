@@ -2400,7 +2400,11 @@ def ma_pullback_v2_step(sym, setup, m3_completed, m1_closes, price, vwap, sessio
     THE FLAG = the pullback structure on the 3-min: the down-closing bars leading in, plus the
     confirmation candle. Its HIGH is what must break; its LOW is what the stop hides under.
     Kill: MA_PULLBACK_V2=0."""
-    if not MA_PULLBACK_V2 or not setup:
+    # 8/19 ORDER MATTERS: the ARM check runs BEFORE the setup guard. detect_ma_pullback stops
+    # returning a setup the moment a NEW 3-min candle completes, so guarding on `setup` first
+    # orphaned every arm — the flag break could never be seen and all 93 arms in the exercise
+    # would have expired unbroken. Caught by exercising the shipped function, not by reading it.
+    if not MA_PULLBACK_V2:
         return None
     day = datetime.now(EASTERN).strftime("%Y-%m-%d")
     st = _mapb_arm.get(sym)
@@ -2417,6 +2421,31 @@ def ma_pullback_v2_step(sym, setup, m3_completed, m1_closes, price, vwap, sessio
             stop = round(st["flag_lo"] * (1 - MAPB_FLAG_BUF), 4)
             if stop <= 0 or stop >= m1_closes[-1]:
                 return None
+            # ── 8/19 NO RUNWAY, NO PULLBACK ENTRY (Marcos, verbatim) ──────────────────────
+            # CDTG 8/18 14:16:43 is the specimen: entry $7.78 with map break 7.78 and
+            # break_dist_pct 0.0 — the break level WAS the fill — next_rung None, road_r None,
+            # marked_runway rr=None. It bought the top with NO known road and stopped out.
+            # The funnel's runway gate was ARMED (MIN_RUNWAY_RR=1.0, live boot stamp) but it
+            # only rejects on a NUMBER: `isinstance(_rw_v, (int, float)) and _rw_v < _rw_need`.
+            # A None map fell straight through. "I don't know how much room there is" was
+            # treated as "proceed", when for a pullback it means buying into unmeasured
+            # overhead. This lane now FAILS CLOSED on that.
+            #   None                -> REFUSE (no map, no target above, no next_supply)
+            #   'above_all_levels'  -> ALLOW (blue sky IS maximum runway)
+            #   numeric             -> ALLOW here; the funnel's CLASS-AWARE thresholds still
+            #                          apply on top (1.0R to a MAJOR, 0.5R to a RUNG)
+            # This is the bot's OWN runway (_marked_runway: R of road from entry to the sheet's
+            # first target above, fallback next_supply) — NOT the session-high proxy I wrongly
+            # called "room to run" (see MAPB_MAX_DEPTH_PCT).
+            # Kill: MAPB_REQUIRE_RUNWAY=0.
+            if MAPB_REQUIRE_RUNWAY:
+                try:
+                    _rr, _rtgt = _marked_runway(sym, m1_closes[-1], stop)
+                except Exception:
+                    _rr, _rtgt = None, None
+                if _rr is None:
+                    return {"no_runway": True, "px": round(m1_closes[-1], 4),
+                            "stop": stop, "k": st["k"]}
             return {"fire": True, "px": round(m1_closes[-1], 4), "stop": stop,
                     "flag_hi": round(st["flag_hi"], 4), "flag_lo": round(st["flag_lo"], 4),
                     "ma_name": st.get("ma_name"), "k": st["k"],
@@ -2424,10 +2453,12 @@ def ma_pullback_v2_step(sym, setup, m3_completed, m1_closes, price, vwap, sessio
         return None
 
     # ── not armed: does this setup qualify as a REAL pullback? ──
+    if not setup:
+        return None                                        # nothing armed and no fresh setup
     if not vwap or vwap <= 0 or price <= vwap:
         return None                                        # "below vwap is a straight collapse"
-    if session_hi and session_hi > 0 and (session_hi / price - 1) * 100.0 > MAPB_NEAR_HIGH_PCT:
-        return None                                        # no room to run / already broken down
+    if session_hi and session_hi > 0 and (session_hi / price - 1) * 100.0 > MAPB_MAX_DEPTH_PCT:
+        return None                    # too deep below the session high (NOT the map runway)
     k = setup.get("k")
     try:
         j = next(n for n, b in enumerate(m3_completed) if _bar_epoch(b) == k)
@@ -3701,6 +3732,12 @@ LANE_RANK = [s.strip() for s in os.environ.get(
 LANE_RANK_SORT = os.environ.get("LANE_RANK_SORT", "1") == "1"
 # 8/19: one position per ticker per cycle — the CDTG double-fill fix, same arbiter.
 ONE_PER_TICKER = os.environ.get("ONE_PER_TICKER", "1") == "1"
+
+
+def _in_premkt_now():
+    """True inside the premarket conversion window — PRE_LANES governs there, RTH_LANES here."""
+    _h = datetime.now(EASTERN).strftime("%H:%M")
+    return ENTRY_OPEN_ET <= _h < "09:30"
 
 
 def _lane_rank(lane):
@@ -7035,7 +7072,9 @@ TIER_REHYDRATE = os.environ.get("TIER_REHYDRATE", "1") == "1"
 #    above VWAP"                     -> below vwap: -$9.16/tr, 15% green (vs 58% above)
 #   "the pullback itself needs low volume. if the pullback is high volume then that means the
 #    price is going down further"    -> monotonic: <=0.20x +$3.51/tr | >1.50x -$3.24/tr
-#   "we also need room to run"       -> at the highs +$9.91/tr 82% green | 20% below -$20.88/tr
+#   "we also need room to run"       -> I measured PULLBACK DEPTH, not the map runway; the
+#                                      effect is real (at the highs +$9.91/tr 82% green |
+#                                      20% below -$20.88/tr) but it is NOT his concept.
 #   "this has to be done frontside"  -> ALREADY IMPLIED: 95% of qualifiers are front-side
 #   "the trigger should be when the flag breaks higher but on the 1 minute chart. pullback is
 #    seen on the 3 minute while entry is on the 1 minute"
@@ -7056,9 +7095,32 @@ TIER_REHYDRATE = os.environ.get("TIER_REHYDRATE", "1") == "1"
 # Kill: MA_PULLBACK_V2=0 restores the v1 fire-immediately behaviour exactly.
 MA_PULLBACK_V2       = os.environ.get("MA_PULLBACK_V2", "1") == "1"
 MAPB_QUIET_MAX       = float(os.environ.get("MAPB_QUIET_MAX", "1.0"))    # dip vol < advance vol
-MAPB_NEAR_HIGH_PCT   = float(os.environ.get("MAPB_NEAR_HIGH_PCT", "2.0"))# within 2% of session high
+# NOT RUNWAY. This is PULLBACK DEPTH: how far below the running session high the entry sits.
+# The bot's runway is _marked_runway() — R-multiples of room from entry UP to the sheet's first
+# target above (fallback next_supply), from the marked map, gated by MIN_RUNWAY_RR. Different
+# direction, different reference, no relation to the map.
+# 8/19 CORRECTION (Marcos: "our bot understand runway according to our charts" ... "you made this
+# mistake before and I corrected right then"): when he said "we also need room to run. There has
+# to be runway for the price to bounce back up" he meant the MAP concept. I measured depth below
+# the session high, found a real effect, and then wrote HIS WORDS into these comments as though I
+# had implemented HIS concept. That is the disease named in feedback_maps_describe_not_serve
+# (8/4): a homegrown structural number standing in for the chart's own anchors. SECOND OCCURRENCE.
+# The MEASUREMENT stands on tape (>=20% below the session high: -$20.88/tr, 21% green; 0-0.5%:
+# +$9.91/tr, 82% green). Only the NAME and the attribution were wrong, and both are corrected here.
+# WHY THE MAP VERSION IS NOT USED INSTEAD: it cannot be backtested. The replay rig's isolability
+# report records that no map snapshot was ever taken, so every day <= 2026-08-17 is permanently
+# un-replayable for runway; 2026-08-18 is the first day the archive can reconstruct. One day.
+# OPEN: both 8/18 ma_pullback fires stamped runway gates [] and road_r None — MIN_RUNWAY_RR is on
+# and _marked_runway returned None (no targets above, no next_supply), so the REAL runway gate
+# decided nothing on this lane. Whether ma_pullback should REQUIRE >=1R of marked runway is
+# unanswerable from history and belongs with the map archive as it accumulates.
+MAPB_MAX_DEPTH_PCT   = float(os.environ.get(
+    "MAPB_MAX_DEPTH_PCT", os.environ.get("MAPB_NEAR_HIGH_PCT", "2.0")))  # max % below session high
 MAPB_FLAG_BUF        = float(os.environ.get("MAPB_FLAG_BUF", "0.04"))    # stop 4% below the flag low
 MAPB_WAIT_MIN        = int(os.environ.get("MAPB_WAIT_MIN", "30"))        # arm expires after 30 min
+# "no runway, no pullback entry" (Marcos 8/19). A None from _marked_runway REFUSES the fire;
+# blue sky ('above_all_levels') allows it. Kill: MAPB_REQUIRE_RUNWAY=0.
+MAPB_REQUIRE_RUNWAY  = os.environ.get("MAPB_REQUIRE_RUNWAY", "1") == "1"
 _mapb_arm: dict = {}   # sym -> {day, k, flag_hi, flag_lo, armed_m, ma_name}
 VWAP_MIN_SPAN_MIN   = float(os.environ.get("VWAP_MIN_SPAN_MIN", "20"))   # minutes a session line must span
 # The guard has TWO effects and they carry different risk:
@@ -11222,6 +11284,11 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                       quiet=_mv2["quiet"], ma=_mv2["ma_name"],
                                       need_close_above=_mv2["flag_hi"])
                         ma_pb = None                      # armed, NOT entered — no buying in the flag
+                    elif _mv2 and _mv2.get("no_runway"):
+                        _log_decision(t, "ma_pullback_no_runway", price=_mv2["px"],
+                                      lane="ma_pullback", stop=_mv2["stop"],
+                                      why="marked_runway=None — no target above, no next_supply")
+                        ma_pb = None                      # "no runway, no pullback entry"
                     elif _mv2 and _mv2.get("expired"):
                         _log_decision(t, "ma_pullback_flag_expired", price=price,
                                       lane="ma_pullback", waited=MAPB_WAIT_MIN)
@@ -14597,6 +14664,18 @@ def main():
         # fixes it for every lane pair at once, present and future, instead of patching a guard
         # into nine call sites. Sort first so rank decides the winner, then keep the first per
         # ticker. Kill: ONE_PER_TICKER=0.
+        # 8/19 RTH WHITELIST — restricted lanes cannot take capital (see RTH_LANES).
+        if RTH_LANES and not _in_premkt_now():
+            _rl_keep = []
+            for _b in breakouts:
+                if _b[3] in RTH_LANES:
+                    _rl_keep.append(_b); continue
+                _log_decision(_b[0], "lane_restricted", price=_b[1], lane=_b[3],
+                              allowed=sorted(RTH_LANES))
+            if len(_rl_keep) != len(breakouts):
+                print(f"   🚧 RTH whitelist: {len(breakouts) - len(_rl_keep)} candidate(s) from "
+                      f"restricted lane(s) dropped")
+            breakouts = _rl_keep
         breakouts.sort(key=_entry_priority)
         if ONE_PER_TICKER:
             _seen_t, _kept = set(), []
@@ -15883,7 +15962,18 @@ try:
     WAKE_H, WAKE_M = (int(x) for x in WAKE_ET.split(":"))
 except Exception:
     WAKE_H, WAKE_M = 3, 55
-ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "09:30").strip()
+# ── 8/19 PREMARKET TRADING OPENS AT 07:00 ─────────────────────────────────────────────────
+# This one line gates EVERY premarket conversion: below it a signal becomes a
+# `premarket_shadow_entry` (:6579) — logged, never a trade. At "09:30" the premarket window
+# `ENTRY_OPEN_ET <= hm < "09:30"` is ZERO MINUTES WIDE, so PRE_LANES was dead config and the
+# premarket ignition lane built tonight could not have taken a single trade.
+# 07:00 because that is when the MAPS EXIST (Marcos: "maps get created at 7" — confirmed on the
+# 8/18 archive: map-stamped rows by hour 4am=1, 5am=3, 6am=4, then 7am=20). It is also exactly
+# ignition's own premarket window (IGNITION_PRE_OPEN_M=420), and with "no runway, no pullback
+# entry" now live, a lane that fires before the maps exist would be refused anyway.
+# PRE_MAX_TRADES still caps the session; PRE_FLAT_HHMM (09:25) still flattens.
+# Kill: ENTRY_OPEN_ET=09:30 restores today's behaviour (no premarket trading at all).
+ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "07:00").strip()
 # 7/25 premarket-paper profile (Marcos: premarket != RTH): only 10s live-structure lanes, tiny cap.
 # 8/19 (Marcos: "i want pullback for both pre and RTH"). ma_pullback v2 is a two-timeframe
 # structure read — 3-min flag, 1-min break confirmation — and nothing in it is RTH-specific, so
@@ -15908,6 +15998,21 @@ ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "09:30").strip()
 PRE_LANES = set((os.environ.get(
     "PRE_LANES",
     "ignition" + (",ma_pullback" if MA_PULLBACK_V2 else ""))).split(","))
+# ── 8/19 RTH WHITELIST (Marcos: "include kevseq, grinder, dip-rip. restrict the others. I want
+# to really take a look at those."). PRE_LANES already restricts premarket; RTH had NO lane
+# filter at all — every lane fired and LANE_RANK only decided the ORDER. Ranking is not
+# restriction, so this is the second half of "three lanes for rth".
+#   TRADING (6): ignition, ema9x90, ma_pullback  = his three reviewed lanes, ranked first
+#                kevseq, grinder, dip_rip        = under review, trading behind them
+#   RESTRICTED  : flat_top, hidden_entry, v2conv, zone_flip, bandpass, prevwap, orb,
+#                 rocket_catcher, vwap_reclaim, crown_seam, halt_ladder — they still DETECT and
+#                 log; they just cannot take capital until he has looked at them one at a time.
+# A restricted lane's candidate is dropped at the same single arbiter the rank/dedupe use, and
+# the drop is LOGGED (lane_restricted) so the counterfactual stays visible from day one.
+# Kill: RTH_LANES="" disables the whitelist (every lane trades, today's behaviour).
+RTH_LANES = set(x for x in (os.environ.get(
+    "RTH_LANES",
+    "ignition,ema9x90,ma_pullback,kevseq,grinder,dip_rip")).split(",") if x.strip())
 # 8/16 PREVWAP conversion (Marcos: "switch pre-vwap ... to live in pre" — ALL SIM): the prevwap
 # lane fires ONLY 07:00-09:25, so it must be a PRE lane or the premarket gate shadows every fire.
 # Rides the convert switch — PREVWAP_CONVERT=0 (default) leaves PRE_LANES exactly as before.

@@ -29,9 +29,19 @@ check("P5 detect_gate: idle 3:56, DETECT 4:00/5:00/9:00/9:29 (premarket shadow w
 check("P6 detect_gate: detect 9:30-15:29, closed 15:30 (RTH unchanged)",
       bot.detect_gate(T(9,30)) == "detect" and bot.detect_gate(T(15,29)) == "detect"
       and bot.detect_gate(T(15,30)) == "closed")
-# link 4 — trades stay blocked premarket (choke gate constant)
-check("P7 ENTRY_OPEN_ET=09:30 and '05:00' < it (string compare the gate uses)",
-      bot.ENTRY_OPEN_ET == "09:30" and "05:00" < bot.ENTRY_OPEN_ET and not ("09:30" < bot.ENTRY_OPEN_ET))
+# link 4 — the entry floor is a string-compare constant. SPEC CHANGED 2026-08-19.
+#   Marcos: "we are able to trade at 7" — the session map is PRE 07:00-09:25 (ignition,
+#   ma_pullback) then RTH 09:30-16:00. This pin previously asserted 09:30, which was the OLD
+#   spec; the live env has set 07:00 for weeks and CDTG filled premarket at 07:39 on 8/18, so
+#   the 09:30 pin was testing a default the bot never actually ran with. The DEFAULT is now
+#   aligned to the live value. What is still guarded is the string-compare CONTRACT: the floor
+#   must block everything before it and admit everything at/after it, lexicographically.
+check("P7 ENTRY_OPEN_ET=07:00 (PRE floor) and the string compare still orders correctly",
+      bot.ENTRY_OPEN_ET == "07:00"
+      and "05:00" < bot.ENTRY_OPEN_ET          # 5am premarket: still blocked
+      and "06:59" < bot.ENTRY_OPEN_ET          # one minute early: still blocked
+      and not ("07:00" < bot.ENTRY_OPEN_ET)    # the floor itself: admitted
+      and not ("09:30" < bot.ENTRY_OPEN_ET))   # RTH: admitted
 # regression — the dead hardcoded gates must be GONE from source
 SRC = (pathlib.Path(__file__).resolve().parent.parent / "marcos_trading_bot.py").read_text()
 check("P8 hardcoded 8:30 floor GONE; hardcoded 9:30 watch-sleep GONE (fail-without-fix)",

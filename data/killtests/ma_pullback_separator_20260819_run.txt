@@ -1,0 +1,32 @@
+========================================================================================================
+MA_PULLBACK — IS THERE ANY SEPARATOR?   (driver self-test first; no self-test, no study)
+========================================================================================================
+  CDTG 2026-08-18: k=1787076720 REPRODUCED at 14:15:40 $7.72 held ema9@5.5625 (live stamp 5.5678, 0.10% apart)  OK
+  PFSA 2026-08-18: k=1787077980 REPRODUCED at 14:37:50 $16.68 held ema9@14.8861 (live stamp 14.8803, 0.04% apart)  OK
+driver OK
+
+ma_pullback fires graded: 5051   over 64 dates
+
+separator           median |  TRAIN low TRAIN high        Δ |    HO low   HO high        Δ   n(ho)  verdict
+ext_ma_pct            2.79 |       2.11       0.14    -1.96 |     -2.58     -4.80    -2.22    2069  -
+conf_range_pct        3.63 |       2.88      -0.63    -3.51 |     -3.11     -4.28    -1.17    2069  -
+vwap_dist_pct         2.85 |      -4.60       6.86    11.46 |     -7.17     -0.21     6.96    2069  -
+run_15m_pct           3.03 |      -0.72       2.97     3.68 |     -1.95     -5.44    -3.48    2069  -
+bars_since_dn         1.00 |       0.23       2.68     2.45 |     -3.48     -4.03    -0.55    2069  -
+lowclose_pct          2.53 |       1.74       0.51    -1.23 |     -3.56     -3.83    -0.27    2069  -
+
+========================================================================================================
+PRE-REGISTERED VERDICT
+========================================================================================================
+  NO SEPARATOR CLEARS THE BAR (hold-out |Δ| >= $8/trade AND same sign as train).
+  On this evidence ma_pullback's winners and losers are NOT distinguishable by how
+  extended the entry is, how vertical the confirmation candle is, distance from VWAP,
+  the prior run, whether a real pullback preceded it, or the dip-and-reclaim spread.
+
+  => THE EXTENSION CEILING IS REFUTED as stated. Marcos's PFSA counterexample was not
+     an exception — it is the rule: this lane buys extension, and the extension does
+     not predict the outcome. The honest question becomes whether the LANE is wanted,
+     not what number to tune. Any cut here is a coin-flip that costs winners.
+
+LIMITS: detector-only, no funnel; empty warm-up seed so the first ~75 min of each session
+are invisible; fire counts far exceed live. Nothing ships from this script.

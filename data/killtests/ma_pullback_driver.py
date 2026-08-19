@@ -84,12 +84,30 @@ def fires(sym, day, bars=None, open_hms="09:30:00", close_hms="16:00:00", min_ba
     raw = [{"time": x["time"], "open": x["open"], "high": x["high"], "low": x["low"],
             "close": x["close"], "volume": x["volume"]} for x in bars]
     H.set_replay_day(day)
+    # 8/19 PERF: the original rebuilt the WHOLE 3-min aggregate at every 10s bar — O(n^2), and
+    # measured at ~16s/name-day = ~254 min over the 948-name-day cache. The aggregate only
+    # changes once per TF (every 18 bars at TF=3), so it is computed ONCE here and sliced.
+    # Identical inputs to the detector; selftest() is what proves that, and it still passes.
+    full3 = agg(raw, TF)
+    _ep = H.fn("_bar_epoch")
+    _ends = [_ep(b) for b in full3]          # each 3-min bar's own epoch key
+
+    def _completed_upto(ts):
+        """the [:-1] slice the live site uses: bars whose period has fully closed by `ts`"""
+        n = 0
+        for e in _ends:
+            if e <= ts:
+                n += 1
+            else:
+                break
+        return full3[:max(n - 1, 0)]
+
     seen, out = set(), []
     for i in range(60, len(raw)):
         hms = _et(raw[i]["time"]).strftime("%H:%M:%S")
         if not (open_hms <= hms < close_hms):
             continue
-        comp = agg(raw[:i + 1], TF)[:-1]
+        comp = _completed_upto(int(_et(raw[i]["time"]).timestamp()))
         if len(comp) < min_bars:
             continue
         try:

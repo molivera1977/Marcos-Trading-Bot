@@ -243,4 +243,80 @@ Starting coordinates from today's chain, so the study opens on evidence:
 * Second target: Kev's unowned fast-B entry (18s median, loud tape) — adjacent to hidden's
   charter (anticipation-not-confirmation, 8/14).
 * Hidden's live figures remain UNVERIFIED per Marcos ("those hidden numbers are fake").
+## ZSTK 8/19 — THE +700% MONSTER AS MULTI-SPECIMEN ($1.52 -> $12.40)
+
+Tracked all day, never entered. Reproduce: ZSTK rows in /api/decisions 8/19 (155 rows).
+* RESTRICTED-BY-DESIGN (working as ordered, priced as counterfactual): vwap_reclaim fired
+  $2.03 (09:35), ORB fired $4.90 (11:26) — both lane_restricted per Marcos's review bench.
+  These rows belong in the refusal-grading study's restricted-lane cohort.
+* AMMO BUG PROMOTED (was P1-deferred): 10:45 halt resumption — ignition's fire
+  stale-suppressed AND consumed, the CISS class, now 2 monster specimens in one day.
+* DIP_RIP AUDIT: armed 2x on a textbook halt ladder (10:45, 11:40), converted 0. The lane
+  built for this exact tape. Cause unknown — needs the 10s tape walk (flush-hold condition
+  vs feed gaps).
+* FEED-DURING-VERTICALS (Quartermaster/Feed Engineer): bars 1900-2300s stale BETWEEN halts,
+  VWAP=0 warnings, tick-sanity rejects (px 4.9 vs bar 2.33) on the day's biggest mover —
+  same smell as CISS's off_tape_exit why=no_tape_seen. Does the 10s stream degrade exactly
+  when names go vertical? Measurable from today's capture.
+## DIP_RIP RE-ANCHOR — SWEPT AND REFUTED (8/19, "run the sweep now")
+
+data/killtests/diprip_reanchor_sweep_20260819.py — 2,086 halt-rungs, 420 name-days, both arms
+through E3. STATIC 527 fires +$2,059 (+$3.91/tr, 49% green) vs RE-ANCHOR 982 fires +$2,041
+(+$2.08/tr, 40% green). Pre-registered reading (B>A total AND B $/tr>0): **RE-ANCHOR LOSES** —
+doubles the fires, adds zero dollars; the marginal late-rung fills are dilution. ZSTK's +$35
+was a true specimen of a flat population. Secondary also refuted: no rung-maturity gradient in
+dip rates (65/59/53/61%). LIMITS in the artifact (sheet proxied by first-halt close; gap-vs-halt
+ambiguity; up-close proxy). DO NOT re-propose without new evidence.
+* RATION FINDING (Marcos 8/19: "it needs more attempts" — and the distribution agrees):
+  static fires are median -$0.01 / mean +$3.91 = pure positive skew; skew pays only through
+  attempt volume. The cohort split: rung-1-only (all the live one-watch ration permits) =
+  +$0.68/tr n=220; rung 2+ (BANNED by the ration) = +$6.22/tr n=307, 51% green; gaps >8min dead.
+  These are dips to the ORIGINAL anchor later in the day — NOT re-anchoring (refuted above).
+  ⚠️ POST-HOC SLICE — pre-registered as a FORWARD test per story discipline: multi-watch shadow
+  rows for N sessions; the rung-2+ cohort reproduces on unseen tape or dies. Proposal for the
+  Monday halt-config review (Marcos rules): keep anchor + 10-min window, drop one-watch/day cap,
+  consider gap<=8min filter. Nothing ships from the backtest slice.
+## RUNWAY-FOR-RUNNERS — BOTH ARMS REFUTED (8/19, "run it")
+
+data/killtests/runway_runner_arms_20260819.py — 108 runway_reject fires, 6 sessions, E3.
+LIVE(refuse-all) $0 · A stale-rung demotion **-$442.08** (41 takes, 1 green) · B runner
+exemption >=50% run **-$306.55** (23 takes, 13 SKK-class losers swallowed). Pre-registered
+win condition (total>0 AND zero SKK-class takes): BOTH FAIL.
+**The inversion:** a rung sitting 1-5% overhead on a name that has ALREADY run is not stale
+ink — it is where the move dies. That cohort is the WORST in the dataset (-$10.78/tr). The
+"map is behind the tape" reasoning was backwards; TNON->$17 was the exception (and TNON's own
+replay stopped out, per the morning trace).
+**RUNWAY IS SETTLED — DO NOT RELAX.** Three independent measurements now: 95-refusal replay
+(net-saves ~$544), today's live cohort (+$3.89 n=11, flat), both engineered escape hatches
+deeply negative. Any future proposal must beat this bar with new evidence.
+**Highest-value open gate question is now MIN-STOP** (+$177 left behind on 8/19 alone, n=22,
+14 rows stop-less so 10% assumed) — the multi-day sweep is the next study, same method.
+## RUNWAY — FOUR RELAXATIONS TESTED, FOUR REFUTED (8/19)
+
+E3 replay, 108-109 runway_reject fires, 6 sessions. LIVE (refuse all) = $0 baseline.
+  take-all            -$543.66   (morning 95-fire replay)
+  A stale-rung demote -$442.08   41 takes, 1 green
+  B day-gain >=50%    -$306.55   13 SKK-class swallowed
+  C CROWN-exempt       -$67.47   36 takes, 11 SKK-class  (Marcos: "letting crown names go")
+**The crown DOES discriminate** — crowned refusals -$1.87/tr / 36% green vs non-crowned
+-$6.39/tr / 17% green — but the cohort is still net-negative and takes 11 near-full-R losses.
+Nine crowned refusals paid $20+ (FGI +$79.92, BANL +$41.26, MSS +$39.73, LFS +$34.53,
+CDTG +$28.86); they are outnumbered.
+**RUNWAY STANDS.** Any future proposal must beat: 4 arms, all negative, ~$500 of net saves.
+* POST-HOC ONLY, NOT A FINDING: crowned + MAJOR + rr 0.50-0.75 recurs among the winners
+  (FGI .75, IPST .63, CDTG .59, EJH .50). Found AFTER seeing results — the re-anchor trap.
+  Needs pre-registration + its own cohort before it is worth another sentence.
+
+## EXITS — "LET WINNERS RUN" REFUTED (8/19, crown_let_it_run_20260819.py)
+
+272 era trades replayed, trail width the ONLY variable, crowned (n=86) vs non-crowned control
+(n=186). T10 (current) beats T15/T20/T30/NONE on BOTH cohorts; widening costs -$549 on crowns.
+Mean give-back from the run-high RISES with trail width (43->50): these names round-trip, so a
+looser leash exits FURTHER down the retrace, it does not capture more move. Medians identical
+across arms — the median trade never reaches the +10% tier, so trail width only touches winners.
+NOT crown-specific: widening hurts crowns MORE than non-crowns. Also: crowned trades underperform
+non-crowned at the same exit ($1.98 vs $2.43/tr) — the crown identifies entry-worthiness, not
+holding power. LIMITS: hidden_entry is 66/86 of the crowned cohort and its figures are UNVERIFIED.
+* EXPLORATORY (post-hoc): tighter trails (T05/T07/T12) also lose to T10 on all cohorts.
+  T10 appears to be a local optimum on this data — NOT a claim, no pre-registration.
 

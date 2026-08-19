@@ -397,3 +397,34 @@ surface touched, CLEAN.
 
 **DOCTRINE-INVERSION:** "verify before speak" applied to DEPLOYS as well as claims — an exit code
 is not evidence that a deploy happened. Tonight it was not.
+
+
+### ADDENDUM 3c — the correction was HALF applied, HEAD `fa2dcf78879f`
+
+Marcos, reading the corrected row on the dashboard: SXTC rendered **"+$21.89 / -1.5%"** — a row
+that contradicts itself. The render-time correction patched `pnl` and left `pnl_pct` derived from
+the stored entry->exit legs (4.60 -> 4.53 = -1.52%). Dollars from the tape-verified ledger,
+percent from the corrupted legs, on the official day record.
+
+**Change:** when a row is corrected, `pnl_pct` is recomputed on the same basis every other row
+uses — `pnl / position_size` (PFSA 48.76/175.50 = +27.8%, matches the glass). SXTC becomes
+**+4.37%**. Prior value preserved as `pnl_pct_stored`. Store still untouched; render-time only.
+
+**How it was found:** not by any check of mine. I verified the DOLLAR total reconciled to
++$11.51 and stopped. A correction is not verified by its headline agreeing — every field it
+touches, and every field DERIVED from what it touches, has to agree too.
+
+**Blast radius:** the `pnl_corrected` branch only, which today matches 37 records. Rows without a
+correction are byte-identical. Guarded on `position_size > 0`.
+
+**ROLL CALL (3c).** Blast Radius Auditor — one branch, guarded, CLEAN. Dashboard Curator — the
+glass no longer shows a self-contradicting row; verify SXTC reads +$21.89 / +4.37%. Statistician
+— FLAG: this makes the percent basis explicit (P&L over position size, not entry->exit move);
+the two differ whenever partial fills exist, which is exactly the SXTC case. Historian — the
+official 8/18 record is RTH +$11.51 / PRE -$13.29 with SXTC +$21.89 / +4.37%. All other
+officers: no surface touched, CLEAN.
+
+**DOCTRINE-INVERSION:** "the store is never rewritten, corrections live at render" is kept — but
+tonight showed its failure mode twice: a ledger nobody wired up (3), and a correction that
+patched one field while a derived field kept the old story (3c). A render-time correction must
+carry every field the corrected value implies.

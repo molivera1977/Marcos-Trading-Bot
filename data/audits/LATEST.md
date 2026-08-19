@@ -232,7 +232,11 @@ action, eaten by a handler) + the reread fix + two gates:
    call site drops): 0.1x stamps on 6.8x surges, 35 refusals on its first live day vs zero
    ever before, fires 27 -> 7. Now grades the last COMPLETED minute — the quantity the 8/18
    study actually measured. Synthetic check: old 0.26x/refuse vs new 6.0x/pass on the same tape.
-Gates 19 (reread contract, 9 checks) and 20 (pyflakes undefined-name sweep, both services).
+6. FIRE-TIME RVOL (Marcos-ordered): Webull's real 10-day RVOL from the scanner feed,
+   re-checked at the ignition consume at 2.0x — value+age+stop stamped, missing/stale fails
+   open, refusal never consumes ammo. Gate 21 pins it (12 checks). The substitute it replaces
+   cost +$70..$147 on its only live day (30 refusals E3-replayed, 3 stop arms, all positive).
+Gates 19 (reread contract, 9 checks), 20 (undefined-name sweep) and 21 (fire-time RVOL).
 Re-pins: resting_stop DRY_RUN pin → the 8/8 auditor-C spec; kev_merge harness given module
 globals (its NameError was a harness artifact, NOT a live defect — corrected on the record).
 

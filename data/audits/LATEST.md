@@ -145,3 +145,62 @@ Asked of this ship: *what settled belief would have to be WRONG for this to be a
   fail-open-when-zero guards is QUEUED, not done.
 * **Project Manager** — scope held to the measured fix. The lane reorder Marcos priced is NOT in
   this ship and is called out as unbuilt above.
+
+---
+
+## ADDENDUM — 2026-08-18 second ship, HEAD `1c604923c5a6`
+
+*(sha corrected: an earlier draft of this line carried a MISTYPED sha — read from memory, not from `git rev-parse`. The interlock rejected it. Recorded because a fabricated identifier in an audit trail is worse than a missing one.)*
+
+**PREMARKET IGNITION (07:00-09:25) + THE 9/90 GAP-FILLED WARM-UP** (Marcos: "ignition for both
+pre and RTH, have 9/90 running in pre but not trade until 9:30").
+
+**Changes:** (1) ignition's hand-written `m < 570` premarket skip removed, gated by IGNITION_PRE
+with a 07:00-09:25 window, its own premarket open anchor, and a >=50% tape-coverage eligibility
+rule; (2) the 9/90 accumulates a gap-filled 1-min series from premarket (warm at the bell on 93%
+of name-days vs 69%) and still fires only from EMA9X90_OPEN 09:30; (3) its session window is now
+judged from the BAR clock, not `datetime.now()`.
+
+**Evidence (hold-out, 19 unseen dates; PRE on its own line, never summed with RTH):** ignition
+07:00 +$10.58/tr green 58% PASSES vs 08:00 -$10.22/tr green 12% FAILS; coverage split >=50%
++$14.52/tr vs <50% -$8.56/tr; 9/90 gap-filled +$14.68/tr green 61% vs cold +$11.75/61%->56%, and
+the 9/90 IN premarket measured -$4.49/tr green 26% and is therefore REFUSED (warm-up only).
+
+**Kill switches:** `IGNITION_PRE=0`, `EMA9X90_WARMUP=0` — each restores prior behaviour exactly.
+
+**Blast radius:** premarket branch is additive and gated; the RTH open anchor, `st["openp"]`, and
+every RTH path are untouched (gate 14 A6). The 9/90's warm-up feeds EMA math only; its fire
+conditions are unchanged. No sizing/stop/exit/slot change. No new API call.
+
+**Two defects found by EXERCISING, not reading:** the coverage ratio exceeded 100% (median 101%,
+off-by-one in elapsed minutes) and the 9/90's window read wall-clock, firing 30x pre-09:30 and at
+18h/19h under replay. Both fixed and pinned.
+
+**Harness:** `ema9x90_step` was not in the isolated namespace — the lane shipped 8/18 12:43 and
+was NOT liftable/exercisable/parity-measurable at all. Now registered.
+
+**RIG:** gate 14 `rig/test_pre_lanes_20260818.py`, 19 pins. Full rig green (shipset + 10/11/12/
+13/14 + gates 5-9).
+
+**ROLL CALL (addendum):** Blast Radius Auditor — additive/gated, RTH untouched, CLEAN. Systems
+Quant — both bugs reproduced and fixed, CLEAN. Statistician — FLAG: premarket P&L came from a
+STUDY REIMPLEMENTATION; the shipped detector's premarket output is NOT yet re-measured. First
+Hour/Opening Bell — the 9/90 is now live AT the bell (12 first-fires in the 09h bucket vs
+earliest 10:59 before). Feed Engineer — premarket bars ride the existing PRE+RTH fetch. Trade
+Manager/Execution Surgeon — exits and order path untouched, CLEAN. Wind Tunnel Engineer — lane
+now liftable, so it can finally be tested. Historian — records that the 9/90's wall-clock window
+was live and unexercised for one session. Quartermaster — no durable state. Dashboard Curator —
+new row fields (sess, pre_cov, warm_pre, warm_src) render harmlessly. Side Marshal, Crown
+Steward, Kev Librarian, Seam Scientist, Strength Ombudsman, Momentum Operator, Tape Veteran,
+Handicapper, Rocket Rider, Cartographer, Convexity Trader, Curl Mechanic, Reclaim Architect,
+Hidden Entry Architect, Webull Broker Desk, Pit Crew Chief, Integrator, Forward Architect,
+Project Manager — no surface touched, CLEAN.
+
+**DOCTRINE-INVERSION (addendum):** "Official = RTH" governs REPORTING; premarket P&L here stays
+on its own line and is never summed. The inversion that would sink this: if premarket prints are
+too thin/wide to fill, the measured edge is fiction — which is exactly why the coverage floor is
+an eligibility rule and why the RTH slip model applied to premarket is disclosed as FLATTERING.
+
+**OPEN:** the shipped detector's premarket numbers are NOT re-verified through the real function
+(owed). Ignition harness parity still UNMEASURED. The 92%-vs-69% blindness reconciliation still
+open. CDTG double-fill defect still open.

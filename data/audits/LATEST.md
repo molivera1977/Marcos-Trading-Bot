@@ -204,3 +204,92 @@ an eligibility rule and why the RTH slip model applied to premarket is disclosed
 **OPEN:** the shipped detector's premarket numbers are NOT re-verified through the real function
 (owed). Ignition harness parity still UNMEASURED. The 92%-vs-69% blindness reconciliation still
 open. CDTG double-fill defect still open.
+
+
+---
+
+## ADDENDUM 2 — 2026-08-18 third ship, HEAD `9319f91abf16`
+
+**THE VWAP INTEGRITY BATCH.** Three commits: `b67f5df` (coverage guard), `3091986` (watchdog +
+provenance stamps + nightly wiring), `9319f91abf16` (skip split to observe-only).
+
+**Why it ships tonight and not tomorrow:** the running bot already has premarket ignition and the
+9/90 warm-up, but NOT this. `hidden_entry` and `kevseq` — the two lanes carrying 55 of the 60
+measured VWAP breaches — trade tomorrow morning with the broken adjudication intact.
+
+### What changes
+1. **`_vwap_coverage_min` / `_vwap_bar_trusted`** — a bar line is authoritative only if it starts
+   at/near the open (<=09:31) or spans >= `VWAP_MIN_SPAN_MIN` (20) minutes. Premarket exempt.
+2. **`_tick_vwap_ok(..., bar_trusted)`** — when the reference FAILS its own coverage test,
+   divergence from it is evidence FOR the tick line, not against it. The catastrophe band vs
+   price still applies unconditionally.
+3. **Provenance on every trade record**: `entry_vwap_span_min`, `entry_vwap_first_hm`,
+   `entry_vwap_trusted`.
+4. **Nightly watchdog** (`data/killtests/vwap_audit.py`) wired AHEAD of the ledger verification.
+
+### Evidence
+Adjudicated against 310,022 harvested SIP ticks (CDTG 8/18 14:16:43): the true session VWAP was
+**$4.6719** (PRE+RTH anchor, matching ma_pullback's stamp to 4dp); kevseq stamped **$7.11**,
+matching no anchor — a ~2.5-minute rolling average (it sits between the 2-min $7.2673 and 3-min
+$7.0244 windows). Through the bot's own functions: truncated set (span 2.0m) -> untrusted -> the
+correct tick line SURVIVES -> the gate reads **+66.53%** instead of +9.42%. Session-spanning set
+(span 399m) -> trusted -> the 5% clamp still fires (no-op control).
+
+**Watchdog first run, era 7/13+, 178 of 261 stampable rows graded (68% coverage):
+60 BREACHES** — hidden_entry 52/112, kevseq 3/3, ma_pullback 1/15; ignition 0/20, flat_top 0/15,
+vwap_reclaim 0/7 clean. Severity: 60 at 3% tolerance, 37 at 10%, **20 at 20%**; median miss 13.6%.
+
+### Risk split (the reason this is safe to ship at 23:00)
+The guard's MEASURED half (prefer the tick line when the bar fails coverage) is **ON**. The
+UNMEASURED half (skip the ticker when both lines are unusable) ships **OBSERVE-ONLY**
+(`VWAP_UNTRUSTED_SKIP=0`): the row is logged with span/first/need/enforced and the ticker still
+trades. Its live frequency is unknown, and on a proving-week morning an uncounted skip could
+sideline real names. Gate 15 pins that the measured half is ON and the unmeasured half is OFF.
+
+**Kill switches:** `VWAP_COVERAGE_GUARD=0` (whole guard), `VWAP_UNTRUSTED_SKIP=1` (enable the
+skip once counted).
+
+### Blast radius
+Additive. `_tick_vwap_ok` keeps a default `bar_trusted=True`, so any un-migrated caller behaves
+exactly as before (pinned). Coverage is stamped at both compute sites and read via `.get()`, so a
+missing key degrades to "unmeasurable -> trust", never to stricter behaviour. No sizing, stop,
+exit, slot or lane-logic change. The clean lanes (ignition/flat_top/vwap_reclaim) are unaffected
+by construction — they never went through the `_vr_sv` path.
+
+### RIG
+Gate 15 (`rig/test_vwap_coverage_20260818.py`), 18 pins incl. both no-op controls, the
+catastrophe band, the default-arg legacy path, and the observe-only default. Full rig green:
+shipset + gates 10/11/12/13/14/15 + gates 5-9. The VWAP chain is now registered in the harness
+namespace — it was NOT liftable before, so this class was untestable.
+
+### ROLL CALL (addendum 2)
+**Blast Radius Auditor** — additive, default-arg preserves legacy, clean lanes untouched, CLEAN.
+**Systems Quant** — adjudication verified on the real values both ways (fix + no-op), CLEAN.
+**Statistician** — FLAG: the 3% tolerance conflates tick-vs-bar timing noise with corruption; the
+defensible core is the 20 rows breaching at 20%. Coverage (68%) printed on every run.
+**Feed Engineer** — the recorder tick series held the CORRECT value throughout; this stops the
+system discarding it. CLEAN. **Wind Tunnel Engineer** — the class is testable for the first time.
+**Historian** — records that "1 event in 437 rows" described the DOUBLE-FILL; the wrong VWAP is 60
+events, and the earlier statement is corrected. **Quartermaster** — FLAG: the 10s cache is not
+auto-maintained (harvester.py is a one-shot backfill); `harvest_day.py` added, nightly harvest
+still FAILS under launchd for want of credentials — an OPEN scheduler gap, not fixed here.
+**Trade Manager / Execution Surgeon / Pit Crew Chief / Integrator / Dashboard Curator / Webull
+Broker Desk / Side Marshal / Crown Steward / Kev Librarian / First Hour / Opening Bell / Seam
+Scientist / Strength Ombudsman / Momentum Operator / Tape Veteran / Handicapper / Rocket Rider /
+Cartographer / Convexity Trader / Curl Mechanic / Reclaim Architect / Hidden Entry Architect /
+Forward Architect / Project Manager** — no surface touched, CLEAN. **Hidden Entry Architect**
+additionally FLAGS that hidden's wall verdict read 52 breached rows and is now SUSPECT.
+
+### DOCTRINE-INVERSION
+"A gate that cannot see must not refuse silently" (the relvol fail-open doctrine) argued for
+trusting whatever line exists. This inverts it for a REFERENCE: a line that cannot prove it spans
+the session must not be treated as authoritative. Both survive because they answer different
+questions — one is about refusing trades, the other about ranking sources.
+**What would sink this:** if `vwap_span_min` is frequently unmeasurable, the guard degrades to
+"trust" and does nothing. That is the failure mode to watch, and the reason provenance is now
+stamped on every row.
+
+### OPEN
+Nightly harvest credentials (launchd); the CAUSE of truncated bar sets; the 60 historical rows
+are uncorrected and every study reading them inherits the values — **hidden's failed wall
+specifically must be re-graded**; the CDTG double-fill cause; the 92%-vs-69% reconciliation.

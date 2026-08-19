@@ -457,6 +457,24 @@ _MOMENTUM_TAPE_HOLDOUT = frozenset(("rocket_catcher", "crown_seam", "halt_ladder
 # Kill: MAPB_PATTERN_GATE=0 restores both external gates.
 MAPB_PATTERN_GATE = os.environ.get("MAPB_PATTERN_GATE", "1") == "1"
 
+# ── 8/19 REFUSAL-STOP STAMP (Marcos: "stamp stops on the refusal rows"). Every refused fire is
+# a counterfactual we grade later through E3 — and E3 needs the STOP. Before this, only runway/
+# minstop/breakside recorded one; the other eight gates forced the replay to ASSUME 10%, and the
+# assumption moved individual gate verdicts by hundreds of dollars (lane_restricted swung $210 ->
+# $40 across 6%/10%/15%; kev_gate's whole "costing" figure was one name on one day). Lane-proof by
+# construction — the 8/3 premarket-shadow fix proved each lane names its stop differently
+# (28/70 rows unpriceable until it was handled). Returns None when genuinely absent; a stamped
+# None is honest, an assumed 10% is not.
+def _refusal_stop(extra, fallback=None):
+    """The lane's own stop from a breakout `extra` dict (zone_stop|ema_stop|stop), else fallback."""
+    try:
+        d = extra if isinstance(extra, dict) else {}
+        v = d.get("zone_stop") or d.get("ema_stop") or d.get("stop") or fallback
+        return round(float(v), 4) if v else None
+    except Exception:
+        return None
+
+
 def _chart_bypass_lanes():
     """Lanes that BYPASS the chart-derived level gate. Registry-derived (all tape lanes) plus
     ignition's UNCHANGED env-conditional membership. LANE_REGISTRY_EXEMPT=0 -> the old literal."""
@@ -10914,6 +10932,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             continue
                         if _ig_rv is not None and _ig_rv < IGNITION_RELVOL:
                             _log_decision(t, "ignition_relvol_reject", price=price, lane="ignition",
+                                          stop=_refusal_stop(None, ign.get("stop")),   # 8/19 refusal-stop stamp
                                           relvol_sess=_ig_rv, need=IGNITION_RELVOL,
                                           mode=IGNITION_RELVOL_MODE, volx=ign["volx"],
                                           day_gain=_ig_dg, daygain_floor=_daygain_floor_for("ignition"),
@@ -10937,6 +10956,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                    ("ema9_under_ema20" if _ig_stack_bad else "")
                             _log_decision(t, "ignition_kev_gate_reject", price=price,
                                           lane="ignition", reason=_why,
+                                          stop=_refusal_stop(None, ign.get("stop")),   # 8/19 refusal-stop stamp
                                           vwap=round(vwap, 4) if vwap else None,
                                           vwap_dist_pct=(round((price / vwap - 1) * 100, 2)
                                                          if vwap else None),
@@ -11563,6 +11583,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     # curl-machine exemption below. Slow lanes stay gated (VINDICATED: blocked = 0.41R).
                     and _v5 is not None and _v5 < 0):
                 _log_decision(b[0], "vel5_reject", price=b[1], entry_vel5=_v5, machine=b[3],
+                              stop=_refusal_stop(b[4]),   # 8/19 refusal-stop stamp
                               day_gain=b[4].get("day_gain"))
                 print(f"   ⛔ VEL5 FLOOR blocked {b[0]} {b[3]} entry (vel5 {_v5:+.1f}% < 0 — falling tape)")
             else:
@@ -11580,6 +11601,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 if (b[3] in DAYGAIN_LEGACY and _dg is not None and _dg < _fl
                         and not _kev_sheet_name(b[0])):
                     _log_decision(b[0], "daygain_reject", price=b[1], day_gain=_dg,
+                                  stop=_refusal_stop(b[4]),   # 8/19 refusal-stop stamp
                                   machine=b[3], lane=b[3], floor=_fl)
                     print(f"   ⛔ DAY-GAIN FLOOR blocked {b[0]} {b[3]} (day gain {_dg:+.1f}% < "
                           f"{_fl:.0f}% — not a board leader)")
@@ -11602,6 +11624,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 b[4]["entry_high_stale_min"] = _st
                 if _blk and b[3] not in BACKSIDE_EXEMPT:
                     _log_decision(b[0], "backside_reject", price=b[1], dd_pct=_dd,
+                                  stop=_refusal_stop(b[4]),   # 8/19 refusal-stop stamp
                                   stale_min=_st, machine=b[3],
                                   band=f"{BACKSIDE_DD_LO}-{BACKSIDE_DD_HI}")
                     print(f"   ⛔ BACK-SIDE gate blocked {b[0]} {b[3]} (entry {_dd}% below a "
@@ -14762,6 +14785,7 @@ def main():
                 if _b[3] in RTH_LANES:
                     _rl_keep.append(_b); continue
                 _log_decision(_b[0], "lane_restricted", price=_b[1], lane=_b[3],
+                              stop=_refusal_stop(_b[4] if len(_b) > 4 else None),   # 8/19 refusal-stop stamp
                               allowed=sorted(RTH_LANES))
             if len(_rl_keep) != len(breakouts):
                 print(f"   🚧 RTH whitelist: {len(breakouts) - len(_rl_keep)} candidate(s) from "
@@ -14853,6 +14877,7 @@ def main():
                         # "never fired" claim was wrong precisely because this lived only in a
                         # shadow-row field no census query could see. Never again.
                         _log_decision(entry[0], "premkt_capped", price=entry[1],
+                                      stop=_refusal_stop(entry[4] if len(entry) > 4 else None),   # 8/19
                                       machine=entry[3], pm_dvol=round(_pm_dvol))
             breakouts = _kept_pm
             if _shadow_pm:
@@ -15528,7 +15553,9 @@ def main():
                     mom_ok, mom_details = True, {"exempt": f"tape_scalar:{entry_type}"}
             if not mom_ok:
                 print(f"⚠️ {ticker} momentum rejected: {mom_details.get('reason','')} — skipping")
-                _log_decision(ticker, "momentum_reject", price=entry_price, lane=entry_type, reason=str(mom_details.get('reason', ''))[:80])
+                _log_decision(ticker, "momentum_reject", price=entry_price, lane=entry_type,
+                              stop=_refusal_stop(extra, stop_loss),   # 8/19 refusal-stop stamp
+                              reason=str(mom_details.get('reason', ''))[:80])
                 _slot_refund(ticker, entry_type)   # 8/7 (#34): was the ONLY worker reject path
                 # without a refund — survived the 7/29 "every refusal refunds" sweep; the 8/6
                 # ambient floor routed new traffic through it (leader-ammo drain risk, flagged 8/7 AM).

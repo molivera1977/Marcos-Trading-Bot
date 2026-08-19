@@ -1,0 +1,70 @@
+==================================================================================================
+IGNITION — THE DAY-GAIN FLOOR ON TRIAL   (detector fixed, admission gate swapped)
+==================================================================================================
+universe 736 name-days / 63 dates  2026-05-18 .. 2026-08-17
+
+ignition fires graded: 3531   skipped: none
+
+FULL SAMPLE
+  floor15 (CONTROL)      n=  135  total=$  +5409.00  $/tr= +40.07  win=  82%  green= 86%
+  floor5 only            n= 1713  total=$ +29908.23  $/tr= +17.46  win=  57%  green= 87%
+  relvol2 only           n= 1460  total=$ +29566.30  $/tr= +20.25  win=  59%  green= 83%
+  relvol3 only           n=  899  total=$ +19877.26  $/tr= +22.11  win=  62%  green= 78%
+  floor3 + relvol2       n= 1073  total=$ +23182.83  $/tr= +21.61  win=  63%  green= 79%
+  floor5 + relvol2       n=  887  total=$ +19193.28  $/tr= +21.64  win=  64%  green= 76%
+  floor5 + relvol3       n=  577  total=$ +13773.14  $/tr= +23.87  win=  65%  green= 70%
+  floor5 + relvol4       n=  393  total=$ +10532.76  $/tr= +26.80  win=  68%  green= 73%
+  floor8 + relvol3       n=  392  total=$ +11825.52  $/tr= +30.17  win=  70%  green= 70%
+  floor10 + relvol2      n=  425  total=$ +13011.01  $/tr= +30.61  win=  73%  green= 75%
+  floor3 + rv60 >=2      n=  990  total=$ +23240.69  $/tr= +23.48  win=  65%  green= 79%
+  floor3 + rv90 >=2      n=  970  total=$ +23139.39  $/tr= +23.86  win=  65%  green= 81%
+  floor3 + rvSESSION>=2  n=  970  total=$ +23139.39  $/tr= +23.86  win=  65%  green= 81%
+  floor3 + rvOPEN30 >=2  n=  697  total=$  +4121.36  $/tr=  +5.91  win=  52%  green= 49%
+
+HOLD-OUT (unseen 19 dates)
+  floor15 (CONTROL)      n=   30  total=$  +1654.75  $/tr= +55.16  win=  80%  green= 80%
+  floor5 only            n=  460  total=$ +10836.10  $/tr= +23.56  win=  61%  green= 84%
+  relvol2 only           n=  362  total=$  +8908.30  $/tr= +24.61  win=  60%  green= 84%
+  relvol3 only           n=  236  total=$  +5837.83  $/tr= +24.74  win=  61%  green= 74%
+  floor3 + relvol2       n=  266  total=$  +8084.10  $/tr= +30.39  win=  64%  green= 84%
+  floor5 + relvol2       n=  217  total=$  +6299.35  $/tr= +29.03  win=  64%  green= 84%
+  floor5 + relvol3       n=  140  total=$  +3945.84  $/tr= +28.18  win=  64%  green= 63%
+  floor5 + relvol4       n=   94  total=$  +3084.64  $/tr= +32.82  win=  67%  green= 63%
+  floor8 + relvol3       n=   94  total=$  +3446.56  $/tr= +36.67  win=  69%  green= 68%
+  floor10 + relvol2      n=  102  total=$  +3904.55  $/tr= +38.28  win=  72%  green= 79%
+  floor3 + rv60 >=2      n=  250  total=$  +7860.21  $/tr= +31.44  win=  65%  green= 84%
+  floor3 + rv90 >=2      n=  248  total=$  +7847.92  $/tr= +31.64  win=  65%  green= 84%
+  floor3 + rvSESSION>=2  n=  248  total=$  +7847.92  $/tr= +31.64  win=  65%  green= 84%
+  floor3 + rvOPEN30 >=2  n=  172  total=$   +412.97  $/tr=  +2.40  win=  46%  green= 53%
+
+==================================================================================================
+CAPACITY TEST — first N fires per day, chronological. DOLLARS PER DAY (hold-out)
+==================================================================================================
+  gate                            N=4          N=6          N=8         N=12  fires/day
+  floor15 (CONTROL)       $    +87.09  $    +87.09  $    +87.09  $    +87.09        1.6
+  floor5 only             $   +139.14  $   +201.01  $   +265.20  $   +348.89       24.2
+  relvol2 only            $   +109.54  $   +107.85  $   +179.41  $   +316.68       19.1
+  relvol3 only            $    +47.06  $   +131.27  $   +190.45  $   +246.50       12.4
+  floor3 + relvol2        $   +179.12  $   +217.42  $   +284.59  $   +390.90       14.0
+  floor5 + relvol2        $   +192.73  $   +243.19  $   +294.60  $   +285.59       11.4
+  floor5 + relvol3        $   +119.98  $   +182.03  $   +219.83  $   +207.68        7.4
+  floor5 + relvol4        $   +105.08  $   +154.08  $   +165.92  $   +162.35        4.9
+  floor8 + relvol3        $   +121.72  $   +171.03  $   +176.73  $   +181.40        4.9
+  floor10 + relvol2       $   +174.02  $   +186.98  $   +207.31  $   +205.50        5.4
+  floor3 + rv60 >=2       $   +169.70  $   +235.64  $   +314.76  $   +372.27       13.2
+  floor3 + rv90 >=2       $   +169.70  $   +246.24  $   +324.91  $   +372.02       13.1
+  floor3 + rvSESSION>=2   $   +169.70  $   +246.24  $   +324.91  $   +372.02       13.1
+  floor3 + rvOPEN30 >=2   $    +46.23  $    +70.30  $    +46.89  $    +25.04        9.1
+
+  (N = positions the book can hold. $3,000 with ~$500 clips ~= 6. Fires/day is what the
+   gate OFFERS; anything above N is capped by capital, not by the gate.)
+
+==================================================================================================
+PRE-REGISTERED VERDICT
+==================================================================================================
+Traceback (most recent call last):
+  File "/Users/marcosolivera/Desktop/Marcos-Trading-Bot/data/killtests/relvol_window_20260818.py", line 237, in <module>
+    sys.exit(main())
+  File "/Users/marcosolivera/Desktop/Marcos-Trading-Bot/data/killtests/relvol_window_20260818.py", line 214, in main
+    ctl = res["A_floor15  (CONTROL)"]
+KeyError: 'A_floor15  (CONTROL)'

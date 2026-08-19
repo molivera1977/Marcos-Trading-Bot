@@ -1,0 +1,44 @@
+==================================================================================================
+IGNITION — THE DAY-GAIN FLOOR ON TRIAL   (detector fixed, admission gate swapped)
+==================================================================================================
+universe 736 name-days / 63 dates  2026-05-18 .. 2026-08-17
+
+ignition fires graded: 3531   skipped: none
+
+FULL SAMPLE
+  A_floor15  (CONTROL)   n=  135  total=$  +5409.00  $/tr= +40.07  win=  82%  green= 86%
+  A_floor5               n= 1713  total=$ +29908.23  $/tr= +17.46  win=  57%  green= 87%
+  A_nofloor              n= 3531  total=$ +51708.66  $/tr= +14.64  win=  52%  green= 79%
+  A_relvol2              n= 1868  total=$ +35771.94  $/tr= +19.15  win=  59%  green= 84%
+  A_relvol3              n= 1423  total=$ +30253.94  $/tr= +21.26  win=  62%  green= 83%
+
+HOLD-OUT (unseen 19 dates)
+  A_floor15  (CONTROL)   n=   30  total=$  +1654.75  $/tr= +55.16  win=  80%  green= 80%
+  A_floor5               n=  460  total=$ +10836.10  $/tr= +23.56  win=  61%  green= 84%
+  A_nofloor              n=  877  total=$ +15711.63  $/tr= +17.92  win=  54%  green= 79%
+  A_relvol2              n=  475  total=$ +11160.07  $/tr= +23.49  win=  61%  green= 84%
+  A_relvol3              n=  367  total=$  +8762.89  $/tr= +23.88  win=  62%  green= 79%
+
+==================================================================================================
+CAPACITY TEST — first N fires per day, chronological. DOLLARS PER DAY (hold-out)
+==================================================================================================
+  gate                            N=4          N=6          N=8         N=12  fires/day
+  A_floor15  (CONTROL)    $    +87.09  $    +87.09  $    +87.09  $    +87.09        1.6
+  A_floor5                $   +139.14  $   +201.01  $   +265.20  $   +348.89       24.2
+  A_nofloor               $    +99.89  $   +131.23  $   +152.17  $   +238.40       46.2
+  A_relvol2               $   +130.76  $   +175.09  $   +247.46  $   +375.88       25.0
+  A_relvol3               $   +117.45  $   +170.14  $   +256.21  $   +378.97       19.3
+
+  (N = positions the book can hold. $3,000 with ~$500 clips ~= 6. Fires/day is what the
+   gate OFFERS; anything above N is capped by capital, not by the gate.)
+
+==================================================================================================
+PRE-REGISTERED VERDICT
+==================================================================================================
+  control (floor 15%): $+55.16/tr  n=30
+
+  NO arm beat the floor with n>=60 on hold-out.
+  => THE FLOOR STAYS. The contradiction is real in principle but the tape does not
+     pay for removing it, and a principled argument is not a reason to ship.
+
+LIMITS: detector-only, no funnel; fire counts exceed live. E3 exits, detector's own stop.

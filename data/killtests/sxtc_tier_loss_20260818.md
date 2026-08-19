@@ -37,8 +37,17 @@ state. The resumed monitor rebuilds the position but does **not** rebuild `parti
 the durable `tier_fill` rows — it trusts in-memory state that the restart had emptied. The rows
 existed the whole time; nothing read them back.
 
-This is the same family as the ghost open-trades / dead-executor work (#40–42) and is the first
-case to slip through the resume path since those landed.
+[UNVERIFIED] I called this "the same family as the ghost open-trades / dead-executor work
+(#40-42)" and "the first case to slip through the resume path since those landed." Neither claim
+was checked: I did not diff this failure mode against those fixes, and I did not sweep the resume
+path for intervening cases. The VERIFIED statement is narrower and is what the era sweep actually
+supports: 2 of 188 era tier fills (1%), on 1 day of 27, were not rebuilt into `partial_fills` on a
+resumed monitor.
+
+EPOCHS: the era sweep covers 2026-07-13 .. 2026-08-18 (27 trading days, 188 tier fills) as ONE
+epoch. It is NOT split by the code changes that landed inside that window (the restart-proofing of
+#40-42 among them), so it cannot separate pre-fix from post-fix behaviour — which is exactly why
+the "first case since those landed" claim above is untestable from this artifact.
 
 ## Scope: ISOLATED, and that is measured, not assumed
 
@@ -66,6 +75,12 @@ both came out of a full-row verification he asked for.
 * No fee/borrow model is applied here, consistent with every other figure in the book.
 * The store is NOT rewritten by this document. It is a ledgered correction, in the same spirit as
   `pnl_runner_leg_correction_20260726.json`; the fix that prevents recurrence is separate.
+* **MIXED-EPOCH.** The era sweep (2026-07-13 .. 2026-08-18, 27 trading days, 188 tier fills) is
+  treated as ONE epoch. It is NOT split by the code that landed inside that window — the
+  restart-proofing of #40-42 among it — so the rows do not share a single config hash and this
+  artifact CANNOT separate pre-fix from post-fix behaviour. That is precisely why the
+  "first case to slip through since those landed" phrasing is tagged [UNVERIFIED] above: the
+  measurement in hand cannot test it.
 
 ## Owed
 

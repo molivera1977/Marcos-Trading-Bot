@@ -6841,6 +6841,24 @@ IGNITION_STACK_GATE = os.environ.get("IGNITION_STACK_GATE", "1") == "1"
 # So: below VWAP is allowed ONLY inside IGNITION_VWAP_TOL and ONLY with the 9 over the 20.
 # Beyond the band, refuse regardless of stack.
 IGNITION_VWAP_TOL   = float(os.environ.get("IGNITION_VWAP_TOL", "0.02"))   # 2% approach band
+# ── 8/18 THE STACK GATE WAS INERT (Marcos: "how was this trade at 10:33 considered ignition???"
+# -> "what can be done about this?" -> "Do whatever is needed and correct"). The gate reads
+# `_e9 > 0 and _e20 > 0 and _e9 < _e20`, and the EMAs are computed off `full_bars`, which is
+# RTH-ONLY (:9281). SETUP_TF_MIN=3 x (EMA20_PERIOD+2)=22 bars = 66 MINUTES of RTH, so before
+# ~10:36 ET the EMAs are 0.0, `_e9 > 0` is False, and the gate FAILS OPEN — every day, on every
+# name, in exactly the window ignition lives in.
+#   LIVE BOOK: 79 of 114 stamped era ignition fills (69%) fired with ema9==ema20==0.0.
+#   COUNTERFACTUAL (ignition_stack_warmup_20260818, 1,002 detector fires, hold-out 19 dates):
+#     LIVE_NOW $207.58/day @N=6 ... and NOSTACK $207.58 — IDENTICAL TO THE CENT. The shipped
+#     gate does nothing at all.  WARMED $230.78 (+$23.20/day) and $322.85 @N=8 (+$33.86).
+#     Stack-vs-no-stack once it can see: +$8.88/trade.  FAILCLOSED -$180.53/day (it blanks the
+#     open hour) — the reason we warm the gate instead of refusing when it is blind.
+# THE FIX: seed the 3-min EMAs with TODAY'S PREMARKET closes, which the PRE+RTH VWAP fetch
+# (:9306, ENTRY_VWAP_PREMARKET=True) already has in hand — no extra API call. Same shape as the
+# 8/14 MA_WARMUP_SEED, but SAME-DAY PREMARKET, not prior session: that is what was measured, and
+# shipping the prior-session seed instead would be shipping an untested thing.
+# Kill: IGNITION_STACK_WARMUP=0 restores the RTH-only (inert) gate exactly.
+IGNITION_STACK_WARMUP = os.environ.get("IGNITION_STACK_WARMUP", "1") == "1"
 IGNITION_CELL_GATE = os.environ.get("IGNITION_CELL_GATE", "0")
 # flat_top + vwap_reclaim → observe-only (era books graded CODE-DEFECTS, not designs — audit 3:
 # flat_top/orb bought the break print in a retest costume; coded vwap_reclaim = the refuted
@@ -7851,6 +7869,43 @@ ROCKET_CATCHER   = os.environ.get("ROCKET_CATCHER", "0") == "1"    # SUPERSEDED 
 #    canaries: "we need to test this fucker and can't if we don't collect real data." Floor 15 =
 #    bottom of the corrected sweep's positive plateau (+$92.56). Revisit Friday 7/31 w/ forward n. ──
 DAYGAIN_FLOOR_PCT = float(os.environ.get("DAYGAIN_FLOOR", "15"))
+# ── 8/18 PER-LANE DAY-GAIN FLOOR (Marcos: "our floor for ignition at least, is too high at 15%"
+# then "go with floor3 + relvol2x for ignition"). The floor was ONE global applied to five lanes,
+# and only IGNITION was measured — so only ignition moves. flat_top/ma_pullback/orb/ema_bounce
+# keep 15% until each has its own wall. (Today's 57 daygain_reject rows: 43 ma_pullback, 14
+# ignition — loosening the global would have unleashed the lane with the worst fire-to-fill
+# ratio in the book, unmeasured.)
+#
+# WHY IGNITION MOVES: the floor demands a name ALREADY be up 15% before ignition may trade it,
+# while ignition is BY DEFINITION "volume surge off a quiet base, breaking out, NOT yet
+# extended" — it exists to catch the move BEFORE the gain. The gate refused the lane for doing
+# its job: 14 of 23 lane-attributed ignition refusals on 8/18 were daygain, at gains of 1.72%
+# (HAO), 1.86% (AIFU), 8.63% (FCUV -> finished +20.1%), 9.91% (FGI), 10.38% (RCON), 13.64% (OFAL).
+#
+# MEASURED (ignition_combo/relvol_window 20260818, 63 dates, E3 exits, dollars/day at 6 slots):
+#   floor 15%  (live before)      +$87/day    1.6 fires/day  <- starved; flat at every capacity
+#   floor 5% only                +$201/day   24.2
+#   floor 3% + relvol >=2x       +$217/day   14.0
+#   floor 3% + SESSION relvol 2x +$246/day   13.1  <- shipped
+# Marcos's call: floor 3 + relvol 2x. Both floors and both baselines are env-tunable below.
+DAYGAIN_FLOOR_BY_LANE = {"ignition": float(os.environ.get("DAYGAIN_FLOOR_IGNITION", "3"))}
+
+
+def _daygain_floor_for(lane):
+    """Per-lane floor; falls back to the global for every lane without its own measurement."""
+    try:
+        return DAYGAIN_FLOOR_BY_LANE.get(str(lane), DAYGAIN_FLOOR_PCT)
+    except Exception:
+        return DAYGAIN_FLOOR_PCT
+
+
+# ── 8/18 IGNITION RELATIVE VOLUME. NOT the scanner's REL VOL column: that one is a MULTI-DAY
+# same-time-of-day baseline and could not be tested here (only 152 of 738 cached name-days have
+# even 2 prior dates for the same ticker). This is INTRADAY: the fire minute's volume vs this
+# session's own average minute so far. Stamped as `relvol_sess` on the fire row under a distinct
+# name so nobody later reads it as the scanner's number and mis-tunes it.
+IGNITION_RELVOL      = float(os.environ.get("IGNITION_RELVOL", "2.0"))    # 0 = off
+IGNITION_RELVOL_MODE = os.environ.get("IGNITION_RELVOL_MODE", "session")  # session | 30m
 DAYGAIN_LEGACY    = ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
 
 # ── IGNITION-10S (7/26, Marcos: "Move it to 10 second bars. The idea of knowingly being blind is dumb.")
@@ -9284,6 +9339,20 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             cache[t]["vwap"]     = _fullvw   # pre+RTH session VWAP (chart-matching) — shown in status line
                             cache[t]["vwap_rth"] = _rthvw    # RTH-only (old) — dual-log to see the pre-market gap
                             cache[t]["vwap_fetched"] = time.time()
+                            # 8/18 IGNITION STACK WARM-UP: today's PREMARKET 3-min closes, taken
+                            # from the PRE+RTH fetch already in hand. Cached SEPARATELY — never
+                            # mixed into full_bars/bars, so room/setups/every other detector still
+                            # sees today-RTH-only and does not move. Consumed ONLY by the ignition
+                            # stack gate. Kill: IGNITION_STACK_WARMUP=0.
+                            if IGNITION_STACK_WARMUP:
+                                try:
+                                    _pm3 = aggregate_bars(
+                                        [b for b in _sess
+                                         if b.get("trading_session") != "RTH"], SETUP_TF_MIN)[:-1]
+                                    cache[t]["ig_pm_closes"] = [
+                                        _bar_close(b) for b in _pm3 if _bar_close(b) > 0]
+                                except Exception:
+                                    cache[t]["ig_pm_closes"] = []
                             if _rthvw > 0 and abs(_fullvw - _rthvw) / _rthvw >= 0.03:
                                 print(f"   🔍 {t} VWAP pre+RTH ${_fullvw:.3f} vs RTH-only ${_rthvw:.3f} "
                                       f"({(_fullvw - _rthvw) / _rthvw * 100:+.0f}% pre-market gap)")
@@ -10272,10 +10341,26 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         if rr is not None and rr < MIN_ROOM_RR:   # room DE-INVERTED — observe (base+volume is the filter)
                             _log_decision(t, "ignition_low_room_soft", price=price, room_rr=rr)
                         _ig_comp = aggregate_bars(cache[t].get("full_bars") or bars, SETUP_TF_MIN)[:-1]
-                        if len(_ig_comp) >= EMA20_PERIOD + 2:
-                            _e9, _e20, _e90 = calculate_ema9(_ig_comp), calculate_ema20(_ig_comp), calculate_ema90(_ig_comp)
+                        # ── 8/18 WARM-UP (see IGNITION_STACK_WARMUP). full_bars is RTH-ONLY, so a
+                        # 20-period EMA on 3-min bars needs 66 min of RTH and the stack gate below
+                        # was inert before ~10:36 EVERY DAY (69% of era fills; LIVE_NOW == NOSTACK
+                        # to the cent in the counterfactual). Seeding with TODAY'S PREMARKET closes
+                        # makes the gate evaluable from the bell. Seed feeds the EMA MATH ONLY —
+                        # `_ig_comp` itself is untouched, so anything reading bars/room/candles is
+                        # byte-identical to before.
+                        _ig_seed = (cache[t].get("ig_pm_closes") or []) if IGNITION_STACK_WARMUP else []
+                        _ig_cl = _ig_seed + _extract_closes(_ig_comp)
+                        if len(_ig_cl) >= EMA20_PERIOD + 2:
+                            _e9  = _calc_ema(_ig_cl, EMA_PERIOD)
+                            _e20 = _calc_ema(_ig_cl, EMA20_PERIOD)
+                            _e90 = _calc_ema(_ig_cl, EMA90_PERIOD) if len(_ig_cl) >= EMA90_PERIOD + 2 else 0.0
+                            _ig_stack_src = "warmed" if _ig_seed else "rth_only"
                         else:
                             _e9 = _e20 = _e90 = 0.0
+                            # THE GATE CANNOT SEE. It fails OPEN below by design (FAILCLOSED cost
+                            # -$180.53/day — it blanks the open hour). Stamp it so a blind pass is
+                            # never again invisible in the book.
+                            _ig_stack_src = "unevaluable"
                         _front = _e9 > _e20 > 0
                         print(f"\n🚀 {t} IGNITION! ${price:.2f} vol-surge {ign['volx']}× broke base "
                               f"${ign['base_hi']:.2f} (+{ign['ext_pct']}% from open, NOT extended) — "
@@ -10298,6 +10383,57 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         # Kill: IGNITION_VWAP_GATE=0 / IGNITION_STACK_GATE=0 (independent).
                         # inside the band = "rising into VWAP" (allowed if the stack agrees);
                         # outside the band = far below, refused regardless of stack.
+                        # ── 8/18 RELATIVE VOLUME (Marcos: "relvol is the real decider" ->
+                        # "go with floor3 + relvol2x for ignition"). The fire minute's volume vs
+                        # THIS SESSION's own average minute. Measured +$246/day at 6 slots vs
+                        # +$87 for the old 15% floor alone. Fails OPEN when the tape is too thin
+                        # to measure — a gate that cannot see must not refuse silently.
+                        # 8/18: ONE admission vector, stamped identically on the fire row and on
+                        # BOTH reject rows, so any ignition decision can be reconstructed from a
+                        # single row: which condition bound, and what the others read at that
+                        # instant. Without this you can see THAT a fire was refused but not
+                        # whether it would have passed the others.
+                        _ig_dg = None
+                        try:
+                            _ig_dg = (b4 or {}).get("day_gain") if isinstance(locals().get("b4"), dict) else None
+                        except Exception:
+                            _ig_dg = None
+                        if _ig_dg is None:
+                            try:
+                                _dl = cache[t].get("daily") or {}
+                                _pc = _dl.get("prior_close") or _dl.get("prev_close")
+                                _ig_dg = round((price / float(_pc) - 1) * 100, 2) if _pc else None
+                            except Exception:
+                                _ig_dg = None
+                        _ig_rv = None
+                        try:
+                            _rvb = cache[t].get("full_bars") or bars
+                            _rvc = [x for x in (_rvb or []) if x]
+                            if IGNITION_RELVOL > 0 and len(_rvc) >= 12:
+                                _win = 30 if IGNITION_RELVOL_MODE == "30m" else len(_rvc) - 1
+                                _hist = _rvc[max(0, len(_rvc) - 1 - _win):-1]
+                                _base = (sum(float(x.get("volume") or 0) for x in _hist)
+                                         / max(len(_hist), 1))
+                                _last = float(_rvc[-1].get("volume") or 0)
+                                if _base > 0:
+                                    _ig_rv = round(_last / _base, 2)
+                        except Exception:
+                            _ig_rv = None
+                        if _ig_rv is not None and _ig_rv < IGNITION_RELVOL:
+                            _log_decision(t, "ignition_relvol_reject", price=price, lane="ignition",
+                                          relvol_sess=_ig_rv, need=IGNITION_RELVOL,
+                                          mode=IGNITION_RELVOL_MODE, volx=ign["volx"],
+                                          day_gain=_ig_dg, daygain_floor=_daygain_floor_for("ignition"),
+                                          vwap=round(vwap, 4) if vwap else None,
+                                          vwap_dist_pct=(round((price / vwap - 1) * 100, 2) if vwap else None),
+                                          ema9=round(_e9, 4), ema20=round(_e20, 4),
+                                          stack_src=_ig_stack_src,   # 8/18: warmed|rth_only|unevaluable
+                                          stack_seed_n=len(_ig_seed),
+                                          ext_pct=ign["ext_pct"], base_hi=ign["base_hi"])
+                            print(f"   ⛔ {t} ignition REFUSED — relvol {_ig_rv}x < "
+                                  f"{IGNITION_RELVOL}x ({IGNITION_RELVOL_MODE} baseline)")
+                            cache[t]["ignition_fired"] = True
+                            continue
                         _ig_vwap_bad = (IGNITION_VWAP_GATE and vwap and vwap > 0
                                         and price < vwap * (1 - IGNITION_VWAP_TOL))
                         _ig_stack_bad = (IGNITION_STACK_GATE and _e9 > 0 and _e20 > 0
@@ -10312,7 +10448,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                           vwap_dist_pct=(round((price / vwap - 1) * 100, 2)
                                                          if vwap else None),
                                           ema9=round(_e9, 4), ema20=round(_e20, 4),
-                                          volx=ign["volx"])
+                                          stack_src=_ig_stack_src,   # 8/18: warmed|rth_only|unevaluable
+                                          stack_seed_n=len(_ig_seed),
+                                          volx=ign["volx"], relvol_sess=_ig_rv, day_gain=_ig_dg,
+                                          daygain_floor=_daygain_floor_for("ignition"),
+                                          vwap_tol=IGNITION_VWAP_TOL,
+                                          ext_pct=ign["ext_pct"], base_hi=ign["base_hi"])
                             print(f"   ⛔ {t} ignition REFUSED — {_why} "
                                   f"(px ${price:.4f} vs vwap ${vwap or 0:.4f}, "
                                   f"9 {_e9:.4f} / 20 {_e20:.4f}) [Kev's two conditions]")
@@ -10340,6 +10481,15 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         _log_decision(t, "triggered_ignition", price=price, room_rr=rr,
                                       volx=ign["volx"], base_hi=ign["base_hi"], ext_pct=ign["ext_pct"], front_side=_front,
                                       src=("10s" if IGNITION_10S else "1min"),
+                                      relvol_sess=_ig_rv, relvol_need=IGNITION_RELVOL,
+                                      relvol_mode=IGNITION_RELVOL_MODE,
+                                      day_gain=_ig_dg, daygain_floor=_daygain_floor_for("ignition"),
+                                      ema9=round(_e9, 4), ema20=round(_e20, 4),
+                                          stack_src=_ig_stack_src,   # 8/18: warmed|rth_only|unevaluable
+                                          stack_seed_n=len(_ig_seed),
+                                      vwap=round(vwap, 4) if vwap else None,
+                                      vwap_dist_pct=(round((price / vwap - 1) * 100, 2) if vwap else None),
+                                      vwap_tol=IGNITION_VWAP_TOL,
                                       shadow_gate=_sgv, shadow_gate_reason=_sgr, shadow_gate_level=_sgl,
                                       **_g1)   # 8/17: vwap_side + hi_dist_pct + g1_shadow (guidance-mandated stamps)
                         cache[t]["ignition_fired"] = True; cache[t]["ignition_n"] = cache[t].get("ignition_n", 0) + 1
@@ -10895,12 +11045,13 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             _kept_g = []
             for b in breakouts:
                 _dg = b[4].get("day_gain")
-                if (b[3] in DAYGAIN_LEGACY and _dg is not None and _dg < DAYGAIN_FLOOR_PCT
+                _fl = _daygain_floor_for(b[3])          # 8/18: per-lane, ignition=3, rest=15
+                if (b[3] in DAYGAIN_LEGACY and _dg is not None and _dg < _fl
                         and not _kev_sheet_name(b[0])):
                     _log_decision(b[0], "daygain_reject", price=b[1], day_gain=_dg,
-                                  machine=b[3], floor=DAYGAIN_FLOOR_PCT)
+                                  machine=b[3], lane=b[3], floor=_fl)
                     print(f"   ⛔ DAY-GAIN FLOOR blocked {b[0]} {b[3]} (day gain {_dg:+.1f}% < "
-                          f"{DAYGAIN_FLOOR_PCT:.0f}% — not a board leader)")
+                          f"{_fl:.0f}% — not a board leader)")
                 else:
                     _kept_g.append(b)
             breakouts = _kept_g

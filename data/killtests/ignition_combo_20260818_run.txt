@@ -1,0 +1,58 @@
+==================================================================================================
+IGNITION — THE DAY-GAIN FLOOR ON TRIAL   (detector fixed, admission gate swapped)
+==================================================================================================
+universe 736 name-days / 63 dates  2026-05-18 .. 2026-08-17
+
+ignition fires graded: 3531   skipped: none
+
+FULL SAMPLE
+  floor15 (CONTROL)      n=  135  total=$  +5409.00  $/tr= +40.07  win=  82%  green= 86%
+  floor5 only            n= 1713  total=$ +29908.23  $/tr= +17.46  win=  57%  green= 87%
+  relvol2 only           n= 1868  total=$ +35771.94  $/tr= +19.15  win=  59%  green= 84%
+  relvol3 only           n= 1423  total=$ +30253.94  $/tr= +21.26  win=  62%  green= 83%
+  floor3 + relvol2       n= 1285  total=$ +27631.85  $/tr= +21.50  win=  62%  green= 84%
+  floor5 + relvol2       n= 1031  total=$ +22656.65  $/tr= +21.98  win=  64%  green= 83%
+  floor5 + relvol3       n=  825  total=$ +19730.28  $/tr= +23.92  win=  66%  green= 76%
+  floor5 + relvol4       n=  682  total=$ +17261.24  $/tr= +25.31  win=  69%  green= 75%
+  floor8 + relvol3       n=  547  total=$ +15685.19  $/tr= +28.67  win=  71%  green= 78%
+  floor10 + relvol2      n=  479  total=$ +14487.95  $/tr= +30.25  win=  73%  green= 84%
+
+HOLD-OUT (unseen 19 dates)
+  floor15 (CONTROL)      n=   30  total=$  +1654.75  $/tr= +55.16  win=  80%  green= 80%
+  floor5 only            n=  460  total=$ +10836.10  $/tr= +23.56  win=  61%  green= 84%
+  relvol2 only           n=  475  total=$ +11160.07  $/tr= +23.49  win=  61%  green= 84%
+  relvol3 only           n=  367  total=$  +8762.89  $/tr= +23.88  win=  62%  green= 79%
+  floor3 + relvol2       n=  327  total=$  +9837.69  $/tr= +30.08  win=  66%  green= 95%
+  floor5 + relvol2       n=  262  total=$  +7753.21  $/tr= +29.59  win=  67%  green= 95%
+  floor5 + relvol3       n=  207  total=$  +6537.73  $/tr= +31.58  win=  69%  green= 74%
+  floor5 + relvol4       n=  170  total=$  +5542.09  $/tr= +32.60  win=  72%  green= 79%
+  floor8 + relvol3       n=  132  total=$  +4714.80  $/tr= +35.72  win=  73%  green= 74%
+  floor10 + relvol2      n=  121  total=$  +4034.07  $/tr= +33.34  win=  73%  green= 84%
+
+==================================================================================================
+CAPACITY TEST — first N fires per day, chronological. DOLLARS PER DAY (hold-out)
+==================================================================================================
+  gate                            N=4          N=6          N=8         N=12  fires/day
+  floor15 (CONTROL)       $    +87.09  $    +87.09  $    +87.09  $    +87.09        1.6
+  floor5 only             $   +139.14  $   +201.01  $   +265.20  $   +348.89       24.2
+  relvol2 only            $   +130.76  $   +175.09  $   +247.46  $   +375.88       25.0
+  relvol3 only            $   +117.45  $   +170.14  $   +256.21  $   +378.97       19.3
+  floor3 + relvol2        $   +171.20  $   +295.79  $   +336.15  $   +448.27       17.2
+  floor5 + relvol2        $   +158.69  $   +281.17  $   +338.58  $   +398.25       13.8
+  floor5 + relvol3        $   +153.71  $   +271.33  $   +313.77  $   +333.96       10.9
+  floor5 + relvol4        $   +139.22  $   +220.43  $   +242.09  $   +284.80        8.9
+  floor8 + relvol3        $   +184.97  $   +229.50  $   +230.61  $   +243.48        6.9
+  floor10 + relvol2       $   +178.54  $   +216.37  $   +212.77  $   +216.02        6.4
+
+  (N = positions the book can hold. $3,000 with ~$500 clips ~= 6. Fires/day is what the
+   gate OFFERS; anything above N is capped by capital, not by the gate.)
+
+==================================================================================================
+PRE-REGISTERED VERDICT
+==================================================================================================
+Traceback (most recent call last):
+  File "/Users/marcosolivera/Desktop/Marcos-Trading-Bot/data/killtests/ignition_combo_20260818.py", line 214, in <module>
+    sys.exit(main())
+  File "/Users/marcosolivera/Desktop/Marcos-Trading-Bot/data/killtests/ignition_combo_20260818.py", line 191, in main
+    ctl = res["A_floor15  (CONTROL)"]
+KeyError: 'A_floor15  (CONTROL)'

@@ -2390,6 +2390,68 @@ def _post_trade_state(state: dict):
 # ── Durable open-trade state — persisted to the screener (which has a /data volume) so an
 # open position SURVIVES a bot crash/restart/redeploy and still reaches a recorded exit. ──
 
+def ma_pullback_v2_step(sym, setup, m3_completed, m1_closes, price, vwap, session_hi, now_m):
+    """Marcos's pullback, in two timeframes: the FLAG is read on the 3-min, the ENTRY is the
+    1-min break of it. Returns None (nothing), {"arm":...} (flag stored, waiting), or a fire.
+
+    `setup` is detect_ma_pullback's own dict (the pure 3-min confirmation). This layer adds the
+    conditions the detector never had — see MA_PULLBACK_V2 for the measured effect of each.
+
+    THE FLAG = the pullback structure on the 3-min: the down-closing bars leading in, plus the
+    confirmation candle. Its HIGH is what must break; its LOW is what the stop hides under.
+    Kill: MA_PULLBACK_V2=0."""
+    if not MA_PULLBACK_V2 or not setup:
+        return None
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    st = _mapb_arm.get(sym)
+    if st and st.get("day") != day:
+        st = None; _mapb_arm.pop(sym, None)
+
+    # ── already armed: wait for the 1-MIN CLOSE above the flag high ──
+    if st:
+        if now_m - st["armed_m"] > MAPB_WAIT_MIN:
+            _mapb_arm.pop(sym, None)                       # the flag went stale, never resumed
+            return {"expired": True, "k": st["k"]}
+        if m1_closes and m1_closes[-1] > st["flag_hi"]:
+            _mapb_arm.pop(sym, None)
+            stop = round(st["flag_lo"] * (1 - MAPB_FLAG_BUF), 4)
+            if stop <= 0 or stop >= m1_closes[-1]:
+                return None
+            return {"fire": True, "px": round(m1_closes[-1], 4), "stop": stop,
+                    "flag_hi": round(st["flag_hi"], 4), "flag_lo": round(st["flag_lo"], 4),
+                    "ma_name": st.get("ma_name"), "k": st["k"],
+                    "waited_min": now_m - st["armed_m"]}
+        return None
+
+    # ── not armed: does this setup qualify as a REAL pullback? ──
+    if not vwap or vwap <= 0 or price <= vwap:
+        return None                                        # "below vwap is a straight collapse"
+    if session_hi and session_hi > 0 and (session_hi / price - 1) * 100.0 > MAPB_NEAR_HIGH_PCT:
+        return None                                        # no room to run / already broken down
+    k = setup.get("k")
+    try:
+        j = next(n for n, b in enumerate(m3_completed) if _bar_epoch(b) == k)
+    except (StopIteration, TypeError):
+        return None
+    dip = [b for b in m3_completed[max(j - 4, 0):j] if _bar_close(b) < _bar_open(b)]
+    adv = [b for b in m3_completed[max(j - 8, 0):j] if _bar_close(b) >= _bar_open(b)]
+    if not dip or not adv:
+        return None                                        # there must BE a pullback
+    dv = sum(_bar_vol(b) for b in dip) / len(dip)
+    av = sum(_bar_vol(b) for b in adv) / len(adv)
+    if av <= 0 or dv / av >= MAPB_QUIET_MAX:
+        return None                                        # a HEAVY dip means it is still going down
+    conf = m3_completed[j]
+    flag_hi = max([_bar_high(b) for b in dip] + [_bar_high(conf)])
+    flag_lo = min([_bar_low(b) for b in dip] + [_bar_low(conf)])
+    if flag_lo <= 0 or flag_hi <= flag_lo:
+        return None
+    _mapb_arm[sym] = {"day": day, "k": k, "flag_hi": flag_hi, "flag_lo": flag_lo,
+                      "armed_m": now_m, "ma_name": setup.get("ma_name")}
+    return {"arm": True, "flag_hi": round(flag_hi, 4), "flag_lo": round(flag_lo, 4),
+            "quiet": round(dv / av, 2), "ma_name": setup.get("ma_name"), "k": k}
+
+
 def _tier_fills_from_ledger(ticker):
     """Today's banked tier legs for `ticker`, read back from the DURABLE decision ledger.
 
@@ -6932,6 +6994,38 @@ VWAP_COVERAGE_GUARD = os.environ.get("VWAP_COVERAGE_GUARD", "1") == "1"
 # saved state lost them (SXTC: $29.51 on one trade, and the day's headline was wrong by the same).
 # Kill: TIER_REHYDRATE=0 restores trusting the saved state alone.
 TIER_REHYDRATE = os.environ.get("TIER_REHYDRATE", "1") == "1"
+# ── 8/19 MA_PULLBACK v2 — MARCOS'S DEFINITION OF A PULLBACK, ENCODED ──────────────────────
+# He stated each condition BEFORE it was measured (hypothesis-then-test, not data mining), and
+# every one held on 19 unseen dates. My own six invented separators all failed; his three worked.
+#   "a stock going up but having a momentary price collapse with low volume ... it NEEDS to be
+#    above VWAP"                     -> below vwap: -$9.16/tr, 15% green (vs 58% above)
+#   "the pullback itself needs low volume. if the pullback is high volume then that means the
+#    price is going down further"    -> monotonic: <=0.20x +$3.51/tr | >1.50x -$3.24/tr
+#   "we also need room to run"       -> at the highs +$9.91/tr 82% green | 20% below -$20.88/tr
+#   "this has to be done frontside"  -> ALREADY IMPLIED: 95% of qualifiers are front-side
+#   "the trigger should be when the flag breaks higher but on the 1 minute chart. pullback is
+#    seen on the 3 minute while entry is on the 1 minute"
+#   "you can't buy in the flag, you need break confirmation"
+#                                    -> buy-in-flag +$4.87/tr 42% win | 1-min CLOSE above +$10.12 54%
+#   "stop should be below the low of the flag" / "being exactly at the flag low risks getting
+#    wicked out" / "1% might be too much"
+#                                    -> buffer ladder: win rate 52%->58% as it widens 0.5%->2%
+# THE STACK, hold-out (19 unseen dates), detector-only:
+#     every ma_pullback fire ........... -$3.69/tr  32% win
+#     + above vwap + quiet dip + room .. +$4.87/tr  42% win  74% green
+#     + 1-min close above the flag .... +$10.12/tr  54% win
+#     + stop 4% below the flag low .... +$13.66/tr  58% win
+# THE 4% BUFFER IS NOT FITTED. MIN_STOP_PCT=4.0 and ma_pullback is NOT in MIN_STOP_EXEMPT, so a
+# narrower stop is REJECTED LIVE however good the setup: at a 2% buffer the live gate throws away
+# 27% of qualified setups (63 of 236), at 3% it is 6%, at 4% it is ZERO. Marcos spotted that I
+# had skipped 4% in the ladder. It is the tightest buffer at which nothing dies on stop width.
+# Kill: MA_PULLBACK_V2=0 restores the v1 fire-immediately behaviour exactly.
+MA_PULLBACK_V2       = os.environ.get("MA_PULLBACK_V2", "1") == "1"
+MAPB_QUIET_MAX       = float(os.environ.get("MAPB_QUIET_MAX", "1.0"))    # dip vol < advance vol
+MAPB_NEAR_HIGH_PCT   = float(os.environ.get("MAPB_NEAR_HIGH_PCT", "2.0"))# within 2% of session high
+MAPB_FLAG_BUF        = float(os.environ.get("MAPB_FLAG_BUF", "0.04"))    # stop 4% below the flag low
+MAPB_WAIT_MIN        = int(os.environ.get("MAPB_WAIT_MIN", "30"))        # arm expires after 30 min
+_mapb_arm: dict = {}   # sym -> {day, k, flag_hi, flag_lo, armed_m, ma_name}
 VWAP_MIN_SPAN_MIN   = float(os.environ.get("VWAP_MIN_SPAN_MIN", "20"))   # minutes a session line must span
 # The guard has TWO effects and they carry different risk:
 #   (a) prefer the tick line when the bar line fails coverage — MEASURED on the real CDTG values
@@ -11074,6 +11168,39 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             # across all of Kev's MAs.
             if not found_entry and vwap > 0 and price > vwap:   # above VWAP (don't fight below it)
                 ma_pb = detect_ma_pullback(completed, price, _wm_seed)
+                # ── 8/19 MA_PULLBACK v2 (Marcos's definition; see MA_PULLBACK_V2) ────────────
+                # v1 BUYS IN THE FLAG: it fires the instant the 3-min confirmation candle exists
+                # and price ticks above its close. Measured on 19 unseen dates that is +$4.87/tr
+                # at 42% win; waiting for a 1-MIN CLOSE above the flag high is +$10.12/tr at 54%,
+                # on 65 FEWER trades and $922 MORE money — the setups it declines are the ones
+                # that never resumed. v2 ARMS on the 3-min flag and FIRES on the 1-min break,
+                # with the stop 4% under the flag low. Kill: MA_PULLBACK_V2=0.
+                if MA_PULLBACK_V2:
+                    _mv2 = ma_pullback_v2_step(
+                        t, ma_pb, completed,
+                        [_bar_close(b) for b in aggregate_bars(cache[t].get("full_bars") or bars, 1)[:-1]],
+                        price, vwap,
+                        max((_bar_high(b) for b in (cache[t].get("full_bars") or bars)), default=0.0),
+                        datetime.now(EASTERN).hour * 60 + datetime.now(EASTERN).minute)
+                    if _mv2 and _mv2.get("arm"):
+                        _log_decision(t, "ma_pullback_armed", price=price, lane="ma_pullback",
+                                      flag_hi=_mv2["flag_hi"], flag_lo=_mv2["flag_lo"],
+                                      quiet=_mv2["quiet"], ma=_mv2["ma_name"],
+                                      need_close_above=_mv2["flag_hi"])
+                        ma_pb = None                      # armed, NOT entered — no buying in the flag
+                    elif _mv2 and _mv2.get("expired"):
+                        _log_decision(t, "ma_pullback_flag_expired", price=price,
+                                      lane="ma_pullback", waited=MAPB_WAIT_MIN)
+                        ma_pb = None
+                    elif _mv2 and _mv2.get("fire"):
+                        _log_decision(t, "ma_pullback_flag_break", price=_mv2["px"],
+                                      lane="ma_pullback", stop=_mv2["stop"],
+                                      flag_hi=_mv2["flag_hi"], flag_lo=_mv2["flag_lo"],
+                                      waited_min=_mv2["waited_min"], ma=_mv2["ma_name"])
+                        ma_pb = {"ma_name": _mv2["ma_name"], "ma": _mv2["flag_lo"],
+                                 "k": _mv2["k"], "stop": _mv2["stop"]}
+                    else:
+                        ma_pb = None                      # no qualifying pullback this pass
                 # ── 8/17 C1 CONSUMED-SETUP GUARD ────────────────────────────────────────────
                 # detect_ma_pullback is a PURE FUNCTION of the bar slice: while the confirmation
                 # candle stays the last completed bar it returns the identical fire every scan

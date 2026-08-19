@@ -315,6 +315,11 @@ ALL_SYMBOLS = [
     #   dip_rip_step        1 fill (-$34.67 PFSA)
     # The other three are live-callable but did not fire today. ema9x90 shipped 12:43 the same
     # way and ran a full session with a wall-clock bug nothing could test.
+    # 8/19: the v2 layer — Marcos's definition encoded (arm on the 3-min flag, fire on the
+    # 1-min break, stop 4% under the flag low). Registered so gate 17 sees it and studies
+    # exercise the SHIPPED function rather than a reimplementation.
+    "ma_pullback_v2_step", "_mapb_arm", "MA_PULLBACK_V2", "MAPB_QUIET_MAX",
+    "MAPB_NEAR_HIGH_PCT", "MAPB_FLAG_BUF", "MAPB_WAIT_MIN",
     "detect_ma_pullback", "_detect_ma_pullback", "MA_PULLBACK_LEVELS", "MA_PULLBACK_TOUCH_TOL",
     "MA_PULLBACK_STOP_BUFFER", "MA_PULLBACK_DEDUPE", "MA_WARMUP_SEED", "_calc_ema", "_extract_closes",
     "dip_rip_step", "_dr_st", "DIPRIP_ZONE", "DIPRIP_WINDOW_S",

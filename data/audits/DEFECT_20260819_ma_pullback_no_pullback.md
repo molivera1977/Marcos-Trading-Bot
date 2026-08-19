@@ -249,3 +249,27 @@ the wait window.
   re-anchor to the break bar — which changes the risk, the size, and every R figure here.
 * Detector-only. The funnel (PULLBACK_FIRST, chart gate, day-gain, momentum, slots, capital)
   sits on top and is NOT modelled.
+
+
+## LIMITS
+
+* **MIXED-EPOCH.** Every figure here aggregates the 10s SIP cache over 2026-05-18 .. 2026-08-18
+  (64 dates, ~948 name-days) as ONE epoch. It is NOT split by the code that landed inside that
+  window, so the rows do not share a config hash and no arm here can separate pre-change from
+  post-change behaviour. The train/hold-out split (first 44 dates / last 19-20 unseen) is
+  chronological and is the only partition claimed.
+* **DETECTOR-ONLY.** No funnel is modelled: PULLBACK_FIRST, the chart gate, day-gain, momentum,
+  slots, capital, board membership, MA_PULLBACK_DEDUPE. Fire counts far exceed what the live bot
+  can take, and the detector-vs-live comparison (-$0.85/tr over 5,051 fires vs +$17.07/tr over 27
+  live fills) is NOT controlled: different date ranges, and the detector set contains fires the
+  funnel would never see.
+* **Empty warm-up seed.** The driver passes [] and requires >=25 completed 3-min bars, so the
+  first ~75 minutes of each session are invisible to it. The live path sees them via
+  MA_WARMUP_SEED.
+* **Fixed sizing.** E.POS per fire; the real risk-based sizing chain, the VWAP-side halving and
+  the volume cap are not applied, so a wider stop is not penalised the way it would be live.
+  This matters directly to the 4% buffer choice.
+* **The 30-minute arm window is unmeasured** — it is my number, not doctrine and not swept.
+* **ma_pullback harness parity is UNMEASURED.** The detector became liftable only on 2026-08-18
+  (rig gate 17); no live-vs-replay fire-matching run has been done, so these are DETECTOR figures
+  and the comparison between arms is the finding, never the absolute level.

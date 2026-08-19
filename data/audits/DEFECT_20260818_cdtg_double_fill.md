@@ -112,3 +112,37 @@ are never printed. 8/18 harvested: 210 name-days.
 STILL OPEN: no scheduled nightly harvest exists. Per feedback_kill_the_class_not_instance the
 fix belongs on the class — a scheduled harvest plus a staleness assert in the study loader, so a
 stale cache FAILS a study rather than silently ageing it. NOT built.
+
+
+## D2 ROOT CAUSE TRACED (8/18, after the harvest)
+
+Every link checked against tape or source; the one unresolved step is named as such.
+
+1. `entry_session_vwap` is written at ONE site (marcos_trading_bot.py:15417) as `round(vwap, 4)`,
+   where `vwap` is **main()'s loop variable — the BAR line** (`cache[t]["vwap"]`). It is NOT the
+   tick line a lane's gate may prefer.
+2. That bar line held **7.11**. Against the harvested SIP tape (310,022 ticks), 7.11 falls between
+   the 2-min ($7.2673) and 3-min ($7.0244) rolling VWAPs — i.e. it was computed over roughly the
+   LAST 2-3 MINUTES of tape. The bar set was TRUNCATED.
+3. The CORRECT value was available the whole time: the recorded series `CDTG~ALPVWAP` held
+   **4.671934** at 14:16:28 — matching the SIP session VWAP (PRE+RTH anchor) to 4dp, and matching
+   ma_pullback's stamp exactly. `CDTG~vwap` agreed (~4.662).
+4. `_tick_vwap_ok(tick, bar, price)` gates the tick line against the bar line with a **5%
+   divergence clamp**. |4.6719 - 7.11| / 7.11 = **34%** -> the clamp REJECTED THE CORRECT TICK
+   LINE because it diverged from the corrupt bar line, and the caller fell back to the bar value.
+5. kevseq's gate therefore evaluated against 7.11, read "+9.12% above VWAP" where the honest
+   figure was ~66%, and passed a trade it should have refused. -$32.87.
+
+**THE SANITY GATE INVERTS.** `_tick_vwap_ok` exists to stop a bad TICK line replacing a good BAR
+line (its docstring names the "2,000,000-'vwap' class"). When the BAR line is the corrupt one,
+the identical clamp protects the corruption and discards the truth. The function has no way to
+tell which side is wrong, because it only compares them to each other and to price.
+
+**NOT ESTABLISHED:** why the bar set was truncated at that instant. Candidates, all UNTESTED: a
+short `get_intraday_bars` return, `_fresh_session` trimming, or cache-refresh timing. No cause is
+claimed.
+
+**WHY THIS IS A CLASS, NOT AN INSTANCE** (per feedback_kill_the_class_not_instance): any gate that
+adjudicates two sources by comparing them ONLY to each other will follow whichever is wrong when
+the reference is the broken one. The tape is the third opinion neither side consults. A fix that
+merely widens or tightens the 5% clamp does not address this.

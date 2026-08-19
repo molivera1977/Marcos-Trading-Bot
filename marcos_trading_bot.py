@@ -8208,7 +8208,15 @@ def _daygain_floor_for(lane):
 # even 2 prior dates for the same ticker). This is INTRADAY: the fire minute's volume vs this
 # session's own average minute so far. Stamped as `relvol_sess` on the fire row under a distinct
 # name so nobody later reads it as the scanner's number and mis-tunes it.
-IGNITION_RELVOL      = float(os.environ.get("IGNITION_RELVOL", "2.0"))    # 0 = off
+IGNITION_RELVOL      = float(os.environ.get("IGNITION_RELVOL", "0"))      # 0 = off
+# 8/19 DEFAULT OFF (Marcos: "i okayed the relvol number not what it was measured against").
+# The approved gate was 2.0x vs the SCANNER'S multi-day same-time baseline; the shipped
+# denominator was a session-self proxy chosen because the cache lacked prior days — a
+# substitution that changed WHAT the gate is, never surfaced for sign-off. A session-self
+# baseline structurally refuses the day's movers (their own open inflates the bar all day:
+# TNON 4.7x local surge read 0.98x session at 14:25). relvol_sess still stamps on fire rows
+# as DATA so the true multi-day version can be measured and brought back for approval.
+# Re-arm (session-self semantics, completed-bar formula): IGNITION_RELVOL=2.0.
 IGNITION_RELVOL_MODE = os.environ.get("IGNITION_RELVOL_MODE", "session")  # session | 30m
 DAYGAIN_LEGACY    = ("ignition", "flat_top", "ma_pullback", "orb", "ema_bounce")
 

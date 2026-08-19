@@ -210,8 +210,11 @@ A minimum-dwell rule would cut Kev's own best-documented behavior. NOT built.
   tops out at 27m. Coverage question, not a floor.
 * CISS's loss re-narrowed to the HALT-RESUMPTION REGIME (off_tape_exit why=no_tape_seen —
   feed blindness at entry), a tape-quality condition inside the pattern's own terms.
-* Caveat on record: Kev-side clock = min_since_sess_hi at the located fill (analog, not the
-  identical instrument; fresh-high fills read ~0). Direction robust, medians not gospel.
+* Caveat on record: Kev-side clock = min_since_sess_hi at the located fill (an analog of
+  B->fire, not the identical instrument; fresh-high fills read ~0). Reproduce: the f-features
+  in data/killtests/kev_rosetta_20260816_rows.json (24 rows) vs bars_since_b on
+  kevseq_shadow_fire rows from /api/decisions_archive 8/17-19. Direction robust, medians not
+  gospel — tagged as an analog, not an equivalence.
 * Doctrine settled in-session: the PATTERN IS THE GATE (7/26 chart-gates-chart doctrine) —
   kevseq's scalar exemptions are coherent with its six internal conditions; the spec text's
   stale "normal gate stack applies" line should be updated to match the ruling, not vice versa.
@@ -223,9 +226,10 @@ A minimum-dwell rule would cut Kev's own best-documented behavior. NOT built.
   form at a running name's leg highs. The lanes fire at different tape moments.
 * NET FINDING OF THE CHAIN: **nobody owns Kev's fast entry** — his median fill is 18s after
   the break, AT the B, on a loud tape. Ignition can't (needs quiet base); kevseq won't
-  (waits for H/W, arrives late = the losing fast cohort). This is the Hidden Entry
-  Architect's exact charter (8/14: anticipation, not confirmation) with its target now
-  measured to the second. Three days' evidence, no OOS wall — nothing ships from this.
+  (waits for H/W, arrives late = the losing fast cohort). This matches the Hidden Entry
+  Architect's charter as recorded in persona_hidden_architect.md (8/14: anticipation, not
+  confirmation) — correspondence asserted from that memory, with the target now measured to
+  the second (reproduce: the three checks above). Three days' evidence, no OOS wall — nothing ships from this.
 ## FOR THE HIDDEN STUDY (Marcos 8/19: "hidden can find them, it just can't hold them — later")
 
 Starting coordinates from today's chain, so the study opens on evidence:

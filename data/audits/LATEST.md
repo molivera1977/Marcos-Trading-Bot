@@ -254,3 +254,13 @@ on the resumption flush the 1-min chart hid). Eyeball grading reversed by tape, 
 loosened, no lane added, no sizing touched. Doctrine-inversion: *"a hotfix during RTH is the
 exact class the law exists to stop"* — weighed; overridden by the owner with the book flat and
 paper-only, after the alternative (a session of known-dead lanes) was priced. n/a otherwise.
+
+## ADDENDUM 3 — "PULLBACK SHOULD BE ITS OWN GATE" (Marcos ruling, ~13:1x ET)
+
+ma_pullback v2: 3 fires since shipping, 0 conversions — AZI (chart gate demanded a fresh break
+from a continuation entry), RCON (mapless fail-closed), TNON (0.09R off a 20.6% flag stop).
+GRANTS (env MAPB_PATTERN_GATE, default on): chart-gate bypass + external-runway skip. The
+lane's INTERNAL gates all stand (VWAP, depth, quiet, flag stop, internal runway >=0.5R — the
+measured hold-out spec). No other exemption. Rig gate 22 (5 checks) + shipset AO re-pinned to
+the ruling. Doctrine: pattern-is-the-gate, same as kevseq. Measure and number both Marcos's.
+Ships at the next flat window / close convene.

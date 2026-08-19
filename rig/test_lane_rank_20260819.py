@@ -65,6 +65,17 @@ chk(kept and kept[0][3] == "ma_pullback",
     "E2 the higher-ranked lane wins the name", f"got {kept[0][3] if kept else None}")
 chk(rank("ignition") < rank("ema9x90") < rank("ma_pullback") < rank("kevseq"),
     "E3 rank order holds end to end")
+# ── session map: two lanes in PRE, three in RTH (Marcos 8/19) ──
+_pl = re.search(r'"PRE_LANES",\s*\n\s*"([^"]+)"', SRC)
+pre = (_pl.group(1) if _pl else "")
+chk("ignition" in pre, "F1 ignition converts in PREMARKET (PRE_LANES, not just IGNITION_PRE)",
+    f"PRE_LANES={pre}")
+chk('",ma_pullback" if MA_PULLBACK_V2' in SRC, "F2 ma_pullback converts in PREMARKET, v2 only")
+chk("hidden_entry" not in pre and "vwap_reclaim" not in pre,
+    "F3 the untrusted lanes are OUT of premarket (vwap_reclaim was -$648.24 of the -$696.53 book)")
+chk("EMA9X90_OPEN <= _hm_x9" in SRC,
+    "F4 ema9x90 is RTH-ONLY by its own window (-$4.49/tr measured in premarket)")
+
 print("=" * 76)
 if FAILS:
     print(f"GATE 18 FAILED ({len(FAILS)}): " + "; ".join(FAILS)); sys.exit(1)

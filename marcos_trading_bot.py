@@ -15892,9 +15892,22 @@ ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "09:30").strip()
 # flag behaviour would be loose in premarket, so v1 is deliberately NOT admitted here.
 # UNMEASURED IN PREMARKET, stated plainly: every ma_pullback figure tonight is RTH tape
 # (09:30-16:00). The premarket arm has NOT been graded. Kill: PRE_LANES env override.
+# 8/19 (Marcos: "so we have two lanes in pre and three lanes for rth"). PRE = the two of his
+# three ranked lanes that trade premarket; RTH = all three.
+#   ignition     PRE + RTH. IGNITION_PRE built tonight makes the DETECTOR fire 07:00-09:25 —
+#                but PRE_LANES is the CONVERSION gate and ignition was NOT in it, so every
+#                premarket fire would have been shadowed and the logs would have read "no
+#                setups" instead of "blocked". Caught only because Marcos said "two lanes".
+#   ma_pullback  PRE + RTH, v2 only (fire-in-the-flag v1 stays out of premarket).
+#   ema9x90      RTH ONLY, deliberately: measured -$4.49/tr, 13% win, 26% green in premarket.
+#                It is FED premarket bars for warm-up; EMA9X90_OPEN (09:30) stops them trading.
+# REMOVED from premarket: hidden_entry and vwap_reclaim. Marcos: "right now i dont trust the
+# other lanes like these three." The live PRE book, era 7/13+, is 41 fills for -$696.53 — of
+# which vwap_reclaim is -$648.24 on 15 fills and hidden_entry -$35.00 on 25. They come back if
+# and when he reviews them. Restore: PRE_LANES="hidden_entry,vwap_reclaim,ignition,ma_pullback".
 PRE_LANES = set((os.environ.get(
     "PRE_LANES",
-    "hidden_entry,vwap_reclaim" + (",ma_pullback" if MA_PULLBACK_V2 else ""))).split(","))
+    "ignition" + (",ma_pullback" if MA_PULLBACK_V2 else ""))).split(","))
 # 8/16 PREVWAP conversion (Marcos: "switch pre-vwap ... to live in pre" — ALL SIM): the prevwap
 # lane fires ONLY 07:00-09:25, so it must be a PRE lane or the premarket gate shadows every fire.
 # Rides the convert switch — PREVWAP_CONVERT=0 (default) leaves PRE_LANES exactly as before.

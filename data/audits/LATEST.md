@@ -223,7 +223,12 @@ action, eaten by a handler) + the reread fix + two gates:
 3. `urllib` never imported — tape pre-break + retest-band gates fail-open dead since 8/3.
 4. Dist-primary rereads (REREAD_DIST_ONLY, default on; measured: 53% of breaches fired on
    maps within 3%) + breach rows stamp trigger=age|dist|both.
-5. Ignition relvol graded the STILL-FORMING minute (_rvc[-1], the element every sibling
+5a. IGNITION_RELVOL default -> 0 (Marcos: "i okayed the relvol number not what it was
+   measured against"). The approved gate was 2.0x vs the scanner's MULTI-DAY baseline; the
+   shipped session-self denominator was a data-availability substitution that changed what
+   the gate is, never surfaced for sign-off — unauthorized behavior, disarmed. relvol_sess
+   still stamps as data. 35 refusals on its only live day; fires 27 -> 7.
+5b. Ignition relvol graded the STILL-FORMING minute (_rvc[-1], the element every sibling
    call site drops): 0.1x stamps on 6.8x surges, 35 refusals on its first live day vs zero
    ever before, fires 27 -> 7. Now grades the last COMPLETED minute — the quantity the 8/18
    study actually measured. Synthetic check: old 0.26x/refuse vs new 6.0x/pass on the same tape.

@@ -155,6 +155,12 @@ def _save_trades():
 
 # (build-bump 7/26b: the correction JSON below ships with the image — this comment exists to
 #  trigger the dashboard watchPattern in the same commit that finally TRACKS the artifacts.)
+# (build-bump 8/18c: SXTC 2026-08-18 added to the correction ledger. Railway SKIPPED three
+#  deploys — "No changes to watched files" — because a JSON under data/ is not a watched path,
+#  and `railway redeploy` then re-ran the 01:16 image, so the boot log kept printing
+#  "correction loaded: 36". Touching this watched file is what actually ships a data-only
+#  correction. NOTE FOR NEXT TIME: ship.sh reports "✅ shipped" on `railway up` exiting 0 and
+#  never checks the deployment STATUS, so a SKIPPED build reads as a successful ship.)
 # ── 7/26 DISPLAY CORRECTION (dashboard review F1): the store is append-only by ruling, but the
 #    GLASS must not keep showing the 37 runner-leg-corrupted pnl values Marcos formally superseded.
 #    Correction merges AT RENDER (store untouched): data/killtests/pnl_runner_leg_correction_20260726.json

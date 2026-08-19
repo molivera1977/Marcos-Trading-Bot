@@ -73,8 +73,12 @@ chk(_n_write == 2, "D2 coverage is stamped at BOTH vwap compute sites",
     "got %d write sites" % _n_write)
 chk('cache[t].get("vwap_span_min")' in SRC,
     "D2b the selection site READS the stamped span")
-chk("vwap_untrusted_skip" in SRC,
-    "D3 both-lines-unusable => NO DECISION (B16/B17 doctrine), logged with its reason")
+chk('"vwap_untrusted" + ("_skip" if VWAP_UNTRUSTED_SKIP' in SRC,
+    "D3 both-lines-unusable is LOGGED with its reason (span/first/need/enforced)")
+_sk = re.search(r'VWAP_UNTRUSTED_SKIP\s*=\s*os\.environ\.get\(\s*"VWAP_UNTRUSTED_SKIP",\s*"(\d)"\s*\)', SRC)
+chk(bool(_sk), "D4 the SKIP is a separate flag from the guard")
+chk(bool(_sk) and _sk.group(1) == "0",
+    "D5 the skip ships OBSERVE-ONLY (its live frequency is unmeasured); the measured half is ON")
 print("=" * 76)
 if FAILS:
     print(f"GATE 15 FAILED ({len(FAILS)}): " + "; ".join(FAILS)); sys.exit(1)

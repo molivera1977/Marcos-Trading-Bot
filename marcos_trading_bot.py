@@ -6890,6 +6890,15 @@ EMA9X90_WARMUP        = os.environ.get("EMA9X90_WARMUP", "1") == "1"
 # Kill: VWAP_COVERAGE_GUARD=0 restores the old unconditional trust exactly.
 VWAP_COVERAGE_GUARD = os.environ.get("VWAP_COVERAGE_GUARD", "1") == "1"
 VWAP_MIN_SPAN_MIN   = float(os.environ.get("VWAP_MIN_SPAN_MIN", "20"))   # minutes a session line must span
+# The guard has TWO effects and they carry different risk:
+#   (a) prefer the tick line when the bar line fails coverage — MEASURED on the real CDTG values
+#       (rig gate 15): the correct 4.6719 survives, the gate reads +66.53% instead of +9.42%.
+#   (b) SKIP the ticker when BOTH lines are unusable — correct by doctrine (B16/B17: never decide
+#       on a known-wrong line) but its LIVE FREQUENCY IS UNMEASURED. If tick lines are missing
+#       more often than expected this sidelines names on a trading morning.
+# So (b) ships OBSERVE-ONLY: the row is logged with its span/first/need, and the ticker is NOT
+# skipped, until a day of rows says how often it would fire. Flip to 1 once that is known.
+VWAP_UNTRUSTED_SKIP = os.environ.get("VWAP_UNTRUSTED_SKIP", "0") == "1"
 IGNITION_CELL_GATE = os.environ.get("IGNITION_CELL_GATE", "0")
 # flat_top + vwap_reclaim → observe-only (era books graded CODE-DEFECTS, not designs — audit 3:
 # flat_top/orb bought the break print in a retest costume; coded vwap_reclaim = the refuted
@@ -9592,12 +9601,16 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                 if not _bar_ok and _vr_sv is vwap and not _tickv:
                     # BOTH lines unusable: the bar set is short AND there is no tick line.
                     # No decision on a known-wrong line (B16/B17 doctrine) — skip this ticker.
-                    _log_decision(t, "vwap_untrusted_skip", price=price, lane=None,
+                    _log_decision(t, "vwap_untrusted" + ("_skip" if VWAP_UNTRUSTED_SKIP
+                                                            else "_observe"),
+                                  price=price, lane=None,
                                   vwap=round(vwap, 4) if vwap else None,
                                   span_min=cache[t].get("vwap_span_min"),
                                   first_hm=cache[t].get("vwap_first_hm"),
-                                  need_span=VWAP_MIN_SPAN_MIN)
-                    continue
+                                  need_span=VWAP_MIN_SPAN_MIN,
+                                  enforced=VWAP_UNTRUSTED_SKIP)
+                    if VWAP_UNTRUSTED_SKIP:
+                        continue
                 if _vr_sv and _vr_sv > 0:
                     _nb = []
                     _cur_key = (datetime.now(EASTERN).strftime("%Y-%m-%d"), t)

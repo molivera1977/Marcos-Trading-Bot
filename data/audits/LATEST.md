@@ -428,3 +428,53 @@ officers: no surface touched, CLEAN.
 tonight showed its failure mode twice: a ledger nobody wired up (3), and a correction that
 patched one field while a derived field kept the old story (3c). A render-time correction must
 carry every field the corrected value implies.
+
+
+---
+
+## ADDENDUM 4 — the SXTC defect, fixed at the cause. HEAD `2c408adc7c22`
+
+Marcos identified it: *"wasnt it the restart?"* Confirmed — `trade_resumed SXTC` at **10:07:42**,
+one of four resumes triggered by the **10:05 intraday deploy**.
+
+**Defect:** the resume path trusted `resume_state["partial_fills"]` alone. Empty snapshot -> two
+banked legs gone -> the whole 109sh marked out at the final exit: **-$7.63** recorded against a
+true **+$21.89**. $29.51 on one trade; the day's headline read -$18.00 instead of +$11.51.
+
+**The legs were never lost** — verified against the live ledger this turn:
+`tier_fill 10:28:56 qty=54 price=4.8207` and `tier_fill 10:30:58 qty=27 price=5.0415`. Durable,
+carrying qty AND price, independently confirmed on SIP tape. Nothing read them back.
+
+**Fix:** `_tier_fills_from_ledger(ticker)` (modelled on the proven `_leader_rehydrate`). On
+resume, if the LEDGER knows about more legs than the snapshot, the ledger wins and
+remaining_shares / tier_idx / partial_taken are recomputed. One-directional by design: a snapshot
+AHEAD of the ledger is kept (a ledger post may be in flight). Read failure -> `[]`, never
+invented legs. `trade_resumed` now stamps `tier_rehydrated` / `ledger_legs` / `banked`.
+
+**Verified by replaying the ACTUAL failure** through the fix's code path with the real rows:
+snapshot 0 legs, ledger 2 -> rebuilt -> remaining 28/109 -> banked +$23.84 + runner -$1.96 =
+**+$21.88** vs tape-verified **+$21.89**. The unfixed path reproduces **-$7.63**.
+
+**Blast radius:** the resume branch only. A fresh trade never calls it. One HTTP GET, guarded, on
+resume only — no scan-loop cost. Kill: `TIER_REHYDRATE=0`.
+
+**RIG:** gate 16, 15 pins. Full rig green (shipset + 10-16 + gates 5-9).
+
+**ROLL CALL (4).** Blast Radius Auditor — resume-only, guarded, CLEAN. Systems Quant — the real
+failure replays to the correct number both ways, CLEAN. Trade Manager — the banked-leg accounting
+is now recoverable; FLAG: the CAUSE of the empty snapshot is still untested. Execution Surgeon —
+no order path change. Quartermaster — the durable ledger is now actually load-bearing, as it was
+always meant to be. Historian — records that SXTC's true P&L is +$21.89 and the mechanism is a
+restart artifact, not a lane fault. Pit Crew Chief — FLAG: three of four restarts today were
+INTRADAY DEPLOYS; the cheapest prevention is not shipping mid-session. Dashboard Curator — new
+stamps render harmlessly. Statistician — n=1 instance, class-level fix; no sampling claim. All
+other officers — no surface touched, CLEAN.
+
+**DOCTRINE-INVERSION:** "painless restarts" (#35) assumed the saved snapshot was sufficient state.
+Tonight showed it is one source, not the truth. The inversion that would sink this fix: if the
+ledger itself can be wrong or late, adopting it could corrupt a good snapshot — which is exactly
+why the rule is one-directional and only ever ADDS legs the snapshot lacks.
+
+**OPEN:** why the snapshot came back empty; the CDTG double-fill (NOT a restart — last restart
+12:47, 90 min before, and the name traded normally at 12:59 after it); ship.sh SKIPPED-vs-SUCCESS;
+the merged nightly ledger line.

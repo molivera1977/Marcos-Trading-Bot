@@ -3019,8 +3019,12 @@ try:
     check("AO: extension exempt is a SUPERSET of the old tuple", set(_OLD_EXT) <= _ext,
           str(sorted(set(_OLD_EXT) - _ext)))
     # nothing that was GATED before is newly gated, and nothing chart-class newly bypasses
-    check("AO: no CHART lane newly bypasses the chart gate (ignition only, env-conditional)",
-          not (_cb & _AO.CHART_LANES))
+    # 8/19 RE-PIN TO MARCOS'S RULING ("pullback should be its own gate"): ma_pullback joins the
+    # chart bypass ENV-CONDITIONALLY (MAPB_PATTERN_GATE, default on), exactly like ignition's
+    # membership — the sequence's grammar is its gate; a continuation entry can never show the
+    # fresh break the chart gate demands (AZI/RCON 8/19 specimens). No OTHER chart lane may join.
+    check("AO: chart-lane bypass = ma_pullback iff MAPB_PATTERN_GATE (Marcos 8/19), nothing else",
+          (_cb & _AO.CHART_LANES) == (frozenset(("ma_pullback",)) if _AO.MAPB_PATTERN_GATE else frozenset()))
     check("AO: ignition keeps its EXACT env-conditional chart bypass",
           ("ignition" in _cb) == bool(_AO.IGNITION_CHART_BYPASS))
     check("AO: extension exempt adds no NEW chart lane beyond the 7/26 slow-retest carve-out",

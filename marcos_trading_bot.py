@@ -444,12 +444,26 @@ _MOMENTUM_LEGACY_EXEMPT = ("vwap_reclaim", "bounce", "ignition", "hidden_entry",
 # SPEC TENSION for Marcos: doctrine says these should be exempt too — his call, not an auditor's.
 _MOMENTUM_TAPE_HOLDOUT = frozenset(("rocket_catcher", "crown_seam", "halt_ladder"))
 
+# ── 8/19 MARCOS RULING: "pullback should be its own gate." ma_pullback v2 is a three-beat
+# SEQUENCE (advance -> quiet flag -> 1-min confirmation) whose grammar already answers the
+# downstream questions: above VWAP, <=2% below the high, quiet dip, flag-anchored stop, and an
+# INTERNAL runway requirement (MAPB_REQUIRE_RUNWAY >= 0.5R vs the sheet) — measured as a unit on
+# the 19-date hold-out (-$3.69 -> +$13.66/tr). The external chart gate is a CATEGORY ERROR for a
+# continuation entry (it demands a fresh break AT entry; the pattern's premise is the break
+# already happened — AZI 8/19 10:02 refused "no_break_below_level", RCON blocked mapless), and
+# the external runway pass re-asks a question the detector answered, through the wide-stop
+# R-denominator (TNON 8/19 07:10: 20.6% flag stop -> 0.09R). v2 fired 3, converted 0.
+# Same doctrine as kevseq's exemptions (7/26 chart-gates-chart; pattern is the gate).
+# Kill: MAPB_PATTERN_GATE=0 restores both external gates.
+MAPB_PATTERN_GATE = os.environ.get("MAPB_PATTERN_GATE", "1") == "1"
+
 def _chart_bypass_lanes():
     """Lanes that BYPASS the chart-derived level gate. Registry-derived (all tape lanes) plus
     ignition's UNCHANGED env-conditional membership. LANE_REGISTRY_EXEMPT=0 -> the old literal."""
     if not LANE_REGISTRY_EXEMPT:
         return frozenset(_LEGACY_CHART_BYPASS) | (frozenset(("ignition",)) if IGNITION_CHART_BYPASS else frozenset())
-    return TAPE_LANES | (frozenset(("ignition",)) if IGNITION_CHART_BYPASS else frozenset())
+    return (TAPE_LANES | (frozenset(("ignition",)) if IGNITION_CHART_BYPASS else frozenset())
+            | (frozenset(("ma_pullback",)) if MAPB_PATTERN_GATE else frozenset()))
 
 def _ext_exempt_lanes():
     """Lanes EXEMPT from the 25%-over-EMA90 extension guard: every tape lane (structurally
@@ -15031,7 +15045,11 @@ def main():
             # starvation. Kill switch: MIN_RUNWAY_RR=0.
             # FAILURE CONDITION (pre-registered): wrong if the blocked cohort's forward counterfactual
             # (`runway_reject` rows) out-earns the trades that were allowed.
-            if MIN_RUNWAY_RR > 0:
+            if MIN_RUNWAY_RR > 0 and not (MAPB_PATTERN_GATE and entry_type == "ma_pullback"):
+                # 8/19 Marcos ("pullback should be its own gate"): ma_pullback's runway check is
+                # INTERNAL (MAPB_REQUIRE_RUNWAY, at the fire, part of the measured spec); this
+                # external pass re-asks it through the wide-stop R-denominator and refused TNON
+                # at 0.09R off a 20.6% flag stop. Skipped for the lane; the internal gate stands.
                 _rw_v, _rw_t = _marked_runway(ticker, entry_price, stop_loss)
                 if isinstance(extra, dict):
                     extra["_rw_gate"] = (_rw_v, _rw_t)   # 8/8 auditor E: one runway truth per trade

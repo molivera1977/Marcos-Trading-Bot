@@ -198,3 +198,45 @@ today's decision rows). Detector behaviour changed inside the window (kevseq shi
 session map 8/19), so per-lane counts mix machines. The 53%-within-3% breach finding was NOT
 re-verified per epoch; direction was consistent across the two days spot-checked (8/18, 8/19).
 Fire counts here are decision-row counts, not fills. Nothing in this file is a kill-test verdict.
+
+## KEVSEQ REVIEW — TEMPO MEASURED 8/19 ("run the tempo check")
+
+Marcos framed the lane as pattern+SEQUENCE; the too-fast-to-be-real hypothesis (from CISS's
+18s-to-stop loss) was tested against Kev's own tape and REFUTED: Kev's 23 located fills run
+MED 18s from break to fill (p25 12s, half under a minute) vs the machine's MED 50s over 78
+fires — KEV IS FASTER THAN THE BOT. CISS's 50s sequence was normal tempo for both cohorts.
+A minimum-dwell rule would cut Kev's own best-documented behavior. NOT built.
+* Real gap found instead: Kev's SLOW tail (patient W fills p75 480s → hours) — the machine
+  tops out at 27m. Coverage question, not a floor.
+* CISS's loss re-narrowed to the HALT-RESUMPTION REGIME (off_tape_exit why=no_tape_seen —
+  feed blindness at entry), a tape-quality condition inside the pattern's own terms.
+* Caveat on record: Kev-side clock = min_since_sess_hi at the located fill (analog, not the
+  identical instrument; fresh-high fills read ~0). Direction robust, medians not gospel.
+* Doctrine settled in-session: the PATTERN IS THE GATE (7/26 chart-gates-chart doctrine) —
+  kevseq's scalar exemptions are coherent with its six internal conditions; the spec text's
+  stale "normal gate stack applies" line should be updated to match the ruling, not vice versa.
+* TEMPO→OUTCOME (69 shadow fires, E3, 3 days): fast <60s −$2.41/tr 18% green · 60-180s
+  −$6.19/tr · **>=180s +$19.98/tr 50% green (n=6)** — the machine's money is the PATIENT
+  W fills. **H-variant 0/9 green, −$16.31/tr** — watch for the 5-day wall; if confirmed, H dies.
+* OVERLAP CHECK (Marcos: "can we run it"): REFUTED — 1/43 fast kevseq fires had an ignition
+  event within 5 min prior. kevseq-fast is NOT late ignition; ignition's quiet-base cannot
+  form at a running name's leg highs. The lanes fire at different tape moments.
+* NET FINDING OF THE CHAIN: **nobody owns Kev's fast entry** — his median fill is 18s after
+  the break, AT the B, on a loud tape. Ignition can't (needs quiet base); kevseq won't
+  (waits for H/W, arrives late = the losing fast cohort). This is the Hidden Entry
+  Architect's exact charter (8/14: anticipation, not confirmation) with its target now
+  measured to the second. Three days' evidence, no OOS wall — nothing ships from this.
+## FOR THE HIDDEN STUDY (Marcos 8/19: "hidden can find them, it just can't hold them — later")
+
+Starting coordinates from today's chain, so the study opens on evidence:
+* Hidden's beat = the flush low (pure anticipation, no proof) — earliest fill in the leg
+  grammar, which is WHY it finds them; the hold problem is that a flush entry's risk is
+  unbounded until the reclaim proves out, and E3 (built for post-proof entries) trails it out.
+* Nearest working relative: **kevseq-W-slow** (wick to VWAP >=3min after the high, close back
+  above) = +$19.98/tr, 50% green, n=6 — nearly hidden's trade taken through a stricter grammar.
+  The study's cheapest first question: grade hidden's shadow detections through kevseq-W's
+  hold/exit discipline and see if the finding survives the holding.
+* Second target: Kev's unowned fast-B entry (18s median, loud tape) — adjacent to hidden's
+  charter (anticipation-not-confirmation, 8/14).
+* Hidden's live figures remain UNVERIFIED per Marcos ("those hidden numbers are fake").
+

@@ -40,11 +40,16 @@ bot.RESTING_STOP = False
 check("RESTING_STOP=0 places nothing", bot.place_stop_order("TEST", 7, 1.23) is None
       and not captured)
 
-# ── 3. DRY_RUN → software only, no order ────────────────────────────────────
+# ── 3. DRY_RUN → simulated id, NO real order ────────────────────────────────
+# 8/19 RE-PIN TO THE 8/8 SPEC (auditor C, documented at the def): DRY_RUN returns a fake
+# "DRY-STOP-" id so the stop-SYNC path stays fully exercisable on paper — the old `None`
+# meant one sync then self-disable, a test-push parity gap. The safety property this pin
+# protects is unchanged and still asserted: `captured` stays empty = no broker call.
 bot.RESTING_STOP = True
 bot.DRY_RUN = True
-check("DRY_RUN places nothing", bot.place_stop_order("TEST", 7, 1.23) is None
-      and not captured)
+_r = bot.place_stop_order("TEST", 7, 1.23)
+check("DRY_RUN: simulated DRY-STOP id, NO broker order",
+      isinstance(_r, str) and _r.startswith("DRY-STOP-") and not captured)
 
 # ── 4. the real _place_order builds stop_price (not aux_price) into the dict ─
 import inspect

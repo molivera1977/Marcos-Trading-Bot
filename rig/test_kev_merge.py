@@ -12,7 +12,14 @@ tree = ast.parse(SRC)
 fn = next((n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)
            and n.name == "_merge_kev_levels"), None)
 assert fn is not None, "_merge_kev_levels not found in screener_app.py"
-ns = {}
+# 8/19: the lifted fn needs its MODULE GLOBALS — the 8/6 freshest-data change added
+# datetime.now(EASTERN) + os.environ reads, and an empty ns raised NameError, which read
+# as a live defect all morning (it is not: screener_app.py:11 imports datetime at module
+# level; the live service is fine). Seed exactly what the function references.
+import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
+ns = {"datetime": datetime, "EASTERN": ZoneInfo("America/New_York"), "os": os}
 exec(compile(ast.Module(body=[fn], type_ignores=[]), "screener_app.py", "exec"), ns)
 merge = ns["_merge_kev_levels"]
 

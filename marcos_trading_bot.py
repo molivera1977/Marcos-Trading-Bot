@@ -9985,7 +9985,12 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                                   lane="ema9x90", fire_px=_x9f["px"],
                                                   stop=_x9f["stop"], stop_pct=_x9f["stop_pct"],
                                                   vwap=_x9f["vwap"], ema9=_x9f["e9"], ema90=_x9f["e90"],
-                                                  fire_k=_x9f["k"], n=_x9f["n"],
+                                                  # 8/19: fire_k comes from **_fed_stamp below — passing it
+                                                  # here too made every kwarg collide (TypeError), and the
+                                                  # except ate the FIRE and its CONVERSION: six 9/90 fires
+                                                  # 09:33-10:16 died as gate_fail_open rows during CDTG's
+                                                  # exact run. The rank-#2 lane was dead on a log line.
+                                                  n=_x9f["n"],
                                                   # (c) drift + age: what the tape did between
                                                   # the fire bar and the moment we act on it
                                                   fire_age_s=(round(time.time() - _x9f["k"], 1) if _x9f.get("k") else None),
@@ -12191,12 +12196,28 @@ def _effective_map(ticker, live_px=0.0):
     now = time.time()
     if now - _fresh_breach_t.get(ticker, 0) >= 120:
         _fresh_breach_t[ticker] = now
+        # ── 8/19 DIST-PRIMARY REREADS (Marcos: "my api bill is jumping" -> "build now").
+        # Measured over 6 archived sessions (524 age+dist points, 54 names): age does NOT
+        # predict map wrongness at the median — the median 120m+ map sat within 2.6% of live
+        # structure, and 53% of ALL freshness breaches (250/476) fired on maps still within 3%.
+        # IPST alone queued 47 reads against a map that was never wrong. Staleness is TAIL risk
+        # (p90 |dist| 23.7% @15-30m -> 89.2% @120m+), and dist ALREADY measures that tail.
+        # So: the PAID vision reread queues only when the map is measurably WRONG
+        # (dist > FRESH_MAX_DIST) — never because it is merely old. The tape auto-map overlay
+        # below is untouched (age-stale maps still get seconds-old levels), and the breach row
+        # still logs on EVERY trip so the Cartographer's meter never goes dark — it now carries
+        # trigger=age|dist|both so no future study has to infer which arm fired.
+        # Kill: REREAD_DIST_ONLY=0 restores read-on-every-breach.
+        _dist_wrong = dist > FRESH_MAX_DIST
         _log_decision(ticker, "freshness_breach", price=round(float(live_px or 0), 4),
                       map_age_min=(round(age, 1) if age is not None else None),
                       map_dist_pct=round(dist, 1), auto_map_used=bool(am),
+                      trigger=("both" if _dist_wrong and (age is None or age > FRESH_MAX_MIN)
+                               else ("dist" if _dist_wrong else "age")),
                       old_break=(rec or {}).get("break"),
                       new_break=(am or {}).get("break"))
-        _reread_on_reject(ticker, "freshness_breach", map_age_min=age)   # 8/17 #57: stale structure blocked a gate view -> immediate reread via reader marker
+        if _dist_wrong or os.environ.get("REREAD_DIST_ONLY", "1") != "1":
+            _reread_on_reject(ticker, "freshness_breach", map_age_min=age)   # 8/17 #57: stale structure blocked a gate view -> immediate reread via reader marker
         # ── 8/14 BREACH ALARM (Cartographer's tripwire; kill: BREACH_ALARM=0): the 8/7-8/14 era
         # logged 28 breaches with auto_map_used=false and NOBODY noticed the contract was dead.
         # Count CONSECUTIVE unremediated breaches per-day process-wide; on the 3rd, alarm row.
@@ -15075,15 +15096,21 @@ def main():
                 _z_lastT = max(_z_tg) if _z_tg else None
                 if _z_brk > 0:
                     try:
-                        _z_req = urllib.request.urlopen(
+                        # 8/19 HOTFIX: this read used `urllib`, which the bot never imports —
+                        # the inner except ate the NameError, _z_dayhi stayed None, and the
+                        # 8/3 tape pre-break gate (kill-tested +$82.72/+$72.36 saved on the
+                        # worst sessions) plus the retest-band gate behind it were FAIL-OPEN
+                        # DEAD from birth: every below-break entry stamped pre_break_unverified,
+                        # "retest" was unreachable. Found by the 8/19 undefined-name sweep
+                        # (pyflakes) hunting the `cache` NameError class. requests is the
+                        # module this file actually imports.
+                        _z_bars = ((requests.get(
                             f"{SCREENER_URL}/api/bars?date={datetime.now(EASTERN).strftime('%Y-%m-%d')}"
-                            f"&ticker={ticker}~ALP10S", timeout=3)
-                        _z_bars = (json.load(_z_req) or {}).get("bars") or []
+                            f"&ticker={ticker}~ALP10S", timeout=3).json() or {}).get("bars") or [])
                         if not _z_bars:   # 8/4: late-join names carry ~ALP1M (join backfill)
-                            _z_req2 = urllib.request.urlopen(
+                            _z_bars = ((requests.get(
                                 f"{SCREENER_URL}/api/bars?date={datetime.now(EASTERN).strftime('%Y-%m-%d')}"
-                                f"&ticker={ticker}~ALP1M", timeout=3)
-                            _z_bars = (json.load(_z_req2) or {}).get("bars") or []
+                                f"&ticker={ticker}~ALP1M", timeout=3).json() or {}).get("bars") or [])
                         _z_his = [float(b.get("high") or b.get("h") or 0) for b in _z_bars]
                         _z_dayhi = max(_z_his) if _z_his else None
                     except Exception:
@@ -15848,11 +15875,19 @@ def main():
                 # needs a cache that is not automatically maintained. These three fields make
                 # every future row SELF-DIAGNOSING: how much tape the line spanned, where it
                 # started, and whether the coverage guard trusted it.
-                "entry_vwap_span_min":        (cache.get(ticker) or {}).get("vwap_span_min"),
-                "entry_vwap_first_hm":        (cache.get(ticker) or {}).get("vwap_first_hm"),
+                # 8/19 HOTFIX (CISS 09:58:51, VRAX 08:59:25 — the 💥 "name 'cache' is not defined"
+                # class): `cache` is a LOCAL of wait_for_flat_top_entry (:9569), not visible here.
+                # These three fields, added 8/18, raised NameError while the record dict was being
+                # BUILT — after the exit, before post_trade_record_reliably — so every exit since
+                # the 8/18 22:56 deploy died unrecorded and uncleared (the worker's 💥 handler
+                # repaired capital but not the dashboard row). `_session_cache` (:14585) is the
+                # SAME dict cache aliases (session_cache=_session_cache -> cache=session_cache),
+                # and it IS in this closure — the premarket shadow block above already uses it.
+                "entry_vwap_span_min":        (_session_cache.get(ticker) or {}).get("vwap_span_min"),
+                "entry_vwap_first_hm":        (_session_cache.get(ticker) or {}).get("vwap_first_hm"),
                 "entry_vwap_trusted":         _vwap_bar_trusted(
-                                                  (cache.get(ticker) or {}).get("vwap_span_min"),
-                                                  (cache.get(ticker) or {}).get("vwap_first_hm")),
+                                                  (_session_cache.get(ticker) or {}).get("vwap_span_min"),
+                                                  (_session_cache.get(ticker) or {}).get("vwap_first_hm")),
                 # Kev-level anchoring (7/13): distance from his stated break level (study: closest = best)
                 "kev_level":                  _kev_lv,
                 "entry_vs_kev_level_pct":     (round((entry_price - _kev_lv) / _kev_lv * 100, 2)

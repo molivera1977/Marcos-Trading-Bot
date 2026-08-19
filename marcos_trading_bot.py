@@ -10830,14 +10830,23 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                                 _ig_dg = None
                         _ig_rv = None
                         try:
+                            # 8/19 HOTFIX (Marcos: "why so few ignitions?" -> "check the relvol math"):
+                            # this read _rvc[-1] — the STILL-FORMING minute, the one series element
+                            # every sibling call site drops with [:-1]. A 10s fire lands seconds into
+                            # a minute, so the gate divided a sliver of accumulated volume by full-
+                            # minute averages: 0.1x-0.9x stamps on bars the detector itself measured
+                            # at 5-12x (VRAX 0.1x vs 6.8x surge). 35 refusals on 8/19 vs ZERO in the
+                            # five prior sessions — first live day of the gate, and the 8/18 study
+                            # that set need=2.0 was graded on COMPLETED bars, so [-2] (the last
+                            # completed minute) is the quantity that was actually measured.
                             _rvb = cache[t].get("full_bars") or bars
                             _rvc = [x for x in (_rvb or []) if x]
-                            if IGNITION_RELVOL > 0 and len(_rvc) >= 12:
-                                _win = 30 if IGNITION_RELVOL_MODE == "30m" else len(_rvc) - 1
-                                _hist = _rvc[max(0, len(_rvc) - 1 - _win):-1]
+                            if IGNITION_RELVOL > 0 and len(_rvc) >= 13:
+                                _win = 30 if IGNITION_RELVOL_MODE == "30m" else len(_rvc) - 2
+                                _hist = _rvc[max(0, len(_rvc) - 2 - _win):-2]
                                 _base = (sum(float(x.get("volume") or 0) for x in _hist)
                                          / max(len(_hist), 1))
-                                _last = float(_rvc[-1].get("volume") or 0)
+                                _last = float(_rvc[-2].get("volume") or 0)
                                 if _base > 0:
                                     _ig_rv = round(_last / _base, 2)
                         except Exception:

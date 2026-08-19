@@ -1,6 +1,6 @@
 # CONVENING — 2026-08-19 03:0x EDT — session map, ma_pullback v2, tier rehydrate, VWAP coverage guard
 
-**TREE UNDER AUDIT: `f4b4935c7076` (supersedes `1aeb11ed67e5`)** — clean worktree at audit time.
+**TREE UNDER AUDIT: `6046b52b62b0` (supersedes `1aeb11ed67e5`)** — clean worktree at audit time.
 Flat book verified in-turn 03:05:00 EDT: **0 open positions**.
 Rig: 38 green. Two gates re-pinned to the new spec (P7, BH-b). **18 gates were already RED on
 `5e6422bc02f0` before this batch and are NOT cleared by it** — see Blast Radius Auditor.

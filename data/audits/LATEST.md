@@ -366,3 +366,34 @@ the punch list, and the correction carries its own `why` and class in the record
 **OPEN:** the resumed-monitor `partial_fills` rebuild (the actual defect); the nightly ledger line
 still prints a MERGED figure (`"12 trades raw $-31.29"`), violating the PRE/RTH separation into a
 durable log every night — found tonight, NOT fixed.
+
+
+### ADDENDUM 3b — build-bump so the correction actually ships, HEAD `5cb1005c4df9`
+
+Addendum 3's deploy did NOT reach the service. Railway returned **SKIPPED** — *"No changes to
+watched files"* — because the correction is a JSON under `data/`, not a watched path; then
+`railway redeploy` re-ran the **01:16** image. The boot log kept printing *"P&L display
+correction loaded: 36"* (my entry makes it 37), so RTH stayed at -$18.00 through three deploy
+attempts and eight polls.
+
+**Change:** one comment appended to `screener_app.py` (a watched file) to trigger the build —
+the same mechanism the existing 7/26b bump comment was written for. No behaviour change; the
+file is otherwise untouched.
+
+**Blast radius:** a comment. Render-only correction path unchanged, store untouched, no bot
+service involved.
+
+**DEFECT LOGGED (not fixed):** `ship.sh` prints "✅ shipped" whenever `railway up` exits 0 and
+never checks the deployment STATUS — so a SKIPPED build reports as a successful ship. That is
+how the 23:11 dashboard ship was reported green while nothing was built. It would do the same
+for the bot. Fix belongs on the ship path, not here.
+
+**ROLL CALL (3b).** Blast Radius Auditor — comment-only, CLEAN. Integrator — FLAG: the ship path
+cannot distinguish SKIPPED from SUCCESS. Dashboard Curator — the glass still shows the stale
+figure until this lands; verification is `pnl_correction_applied == 37` and RTH == +$11.51.
+Pit Crew Chief — three wasted deploys traced to watchPattern scope. Historian — records that a
+data-only correction requires a watched-file touch in this project. All other officers: no
+surface touched, CLEAN.
+
+**DOCTRINE-INVERSION:** "verify before speak" applied to DEPLOYS as well as claims — an exit code
+is not evidence that a deploy happened. Tonight it was not.

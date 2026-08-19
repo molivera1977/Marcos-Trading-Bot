@@ -4535,5 +4535,23 @@
   "position_size": 428.32,
   "partial_fills": [],
   "exit_reason": "Stop loss \ud83d\uded1"
+ },
+ {
+  "cls": "TIER_BANKS_LOST_ON_RESUME",
+  "stored": -7.62,
+  "corrected": 21.89,
+  "delta": 29.51,
+  "unc": 0.0,
+  "rq": 0,
+  "trade_id": "335b694af972410fa0653dea25ec0ab1",
+  "date": "2026-08-18",
+  "ticker": "SXTC",
+  "entry_stored": 4.6,
+  "exit": 4.53,
+  "shares": 109,
+  "position_size": 501.39,
+  "partial_fills": null,
+  "exit_reason": "Trailing stop",
+  "why": "8/18: a resumed monitor did not rebuild partial_fills from the durable tier_fill rows, so TWO banked tier legs vanished from the record. Both verified on SIP tape: 54sh @ $4.8207 10:28:50 and 27sh @ $5.0415 10:30:40. Stored -7.62; true +21.89. Era sweep: 2 of 188 tier fills lost (1%), on 1 day of 27 \u2014 isolated. Store is NOT rewritten; this merges AT RENDER, same doctrine as the 7/26 runner-leg ledger."
  }
 ]

@@ -307,6 +307,9 @@ ALL_SYMBOLS = [
     # injection points (E1 clock hook, E2 pm_floor arg, E3 lvd/wall_high args).
     # 8/18: the 9/90 lane shipped 12:43 today and was NOT in this list, so it could not be
     # lifted, exercised, or parity-measured at all. Added with its state + config.
+    # 8/18: the VWAP adjudication chain, so the CDTG 7.11 class is testable at all.
+    "_tick_vwap_ok", "_vwap_coverage_min", "_vwap_bar_trusted",
+    "VWAP_COVERAGE_GUARD", "VWAP_MIN_SPAN_MIN",
     "ema9x90_step", "_x90_st", "EMA9X90", "EMA9X90_CONVERT", "EMA9X90_HALF_SIZE",
     "EMA9X90_SWING_BARS", "EMA9X90_MAX_STOP", "EMA9X90_VWAP_EXIT", "EMA9X90_OPEN",
     "EMA9X90_CLOSE", "EMA9X90_WARMUP",

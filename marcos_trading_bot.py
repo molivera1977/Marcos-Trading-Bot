@@ -6880,6 +6880,16 @@ IGNITION_PRE_COVERAGE = float(os.environ.get("IGNITION_PRE_COVERAGE", "50")) # %
 # 65% green) and which rip-based steering would have excluded.
 # Kill: EMA9X90_WARMUP=0 restores the cold-start (blind until ~11:00) behaviour exactly.
 EMA9X90_WARMUP        = os.environ.get("EMA9X90_WARMUP", "1") == "1"
+# ── 8/18 VWAP COVERAGE GUARD (CDTG 14:16:43; DEFECT_20260818_cdtg_double_fill.md). The bar line
+# stamped 7.11 — a ~2.5-minute rolling average wearing a session label — while the true session
+# VWAP was 4.6719 and the recorder's tick series HAD it. `_tick_vwap_ok`'s 5% clamp then rejected
+# the correct tick line for diverging from the corrupt bar line. kevseq gated on 7.11, read
+# "+9.12% above VWAP" where the truth was ~66%, and took a trade it should have refused.
+# The guard measures whether a bar set actually SPANS the session it claims to price — an
+# objective property, not another price to cross-check against.
+# Kill: VWAP_COVERAGE_GUARD=0 restores the old unconditional trust exactly.
+VWAP_COVERAGE_GUARD = os.environ.get("VWAP_COVERAGE_GUARD", "1") == "1"
+VWAP_MIN_SPAN_MIN   = float(os.environ.get("VWAP_MIN_SPAN_MIN", "20"))   # minutes a session line must span
 IGNITION_CELL_GATE = os.environ.get("IGNITION_CELL_GATE", "0")
 # flat_top + vwap_reclaim → observe-only (era books graded CODE-DEFECTS, not designs — audit 3:
 # flat_top/orb bought the break print in a retest costume; coded vwap_reclaim = the refuted
@@ -8697,7 +8707,52 @@ def _recorder_tick_vwap(ticker):
     _tick_vwap_cache[ticker] = (now, val)
     return val
 
-def _tick_vwap_ok(tick, bar, price):
+def _vwap_coverage_min(bars):
+    """How many MINUTES of tape a VWAP bar set actually spans, and where it starts (ET HH:MM).
+
+    8/18 CDTG (data/audits/DEFECT_20260818_cdtg_double_fill.md): the bar line stamped 7.11 while
+    the true session VWAP was 4.6719. Traced against 310,022 harvested SIP ticks, 7.11 sits
+    between the 2-min ($7.2673) and 3-min ($7.0244) rolling VWAPs — the bar set was TRUNCATED to
+    ~2.5 minutes and the resulting number was a short-window average wearing a session label.
+    Nothing anywhere measured that, so nothing could catch it.
+
+    This is the THIRD OPINION the old adjudication lacked: an objective property of the bar set
+    itself, not another price to compare against. A session VWAP must span the session."""
+    try:
+        if not bars:
+            return 0.0, None
+        _t0 = str(bars[0].get("time") or "")[:19]
+        _t1 = str(bars[-1].get("time") or "")[:19]
+        if not _t0 or not _t1:
+            return 0.0, None
+        d0 = datetime.strptime(_t0, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+        d1 = datetime.strptime(_t1, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+        return round((d1 - d0).total_seconds() / 60.0, 1), d0.astimezone(EASTERN).strftime("%H:%M")
+    except (ValueError, TypeError):
+        return 0.0, None
+
+
+def _vwap_bar_trusted(span_min, first_hm, now_et=None):
+    """A bar-line VWAP is TRUSTED only when its bar set plausibly covers the session so far.
+
+    Two ways to qualify: it starts at/near the session open (premarket anchor <= 09:31 for an RTH
+    line), or it spans at least VWAP_MIN_SPAN_MIN minutes. Anything shorter is a rolling average,
+    not a session line, and must never gate a trade as though it were one.
+    Kill: VWAP_COVERAGE_GUARD=0 restores the old unconditional trust."""
+    if not VWAP_COVERAGE_GUARD:
+        return True
+    if span_min is None:
+        return True                      # unmeasurable -> unchanged behaviour, never stricter
+    now_et = now_et or datetime.now(EASTERN)
+    _mins_since_open = (now_et.hour * 60 + now_et.minute) - 570
+    if _mins_since_open <= 0:
+        return True                      # premarket: the session-open test does not apply
+    if first_hm and first_hm <= "09:31":
+        return True                      # anchored at (or before) the open
+    return span_min >= min(VWAP_MIN_SPAN_MIN, _mins_since_open)
+
+
+def _tick_vwap_ok(tick, bar, price, bar_trusted=True):
     """Sanity gate before the tick line may replace the bar line. Catastrophe band vs price kills
     unit-scale bugs (the 2,000,000-'vwap' class); the 5% divergence clamp vs the bar line allows
     the real ~1% correction but never a wild swap. Bar missing (B17) → price band alone decides."""
@@ -8706,7 +8761,14 @@ def _tick_vwap_ok(tick, bar, price):
     if price and price > 0 and not (0.5 * price <= tick <= 2.0 * price):
         return False
     if bar and bar > 0 and abs(tick - bar) / bar > 0.05:
-        return False
+        # 8/18 THE CLAMP INVERTED (CDTG 14:16:43). This rejected the CORRECT tick line (4.6719,
+        # matching the SIP tape to 4dp) because it diverged 34% from a CORRUPT bar line (7.11).
+        # The gate only ever compared the two sources to each other and to price, so when the
+        # REFERENCE is the broken one it protects the corruption and discards the truth.
+        # `bar_trusted=False` says the reference has failed its own coverage test — in that case
+        # divergence from it is EVIDENCE FOR the tick line, not against it.
+        if bar_trusted:
+            return False
     return True
 
 # ── 7/10 ENTRY-GATE + WIDE-STOP FIX STACK (all DEFAULT OFF until the 9-day completion grade ranks them) ──
@@ -9402,6 +9464,9 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                     if not ENTRY_VWAP_PREMARKET:
                         # LIVE DEFAULT (validated): RTH session VWAP from full_bars (already fresh-filtered).
                         calc_vwap = calculate_vwap(full_bars)   # SESSION VWAP — never across the day boundary
+                        _vcov, _vfirst = _vwap_coverage_min(full_bars)          # 8/18 coverage stamp
+                        cache[t]["vwap_span_min"] = _vcov
+                        cache[t]["vwap_first_hm"] = _vfirst
                         if calc_vwap > 0:
                             cache[t]["vwap"] = calc_vwap
                         else:
@@ -9424,6 +9489,11 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                         else:
                             _fullvw = calculate_vwap(_sess)
                         _rthvw  = (calculate_vwap([b for b in _sess if b.get("trading_session") == "RTH"]) or _fullvw) if _sess else 0.0
+                        # 8/18: stamp how much tape this line actually spans, so a truncated
+                        # bar set can never masquerade as a session VWAP (CDTG 7.11 class).
+                        _vcov, _vfirst = _vwap_coverage_min(_sess)
+                        cache[t]["vwap_span_min"] = _vcov
+                        cache[t]["vwap_first_hm"] = _vfirst
                         if _fullvw > 0:
                             cache[t]["vwap"]     = _fullvw   # pre+RTH session VWAP (chart-matching) — shown in status line
                             cache[t]["vwap_rth"] = _rthvw    # RTH-only (old) — dual-log to see the pre-market gap
@@ -9514,7 +9584,20 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
             if RECLAIM_KEV:
                 # PATH-1 (#67) preserved: line = tick-VWAP when sane, else the bar line.
                 _tickv = _recorder_tick_vwap(t)
-                _vr_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price)) else vwap
+                # 8/18: the bar line must earn its authority. If its bar set does not span the
+                # session, divergence from it is evidence FOR the tick line, not against it.
+                _bar_ok = _vwap_bar_trusted(cache[t].get("vwap_span_min"),
+                                            cache[t].get("vwap_first_hm"))
+                _vr_sv = _tickv if (_tickv and _tick_vwap_ok(_tickv, vwap, price, _bar_ok)) else vwap
+                if not _bar_ok and _vr_sv is vwap and not _tickv:
+                    # BOTH lines unusable: the bar set is short AND there is no tick line.
+                    # No decision on a known-wrong line (B16/B17 doctrine) — skip this ticker.
+                    _log_decision(t, "vwap_untrusted_skip", price=price, lane=None,
+                                  vwap=round(vwap, 4) if vwap else None,
+                                  span_min=cache[t].get("vwap_span_min"),
+                                  first_hm=cache[t].get("vwap_first_hm"),
+                                  need_span=VWAP_MIN_SPAN_MIN)
+                    continue
                 if _vr_sv and _vr_sv > 0:
                     _nb = []
                     _cur_key = (datetime.now(EASTERN).strftime("%Y-%m-%d"), t)

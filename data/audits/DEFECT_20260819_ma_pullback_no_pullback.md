@@ -204,3 +204,48 @@ arm with these exact thresholds declared in advance, priced both ways (dollars g
 of winners refused), through the funnel rather than detector-only, and a Marcos priced call.
 What it already refutes: my extension ceiling, and my claim that "no separator exists" — six
 separators I invented failed; the three HE stated all worked.
+
+
+## THE TRIGGER: 3-MIN CONTEXT, 1-MIN ENTRY (8/19)
+
+Marcos: *"the trigger should be when the flag breaks higher but on the 1 minute chart. pullback
+is seen on the 3 minute while entry is on the 1 minute."*
+
+Today the detector does NEITHER half of that: it fires the instant the 3-min confirmation candle
+exists and price ticks above its close (`if price <= ccl: return None`). There is no flag, and no
+break requirement.
+
+TESTED as an A/B on the qualified population (above VWAP + quiet dip + within 2% of session
+high). FLAG = the pullback structure's high on the 3-min (dip bars + confirmation bar). ENTRY B =
+the first 1-MIN CLOSE above that flag high, waiting up to 30 minutes.
+
+```
+  TRAIN
+    A: enter immediately (today)      n=326  total=$+3700.54  $/tr=+11.35  win=46%
+    B: wait for the 1-min flag break  n=277  total=$+3861.92  $/tr=+13.94  win=54%
+       (49 of 326 never broke the flag -> no trade)
+  HOLD-OUT (19 unseen)
+    A: enter immediately (today)      n=301  total=$+1466.93  $/tr= +4.87  win=42%
+    B: wait for the 1-min flag break  n=236  total=$+2388.85  $/tr=+10.12  win=54%
+       (65 of 301 never broke the flag -> no trade)
+```
+
+**On hold-out it DOUBLES $/trade and adds 12 points of win rate while taking 65 FEWER trades and
+banking $922 MORE.** That is a confirmation, not a filter: the trades it declines are the ones
+that were going to fail. 65 of 301 setups never resumed — and today the bot buys every one.
+
+### THE FULL SPEC, END TO END (hold-out, detector-only)
+```
+  every ma_pullback detector fire ................ -$3.69/tr  32% win  55% green
+  + above VWAP + quiet dip + room to run ......... +$4.87/tr  42% win  74% green
+  + 1-min flag-break trigger .................... +$10.12/tr  54% win
+```
+A ~$14/trade swing, same direction on both halves, every threshold from the definition except
+the wait window.
+
+### NOT TESTED — stated so nobody mistakes this for a finished design
+* The 30-minute wait window is MY number, not doctrine.
+* The stop is still anchored to the ORIGINAL fire. On a flag-break entry it should probably
+  re-anchor to the break bar — which changes the risk, the size, and every R figure here.
+* Detector-only. The funnel (PULLBACK_FIRST, chart gate, day-gain, momentum, slots, capital)
+  sits on top and is NOT modelled.

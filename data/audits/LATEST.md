@@ -314,3 +314,55 @@ line the bot actually uses.
 Reconciliation: the original wall reported -$10.21/tr on the RTH arm; this run shows -$9.59
 because tonight's harvest grew the universe from 736 name-days/63 dates to 935/64. Same
 direction, same verdict, different denominator.
+
+
+---
+
+## ADDENDUM 3 — 2026-08-18 dashboard ship, HEAD `caa199834aac`
+
+**THE ACCOUNTING FIX.** Marcos: *"your accounting for today is still not adjusted from what you
+said earlier."* He was right. This morning's SXTC correction (two tier banks lost on a resumed
+monitor, both verified on SIP tape) went into `RESULTS_LEDGER.md` and NOWHERE the system reads.
+The store held `pnl -7.62`; the dashboard and the nightly log both still showed RTH **-$18.00**.
+A correction that lives only in a markdown file is a note about a correction, not one.
+
+**Service:** `dashboard/ scanner` · market CLOSED (23:1x ET) · book FLAT, verified in-turn.
+
+**Change:** one entry appended to the P&L correction ledger
+(`data/killtests/pnl_runner_leg_correction_20260726.json`), which `screener_app.py:163` merges
+**AT RENDER, store untouched** — the 7/26 precedent.
+`trade_id 335b694af972410fa0653dea25ec0ab1` SXTC 2026-08-18, stored `-7.62` -> corrected
+`+21.89` (delta `+29.51`), class `TIER_BANKS_LOST_ON_RESUME`.
+
+**AFTER-STATE, written before running (7/24 wipe law) then verified against the live book:**
+file 193 -> 194 entries, nothing removed or overwritten · RTH n=11 **-$18.00 -> +$11.51** ·
+PRE n=1 **-$13.29 unchanged** · the stored row keeps `pnl -7.62`, no trade record mutated ·
+PRE and RTH stay on separate lines and are never summed.
+
+**Blast radius:** render-only. No trade record, no bot code, no lane logic, no sizing/stop/exit.
+The bot service is not redeployed by this. If the ledger file fails to load, `screener_app`
+already degrades to STORED pnl with a printed warning (pre-existing behaviour, unchanged).
+
+**ROLL CALL (addendum 3).** **Historian** — the official 8/18 day record is RTH +$11.51 / PRE
+-$13.29, and it now renders that way rather than only asserting it in a doc. **Blast Radius
+Auditor** — render-only, store untouched, CLEAN. **Systems Quant** — AFTER-state pre-declared and
+then verified against the live book, CLEAN. **Statistician** — one record, no sampling claim.
+**Quartermaster** — the correction ledger ships with the image; store integrity preserved by
+construction. **Dashboard Curator** — the cockpit now matches the verified record. **Trade
+Manager** — FLAG: the CAUSE is unfixed (a resumed monitor does not rebuild `partial_fills` from
+durable `tier_fill` rows; era sweep 2/188 fills, 1 day of 27). **Execution Surgeon / Pit Crew
+Chief / Integrator / Feed Engineer / Webull Broker Desk / Side Marshal / Crown Steward / Kev
+Librarian / First Hour / Opening Bell / Seam Scientist / Strength Ombudsman / Forward Architect /
+Momentum Operator / Tape Veteran / Handicapper / Rocket Rider / Cartographer / Convexity Trader /
+Curl Mechanic / Reclaim Architect / Hidden Entry Architect / Project Manager** — no surface
+touched, CLEAN.
+
+**DOCTRINE-INVERSION.** "STORED P&L IS WRONG — use the ledger" says corrections live in a file
+and the store is never rewritten. That doctrine is KEPT here — but tonight exposed its failure
+mode: a ledger nobody wires up is invisible. The inversion that would sink this is if
+render-time correction lets stored data rot untracked; the answer is that the CAUSE stays open on
+the punch list, and the correction carries its own `why` and class in the record.
+
+**OPEN:** the resumed-monitor `partial_fills` rebuild (the actual defect); the nightly ledger line
+still prints a MERGED figure (`"12 trades raw $-31.29"`), violating the PRE/RTH separation into a
+durable log every night — found tonight, NOT fixed.

@@ -15498,6 +15498,21 @@ def main():
                                                else (round((entry_price - vwap) / vwap * 100, 2)
                                                      if vwap and vwap > 0 else None)),
                 "entry_session_vwap":         round(vwap, 4) if vwap and vwap > 0 else None,
+                # ── 8/18 VWAP PROVENANCE (Marcos: "fix them"). The watchdog
+                # (data/killtests/vwap_audit.py) re-derived every stamped session VWAP from raw
+                # SIP tape and found 60 BREACHES in 178 graded rows — 52/112 hidden_entry,
+                # 3/3 kevseq — every one stamped ABOVE both session anchors, the signature of a
+                # truncated/late-anchored window (the CDTG 7.11 class). Ignition 0/20, flat_top
+                # 0/15 and vwap_reclaim 0/7 were clean, which is what localised the mechanism.
+                # Without provenance a breach can only be found by re-deriving the tape, which
+                # needs a cache that is not automatically maintained. These three fields make
+                # every future row SELF-DIAGNOSING: how much tape the line spanned, where it
+                # started, and whether the coverage guard trusted it.
+                "entry_vwap_span_min":        (cache.get(ticker) or {}).get("vwap_span_min"),
+                "entry_vwap_first_hm":        (cache.get(ticker) or {}).get("vwap_first_hm"),
+                "entry_vwap_trusted":         _vwap_bar_trusted(
+                                                  (cache.get(ticker) or {}).get("vwap_span_min"),
+                                                  (cache.get(ticker) or {}).get("vwap_first_hm")),
                 # Kev-level anchoring (7/13): distance from his stated break level (study: closest = best)
                 "kev_level":                  _kev_lv,
                 "entry_vs_kev_level_pct":     (round((entry_price - _kev_lv) / _kev_lv * 100, 2)

@@ -19,6 +19,41 @@ def bars(tk):
             out += r.get("bars") or []
         except Exception: pass
     return out
+# ORDER MATTERS (Marcos 8/18: "this nightly check should run before the nightly ledger
+# check"). The ledger verification below grades fills against the book; if a stamped VWAP
+# is wrong, every gate decision and study that reads those rows is already poisoned, so the
+# data-integrity question must be answered FIRST. A ledger that reconciles cleanly against
+# corrupt inputs is a false all-clear.
+# ── 8/18 VWAP WATCHDOG (Marcos: "is there a program that can run to block these wrong vwap
+# from coming back?" -> "fix them"). Re-derives every stamped session VWAP from raw 10s SIP tape
+# and flags any that matches NEITHER session anchor. First run over the era: 60 BREACHES in 178
+# graded rows — 52/112 hidden_entry, 3/3 kevseq, every one stamped ABOVE both anchors (the
+# truncated-window signature); ignition 0/20, flat_top 0/15, vwap_reclaim 0/7 clean.
+# It needs today's tape in data/universe/bars10s. That cache is NOT auto-maintained
+# (harvester.py is a one-shot backfill), so the harvest is attempted first and its failure is
+# reported rather than swallowed — a watchdog that silently grades zero rows is worse than none.
+try:
+    import subprocess as _vw_sp
+    _hv = _vw_sp.run([sys.executable, str(ROOT / "data/universe/harvest_day.py"), DAY],
+                     capture_output=True, text=True, timeout=1800)
+    if _hv.returncode != 0:
+        print(f"⚠️  VWAP watchdog: harvest of {DAY} did not run "
+              f"({(_hv.stderr or _hv.stdout).strip().splitlines()[-1:] or ['?']}). "
+              "Rows without tape are UNAUDITED, not clean.")
+    _va = _vw_sp.run([sys.executable, str(ROOT / "data/killtests/vwap_audit.py"), DAY],
+                     capture_output=True, text=True, timeout=900)
+    print(_va.stdout.rstrip())
+    _vline = [l for l in _va.stdout.splitlines() if l.startswith("BREACHES:")]
+    (ROOT / "data/history/nightly_verify.log").open("a").write(
+        datetime.datetime.now(ET).isoformat()[:19] + " VWAP: " +
+        (_vline or ["(no output)"])[0] + "\n")
+    if _va.returncode == 1:
+        print("🚨 VWAP BREACH: a stamped session VWAP matches NEITHER session anchor. Every "
+              "study that reads those rows inherits the bad value — fix before trusting them.")
+except Exception as _vwe:
+    print(f"⚠️  VWAP watchdog did not run: {_vwe}")
+
+
 tr = [t for t in (json.load(urllib.request.urlopen(U+"/api/trades", timeout=60)).get("trades") or [])
       if t.get("date") == DAY]
 res = {"date": DAY, "n": len(tr), "fills_ok": 0, "fiction": [], "no_bars": [], "raw": 0.0}

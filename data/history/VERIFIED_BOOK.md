@@ -166,3 +166,5 @@ HEADLINE OF RECORD (Historian): CHARITABLE, RTH and PRE separate; strict beside 
 ## NIGHTLY 2026-08-13: 20 trades raw $+197.95 | fills ok 19 | FICTION 2 [{'ticker': 'FGI', 'qty': 9, 'px': 17.9449}, {'ticker': 'PSQH', 'qty': 34, 'px': 4.9041}] | no-bars none
 
 ## NIGHTLY 2026-08-14: 7 trades raw $-54.35 | fills ok 4 | FICTION 0  | no-bars none
+
+## NIGHTLY 2026-08-18: 12 trades raw $-31.29 | fills ok 4 | FICTION 0  | no-bars ['WFF:no_entry_ts', 'IPST:no_entry_ts']

@@ -133,3 +133,74 @@ CDTG buying $7.78 with no pullback is still real and still ugly, but it is a **F
 not a trigger failure**. The open question is why the chart gate, day-gain and momentum checks
 passed a name 66% above VWAP on a vertical expansion bar — not what number to cap extension at.
 **No trigger change is proposed.**
+
+
+## THE ANSWER CAME FROM MARCOS, NOT THE DATA (8/19, ~01:30)
+
+After the separator study found nothing, Marcos stated the setup's DEFINITION — each condition
+BEFORE it was measured, which is hypothesis-then-test, not data mining:
+
+  1. *"a stock going up but having a momentary price collapse with low volume ... it NEEDS to be
+     above VWAP"*
+  2. *"the pullback itself needs low volume. if the pullback is high volume then that means the
+     price is going down further"*
+  3. *"we also need room to run. There has to be runway for the price to bounce back up"*
+  4. *"this has to be done frontside"*
+
+EACH TESTED IN TURN (hold-out, 19 unseen dates, driver self-test enforced):
+
+**1. Above VWAP** — the single largest effect found all night:
+```
+    price ABOVE vwap   n=1432   -$1.26/tr   36% win   58% green
+    price below vwap   n= 637   -$9.16/tr   25% win   15% green
+```
+Below VWAP loses 7x more per trade and is green on 15% of days vs 58%. Not a pullback — a collapse.
+
+**2. Quiet dip** — monotonic in BOTH directions, exactly as stated:
+```
+    dip vol <= 0.20x advance   n=117   +$3.51/tr   75% green
+    dip vol <= 0.79x           n=609   -$0.03/tr
+    dip vol >  0.79x           n=611   -$2.37/tr
+    dip vol >  1.50x           n=268   -$3.24/tr
+```
+The detector NEVER measures this. Its only volume test demands the CONFIRMATION bar be heavy;
+the dip's volume is unexamined.
+
+**3. Room to run** — I MEASURED IT BACKWARDS and said so:
+```
+    within 0.5% of session high   n=104   +$9.91/tr   82% green
+    2-5% below                    n=136   -$5.41/tr
+    10-20% below                  n= 68   -$3.08/tr
+    >= 20% below                  n= 39  -$20.88/tr   21% green
+```
+I used "distance to the session high" as room-to-run. For a name pressing its high that distance
+is ~0 BECAUSE THERE IS NO OVERHEAD SUPPLY — blue sky, maximum runway. A name 20% below its high
+has a wall of trapped sellers. The metric actually measures PULLBACK DEPTH; both readings point
+the same way as Marcos's rule. My naming was inverted, not his doctrine.
+
+**4. Front side** — ALREADY IMPLIED by the first three:
+```
+    3 conditions              HO n=301  +$4.87/tr
+    + 1-min front side        HO n=271  +$4.23/tr
+```
+95% of fires passing the three conditions are already front-side (309/326 train, 271/301 HO). A
+name above VWAP and within 2% of its session high cannot be back-side. Adding the explicit test
+costs 10% of fires for nothing. The definition is internally coherent.
+
+### THE DEFINITION, THRESHOLDS FROM DOCTRINE (not fitted)
+above VWAP  +  dip volume < advance volume  +  within 2% of the session high
+```
+    TRAIN     every fire  n=2982  +$1.12/tr  38% win  50% green
+              DEFINITION  n= 326 +$11.35/tr  46% win  64% green   (11% of fires, +$10.23 swing)
+    HOLD-OUT  every fire  n=2069  -$3.69/tr  32% win  55% green
+              DEFINITION  n= 301  +$4.87/tr  42% win  74% green   (15% of fires, +$8.57 swing)
+```
+**IT FLIPS THE SIGN ON UNSEEN DATA**, same direction on both halves, with round numbers taken
+from the definition rather than from the tables.
+
+### STATUS
+Still a HYPOTHESIS, and still not shipped. What would make it a proposal: one pre-registered
+arm with these exact thresholds declared in advance, priced both ways (dollars gained vs dollars
+of winners refused), through the funnel rather than detector-only, and a Marcos priced call.
+What it already refutes: my extension ceiling, and my claim that "no separator exists" — six
+separators I invented failed; the three HE stated all worked.

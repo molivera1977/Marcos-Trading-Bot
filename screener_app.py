@@ -1236,6 +1236,16 @@ def api_trades():
         c = _cpnl(t)
         if abs(c - (t.get("pnl", 0) or 0)) > 0.005:
             t2 = dict(t); t2["pnl_stored"] = t.get("pnl"); t2["pnl"] = c; t2["pnl_corrected"] = True
+            # 8/18: correct the PERCENT too. Patching only `pnl` left SXTC rendering
+            # "+$21.89 / -1.5%" on the official day record — a row that contradicts itself,
+            # because pnl_pct was still derived from the stored entry->exit legs while the
+            # dollars came from the tape-verified ledger. Every other row is
+            # pnl / position_size (PFSA 48.76/175.50 = +27.8%, matches the glass), so the
+            # corrected percent uses the same basis. Stored values remain untouched.
+            _sz = float(t.get("position_size") or 0)
+            if _sz > 0:
+                t2["pnl_pct_stored"] = t.get("pnl_pct")
+                t2["pnl_pct"] = round(c / _sz * 100.0, 2)
             out.append(t2)
         else:
             out.append(t)

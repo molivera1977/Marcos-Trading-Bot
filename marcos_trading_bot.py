@@ -2390,6 +2390,45 @@ def _post_trade_state(state: dict):
 # ── Durable open-trade state — persisted to the screener (which has a /data volume) so an
 # open position SURVIVES a bot crash/restart/redeploy and still reaches a recorded exit. ──
 
+def _tier_fills_from_ledger(ticker):
+    """Today's banked tier legs for `ticker`, read back from the DURABLE decision ledger.
+
+    8/18 SXTC (data/killtests/sxtc_tier_loss_20260818.md): a mid-session redeploy restarted the
+    bot at 10:07:42 while SXTC was open. The monitor resumed with `partial_fills` EMPTY, so two
+    banked legs — 54sh @ $4.8207 (10:28:50) and 27sh @ $5.0415 (10:30:40), both later verified
+    on SIP tape — vanished from the record. The whole 109sh was then marked out at the final
+    exit: 109 x ($4.53 - $4.60) = -$7.63, recorded -$7.62, when the true P&L was +$21.89. A
+    $29.51 error on ONE trade, and the day's headline read -$18.00 instead of +$11.51.
+
+    The legs were never actually lost: every tier bank writes a `tier_fill` decision row carrying
+    qty + price at the moment it fills. Nothing read them back. This does.
+
+    Same doctrine as the 8/18 VWAP fix: do not trust a single in-memory snapshot when a durable
+    independent record exists. Returns [(qty, price), ...] oldest-first, or [] on any failure —
+    a rehydrate that cannot read must never invent legs.
+    Kill: TIER_REHYDRATE=0."""
+    if not TIER_REHYDRATE or not SCREENER_URL:
+        return []
+    try:
+        import urllib.request as _tf_ureq
+        day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+        req = _tf_ureq.Request(f"{SCREENER_URL}/api/decisions_archive?date={day}"
+                               f"&status=tier_fill&limit=50000")
+        rows = json.load(_tf_ureq.urlopen(req, timeout=20)).get("rows") or []
+        out = []
+        for r in rows:
+            if str(r.get("ticker") or "").upper() != str(ticker).upper():
+                continue
+            q, px = r.get("qty"), r.get("price")
+            if q and px and float(q) > 0 and float(px) > 0:
+                out.append((str(r.get("time") or ""), int(q), float(px)))
+        out.sort(key=lambda z: z[0])
+        return [(q, px) for _t, q, px in out]
+    except Exception as _tfe:
+        print(f"⚠️  {ticker} tier-fill rehydrate failed ({_tfe}) — using the saved state alone")
+        return []
+
+
 def _save_open_trade(state: dict):
     """Fire-and-forget upsert of the open position to the screener (durable storage)."""
     url = os.environ.get("SCREENER_URL", "").rstrip("/")
@@ -6889,6 +6928,10 @@ EMA9X90_WARMUP        = os.environ.get("EMA9X90_WARMUP", "1") == "1"
 # objective property, not another price to cross-check against.
 # Kill: VWAP_COVERAGE_GUARD=0 restores the old unconditional trust exactly.
 VWAP_COVERAGE_GUARD = os.environ.get("VWAP_COVERAGE_GUARD", "1") == "1"
+# 8/18: rebuild a resumed trade's banked tier legs from the DURABLE tier_fill ledger when the
+# saved state lost them (SXTC: $29.51 on one trade, and the day's headline was wrong by the same).
+# Kill: TIER_REHYDRATE=0 restores trusting the saved state alone.
+TIER_REHYDRATE = os.environ.get("TIER_REHYDRATE", "1") == "1"
 VWAP_MIN_SPAN_MIN   = float(os.environ.get("VWAP_MIN_SPAN_MIN", "20"))   # minutes a session line must span
 # The guard has TWO effects and they carry different risk:
 #   (a) prefer the tick line when the bar line fails coverage — MEASURED on the real CDTG values
@@ -12438,10 +12481,31 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
             _rs_stop         = float(resume_state.get("stop") or 0)
             if _rs_stop > 0:
                 stop_loss = max(stop_loss, _rs_stop)   # never resume BELOW the ratcheted stop
+            # ── 8/18 THE SXTC FIX. The saved snapshot is ONE source; the tier_fill ledger is
+            # a durable, independently-written second. When the ledger knows about MORE banked
+            # legs than the snapshot carries, the snapshot lost them — adopt the ledger and
+            # recompute everything derived from it. Never the reverse: a snapshot with MORE legs
+            # than the ledger is kept as-is (the ledger post may simply be in flight).
+            _led = _tier_fills_from_ledger(ticker)
+            _rehydrated = False
+            if len(_led) > len(partial_fills):
+                _lost = len(_led) - len(partial_fills)
+                partial_fills    = [list(p) for p in _led]
+                tier_idx         = max(tier_idx, len(partial_fills))
+                remaining_shares = max(initial_shares - sum(int(q) for q, _p in partial_fills), 0)
+                partial_taken    = True
+                _rehydrated      = True
+                print(f"🩹 {ticker} TIER REHYDRATE: the saved state lost {_lost} banked leg(s); "
+                      f"rebuilt {len(partial_fills)} from the tier_fill ledger "
+                      f"({', '.join(f'{int(q)}sh@${p:.4f}' for q, p in partial_fills)}) "
+                      f"-> remaining {remaining_shares}/{initial_shares}")
             print(f"♻️  {ticker} RESUMED mid-trade: rem {remaining_shares}/{initial_shares}, "
                   f"{len(partial_fills)} partial(s), tier {tier_idx}, stop ${stop_loss:.4f}")
             _log_decision(ticker, "trade_resumed", price=entry_price, stop=round(stop_loss, 4),
-                          remaining=remaining_shares, partials=len(partial_fills), tier_idx=tier_idx)
+                          remaining=remaining_shares, partials=len(partial_fills),
+                          tier_idx=tier_idx, tier_rehydrated=_rehydrated,
+                          ledger_legs=len(_led),
+                          banked=[[int(q), round(float(p), 4)] for q, p in partial_fills])
         except Exception as _rse:
             print(f"⚠️ {ticker} resume-state restore failed ({_rse}) — monitoring fresh")
     if not isinstance(resume_state, dict):

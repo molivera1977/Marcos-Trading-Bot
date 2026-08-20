@@ -371,3 +371,27 @@ fires 09:30-15:30 as designed. The shipped lane stands on the corrected number. 
 tonight; pre-audition rerun queued with true ET. The live detector is unaffected (epoch+
 EASTERN, never string compares). Rig/killtest class-fix queued: every killtest that windows
 on cache time strings must convert UTC->ET first.
+
+## ADDENDUM 7 — THE PRE ROSTER, MEASURED (Marcos rulings ~23:2x ET)
+
+Q: "lets answer the question, what deserves to run in pre? Pre has always sucked." Ruling:
+"i want whatever lanes scoring well to join pre" — competition among the 4 incumbent lanes.
+EVIDENCE (true-ET pre audition, bot's own detectors via live_harness, 769 pre name-days,
+07:00-09:20 fires, E3 exits + 09:25 flatten; first UTC-shifted run VOID per Addendum 6):
+  ignition   +9.48 train / +7.87 OOS  n=1536  CLEAN — keeps its seat
+  v2conv     +7.25 / +7.76            n=219   CLEAN — keeps its seat (quiet gate not modeled)
+  reclaim    +6.38 / +4.94            n=195   CONSISTENT — JOINS pre (the one new seat)
+  prevwap    +0.34 / +11.07           n=41    ONE-SIDED — kept as incumbent, ON NOTICE; first
+                                              subject of the daily reject/shadow grading
+  ma_pullback: NOT auditioned (needs a 3-min/1-min driver — built next); keeps its seat by
+  the earlier ruling, not by evidence. hidden_v2: measured refusal for pre stands.
+CHANGES: PRE_LANES default += vwap_reclaim; VWAPRECLAIM_CONVERT default -> 1 (the 8/14
+observe-only suspension lifted BY OWNER RULING — an auditor cannot; the RTH whitelist still
+excludes vwap_reclaim so conversion is PRE-ONLY, RTH fires keep dying at lane_restricted,
+logged). Rig gate 26 (5 pins) GREEN; gate 25 unaffected.
+STANDING DUTY (Marcos): "the rejects and the shadows in both pre and RTH should be informing
+us every day. There is no point in doing shadows and rejects unless we are learning from
+them." — daily graded reject+shadow review joins the watch, starting 8/20; prevwap is case #1.
+BOOK VOID NOTE: the closed-trades PRE table quoted earlier tonight (vwap_reclaim -$648 etc.)
+was retracted in-session — those records are the voided ledger classes; no roster decision
+rests on them.

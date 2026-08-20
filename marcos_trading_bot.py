@@ -7191,7 +7191,13 @@ IGNITION_CELL_GATE = os.environ.get("IGNITION_CELL_GATE", "0")
 # just-crossed band). Mirrors HIDDEN_CONVERT: detection/stamps continue; conversion requires an
 # explicit =1, refusals log *_observe_only UPSTREAM of any crown/leader bypass.
 FLATTOP_CONVERT     = os.environ.get("FLATTOP_CONVERT", "0") == "1"
-VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT", "0") == "1"
+# 8/19 ~23:2x ET Marcos: "i want whatever lanes scoring well to join pre." The true-ET pre
+# audition (data/killtests/pre_audition_20260819.py, bot's own detectors via the harness,
+# 769 pre name-days): reclaim TRAIN +$6.38/tr / OOS +$4.94/tr n=195 — consistent both halves.
+# Default flips ON; the RTH whitelist still excludes vwap_reclaim, so this is PRE-ONLY
+# conversion (RTH fires keep dying at lane_restricted, logged). The 8/14 observe-only
+# suspension is hereby lifted BY THE OWNER'S RULING, not by an auditor.
+VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT", "1") == "1"
 # ── 8/14 SIM CONVERSION PATHS for the nominated O config (Marcos: "i am saying sim money live
 # not real life money" — the OOS wall now runs as PAPER TRADES, not shadow rows; DRY_RUN stays
 # true, every fill sims through the tape-since-birth honest register). Evidence chain:
@@ -16343,7 +16349,11 @@ ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "07:00").strip()
 # and when he reviews them. Restore: PRE_LANES="hidden_entry,vwap_reclaim,ignition,ma_pullback".
 PRE_LANES = set((os.environ.get(
     "PRE_LANES",
-    "ignition" + (",ma_pullback" if MA_PULLBACK_V2 else ""))).split(","))
+    # 8/19 Marcos: "i want whatever lanes scoring well to join pre" — vwap_reclaim joins on
+    # the true-ET audition (OOS +$4.94/tr n=195, train-consistent). prevwap/v2conv ride their
+    # convert switches as before; prevwap is ON NOTICE (train half +$0.34/tr — the pass is
+    # one-sided; first candidate for the graded pre reject/shadow review).
+    "ignition,vwap_reclaim" + (",ma_pullback" if MA_PULLBACK_V2 else ""))).split(","))
 # ── 8/19 RTH WHITELIST (Marcos: "include kevseq, grinder, dip-rip. restrict the others. I want
 # to really take a look at those."). PRE_LANES already restricts premarket; RTH had NO lane
 # filter at all — every lane fired and LANE_RANK only decided the ORDER. Ranking is not

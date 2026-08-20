@@ -404,6 +404,7 @@ LANE_CLASS = {
     "crown_seam":     "tape",   # 5s seam pull on a crowned name (SEAM_CONVERT)
     "halt_ladder":    "tape",   # LULD halt-ladder arm on a crowned name (HALT_LANE_CONVERT)
     "ema9x90":        "tape",   # 8/18 Marcos: 1-min 9-over-90 cross above VWAP
+    "hidden_v2":      "tape",   # 8/19 hidden rebuilt to Marcos's spec (25-60% pullback break)
     # ── CHART (level/pattern derived) ──────────────────────────────────────────────────────
     "flat_top":       "chart",
     "ma_pullback":    "chart",
@@ -5802,7 +5803,8 @@ def _cyc_emit(cyc, n_candidates):
 # `_log_stale_fire` canary row, called from the detector at the fire site exactly as the four
 # covered lanes call them.
 #
-# DEFAULT: EVERY LANE OFF.  `LANE_FIRE_AGE_GUARD` is an empty comma list, so no lane
+# DEFAULT (amended 8/19): EVERY MATURE LANE OFF; hidden_v2 armed AT BIRTH (a lane born with
+# the guard removes no trade it ever had — NEW-LANE CHECKLIST). For the rest, no lane
 # suppresses anything until Marcos arms it.  Reason, stated honestly: an age guard REMOVES
 # TRADES, and for six of the seven lanes today's cost CANNOT BE QUANTIFIED — the fires carry
 # no age stamp, which is precisely defect EG1-c.  Arming a suppressor whose cost is unmeasured
@@ -5828,7 +5830,9 @@ def _parse_lane_age_guard(spec):
     return out
 
 
-LANE_FIRE_AGE_GUARD = os.environ.get("LANE_FIRE_AGE_GUARD", "")   # default: NO lane armed
+# 8/19: default arms ONLY the new hidden_v2 lane (NEW-LANE CHECKLIST: kevseq shipped without
+# the age guard and cost a full session; a brand-new lane never fires on a stale bucket).
+LANE_FIRE_AGE_GUARD = os.environ.get("LANE_FIRE_AGE_GUARD", "hidden_v2")
 # Parsed LAZILY, on the first guard call, into a plain module-level dict.  It is deliberately
 # NOT `_LANE_AGE_GUARD = _parse_lane_age_guard(...)` at import time: the isolation rig lifts bot
 # symbols by replaying assignments BEFORE function defs, so a module-level assign that calls a
@@ -7236,6 +7240,91 @@ _he_day = {"d": None, "PRE": 0, "RTH": 0}   # SESSION-KEYED 7/26 (mirror of the 
 _he_name: dict = {}                          # (day, sym, sess) -> conversions. Premarket practice must
                                              # never exhaust the RTH caps (3 pre-9:30 paper trades used
                                              # to zero out the lane for the whole real session).
+
+# ══ HIDDEN v2 (Marcos 8/19: "lock the new hidden. build it and ship live for tomorrow.") ══════
+# The v1 lane's +$864.51 was FAKE (corrupt VWAP stamps, DRY_RUN idealized exits) and its
+# HIDDEN_VEL_PCT=25 arm is a 5-min RATE, not a day-gain STATE — measured median entry was
+# +114.7% day-gain, 2,110s after the session high: the LATEST lane in the book. v2 is Marcos's
+# simple spec, replayed on the 948-name-day 10s SIP cache (data/killtests/
+# hidden_v2_simple_20260819.py + the 8/19 ladders in-session):
+#   ARM      day-gain 25-60% AND price > session VWAP (RTH 09:30-15:30 arm window)
+#   PULLBACK consecutive down-ish 10s bars off the running high, depth <= 50% of the
+#            rolling-5-min-low -> high leg
+#   TRIGGER  a bar's HIGH breaks the pullback high within 6 bars of the pullback print
+#   STOP     pullback low - 1%     EXITS exit_mode="HV2": sell 25% at +1R -> stop to entry-or-
+#            better (BE_FLOOR_AFTER_SCALE), runner exits on 15 min without a new high; flatten.
+#   NO DAY CAPS (Marcos: "eliminate the day caps").  Cool-off 300s per name after a fire.
+# Ladder verdicts (train=even dates / OOS=odd): time stop 15min is the last point where
+# OOS >= train (20min+ = memorization, "none" collapses +$14.36 train -> +$8.92 OOS); scale
+# 25% beats 40% at every R; 1.0R picked (68% green, OOS +$10.69/tr all-fills). MIN-STOP 4%
+# stays ON — NOT exempt: it refuses the tight-stop 77% earning +$6.80/tr and keeps survivors
+# at +$41.60/tr OOS (n=113, 73% green, ~4 fires/day median). Backside measured: bites 0/1023.
+# Live-vs-replay translations (declared to Marcos in-session): day-gain basis = prior-day
+# close (replay: 4am print), BE = entry-or-structure floor, flat = house flatten.
+# Kill: HIDDENV2=0. Time stop: HIDDENV2_TIME_STOP (seconds).
+HIDDENV2 = os.environ.get("HIDDENV2", "1") == "1"
+HIDDENV2_TIME_STOP = int(os.environ.get("HIDDENV2_TIME_STOP", "900"))
+_hv2_state: dict = {}
+
+
+def hidden_v2_step(sym, new_bars, vwap, pdc):
+    """Advance sym's HIDDEN-v2 machine over NEW completed 10s bars [(k,o,h,l,c,vol),...].
+    `pdc` = prior-day close (day-gain basis). Returns at most one fire dict per call:
+    {px (traded close of the trigger bar — never a level), k, stop, pb_hi, pb_lo, leg, seq}."""
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    st = _hv2_state.get(sym)
+    if st is None or st.get("day") != day:                 # session state never crosses days
+        st = _hv2_state[sym] = {"day": day, "bars": [], "run_hi": 0.0,
+                                "cool": 0, "pend": None, "seq": 0, "e90": None}
+    fire = None
+    for (k, o, h, l, c, v) in new_bars:
+        b = st["bars"]
+        b.append((k, o, h, l, c))
+        if len(b) > 60:
+            del b[:-60]                                    # 31 for the leg low + 12 pullback + slack
+        if h > st["run_hi"]:
+            st["run_hi"] = h
+        # running 10s 90-EMA — the extension guard's input (gate 10: no lane ships blind to it)
+        st["e90"] = c if st["e90"] is None else st["e90"] + (c - st["e90"]) * (2.0 / 91.0)
+        # 1) pending trigger consumes first (trigger = HIGH breaks the pullback high)
+        p = st["pend"]
+        if p and k > p["expire_k"]:
+            st["pend"] = p = None
+        if p and h > p["pb_hi"] and k >= st["cool"] and fire is None:
+            st["seq"] += 1
+            fire = {"px": round(c, 4), "k": k, "stop": round(p["pb_lo"] * 0.99, 4),
+                    "pb_hi": round(p["pb_hi"], 4), "pb_lo": round(p["pb_lo"], 4),
+                    "leg": p["leg"], "seq": st["seq"],
+                    "ema90": round(st["e90"], 4) if st["e90"] else None}
+            st["pend"] = None
+            st["cool"] = k + 300                           # replay's 30-bar cool-off
+            continue
+        # 2) arm + pullback detection ending at THIS bar
+        if k < st["cool"]:
+            continue
+        hm = datetime.fromtimestamp(k, EASTERN).strftime("%H:%M:%S")
+        if not ("09:30:00" <= hm <= "15:30:00"):
+            continue
+        if not (pdc and pdc > 0 and c > 0):
+            continue                                       # caller logs the no-basis row
+        gain = (c - pdc) / pdc * 100
+        if not (25.0 <= gain <= 60.0) or not (vwap and vwap > 0 and c > vwap):
+            continue
+        lows = [x[3] for x in b[-31:]]
+        leg = st["run_hi"] - min(lows)
+        if leg <= 0:
+            continue
+        j = len(b) - 1
+        pb_hi, pb_lo, dn = h, l, 0
+        while j >= 0 and b[j][4] <= b[j][1] * 1.001 and dn < 12:
+            pb_hi = max(pb_hi, b[j][2]); pb_lo = min(pb_lo, b[j][3])
+            dn += 1; j -= 1
+        depth = st["run_hi"] - pb_lo
+        if dn < 1 or depth <= 0 or depth > 0.50 * leg:
+            continue
+        st["pend"] = {"pb_hi": pb_hi, "pb_lo": pb_lo, "leg": round(leg, 4),
+                      "expire_k": k + 60}                  # 6 bars to trigger, else expires
+    return fire
 
 def hidden_entry_step(sym, new_bars, vwap):
     """Advance sym's HIDDEN-ENTRY machine over NEW completed 10s bars [(o,h,l,c,vol),...].
@@ -10083,6 +10172,64 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
                             except Exception as _x9e:
                                 _gate_failopen("ema9x90", why=str(_x9e)[:60])
 
+                        # ── 8/19 HIDDEN v2 (Marcos: "lock the new hidden. build it and ship live
+                        # for tomorrow.") — same fed 10s bars + session line, zero new fetches.
+                        # Full doc at the detector (hidden_v2_step). CONVERTS by default, NO day
+                        # cap (Marcos: "eliminate the day caps"); exit_mode="HV2" (25%@+1R -> BE,
+                        # 15-min no-new-high). Downstream gates apply NORMALLY — min-stop 4% ON
+                        # by measurement (+$41.60/tr OOS survivors vs +$6.80/tr refused).
+                        if HIDDENV2:
+                            try:
+                                _hv2_pdc = _pdc_map.get(t) or ((cache[t].get("daily") or {}).get("prior_day_close") or 0)
+                                if not (_hv2_pdc and _hv2_pdc > 0):
+                                    # NEW-LANE CHECKLIST: no silent death — missing context is a row
+                                    _log_decision(t, "hiddenv2_no_daygain_basis", price=price)
+                                    _hv2f = None
+                                else:
+                                    _hv2f = hidden_v2_step(t, _nb, _vr_sv, _hv2_pdc)
+                                if _hv2f and not _fire_once("hidden_v2", t, _hv2f.get("k")):
+                                    _replay_suppressed(t, "hidden_v2", _hv2f.get("k"), _hv2f.get("px"))
+                                    _hv2f = None
+                                # NEW-LANE CHECKLIST age guard (armed at birth via
+                                # LANE_FIRE_AGE_GUARD default): stale bucket -> consume, don't fire
+                                if _hv2f and _lane_fire_stale(t, "hidden_v2", _hv2f.get("k"), _hv2f.get("px")):
+                                    _hv2f = None
+                                if _hv2f:
+                                    _log_decision(t, "hiddenv2_fire", price=_hv2f["px"],
+                                                  lane="hidden_v2", stop=_hv2f["stop"],
+                                                  pb_hi=_hv2f["pb_hi"], pb_lo=_hv2f["pb_lo"],
+                                                  leg=_hv2f["leg"], vwap=round(_vr_sv, 4),
+                                                  day_gain=(round((_hv2f["px"] - _hv2_pdc) / _hv2_pdc * 100, 2)
+                                                            if _hv2_pdc else None),
+                                                  fire_age_s=(round(time.time() - _hv2f["k"], 1)
+                                                              if _hv2f.get("k") else None),
+                                                  drift_pct=(round((price - _hv2f["px"]) / _hv2f["px"] * 100, 2)
+                                                             if price and _hv2f.get("px") else None),
+                                                  eyes=_eyes_compact(_eyes_snapshot(t, _hv2f["px"], "entry", {"vwap": _vr_sv, "zone_stop": _hv2f["stop"]})),
+                                                  time_hm=datetime.now(EASTERN).strftime("%H:%M"),
+                                                  **_fed_stamp(_nb, _hv2f))
+                                    if _hv2f["stop"] < _hv2f["px"]:
+                                        _hv2_px = price if price and price > 0 else _hv2f["px"]
+                                        print(f"\n🌊 {t} HIDDEN v2 (pullback ${_hv2f['pb_lo']:.2f}->"
+                                              f"break ${_hv2f['pb_hi']:.2f})! ${_hv2_px:.2f} — stop "
+                                              f"${_hv2f['stop']:.2f} (pb low -1%), HV2 exits "
+                                              f"(25%@+1R->BE, 15-min time stop)")
+                                        breakouts.append((t, _hv2_px, round(_vr_sv, 4), "hidden_v2", {
+                                            "zone_stop": _hv2f["stop"], "exit_mode": "HV2",
+                                            "fire_px": _hv2f["px"], "fire_k": _hv2f["k"],
+                                            "pb_hi": _hv2f["pb_hi"], "pb_lo": _hv2f["pb_lo"],
+                                            "ema90": _hv2f.get("ema90"),   # extension guard (gate 10)
+                                            "hv2_seq": _hv2f["seq"],
+                                        }))
+                                        _log_decision(t, "triggered_hidden_v2", price=_hv2_px,
+                                                      stop=_hv2f["stop"], fire_px=_hv2f["px"],
+                                                      fire_age_s=(round(time.time() - _hv2f["k"], 1) if _hv2f.get("k") else None),
+                                                      drift_pct=(round((_hv2_px - _hv2f["px"]) / _hv2f["px"] * 100, 2) if _hv2f.get("px") else None),
+                                                      vwap=round(_vr_sv, 4), seq=_hv2f["seq"],
+                                                      **_fed_stamp(_nb, _hv2f))
+                            except Exception as _hv2e:
+                                _gate_failopen("hidden_v2", why=str(_hv2e)[:60])
+
                         # ── 8/14 GRINDER-1030 shadow (#48 lane; E3 OOS-wall nominee): same fed
                         # 10s bars + session line as hidden/v2 (zero new fetches). The shadow row
                         # ALWAYS logs (evidence ledger rides along). 8/14 night (Marcos: "sim
@@ -11504,7 +11651,7 @@ def wait_for_flat_top_entry(candidates: list, stream: WebullStream,
         # Others active per BREAKOUT_ENTRIES: True → full bag; False → pullback + VWAP-reclaim only.
         _cyc_mark("detect", _cyc)
         breakouts = [b for b in breakouts
-                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition", "zone_flip", "rocket_catcher", "hidden_entry"))]
+                     if b[3] != "bounce" and (BREAKOUT_ENTRIES or b[3] in ("ma_pullback", "vwap_reclaim", "ignition", "zone_flip", "rocket_catcher", "hidden_entry", "hidden_v2"))]
         # EXTENSION GUARD — don't chase a name too far above its 90-EMA (7/3 data; Kev "don't chase extended").
         # ── ENTRY-VELOCITY INSTRUMENTATION (7/21 #49-class, LOG-ONLY per sim-integrity/n=8) —
         # kill-test found both 7/21 big losers (IQMX/CJMB) entered with NEGATIVE trailing 5-min
@@ -12769,6 +12916,20 @@ def _e3_eval(current_stop, runhi, bar_close, bar_high):
     return runhi, None
 
 
+def _hv2_eval(current_stop, runhi, hi_k, bar_close, bar_high, bar_k, time_stop_s):
+    """HV2 per-10s-bar evaluator (PURE, mirrors _e3_eval). Spec = the 8/19 hidden_v2 replay:
+    stop-first, then run-high update (a new high resets the time-stop clock to this bar's
+    key), then the time stop — `time_stop_s` seconds without a new high exits the runner.
+    Returns (new_runhi, new_hi_k, action) with action in (None, "stop", "time")."""
+    if 0 < bar_close <= current_stop:
+        return runhi, hi_k, "stop"                  # stop-first ties, same as E3
+    if bar_high > runhi:
+        return bar_high, bar_k, None                # new high — clock restarts
+    if hi_k and bar_k - hi_k >= time_stop_s:
+        return runhi, hi_k, "time"
+    return runhi, hi_k, None
+
+
 def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                   stream: WebullStream, stop_order_id, vwap=0, next_supply=None, entry_type="flat_top",
                   entered_premkt=None, runway=None, resume_state=None, trade_id=None, exit_mode=None):
@@ -12874,7 +13035,14 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     # Stop machinery + EOD flatten UNCHANGED. Kill: E3_EXITS=0 reverts these lanes to the ladder. ──
     if not exit_mode and isinstance(resume_state, dict):
         exit_mode = resume_state.get("exit_mode")   # restart keeps the trade's exit contract
-    _e3_mode  = bool(E3_EXITS and exit_mode == "E3")
+    # 8/19 HV2 (hidden_v2 lane) is E3-FAMILY: it rides the whole E3 chassis (10s feed
+    # consumption, stop-first ties, legacy-exit guards, resume) with exactly two swaps made
+    # below — the tier (25% @ +1R, not 50% @ +10%) and the runner rule (15-min no-new-high
+    # time stop, not the 10%-off-run-high trail). Spec: hidden_v2_step docstring + the 8/19
+    # replay (data/killtests/hidden_v2_simple_20260819.py, OOS +$10.69/tr n=500).
+    _hv2_mode = bool(exit_mode == "HV2")
+    _e3_mode  = bool(E3_EXITS and exit_mode == "E3") or _hv2_mode
+    _hv2_hik  = 0                                  # bucket key of the last NEW HIGH (time-stop clock)
     _e3_runhi = entry_price                        # run high FROM ENTRY (no lookahead — F note 2)
     _e3_last  = 0                                  # last consumed completed-10s-bar key
     _e3_t     = 0.0                                # feed-poll throttle
@@ -12891,7 +13059,11 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
     if isinstance(resume_state, dict) and float(resume_state.get("risk_ps") or 0) > 0:
         R = float(resume_state["risk_ps"])   # auditor #1: R from the ORIGINAL risk, never the
         # ratcheted stop — else tiers collapse onto entry and already-sold tiers re-fire
-    if _e3_mode:
+    if _hv2_mode:
+        # HV2 ladder = ONE tier: sell 25% at +1R (8/19 ladder: 25% beats 40% at every R level
+        # OOS; 1.0R = 68% green). BE_FLOOR_AFTER_SCALE then floors the stop at entry-or-better.
+        kev_tiers = [(round(entry_price + 1.0 * R, 4), 0.25)]
+    elif _e3_mode:
         # E3 ladder = ONE tier: bank 1/2 at +10% (resting limit fills exactly, per F method notes);
         # the remainder is managed by the 10s off-high trail below, stop always live.
         kev_tiers = [(round(entry_price * 1.10, 4), 0.50)]
@@ -13259,7 +13431,12 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                 # Until then the stop stays at STRUCTURE — snapping to entry after the first partial was
                 # donating healthy +1R retests back at breakeven (12 BE-scratches → 0 in the kill-test).
                 # The prev-bar-low trail still ratchets the runner on a CLOSE basis (EMA section).
-                if tier_idx >= BE_FLOOR_AFTER_SCALE:
+                # 8/19 HV2: its ladder is ONE tier by spec ("25% at +1R -> stop to BE"), so the
+                # shared floor-after-2nd-scale default would mean the BE floor NEVER arrives and
+                # the runner carries full pullback-low risk to the time stop — the exact exit the
+                # replay did NOT measure (Blast Radius Auditor finding #1, pre-ship). HV2 floors
+                # after its single tier; every other lane keeps the 7/28 kev25 default untouched.
+                if tier_idx >= (1 if _hv2_mode else BE_FLOOR_AFTER_SCALE):
                     current_stop = entry_price
                 # 7/30 A2-F (hidden only, config F of hidden_exit_configs: −$96.04 best of six,
                 # walked bar-by-bar): after ANY scale the stop ratchets to the SCALE-BAR LOW — the
@@ -13517,11 +13694,23 @@ def monitor_trade(ticker, total_shares, entry_price, target_price, stop_loss,
                     _e3_b = _e3_d[_e3_k] or {}
                     _e3_c = float(_e3_b.get("c") or 0)
                     _e3_h = float(_e3_b.get("h") or 0)
-                    _e3_runhi, _e3_act = _e3_eval(current_stop, _e3_runhi, _e3_c, _e3_h)
+                    if _hv2_mode:
+                        # HV2 swap #2: 15-min no-new-high time stop replaces the 10% trail.
+                        if not _hv2_hik:
+                            _hv2_hik = _e3_k       # clock starts at the first consumed bar
+                        _e3_runhi, _hv2_hik, _e3_act = _hv2_eval(
+                            current_stop, _e3_runhi, _hv2_hik, _e3_c, _e3_h,
+                            _e3_k, HIDDENV2_TIME_STOP)
+                    else:
+                        _e3_runhi, _e3_act = _e3_eval(current_stop, _e3_runhi, _e3_c, _e3_h)
                     if _e3_act and remaining_shares > 0:
                         if _e3_act == "stop":
                             print(f"🛑 {ticker} E3 stop — 10s close ${_e3_c:.4f} ≤ stop ${current_stop:.4f}")
                             _rsn = "Stop loss 🛑 (E3 10s close)"
+                        elif _e3_act == "time":
+                            print(f"⏱️ {ticker} HV2 TIME STOP — {HIDDENV2_TIME_STOP // 60} min without "
+                                  f"a new high (run-high ${_e3_runhi:.4f}), exiting runner at ${_e3_c:.4f}")
+                            _rsn = f"HV2 TIME STOP ({HIDDENV2_TIME_STOP // 60}min no new high)"
                         else:
                             print(f"📉 {ticker} E3 TRAIL — 10s close ${_e3_c:.4f} < 90% of run-high "
                                   f"${_e3_runhi:.4f} (trail ${0.90 * _e3_runhi:.4f})")
@@ -14536,7 +14725,8 @@ def main():
     # restart's behavior is readable from one log line instead of inferred from env vars + absences
     # (the 7/29 midday disarm had to be verified by inference).
     print("🎛️  BOOT CONFIG: "
-          f"HIDDEN_ENTRY={int(HIDDEN_ENTRY)} HIDDEN_CONVERT={int(HIDDEN_CONVERT)} RECLAIM_LIVE={int(RECLAIM_LIVE)} "
+          f"HIDDEN_ENTRY={int(HIDDEN_ENTRY)} HIDDEN_CONVERT={int(HIDDEN_CONVERT)} "
+          f"HIDDENV2={int(HIDDENV2)} HIDDENV2_TIME_STOP={HIDDENV2_TIME_STOP}s RECLAIM_LIVE={int(RECLAIM_LIVE)} "
           f"ZONEFLIP_KEV={int(ZONEFLIP_KEV)} IGNITION_10S={int(IGNITION_10S)} | "
           f"SWAP_MODE={SWAP_MODE} PM_EXT_QUOTE={int(PM_EXT_QUOTE)} DIP_RIP={int(DIP_RIP)} | "
           f"MIN_STOP_PCT={MIN_STOP_DIST_PCT} EXEMPT={sorted(MIN_STOP_EXEMPT)} | "
@@ -16164,7 +16354,9 @@ PRE_LANES = set((os.environ.get(
 # Kill: RTH_LANES="" disables the whitelist (every lane trades, today's behaviour).
 RTH_LANES = set(x for x in (os.environ.get(
     "RTH_LANES",
-    "ignition,ema9x90,ma_pullback,kevseq,grinder,dip_rip")).split(",") if x.strip())
+    # 8/19 + hidden_v2 (Marcos: "lock the new hidden. build it and ship live for tomorrow.")
+    # — replaces restricted hidden_entry (v1 stays RESTRICTED: detect+log only).
+    "ignition,ema9x90,ma_pullback,kevseq,grinder,dip_rip,hidden_v2")).split(",") if x.strip())
 # 8/16 PREVWAP conversion (Marcos: "switch pre-vwap ... to live in pre" — ALL SIM): the prevwap
 # lane fires ONLY 07:00-09:25, so it must be a PRE lane or the premarket gate shadows every fire.
 # Rides the convert switch — PREVWAP_CONVERT=0 (default) leaves PRE_LANES exactly as before.

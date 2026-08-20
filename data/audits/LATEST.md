@@ -264,3 +264,79 @@ lane's INTERNAL gates all stand (VWAP, depth, quiet, flag stop, internal runway 
 measured hold-out spec). No other exemption. Rig gate 22 (5 checks) + shipset AO re-pinned to
 the ruling. Doctrine: pattern-is-the-gate, same as kevseq. Measure and number both Marcos's.
 Ships at the next flat window / close convene.
+
+## ADDENDUM 4 — HIDDEN v2 LIVE (Marcos, 22:0x ET: "lock the new hidden. build it and ship live for tomorrow.")
+
+**What ships.** The hidden lane rebuilt end-to-end to Marcos's simple spec, replay-locked
+in-session on the 948-name-day 10s SIP cache (data/killtests/hidden_v2_simple_20260819.py +
+three parameter ladders):
+- ARM day-gain 25-60% above session VWAP (RTH 09:30-15:30) · pullback <= 50% of the
+  rolling-5-min leg · trigger = HIGH breaks the pullback high within 6 bars · stop = pullback
+  low -1% · exits HV2: 25% off at +1R -> stop to entry-or-better, runner exits on 15 min
+  without a new high · NO day caps (Marcos) · 300s per-name cool-off.
+- Ladder verdicts (train=even dates / OOS=odd): 15-min time stop is the LAST point where
+  OOS >= train (20min+ = train pulls ahead = memorization; "none" collapses to +$8.92 OOS);
+  25% scale beats 40% at every R; 1.0R = 68% green. All-fills OOS +$10.69/tr n=500.
+- GATE REVIEW (Marcos: "did we review gates in its way" / "no surprises"): every house gate
+  priced on the lane's own 1,023 replay fills. Backside bites 0. Day-gain floor can't bite
+  (arm >= 25%). Chart-map gates auto-cleared (tape class). MIN-STOP 4% deliberately ON:
+  refuses the 77% tight-stop fills earning +$6.80/tr, keeps survivors at +$41.60/tr OOS
+  (n=113, 73% green, ~4 fires/day) — the gate is a measured quality filter on this lane.
+- Declared live-vs-replay translations: day-gain basis = prior-day close (replay: 4am print);
+  BE = entry-or-structure floor (BE_FLOOR_AFTER_SCALE); flat = house flatten.
+
+**NEW-LANE CHECKLIST (the kevseq law), item by item:** fire price = the trigger bar's traded
+close, never a level (pin A3) · age guard ARMED AT BIRTH (LANE_FIRE_AGE_GUARD default =
+"hidden_v2"; batchG pin amended on the record — a lane born with the guard removes no trade it
+ever had) · drift + fire_px/fire_k stamped on fire and conversion rows · caps: none by owner
+ruling; ONE_PER_TICKER/slot arbiter apply normally · LANE_CLASS "tape" + full gate set
+enumerated above · context computed not fail-closed: missing day-gain basis logs
+hiddenv2_no_daygain_basis, never dies silently · stop anchored to the entry-adjacent pullback
+low. Extension guard: honest running 10s 90-EMA stamped (gate 10 GREEN, BLIND_KNOWN did not grow).
+
+**Rig.** New gate 25 (rig/test_hidden_v2_20260819.py): 27 checks, detector and _hv2_eval
+EXECUTED on synthetic tape, all wiring pinned. GREEN. Full sweep 45 pass / 18 fail — the 18
+verified IDENTICAL to the HEAD baseline via stash (pre-existing stale-pin/live-endpoint
+classes, registry in PUNCHLIST_20260819.md). Gate 17 (liftability) and gate 10 (extension
+blindness) both demanded compliance and got it; harness LANES entry added (replayable).
+
+**Exit plumbing.** exit_mode="HV2" rides the E3 chassis (stop-first ties, 10s feed, resume,
+legacy-exit guards) with exactly two swaps: tier 25%@+1R and the 15-min no-new-high time stop
+(pure fn _hv2_eval, mirrored on _e3_eval, rig-executed). Restart: resume keeps the HV2
+contract; the time-stop clock restarts at the first consumed bar post-resume (declared).
+
+**Lanes ledger.** RTH whitelist gains hidden_v2 (v1 hidden_entry STAYS RESTRICTED: detect+log
+only; its +$864.51 stands FAKE on the record). Kill switch HIDDENV2=0; time stop
+HIDDENV2_TIME_STOP env.
+
+**Blast Radius Auditor** — separate-context adversarial diff review convened pre-ship
+(verdict recorded below at ship time). **All other offices** — no sizing touched, no other
+lane's gates moved; TAPE_LANES grows by one member, checked against every registry that
+derives from it. Doctrine-inversion: shipping a lane the same night it was designed compresses
+the usual soak — weighed; owner's explicit order ("ship live for tomorrow"), DRY_RUN sim,
+kill switch + age guard + full refusal instrumentation in place. Benchmark the live shadow
+must track: ~+$11-12/tr all-fills, ~$41/tr post-min-stop survivors, ~4 fires/day median.
+
+**Port parity (live detector vs the replay's scan, 57 random cached name-days):** 61/74 fires
+exact-bar identical, 5 shifted <=2min (same move, neighboring pullback), 2 replay-only-far,
+6 live-only-far = 89% economically matched. Cause understood and bounded: the batch scan
+evaluates every pullback retroactively; the live port holds ONE pending setup (latest wins),
+so a minority of fires land on an adjacent pullback of the same qualifying move. All residuals
+pass the full arm (25-60% above VWAP, valid pullback+break). Direction of drift: ~+0.1
+fire/name-day MORE than replay.
+
+**Blast Radius Auditor VERDICT (separate context, 21 tool-uses over the full diff):**
+DO-NOT-SHIP on one blocker, then SHIP. Blocker #1 CONFIRMED AND FIXED pre-ship: the shared
+BE floor (BE_FLOOR_AFTER_SCALE=2, the 7/28 kev25 default) meant HV2's single-tier ladder
+NEVER floored the stop — "25% at +1R -> BE" would have shipped as "25% at +1R -> stop stays
+at pullback low", an exit the replay never measured. Fix: floor after tier 1 iff _hv2_mode
+(:13433 region), every other lane untouched; rig pin C14 added (gate 25 now 28 checks, GREEN
+— the auditor also flagged that C6 pinned the tier but not the floor; closed). Finding #2
+(env overrides voiding code defaults): Railway env audited via CLI in-turn — RTH_LANES /
+LANE_FIRE_AGE_GUARD / BE_FLOOR_AFTER_SCALE / HIDDENV2 / MIN_STOP_EXEMPT / E3_EXITS ALL unset,
+code defaults rule. Notes adopted: stale "EVERY LANE OFF" comment amended; hidden_v2 added to
+the BREAKOUT_ENTRIES=False defensive whitelist (:11653). Auditor confirmed safe: _e3_mode
+composition (plain-E3 byte-identical), tier ladder ordering (rocket/hidden_entry untouched,
+HIDDEN_SCALEBAR_STOP exact-matches v1), TAPE_LANES per-lane derivation (no sibling change),
+age-guard scoping (only hidden_v2 armed), no key collisions, restart/resume coherent.
+Full rig after fixes: 45 pass / 18 fail — identical to HEAD baseline. SHIPPING.

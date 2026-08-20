@@ -298,6 +298,8 @@ ALL_SYMBOLS = [
     # other 10s lanes
     "grinder_shadow_step", "bandpass_step", "v2_pullback_step", "v2_trailing_calm",
     "hidden_entry_step", "ignition_10s_step", "detect_ignition",
+    # hidden_v2 lane (8/19: Marcos "lock the new hidden. build it and ship live for tomorrow.")
+    "hidden_v2_step", "_hv2_state", "HIDDENV2", "HIDDENV2_TIME_STOP",
     # 8/17 B2: the shared fire-age suppressor the detector lanes now call (and its env
     # parser).  Disarmed by default, so lifting it changes no harness result — but it must
     # LIFT, or kevseq_step/grinder_shadow_step/bandpass_step/v2_pullback_step cannot.
@@ -598,6 +600,11 @@ LANES = {
         "fn": "grinder_shadow_step", "needs_vwap": True, "ctx_required": (),
         "state": ("_gr_st",),
         "call": lambda F, sym, nb, vwap, ctx: F(sym, nb, vwap),
+    },
+    "hidden_v2": {         # 8/19 lane; ctx carries the day-gain basis (prior-day close)
+        "fn": "hidden_v2_step", "needs_vwap": True, "ctx_required": ("pdc",),
+        "state": ("_hv2_state",),
+        "call": lambda F, sym, nb, vwap, ctx: F(sym, nb, vwap, (ctx or {}).get("pdc")),
     },
     "bandpass": {          # RTH lane: 09:30-16:00 ET window, exactly the live call
         "fn": "bandpass_step", "needs_vwap": True, "ctx_required": (),

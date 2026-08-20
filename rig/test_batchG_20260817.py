@@ -110,8 +110,13 @@ def SPEC_new_guards_are_disarmed_by_default():
     switch ships empty. An age guard REMOVES TRADES; arming one whose cost has never been
     measured is a silent tightening (batch B's stated precedent, held to here)."""
     s = bot_src()
-    ok = check("the shared env still defaults to NO lane armed",
-               'LANE_FIRE_AGE_GUARD = os.environ.get("LANE_FIRE_AGE_GUARD", "")' in s)
+    # 8/19 AMENDMENT: the default arms exactly ONE lane — hidden_v2, armed AT BIRTH per the
+    # NEW-LANE CHECKLIST (Marcos 8/17: kevseq shipped without the age guard and cost a full
+    # session). Batch B's precedent (never arm a MATURE lane whose suppression cost is
+    # unmeasured) is intact: a lane born with the guard removes no trade it ever had. Any
+    # OTHER lane appearing in this default is still a RED.
+    ok = check("the shared env default arms hidden_v2 at birth and NOTHING else",
+               'LANE_FIRE_AGE_GUARD = os.environ.get("LANE_FIRE_AGE_GUARD", "hidden_v2")' in s)
     ok &= check("batch G added no second age env",
                 not re.search(r'(FLAT_TOP|FLATTOP|SEAM|CROWN_SEAM|HALT_LADDER)_FIRE_MAX_AGE', s))
     # the mechanism itself: an unarmed lane returns False before it can suppress anything

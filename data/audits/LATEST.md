@@ -353,3 +353,5 @@ RTH_LANES/LANE_FIRE_AGE_GUARD/BE_FLOOR_AFTER_SCALE/HIDDENV2/MIN_STOP_EXEMPT/E3_E
 move's chronology: ignition starts it, hidden_v2 buys its first pullback). Rig pin C15 (gate
 25 -> 29 checks, GREEN). Railway LANE_RANK unset — code default rules. Move % still decides
 between names inside a rank; contested-slot behavior only.
+
+**SHIP STAMP (Addendum 5):** tree e48513be7762 — LANE_RANK reorder only, rig gate 25 GREEN 29/29.

@@ -340,3 +340,8 @@ composition (plain-E3 byte-identical), tier ladder ordering (rocket/hidden_entry
 HIDDEN_SCALEBAR_STOP exact-matches v1), TAPE_LANES per-lane derivation (no sibling change),
 age-guard scoping (only hidden_v2 armed), no key collisions, restart/resume coherent.
 Full rig after fixes: 45 pass / 18 fail — identical to HEAD baseline. SHIPPING.
+
+**SHIP STAMP (Addendum 4):** tree f05616631804 — hidden_v2 lane (3b121ed) + expectancy-ledger
+entry (f056166). Rig at ship: gate 25 GREEN 28/28; full sweep 45 pass / 18 fail = HEAD-baseline
+identical. Flat book verified 22:33 ET this convening: {"open_trades":[]}. Railway env audited:
+RTH_LANES/LANE_FIRE_AGE_GUARD/BE_FLOOR_AFTER_SCALE/HIDDENV2/MIN_STOP_EXEMPT/E3_EXITS all unset.

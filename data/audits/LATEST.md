@@ -531,3 +531,5 @@ with the v2conv seat waiting on it.
 
 Rig at ship: 49 pass / 17 fail — ONE BETTER than baseline (minstop gate reclaimed); gate 28
 green with executed pins. Flat book + clean tree verified by ship.sh in-run.
+
+**SHIP STAMP (Addendum 13):** tree 123bbed4c9c0.

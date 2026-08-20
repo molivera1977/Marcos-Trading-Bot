@@ -158,6 +158,16 @@ check("C14 BE floor arrives after HV2's single tier",
 # hidden should be right after ignition at #2."
 check("C15 LANE_RANK: hidden_v2 at #2, right after ignition",
       '"LANE_RANK", "ignition,hidden_v2,ema9x90,ma_pullback"' in SRC)
+# C16/C17 — Marcos ruling 8/19 ~23:5x ET: "if hidden has no need for a map or runway, then
+# why gate it to them in any way shape or form" / "hidden by design is its own gate".
+check("C16 pattern-gate switch exists, default ON",
+      'HV2_PATTERN_GATE = os.environ.get("HV2_PATTERN_GATE", "1") == "1"' in SRC)
+check("C17 exempt from BOTH blanket map gates (mapless-block + external runway)",
+      "MAPLESS_BLOCK and not _ml_has_map and not (\n"
+      "                            HV2_PATTERN_GATE and entry_type == \"hidden_v2\")" in SRC
+      and 'and not (HV2_PATTERN_GATE and entry_type == "hidden_v2")' in SRC)
+check("C18 min-stop still ON for hidden_v2 (measured to pay — C9 re-checked)",
+      "hidden_v2" not in re.search(r'"MIN_STOP_EXEMPT", "([^"]*)"', SRC).group(1))
 
 print("=" * 74)
 print("GREEN" if not FAIL else f"RED — {FAIL}")

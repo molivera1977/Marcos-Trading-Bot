@@ -430,3 +430,16 @@ env pins the bench; one word reverses it). Same road back as prevwap: the daily 
 grading. FINAL 8/20 PRE ROSTER: ignition, v2conv, ma_pullback CONVERT (all three have live
 fills through the real gate stack today); prevwap + vwap_reclaim SHADOW. ma_pullback stop is
 4% under the flag low by construction (boot: stopbuf=4%) — min-stop cannot surprise it.
+
+## ADDENDUM 10 — HIDDEN IS ITS OWN GATE (Marcos rulings ~23:5x ET)
+
+"if hidden has no need for a map or runway, then why gate it to them in any way shape or
+form" + "hidden by design is its own gate." Verified before ruling: hidden_v2_step consumes
+only (bars, vwap, prior-day close) — the word "level" appears once in its body, in the
+docstring saying the fire price is NEVER a level; the replay evidence (+$9.85/tr OOS n=95)
+contained zero map information. GRANT (owner's, same class as MAPB_PATTERN_GATE): hidden_v2
+exempt from the two blanket map gates — mapless-block (:15395 region) and external runway
+(:15301) — via HV2_PATTERN_GATE=1 (kill switch restores the 8/6 blanket). MIN-STOP STAYS ON
+(measured to pay for this lane: OOS +$9.85/tr gated vs +$3.97 ungated, Addendum 6). Rig gate
+25 -> 32 checks (C16-C18) GREEN. Doctrine note: the 8/6 mapless law stands for every other
+tape lane; this is a lane-scoped owner exception mirroring "pullback should be its own gate."

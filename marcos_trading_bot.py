@@ -7286,6 +7286,10 @@ _he_name: dict = {}                          # (day, sym, sess) -> conversions. 
 # Kill: HIDDENV2=0. Time stop: HIDDENV2_TIME_STOP (seconds).
 HIDDENV2 = os.environ.get("HIDDENV2", "1") == "1"
 HIDDENV2_TIME_STOP = int(os.environ.get("HIDDENV2_TIME_STOP", "900"))
+# 8/19 Marcos: "hidden by design is its own gate" — exempt from mapless-block + external
+# runway (the two blanket map gates), same ruling class as ma_pullback's MAPB_PATTERN_GATE.
+# The detector consumes no map anywhere; min-stop stays ON (measured to pay for this lane).
+HV2_PATTERN_GATE = os.environ.get("HV2_PATTERN_GATE", "1") == "1"
 _hv2_state: dict = {}
 
 
@@ -15298,7 +15302,11 @@ def main():
             # starvation. Kill switch: MIN_RUNWAY_RR=0.
             # FAILURE CONDITION (pre-registered): wrong if the blocked cohort's forward counterfactual
             # (`runway_reject` rows) out-earns the trades that were allowed.
-            if MIN_RUNWAY_RR > 0 and not (MAPB_PATTERN_GATE and entry_type == "ma_pullback"):
+            # 8/19: hidden_v2 joins ma_pullback in the pattern-is-the-gate runway skip (Marcos:
+            # "if hidden has no need for a map or runway, then why gate it..."). Full doc at the
+            # mapless-block exemption above. Kill: HV2_PATTERN_GATE=0.
+            if MIN_RUNWAY_RR > 0 and not (MAPB_PATTERN_GATE and entry_type == "ma_pullback") \
+                    and not (HV2_PATTERN_GATE and entry_type == "hidden_v2"):
                 # 8/19 Marcos ("pullback should be its own gate"): ma_pullback's runway check is
                 # INTERNAL (MAPB_REQUIRE_RUNWAY, at the fire, part of the measured spec); this
                 # external pass re-asks it through the wide-stop R-denominator and refused TNON
@@ -15392,7 +15400,16 @@ def main():
                             _ml_has_map = False
                             _log_decision(ticker, "bluesky_ttl_expired", price=entry_price,
                                           age_s=round(_bs_age), machine=entry_type)
-                    if MAPLESS_BLOCK and not _ml_has_map:
+                    # 8/19 ~23:5x ET Marcos: "if hidden has no need for a map or runway, then
+                    # why gate it to them in any way shape or form" — hidden_v2's pattern IS
+                    # the gate (same ruling class as ma_pullback's). The detector consumes only
+                    # (bars, vwap, prior-day close); its stop/scale/exit are tape-structural,
+                    # and its replay evidence (+$9.85/tr OOS n=95, Addendum 6) contained ZERO
+                    # map information — so the map gates would apply an unmeasured filter to a
+                    # measured lane. Min-stop stays ON for it (that gate was measured to pay).
+                    # Kill: HV2_PATTERN_GATE=0 restores the blanket 8/6 behavior for this lane.
+                    if MAPLESS_BLOCK and not _ml_has_map and not (
+                            HV2_PATTERN_GATE and entry_type == "hidden_v2"):
                         print(f"🗺️  {ticker} NO MAP (no break/confirm/targets on the sheet) — "
                               f"mapless conversions are CLOSED [8/6] — skipping {entry_type}")
                         _log_decision(ticker, "mapless_reject", price=entry_price,

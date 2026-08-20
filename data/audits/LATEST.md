@@ -443,3 +443,5 @@ exempt from the two blanket map gates — mapless-block (:15395 region) and exte
 (measured to pay for this lane: OOS +$9.85/tr gated vs +$3.97 ungated, Addendum 6). Rig gate
 25 -> 32 checks (C16-C18) GREEN. Doctrine note: the 8/6 mapless law stands for every other
 tape lane; this is a lane-scoped owner exception mirroring "pullback should be its own gate."
+
+**SHIP STAMP (Addendum 10):** tree 756890451fa1.

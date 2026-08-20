@@ -3799,6 +3799,7 @@ LANE_EXPECTANCY = {
     "flat_top":       ( 24.94, "seq_gate_oos_wall_20260817.md — hold-out ungated, n=187"),
     "grinder":        ( 21.90, "seq_gate_oos_wall_20260817.md — hold-out ungated, n=142"),
     "ema9x90":        ( 22.33, "ema9x90_wall_20260818.md — full sample above VWAP, n=319"),
+    "hidden_v2":      ( 41.60, "hidden_v2_simple_20260819.py — OOS odd-dates post-min-stop, n=113"),
     "hidden_entry":   (-10.21, "hidden_wall_20260818.md — hold-out, n=1550. NEGATIVE and the "
                                "lane is OFF; listed so nobody re-enables it blind."),
     # UNMEASURED — no wall has run. They sort neutral. Do not invent numbers for these.

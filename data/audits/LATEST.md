@@ -355,3 +355,19 @@ move's chronology: ignition starts it, hidden_v2 buys its first pullback). Rig p
 between names inside a rank; contested-slot behavior only.
 
 **SHIP STAMP (Addendum 5):** tree e48513be7762 — LANE_RANK reorder only, rig gate 25 GREEN 29/29.
+
+## ADDENDUM 6 — STUDY-WINDOW CORRECTION (self-caught ~23:1x ET, via a failed positive control)
+
+DEFECT (mine): the 10s cache stamps bar times in UTC ("...Z"); every windowed replay tonight
+compared those strings to ET clock windows. The hidden_v2 study therefore traded 05:30-11:30
+ET, not 09:30-15:30 ET. Caught because the pre-audition returned prevwap=0 fires while the
+lane demonstrably fired live 8/17 (WETO) — EMPTY RESULT IS NOT A FINDING did its job.
+VOID as stated: the +$10.69/tr all-fills OOS, the +$41.60/tr min-stop survivors, the ladder
+tables, the pre-audition table, the hidden-in-pre numbers as quoted.
+RE-MEASURED, true ET window, locked config: all-fills OOS +$3.97/tr n=654; WITH MIN-STOP ON
+(the configuration actually shipped): TRAIN +$9.71/tr / OOS +$9.85/tr n=95, 64% green,
+fires 09:30-15:30 as designed. The shipped lane stands on the corrected number. OPEN: dials
+(15-min time stop, 25%@1R) were selected on the contaminated window — re-ladder queued
+tonight; pre-audition rerun queued with true ET. The live detector is unaffected (epoch+
+EASTERN, never string compares). Rig/killtest class-fix queued: every killtest that windows
+on cache time strings must convert UTC->ET first.

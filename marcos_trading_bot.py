@@ -3864,8 +3864,12 @@ def _in_premkt_now():
 # it under conditions its evidence never saw is the day's own "approved number, unexamined
 # measure" disease. The seat returns when the RTH min-stop question is settled — at a 1%
 # floor its evidence is clean and pre-measured. To arm: LANE_WINDOWS="v2conv:09:30-10:30".
+# 8/20 LATER SAME EVENING — ARMED: Marcos settled the RTH floor at 1% ("drop it to 1%...
+# which then means v2conv moves in to the first RTH hour"), the exact condition the
+# suspension named. The seat's evidence at a 1% floor: n=456 +$5,881, TRAIN +$13.16/fill /
+# OOS +$12.65/fill, both halves (the roster contest, ADDENDUM 14).
 LANE_WINDOWS = {}
-for _lw in (os.environ.get("LANE_WINDOWS", "") or "").split(","):
+for _lw in (os.environ.get("LANE_WINDOWS", "v2conv:09:30-10:30") or "").split(","):
     _lw = _lw.strip()
     if _lw and ":" in _lw:
         _ln, _, _rng = _lw.partition(":")
@@ -3906,8 +3910,17 @@ def _lane_window_ok(lane, hhmm):
 # behavior. When the seat returns, arm this WITH the trio placed ABOVE v2conv (deliberate:
 # they are live-proven earners; v2conv measured LAST of four on $/fire, both halves), e.g.
 # OPEN_LANE_RANK="ignition,hidden_v2,ema9x90,ma_pullback,kevseq,grinder,dip_rip,v2conv".
+# 8/20 CONTEST ORDER (Marcos: "Did we run a roster competition to let the data decide who
+# should go and in what order" — this is that competition, run at the 1% floor / capital-aware
+# / total dollars, i.e. the conditions the block lives under; every row both-halves positive):
+#   ignition  n=1350 +$25,182 (+$18.65/fill) > v2conv n=456 +$5,881 (+$12.90) >
+#   kevseq n=559 +$6,882 (+$12.31) > hidden_v2 n=295 +$3,209 (+$10.88).
+#   reclaim scored #2 (+$17.20/fill) but is BENCHED — flagged to its agenda item, not seated.
+#   grinder cannot fire before 10:30 by construction. ema9x90/ma_pullback are UNREPLAYABLE:
+#   no block score -> no block privilege; they follow the measured four, keeping their own
+#   relative order. hidden_v2's all-day #2 rank is untouched outside this hour.
 OPEN_LANE_RANK = [x.strip() for x in os.environ.get(
-    "OPEN_LANE_RANK", "").split(",") if x.strip()]
+    "OPEN_LANE_RANK", "ignition,v2conv,kevseq,hidden_v2,ema9x90,ma_pullback").split(",") if x.strip()]
 OPEN_BLOCK = (os.environ.get("OPEN_BLOCK_START", "09:30"),
               os.environ.get("OPEN_BLOCK_END", "10:30"))
 
@@ -3946,7 +3959,7 @@ LANE_EXPECTANCY = {
     "flat_top":       ( 24.94, "seq_gate_oos_wall_20260817.md — hold-out ungated, n=187"),
     "grinder":        ( 21.90, "seq_gate_oos_wall_20260817.md — hold-out ungated, n=142"),
     "ema9x90":        ( 22.33, "ema9x90_wall_20260818.md — full sample above VWAP, n=319"),
-    "hidden_v2":      ( 41.60, "hidden_v2_simple_20260819.py — OOS odd-dates post-min-stop, n=113"),
+    "hidden_v2":      (  9.85, "true-ET rerun 8/19 (LATEST.md ADDENDUM 6) — OOS post-min-stop, n=95; the first-pass +41.60 was the VOIDED UTC-shifted window"),
     "hidden_entry":   (-10.21, "hidden_wall_20260818.md — hold-out, n=1550. NEGATIVE and the "
                                "lane is OFF; listed so nobody re-enables it blind."),
     # UNMEASURED — no wall has run. They sort neutral. Do not invent numbers for these.
@@ -9359,7 +9372,13 @@ MAX_STOP_DIST_PCT       = 0.0    # C: Kev tight-setup gate — SKIP entries whos
 # bands graded 4-6% rejects as forfeited winners (~$65/4 days, n=6 — thin, hence the week of
 # finer-band data below). Live cells 4-5/5-6 from kept trades' stop_width_pct; death zone <4
 # stays shadow-graded via the refined reject bands. Friday 8/8 sets the floor where the edge is.
-MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "4.0")) / 100.0
+# 8/20 (Marcos: "drop it to 1% if the data supports it"): RTH ladder, capital-aware $3,000,
+# no cap, all replayable lanes — 0% +$44,866 / 1% +$42,310 / 4% +$31,816 / 6% +$18,581; the 4%
+# floor cost $10,494 vs 1% and capital NEVER binds live (peak 3 concurrent, ~$1,500 of $3,000,
+# median 14 trades/day — Marcos: "we are never really maxed out during RTH"). 1% not 0%: sub-1%
+# stops sit inside the spread, unpriceable by a bar-low walker. Reject rows stamp floor= so the
+# nightly review grades the change from day one. Kill: MIN_STOP_PCT=4 restores the old floor.
+MIN_STOP_DIST_PCT       = float(os.environ.get("MIN_STOP_PCT", "1.0")) / 100.0
 # ── 8/13 STOP-COHERENCE FLOOR (Marcos: "ship the 0.5% floor tonight... revisit Friday") ──
 # NOT a setup-quality gate — a does-the-trade-still-exist check (family: liquidity floor).
 # The BQ 8/12 12:46 specimen: hidden fire at $1.42 (stop $1.349, sane 5%) executed 239s later

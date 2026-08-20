@@ -76,33 +76,42 @@ for _fn in ("_lane_window_ok", "_lane_rank"):
     _j = SRC.find("\ndef ", _i + 1)
     _ns_src = SRC[_i:_j]
     exec(compile(_ns_src, _fn, "exec"), _ns)
-_ns.setdefault("LANE_WINDOWS", {})            # the shipped default: inert
+_ns.setdefault("LANE_WINDOWS", {})            # start empty; armed case exercised below
 _ns["PRE_LANE_RANK"] = ["ignition", "v2conv", "vwap_reclaim", "ma_pullback"]
-_ns["OPEN_LANE_RANK"] = []                    # the shipped default: inert
+_ns["OPEN_LANE_RANK"] = []                    # start empty; armed case exercised below
 _ns["OPEN_BLOCK"] = ("09:30", "10:30")
 _ns["LANE_RANK"] = ["ignition", "hidden_v2", "ema9x90", "ma_pullback"]
 _ns["ENTRY_OPEN_ET"] = "07:00"
-check("A6a mechanism EXECUTED: inert default seats nobody in the window",
+check("A6a mechanism EXECUTED: an un-windowed lane is never window-seated",
       _ns["_lane_window_ok"]("v2conv", "09:45") is False)
 _ns["LANE_WINDOWS"]["v2conv"] = ("09:30", "10:30")
 check("A6b mechanism EXECUTED: armed window seats v2conv 09:45, not 10:30, not kevseq",
       _ns["_lane_window_ok"]("v2conv", "09:45") is True
       and _ns["_lane_window_ok"]("v2conv", "10:30") is False
       and _ns["_lane_window_ok"]("kevseq", "09:45") is False)
-check("A7a roster EXECUTED: inert default -> LANE_RANK everywhere (byte-identical RTH)",
+check("A7a roster EXECUTED: empty block roster -> LANE_RANK everywhere (the kill-switch path)",
       _ns["_lane_rank"]("hidden_v2", "09:45") == 1
       and _ns["_lane_rank"]("kevseq", "09:45") == _ns["_lane_rank"]("kevseq", "11:00") == 5)
-_ns["OPEN_LANE_RANK"] = ["ignition", "hidden_v2", "ema9x90", "ma_pullback",
-                          "kevseq", "grinder", "dip_rip", "v2conv"]
-check("A7b roster EXECUTED: armed block ranks v2conv LAST, trio ABOVE it, pre unaffected",
-      _ns["_lane_rank"]("v2conv", "09:45") == 7
-      and _ns["_lane_rank"]("kevseq", "09:45") == 4
+# 8/20 LATER: Marcos settled the RTH floor at 1% — the suspension's named condition — and
+# ordered the seat in ("which then means v2conv moves in to the first RTH hour") with the
+# roster set by COMPETITION at the 1% floor (ignition +$18.65/fill > v2conv +$12.90 >
+# kevseq +$12.31 > hidden_v2 +$10.88, all both-halves; unreplayable ema9x90/ma_pullback
+# follow the measured four). These pins exercise the SHIPPED armed defaults.
+_ns["OPEN_LANE_RANK"] = ["ignition", "v2conv", "kevseq", "hidden_v2", "ema9x90", "ma_pullback"]
+check("A7b roster EXECUTED: contest order in-block (v2conv #2, hidden_v2 #4), other hours unchanged",
+      _ns["_lane_rank"]("v2conv", "09:45") == 1
+      and _ns["_lane_rank"]("kevseq", "09:45") == 2
+      and _ns["_lane_rank"]("hidden_v2", "09:45") == 3
+      and _ns["_lane_rank"]("hidden_v2", "11:00") == 1
       and _ns["_lane_rank"]("v2conv", "11:00") == 5
       and _ns["_lane_rank"]("v2conv", "08:00") == 1)
-check("A7c wiring: the whitelist consults the window; the seat defaults SUSPENDED",
+check("A7c wiring: whitelist consults the window; seat + roster ARMED in the shipped defaults",
       "_b[3] in RTH_LANES or _lane_window_ok(_b[3], _rl_now)" in SRC
-      and 'os.environ.get("LANE_WINDOWS", "")' in SRC
-      and '"OPEN_LANE_RANK", ""' in SRC)
+      and 'os.environ.get("LANE_WINDOWS", "v2conv:09:30-10:30")' in SRC
+      and '"OPEN_LANE_RANK", "ignition,v2conv,kevseq,hidden_v2,ema9x90,ma_pullback"' in SRC)
+check("A9 RTH floor settled at 1% (Marcos 8/20) with the ladder in the comment",
+      'os.environ.get("MIN_STOP_PCT", "1.0")' in SRC
+      and "the 4%" in SRC and "+$42,310" in SRC)
 _rth = re.search(r'"RTH_LANES",\s*(#[^\n]*\n\s*)*"([^"]*)"', SRC)
 check("A8 v2conv NOT in the flat RTH whitelist (window seat only)",
       _rth is not None and "v2conv" not in _rth.group(2))

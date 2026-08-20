@@ -17,13 +17,18 @@ def check(name, cond, detail=""):
         fails.append(name)
 
 print("== config ==")
-check("floor is 4% by default (8/1, Marcos: see where the data takes us)", abs(bot.MIN_STOP_DIST_PCT - 0.04) < 1e-9,
+# 8/20 RE-PIN (Marcos: "drop it to 1% if the data supports it" — the RTH ladder did:
+# 0% +$44,866 / 1% +$42,310 / 4% +$31,816 capital-aware, capital never binding live; see
+# LATEST.md ADDENDUM 14). Every 4%-floor boundary pin below is re-drawn at the 1% floor.
+# The BANDS are unchanged — the shadow cohorts keep their cells; only the verdict line moved.
+check("floor is 1% by default (8/20 ruling; was 4% from 8/1)", abs(bot.MIN_STOP_DIST_PCT - 0.01) < 1e-9,
       f"MIN_STOP_DIST_PCT={bot.MIN_STOP_DIST_PCT}")
 
 print("== rejection boundary (entry $10.00) ==")
 for stop, want_rej, want_band in [
-    (9.90, True,  "<2"),    # 1.0% — the KIDZ class (fine bands 8/1)
-    (9.61, True,  "3-4"),   # 3.9% (fine bands 8/1)
+    (9.91, True,  "<2"),    # 0.9% — under the 1% floor: still the gate's business (spread zone)
+    (9.90, False, "<2"),    # 1.0% exactly — passes at the 8/20 floor (boundary, rounded-first)
+    (9.61, False, "3-4"),   # 3.9% — passes since 8/20 (was the KIDZ-class reject)
     (9.60, False, "4-5"),   # 4.0% — passes under the 4 floor (8/1)   # 4.0% exactly — band edge
     (9.51, False, "4-5"),   # 4.9% — passes (8/1)   # 4.9%
     (9.50, False, "5-6"),   # 5.0% — passes (8/1)   # 5.0% exactly — band edge
@@ -39,7 +44,9 @@ for stop, want_rej, want_band in [
 print("== real trades replay the right verdict (7/27 lane agreement) ==")
 # KIDZ 7/27 vwap_reclaim: 2.87% -> FLOORED lane -> reject, '<4' (the trade the gate exists for)
 rej, w, band = bot._min_stop_verdict(0.5400, 0.5245, "vwap_reclaim")
-check("KIDZ reclaim (2.87%) rejected in '2-3' (floor 4, fine bands 8/1)", rej and band == "2-3", f"w={w} band={band}")
+# 8/20: KIDZ's 2.87% now PASSES — it becomes a live 2-3 cell trade; its 7/27 loss history is
+# what the live 2-3 cell (stamped floor=1.0) will confirm or refute, same bargain as HPAI's.
+check("KIDZ reclaim (2.87%) passes at floor 1, band '2-3'", (not rej) and band == "2-3", f"w={w} band={band}")
 # HPAI 7/17 vwap_reclaim: 4.15% -> reject, '4-5' (worst tight-stop dollar loss, -$91.26)
 rej, w, band = bot._min_stop_verdict(0.620, 0.5943, "vwap_reclaim")
 # 8/1 RE-PIN: HPAI (4.15%) now PASSES under the 4 floor — it becomes a LIVE 4-5 cell trade;
@@ -47,7 +54,7 @@ rej, w, band = bot._min_stop_verdict(0.620, 0.5943, "vwap_reclaim")
 check("HPAI reclaim (4.15%) passes at floor 4, band '4-5'", (not rej) and band == "4-5", f"w={w} band={band}")
 # TGHL 7/17 ignition: 3.51% -> reject (ignition = the floor's main business, 43 era rejects)
 rej, w, band = bot._min_stop_verdict(1.400, 1.3509, "ignition")
-check("TGHL ignition (3.51%) rejected in '3-4' (fine bands 8/1)", rej and band == "3-4", f"w={w} band={band}")
+check("TGHL ignition (3.51%) passes at floor 1, band '3-4' (8/20)", (not rej) and band == "3-4", f"w={w} band={band}")
 print("== exempt lanes: tight risk is the thesis — NEVER rejected, band still stamped ==")
 # ZYBT-0720-A — Kev's canonical zone-flip specimen: $1.28 entry, 7 cent risk = 5.47%. THE pin:
 # any future floor change that rejects the lane's founding trade goes red here.
@@ -73,7 +80,9 @@ check("exempt set is exactly {zone_flip, hidden_entry, flat_top}",
       bot.MIN_STOP_EXEMPT == {"zone_flip", "hidden_entry", "flat_top"}, f"got {bot.MIN_STOP_EXEMPT}")
 _sv = bot.MIN_STOP_EXEMPT
 bot.MIN_STOP_EXEMPT = set()
-rej, w, band = bot._min_stop_verdict(1.28, 1.24, "zone_flip")   # 3.1% — below the 4 floor (8/1)
+# 8/20: specimen re-drawn under the 1% floor — 3.1% now passes on width, so the kill-switch
+# proof needs a width the CURRENT floor rejects (0.8%). Same invariant, live boundary.
+rej, w, band = bot._min_stop_verdict(1.28, 1.27, "zone_flip")   # 0.78% — below the 1% floor (8/20)
 check("MIN_STOP_EXEMPT='' floors everything (env kill of the exemption)", rej, f"rej={rej}")
 bot.MIN_STOP_EXEMPT = _sv
 

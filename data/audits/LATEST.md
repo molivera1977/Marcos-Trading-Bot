@@ -538,3 +538,31 @@ green with executed pins. Flat book + clean tree verified by ship.sh in-run.
 amendments (the SHIP_CHECK-only sections caught three pins on the pre-ruling literals plus a
 comment tripping the BH-b one-way-dependency grep; all amended dated, crown semantics
 verified unchanged, the unlimited case now EXERCISED in the executed model).
+
+## ADDENDUM 14 — RTH FLOOR 1% + THE OPENING-HOUR COMPETITION (Marcos rulings, ~20:0x ET)
+
+Rulings: "drop it to 1% if the data supports it. Which then means v2conv moves in to the
+first RTH hour. Did we run a roster competition to let the data decide who should go and in
+what order."
+
+1. RTH MIN-STOP 4% -> 1%. The ladder (capital-aware $3,000, no cap, all replayable lanes,
+   09:30-15:30): 0% +$44,866 / 1% +$42,310 / 2% +$40,424 / 4% +$31,816 / 6% +$18,581 — the
+   4% floor cost $10,494 vs 1%, and capital NEVER binds live (peak 3 concurrent ~$1,500 of
+   $3,000, median 14 trades/day). 1% not 0%: sub-1% stops sit inside the spread. Code default
+   AND the Railway MIN_STOP_PCT=4 override both set to 1. Reject rows stamp floor= so the
+   nightly review grades from day one. CAVEATS (disclosed): cohort = 4 detector proxies at
+   ~55 fills/day vs ~14 live; the sim skips chart/backside/momentum/runway. Rig: the six
+   8/1-era 4%-floor pins re-drawn at the 1% boundary, dated; bands unchanged so the shadow
+   cohorts keep their cells; minstop gate GREEN.
+2. v2conv WINDOW SEAT ARMED (09:30-10:30) — the suspension's named condition (RTH floor
+   settled at 1%) is met; at that floor its evidence is clean: n=456 +$5,881, TRAIN
+   +$13.16/fill / OOS +$12.65/fill.
+3. THE COMPETITION (run at the 1% floor / capital-aware / total dollars — the block's live
+   conditions; every lane both-halves positive): ignition n=1350 +$25,182 (+$18.65/fill) >
+   v2conv +$12.90 > kevseq +$12.31 > hidden_v2 +$10.88. OPEN_LANE_RANK set to that order;
+   unreplayable ema9x90/ma_pullback follow the measured four (no block score, no block
+   privilege); grinder cannot fire pre-10:30 by construction; hidden_v2 keeps all-day #2.
+   NOTED FOR THE RECLAIM AGENDA: reclaim scored #2 (+$17.20/fill, halves agree) and is
+   benched — evidence filed, not acted on.
+4. HYGIENE: LANE_EXPECTANCY's hidden_v2 entry still cited the VOIDED UTC-shifted +$41.60 —
+   corrected to the true-ET +$9.85 (n=95) with the void named in the source string.

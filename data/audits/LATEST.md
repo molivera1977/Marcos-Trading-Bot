@@ -345,3 +345,11 @@ Full rig after fixes: 45 pass / 18 fail — identical to HEAD baseline. SHIPPING
 entry (f056166). Rig at ship: gate 25 GREEN 28/28; full sweep 45 pass / 18 fail = HEAD-baseline
 identical. Flat book verified 22:33 ET this convening: {"open_trades":[]}. Railway env audited:
 RTH_LANES/LANE_FIRE_AGE_GUARD/BE_FLOOR_AFTER_SCALE/HIDDENV2/MIN_STOP_EXEMPT/E3_EXITS all unset.
+
+## ADDENDUM 5 — LANE RANK RULING (Marcos, 22:4x ET): hidden_v2 to #2
+
+"in the life of the ticker and the life of the move, hidden should be right after ignition at
+#2." LANE_RANK default -> ignition, hidden_v2, ema9x90, ma_pullback (the rank now follows the
+move's chronology: ignition starts it, hidden_v2 buys its first pullback). Rig pin C15 (gate
+25 -> 29 checks, GREEN). Railway LANE_RANK unset — code default rules. Move % still decides
+between names inside a rank; contested-slot behavior only.

@@ -3774,7 +3774,10 @@ _move_pct: dict = {}   # sym -> the scanner's Move % (vendor change_ratio x100) 
 # rebuilt to his definition (ma_pullback v2: -$3.69/tr -> +$13.66/tr hold-out).
 # Kill: LANE_RANK_SORT=0 restores the previous behaviour exactly.
 LANE_RANK = [s.strip() for s in os.environ.get(
-    "LANE_RANK", "ignition,ema9x90,ma_pullback").split(",") if s.strip()]
+    # 8/19 22:4x ET Marcos ruling: "in the life of the ticker and the life of the move, hidden
+    # should be right after ignition at #2." — ignition starts the move, hidden_v2 buys its
+    # first pullback; the rank now follows the move's own chronology.
+    "LANE_RANK", "ignition,hidden_v2,ema9x90,ma_pullback").split(",") if s.strip()]
 LANE_RANK_SORT = os.environ.get("LANE_RANK_SORT", "1") == "1"
 # 8/19: one position per ticker per cycle — the CDTG double-fill fix, same arbiter.
 ONE_PER_TICKER = os.environ.get("ONE_PER_TICKER", "1") == "1"

@@ -154,6 +154,10 @@ check("C13 drift + fire_px stamps on the conversion row",
 # first version pinned the tier (C6) but not the floor; this pin closes that exact gap.
 check("C14 BE floor arrives after HV2's single tier",
       "if tier_idx >= (1 if _hv2_mode else BE_FLOOR_AFTER_SCALE):" in SRC)
+# C15 — Marcos ruling 8/19 22:4x ET: "in the life of the ticker and the life of the move,
+# hidden should be right after ignition at #2."
+check("C15 LANE_RANK: hidden_v2 at #2, right after ignition",
+      '"LANE_RANK", "ignition,hidden_v2,ema9x90,ma_pullback"' in SRC)
 
 print("=" * 74)
 print("GREEN" if not FAIL else f"RED — {FAIL}")

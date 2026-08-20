@@ -750,6 +750,10 @@ HTML = """<!DOCTYPE html>
   tr.bot-candidate td.ticker-cell{font-weight:700;color:var(--green)}
   .tale-link{margin-left:6px;text-decoration:none;font-size:12px;opacity:.8}
   .tale-link:hover{opacity:1}
+  .copy-btn{margin-left:5px;border:none;background:none;cursor:pointer;font-size:12px;opacity:.55;padding:0 2px}
+  .copy-btn:hover{opacity:1}
+  .copy-btn.copied{opacity:1;color:#16a34a}
+  @media (max-width:700px){ .copy-btn{font-size:16px;padding:4px 8px;opacity:.7} }
   .bot-pill{display:inline-block;background:var(--green-tint);border:1px solid var(--green-mid);
             color:var(--green);font-size:10px;font-weight:600;padding:1px 6px;
             border-radius:4px;margin-left:6px;vertical-align:middle}
@@ -827,6 +831,25 @@ HTML = """<!DOCTYPE html>
 
 <script>
 function fmt(n){return n==null?'—':n.toLocaleString()}
+// 8/20 copy-for-Webull-Desktop (works on PHONE too — Marcos: "this should work on my phone
+// too"): navigator.clipboard on https covers iOS/Android Safari+Chrome; the execCommand
+// fallback covers anything older. Feedback = the button flips to a green check for 1.2s.
+function copyTicker(ev){
+  ev.preventDefault(); ev.stopPropagation();
+  var btn = ev.currentTarget || ev.target;
+  var sym = btn.dataset.sym || btn.getAttribute('data-sym') || '';
+  function ok(){ var old=btn.textContent; btn.textContent='✓'; btn.classList.add('copied');
+                 setTimeout(function(){btn.textContent=old; btn.classList.remove('copied');},1200); }
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(sym).then(ok, function(){ legacyCopy(sym); ok(); });
+  } else { legacyCopy(sym); ok(); }
+}
+function legacyCopy(t){
+  var ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+}
 function fmtM(n){if(!n||n===0)return'—';var m=n/1e6;return m<1?(m*1000).toFixed(0)+'K':m.toFixed(1)+'M'}
 
 var _scanData = [];
@@ -898,7 +921,15 @@ function renderRows(rows){
     var ahShow = r.ah_price > 0 && Math.abs(ahPct) >= 0.05;
     var ahP = ahShow ? ' <span class="ah '+(ahPct>=0?'ah-up':'ah-dn')+'">'+ahLbl+' $'+r.ah_price.toFixed(2)+' ('+(ahPct>=0?'+':'')+ahPct.toFixed(1)+'%)</span>' : '';
     return '<tr class="'+(isBot?'bot-candidate ':'')+(isKev?'kev-row':'')+'" data-bot="'+(isBot?'1':'0')+'" data-kev="'+(isKev?'1':'0')+'">'
-      +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+'<a class="tale-link" href="/tale/'+r.symbol+'" title="Tale of the Ticker — chart read, levels, gate status">📜</a>'+kevBadge+botBadge+'</td>'
+      +'<td class="ticker-cell"><a class="tk-link" href="'+(r.chart_url||('https://www.tradingview.com/chart/?symbol='+r.symbol))+'" target="_blank" rel="noopener" title="Open '+r.symbol+' chart (Webull)">'+r.symbol+'<span class="tk-arrow">↗</span></a>'+'<a class="tale-link" href="/tale/'+r.symbol+'" title="Tale of the Ticker — chart read, levels, gate status">📜</a>'
+      // 8/20 copy button (Marcos: "do the copy button. i always forget what they are when
+      // typing them in from memory") — Webull Desktop 9.14.0 registers NO url scheme
+      // (Info.plist verified 8/20), so a link cannot open the desktop app; one click here,
+      // one paste there. navigator.clipboard needs https/localhost — the dashboard is https.
+      // QUOTE-FREE via data-sym: this Python string is NOT raw, so a JS backslash-quote gets
+      // eaten by Python and renders ADJACENT STRING LITERALS — a SyntaxError that blanks the
+      // whole table (caught pre-ship by rendering HTML and inspecting the output).
+      +'<button class="copy-btn" data-sym="'+r.symbol+'" onclick="copyTicker(event)" title="Copy '+r.symbol+' for Webull Desktop">⧉</button>'+kevBadge+botBadge+'</td>'
       +'<td class="price-cell">$'+r.price.toFixed(2)+ahP+'</td>'
       +'<td><span class="gap-pill '+gapClass+'">'+(r.change_pct>=0?'+':'−')+Math.abs(r.change_pct).toFixed(1)+'%</span></td>'
       +'<td class="'+floatClass+'">'+r.float_label+'</td>'

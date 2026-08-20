@@ -465,3 +465,5 @@ available gauntlet (stamped refusal rows begin 8/11; the historic worst-session 
 them). Rig gate 27 (7 pins, R6 rewritten window-scan per the gate-23 lesson) GREEN; gates
 25/26 re-run GREEN; pyflakes clean. Blast radius: the edit touches ONLY the sub-threshold
 reject path inside the runway block; a runway PASS and every other gate are byte-identical.
+
+**SHIP STAMP (Addendum 11):** tree c6205d4fc9b4.

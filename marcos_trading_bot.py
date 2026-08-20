@@ -8237,7 +8237,23 @@ DAYGAIN_FLOOR_PCT = float(os.environ.get("DAYGAIN_FLOOR", "15"))
 #   floor 3% + relvol >=2x       +$217/day   14.0
 #   floor 3% + SESSION relvol 2x +$246/day   13.1  <- shipped
 # Marcos's call: floor 3 + relvol 2x. Both floors and both baselines are env-tunable below.
-DAYGAIN_FLOOR_BY_LANE = {"ignition": float(os.environ.get("DAYGAIN_FLOOR_IGNITION", "3"))}
+# ── 8/19 PER-LANE DAY-GAIN FLOORS (Marcos: "set it to 3% and we'll revisit")
+# ma_pullback joins ignition at 3% (global stays 15%). REASONED, NOT MEASURED — stated as such:
+#   * the lane's own geometry already answers "is this a leader" (above VWAP, <=2% below the
+#     session high, front-side), which is what a 15% floor proxies for — the same
+#     pattern-is-the-gate logic that freed it from the chart gate earlier today;
+#   * BUT geometry pins position WITHIN the day, not the day's DIRECTION — 4 of the graded
+#     refusals were names DOWN on the day (XPON -13%, SLE -9.6%); a pullback on a red name is a
+#     bounce in a downtrend, a different animal. So a floor ABOVE ZERO stays, rather than an
+#     exemption.
+#   * 3% is chosen because it is the floor Marcos already approved for ignition, NOT because it
+#     was measured: the only gradeable cohort was 26 rows, 25 of them v1-era fires from the
+#     detector with the documented no-pullback defect. Slicing that by day-gain would be the
+#     post-hoc trap that killed re-anchor.
+# REVISIT CONDITION (Marcos: "we'll revisit"): v2 refusals stamp stops as of 8/19, so a clean v2
+# cohort accumulates from 8/20. Re-price at n>=30 v2 rows and let the floor pick itself.
+DAYGAIN_FLOOR_BY_LANE = {"ignition":    float(os.environ.get("DAYGAIN_FLOOR_IGNITION", "3")),
+                         "ma_pullback": float(os.environ.get("DAYGAIN_FLOOR_MAPB", "3"))}
 
 
 def _daygain_floor_for(lane):

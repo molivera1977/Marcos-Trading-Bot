@@ -89,18 +89,23 @@ bot.MIN_STOP_DIST_PCT = _saved
 
 print("== gate is wired into the entry path (source assertion) ==")
 src = pathlib.Path(bot.__file__).read_text()
-check("_trade_worker calls _min_stop_verdict with the lane",
-      "_min_stop_verdict(entry_price, stop_loss, entry_type)" in src)
+# 8/20 #6: the worker now threads PRE-ness (the _pre_convert stamp) into the verdict.
+check("_trade_worker calls _min_stop_verdict with the lane + conversion-stamp PRE-ness",
+      "_min_stop_verdict(entry_price, stop_loss, entry_type," in src
+      and "is_premkt=_ms_pre" in src)
 check("reject logs 'minstop_reject' with band", '"minstop_reject"' in src and "band=_ms_band" in src)
 check("kept trades record stop_width_pct", '"stop_width_pct"' in src)
-i_gate = src.find("_min_stop_verdict(entry_price, stop_loss, entry_type)")
+i_gate = src.find("_min_stop_verdict(entry_price, stop_loss, entry_type,")
 i_size = src.find("_sh_risk = int(_risk_i")
 check("gate runs BEFORE risk sizing", 0 < i_gate < i_size)
 
 print("== ballpark stamp wired (7/27: tape lanes owe the chart EVIDENCE, not obedience) ==")
 check("_level_gap helper exists", "def _level_gap(ticker, price):" in src)
 for fire in ("zoneflip_shadow_fire", "reclaim_shadow_fire", "hidden_shadow_fire"):
-    seg = src[src.find(f'"{fire}"'):src.find(f'"{fire}"') + 700]
+    # 8/20: window 700 -> 1600. hidden_shadow_fire's stamps sit past 700 chars because the
+    # 8/17 fire_px provenance comment landed between the row name and the stamps — the code
+    # was CORRECT and this pin was red (the gate-23 fixed-window lesson, third appearance).
+    seg = src[src.find(f'"{fire}"'):src.find(f'"{fire}"') + 1600]
     check(f"{fire} carries level_gap_pct + ballpark", "level_gap_pct" in seg and "ballpark" in seg)
 check("live_structure allow carries the marked level (was None)",
       'return ("allow", "live_structure", _blv, "none")' in src)

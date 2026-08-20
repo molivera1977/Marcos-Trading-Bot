@@ -320,3 +320,53 @@ holding power. LIMITS: hidden_entry is 66/86 of the crowned cohort and its figur
 * EXPLORATORY (post-hoc): tighter trails (T05/T07/T12) also lose to T10 on all cohorts.
   T10 appears to be a local optimum on this data — NOT a claim, no pre-registration.
 
+
+## 8/20 — THE "APPROVED NUMBER, UNEXAMINED MEASURE" CLASS (for discussion)
+
+Three instances found in one session. Same disease, three places: a threshold Marcos approved
+is attached to an implementation nobody examined. All three verified in-session, none shipped.
+REPRODUCE: `python3 rig/test_premkt_rulings_20260820.py` (the shipped fixes) ·
+`python3 data/killtests/premkt_minstop_20260820.py` (the premarket ladder) ·
+`grep -n 'PRE_MIN_DVOL\|_pm_session_dvol\|IGNITION_VWAP_TOL\|VWAP_SIDE_SIZING' marcos_trading_bot.py`
+(the three constants and their measures).
+
+1. **PRE_MIN_DVOL = $250,000** [reproduce: `grep -n 'PRE_MIN_DVOL' marcos_trading_bot.py` and
+   `sed -n '/def _curl_feed/,+6p' marcos_trading_bot.py` for the 15-min default] — constant's own comment says "cum session $ volume floor" and
+   its 7/25 calibration cites "cum $vol"; the code calls `_curl_feed(entry[0])` with no `n`,
+   whose docstring reads "step consumers use the 15-min default" (CURL_SOURCE=alpaca verified
+   live). So a session-cumulative threshold is compared to a 15-MINUTE window. Measured on
+   8/20's 15 `premkt_thin` refusals vs true session-cumulative from SIP: 8 of 15 clear $250k
+   on the intended measure (PWCM $2.81M/12.9x, CDTG $3.21M/19.5x, AZI $1.05M/16.9x, RCON x3,
+   IVF, WETO). The other 7 were genuinely thin (GRAN $8k, RETO $23k, INLF $42k) — the floor's
+   INTENT is sound, the measurement is not. Fix built, not shipped (needs a cumulative source:
+   the 10s hot feed's own comment caps deep requests at 720 buckets/2h).
+
+2. **Ignition stack arm — zero tolerance while its sibling has 2%.** Same gate
+   (~:11148): `_ig_vwap_bad = price < vwap*(1-IGNITION_VWAP_TOL)` (2% band) vs
+   `_ig_stack_bad = _e9 < _e20` (no band). ZSTK 8/20 09:31:16 refused at ema9 4.0749 vs ema20
+   4.0817 = $0.0068 (0.167%, arithmetic re-run). Structural aggravator: the stack is EMA9/20
+   on 3-MIN bars seeded with premarket closes, and at 09:31 the first RTH 3-min bar is still
+   incomplete (dropped by `[:-1]`) — so the gate judged the OPEN on PREMARKET CLOSES ONLY.
+   Reconstruction positive control PASSED (rebuilt ema9 4.0749 vs 4.0749 stamped, ema20 4.0818
+   vs 4.0817, seed n=90 vs 90). Study built: data/killtests/ignition_stack_grace_20260820.py
+   (natural experiment — the gate's reject rows begin 8/19, but pre-gate `triggered_ignition`
+   fires include stack-down cases that CONVERTED). BLOCKED: `triggered_ignition` rows carry
+   base_hi but NO stop, and the stop is `base_lo*(1-ZONE_STOP_BUFFER)` over
+   IGNITION_BASE_LOOKBACK=4 1-min bars — rebuildable from tape; finish before grading.
+
+3. **VWAP_SIDE_SIZING: env 0.25, approved 0.5.** Code default 0.5; the block's own kill-test
+   note (vwap_sizing_20260808) says "FIELD entries above session VWAP take HALF size",
+   half-above +$912 vs actual +$393, and Marcos's ruling is recorded as "Go with B". Railway
+   runs 0.25 (verified). Only trace of the quarter: EYES_AUDIT_20260815 line "VWAP-side sizing
+   0.25 field | 8/8 | ALIVE" — an OBSERVATION, not an authorization
+   ([[feedback_auditor_cannot_authorize_behavior]]). Deduped cohort: 24 filled trades on
+   cut names = +$23.85 at quarter; excluding the 8 fake-P&L hidden_entry rows = +$8.61 on 16
+   trades; 8/20 trades missing from the pull. WEAK/small-n — the doubling assumption is an
+   approximation (tier quantities round). PROPER TEST QUEUED: replay the cohort at
+   0.25/0.5/1.0 through the REAL sizing chain, train/OOS, hidden_entry excluded.
+
+DISCUSSION QUESTION FOR MARCOS: every gate/threshold in the book was approved as a NUMBER.
+How many are attached to a measure nobody has read? Candidate sweep: enumerate every
+env-tunable threshold, and for each state (a) what it claims to measure, (b) what the code
+actually reads, (c) whether a ruling exists for the live value. That is a build, not a chat —
+but today produced three hits in one session, which is the argument for doing it.

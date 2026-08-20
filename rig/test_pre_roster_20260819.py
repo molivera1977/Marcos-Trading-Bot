@@ -52,8 +52,10 @@ check("P5 audition killtest converts UTC->ET (class-fix in the evidence)",
 # + "bench prevwap and have it shadow. make it earn its way after we retool."
 check("P6 PRE_LANE_RANK default = audition order, unaudited last",
       '"PRE_LANE_RANK", "ignition,v2conv,vwap_reclaim,ma_pullback"' in SRC)
+# 8/20 AMENDMENT: _lane_rank gained a third branch (opening-block roster). The premarket
+# branch is unchanged in MEANING — pinned on the branch, not the old one-liner.
 check("P7 _lane_rank consults PRE_LANE_RANK inside the premarket window",
-      "_lst = PRE_LANE_RANK if _in_premkt_now() else LANE_RANK" in SRC)
+      '_pre = (ENTRY_OPEN_ET <= _hm_r < "09:30")' in SRC and "_lst = PRE_LANE_RANK" in SRC)
 check("P8 prevwap NOT in PRE_LANE_RANK (benched to shadow, earns its way back)",
       "prevwap" not in re.search(r'"PRE_LANE_RANK", "([^"]*)"', SRC).group(1))
 check("P9 prevwap convert default stays OFF in code (bench = env 0 + this default)",

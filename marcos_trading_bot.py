@@ -1322,6 +1322,55 @@ def _curl_feed(t, n=90):
         pass
     return d10, src
 
+def _pm_session_dvol(sym, d10_recent):
+    """TRUE cumulative session dollar volume for `sym` today (8/20 defect fix).
+
+    THE DEFECT. PRE_MIN_DVOL calls itself a "cum session $ volume floor" and was calibrated
+    7/25 on CUM $vol ("NEUP $12k, LGCL $131k cum $vol"). The code summed `_curl_feed(sym)`
+    with no `n` — and that function's own docstring says "step consumers use the 15-min
+    default" (n=90 buckets). With CURL_SOURCE=alpaca (live) the fetch is windowed, so a
+    session-cumulative threshold was being compared to FIFTEEN MINUTES of tape. Measured on
+    8/20's 15 premkt_thin refusals against SIP: 8 of 15 cleared $250k on the intended measure
+    (PWCM $2.81M / 12.9x the window value, CDTG $3.21M / 19.5x, AZI $1.05M / 16.9x). It also
+    collided head-on with V2_QUIET_ONLY, which SELECTS calm tape: 12 of 12 v2conv fires that
+    day were stamped quiet_tape=True and rejected as thin by the same pass.
+
+    THE FIX. Accumulate per BUCKET KEY, so repeated 15-min windows union into the true session
+    instead of overwriting: each 10s bucket contributes close x (v1-v0) exactly once. Seeded
+    once per name per day with a DEEP request (PM_DVOL_SEED_BARS; >=180 triggers the archive
+    backfill path in _curl_feed) so a name adopted mid-session is not credited from zero.
+    Bounded: buckets are today's only, and the whole store is dropped on the day rollover.
+    Kill: PM_DVOL_CUMULATIVE=0 restores the 15-minute behaviour exactly.
+    """
+    if not PM_DVOL_CUMULATIVE:
+        return sum((b.get("c") or 0) * max((b.get("v1") or 0) - (b.get("v0") or 0), 0)
+                   for b in (d10_recent or {}).values())
+    day = datetime.now(EASTERN).strftime("%Y-%m-%d")
+    if _pm_dvol_acc.get("_day") != day:
+        _pm_dvol_acc.clear()
+        _pm_dvol_acc["_day"] = day
+        # Blast Radius #1 (8/20): the bot is an ALWAYS-ON worker, so without this line every
+        # name stays "seeded" forever after day 1 and the measure silently degrades back to
+        # the 15-minute window this function exists to replace. Verified pre-fix: the set was
+        # written at exactly two sites (definition + .add) and cleared at none.
+        _pm_dvol_seeded.clear()
+    acc = _pm_dvol_acc.setdefault(sym, {})
+    if sym not in _pm_dvol_seeded:
+        try:                                   # one deep read per name per day
+            _seed, _ = _curl_feed(sym, n=PM_DVOL_SEED_BARS)
+            for k, b in (_seed or {}).items():
+                acc[int(k)] = (b.get("c") or 0) * max((b.get("v1") or 0) - (b.get("v0") or 0), 0)
+            if _seed:
+                # Blast Radius #2: mark seeded ONLY on a non-empty read — the old order
+                # (.add before the try) made one 07:00 Alpaca hiccup permanent for the day.
+                _pm_dvol_seeded.add(sym)
+        except Exception:
+            pass
+    for k, b in (d10_recent or {}).items():    # hot bars win (same key overwrites)
+        acc[int(k)] = (b.get("c") or 0) * max((b.get("v1") or 0) - (b.get("v0") or 0), 0)
+    return float(sum(acc.values()))
+
+
 def _et_session_of_utc(ts_utc: str):
     """Which US-equity session a UTC bar stamp ("2026-07-23T13:30:00") falls in, in EASTERN local
     time: PRE 04:00–09:30 · RTH 09:30–16:00 · ATH 16:00–20:00 · None outside. Converts through the
@@ -3798,11 +3847,94 @@ def _in_premkt_now():
     return ENTRY_OPEN_ET <= _h < "09:30"
 
 
-def _lane_rank(lane):
-    """Position in the session's rank list (PRE_LANE_RANK inside the premarket window,
-    LANE_RANK otherwise — 8/19 Marcos: pre lined up best-to-worst by the audition);
-    unranked lanes sort AFTER every ranked one, order unchanged."""
-    _lst = PRE_LANE_RANK if _in_premkt_now() else LANE_RANK
+# ── 8/20 TIME-WINDOWED RTH SEATS (Marcos: "does v2conv need to be seated in RTH 9:30 to
+# 10:30?"). RTH_LANES is a flat whitelist; some lanes earn a seat only in a slice of the day.
+# MEASURED (capital-aware, no cap, min-stop 1%, dvol $50k, ~62 dates, v2 via live_harness):
+#   v2conv 09:30-10:30  +$3,825.86 on 417 fills, TRAIN +$5.59/tr AND OOS +$12.61/tr (both halves)
+#   v2conv 10:30-15:30  +$1,539.14 on 623 fills, TRAIN +$2.51/tr / OOS +$2.43/tr  -> not seated
+# This reconciles the 8/14 origin backtest (in-window +$994.76, outside BLED -$1,539.94, 4 days,
+# UNCALIBRATED) with joint_door 8/16: the C1-C5 calibration fixed the outside-window bleed, but
+# the edge still concentrates in the opening hour. Kill: LANE_WINDOWS="" seats nobody by window.
+# ── 8/20 SEAT SUSPENDED PENDING THE RTH FLOOR (Fable review, same evening). The window
+# mechanism below is BUILT AND TESTED but ships INERT (default ""): the seat's evidence was
+# measured at a 1% stop floor, and RTH runs 4%. Re-measured AT the 4% floor the seat FAILS
+# the both-halves bar: no-floor n=572 +$7,078 (train +$10.74/tr, OOS +$14.22/tr, clean) vs
+# 4%-floor n=153 +$2,003 (train +$2.64 vs OOS +$25.48 — one half carries everything, the
+# prevwap signature), with 419 fills / +$5,075 (72% of the value) dying at the floor. Seating
+# it under conditions its evidence never saw is the day's own "approved number, unexamined
+# measure" disease. The seat returns when the RTH min-stop question is settled — at a 1%
+# floor its evidence is clean and pre-measured. To arm: LANE_WINDOWS="v2conv:09:30-10:30".
+LANE_WINDOWS = {}
+for _lw in (os.environ.get("LANE_WINDOWS", "") or "").split(","):
+    _lw = _lw.strip()
+    if _lw and ":" in _lw:
+        _ln, _, _rng = _lw.partition(":")
+        if "-" in _rng:
+            _a, _, _b2 = _rng.partition("-")
+            LANE_WINDOWS[_ln.strip()] = (_a.strip(), _b2.strip())
+
+
+def _lane_window_ok(lane, hhmm):
+    """True when `lane` holds a TIME-WINDOWED RTH seat covering hhmm (ET)."""
+    w = LANE_WINDOWS.get(str(lane))
+    return bool(w and w[0] <= hhmm < w[1])
+
+
+# ── 8/20 TIME-BLOCK ROSTER (Marcos: "perhaps we need to separate roster orders for the
+# different time blocks"). PRE already had its own order (8/19); the opening hour now does too.
+# Marcos proposed v2conv FIRST in that block because it fires early in a move's life; he then
+# asked "did you have them compete against the others?" — the pairwise test was not enough.
+# MEASURED, every replayable lane, first fire per name-day, 09:30-10:30, capital-aware:
+#     lane        n     TOTAL $    $/fire   TRAIN $/f  OOS $/f   fired FIRST
+#     ignition   699   +15140.06   +21.66    +19.92    +23.94    355/440 (81%)
+#     reclaim    310    +5381.35   +17.36    +14.49    +21.33     20/301  (BENCHED lane)
+#     hidden_v2  178    +2795.72   +15.71    +15.13    +16.26      9/175
+#     v2conv     370    +4687.66   +12.67    +11.73    +13.77     73/339 (22%)
+# v2conv is LAST of the four on $/fire and consistent across both halves, and the "fires early"
+# premise is false in general: in the 324 name-days where v2conv and ignition both fired, v2conv
+# was first on 47 (15%), and taking that contested slot with v2conv earned +$4,353.61 vs
+# ignition's +$8,642.60 (ignition won BOTH halves). So v2conv is SEATED in the hour — it makes
+# money — but ranked LAST among the measured lanes, not first.
+# ema9x90 / ma_pullback are NOT replayable in this harness and keep their inherited LANE_RANK
+# positions rather than an invented one. reclaim's +$17.36/fire is noted for the audit: it is
+# benched (VWAPRECLAIM_CONVERT=0) and RTH still holds it to the 4% stop floor.
+# Kill: OPEN_LANE_RANK="" falls back to LANE_RANK.
+# 8/20 Fable review: with the v2conv seat suspended (above), an opening-block roster would
+# have exactly one effect — imposing an UNMEASURED internal order (5/6/7) on kevseq/grinder/
+# dip_rip, who today sit unranked-tied and resolve by Move % (Blast Radius #4: they were
+# never in any contest). So the default is "" = fall back to LANE_RANK, byte-identical
+# behavior. When the seat returns, arm this WITH the trio placed ABOVE v2conv (deliberate:
+# they are live-proven earners; v2conv measured LAST of four on $/fire, both halves), e.g.
+# OPEN_LANE_RANK="ignition,hidden_v2,ema9x90,ma_pullback,kevseq,grinder,dip_rip,v2conv".
+OPEN_LANE_RANK = [x.strip() for x in os.environ.get(
+    "OPEN_LANE_RANK", "").split(",") if x.strip()]
+OPEN_BLOCK = (os.environ.get("OPEN_BLOCK_START", "09:30"),
+              os.environ.get("OPEN_BLOCK_END", "10:30"))
+
+
+def _lane_rank(lane, now_hm=None):
+    """Position in the session's rank list: PRE_LANE_RANK premarket, OPEN_LANE_RANK inside the
+    opening block, LANE_RANK otherwise. Unranked lanes sort AFTER every ranked one.
+
+    8/20: `now_hm` ("HH:MM" ET) makes this TESTABLE — the 3-branch version reads the wall
+    clock, and rig gate 18 executes this function in a lifted namespace with no clock at all
+    (it went RED with NameError, correctly: a rank function that cannot be exercised offline
+    is a rank function nobody can grade). Clock failures fall back to LANE_RANK, never crash
+    the arbiter."""
+    try:
+        _hm_r = now_hm or datetime.now(EASTERN).strftime("%H:%M")
+        _pre = (ENTRY_OPEN_ET <= _hm_r < "09:30")
+    except Exception:
+        _hm_r, _pre = "", False
+        try:
+            _bump("lane_rank_clock_fail")   # Blast Radius #10: a silent fallback hides a real clock failure
+        except Exception:
+            pass
+    if _pre:
+        _lst = PRE_LANE_RANK
+    else:
+        _lst = (OPEN_LANE_RANK if (OPEN_LANE_RANK and _hm_r and OPEN_BLOCK[0] <= _hm_r < OPEN_BLOCK[1])
+                else LANE_RANK)
     try:
         return _lst.index(lane)
     except ValueError:
@@ -9562,7 +9694,7 @@ def _retest_depth_band(d):
 MIN_STOP_EXEMPT = set(filter(None, (s.strip() for s in os.environ.get(
     "MIN_STOP_EXEMPT", "zone_flip,hidden_entry,flat_top").split(","))))
 
-def _min_stop_verdict(entry_price, stop_loss, entry_type=None):
+def _min_stop_verdict(entry_price, stop_loss, entry_type=None, is_premkt=False):
     """Pure predicate for the minimum-stop-width gate (rig-tested). Returns (reject, width_pct, band):
     band buckets the SHADOW cohorts — '<4', '4-5', '5-6' are rejected under the 6% floor and graded
     forward as counterfactuals; '>=6' passes. Exempt lanes (MIN_STOP_EXEMPT) NEVER reject but still
@@ -9579,7 +9711,18 @@ def _min_stop_verdict(entry_price, stop_loss, entry_type=None):
             ("4-5" if w < 5.0 else ("5-6" if w < 6.0 else ">=6")))))
     if entry_type in MIN_STOP_EXEMPT:
         return False, w, band
-    return w < MIN_STOP_DIST_PCT * 100.0, w, band
+    # 8/20 PREMARKET FLOOR (Marcos ruling; ADDENDUM 13). Premarket flush/reclaim entries hug
+    # their structure, so the RTH 4% floor refused the winners: capital-aware ladder on 762
+    # premarket fills, ZERO trades ever skipped for capital — 0% +$6,467 / 1% +$6,071 /
+    # 4% +$2,872 / 6% +$2,049. The 4% floor cost $3,595. 1% (not 0) because sub-1% stops sit
+    # inside the spread, which a bar-low walker cannot see. RTH is UNMEASURED on this basis
+    # and keeps MIN_STOP_DIST_PCT untouched. Kill: PRE_MIN_STOP_PCT=4 restores one floor.
+    # Blast Radius #6: PRE-ness comes from the CALLER via `is_premkt` (the _pre_convert stamp,
+    # :15208 doctrine — worker latency across 09:30 must not turn a PRE trade RTH). The first
+    # version read the wall clock here; the auditor proved the flip (TGHL 3.51%: reject at
+    # 09:30, pass at 09:29). Default False keeps every legacy/rig call deterministic RTH.
+    _need = PRE_MIN_STOP_PCT if is_premkt else MIN_STOP_DIST_PCT * 100.0
+    return w < _need, w, band
 
 # ── REALISTIC-SIZING DRY_RUN (7/11, user-directed): trade the INTENDED live amounts on paper so every number is
 # real-scale. Kev short-003 sizing: max loss ≤1% of account; shares = max_loss ÷ risk-per-share; size down = smaller
@@ -14758,6 +14901,10 @@ def main():
     # restart's behavior is readable from one log line instead of inferred from env vars + absences
     # (the 7/29 midday disarm had to be verified by inference).
     print("🎛️  BOOT CONFIG: "
+          f"PRE: cap={'∞' if PRE_MAX_TRADES <= 0 else PRE_MAX_TRADES} "
+          f"dvol=${PRE_MIN_DVOL:,.0f}({'cum' if PM_DVOL_CUMULATIVE else '15min!'}) "
+          f"minstop={PRE_MIN_STOP_PCT}% | windows={os.environ.get('LANE_WINDOWS', '') or '-'} "
+          f"open_rank={os.environ.get('OPEN_LANE_RANK', '') or '-'} | "
           f"HIDDEN_ENTRY={int(HIDDEN_ENTRY)} HIDDEN_CONVERT={int(HIDDEN_CONVERT)} "
           f"HIDDENV2={int(HIDDENV2)} HIDDENV2_TIME_STOP={HIDDENV2_TIME_STOP}s RECLAIM_LIVE={int(RECLAIM_LIVE)} "
           f"ZONEFLIP_KEV={int(ZONEFLIP_KEV)} IGNITION_10S={int(IGNITION_10S)} | "
@@ -14803,6 +14950,14 @@ def main():
                       backside_gate=BACKSIDE_GATE, backside_band=f"{BACKSIDE_DD_LO}-{BACKSIDE_DD_HI}", backside_stale=BACKSIDE_STALE_MIN,
                       breakside_gate=int(BREAKSIDE_GATE), breakside_lanes=sorted(BREAKSIDE_LANES),
                       entry_open_et=ENTRY_OPEN_ET, intrabar_stop=int(INTRABAR_STOP),
+                      # 8/20 Blast Radius #3: every new premarket knob visible in the durable
+                      # row — a Railway env override of these must never be invisible again
+                      # (PRE_MAX_TRADES=10 sat in the live env overriding the code default,
+                      # found only by CLI audit; RESULTS_LEDGER:3 memorializes the class).
+                      pre_max_trades=PRE_MAX_TRADES, pre_min_dvol=PRE_MIN_DVOL,
+                      pre_min_stop_pct=PRE_MIN_STOP_PCT, pm_dvol_cumulative=int(PM_DVOL_CUMULATIVE),
+                      lane_windows=(os.environ.get("LANE_WINDOWS", "") or "-"),
+                      open_lane_rank=(os.environ.get("OPEN_LANE_RANK", "") or "-"),
                       resting_stop=int(RESTING_STOP), be_floor_after_scale=BE_FLOOR_AFTER_SCALE,
                       hidden=int(HIDDEN_ENTRY), hidden_convert=int(HIDDEN_CONVERT), reclaim=int(RECLAIM_LIVE),
                       zoneflip_convert=int(ZONEFLIP_CONVERT), ignition_convert=IGNITION_CONVERT_MULT,
@@ -15020,8 +15175,9 @@ def main():
         # 8/19 RTH WHITELIST — restricted lanes cannot take capital (see RTH_LANES).
         if RTH_LANES and not _in_premkt_now():
             _rl_keep = []
+            _rl_now = datetime.now(EASTERN).strftime("%H:%M")
             for _b in breakouts:
-                if _b[3] in RTH_LANES:
+                if _b[3] in RTH_LANES or _lane_window_ok(_b[3], _rl_now):
                     _rl_keep.append(_b); continue
                 _log_decision(_b[0], "lane_restricted", price=_b[1], lane=_b[3],
                               stop=_refusal_stop(_b[4] if len(_b) > 4 else None),   # 8/19 refusal-stop stamp
@@ -15057,21 +15213,21 @@ def main():
             # 8/15 eyes: proof-of-evaluation — the day's first PRE-gate pass stamps cap state,
             # so zero premkt_capped / crown_pre_exempt rows reads as "never bound", not "dead"
             if breakouts:
-                _eye_heartbeat("premkt_gate_armed", breakouts[0][0], cap=PRE_MAX_TRADES,
+                _eye_heartbeat("premkt_gate_armed", breakouts[0][0],
+                               cap=(PRE_MAX_TRADES if PRE_MAX_TRADES > 0 else None),   # 8/20 #14: None = unlimited
                                slots_used=_pre_day["n"], candidates=len(breakouts),
                                flat_hhmm=PRE_FLAT_HHMM)
             _kept_pm = []
             _shadow_pm = []
             for entry in breakouts:
                 _pm_dvol = 0.0
-                try:                                   # cum session $vol from the bot's own 10s store
+                try:                                   # 8/20: TRUE cum session $vol (see _pm_session_dvol)
                     _d10pm, _src_pm = _curl_feed(entry[0])
-                    _pm_dvol = sum((b.get("c") or 0) * max((b.get("v1") or 0) - (b.get("v0") or 0), 0)
-                                   for b in _d10pm.values())
+                    _pm_dvol = _pm_session_dvol(entry[0], _d10pm)
                 except Exception:
                     pass
                 if (entry[3] in PRE_LANES
-                        and (_pre_day["n"] < PRE_MAX_TRADES or _is_leader(entry[0]))
+                        and (PRE_MAX_TRADES <= 0 or _pre_day["n"] < PRE_MAX_TRADES or _is_leader(entry[0]))
                         and _pm_dvol >= PRE_MIN_DVOL and _hm_pm < PRE_FLAT_HHMM):
                     # 8/12 CROWN EXEMPTION (Marcos: "if a name gets crowned, it doesn't count
                     # against the 10"): meritocracy extended to the SESSION cap — crowns pass it
@@ -15084,12 +15240,14 @@ def main():
                     if _is_leader(entry[0]):
                         _log_decision(entry[0], "crown_pre_exempt", price=entry[1],
                                       slots_used=_pre_day["n"],
-                                      cap_full=bool(_pre_day["n"] >= PRE_MAX_TRADES))
+                                      cap_full=bool(PRE_MAX_TRADES > 0 and _pre_day["n"] >= PRE_MAX_TRADES))
                     # 8/12 CAP RAISE (Marcos verdict: hidden 5 + PRE 8; era kill-test cap_cost_
                     # 20260812): slots beyond the OLD caps get their own row so Friday grades
                     # the marginal cohort in isolation. Busy window = 8:30-9:25 (Marcos's read,
                     # rows-verified: 11/12 conversions 08:52-09:22).
-                    if _pre_day["n"] >= 6 and not _is_leader(entry[0]):
+                    # 8/20 #8: with the cap removed this stamp would fire FOREVER and poison
+                    # the "pre8 marginal cohort" (defined as slots 7-8 between the old caps).
+                    if 6 <= _pre_day["n"] < 8 and not _is_leader(entry[0]):
                         # auditor note 2 (10th): crowns consume no slot — stamping them would
                         # pollute the marginal cohort Friday grades
                         _log_decision(entry[0], "cap_raise_slot", price=entry[1],
@@ -15283,12 +15441,19 @@ def main():
             # STOP_MAX_PCT clamp), pre-fill only (the post-fill re-derivation owns a position and cannot
             # skip — F1). The reject row IS the shadow log: width + band ('<4','4-5','5-6') let Friday
             # grade the 4–5%/5–6% cohorts as counterfactuals against real bars.
-            _ms_rej, _ms_w, _ms_band = _min_stop_verdict(entry_price, stop_loss, entry_type)
+            _ms_pre = bool((extra or {}).get("_pre_convert"))   # 8/20 #6: conversion stamp, never the clock
+            _ms_floor = PRE_MIN_STOP_PCT if _ms_pre else MIN_STOP_DIST_PCT * 100.0
+            _ms_rej, _ms_w, _ms_band = _min_stop_verdict(entry_price, stop_loss, entry_type,
+                                                         is_premkt=_ms_pre)
             if _ms_rej:
-                print(f"📏 {ticker} stop {_ms_w:.2f}% of entry < {MIN_STOP_DIST_PCT*100:.0f}% minimum "
-                      f"(band {_ms_band}) — stop is inside the noise, skipping [minstop gate]")
+                # 8/20 #7: the message and the row must name the floor ACTUALLY applied — a
+                # premarket reject at 1% printing "< 4% minimum" is a log that lies, and the
+                # band cohorts become ungradeable without a floor column to split them on.
+                print(f"📏 {ticker} stop {_ms_w:.2f}% of entry < {_ms_floor:.0f}% minimum "
+                      f"({'PRE' if _ms_pre else 'RTH'} floor, band {_ms_band}) — stop is inside the noise, skipping [minstop gate]")
                 _log_decision(ticker, "minstop_reject", price=entry_price, stop=round(stop_loss, 4),
-                              stop_width_pct=_ms_w, band=_ms_band, machine=entry_type)
+                              stop_width_pct=_ms_w, band=_ms_band, machine=entry_type,
+                              floor=_ms_floor, pre=_ms_pre)
                 _slot_refund(ticker, entry_type)
                 with trade_lock:
                     reentry["held"].discard(ticker)   # pre-reservation: nothing to refund (mirror bad_stop_skip)
@@ -15799,7 +15964,7 @@ def main():
                           and datetime.now(EASTERN).strftime("%H:%M") >= "09:30"):
                         # (ignition carve-out 7/26: the 3-bar window IS its quiet base — see flag note)
                         # (premarket carve-out 7/26: pre-9:30 tape is thin per-minute BY NATURE even on
-                        #  names the regime approved — PRE_MIN_DVOL ($250k cumulative) owns premarket
+                        #  names the regime approved — PRE_MIN_DVOL ($50k TRUE-cumulative since 8/20) owns premarket
                         #  liquidity; this 10k/bar floor is RTH-calibrated and applies RTH only.)
                         _g3 = _gb[-4:-1]
                         _gav = sum(float(b.get("volume") or b.get("v") or 0) for b in _g3) / max(len(_g3), 1)
@@ -15924,7 +16089,7 @@ def main():
                         _pre_day["d"] = _pt_day; _pre_day["n"] = 0
                     if _is_leader(ticker):
                         _pre_ok = True        # 8/12 crown exemption: passes cap, consumes NO slot
-                    elif _pre_day["n"] >= PRE_MAX_TRADES:
+                    elif PRE_MAX_TRADES > 0 and _pre_day["n"] >= PRE_MAX_TRADES:
                         _pre_ok = False
                     else:
                         _pre_day["n"] += 1; _pre_ok = True
@@ -16398,7 +16563,7 @@ except Exception:
 # 8/18 archive: map-stamped rows by hour 4am=1, 5am=3, 6am=4, then 7am=20). It is also exactly
 # ignition's own premarket window (IGNITION_PRE_OPEN_M=420), and with "no runway, no pullback
 # entry" now live, a lane that fires before the maps exist would be refused anyway.
-# PRE_MAX_TRADES still caps the session; PRE_FLAT_HHMM (09:25) still flattens.
+# PRE_MAX_TRADES=0 since 8/20 (Marcos: no cap); PRE_FLAT_HHMM (09:25) still flattens.
 # Kill: ENTRY_OPEN_ET=09:30 restores today's behaviour (no premarket trading at all).
 ENTRY_OPEN_ET = os.environ.get("ENTRY_OPEN_ET", "07:00").strip()
 # 7/25 premarket-paper profile (Marcos: premarket != RTH): only 10s live-structure lanes, tiny cap.
@@ -16459,8 +16624,30 @@ if V2_CONVERT:
 # 7/25 calibrated on Friday's 27 premarket fires: the 2 thinnest (NEUP $12k, LGCL $131k cum
 # $vol) were the untradeable ones; every real candidate cleared $200k+. Floor does the quality
 # gating -> cap loosened 2->4. Homegrown numbers (n=1 day) — registry, recalibrate weekly.
-PRE_MAX_TRADES = int(os.environ.get("PRE_MAX_TRADES", "6"))   # Marcos 7/25: 6
-PRE_MIN_DVOL = float(os.environ.get("PRE_MIN_DVOL", "250000"))   # cum session $ volume floor
+# ── 8/20 PREMARKET RULINGS (Marcos, after the capital-aware ladders; see LATEST.md ADDENDUM 13)
+# All three numbers below were previously justified on $/TRADE and are now justified on TOTAL
+# DOLLARS, capital-aware, with NO trade cap. Cohort: 762 premarket fills, ~62 dates, the bot's
+# own v2 detector via live_harness (463) + hidden_v2-spec (299), E3 exits, 09:25 flatten.
+#   CAP    Marcos: "I dont want a cap on pre if it can make money. I am never for a cap."
+#          It had NEVER bound (0 premkt_capped rows in 13 archive days) ONLY because the broken
+#          dvol gate starved it upstream — with the corrected measure, 7 of 8/20's fires clear
+#          the floor against 6 slots, so it would bind on day one. Removed, not raised.
+#   DVOL   ladder (session-cumulative, min-stop 1%): $0 +$6,071 · $50k +$5,954 · $250k +$4,894
+#          · $1M +$3,725. Monotone: more floor, less money. $50k costs $117 vs no floor and
+#          screens the untradeable names the walker CANNOT model (a $2,349/15-min name cannot
+#          absorb a $500 order). 8/20 check: $50k admits 10 of 12, excludes GRAN ($8,364) and
+#          INLF ($42,214) — both losers, -$48.58 together.
+#   MINSTOP premarket ladder, capital-aware, ZERO trades ever skipped for capital: 0% +$6,467
+#          · 1% +$6,071 · 4% +$2,872 · 6% +$2,049. The 4% floor cost $3,595. 1% (not 0) because
+#          sub-1% stops sit inside the spread, which the bar-low walker structurally cannot see.
+#          RTH min-stop is UNMEASURED on this basis and is deliberately NOT changed.
+PRE_MAX_TRADES = int(os.environ.get("PRE_MAX_TRADES", "0"))   # 8/20 Marcos: no cap (0 = unlimited)
+PRE_MIN_DVOL = float(os.environ.get("PRE_MIN_DVOL", "50000"))    # TRUE cum session $ volume floor
+PM_DVOL_CUMULATIVE = os.environ.get("PM_DVOL_CUMULATIVE", "1") == "1"
+PM_DVOL_SEED_BARS  = int(os.environ.get("PM_DVOL_SEED_BARS", "720"))
+_pm_dvol_acc: dict = {}
+_pm_dvol_seeded: set = set()
+PRE_MIN_STOP_PCT = float(os.environ.get("PRE_MIN_STOP_PCT", "1.0"))   # premarket-only stop floor
 PRE_FLAT_HHMM = os.environ.get("PRE_FLAT_HHMM", "09:25")             # Marcos 7/25: flatten PRE trades before the open
 _pre_day = {"d": None, "n": 0}
 

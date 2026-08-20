@@ -28,15 +28,24 @@ def chk(c, label, detail=""):
 
 print("GATE 18 — lane rank is data; one ticker, one position")
 print("=" * 76)
-m = re.search(r'LANE_RANK = \[s\.strip\(\) for s in os\.environ\.get\(\s*\n?\s*"LANE_RANK",\s*"([^"]+)"', SRC)
+# 8/20 AMENDMENT: ruling comments now sit INSIDE the env.get(...) call, so the old
+# whitespace-only pattern no longer matched and this gate went RED on correct code.
+m = re.search(r'LANE_RANK = \[s\.strip\(\) for s in os\.environ\.get\(\s*(?:#[^\n]*\n\s*)*"LANE_RANK",\s*"([^"]+)"', SRC)
 chk(bool(m), "A1 LANE_RANK exists and is env-overridable")
 order = [x.strip() for x in m.group(1).split(",")] if m else []
-chk(order[:3] == ["ignition", "ema9x90", "ma_pullback"],
-    "A2 Marcos's order: ignition, ema9x90, ma_pullback", f"got {order[:3]}")
+# 8/19 22:4x Marcos SUPERSEDED the 8/19-morning order: "in the life of the ticker and the
+# life of the move, hidden should be right after ignition at #2."
+chk(order[:4] == ["ignition", "hidden_v2", "ema9x90", "ma_pullback"],
+    "A2 Marcos's order (8/19 ruling): ignition, hidden_v2, ema9x90, ma_pullback", f"got {order[:4]}")
 r = re.search(r'LANE_RANK_SORT = os\.environ\.get\(\s*"LANE_RANK_SORT",\s*"(\d)"\s*\)', SRC)
 chk(bool(r) and r.group(1) == "1", "A3 rank sort defaults ON")
-chk("def _lane_rank(lane):" in SRC, "B1 rank lookup exists")
-chk("return len(LANE_RANK) + 1" in SRC,
+# 8/20: signature gained an injectable clock (now_hm) so the function is testable offline.
+chk("def _lane_rank(lane" in SRC, "B1 rank lookup exists")
+# 8/20 AMENDMENT: _lane_rank now selects among THREE lists (pre / opening block / rest), so
+# the fallback is len(_lst)+1 rather than len(LANE_RANK)+1. The INVARIANT is unchanged and is
+# what this pin protects: an unranked lane sorts after every ranked one, in whichever list is
+# in force. Pinned on the invariant, not the old literal.
+chk("return len(_lst) + 1" in SRC and "_lst.index(lane)" in SRC,
     "B2 UNRANKED lanes sort AFTER every ranked one, order otherwise unchanged "
     "(Marcos reviews them one at a time; none are demoted below each other)")
 chk("return (_lane_rank(b[3]), _mvk, _tier)" in SRC,
@@ -66,13 +75,26 @@ chk(kept and kept[0][3] == "ma_pullback",
 chk(rank("ignition") < rank("ema9x90") < rank("ma_pullback") < rank("kevseq"),
     "E3 rank order holds end to end")
 # ── session map: two lanes in PRE, three in RTH (Marcos 8/19) ──
-_pl = re.search(r'"PRE_LANES",\s*\n\s*"([^"]+)"', SRC)
+# 8/20: ruling comments now sit inside the env.get(...) call — tolerate them.
+_pl = re.search(r'"PRE_LANES",\s*(?:#[^\n]*\n\s*)*"([^"]+)"', SRC)
 pre = (_pl.group(1) if _pl else "")
 chk("ignition" in pre, "F1 ignition converts in PREMARKET (PRE_LANES, not just IGNITION_PRE)",
     f"PRE_LANES={pre}")
 chk('",ma_pullback" if MA_PULLBACK_V2' in SRC, "F2 ma_pullback converts in PREMARKET, v2 only")
-chk("hidden_entry" not in pre and "vwap_reclaim" not in pre,
-    "F3 the untrusted lanes are OUT of premarket (vwap_reclaim was -$648.24 of the -$696.53 book)")
+# 8/20 AMENDMENT — this pin rested on TWO things that no longer hold:
+#   (a) its evidence, "-$648.24 of the -$696.53 book", comes from the CLOSED-TRADE ledger
+#       Marcos VOIDED on 8/20 ("that numbers were already voided" — fake hidden_entry exits +
+#       the runner-leg corruption). Retracted as evidence here rather than quietly reused.
+#   (b) vwap_reclaim EARNED a premarket seat on the 8/19 true-ET audition (+$6.38 train /
+#       +$4.94 OOS per trade, n=195) and Marcos seated it; hours later it was BENCHED at the
+#       CONVERT switch (VWAPRECLAIM_CONVERT=0, env) because 80/116 of its live fires carry
+#       sub-4% stops and the fillable slice was sign-unstable. Marcos ratified: "that's fine."
+# So the correct invariant is: v1 hidden_entry stays OUT of PRE_LANES entirely, and
+# vwap_reclaim's restraint lives at the CONVERT SWITCH, not the lane list.
+chk("hidden_entry" not in pre,
+    "F3a v1 hidden_entry stays OUT of premarket (its P&L is on the fake-exits record)")
+chk('VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT"' in SRC,
+    "F3b vwap_reclaim's premarket restraint is the CONVERT switch (benched 8/19, env=0)")
 chk("EMA9X90_OPEN <= _hm_x9" in SRC,
     "F4 ema9x90 is RTH-ONLY by its own window (-$4.49/tr measured in premarket)")
 

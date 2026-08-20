@@ -476,3 +476,58 @@ string — the first version's JS backslash-quotes were eaten by Python, renderi
 string literals (SyntaxError = blank table); rewritten quote-free via data-sym and verified
 by RENDERING the HTML and inspecting output. Dashboard service only — zero trading-path
 surface. Tree a598f3134b13.
+
+## ADDENDUM 13 — THE 8/20 PREMARKET BATCH (Marcos's rulings; Fable review + rebuild, evening)
+
+**Rulings executed (Marcos, in his words):** "I dont want a cap on pre if it can make money.
+I am never for a cap" · "all three pre decisions finalized" · "yes, keep v2conv in pre and
+record the ruling" · "go with what the data says."
+
+**SHIPS: the three premarket rulings.**
+1. PRE cap REMOVED (default 0 = unlimited; all three enforcement sites honour 0; the stale
+   Railway PRE_MAX_TRADES=10 override — which would have silently voided the ruling — found
+   by CLI audit and cleared). cap_raise_slot bounded to its defined 6-7 marginal cohort.
+2. PRE_MIN_DVOL measure FIXED (true session-cumulative by bucket key, deep-seeded, kill
+   PM_DVOL_CUMULATIVE=0) and threshold 250k -> 50k. Evidence: the 15-min-window defect
+   (8 of 8/20's 15 refusals cleared $250k on the intended measure) + the session-cumulative
+   ladder ($0 +$6,071 / $50k +$5,954 / $250k +$4,894 / $1M +$3,725).
+3. Premarket MIN-STOP floor 4% -> 1% (PRE_MIN_STOP_PCT; PRE-ness from the _pre_convert
+   conversion stamp per the :15208 doctrine, NEVER the wall clock; reject rows stamp
+   floor= and pre= so the band cohorts stay gradeable). RTH floor UNTOUCHED.
+   DISCLOSED (Fable, net-new): the 762-fill ladder cohort is v2+hidden_v2-spec detector
+   PROXIES; the governed population is ignition/ma_pullback/v2conv. Direction corroborated
+   on the real population (the 8/20 refusal walk, ignition fires included).
+
+**DOES NOT SHIP: the v2conv RTH seat — SUSPENDED by Fable review.** The seat's evidence ran
+at a 1% stop floor; RTH runs 4%. Re-measured AT 4%: no-floor n=572 +$7,078 (train +$10.74/tr,
+OOS +$14.22/tr, clean) vs 4%-floor n=153 +$2,003 (train +$2.64 vs OOS +$25.48 — one half
+carries everything), 419 fills/+$5,075 (72% of value) refused. Seating it under conditions its
+evidence never saw is the day's own "approved number, unexamined measure" disease. The window
++ time-block-roster MECHANISMS ship INERT (defaults ""), fully built, EXECUTED in rig gate 28
+(A6a-A7c), ready to arm the day the RTH floor is settled. Blast Radius #4 (unmeasured
+kevseq/grinder/dip_rip demotion) is thereby moot tonight; the arming recipe in the code
+places the trio ABOVE v2conv deliberately.
+
+**Blast Radius Auditor:** DO-NOT-SHIP verdict on the staged tree, 4 blockers + 5 fixes — ALL
+adopted: #1 seeded-set cleared on rollover (the fix would have silently died on day 2);
+#2 failed seeds retryable; #3 all six knobs in the boot banner + boot_config row, Railway
+audited; #4/#5 resolved by the suspension; #6 conversion-stamp PRE-ness (auditor's TGHL flip
+specimen); #7 truthful floor on reject print+row; #8 cap_raise bound; #9 gate 28 rewritten
+with EXECUTED pins (the string-match version was green while a swallowed NameError kept the
+branch from ever running); #10 clock-failure counter; #14 heartbeat cap=None; #18 stale
+comments. #20: test_minstop_gate RED at baseline — root-caused (two pins on the pre-#6 caller
+string + a 700-char window the 8/17 provenance comment outgrew; the gate-23 lesson, third
+appearance) and GREEN before this min-stop change ships.
+
+**Fable verdict on the day's reasoning:** the three reversals (premarket min-stop, RTH
+min-stop caveat, hidden_v2's gate justification) share ONE root cause — verdict rules
+pre-registered the SPLIT (train/OOS) but never the METRIC. New standing law, memorialized:
+expectancy verdicts are rendered in TOTAL DOLLARS under the live capital model; $/trade is
+diagnostic only. RTH min-stop is a LIVE OPEN QUESTION on Marcos's own observation ("we are
+never really maxed out during RTH" — verified: peak 3 concurrent positions, ~$1,500 of
+$3,000, median 14 trades/day): the RTH ladder reads 0% +$44,866 / 1% +$42,310 / 4% +$31,816
+with capital never binding live. Not changed tonight; it is the headline of the next session
+with the v2conv seat waiting on it.
+
+Rig at ship: 49 pass / 17 fail — ONE BETTER than baseline (minstop gate reclaimed); gate 28
+green with executed pins. Flat book + clean tree verified by ship.sh in-run.

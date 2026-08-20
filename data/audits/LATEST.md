@@ -397,3 +397,5 @@ was retracted in-session — those records are the voided ledger classes; no ros
 rests on them.
 
 **SHIP STAMP (Addendum 7):** tree ba33824f8104 — pre-roster changes + gate 26 + true-ET audition artifacts.
+
+**SHIP STAMP (Addendum 7, final):** tree cd8557774972 — includes the X-b pin amendment (owner ruling).

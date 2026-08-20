@@ -1431,17 +1431,22 @@ except AssertionError as _xe:
     check("X-a: unpacks/alarm", False, str(_xe))
 
 try:
-    # (b) lane observe splits: defaults OFF -> observe rows; UPSTREAM of every crown/leader bypass
+    # (b) lane observe splits: hidden/flat_top defaults OFF -> observe rows; UPSTREAM of every
+    # crown/leader bypass. 8/19 AMENDMENT: VWAPRECLAIM_CONVERT default -> ON by OWNER RULING
+    # (Marcos ~23:2x ET: "i want whatever lanes scoring well to join pre"; true-ET audition
+    # reclaim +$6.38 train / +$4.94 OOS $/tr n=195, rig gate 26). The suspension pin held for
+    # 5 days and was lifted by the owner, not an auditor — this edit records exactly that.
+    # RTH stays protected: vwap_reclaim is NOT in the RTH_LANES whitelist (gate 26 P3).
     _xe2 = {}
     exec('import os\nos.environ.pop("HIDDEN_CONVERT", None)\nos.environ.pop("FLATTOP_CONVERT", None)\n'
          'os.environ.pop("VWAPRECLAIM_CONVERT", None)\n'
          'HIDDEN_CONVERT    = os.environ.get("HIDDEN_CONVERT", "0") == "1"\n'
          'FLATTOP_CONVERT     = os.environ.get("FLATTOP_CONVERT", "0") == "1"\n'
-         'VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT", "0") == "1"', _xe2)
+         'VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT", "1") == "1"', _xe2)
     assert _xe2["HIDDEN_CONVERT"] is False and _xe2["FLATTOP_CONVERT"] is False \
-        and _xe2["VWAPRECLAIM_CONVERT"] is False
+        and _xe2["VWAPRECLAIM_CONVERT"] is True
     assert 'FLATTOP_CONVERT     = os.environ.get("FLATTOP_CONVERT", "0") == "1"' in _x
-    assert 'VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT", "0") == "1"' in _x
+    assert 'VWAPRECLAIM_CONVERT = os.environ.get("VWAPRECLAIM_CONVERT", "1") == "1"' in _x
     assert '"flat_top_observe_only"' in _x and '"vwap_reclaim_observe_only"' in _x
     # upstream-of-bypass: the observe split runs in the breakouts post-pass, BEFORE the worker's
     # crown/leader bypasses (entry_crown stamp + backside crown paths all come after it)

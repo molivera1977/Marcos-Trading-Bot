@@ -413,3 +413,5 @@ daily reject/shadow grading is its road back. (3) "make sure the roster is lined
 from best to worst" (pre) — NEW PRE_LANE_RANK consulted only inside the premarket window
 (_lane_rank), default ignition,v2conv,vwap_reclaim,ma_pullback (audition order; unaudited/
 underpowered last). RTH LANE_RANK untouched. Rig gate 26 extended to 9 pins, GREEN.
+
+**SHIP STAMP (Addendum 8):** tree 93afc024e289.

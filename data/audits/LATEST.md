@@ -533,3 +533,8 @@ Rig at ship: 49 pass / 17 fail — ONE BETTER than baseline (minstop gate reclai
 green with executed pins. Flat book + clean tree verified by ship.sh in-run.
 
 **SHIP STAMP (Addendum 13):** tree 123bbed4c9c0.
+
+**SHIP STAMP (Addendum 13, final):** tree 90e23c5218c9 — includes the shipset crown/cap pin
+amendments (the SHIP_CHECK-only sections caught three pins on the pre-ruling literals plus a
+comment tripping the BH-b one-way-dependency grep; all amended dated, crown semantics
+verified unchanged, the unlimited case now EXERCISED in the executed model).

@@ -399,3 +399,17 @@ rests on them.
 **SHIP STAMP (Addendum 7):** tree ba33824f8104 — pre-roster changes + gate 26 + true-ET audition artifacts.
 
 **SHIP STAMP (Addendum 7, final):** tree cd8557774972 — includes the X-b pin amendment (owner ruling).
+
+## ADDENDUM 8 — PRE RANK + PREVWAP BENCH + MA_PULLBACK DRIVER (Marcos rulings ~23:3x ET)
+
+Rulings executed: (1) "do the driver for pullback" — built (data/killtests/
+mapb_pre_audition_20260819.py, mirrors the live :11543 call shape minute-by-minute; declared:
+runway patched open — no historical maps, the gate only removes fires; warmup seed None).
+RESULT, 708 pre name-days: TRAIN +$9.12/tr n=48 / OOS +$9.83/tr n=26, 81% green — halves
+agree; OOS n under the pre-registered 30 -> KEEPS SEAT (scores well, underpowered), ranked
+last until live n accrues. (2) "bench prevwap and have it shadow. make it earn its way after
+we retool" — Railway PREVWAP_CONVERT=0 set + verified in-turn; shadow rows continue; the
+daily reject/shadow grading is its road back. (3) "make sure the roster is lined up in order
+from best to worst" (pre) — NEW PRE_LANE_RANK consulted only inside the premarket window
+(_lane_rank), default ignition,v2conv,vwap_reclaim,ma_pullback (audition order; unaudited/
+underpowered last). RTH LANE_RANK untouched. Rig gate 26 extended to 9 pins, GREEN.

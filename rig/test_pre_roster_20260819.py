@@ -48,6 +48,16 @@ check("P4 hidden_v2 NOT in the PRE default (measured refusal)",
       _pre is not None and "hidden_v2" not in _pre.group(2))
 check("P5 audition killtest converts UTC->ET (class-fix in the evidence)",
       "timedelta(hours=4)" in AUD and "UTC" in AUD)
+# 8/19 ~23:3x ET Marcos: "make sure the roster is lined up in order from best to worst" (pre)
+# + "bench prevwap and have it shadow. make it earn its way after we retool."
+check("P6 PRE_LANE_RANK default = audition order, unaudited last",
+      '"PRE_LANE_RANK", "ignition,v2conv,vwap_reclaim,ma_pullback"' in SRC)
+check("P7 _lane_rank consults PRE_LANE_RANK inside the premarket window",
+      "_lst = PRE_LANE_RANK if _in_premkt_now() else LANE_RANK" in SRC)
+check("P8 prevwap NOT in PRE_LANE_RANK (benched to shadow, earns its way back)",
+      "prevwap" not in re.search(r'"PRE_LANE_RANK", "([^"]*)"', SRC).group(1))
+check("P9 prevwap convert default stays OFF in code (bench = env 0 + this default)",
+      'PREVWAP_CONVERT    = os.environ.get("PREVWAP_CONVERT", "0") == "1"' in SRC)
 
 print("=" * 74)
 print("GREEN" if not FAIL else f"RED — {FAIL}")

@@ -3779,6 +3779,15 @@ LANE_RANK = [s.strip() for s in os.environ.get(
     # first pullback; the rank now follows the move's own chronology.
     "LANE_RANK", "ignition,hidden_v2,ema9x90,ma_pullback").split(",") if s.strip()]
 LANE_RANK_SORT = os.environ.get("LANE_RANK_SORT", "1") == "1"
+# ── 8/19 ~23:3x ET Marcos: "make sure the roster is lined up in order from best to worst"
+# (in pre). PRE has its own contested-slot order, by the TRUE-ET pre audition
+# (data/killtests/pre_audition_20260819.py, 769 pre name-days, OOS $/tr):
+#   ignition +7.87 > v2conv +7.76 > vwap_reclaim +4.94 > ma_pullback (UNAUDITED — no score,
+#   no privilege: sorts last until its 3-min/1-min driver scores it).
+# prevwap is BENCHED to shadow (PREVWAP_CONVERT=0, "make it earn its way after we retool") so
+# it takes no slot regardless. Consulted ONLY inside the premarket window; RTH keeps LANE_RANK.
+PRE_LANE_RANK = [s.strip() for s in os.environ.get(
+    "PRE_LANE_RANK", "ignition,v2conv,vwap_reclaim,ma_pullback").split(",") if s.strip()]
 # 8/19: one position per ticker per cycle — the CDTG double-fill fix, same arbiter.
 ONE_PER_TICKER = os.environ.get("ONE_PER_TICKER", "1") == "1"
 
@@ -3790,11 +3799,14 @@ def _in_premkt_now():
 
 
 def _lane_rank(lane):
-    """Position in LANE_RANK; unranked lanes sort AFTER every ranked one, order unchanged."""
+    """Position in the session's rank list (PRE_LANE_RANK inside the premarket window,
+    LANE_RANK otherwise — 8/19 Marcos: pre lined up best-to-worst by the audition);
+    unranked lanes sort AFTER every ranked one, order unchanged."""
+    _lst = PRE_LANE_RANK if _in_premkt_now() else LANE_RANK
     try:
-        return LANE_RANK.index(lane)
+        return _lst.index(lane)
     except ValueError:
-        return len(LANE_RANK) + 1
+        return len(_lst) + 1
 
 
 LANE_EXPECTANCY = {

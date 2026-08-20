@@ -9253,6 +9253,13 @@ MIN_RUNWAY_RR           = float(os.environ.get("MIN_RUNWAY_RR", "1.0"))
 # ship-candidate at +$117.65 — graded head-to-head from the stamps, Marcos's call 8/4).
 RUNWAY_MIN_RR_RUNG      = float(os.environ.get("RUNWAY_MIN_RR_RUNG", "0.5"))
 RUNWAY_MIN_RR_MAJOR     = float(os.environ.get("RUNWAY_MIN_RR_MAJOR", "1.0"))
+# 8/20 RUNWAY VELOCITY OVERRIDE (Marcos: "wire the override at 1% with a kill switch" +
+# "we will log all data and revisit nightly in our lane reviews"). A runway-refused fire is
+# LET GO when its fire minute (last completed 60s of the 10s feed, close-over-close) is at
+# least RUNWAY_VEL_OVERRIDE_PCT. Full evidence + LGHL specimen at the gate site (~:15305).
+# Both sides stamp vel60 for the nightly grading. Kill: RUNWAY_VEL_OVERRIDE=0.
+RUNWAY_VEL_OVERRIDE     = os.environ.get("RUNWAY_VEL_OVERRIDE", "1") == "1"
+RUNWAY_VEL_OVERRIDE_PCT = float(os.environ.get("RUNWAY_VEL_OVERRIDE_PCT", "1.0"))
 # ── 8/5 BACK-SIDE GATE (Marcos: "this will allow the bot to see that the ticker is on a
 # downtrend"; kill-test backside_20260805: entries 15-30% below a >=20-min-stale session high
 # lost ~-$147 era-wide at a -$8/trade mean with ~no winners forfeited in-band, while front-side
@@ -15320,12 +15327,51 @@ def main():
                 _rw_cls  = _runway_level_class(ticker, _rw_t, _effective_map(ticker, entry_price))
                 _rw_need = RUNWAY_MIN_RR_MAJOR if _rw_cls == "MAJOR" else RUNWAY_MIN_RR_RUNG
                 _rw_band = _road_band(_rw_v)
-                if isinstance(_rw_v, (int, float)) and _rw_v < _rw_need:
+                # ── 8/20 ~00:2x ET RUNWAY VELOCITY OVERRIDE (Marcos: "it's all fake money....
+                # wire the override at 1% with a kill switch") — LGHL 8/19 15:21: refused at
+                # 0.18R to a $0.65 rung penciled before the breakout leg existed; the tape took
+                # the rung and ran +31% to the flatten (+$47.35 given up). Ladder on all 56
+                # cached archived runway refusals (8/11-8/18, E3 walk): let-go at fire-minute
+                # >= +1% = +$7.55/tr 59% green (train +3.08 / oos +21.60); the kept complement
+                # = -$9.55/tr 26% green; the NEGATIVE-minute cohort the gate keeps refusing =
+                # -$15.76/tr at 14% green (the vel5 lesson at 1-min scale). Plateau 0.75-1.5%,
+                # +1% mid-plateau and pre-registered BEFORE the fine ladder ran. n=56 — the
+                # daily reject grading accumulates the verdict cohort; owner shipped it early
+                # with eyes open (DRY_RUN sim). Velocity = last completed 60s of the 10s feed,
+                # close-over-close, the SAME definition the ladder measured. Missing/short feed
+                # -> NO override (the exception needs positive evidence; the refusal is the
+                # default). Kill: RUNWAY_VEL_OVERRIDE=0. Threshold: RUNWAY_VEL_OVERRIDE_PCT.
+                _rw_ovr, _rw_vel60 = False, None
+                if (RUNWAY_VEL_OVERRIDE and isinstance(_rw_v, (int, float))
+                        and _rw_v < _rw_need):
+                    try:
+                        _vd, _ = _curl_feed(ticker, n=12)
+                        _vk = sorted(k for k in (_vd or {}) if k < int(time.time()) // 10 * 10)
+                        if len(_vk) >= 7:
+                            _vc0 = float(_vd[_vk[-7]].get("c") or 0)
+                            _vc1 = float(_vd[_vk[-1]].get("c") or 0)
+                            if _vc0 > 0 and _vc1 > 0:
+                                _rw_vel60 = round((_vc1 / _vc0 - 1) * 100, 2)
+                    except Exception:
+                        _rw_vel60 = None
+                    if _rw_vel60 is not None and _rw_vel60 >= RUNWAY_VEL_OVERRIDE_PCT:
+                        _rw_ovr = True
+                        print(f"🏇 {ticker} RUNWAY OVERRIDE — fire minute {_rw_vel60:+.2f}% >= "
+                              f"{RUNWAY_VEL_OVERRIDE_PCT}% with runway {_rw_v:.2f}R < {_rw_need}R "
+                              f"({_rw_cls} ${_rw_t}): tape outruns the pencil mark, letting it go")
+                        _log_decision(ticker, "runway_override", price=entry_price,
+                                      stop=round(stop_loss, 4), vel60=_rw_vel60,
+                                      runway_rr=_rw_v, target=_rw_t, need=_rw_need,
+                                      machine=entry_type, road_cls=_rw_cls, road_band=_rw_band)
+                if isinstance(_rw_v, (int, float)) and _rw_v < _rw_need and not _rw_ovr:
                     print(f"🛣️  {ticker} runway {_rw_v:.2f}R to {_rw_cls} ${_rw_t} < {_rw_need}R minimum "
                           f"— risking a full R for {_rw_v:.2f}R of road, skipping [runway gate]")
                     _log_decision(ticker, "runway_reject", price=entry_price, stop=round(stop_loss, 4),
                                   runway_rr=_rw_v, target=_rw_t, need=_rw_need, machine=entry_type,
-                                  road_cls=_rw_cls, road_band=_rw_band)
+                                  road_cls=_rw_cls, road_band=_rw_band,
+                                  vel60=_rw_vel60)   # 8/20: the override's feature, stamped on
+                                                     # every refusal so the daily grading needs
+                                                     # no tape re-derivation (None = feed short)
                     try:   # 8/17 #57: runway refusal off a STALE map -> immediate reread
                         _rw_age, _ = _map_freshness(_effective_map(ticker, entry_price) or {}, entry_price)
                         if _rw_age is None or _rw_age > FRESH_MAX_MIN:

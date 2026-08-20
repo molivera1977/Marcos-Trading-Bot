@@ -445,3 +445,23 @@ exempt from the two blanket map gates — mapless-block (:15395 region) and exte
 tape lane; this is a lane-scoped owner exception mirroring "pullback should be its own gate."
 
 **SHIP STAMP (Addendum 10):** tree 756890451fa1.
+
+## ADDENDUM 11 — RUNWAY VELOCITY OVERRIDE LIVE (Marcos, ~00:2x ET 8/20)
+
+Ruling: "it's all fake money.... wire the override at 1% with a kill switch" + "we will log
+all data and revisit nightly in our lane reviews." A runway-refused fire is LET GO when its
+fire minute (last completed 60s of the 10s feed, close-over-close — the ladder's exact
+definition) >= +1.0%. EVIDENCE: LGHL 8/19 15:21 specimen (0.18R to a stale rung, tape ran
++31%, +$47.35 given up); ladder on all 56 cached archived refusals 8/11-8/18 — let-go >=+1%
++$7.55/tr 59% green (train +3.08/oos +21.60), complement -$9.55/tr 26%, negative-minute
+cohort -$15.76/tr 14% green (vel5 physics at 1-min scale). Threshold +1% PRE-REGISTERED
+before the fine ladder; plateau 0.75-1.5% confirmed. HONESTY: n=56, one cohort, multiple
+looks — owner shipped early with eyes open (DRY_RUN sim); nightly lane reviews grade the
+accumulating cohort (BOTH runway_override and runway_reject rows stamp vel60; verdict
+checkpoint n>=150 both parity halves). Safety: override needs POSITIVE evidence (short/
+missing feed refuses as before), never widens a runway PASS, kill RUNWAY_VEL_OVERRIDE=0,
+threshold env RUNWAY_VEL_OVERRIDE_PCT. Gauntlet note: the 6-session refusal replay IS the
+available gauntlet (stamped refusal rows begin 8/11; the historic worst-session days predate
+them). Rig gate 27 (7 pins, R6 rewritten window-scan per the gate-23 lesson) GREEN; gates
+25/26 re-run GREEN; pyflakes clean. Blast radius: the edit touches ONLY the sub-threshold
+reject path inside the runway block; a runway PASS and every other gate are byte-identical.

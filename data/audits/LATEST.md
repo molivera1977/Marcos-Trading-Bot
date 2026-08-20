@@ -467,3 +467,12 @@ them). Rig gate 27 (7 pins, R6 rewritten window-scan per the gate-23 lesson) GRE
 reject path inside the runway block; a runway PASS and every other gate are byte-identical.
 
 **SHIP STAMP (Addendum 11):** tree c6205d4fc9b4.
+
+## ADDENDUM 12 — DASHBOARD COPY BUTTON (Marcos ~00:4x: "do the copy button" / "should work on my phone too")
+Webull Desktop 9.14.0 has NO url scheme (Info.plist verified) -> per-ticker ⧉ copies the
+symbol (navigator.clipboard on https incl. iOS/Android; execCommand fallback; 1.2s green
+check; 16px tap target <=700px). CAUGHT PRE-SHIP: the HTML template is a NON-raw Python
+string — the first version's JS backslash-quotes were eaten by Python, rendering adjacent
+string literals (SyntaxError = blank table); rewritten quote-free via data-sym and verified
+by RENDERING the HTML and inspecting output. Dashboard service only — zero trading-path
+surface. Tree a598f3134b13.

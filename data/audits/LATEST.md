@@ -415,3 +415,18 @@ from best to worst" (pre) — NEW PRE_LANE_RANK consulted only inside the premar
 underpowered last). RTH LANE_RANK untouched. Rig gate 26 extended to 9 pins, GREEN.
 
 **SHIP STAMP (Addendum 8):** tree 93afc024e289.
+
+## ADDENDUM 9 — RECLAIM BENCHED TOO ("no surprises" sweep, ~23:4x ET)
+
+Marcos: "all pre lanes are perfectly eligible and ready to trade in pre tomorrow? No
+surprises?" The sweep found one: 80/116 LIVE reclaim fires (8/18+8/19 archive) carry stops
+tighter than the 4% min-stop — the audition never modeled house gates. Cohort replay
+(reclaim pre fires, E3 + 09:25 flatten): the >=4% slice live WOULD fill = TRAIN +$14.66/tr
+-> OOS -$0.64/tr (sign-unstable); the <4% slice min-stop refuses = TRAIN +$1.60 -> OOS +$8.99
+(also unstable). The +$4.94/tr that won the seat is uncollectable through the live gate
+stack. Per the standing ruling ("i want whatever lanes scoring well"), reclaim is BENCHED to
+shadow: VWAPRECLAIM_CONVERT=0 set in Railway + verified in-turn (code default stays 1 — the
+env pins the bench; one word reverses it). Same road back as prevwap: the daily reject/shadow
+grading. FINAL 8/20 PRE ROSTER: ignition, v2conv, ma_pullback CONVERT (all three have live
+fills through the real gate stack today); prevwap + vwap_reclaim SHADOW. ma_pullback stop is
+4% under the flag low by construction (boot: stopbuf=4%) — min-stop cannot surprise it.

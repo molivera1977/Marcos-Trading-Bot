@@ -1152,17 +1152,20 @@ except AssertionError as _ebe:
 print("N) 8/12 PRE-10 + crown exemption pins")
 try:
     _p_src = open(os.path.join(ROOT, "marcos_trading_bot.py")).read()
-    assert '(_pre_day["n"] < PRE_MAX_TRADES or _is_leader(entry[0]))' in _p_src   # selection exempt
+    # 8/20 cap ruling (Marcos: "I am never for a cap"): the selection line gained the
+    # unlimited case. Crown exemption semantics UNCHANGED — the pin follows the code.
+    assert '(PRE_MAX_TRADES <= 0 or _pre_day["n"] < PRE_MAX_TRADES or _is_leader(entry[0]))' in _p_src   # selection exempt
     assert '"crown_pre_exempt"' in _p_src                                          # visibility row
     _i = _p_src.find("if _is_leader(ticker):")                                     # worker recheck
     assert _i > 0 and "consumes NO slot" in _p_src[_i:_i+250]
-    _j = _p_src.find('elif _pre_day["n"] >= PRE_MAX_TRADES:', _i)                  # non-crown path intact
+    _j = _p_src.find('elif PRE_MAX_TRADES > 0 and _pre_day["n"] >= PRE_MAX_TRADES:', _i)   # non-crown path intact (8/20: unlimited case)
     assert 0 < _j - _i < 300 and '_pre_day["n"] += 1' in _p_src[_j:_j+200]
     # exemption semantics EXECUTED
     def _admit(is_leader, n, cap=10):
         if is_leader: return True, n
-        if n >= cap: return False, n
+        if cap > 0 and n >= cap: return False, n
         return True, n + 1
+    assert _admit(False, 999, cap=0) == (True, 1000)   # 8/20: cap 0 = unlimited, slots still counted
     assert _admit(True, 10) == (True, 10)      # crown passes full cap, no slot burned
     assert _admit(False, 10) == (False, 10)    # non-crown refused at cap
     assert _admit(False, 9) == (True, 10)      # non-crown consumes slot
@@ -1973,9 +1976,10 @@ check("AC-g: standdown_active row + _z_rec pre-bound against NameError",
       '"standdown_active"' in _ey and "_z_rec = None   # 8/15 eyes" in _ey)
 check("AC-h: crown_pre_exempt logs on EVERY crowned PRE pass with cap_full stamp",
       'if _is_leader(entry[0]):\n                        _log_decision(entry[0], "crown_pre_exempt"' in _ey
-      and 'cap_full=bool(_pre_day["n"] >= PRE_MAX_TRADES)' in _ey)
+      and 'cap_full=bool(PRE_MAX_TRADES > 0 and _pre_day["n"] >= PRE_MAX_TRADES)' in _ey)   # 8/20: unlimited case
 check("AC-i: premkt_gate_armed daily heartbeat inside the PRE window with cap/slots",
-      '_eye_heartbeat("premkt_gate_armed", breakouts[0][0], cap=PRE_MAX_TRADES' in _ey
+      '_eye_heartbeat("premkt_gate_armed", breakouts[0][0],' in _ey
+      and 'cap=(PRE_MAX_TRADES if PRE_MAX_TRADES > 0 else None)' in _ey   # 8/20 #14: None = unlimited
       and 'slots_used=_pre_day["n"]' in _ey)
 check("AC-j: premkt_capped row-writer intact (cap-1 reachability: kept-branch condition unchanged)",
       '"premkt_capped"' in _ey and '_pre_day["n"] < PRE_MAX_TRADES or _is_leader(entry[0])' in _ey)

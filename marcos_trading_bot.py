@@ -3849,7 +3849,7 @@ def _in_premkt_now():
 
 # ── 8/20 TIME-WINDOWED RTH SEATS (Marcos: "does v2conv need to be seated in RTH 9:30 to
 # 10:30?"). RTH_LANES is a flat whitelist; some lanes earn a seat only in a slice of the day.
-# MEASURED (capital-aware, no cap, min-stop 1%, dvol $50k, ~62 dates, v2 via live_harness):
+# MEASURED (capital-aware, no cap, min-stop 1%, dvol $50k, ~62 dates, v2 via the replay harness):
 #   v2conv 09:30-10:30  +$3,825.86 on 417 fills, TRAIN +$5.59/tr AND OOS +$12.61/tr (both halves)
 #   v2conv 10:30-15:30  +$1,539.14 on 623 fills, TRAIN +$2.51/tr / OOS +$2.43/tr  -> not seated
 # This reconciles the 8/14 origin backtest (in-window +$994.76, outside BLED -$1,539.94, 4 days,
@@ -16627,7 +16627,7 @@ if V2_CONVERT:
 # ── 8/20 PREMARKET RULINGS (Marcos, after the capital-aware ladders; see LATEST.md ADDENDUM 13)
 # All three numbers below were previously justified on $/TRADE and are now justified on TOTAL
 # DOLLARS, capital-aware, with NO trade cap. Cohort: 762 premarket fills, ~62 dates, the bot's
-# own v2 detector via live_harness (463) + hidden_v2-spec (299), E3 exits, 09:25 flatten.
+# own v2 detector via the replay harness (463) + hidden_v2-spec (299), E3 exits, 09:25 flatten.
 #   CAP    Marcos: "I dont want a cap on pre if it can make money. I am never for a cap."
 #          It had NEVER bound (0 premkt_capped rows in 13 archive days) ONLY because the broken
 #          dvol gate starved it upstream — with the corrected measure, 7 of 8/20's fires clear

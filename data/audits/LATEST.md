@@ -395,3 +395,5 @@ them." — daily graded reject+shadow review joins the watch, starting 8/20; pre
 BOOK VOID NOTE: the closed-trades PRE table quoted earlier tonight (vwap_reclaim -$648 etc.)
 was retracted in-session — those records are the voided ledger classes; no roster decision
 rests on them.
+
+**SHIP STAMP (Addendum 7):** tree ba33824f8104 — pre-roster changes + gate 26 + true-ET audition artifacts.

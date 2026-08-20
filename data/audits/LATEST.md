@@ -566,3 +566,5 @@ what order."
    benched — evidence filed, not acted on.
 4. HYGIENE: LANE_EXPECTANCY's hidden_v2 entry still cited the VOIDED UTC-shifted +$41.60 —
    corrected to the true-ET +$9.85 (n=95) with the void named in the source string.
+
+**SHIP STAMP (Addendum 14):** tree c1b439ed80ad.

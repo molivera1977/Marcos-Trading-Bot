@@ -657,3 +657,5 @@ refire on skip is log-noise only (triggers dedup at detection). DISCLOSED RESIDU
 structure-change on <3% drift stays unread until it moves; calibration used approximated
 read times; skips are reader-log-only (grading must pull the log before Railway truncation).
 Rig gate 29: 15 pins, ALL EXECUTED. GREEN.
+
+**SHIP STAMP (Addendum 17):** tree a97e64a0ea92 — reader service deploy.

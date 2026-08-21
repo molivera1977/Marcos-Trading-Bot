@@ -592,3 +592,5 @@ harnessed?"
    STRUCTURALLY BLOCKED, same root gap as runway replays; map archiving is now a
    Quartermaster item with TWO consumers waiting. Debt queued: both closable items land
    before the next roster competition so the field is complete.
+
+**SHIP STAMP (Addendum 15):** tree 01807ddb43e2.

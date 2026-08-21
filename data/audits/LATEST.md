@@ -659,3 +659,30 @@ read times; skips are reader-log-only (grading must pull the log before Railway 
 Rig gate 29: 15 pins, ALL EXECUTED. GREEN.
 
 **SHIP STAMP (Addendum 17):** tree a97e64a0ea92 — reader service deploy.
+
+## ADDENDUM 18 — SPREAD-RELATIVE STOP GUARD, k=1 (Marcos: "ship the k=1 guard"; ~23:3x ET)
+
+THE QUESTION THAT FOUND IT: Marcos, "does a lower min stop affect spread?" — the spread is
+per-share while risk-sizing loads MORE shares onto tighter stops, so RT spread dollars ~=
+$60 x (spread/stop-width) per $30 risk; a stop inside the spread pays >100% of its risk unit
+before the trade starts (UUU 8/20: 0.44% stop, 11.4% spread = 382%).
+
+EVIDENCE: spread_floor_20260820.py — 12,630 fills across the cache, 11,979 REAL NBBO quote
+samples (2 gaps), REAL spreads charged into the walks: k=0 +$20,913 · k=1 +$24,265 (TRAIN
++$11,572 / OOS +$12,693 — beats no-guard on BOTH halves, drops only 104 structurally-dead
+fills) · k=2 +$23,674 · k=3 +$20,253 · k=6 +$8,081. k=1 = the pre-registered winner. NOTE
+the one-day 8/20 replay had said k=3 — the chop-day anecdote was WRONG at scale ("i want to
+see the numbers before deciding" vindicated). Companion finding for Friday: the REAL edge is
+~half paper (+$8.65/fill zero-cost vs +$4.41/fill real at k=1, per-fill basis — the
+DRY_RUN-fiction haircut every proving-week number carries). Spread sampling = SIGNAL-minute
+median (disclosed: live fills land seconds later where spreads on movers run slightly wider,
+so real costs are, if anything, a touch worse — the LIVE guard reads the actual pre-fill
+quote, exact where the study approximated).
+
+BUILD: guard at the worker's existing quote fetch, AFTER the absolute 6% cap; refuses when
+(entry - stop) < SPREAD_STOP_K x spread$; fail-OPEN on missing quotes; refusal row
+spread_stop_reject stamps spread/stop_width/k/spread_pct for the nightly grading. Kill:
+SPREAD_STOP_K=0. BUILD DEFECT CAUGHT IN READ-BACK: the first paste landed the orphaned
+refund/return at the OUTER if level — every quoted trade would have been refunded+returned
+(a silent full-book kill behind green logs). Fixed; rig gate 30 pins the containment by AST
+(S3), the arithmetic executed (S6), 6 pins GREEN. Sweep 51 pass / 17 fail (baseline).

@@ -663,6 +663,7 @@ PULLBACK_TOL            = 0.01   # price within 1% of the broken level = "pulled
                                  # harness validated +0.26R vs −0.17R break-tick on identical setups (7/2).
 # Small-cap momentum plays are largely uncorrelated to SPY on catalyst days.
 # -1% is a normal red morning — Kev trades ICCM day-2 regardless of SPY.
+SPREAD_STOP_K         = float(os.environ.get("SPREAD_STOP_K", "1.0"))   # 8/20: stop must be >= k x spread (spread_floor_20260820: k=1 beats 0 on both halves; 0 = off)
 MAX_SPREAD_PCT        = 0.06   # Skip entry if bid-ask spread > this % of ask. HOMEGROWN (Kev only says
                               # ">$10 gets spready", no hard cap). Widened 3%→6% on LIVE 7/1 data: RNAZ
                               # (3.89%) + WSHP (3.88%) both broke out with good room but got spread-rejected
@@ -15967,6 +15968,34 @@ def main():
                     settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
                     reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
                 return
+
+            # ── 8/20 SPREAD-RELATIVE STOP GUARD (Marcos: "ship the k=1 guard") ──────────────
+            # The absolute 6% cap above measures spread vs PRICE; the cost that matters is
+            # spread vs the STOP: round-trip spread dollars ~= $60 x (spread / stop-width) per
+            # $30 of risk — a stop INSIDE the spread pays more than the whole risk unit before
+            # the trade starts (8/20 specimens: UUU 0.44% stop / 11.4% spread = 382% of risk).
+            # MEASURED (data/killtests/spread_floor_20260820.py — 12,630 fills, 11,979 real
+            # NBBO quotes, REAL spreads charged): k=0 +$20,913 · k=1 +$24,265 (TRAIN +$11,572 /
+            # OOS +$12,693, beats k=0 on BOTH halves, drops only 104 fills — the structurally
+            # dead ones) · k=2 +$23,674 (gives back $1,984 OOS) · k=3 +$20,253. k=1 is the
+            # pre-registered winner. spread$ from the SAME quote as the cap above
+            # (spread_pct = (ask-bid)/ask; ~ask ~= entry). FAIL-OPEN when the quote was
+            # missing (spread_pct==0 — the fetch's own fail-open). Kill: SPREAD_STOP_K=0.
+            if SPREAD_STOP_K > 0 and spread_pct > 0 and entry_price > stop_loss:
+                _sg_spread = spread_pct * entry_price
+                _sg_stopw = entry_price - stop_loss
+                if _sg_stopw < SPREAD_STOP_K * _sg_spread:
+                    print(f"🧾 {ticker} stop ${_sg_stopw:.4f} inside {SPREAD_STOP_K:g}x the "
+                          f"spread ${_sg_spread:.4f} — the spread IS the trade, skipping [spread-stop guard]")
+                    _log_decision(ticker, "spread_stop_reject", price=entry_price,
+                                  stop=round(stop_loss, 4), lane=entry_type,
+                                  spread=round(_sg_spread, 4), stop_width=round(_sg_stopw, 4),
+                                  k=SPREAD_STOP_K, spread_pct=round(spread_pct * 100, 2))
+                    _slot_refund(ticker, entry_type)
+                    with trade_lock:
+                        settled_remaining += _reservations.pop(ticker, 0)   # exactly-once release
+                        reentry["held"].discard(ticker)   # pre-trade reject (no fill): release held-lock (#2)
+                    return
 
             l2_ok, l2_details = check_level2(ticker, entry_price)
             if not l2_ok:

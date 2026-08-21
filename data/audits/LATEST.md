@@ -867,3 +867,5 @@ above flat_top, because it is bigger than flat_top in both directions.
 CAVEAT ON EVERY NUMBER ABOVE: one day, n=719 counterfactuals, flat-slip walks (no NBBO charged
 — the real-cost haircut runs ~50%), and refused trades never competed for capital against the
 trades actually taken. Directional, not bankable.
+
+**SHIP STAMP (Addendum 21):** tree 0a67fd14a1b1.

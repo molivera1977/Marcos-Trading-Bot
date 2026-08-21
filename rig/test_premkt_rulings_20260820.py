@@ -99,19 +99,21 @@ check("A7a roster EXECUTED: empty block roster -> LANE_RANK everywhere (the kill
 # roster set by COMPETITION at the 1% floor (ignition +$18.65/fill > v2conv +$12.90 >
 # kevseq +$12.31 > hidden_v2 +$10.88, all both-halves; unreplayable ema9x90/ma_pullback
 # follow the measured four). These pins exercise the SHIPPED armed defaults.
-_ns["OPEN_LANE_RANK"] = ["ignition", "v2conv", "kevseq", "hidden_v2", "ema9x90", "ma_pullback"]
-check("A7b roster EXECUTED: contest order in-block (v2conv #2, hidden_v2 #4), other hours unchanged",
-      _ns["_lane_rank"]("v2conv", "09:45") == 1
-      and _ns["_lane_rank"]("kevseq", "09:45") == 2
-      and _ns["_lane_rank"]("hidden_v2", "09:45") == 3
+# 8/20 ~20:2x COMPLETE FIELD (harness debt paid): ema9x90 +$35.77/fill and ma_pullback
+# +$21.87 lead the block — the two lanes rank 1-2 once they could compete.
+_ns["OPEN_LANE_RANK"] = ["ema9x90", "ma_pullback", "ignition", "v2conv", "kevseq", "hidden_v2"]
+check("A7b roster EXECUTED: complete-field order (ema9x90 #1, ma_pullback #2, v2conv #4)",
+      _ns["_lane_rank"]("ema9x90", "09:45") == 0
+      and _ns["_lane_rank"]("ma_pullback", "09:45") == 1
+      and _ns["_lane_rank"]("v2conv", "09:45") == 3
       and _ns["_lane_rank"]("hidden_v2", "15:45") == 1   # post-mid: LANE_RANK again
       and _ns["_lane_rank"]("v2conv", "15:45") == 5
       and _ns["_lane_rank"]("v2conv", "08:00") == 1)
 check("A7c wiring: whitelist consults the window; seat + roster ARMED in the shipped defaults",
       "_b[3] in RTH_LANES or _lane_window_ok(_b[3], _rl_now)" in SRC
       and 'os.environ.get("LANE_WINDOWS", "v2conv:09:30-10:30")' in SRC
-      and '"OPEN_LANE_RANK", "ignition,v2conv,kevseq,hidden_v2,ema9x90,ma_pullback"' in SRC)
-_ns["MID_LANE_RANK"] = ["grinder", "ignition", "hidden_v2", "kevseq", "ema9x90", "ma_pullback"]
+      and '"OPEN_LANE_RANK", "ema9x90,ma_pullback,ignition,v2conv,kevseq,hidden_v2"' in SRC)
+_ns["MID_LANE_RANK"] = ["grinder", "ignition", "ma_pullback", "ema9x90", "hidden_v2", "kevseq"]
 _ns["MID_BLOCK"] = ("10:30", "15:30")
 check("A10 MID-DAY roster EXECUTED: grinder #1 in-block only (competition 8/20: +$34.98/fill,"
       " halves 32.81/38.14); v2conv unranked mid-day (+$2.20/fill validated the cutoff)",

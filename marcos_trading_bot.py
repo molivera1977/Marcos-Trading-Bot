@@ -3919,8 +3919,18 @@ def _lane_window_ok(lane, hhmm):
 #   grinder cannot fire before 10:30 by construction. ema9x90/ma_pullback are UNREPLAYABLE:
 #   no block score -> no block privilege; they follow the measured four, keeping their own
 #   relative order. hidden_v2's all-day #2 rank is untouched outside this hour.
+# 8/20 ~20:2x COMPLETE-FIELD RERUN (Marcos: "what is missing from 9/90 and pullback? we
+# spend a lot of time on them" -> the harness debt was paid — ema9x90 got its LANES entry,
+# ma_pullback's pre driver was pointed at RTH — and the field went from 5 to 7 lanes):
+#   ema9x90 n=191 +$6,832 (+$35.77/fill, halves 32.47/39.32 — the OPENING-HOUR KING) >
+#   ma_pullback n=108 +$2,362 (+$21.87, halves 22.27/21.25, tightest in the field) >
+#   ignition +$18.65 > v2conv +$12.90 > kevseq +$12.31 > hidden_v2 +$10.88. All both-halves.
+# DISCLOSED: ema9x90's harness arm is positive-controlled on synthetic tape only (its live
+# fires exist solely on 8/19-8/20, not yet in the cache); ma_pullback ran runway-open (no
+# historical maps). The two lanes Marcos invested in ARE the block's best — the data could
+# not say so until they could compete.
 OPEN_LANE_RANK = [x.strip() for x in os.environ.get(
-    "OPEN_LANE_RANK", "ignition,v2conv,kevseq,hidden_v2,ema9x90,ma_pullback").split(",") if x.strip()]
+    "OPEN_LANE_RANK", "ema9x90,ma_pullback,ignition,v2conv,kevseq,hidden_v2").split(",") if x.strip()]
 OPEN_BLOCK = (os.environ.get("OPEN_BLOCK_START", "09:30"),
               os.environ.get("OPEN_BLOCK_END", "10:30"))
 # ── 8/20 MID-DAY BLOCK (Marcos: "how about 10:30 onward?" under his standing "let the data
@@ -3934,8 +3944,11 @@ OPEN_BLOCK = (os.environ.get("OPEN_BLOCK_START", "09:30"),
 #   reclaim +$8.14, benched. Unreplayable ema9x90/ma_pullback follow the measured four.
 # BOLD PART, stated: grinder ranks ABOVE ignition mid-day, on the table's strongest evidence.
 # Kill: MID_LANE_RANK="" falls back to LANE_RANK.
+# 8/20 complete-field rerun (same run as OPEN above): grinder holds #1 (+$34.98/fill) >
+# ignition +$21.83 > ma_pullback +$15.30 > ema9x90 +$10.80 > hidden_v2 +$10.29 > kevseq
+# +$8.70; v2conv +$2.20 stays unranked mid-day. All both-halves.
 MID_LANE_RANK = [x.strip() for x in os.environ.get(
-    "MID_LANE_RANK", "grinder,ignition,hidden_v2,kevseq,ema9x90,ma_pullback").split(",") if x.strip()]
+    "MID_LANE_RANK", "grinder,ignition,ma_pullback,ema9x90,hidden_v2,kevseq").split(",") if x.strip()]
 MID_BLOCK = (os.environ.get("MID_BLOCK_START", "10:30"),
              os.environ.get("MID_BLOCK_END", "15:30"))
 

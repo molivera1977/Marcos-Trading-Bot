@@ -601,6 +601,13 @@ LANES = {
         "state": ("_gr_st",),
         "call": lambda F, sym, nb, vwap, ctx: F(sym, nb, vwap),
     },
+    "ema9x90": {           # 8/20 (Marcos: "what is missing from 9/90...?") — the missing
+        # LANES entry, nothing else: the symbols lifted since 8/18, gate 17's note said
+        # "a LANES entry would make it replayable like the others". Plain 10s lane.
+        "fn": "ema9x90_step", "needs_vwap": True, "ctx_required": (),
+        "state": ("_x90_st",),
+        "call": lambda F, sym, nb, vwap, ctx: F(sym, nb, vwap),
+    },
     "hidden_v2": {         # 8/19 lane; ctx carries the day-gain basis (prior-day close)
         "fn": "hidden_v2_step", "needs_vwap": True, "ctx_required": ("pdc",),
         "state": ("_hv2_state",),

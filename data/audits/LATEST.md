@@ -594,3 +594,29 @@ harnessed?"
    before the next roster competition so the field is complete.
 
 **SHIP STAMP (Addendum 15):** tree 01807ddb43e2.
+
+## ADDENDUM 16 — THE COMPLETE FIELD (Marcos: "so what is missing from 9/90 and pullback? we
+spend a lot of time on them" — ~20:2x ET)
+
+ANSWER: nothing was missing from the LANES; they were missing from the MEASUREMENT. The
+harness debt was two small pieces — ema9x90 lacked a 5-line LANES entry (symbols lifted
+since 8/18; gate 17's note said exactly this), ma_pullback's two-timeframe driver existed
+since the 8/19 pre-audition and had never been pointed at RTH. Both paid tonight; the
+ema9x90 arm positive-controlled on synthetic tape (its live fires exist only 8/19-8/20,
+not yet ferried to the cache — DISCLOSED); ma_pullback ran runway-open (no historical maps
+— DISCLOSED, the standing Quartermaster gap).
+
+COMPLETE-FIELD RERUN (7 lanes, both blocks, 1% floor / capital-aware / total dollars, every
+row both-halves positive):
+  09:30-10:30: ema9x90 n=191 +$6,832 (+$35.77/fill, 32.47/39.32) > ma_pullback n=108 +$2,362
+    (+$21.87, 22.27/21.25) > ignition +$18.65 > [reclaim +$17.20 benched] > v2conv +$12.90 >
+    kevseq +$12.31 > hidden_v2 +$10.88. THE TWO LANES MARCOS INVESTED IN LEAD THE BLOCK.
+  10:30-15:30: grinder +$34.98 (holds #1) > ignition +$21.83 > ma_pullback +$15.30 >
+    ema9x90 +$10.80 > hidden_v2 +$10.29 > kevseq +$8.70; v2conv +$2.20 stays unranked.
+ROSTERS RE-SET to the complete-field orders (OPEN: ema9x90, ma_pullback, ignition, v2conv,
+kevseq, hidden_v2 · MID: grinder, ignition, ma_pullback, ema9x90, hidden_v2, kevseq) under
+the standing ruling "let the data decide who should go and in what order". Gate 28 pins
+updated and EXECUTED against the new orders; GREEN. dip_rip remains the one lane that cannot
+compete (marked-level dependency; map archiving = Quartermaster, two consumers).
+DOCTRINE (for the checklist): a lane is not DONE until it can COMPETE — the harness entry is
+part of shipping, not an afterthought; 9/90 sat unmeasurable through two roster decisions.

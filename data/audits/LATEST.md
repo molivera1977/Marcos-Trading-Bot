@@ -686,3 +686,5 @@ SPREAD_STOP_K=0. BUILD DEFECT CAUGHT IN READ-BACK: the first paste landed the or
 refund/return at the OUTER if level — every quoted trade would have been refunded+returned
 (a silent full-book kill behind green logs). Fixed; rig gate 30 pins the containment by AST
 (S3), the arithmetic executed (S6), 6 pins GREEN. Sweep 51 pass / 17 fail (baseline).
+
+**SHIP STAMP (Addendum 18):** tree 38cec8bcc057.

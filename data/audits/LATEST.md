@@ -723,3 +723,5 @@ FLAT BOOK VERIFIED THIS TURN: /api/open_trades -> {"open_trades":[]} at 00:34:43
 CAVEATS ON THE RECORD: 54 trades / 24 days; 10 triggers had unattributable kills; a DIFFERENT
 entry on the same setup (require the reclaim to prove above the level first) is untested and is
 a different lane, not this one.
+
+**SHIP STAMP (Addendum 19):** tree a2fae605768b.

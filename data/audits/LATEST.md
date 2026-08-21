@@ -622,3 +622,38 @@ DOCTRINE (for the checklist): a lane is not DONE until it can COMPETE — the ha
 part of shipping, not an afterthought; 9/90 sat unmeasurable through two roster decisions.
 
 **SHIP STAMP (Addendum 16):** tree f37f7a2ddd66.
+
+## ADDENDUM 17 — READ-BUDGET MATERIAL-CHANGE GATE (built by Opus on Marcos's order, FABLE
+audited same evening; ~22:4x ET)
+
+Marcos: "i dont mind rereads but if we are printing the same info then what's the point.
+Come up with a solution, reasoning, and build and i will have fable audit it."
+
+MEASURED FIRST (8/20 reader log, 52 parsed rereads): 12 (23%) identical to the prior read of
+the same name; 43 (83%) verdict SKIP; 2/23 reread markers followed by a fill within 30 min.
+Spend context: $33.83 month-to-date = ~$1.69/day; rereads = 73 of ~139 vision calls today.
+
+ROOT CAUSES: (D1) every trigger dedups on the MAP VERSION and a reread POSTS a new map —
+self-defeating by construction (`_nme_fired[tk] != lastT`; HUIZ v6-v13 wobbled
+2.29/2.25/2.29/2.22/2.11/2.22/2.22 and re-armed itself each time). (D2) the stale-chart
+guard printed "no budget burned" AFTER client.messages.create() — the call was already paid.
+
+THE FIX: one pre-call gate at the single spend point, keyed on the WORLD as of our last read
+(external map edit / new high >0.5% / price move >=3%), fail-OPEN on every uncertainty, kill
+RR_MATERIAL_GATE=0. Thresholds = the measured knee (8/20 sensitivity sweep: 3.0/0.5 saves
+~19% while the day's only-TAKE runner keeps 10/11 reads incl. the TAKE read; 5.0/1.0 saves
+37% but starves the runner to 5/11 — deliberately conservative: a missed runner read costs a
+trade, a wasted read costs ~2 cents). Stale-chart guard MOVED above the render and the call.
+
+FABLE AUDIT FINDING (blocker, fixed in-audit): the recorded fingerprint used the STORED map
+keys (break/stop) on the RAW read (break_level/stop_level, translated only later by
+post_level :542) — every stored fingerprint was (None,None,targets), every compare flagged
+"map_changed_externally", and the gate would have PASSED EVERY READ while showing green. The
+builder's replay missed it by reconstructing maps from log lines in the stored shape. Fixed
+(_map_fp normalizes both shapes); pinned by EXECUTING the exact cross-shape compare that
+failed (gate 29 B8b/B8c). Also verified in-audit: day-rollover safe by architecture (reader
+os.execv's fresh at :1428); skipped reads cost zero API (guard precedes render+call); marker
+refire on skip is log-noise only (triggers dedup at detection). DISCLOSED RESIDUALS:
+structure-change on <3% drift stays unread until it moves; calibration used approximated
+read times; skips are reader-log-only (grading must pull the log before Railway truncation).
+Rig gate 29: 15 pins, ALL EXECUTED. GREEN.

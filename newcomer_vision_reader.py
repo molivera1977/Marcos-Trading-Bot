@@ -893,12 +893,125 @@ EXACT PRICES ONLY (8/5, enforced): every level you return MUST be one of the PRE
 CONFIDENCE anchors (8/4): HIGH = cleanest ~15-25% of charts (one dominant structure, unambiguous level — textbook = HIGH); MEDIUM = readable w/ a competing interpretation; LOW = muddy. 416 reads with zero HIGHs = hedging; use HIGH when earned.
 {{"ticker":"{ticker}","verdict":"TAKE|MARGINAL|SKIP","confidence":"HIGH|MEDIUM|LOW","setup":"...","break_level":0.0,"confirm_level":0.0,"next_supply":0.0,"stop_level":0.0,"targets":[0.0],"reason":"<=40 words"}}"""
 
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# 8/20 READ-BUDGET: THE MATERIAL-CHANGE GATE (Marcos: "i dont mind rereads but if we are
+# printing the same info then what's the point")
+#
+# MEASURED (8/20 reader log, 52 parsed rereads): 12 (23%) returned a map IDENTICAL to the
+# previous read of the same name; 43 (83%) returned verdict SKIP; only 2 of 23 reread markers
+# were followed by a fill within 30 min. Specimens: JZ v2-v7 = 2.62 six times; HUIZ v6-v13 =
+# eight reads whose targets wobbled 2.29/2.25/2.29/2.22/2.11/2.22/2.22 — vision noise on the
+# same chart, not structure.
+#
+# ROOT CAUSE (why an unchanged chart gets re-read): every trigger dedups on the MAP VERSION,
+# and a reread POSTS A NEW MAP — so the dedup key it just stored is invalidated by its own
+# output. `near_map_exhaust` keys on `_nme_fired[tk] != lastT`; each read moves lastT a cent
+# or two, so the guard can never hold on a crowned name. Self-defeating by construction.
+# The other paths dedup only against THEMSELVES (past_map `_pm_fired`, bot marker
+# `_reread_reject_t`, one per ticker per 10 min = a RATE LIMIT, not a change detector).
+#
+# THE FIX — one gate at the single place money is actually spent, keyed on the WORLD rather
+# than on our own output: a read is NEWS iff, since OUR LAST READ of this name, (a) the map
+# was changed by someone else (Kev sheet / another poster), or (b) price made a new high
+# beyond RR_NEWS_HI_PCT, or (c) price moved at least RR_NEWS_PX_PCT. Otherwise the chart is
+# telling the same story and the read is skipped, logged, and NOT billed.
+# Runners are untouched BY CONSTRUCTION: PCLA (9.13 -> 12.87, the day's only TAKE) moves
+# price and highs on every leg, so every one of its reads still fires.
+# Kill: RR_MATERIAL_GATE=0.
+RR_MATERIAL_GATE = os.environ.get("RR_MATERIAL_GATE", "1") == "1"
+# THRESHOLDS — calibrated on 8/20's own 52 rereads (sensitivity sweep, tape position
+# APPROXIMATED because the reader log carries no per-read timestamps; direction-only):
+#     px%/hi%   kept  saved  save%   PCLA reads kept (the runner with the day's only TAKE)
+#      1.5/0.3    45      7    13%   10/11
+#      3.0/0.5    42     10    19%   10/11
+#      5.0/1.0    33     19    37%    5/11   <- runner starts losing reads
+#      8.0/2.0    27     25    48%    5/11
+# 3.0/0.5 is the knee: it nearly doubles the saving over 1.5 while still giving the runner
+# 10 of its 11 reads. Past 5% the saving is bought by starving exactly the names that pay.
+# DELIBERATELY CONSERVATIVE: a missed read on a runner costs a trade; a wasted read costs
+# about two cents. The gate is instrumented (every skip logs why) so tomorrow's live rows
+# recalibrate this from real data instead of an approximation.
+RR_NEWS_PX_PCT   = float(os.environ.get("RR_NEWS_PX_PCT", "3.0"))   # % move that makes a read news
+RR_NEWS_HI_PCT   = float(os.environ.get("RR_NEWS_HI_PCT", "0.5"))   # % above the last read's day high
+_rr_seen: dict = {}     # ticker -> {"fp", "px", "hi", "t"} as of OUR last completed read
+
+
+def _map_fp(d):
+    """Fingerprint of the map fields that decide behaviour. None-safe; order-insensitive.
+    FABLE AUDIT FIX (8/20): accepts BOTH key shapes — the RAW read (`break_level`/`stop_level`,
+    what the model returns) and the STORED map (`break`/`stop`, what post_level translates to,
+    :542). The first version fingerprinted rd via the STORED keys only, so every stored
+    fingerprint was (None, None, targets) while the comparison side had real numbers — the
+    gate flagged "map_changed_externally" on every reread and silently never saved anything,
+    with the rig green. Same class as gate 28's swallowed NameError: a guard that cannot be
+    wrong because it never runs."""
+    def _f(x):
+        try: return round(float(x), 4)
+        except (TypeError, ValueError): return None
+    return (_f(d.get("break") if d.get("break") is not None else d.get("break_level")),
+            _f(d.get("stop") if d.get("stop") is not None else d.get("stop_level")),
+            tuple(sorted(v for v in ( _f(t) for t in (d.get("targets") or []) ) if v is not None)))
+
+
+def _tape_now(ticker):
+    """(live_px, day_high) from the TRUSTED 10s store — no vision, no chart render, no cost.
+    Same source #77 mandated for past-map detection. (0.0, 0.0) when unavailable (fails OPEN:
+    an unknown tape must never silently suppress a read)."""
+    try:
+        rows = _get_retry(f"{U}/api/bars?date={DAY}&ticker={_q(ticker)}~ALP10S").get("bars") or []
+        if not rows:
+            return 0.0, 0.0
+        px = float(rows[-1].get("close") or rows[-1].get("c") or 0)
+        hi = 0.0
+        for r in rows:
+            try: hi = max(hi, float(r.get("high") or r.get("h") or 0))
+            except (TypeError, ValueError): pass
+        return px, hi
+    except Exception:
+        return 0.0, 0.0
+
+
+def _reread_is_news(ticker, lv, live_px, day_hi):
+    """PRE-CALL: would this read plausibly say anything our last read of this name did not?
+    Returns (is_news, why). FAILS OPEN — any missing input yields news=True."""
+    prev = _rr_seen.get(ticker)
+    if not prev:
+        return True, "first_read"
+    if _map_fp(lv) != prev.get("fp"):
+        return True, "map_changed_externally"
+    if day_hi and prev.get("hi") and day_hi > prev["hi"] * (1 + RR_NEWS_HI_PCT / 100.0):
+        return True, "new_high"
+    if live_px and prev.get("px"):
+        if abs(live_px - prev["px"]) / prev["px"] * 100.0 >= RR_NEWS_PX_PCT:
+            return True, "price_moved"
+    if not (live_px and day_hi):
+        return True, "tape_unknown"          # fail OPEN
+    return False, "no_material_change"
+
+
 def reread_one(ticker, trigger):
     """One re-read: intraday chart + prior-map context -> vision -> post as versioned map."""
     try:
         lv = (_get(f"{U}/api/kev_watchlist?date={DAY}").get("levels") or {}).get(ticker) or {}
+        # ── 8/20 PRE-CALL GUARDS (both were downstream of the billed call before today) ──
+        _live, _dayhi = _tape_now(ticker)          # 10s store: no vision, no render, no cost
+        if RR_MATERIAL_GATE:
+            _news, _why = _reread_is_news(ticker, lv, _live, _dayhi)
+            if not _news:
+                print(f"[reread] {ticker} SKIP no-news ({_why}; px {_live} vs last "
+                      f"{_rr_seen.get(ticker, {}).get('px')}) — budget SAVED (gate {trigger})",
+                      flush=True)
+                return False
         png, meta = render_intraday_png(ticker)
         if not png:
+            return False
+        # STALE-CHART guard, MOVED UP (8/20): it used to run AFTER client.messages.create() and
+        # print "no budget burned" — the call was already paid; it only stopped the POST. Now it
+        # is what it always claimed to be.
+        _chart_last = float(meta.get("last") or 0)
+        if _live > 0 and _chart_last > 0 and abs(_chart_last - _live) / _live > 0.05:
+            print(f"[reread] {ticker} STALE CHART: chart last {_chart_last} vs 10s live {_live} "
+                  f"(>5%) — skipping BEFORE the call, no budget burned", flush=True)
             return False
         prior = {k: lv.get(k) for k in ("break","confirm","targets","stop","setup","confidence") if lv.get(k) is not None}
         since = f"day high {meta['day_high']}, last {meta['last']}, vwap {meta['vwap']}"
@@ -920,18 +1033,7 @@ def reread_one(ticker, trigger):
         # because the fallback chart topped at the old level). #77 mandated the 10s store for
         # past-map DETECTION; this extends it to VALIDATION. If store and chart disagree >5%, the
         # chart is stale: skip WITHOUT posting and WITHOUT burning re-read budget (returns False).
-        _live = 0.0
-        try:
-            _rows10 = _get_retry(f"{U}/api/bars?date={DAY}&ticker={_q(ticker)}~ALP10S").get("bars") or []
-            if _rows10:
-                _live = float(_rows10[-1].get("close") or _rows10[-1].get("c") or 0)
-        except Exception:
-            _live = 0.0
-        _chart_last = float(meta.get("last") or 0)
-        if _live > 0 and _chart_last > 0 and abs(_chart_last - _live) / _live > 0.05:
-            print(f"[reread] {ticker} STALE CHART: chart last {_chart_last} vs 10s live {_live} "
-                  f"(>5%) — skipping, no budget burned", flush=True)
-            return False
+        # (_live/_chart_last computed in the PRE-CALL guards above — 8/20)
         ok, why = validate_read(rd, _live if _live > 0 else meta.get("last"))
         if ok:
             _aok, _aoff = anchor_check(rd, meta.get("candidates") or [])
@@ -1014,6 +1116,11 @@ def reread_one(ticker, trigger):
             print(f"[reread] born-exhausted check failed {ticker}: {_e}", flush=True)
         post_level(ticker, rd)
         _rr_backoff.pop(ticker, None)   # 8/12 W1: a good post resets the sanity-discard backoff
+        # 8/20: remember WHAT WE JUST LEARNED and the tape it was learned on. The next read of
+        # this name is compared against THIS — so the gate keys on the world moving, never on
+        # our own output (the flaw that made _nme_fired self-defeating).
+        _rr_seen[ticker] = {"fp": _map_fp(rd), "px": (_live or 0.0), "hi": (_dayhi or 0.0),
+                            "t": time.time()}
         print(f"[reread] {ticker} v{rd['read_version']} ({trigger}): break {rd.get('break_level')} "
               f"targets {rd.get('targets')} [{rd.get('verdict')}/{rd.get('confidence')}]", flush=True)
         return True

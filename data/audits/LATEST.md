@@ -766,3 +766,58 @@ DEFERRED TO TOMORROW (Marcos): reclaim revisit with the external-AI spec (walked
 PRE +$9,929/OPEN +$12,293 passing K1, density/touch/hostile checks still unrun — NOT shipped).
 
 **SHIP STAMP (Addendum 20):** tree d8384f6e93ab.
+
+## CONVENING ARTIFACT — REAL-COST ROSTER SHIP (8/21 ~03:1x ET)
+covers: 6fd3cc0c522d
+
+FINDINGS + FIX-NOW: (1) SHIP_CHECK AH-ix correctly RED'd the first attempt — its pin froze the
+single-gate V2_CONVERT wiring this ship deliberately splits; amended to the dual gate WITH the
+ruling cited, not deleted. (2) Gate 32's T5 first run caught the scratch-ns missing
+ENTRY_OPEN_ET — the LANE_RANK fallback fired exactly as designed; scaffold fixed, bot untouched.
+(3) No other finding: the diff is three rank-list defaults, one membership gate, rig pins, and
+bookkeeping. No sizing, exit, feed, or gate-stack code touched.
+
+DAY-ONE WALKTHROUGH (next session, TODAY 8/21): 07:00 a PRE candidate fires v2conv -> V2_CONVERT
+still converts the FIRE, but v2conv is absent from PRE_LANES (V2_PRE=0 default) -> the premarket
+whitelist shadows it -> row logged, no capital; ignition on the same tape converts and books.
+09:31 v2conv fires -> _lane_window_ok passes (LANE_WINDOWS unchanged) -> converts inside the
+window, ranked LAST of the measured five by _lane_rank("v2conv","09:31")=4. 10:31 v2conv fire ->
+window closed, RTH_LANES excludes it -> shadowed. 12:00 contested slot ignition-vs-grinder ->
+_lane_rank returns 0 vs 1 -> ignition takes it. The 16:37 review grades every one of these rows
+including the two FLAGGED hidden_v2 OOS cells.
+
+doctrine-inversion sweep: the DOCTRINE changed tonight — "paper-cost evidence can seat a lane"
+is repealed; seats now require real-NBBO-cost evidence. Old-doctrine encodings found and
+handled: AH-ix (amended, above); gate-28 A7c + pre-roster P6 (amended with the evidence class
+named); PRE_LANE_RANK comment block at :3835 still NARRATES the paper audition as history —
+kept deliberately as provenance, marked by the 8/21 ruling comment above it; LANE_EXPECTANCY
+per-lane notes still carry paper-era dollar figures as SOURCE strings (data, not gates — flagged
+for the lane-dossier pass Marcos ordered for tomorrow, where each lane gets paper AND real side
+by side). No other encoding of the repealed premise found in RTH_LANES/PRE_LANES/LANE_WINDOWS/
+rank consumers.
+
+ROLL CALL — Blast Radius Auditor: touched (this artifact; AH-ix catch is its process working).
+Systems Quant: touched (the competition run + total-dollars ranking is its work product).
+Statistician: touched (R1 both-halves rule applied; grinder/ignition OOS nuance disclosed, not
+buried). Momentum Operator: touched (ignition #1 everywhere at real costs — no objection).
+Trade Manager: clean (exits untouched). Reclaim Architect: touched (reclaim rank entry removed;
+external-AI spec walk filed for tomorrow's revisit, NOT shipped). Hidden Entry Architect:
+touched (hidden_v2 OOS flags stand; seats kept under R2). First Hour / Opening Bell: touched
+(OPEN order re-set; window mechanics unchanged). Side Marshal: clean (no side logic). Crown
+Steward: clean (crown privileges untouched). Feed Engineer: clean (no feed change; halt-lane
+HALT_ARM_5S contradiction remains OPEN on the docket, not part of this ship). Webull Broker
+Desk: clean (no broker surface). Quartermaster: touched (ma_pullback unmeasured-at-real-costs
+is its standing harness/cache debt, named in the rosters). Kev Librarian: clean (no corpus
+change). Seam Scientist: clean. Strength Ombudsman: touched (v2conv bench is a WEAKNESS
+prosecution at real costs, not a strength refusal — evidence attached). Forward Architect:
+touched (tomorrow's lane-dossier + adversarial-AI audit program recorded on the docket). Tape
+Veteran: clean. Execution Surgeon: touched (spread physics R3 validated in-field). Handicapper:
+touched (rank = total dollars at $5,000). Rocket Rider: clean (halt lanes untouched tonight
+beyond the standing restriction). Cartographer: clean (no map logic). Wind Tunnel Engineer:
+clean with reason: re-rank of existing lanes, no new mechanism to gauntlet; the kevspec
+candidate is NOT in this ship and faces the full gauntlet before any convert. Convexity Trader:
+clean. Curl Mechanic: clean (curl feed untouched). Pit Crew Chief: touched (deploy + boot
+verify below). Integrator: touched (three gates GREEN post-amend; parse check run). Dashboard
+Curator: clean with reason: boot_config row carries the new defaults automatically. Project
+Manager: touched (docket updated — reclaim revisit + lane dossiers tomorrow). Historian:
+touched (paper-era orders retired with provenance preserved in comments and this file).

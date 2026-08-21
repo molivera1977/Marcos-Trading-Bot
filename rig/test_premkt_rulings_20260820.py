@@ -79,6 +79,8 @@ for _fn in ("_lane_window_ok", "_lane_rank"):
 _ns.setdefault("LANE_WINDOWS", {})            # start empty; armed case exercised below
 _ns["PRE_LANE_RANK"] = ["ignition", "v2conv", "vwap_reclaim", "ma_pullback"]
 _ns["OPEN_LANE_RANK"] = []                    # start empty; armed case exercised below
+_ns["MID_LANE_RANK"] = []                     # start empty (kill-switch path); armed below
+_ns["MID_BLOCK"] = ("10:30", "15:30")
 _ns["OPEN_BLOCK"] = ("09:30", "10:30")
 _ns["LANE_RANK"] = ["ignition", "hidden_v2", "ema9x90", "ma_pullback"]
 _ns["ENTRY_OPEN_ET"] = "07:00"
@@ -102,13 +104,22 @@ check("A7b roster EXECUTED: contest order in-block (v2conv #2, hidden_v2 #4), ot
       _ns["_lane_rank"]("v2conv", "09:45") == 1
       and _ns["_lane_rank"]("kevseq", "09:45") == 2
       and _ns["_lane_rank"]("hidden_v2", "09:45") == 3
-      and _ns["_lane_rank"]("hidden_v2", "11:00") == 1
-      and _ns["_lane_rank"]("v2conv", "11:00") == 5
+      and _ns["_lane_rank"]("hidden_v2", "15:45") == 1   # post-mid: LANE_RANK again
+      and _ns["_lane_rank"]("v2conv", "15:45") == 5
       and _ns["_lane_rank"]("v2conv", "08:00") == 1)
 check("A7c wiring: whitelist consults the window; seat + roster ARMED in the shipped defaults",
       "_b[3] in RTH_LANES or _lane_window_ok(_b[3], _rl_now)" in SRC
       and 'os.environ.get("LANE_WINDOWS", "v2conv:09:30-10:30")' in SRC
       and '"OPEN_LANE_RANK", "ignition,v2conv,kevseq,hidden_v2,ema9x90,ma_pullback"' in SRC)
+_ns["MID_LANE_RANK"] = ["grinder", "ignition", "hidden_v2", "kevseq", "ema9x90", "ma_pullback"]
+_ns["MID_BLOCK"] = ("10:30", "15:30")
+check("A10 MID-DAY roster EXECUTED: grinder #1 in-block only (competition 8/20: +$34.98/fill,"
+      " halves 32.81/38.14); v2conv unranked mid-day (+$2.20/fill validated the cutoff)",
+      _ns["_lane_rank"]("grinder", "11:00") == 0          # ranks are 0-based list indices
+      and _ns["_lane_rank"]("ignition", "11:00") == 1
+      and _ns["_lane_rank"]("grinder", "09:45") > 4          # no opening-hour privilege
+      and _ns["_lane_rank"]("v2conv", "11:00") == 7          # unranked mid-day (len+1)
+      and _ns["_lane_rank"]("grinder", "15:45") == 5)        # after 15:30: LANE_RANK pool again
 check("A9 RTH floor settled at 1% (Marcos 8/20) with the ladder in the comment",
       'os.environ.get("MIN_STOP_PCT", "1.0")' in SRC
       and "the 4%" in SRC and "+$42,310" in SRC)

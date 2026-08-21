@@ -3923,6 +3923,21 @@ OPEN_LANE_RANK = [x.strip() for x in os.environ.get(
     "OPEN_LANE_RANK", "ignition,v2conv,kevseq,hidden_v2,ema9x90,ma_pullback").split(",") if x.strip()]
 OPEN_BLOCK = (os.environ.get("OPEN_BLOCK_START", "09:30"),
               os.environ.get("OPEN_BLOCK_END", "10:30"))
+# ── 8/20 MID-DAY BLOCK (Marcos: "how about 10:30 onward?" under his standing "let the data
+# decide who should go and in what order"). The 10:30-15:30 competition, same conditions
+# (1% floor / capital-aware / total dollars; every lane both-halves positive):
+#   grinder n=229 +$8,009 (+$34.98/fill, halves 32.81/38.14 — the STRONGEST agreement in the
+#   field; the lane's design is literally post-10:30) > ignition n=552 +$12,051 (+$21.83) >
+#   hidden_v2 n=618 +$6,359 (+$10.29; halves 14.56/6.11 diverge, both +) > kevseq n=1026
+#   +$8,929 (+$8.70; NEUTRAL-ctx proxy — its live front-side gates were not modeled).
+#   v2conv scored +$2.20/fill here — independent validation of its 10:30 seat cutoff.
+#   reclaim +$8.14, benched. Unreplayable ema9x90/ma_pullback follow the measured four.
+# BOLD PART, stated: grinder ranks ABOVE ignition mid-day, on the table's strongest evidence.
+# Kill: MID_LANE_RANK="" falls back to LANE_RANK.
+MID_LANE_RANK = [x.strip() for x in os.environ.get(
+    "MID_LANE_RANK", "grinder,ignition,hidden_v2,kevseq,ema9x90,ma_pullback").split(",") if x.strip()]
+MID_BLOCK = (os.environ.get("MID_BLOCK_START", "10:30"),
+             os.environ.get("MID_BLOCK_END", "15:30"))
 
 
 def _lane_rank(lane, now_hm=None):
@@ -3945,9 +3960,12 @@ def _lane_rank(lane, now_hm=None):
             pass
     if _pre:
         _lst = PRE_LANE_RANK
+    elif OPEN_LANE_RANK and _hm_r and OPEN_BLOCK[0] <= _hm_r < OPEN_BLOCK[1]:
+        _lst = OPEN_LANE_RANK
+    elif MID_LANE_RANK and _hm_r and MID_BLOCK[0] <= _hm_r < MID_BLOCK[1]:
+        _lst = MID_LANE_RANK
     else:
-        _lst = (OPEN_LANE_RANK if (OPEN_LANE_RANK and _hm_r and OPEN_BLOCK[0] <= _hm_r < OPEN_BLOCK[1])
-                else LANE_RANK)
+        _lst = LANE_RANK
     try:
         return _lst.index(lane)
     except ValueError:

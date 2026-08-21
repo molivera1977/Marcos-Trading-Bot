@@ -568,3 +568,27 @@ what order."
    corrected to the true-ET +$9.85 (n=95) with the void named in the source string.
 
 **SHIP STAMP (Addendum 14):** tree c1b439ed80ad.
+
+## ADDENDUM 15 — THE MID-DAY BLOCK + HARNESS DEBT NAMED (Marcos, ~20:1x ET)
+
+Q: "how about 10:30 onward? Also and first thing to discuss, are those last three not fully
+harnessed?"
+
+1. THE 10:30-15:30 COMPETITION (same conditions — 1% floor, capital-aware, total dollars;
+   every lane both-halves positive):
+     grinder n=229 +$8,009 (+$34.98/fill, halves 32.81/38.14 — the field's STRONGEST
+     agreement; the lane's design is literally post-10:30) > ignition n=552 +$12,051
+     (+$21.83) > hidden_v2 n=618 +$6,359 (+$10.29; halves 14.56/6.11, both +) > kevseq
+     n=1026 +$8,929 (+$8.70; NEUTRAL-ctx proxy — live front-side gates not modeled).
+     v2conv +$2.20/fill — independent validation of its 10:30 seat cutoff. reclaim +$8.14,
+     benched. MID_LANE_RANK wired to that order (BOLD PART STATED: grinder ABOVE ignition
+     mid-day), unreplayables follow, kill MID_LANE_RANK="". Gate 28 A10 executes the branch
+     (0-based-rank expectation caught by probing, fixed in the pin).
+2. HARNESS DEBT, answered precisely: all three LIFT (symbols registered); the gap is LANES
+   entries/drivers. ema9x90 = a five-line LANES entry (plain 10s lane; gate 17's own note:
+   "tracked, not gated") — CLOSABLE. ma_pullback = the two-timeframe driver ALREADY EXISTS
+   (mapb_pre_audition_20260819.py, built for the pre audition); RTH extension is small —
+   CLOSABLE. dip_rip = dips to a MARKED LEVEL and no historical map archive exists —
+   STRUCTURALLY BLOCKED, same root gap as runway replays; map archiving is now a
+   Quartermaster item with TWO consumers waiting. Debt queued: both closable items land
+   before the next roster competition so the field is complete.

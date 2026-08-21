@@ -871,7 +871,7 @@ trades actually taken. Directional, not bankable.
 **SHIP STAMP (Addendum 21):** tree 0a67fd14a1b1.
 
 ## CONVENING ARTIFACT — SIM FRAME $5,000 (8/21 ~18:2x ET)
-covers: 0a67fd14a1b1
+covers: c64799040494  # was: 0a67fd14a1b1
 
 FINDINGS + FIX-NOW: none beyond the change itself. The diff is ONE constant plus its comment
 block; no gate, sizing, exit, feed or roster code touched. The one thing that could have made
@@ -912,3 +912,13 @@ Integrator: touched (gate 33 GREEN, parse check run). Dashboard Curator: touched
 banner and boot_config carry the new frame automatically. Project Manager: touched (docket).
 Historian: touched (the $3,000 era of the sim ends here; both-book reporting preserves the
 comparability of every study in the archive).
+
+**ADDENDUM 21 FOLLOW-UP — A GATE DEFECT THE SHIP ITSELF EXPOSED.** SHIP_CHECK went RED on EG3
+because the CLAIMS ledger's seeded row "sim balance $3,000" no longer reproduced. That is the
+ledger working. But marking the old row `SUPERSEDED by 2026-08-21` per the ledger's OWN
+append-only rule did NOT clear it: `verify_claims.py` never implemented the superseded half of
+the protocol, so a superseded row graded CHANGED and would take EVERY future ship RED. The rule
+was documented since 8/17 and had never been exercised until tonight — the first real use found
+the hole. FIX: verify_claims grades SUPERSEDED as its own terminal state (still LISTED, never
+silently dropped) and EG3 excludes it from the failure set. Both changes carry the finding in
+their comments. Rig 33 GREEN, EG3 GREEN.

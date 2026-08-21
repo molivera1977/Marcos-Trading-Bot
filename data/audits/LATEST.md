@@ -688,3 +688,38 @@ refund/return at the OUTER if level — every quoted trade would have been refun
 (S3), the arithmetic executed (S6), 6 pins GREEN. Sweep 51 pass / 17 fail (baseline).
 
 **SHIP STAMP (Addendum 18):** tree 38cec8bcc057.
+
+## ADDENDUM 19 — DIP_RIP RESTRICTED (Marcos: "restrict it", 8/21 00:3x ET)
+
+THE FUNNEL (live archive 7/28-8/20, run 8/20 night): 252 diprip_armed -> 121 diprip_tag ->
+83 triggered_dip_rip -> 1 FILL. The lane was never starved; it was stopped at the door 82 times.
+Docket line "44 triggers/8 days, 2 fills" was WRONG and is corrected here.
+
+WHAT KILLED THE 83: minstop 25 (30%) · momentum/illiquid 14 · unknown 13 · runway 12 · spread 7
+· freshness 5 · chart_gate 4 · restricted/outranked 2 · FILL 1. Stop width at trigger: median
+4.44%, only 10 of 83 under 1% but 34 under 4% — i.e. the biggest killer was the 4% floor, which
+became 1% the same day (Addendum 14). That looked like an unlock. It was not.
+
+GRADED IN DOLLARS (diprip_refusals_20260820; 80 walked, 54 takeable under TODAY's gates, real
+NBBO spreads, E3, $30 risk, $5,000): TOTAL -$597.93 / -$11.07 per trade. EVERY refusing gate is
+a net saver — runway -$288.67 refused (the most valuable gate on this lane), minstop -$75.44,
+momentum -$48.45, spread -$66.94. The floor ruling's own band [1%,4%) = -$270.73 (-$346.87
+without its best). My earlier "~15 triggers re-open" HYPOTHESIS is REFUTED in the losing
+direction and is retired here per REFUTATIONS-MUST-REACH-THE-LEDGER.
+
+IS IT THE LANE OR THE EXIT (diprip_exits_20260820; same 54, same tape/costs, exit swept):
+E3 -$597.93 (baseline reproduced to the cent = the sweep's own positive control) · POP5 -$551.05
+· POP8 -$330.60 (best of seven) · HALF5 -$643.02 · T10 -$498.74 · T20 -$745.24 · LVL -$918.52
+at a 19% win rate. LVL is the PURE THESIS arm — stop at the level, ride it — and it is the WORST.
+E3 was flattering the lane, not hiding it. Marcos's "bank a win and re-enter" does help (POP8
+best, win% 31->35) but improving a loser is not rescuing one. Pre-registration required positive
+AND drop-best-positive; nothing came close.
+
+RULING: dip_rip removed from the RTH_LANES default. It still DETECTS and LOGS (arm/tag/trigger
+rows keep grading nightly) — it just cannot take capital. Restriction is a CAPITAL rule, not a
+spec edit: the detector, BACKSIDE_EXEMPT and CHART_CEILING_LANES membership are untouched.
+Kill: put dip_rip back in RTH_LANES (env). Rig gate 31 pins all of it, 7 pins GREEN.
+FLAT BOOK VERIFIED THIS TURN: /api/open_trades -> {"open_trades":[]} at 00:34:43 ET, market closed.
+CAVEATS ON THE RECORD: 54 trades / 24 days; 10 triggers had unattributable kills; a DIFFERENT
+entry on the same setup (require the reclaim to prove above the level first) is untested and is
+a different lane, not this one.

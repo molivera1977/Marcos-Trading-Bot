@@ -16689,7 +16689,15 @@ RTH_LANES = set(x for x in (os.environ.get(
     "RTH_LANES",
     # 8/19 + hidden_v2 (Marcos: "lock the new hidden. build it and ship live for tomorrow.")
     # — replaces restricted hidden_entry (v1 stays RESTRICTED: detect+log only).
-    "ignition,ema9x90,ma_pullback,kevseq,grinder,dip_rip,hidden_v2")).split(",") if x.strip())
+    # 8/21 00:3x ET Marcos: "restrict it" — dip_rip RESTRICTED. Graded end-to-end 8/20 night:
+    # 252 arms -> 121 tags -> 83 triggers -> 1 fill in 24 days; the 54 triggers takeable under
+    # today's gates walk to -$597.93 at real spreads (diprip_refusals_20260820), EVERY refusing
+    # gate is a net saver (runway alone +$289 of avoided loss), the 1% floor's own [1%,4%) band
+    # is -$270.73, and SEVEN exits all lose (diprip_exits_20260820: POP8 best at -$330.60, the
+    # pure thesis arm LVL worst at -$918.52 on a 19% win rate). Not starved, not strangled, not
+    # mis-exited. Detect+log continues; it just cannot take capital. Kill: put it back in
+    # RTH_LANES (env) — the lane code is untouched and the arm/tag/trigger rows keep grading.
+    "ignition,ema9x90,ma_pullback,kevseq,grinder,hidden_v2")).split(",") if x.strip())
 # 8/16 PREVWAP conversion (Marcos: "switch pre-vwap ... to live in pre" — ALL SIM): the prevwap
 # lane fires ONLY 07:00-09:25, so it must be a PRE lane or the premarket gate shadows every fire.
 # Rides the convert switch — PREVWAP_CONVERT=0 (default) leaves PRE_LANES exactly as before.

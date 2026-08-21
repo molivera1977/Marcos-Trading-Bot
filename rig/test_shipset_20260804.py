@@ -2449,9 +2449,15 @@ try:
                        "_v2f": {"would_stop": 1.0, "px": 2.0}, "breakouts": _b}); return len(_b)
     check("AH-viii: quiet_only=1 blocks a busy fire; quiet_only=0 converts it; a quiet fire converts either way",
           _conv(True, True, False) == 0 and _conv(True, False, False) == 1 and _conv(True, True, True) == 1)
-    # (ix) v2conv in PRE_LANES ONLY under convert; NOT in any exempt set
-    check("AH-ix: PRE_LANES.add('v2conv') gated by 'if V2_CONVERT:'",
-          'if V2_CONVERT:\n    PRE_LANES.add("v2conv")' in _ah_src)
+    # (ix) v2conv in PRE_LANES ONLY under convert AND the 8/21 V2_PRE seat switch. AMENDED
+    # 8/21 (Marcos: "roster according to this last competition and ship" — v2conv's PRE book
+    # is -$1,559.31 with BOTH halves negative at real NBBO costs, block_competition_real_
+    # 20260821, so the PRE seat is BENCHED behind V2_PRE default-0 while the OPEN window seat,
+    # both-halves positive, keeps riding V2_CONVERT + LANE_WINDOWS). The old single-gate pin
+    # is retired WITH its paper-cost evidence class.
+    check("AH-ix: PRE_LANES.add('v2conv') gated by V2_CONVERT AND V2_PRE (default benched)",
+          'if V2_CONVERT and os.environ.get("V2_PRE", "0") == "1":\n    PRE_LANES.add("v2conv")'
+          in _ah_src)
     # 8/17 LANE REGISTRY amends this pin: _STALE_EXEMPT is registry-derived, v2conv IS in it now
     # by design (section AO). Tradeability/side sets unchanged and still pinned.
     check("AH-x: 'v2conv' not in MIN_STOP_EXEMPT/BACKSIDE_EXEMPT/VRIDE_EXEMPT defaults",

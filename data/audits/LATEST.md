@@ -764,3 +764,5 @@ their evidence class, history preserved in comments. All three GREEN + gate 31 G
 FLAT BOOK VERIFIED IN-TURN: {"open_trades":[]} at 02:57:57 ET.
 DEFERRED TO TOMORROW (Marcos): reclaim revisit with the external-AI spec (walked tonight:
 PRE +$9,929/OPEN +$12,293 passing K1, density/touch/hostile checks still unrun — NOT shipped).
+
+**SHIP STAMP (Addendum 20):** tree d8384f6e93ab.

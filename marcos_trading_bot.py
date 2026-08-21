@@ -9828,7 +9828,17 @@ def _scaled_risk(entry_price, stop_loss):
         return RISK_PER_TRADE * min(1.0, w / RISK_PROP_REF)
     except Exception:
         return RISK_PER_TRADE
-SIM_ACCOUNT_BALANCE     = 3000.0 # DRY_RUN virtual account (the intended go-live funding of the margin acct …9AGA)
+# 8/21 after the close (Marcos: "when we finally go full live with real money my account won't
+# be $3,000, it will be $5,000" -> "change it after the close"). The sim frame now MODELS THE
+# GO-LIVE ACCOUNT. BLAST RADIUS TRACED BEFORE THE RULING (8/21): risk/trade UNCHANGED —
+# RISK_PER_TRADE=30.0 is a constant, not a % of balance; position cap UNCHANGED — the clamp is
+# min(70% x balance, MAX_TRADE_DOLLARS=$1000) and the $1,000 cap already binds at $3k and still
+# binds at $5k; the ONLY behavioural change is CONCURRENT CAPACITY 3000 -> 5000, and measured
+# live peak is 3 concurrent ~$1,500, so it rarely binds. NOT included, needs its own ruling and
+# kill-test: R=$30 is 1% of $3,000 but 0.6% of $5,000 — 1% of the real account would be R=$50,
+# a BEHAVIOUR change. Every real-cost study this week already reported BOTH books, so no
+# published number is invalidated by this line.
+SIM_ACCOUNT_BALANCE     = 5000.0 # DRY_RUN virtual account = the go-live funding of margin acct …9AGA
 MAX_POS_VOL_PCT         = 0.05   # share cap = 5% of the avg recent 1-min volume (KUST lesson: the formula wanted
                                  # 750 shares of a 3k-shares/min tape = unfillable; size must fit the market)
 

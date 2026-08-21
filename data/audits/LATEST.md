@@ -821,3 +821,49 @@ verify below). Integrator: touched (three gates GREEN post-amend; parse check ru
 Curator: clean with reason: boot_config row carries the new defaults automatically. Project
 Manager: touched (docket updated — reclaim revisit + lane dossiers tomorrow). Historian:
 touched (paper-era orders retired with provenance preserved in comments and this file).
+
+## ADDENDUM 21 — SIM FRAME -> $5,000 (Marcos 8/21: "change it after the close")
+
+RULING: SIM_ACCOUNT_BALANCE 3000.0 -> 5000.0 so the DRY_RUN sim models the go-live funding of
+margin acct …9AGA. BLAST RADIUS TRACED BEFORE THE RULING and re-pinned in rig gate 33:
+risk/trade UNCHANGED (RISK_PER_TRADE=30.0 is a flat constant, not a % of balance) · position
+size UNCHANGED (clamp = min(70% x balance, MAX_TRADE_DOLLARS=$1000); gate 33 B3c EXECUTES the
+arithmetic and shows the $1,000 cap binds at BOTH $3k and $5k) · the ONLY behavioural change is
+CONCURRENT CAPACITY 3000 -> 5000, and measured live peak is 3 concurrent ~$1,500. NOT included,
+needs its own ruling + kill-test: R=$30 is 1% of $3,000 but 0.6% of $5,000; 1% of the real
+account is R=$50, a BEHAVIOUR change. No published study number is invalidated — every
+real-cost run this week reported BOTH books. Gate 33: 8 pins GREEN.
+FLAT BOOK VERIFIED IN-TURN: {"open_trades":[]} at 18:21:52 ET, market closed.
+
+## THE 16:37 GRADING — 8/21 (standing duty; 719 refused/shadow rows walked at $30 risk, E3)
+
+DAY: -$13.67 on 14 trades. PRE +$4.78 (XOS +1.89, VIVK +2.89, both 09:25 flats) /
+RTH -$18.45. kevseq carried the book (+$28.39 on 5 trades incl. SDOT +18.57, LSTA +19.81);
+v2conv went 0-for-3 at -$18.23, every fill a stop; grinder ANY -$22.08 was the day's worst.
+
+PRE refusals: counterfactual **-$1,192.16** over 225 rows — the premarket gates SAVED money
+today, decisively. Biggest savers: pullback_first_suppress -$412.80 (n=69), v2conv fires
+-$241.63 (n=16, the bench earning its keep on day one), hidden_observe_only -$232.95,
+reclaim_shadow -$212.95, lane_restricted -$126.81.
+  THE ONE COST: flat_top_observe_only **+$398.53 over 29 rows** — HOWL 05:39 +$143.13, BTCT
+  05:43 +$110.85, BTCT 06:04 +$103.19. NOTE THE FRAME (v2 study, same day): flat_top's PRE cell
+  grades +$3.96/fill and DIES at +1 tick (+$0.31) with 59% top-5 concentration. Today's premarket
+  flat_top money is the REGIME-DEPENDENT cell paying off on one tape — evidence for the
+  retrial's PRE question, NOT evidence to unrestrict.
+
+RTH refusals: counterfactual **+$626.10** over 494 rows — the RTH gates COST money today.
+  COSTS: pullback_first_suppress +$534.08 (n=130 — the single biggest line either way),
+  dip_rip +$179.24 (n=4, restricted last night), lane_restricted +$168.78, grinder +$145.18,
+  flat_top_observe_only +$131.76.
+  SAVERS: hidden_observe_only -$670.72 (n=45 — hidden v1 restricted, still the best refusal on
+  the board), v2conv -$220.20 (n=28), reclaim_shadow -$203.55.
+  Biggest single misses: EXYN 12:14 +$139.19 (v2conv fire AND lane_restricted, same bar),
+  JUNS 09:57 hidden_observe_only +$125.69.
+
+THE HEADLINE FOR THE WEEKEND: pullback_first_suppress is on BOTH lists and is the largest line
+on each — it SAVED $412.80 in premarket and COST $534.08 in RTH, on 199 rows. That is a
+session-dependent gate nobody has ever graded. It goes to the top of the edge-widening list
+above flat_top, because it is bigger than flat_top in both directions.
+CAVEAT ON EVERY NUMBER ABOVE: one day, n=719 counterfactuals, flat-slip walks (no NBBO charged
+— the real-cost haircut runs ~50%), and refused trades never competed for capital against the
+trades actually taken. Directional, not bankable.

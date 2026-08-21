@@ -112,7 +112,9 @@ check("A7b roster EXECUTED: complete-field order (ema9x90 #1, ma_pullback #2, v2
 check("A7c wiring: whitelist consults the window; seat + roster ARMED in the shipped defaults",
       "_b[3] in RTH_LANES or _lane_window_ok(_b[3], _rl_now)" in SRC
       and 'os.environ.get("LANE_WINDOWS", "v2conv:09:30-10:30")' in SRC
-      and '"OPEN_LANE_RANK", "ema9x90,ma_pullback,ignition,v2conv,kevseq,hidden_v2"' in SRC)
+      and '"OPEN_LANE_RANK", "ignition,ema9x90,kevseq,hidden_v2,v2conv,ma_pullback"' in SRC)
+# ^ 8/21: OPEN order re-set by the REAL-COST competition (total dollars at $5,000); the
+#   8/20 paper order this pin previously froze is retired with its evidence class.
 _ns["MID_LANE_RANK"] = ["grinder", "ignition", "ma_pullback", "ema9x90", "hidden_v2", "kevseq"]
 _ns["MID_BLOCK"] = ("10:30", "15:30")
 check("A10 MID-DAY roster EXECUTED: grinder #1 in-block only (competition 8/20: +$34.98/fill,"

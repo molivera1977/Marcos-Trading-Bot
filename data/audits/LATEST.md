@@ -725,3 +725,42 @@ entry on the same setup (require the reclaim to prove above the level first) is 
 a different lane, not this one.
 
 **SHIP STAMP (Addendum 19):** tree a2fae605768b.
+
+## ADDENDUM 20 — REAL-COST ROSTERS SHIPPED + v2conv BENCHED FROM PRE (Marcos 8/21 ~03:0x ET:
+## "roster according to this last competition and ship. Who's getting benched.")
+
+THE COMPETITION (block_competition_real_20260821): the 8/20 field re-run with ONLY the costs
+changed — real fire-minute NBBO spreads instead of paper slips. 15,041 fills, 14,958 quotes,
+0 gaps, shared per-day capital pool across lanes, 1% floor + k=1 guard, totals at $5,000.
+
+WHO'S BENCHED: **v2conv, from PRE.** -$1,559.31 with BOTH halves negative (TRAIN -$1,022.27 /
+OOS -$537.04); its 8/19 seat evidence (+$7.76/fill) was paper and inverts to -$7.06 real. The
+spread physics named it in advance (pre-registered R3): tightest stops, thinnest tape ->
+haircuts +92%/+191%/+443% across blocks, the largest in the field. Mechanism: NEW switch
+V2_PRE (default 0) — the bench could NOT ride V2_CONVERT=0 because that would also kill the
+OPEN window seat, which SURVIVES R2 (+$208.43, both halves positive). V2_PRE=1 restores.
+vwap_reclaim's stale PRE_LANE_RANK entry removed (benched 8/19; tonight graded negative in
+every live-fire cut — see the reclaim forensics run set).
+
+ROSTERS RE-SET by TOTAL DOLLARS at $5,000 (the 8/20 metric law):
+  PRE   ignition (+$4,961.61, the only positive seat) > ma_pullback (unmeasured — not
+        harness-replayable, the standing debt; keeps its seat behind the measured)
+  OPEN  ignition +$21,866.17 (halves 10,942/10,924) > ema9x90 +$2,234.56 (+$24.03/fill, best
+        per-fill in block) > kevseq +$909.09 (beat v2conv in BOTH halves — the R1 inversion) >
+        hidden_v2 +$485.09 (OOS -$94.23 FLAGGED) > v2conv +$208.43 > ma_pullback (unmeasured)
+  MID   ignition +$10,319.04 > grinder +$7,376.68 (best $/fill anywhere +$46.69, only negative
+        haircut -33%; the flip vs the shipped order is TRAIN-driven — OOS narrowly favors
+        grinder 3,795/3,611, DISCLOSED) > hidden_v2 +$1,596.15 (OOS -$904.58 FLAGGED) >
+        ema9x90 +$1,456.30 > kevseq +$772.41 > ma_pullback; v2conv (-$3,844.46) stays out.
+
+STANDING FLAG: hidden_v2 is OOS-negative in BOTH RTH blocks — no seat action under R2 (halves
+mixed, not both-negative), but it is the lane today's 16:37 review watches hardest.
+
+RIG: gate 32 (test_realcost_roster_20260821) — executed pins incl. T5 running _lane_rank at
+pre/open/mid clocks against the shipped defaults (first run caught the scratch-ns missing
+ENTRY_OPEN_ET — the fallback-to-LANE_RANK fired exactly as designed; scaffold fixed, bot
+untouched). Gates 28 (A7c) and pre-roster P6 amended: their paper-order pins retired WITH
+their evidence class, history preserved in comments. All three GREEN + gate 31 GREEN.
+FLAT BOOK VERIFIED IN-TURN: {"open_trades":[]} at 02:57:57 ET.
+DEFERRED TO TOMORROW (Marcos): reclaim revisit with the external-AI spec (walked tonight:
+PRE +$9,929/OPEN +$12,293 passing K1, density/touch/hostile checks still unrun — NOT shipped).

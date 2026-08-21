@@ -3836,8 +3836,16 @@ LANE_RANK_SORT = os.environ.get("LANE_RANK_SORT", "1") == "1"
 #   no privilege: sorts last until its 3-min/1-min driver scores it).
 # prevwap is BENCHED to shadow (PREVWAP_CONVERT=0, "make it earn its way after we retool") so
 # it takes no slot regardless. Consulted ONLY inside the premarket window; RTH keeps LANE_RANK.
+# 8/21 ~03:0x ET Marcos: "roster according to this last competition and ship" — the REAL-COST
+# rerun (block_competition_real_20260821: same universe/detectors/exits as 8/20, real NBBO
+# spreads, 15,041 fills). PRE at real costs: ignition +$4,961.61 (both halves +) the ONLY
+# positive seated lane; v2conv -$1,559.31 BOTH HALVES NEGATIVE (paper +$7.76/fill inverted to
+# -$7.06 — the tight-stop lane the spread physics named in advance) -> BENCHED FROM PRE (V2_PRE
+# below); vwap_reclaim -$1.58/fill and already benched -> rank entry removed. ma_pullback
+# unmeasured at real costs (not harness-replayable — standing debt), keeps its seat behind the
+# measured. Restore old order: PRE_LANE_RANK env.
 PRE_LANE_RANK = [s.strip() for s in os.environ.get(
-    "PRE_LANE_RANK", "ignition,v2conv,vwap_reclaim,ma_pullback").split(",") if s.strip()]
+    "PRE_LANE_RANK", "ignition,ma_pullback").split(",") if s.strip()]
 # 8/19: one position per ticker per cycle — the CDTG double-fill fix, same arbiter.
 ONE_PER_TICKER = os.environ.get("ONE_PER_TICKER", "1") == "1"
 
@@ -3930,8 +3938,14 @@ def _lane_window_ok(lane, hhmm):
 # fires exist solely on 8/19-8/20, not yet in the cache); ma_pullback ran runway-open (no
 # historical maps). The two lanes Marcos invested in ARE the block's best — the data could
 # not say so until they could compete.
+# 8/21 REAL-COST RE-RANK (Marcos: "roster according to this last competition and ship"), by
+# TOTAL DOLLARS at $5,000 (the 8/20 metric law): ignition +$21,866.17 (halves 10,942/10,924 —
+# near-perfect agreement) > ema9x90 +$2,234.56 (+$24.03/fill, the block's best per-fill) >
+# kevseq +$909.09 (both halves +, and it beat v2conv in BOTH halves — the R1 inversion) >
+# hidden_v2 +$485.09 (OOS -$94.23 FLAGGED, watch) > v2conv +$208.43 (+$1.00/fill — keeps the
+# window seat under R2, barely) > ma_pullback UNMEASURED at real costs (follows the measured).
 OPEN_LANE_RANK = [x.strip() for x in os.environ.get(
-    "OPEN_LANE_RANK", "ema9x90,ma_pullback,ignition,v2conv,kevseq,hidden_v2").split(",") if x.strip()]
+    "OPEN_LANE_RANK", "ignition,ema9x90,kevseq,hidden_v2,v2conv,ma_pullback").split(",") if x.strip()]
 OPEN_BLOCK = (os.environ.get("OPEN_BLOCK_START", "09:30"),
               os.environ.get("OPEN_BLOCK_END", "10:30"))
 # ── 8/20 MID-DAY BLOCK (Marcos: "how about 10:30 onward?" under his standing "let the data
@@ -3948,8 +3962,14 @@ OPEN_BLOCK = (os.environ.get("OPEN_BLOCK_START", "09:30"),
 # 8/20 complete-field rerun (same run as OPEN above): grinder holds #1 (+$34.98/fill) >
 # ignition +$21.83 > ma_pullback +$15.30 > ema9x90 +$10.80 > hidden_v2 +$10.29 > kevseq
 # +$8.70; v2conv +$2.20 stays unranked mid-day. All both-halves.
+# 8/21 REAL-COST RE-RANK, total dollars at $5,000: ignition +$10,319.04 > grinder +$7,376.68
+# (still the best PER-FILL lane anywhere, +$46.69, and the only NEGATIVE haircut -33% — wide
+# stops barely feel spread; the ignition-over-grinder flip is TRAIN-driven, OOS narrowly favors
+# grinder 3,795 vs 3,611 — DISCLOSED) > hidden_v2 +$1,596.15 (OOS -$904.58 FLAGGED) > ema9x90
+# +$1,456.30 > kevseq +$772.41 > ma_pullback unmeasured. v2conv -$3,844.46 both halves negative
+# stays OUT of the mid rank (as before, now on real-cost evidence).
 MID_LANE_RANK = [x.strip() for x in os.environ.get(
-    "MID_LANE_RANK", "grinder,ignition,ma_pullback,ema9x90,hidden_v2,kevseq").split(",") if x.strip()]
+    "MID_LANE_RANK", "ignition,grinder,hidden_v2,ema9x90,kevseq,ma_pullback").split(",") if x.strip()]
 MID_BLOCK = (os.environ.get("MID_BLOCK_START", "10:30"),
              os.environ.get("MID_BLOCK_END", "15:30"))
 
@@ -16706,7 +16726,12 @@ if PREVWAP_CONVERT:
 # 8/16 V2 QUIET-TAPE conversion (joint_door_20260816.md; ALL SIM): the v2conv lane fires across
 # 07:00-10:00, so premarket fires (<09:30) must be a PRE lane or the premarket gate shadows them.
 # Rides the convert switch — V2_CONVERT=0 (default) leaves PRE_LANES exactly as before.
-if V2_CONVERT:
+# 8/21 (Marcos: "who's getting benched" -> v2conv, from PRE): at real NBBO costs v2conv's PRE
+# book is -$1,559.31 with BOTH halves negative (block_competition_real_20260821) — the 8/19
+# seat evidence (+$7.76/fill) was paper-cost and inverts. The OPEN 09:30-10:30 window seat
+# SURVIVES (both halves positive there), so the bench must not ride V2_CONVERT (that would
+# kill the window too). V2_PRE=1 restores the premarket seat.
+if V2_CONVERT and os.environ.get("V2_PRE", "0") == "1":
     PRE_LANES.add("v2conv")
 # 7/25 calibrated on Friday's 27 premarket fires: the 2 thinnest (NEUP $12k, LGCL $131k cum
 # $vol) were the untradeable ones; every real candidate cleared $200k+. Floor does the quality

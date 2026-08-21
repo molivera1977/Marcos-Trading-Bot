@@ -50,8 +50,12 @@ check("P5 audition killtest converts UTC->ET (class-fix in the evidence)",
       "timedelta(hours=4)" in AUD and "UTC" in AUD)
 # 8/19 ~23:3x ET Marcos: "make sure the roster is lined up in order from best to worst" (pre)
 # + "bench prevwap and have it shadow. make it earn its way after we retool."
-check("P6 PRE_LANE_RANK default = audition order, unaudited last",
-      '"PRE_LANE_RANK", "ignition,v2conv,vwap_reclaim,ma_pullback"' in SRC)
+# 8/21 SUPERSEDED by the REAL-COST competition (Marcos: "roster according to this last
+# competition and ship"): v2conv PRE both halves NEGATIVE (-$1,559.31) -> benched from pre;
+# vwap_reclaim already benched -> rank entry removed. The audition order this pin froze was
+# PAPER-cost evidence; the pin now freezes the real-cost order instead.
+check("P6 PRE_LANE_RANK default = real-cost order (8/21): ignition, ma_pullback",
+      '"PRE_LANE_RANK", "ignition,ma_pullback"' in SRC)
 # 8/20 AMENDMENT: _lane_rank gained a third branch (opening-block roster). The premarket
 # branch is unchanged in MEANING — pinned on the branch, not the old one-liner.
 check("P7 _lane_rank consults PRE_LANE_RANK inside the premarket window",

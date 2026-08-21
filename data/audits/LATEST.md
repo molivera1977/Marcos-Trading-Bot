@@ -620,3 +620,5 @@ updated and EXECUTED against the new orders; GREEN. dip_rip remains the one lane
 compete (marked-level dependency; map archiving = Quartermaster, two consumers).
 DOCTRINE (for the checklist): a lane is not DONE until it can COMPETE — the harness entry is
 part of shipping, not an afterthought; 9/90 sat unmeasurable through two roster decisions.
+
+**SHIP STAMP (Addendum 16):** tree f37f7a2ddd66.

@@ -73,6 +73,15 @@ def verify(path=LEDGER, quiet=False):
         if not cmd:
             results.append(("NO-COMMAND", lineno, date, claim, "", exp))
             continue
+        # 8/21: the ledger's APPEND-ONLY rule says a changed fact gets a NEW row while the old
+        # one is marked "SUPERSEDED by <date>". The verifier never implemented that half, so the
+        # first time the protocol was actually used (SIM_ACCOUNT_BALANCE 3000 -> 5000) the
+        # superseded row graded CHANGED and took EG3 — and therefore every ship — RED. A
+        # superseded row is EXPECTED to no longer reproduce; that is what superseded means. It
+        # is reported (never silently dropped) and does not fail the gate.
+        if "SUPERSEDED" in claim.upper():
+            results.append(("SUPERSEDED", lineno, date, claim, "", exp))
+            continue
         status, out = run_row(cmd)
         if status == "FAILED":
             results.append(("FAILED", lineno, date, claim, out, exp))
@@ -81,14 +90,14 @@ def verify(path=LEDGER, quiet=False):
         else:
             results.append(("CHANGED", lineno, date, claim, out, exp))
     if not quiet:
-        ICON = {"PASS": "✅", "CHANGED": "⚠️ ", "FAILED": "❌", "NO-COMMAND": "❌"}
+        ICON = {"PASS": "✅", "CHANGED": "⚠️ ", "FAILED": "❌", "NO-COMMAND": "❌", "SUPERSEDED": "🕓"}
         print(f"CLAIMS LEDGER — {len(results)} rows  ({LEDGER})")
         for st, lineno, date, claim, got, exp in results:
             print(f"  {ICON[st]} {st:<10} L{lineno:<4} {date}  {claim[:88]}")
             if st in ("CHANGED", "FAILED"):
                 print(f"      expected: {exp!r}")
                 print(f"      got     : {got!r}")
-        bad = [r for r in results if r[0] != "PASS"]
+        bad = [r for r in results if r[0] not in ("PASS", "SUPERSEDED")]   # 8/21: superseded rows are history, not failures
         print(f"\n{'ALL CLAIMS VERIFIED' if not bad else 'CLAIMS NOT VERIFIED: %d row(s)' % len(bad)}")
     return results
 

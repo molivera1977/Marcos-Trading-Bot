@@ -4254,7 +4254,11 @@ try:
         check(f"EG3: seeded fact present — {_lbl}", _kw in _e3_txt)
     # EXECUTED: every seeded row re-runs clean, right now, in this rig run
     _e3_res = _E3.verify(quiet=True)
-    _e3_bad = [(r[0], r[2][:60]) for r in _e3_res if r[0] != "PASS"]
+    # 8/21: SUPERSEDED is a legitimate terminal state, not a failure. The ledger's append-only
+    # rule REQUIRES the old row to stay in place marked superseded when a fact changes; grading
+    # it as a failure made the documented protocol unusable (found the first time it was used:
+    # SIM_ACCOUNT_BALANCE 3000 -> 5000). Superseded rows are still LISTED by the verifier.
+    _e3_bad = [(r[0], r[2][:60]) for r in _e3_res if r[0] not in ("PASS", "SUPERSEDED")]
     check("EG3: EXECUTED — every seeded claim re-verifies against the current tree",
           not _e3_bad, str(_e3_bad))
     # append-only discipline is stated in the file itself (the rule a human has to follow)

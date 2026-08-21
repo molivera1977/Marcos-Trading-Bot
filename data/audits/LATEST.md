@@ -869,3 +869,46 @@ CAVEAT ON EVERY NUMBER ABOVE: one day, n=719 counterfactuals, flat-slip walks (n
 trades actually taken. Directional, not bankable.
 
 **SHIP STAMP (Addendum 21):** tree 0a67fd14a1b1.
+
+## CONVENING ARTIFACT — SIM FRAME $5,000 (8/21 ~18:2x ET)
+covers: 0a67fd14a1b1
+
+FINDINGS + FIX-NOW: none beyond the change itself. The diff is ONE constant plus its comment
+block; no gate, sizing, exit, feed or roster code touched. The one thing that could have made
+this a behaviour change — the 70%-of-balance clamp overtaking the $1,000 cap — is EXECUTED in
+gate 33 B3c and does not: min(0.70x3000,1000)=1000 and min(0.70x5000,1000)=1000.
+
+DAY-ONE WALKTHROUGH (next session, Monday 8/24): boot prints "DRY_RUN sizing frame: $5000.00
+sim account". First fire sizes identically to Friday (R=$30, clamp $1,000). The change becomes
+visible ONLY when 4+ positions are open simultaneously — at $3k the 5th ~$1,000 ticket was
+refused for capital, at $5k it fills. Measured live peak is 3 concurrent ~$1,500, so the first
+observable difference may not occur for days; that is expected, not a failed ship.
+
+doctrine-inversion sweep: the doctrine "the sim models a $3,000 account" is repealed and
+replaced with "the sim models the go-live account". Old-doctrine encodings found: the source
+comment on RISK_PER_TRADE still reads "1% of the intended $3,000 account" — KEPT DELIBERATELY,
+because it is now the standing note that R was never re-derived and 1% of the real account
+would be $50 (flagged in the ruling, needs its own kill-test). data/audits and killtest headers
+quote both books everywhere, so no study is orphaned. No other encoding found.
+
+ROLL CALL — Blast Radius Auditor: touched (this artifact; the clamp arithmetic is the whole
+audit). Systems Quant: touched (the studies already reported both books). Statistician: clean
+(no metric changed). Handicapper: clean (rank untouched). Momentum Operator / Trade Manager /
+Execution Surgeon: clean (no entry, exit or execution path touched). Side Marshal / Crown
+Steward / Cartographer / Curl Mechanic / Feed Engineer / Kev Librarian / Seam Scientist / Tape
+Veteran / Convexity Trader / Rocket Rider: clean, no surface touched. Webull Broker Desk:
+touched — the sim frame now matches the intended funding of margin acct …9AGA; the REAL
+ACCOUNT_BALANCE env (604.16) is untouched and still governs non-DRY_RUN. Quartermaster:
+touched — FERRY DEBT NAMED: the 10s cache stops at 2026-08-18, so 8/19, 8/20 and 8/21 are
+ungraded and every study this week excluded them. First Hour / Opening Bell: touched (the
+16:37 grading in Addendum 21 covers the open). Strength Ombudsman: touched — today's grading
+shows the RTH gates COST $626.10 while PRE gates SAVED $1,192.16; pullback_first_suppress is
+prosecuted on both lists. Forward Architect: touched (weekend list re-ordered — pullback_first_
+suppress above flat_top). Hidden Entry Architect: touched (hidden_observe_only was the best
+refusal of the day, -$670.72). Reclaim Architect: touched (reclaim shadows -$203.55 RTH /
+-$212.95 PRE — the bench holds). Wind Tunnel Engineer: clean with reason — a constant change
+with executed arithmetic, no new mechanism to gauntlet. Pit Crew Chief: touched (deploy below).
+Integrator: touched (gate 33 GREEN, parse check run). Dashboard Curator: touched — the boot
+banner and boot_config carry the new frame automatically. Project Manager: touched (docket).
+Historian: touched (the $3,000 era of the sim ends here; both-book reporting preserves the
+comparability of every study in the archive).

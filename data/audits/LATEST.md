@@ -937,3 +937,5 @@ window clipping the longer row (gate-23 window lesson, 4th appearance) — widen
 WHY IT MATTERS: this is the REGIME GATE's prerequisite — trap 5 (are the gates backwards on
 hot tape?) is unanswerable until every refusal is priced, and the chart gate was the last
 silent class. FLAT BOOK VERIFIED IN-TURN below; market closed; bot asleep until Mon 03:55.
+
+**SHIP STAMP (Addendum 22):** tree 229cf52c1c45.

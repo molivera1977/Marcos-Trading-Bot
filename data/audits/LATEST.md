@@ -939,3 +939,39 @@ hot tape?) is unanswerable until every refusal is priced, and the chart gate was
 silent class. FLAT BOOK VERIFIED IN-TURN below; market closed; bot asleep until Mon 03:55.
 
 **SHIP STAMP (Addendum 22):** tree 229cf52c1c45.
+
+## CONVENING ARTIFACT — STAMP-EVERYTHING SHIP (8/21 ~22:3x ET)
+covers: 229cf52c1c45
+
+FINDINGS + FIX-NOW: the diff is TWO log lines gaining price= and stop= kwargs on existing rows,
+plus rig gate 34. No gate LOGIC touched — the chart gate blocks or allows exactly as before;
+only what the refusal RECORDS changed. The one build risk — _refusal_stop misreading extra —
+is pinned EXECUTED (gate 34 P4: zone_stop|ema_stop|stop|None semantics reproduced).
+
+DAY-ONE WALKTHROUGH (Monday 8/24): a lane fires, chart gate evaluates, the verdict row now
+carries price + stop + break_level. If the gate blocks, chart_gate_blocked_trade carries the
+same. The nightly grading and the daygain-ablation study can now walk EVERY refusal class.
+Failure mode if _refusal_stop returns None (extra lacks a stop): row stamps stop=null — same
+as today, never worse, and the null itself is the signal the LANE didn't compute a stop.
+
+doctrine-inversion sweep: doctrine touched = "stamp everything" (new, 8/21). Inverse — "log
+minimally, stamps cost bytes" — rejected by the week's evidence: three findings were one query
+each BECAUSE rows were over-stamped ("name BOTH"), and the gate ledger's blind bottom ranks
+exist BECAUSE early gates under-stamped. No other encoding of the old minimal-logging habit
+found at refusal sites (daygain/vel5/momentum stamped since 8/19; observe_only rows carry
+price+stop by construction; halt/dip/reclaim rows audited stamped this week).
+
+ROLL CALL — Blast Radius Auditor: touched (this artifact; two-line diff, executed pin).
+Systems Quant / Statistician: touched (the rows feed their studies; no metric changed).
+Cartographer: touched (break_level retained — the chart gate's input stays visible). Momentum
+Operator / Trade Manager / Execution Surgeon: clean (no entry/exit/execution logic). Side
+Marshal / Crown Steward / Feed Engineer / Webull Broker Desk / Kev Librarian / Seam Scientist /
+Tape Veteran / Convexity Trader / Rocket Rider / Handicapper / First Hour / Opening Bell /
+Curl Mechanic / Reclaim Architect / Hidden Entry Architect / Strength Ombudsman / Wind Tunnel
+Engineer / Grinder types: clean — no surface touched (single-site logging change). Quartermaster:
+touched (the ferry family — 4 runs tonight, 2,186 files, 19 full-universe days — is its debt
+PAID; harvest_day/nightly-job outage remains ITS open item). Forward Architect: touched (the
+regime gate consumes these stamps). Pit Crew Chief: touched (deploy below). Integrator: touched
+(gate 34 GREEN, parse pin). Dashboard Curator: clean with reason (no UI surface). Project
+Manager: touched (Saturday queue updated). Historian: touched (the stamp-everything rule dates
+from tonight; the chart gate was the last silent refusal class).

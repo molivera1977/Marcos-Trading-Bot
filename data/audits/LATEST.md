@@ -975,3 +975,5 @@ regime gate consumes these stamps). Pit Crew Chief: touched (deploy below). Inte
 (gate 34 GREEN, parse pin). Dashboard Curator: clean with reason (no UI surface). Project
 Manager: touched (Saturday queue updated). Historian: touched (the stamp-everything rule dates
 from tonight; the chart gate was the last silent refusal class).
+
+also covers: 32e309e8e486 (the artifact commit itself; the stamp commit landed between the code and the artifact, breaking the one-level HEAD~1 exemption)

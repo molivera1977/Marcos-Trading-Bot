@@ -15455,6 +15455,9 @@ def main():
             # Default = shadow: records only, changes nothing. Enforce = block non-'allow' entries.
             _cg_verdict, _cg_reason, _cg_level, _cg_src = _chart_break_gate(ticker, entry_price, entry_type)
             _log_decision(ticker, "chart_gate_" + _cg_verdict,
+                          # 8/21 stamp-everything: price + stop make block/skip verdict rows
+                          # walkable (they were the last refusal class with neither).
+                          price=round(float(entry_price), 4), stop=_refusal_stop(extra),
                           entry=round(float(entry_price), 4), break_level=_cg_level,
                           reason=_cg_reason, src=_cg_src, entry_type=entry_type,
                           enforced=CHART_GATE_ENFORCE, day_gain=extra.get("day_gain"))
@@ -15462,7 +15465,14 @@ def main():
                   f"{_cg_verdict.upper()} ({_cg_reason}) — entry ${float(entry_price):.4f} vs level "
                   f"{('$%.4f' % _cg_level) if _cg_level else 'none'}")
             if CHART_GATE_ENFORCE and _cg_verdict != "allow":
+                # 8/21 STAMP-EVERYTHING (the regime-gate prerequisite; found in the gate-ledger
+                # audit: chart-gate refusals carried NO price/stop, making them the last
+                # ungradeable refusal class — daygain/vel5/momentum have stamped since 8/19).
+                # `price` + `stop` + the gate's own input (`break_level`) make the row walkable
+                # by the nightly grading and any future study, under theories not yet conceived.
                 _log_decision(ticker, "chart_gate_blocked_trade", lane=entry_type,
+                              price=round(float(entry_price), 4),
+                              stop=_refusal_stop(extra),
                               entry=round(float(entry_price), 4), break_level=_cg_level, reason=_cg_reason)
                 print(f"   ⛔ CHART-GATE BLOCKED {ticker} entry (no break of marked level) — no trade")
                 _slot_refund(ticker, entry_type)

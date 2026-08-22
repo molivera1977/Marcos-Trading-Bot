@@ -922,3 +922,18 @@ was documented since 8/17 and had never been exercised until tonight — the fir
 the hole. FIX: verify_claims grades SUPERSEDED as its own terminal state (still LISTED, never
 silently dropped) and EG3 excludes it from the failure set. Both changes carry the finding in
 their comments. Rig 33 GREEN, EG3 GREEN.
+
+## ADDENDUM 22 — STAMP EVERYTHING: THE CHART-GATE ROWS (8/21 night)
+
+THE RULE (cross-AI exchange, 8/21): every refusal row carries price + would-be stop + the
+gate's own input, so rows are gradeable under theories not yet conceived. AUDIT (this turn,
+live rows 8/20-8/21): daygain_reject 27/27 stamped, vel5_reject 5/5, momentum_reject 51/51 —
+the 8/19 refusal-stop stamp works. THE LAST HOLE: chart_gate_allow/block/skip and
+chart_gate_blocked_trade carried NEITHER price NOR stop (8/20 live: n=1 block, 0 stamped).
+SHIP: both chart-gate log sites now stamp price=entry_price + stop=_refusal_stop(extra);
+break_level (the gate's own input) already present and retained. Rig gate 34: 5 pins GREEN
+incl. an EXECUTED _refusal_stop semantics pin; P3's first RED was the pin's own 400-char
+window clipping the longer row (gate-23 window lesson, 4th appearance) — widened, not weakened.
+WHY IT MATTERS: this is the REGIME GATE's prerequisite — trap 5 (are the gates backwards on
+hot tape?) is unanswerable until every refusal is priced, and the chart gate was the last
+silent class. FLAT BOOK VERIFIED IN-TURN below; market closed; bot asleep until Mon 03:55.

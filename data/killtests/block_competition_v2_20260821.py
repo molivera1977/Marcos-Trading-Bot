@@ -41,7 +41,7 @@ import types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BARS = os.path.join(HERE, "..", "universe", "bars10s")
-BOUNDARY = "2026-08-14"
+BOUNDARY = "2026-07-28"   # full-universe era: all 19 ferried days (bars valid any date; this is the honest-universe span)
 RISK, BAL = 30.0, 5000.0
 MIN_STOP_PCT, SPREAD_K = 1.0, 1.0
 

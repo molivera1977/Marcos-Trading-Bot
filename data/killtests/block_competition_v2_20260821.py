@@ -73,6 +73,44 @@ def et_hm(t):
     return (dt.datetime.fromisoformat(str(t)[:19]) - dt.timedelta(hours=4)).strftime("%H:%M")
 
 
+def walk_var(b, i0, entry, stop, pre, spr, arm="E3"):
+    """E3 (house) · BT (Q5 breathing trail: 20% off run-high first 10 min, 10% after) ·
+    POP8 (bank-quick, the regime-gate scout exit). Gap-through-stop rule on all three."""
+    px = entry + (spr / 2 if spr else entry * 0.005)
+    rps = px - stop
+    if rps <= 0:
+        return None
+    sh = max(1, min(int(RISK / rps), int(BAL * 0.70 / px), int(1000 / px)))
+    rem, banked, tiered, runhi = sh, 0.0, False, px
+    half = (spr / 2 if spr else px * 0.0025)
+    flat = "09:25" if pre else "15:45"
+    for i in range(i0 + 1, len(b)):
+        x = b[i]
+        t = et_hm(x["t"])
+        if t >= flat:
+            return banked + rem * ((x["c"] - half) - px), sh * px, i
+        if x["l"] <= stop:
+            o = float(x.get("o") or x["c"])
+            fill = min(stop, o)
+            return banked + rem * ((fill - half) - px), sh * px, i
+        runhi = max(runhi, x["h"])
+        if arm == "POP8":
+            if x["h"] >= px * 1.08:
+                return banked + rem * (px * 1.08 - px), sh * px, i
+        else:
+            if not tiered and x["h"] >= px * 1.10:
+                n = rem // 2 or rem
+                banked += n * (px * 1.10 - px)
+                rem -= n
+                tiered, stop = True, px
+                if rem == 0:
+                    return banked, sh * px, i
+            trail = 0.80 if (arm == "BT" and (i - i0) <= 60) else 0.90
+            if tiered and x["c"] <= runhi * trail:
+                return banked + rem * ((x["c"] - half) - px), sh * px, i
+    return banked + rem * ((b[-1]["c"] - half) - px), sh * px, len(b) - 1
+
+
 def main():
     hv2 = load_hv2()
     KCTX = {"front_side": None, "day_gain": None, "top3": False, "blue_sky": False}
@@ -126,13 +164,19 @@ def main():
             spr = HF.spread_at(sym, d, t)
             if SPREAD_K > 0 and spr and (e - s_) < SPREAD_K * spr:
                 continue
-            r = W2.walk(b, i, e, s_, pre, spr, bal=BAL)
+            r = walk_var(b, i, e, s_, pre, spr, "E3")
             if r is None:
                 continue
-            fills.append({"lane": lane, "blk": blk, "d": d, "sym": sym, "t": t,
-                          "pnl": r[0], "n": r[1],
-                          "ti": dt.datetime.fromisoformat(str(b[i]["t"])[:19]).timestamp(),
-                          "tx": dt.datetime.fromisoformat(str(b[r[2]]["t"])[:19]).timestamp()})
+            row = {"lane": lane, "blk": blk, "d": d, "sym": sym, "t": t,
+                   "pnl": r[0], "n": r[1], "spr": spr,
+                   "w_pct": round((e - s_) / e * 100, 3),          # Q4 ext/width post-hoc cuts
+                   "ti": dt.datetime.fromisoformat(str(b[i]["t"])[:19]).timestamp(),
+                   "tx": dt.datetime.fromisoformat(str(b[r[2]]["t"])[:19]).timestamp()}
+            for arm in ("BT", "POP8"):                              # Q5 + scout exit, same fetch
+                rv = walk_var(b, i, e, s_, pre, spr, arm)
+                if rv:
+                    row[f"pnl_{arm}"] = rv[0]
+            fills.append(row)
     print(f"\nfills {len(fills)} | quotes {HF._qgap[1]} gaps {HF._qgap[0]}", flush=True)
     json.dump(fills, open(os.path.join(HERE, "block_competition_v2_20260821_out.json"), "w"),
               default=str)
@@ -186,6 +230,9 @@ def main():
         if blk == "OPEN":
             line("  09:30-09:45", [f for f in sub if f["t"] < "09:45"])
             line("  09:45-10:30", [f for f in sub if f["t"] >= "09:45"])
+            for arm in ("BT", "POP8"):                              # Q5 verdict, same table
+                sv = [dict(f, pnl=f[f"pnl_{arm}"]) for f in sub if f"pnl_{arm}" in f]
+                line(f"  exit {arm} (all OPEN)", sv)
 
     print("\nPRE-REGISTERED: B1 seat-worthy in the hour iff positive OPEN on both halves AND")
     print("drop-best — ALL verdicts PROVISIONAL at <=6 days. B2 09:30-09:45 reported. B3 nothing")
